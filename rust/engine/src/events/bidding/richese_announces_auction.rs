@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct RicheseAnnouncesAuction {
     pub first: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -57,12 +57,12 @@ impl GameEventMethods for RicheseAnnouncesAuction {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::RicheseAnnouncesAuction
+    fn event_type(&self) -> EventType {
+        EventType::RicheseAnnouncesAuction
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::RicheseAnnouncesAuction(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::RicheseAnnouncesAuction(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -5,7 +5,7 @@ pub struct BeneGesseritAccompanies {
     pub location: Option<Location>,
     pub accompanies: bool,
     pub extra_advisor: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -64,7 +64,7 @@ impl BeneGesseritAccompanies {
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             self.log_objects(game, vec![m.into()]);
             game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
-            game.check_intrusion(&self.clone().into_event())?;
+            game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
         } else {
             let m = express!(self.initiator(), " don't accompany")
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::DontAccompany, Option::<Location>::None.into(), false));
@@ -158,12 +158,12 @@ impl GameEventMethods for BeneGesseritAccompanies {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BeneGesseritAccompanies
+    fn event_type(&self) -> EventType {
+        EventType::BeneGesseritAccompanies
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BeneGesseritAccompanies(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BeneGesseritAccompanies(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {
@@ -181,10 +181,6 @@ impl GameEventMethods for BeneGesseritAccompanies {
 }
 
 impl crate::events::location_event::LocationEvent for BeneGesseritAccompanies {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         BeneGesseritAccompanies::to(self, game)
     }

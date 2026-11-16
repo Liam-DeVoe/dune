@@ -5,15 +5,15 @@ use treachery_engine::json::utilities::Utilities;
 use treachery_engine::game::amounts;
 use treachery_engine::prelude::*;
 
-fn decode(json: &str) -> Result<GameEvent, String> {
-    Utilities::deserialize::<GameEvent>(json).map(|e| e.expect("an event")).map_err(|e| e.message)
+fn decode(json: &str) -> Result<Event, String> {
+    Utilities::deserialize::<HistoryEntry>(json).map(|e| e.expect("an event").event).map_err(|e| e.message)
 }
 
 #[test]
 fn a_turn_out_of_range_doesnt_decode() {
     let prediction = |turn: i64| decode(&format!(r#"{{"$type":"BeneGesseritPrediction","ToWin":10,"Turn":{turn}}}"#));
     match prediction(5).unwrap() {
-        GameEvent::BeneGesseritPrediction(e) => assert_eq!(e.turn, Turn::new(5)),
+        Event::BeneGesseritPrediction(e) => assert_eq!(e.turn, Turn::new(5)),
         _ => unreachable!(),
     }
     assert_eq!(prediction(-1).unwrap_err(), "-1 is not a valid turn");

@@ -6,7 +6,7 @@
 //! (protocol.md, Dependent inputs). Choices that depend on other inputs are computed from the
 //! draft.
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
 
@@ -39,7 +39,7 @@ fn simple(title: RichText, confirm_label: &str, alert: bool) -> ActionOptions {
 }
 
 /// The entry of `GameView.actions` for one applicable event type, with the form's defaults.
-pub fn action_view(game: &Game, v: &ResolvedViewer, s: &Seating, t: GameEventType, d: &dyn Describer) -> ActionView {
+pub fn action_view(game: &Game, v: &ResolvedViewer, s: &Seating, t: EventType, d: &dyn Describer) -> ActionView {
     // A player without a faction yet acts as `None`, like a seatless host.
     if v.player.is_none() && !setup::seatless_host_may_act(v, t) {
         return ActionView { event_type: t.name().to_string(), options: None, validation: None };
@@ -57,14 +57,14 @@ pub fn action_view(game: &Game, v: &ResolvedViewer, s: &Seating, t: GameEventTyp
 /// The event a form sends before the player touches it: the form's starting inputs,
 /// after its widgets have clamped them (a number picker clamps its value into its range).
 /// Public for the observable-behavior harness (`rust/observe`), which fuzzes from these drafts.
-pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Option<Faction>, t: EventType) -> Option<Event> {
     if revival::TYPES.contains(&t) { return revival::default_draft(game, faction, t); }
     if setup::TYPES.contains(&t) { return setup::default_draft(game, faction, t); }
     if let Some(e) = _v.player.and_then(|p| ship_move::default_draft(game, p, faction, t)) { return Some(e); }
     if let Some(d) = battle::default_draft(game, _v, faction, t) { return d; }
     if let Some(e) = other::default_draft(game, s, faction, t) { return Some(e); }
     Some(match t {
-        GameEventType::AllianceOffered => {
+        EventType::AllianceOffered => {
             // A required image choice starts at the first target.
             let mut e = AllianceOffered::new(game, faction);
             if let Some(p) = _v.player {
@@ -72,33 +72,33 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Opt
             }
             event(e)
         }
-        GameEventType::AlliancePassed => event(AlliancePassed::new(game, faction)),
-        GameEventType::AllianceBroken => event(AllianceBroken::new(game, faction)),
-        GameEventType::EndPhase => event(EndPhase::new(game, faction)),
-        GameEventType::StormDialled => {
+        EventType::AlliancePassed => event(AlliancePassed::new(game, faction)),
+        EventType::AllianceBroken => event(AllianceBroken::new(game, faction)),
+        EventType::EndPhase => event(EndPhase::new(game, faction)),
+        EventType::StormDialled => {
             let mut e = StormDialled::new(game, faction);
             e.amount = treachery_engine::game::amounts::clamp_u16(0i32.clamp(StormDialled::valid_min_amount(game), StormDialled::valid_max_amount(game).max(StormDialled::valid_min_amount(game))));
             event(e)
         }
-        GameEventType::Bid | GameEventType::BlackMarketBid => return bidding::default_draft(game, faction, t),
+        EventType::Bid | EventType::BlackMarketBid => return bidding::default_draft(game, faction, t),
         _ => return None,
     })
 }
 
 /// The options of the form for `draft`, and the validation of `draft` itself.
-fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &GameEvent, d: &dyn Describer) -> (Option<ActionOptions>, Option<RichText>) {
+fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &Event, d: &dyn Describer) -> (Option<ActionOptions>, Option<RichText>) {
     if let Some(r) = revival::options_and_validation(game, v, draft, d) { return r; }
-    if let Some(r) = setup::options_and_validation(game, s, draft, d) { return r; }
+    if let Some(r) = setup::options_and_validation(game, v.faction, s, draft, d) { return r; }
     if let Some(r) = v.player.and_then(|p| ship_move::options_and_validation(game, p, draft, d)) { return r; }
     if let Some(r) = battle::options_and_validation(game, v, draft, d) { return r; }
     if let Some(r) = other::options_and_validation(game, v, s, draft, d) { return r; }
     let options = match draft {
-        GameEvent::AllianceOffered(_) => {
+        Event::AllianceOffered(_) => {
             let me = v.player.expect("an applicable event has a player");
             Some(ActionOptions::AllianceOffered { targets: AllianceOffered::valid_targets(game, me).map(name).collect() })
         }
         // AlliancePassed asks to keep the alliance when there is one.
-        GameEvent::AlliancePassed(_) => {
+        Event::AlliancePassed(_) => {
             let me = v.player.expect("an applicable event has a player");
             let ally = game.player(me).ally;
             Some(if game.player(me).has_ally() {
@@ -107,18 +107,18 @@ fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &
                 simple(text("Done making alliances?"), "Pass", true)
             })
         }
-        GameEvent::AllianceBroken(_) => Some(simple(text("Break your current alliance?"), "Break", false)),
+        Event::AllianceBroken(_) => Some(simple(text("Break your current alliance?"), "Break", false)),
         // The prompt holds EndPhase's "Continue" button, with the event's validation, when
         // EndPhase is applicable.
-        GameEvent::EndPhase(_) => Some(ActionOptions::Simple { title: None, confirm_label: "Continue".to_string(), alert: false, allow_auto_confirm: false }),
-        GameEvent::StormDialled(_) => Some(ActionOptions::StormDialled {
+        Event::EndPhase(_) => Some(ActionOptions::Simple { title: None, confirm_label: "Continue".to_string(), alert: false, allow_auto_confirm: false }),
+        Event::StormDialled(_) => Some(ActionOptions::StormDialled {
             min: StormDialled::valid_min_amount(game),
             max: StormDialled::valid_max_amount(game),
         }),
-        GameEvent::Bid(_) | GameEvent::BlackMarketBid(_) => bidding::options(game, v, draft),
+        Event::Bid(_) | Event::BlackMarketBid(_) => bidding::options(game, v, draft),
         _ => None,
     };
-    (options, validate(game, draft.clone(), d))
+    (options, validate(game, v.faction, draft.clone(), d))
 }
 
 /// Why a draft query was refused.
@@ -136,9 +136,9 @@ pub enum QueryError {
 /// inputs the player has chosen so far. `draft_json` is the event in savegame JSON. Its
 /// `Initiator` is replaced by the viewer's faction, as the server does on submission.
 /// `applicable` is the viewer's applicable event types from the view they are looking at.
-pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[GameEventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
+pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[EventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
     let v = viewer.resolve(game);
-    let draft: GameEvent = json::deserialize(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?;
+    let draft: Event = json::deserialize::<HistoryEntry>(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?.event;
     if (v.player.is_none() || v.is_observer) && !setup::seatless_host_may_act(&v, draft.event_type()) {
         return Err(QueryError::NotAPlayer);
     }
@@ -146,7 +146,8 @@ pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[GameEventTy
     if !applicable.contains(&draft.event_type()) {
         return Err(QueryError::NotApplicable);
     }
-    draft.initialize(game, faction);
+    draft.prepare(game, faction);
+    let v = ResolvedViewer { faction, ..v };
     let (options, validation) = options_and_validation(game, &v, s, &draft, d);
     Ok(DraftResult { event_type: draft.event_type().name().to_string(), options, validation })
 }

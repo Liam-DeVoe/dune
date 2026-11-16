@@ -18,11 +18,17 @@ use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
 
-fn ev<T: EventKind>(e: Rc<T>) -> String {
-    treachery_engine::json::serialize(&T::into_event(e))
+fn ev<T: EventKind>(e: Rc<T>) -> String
+where
+    Event: From<Rc<T>>,
+{
+    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
 }
 
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String {
+fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
+where
+    Event: From<Rc<T>>,
+{
     e.map_or_else(|| "null".to_string(), ev)
 }
 
@@ -80,7 +86,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineResourcesAudited" => opt(bot.determine_resources_audited(game)),
         "DetermineChoamEconomics" => opt(bot.determine_choam_economics(game)),
         "DetermineChoamRemoveForce" => opt(bot.determine_choam_remove_force(game)),
-        "DetermineExtortionPrevented" => opt(bot.determine_extortion_prevented(game)),
+        "DetermineExtortionPrevented" => common::decision(bot, game, bot.determine_extortion_prevented(game)),
         "DeterminePerformMoritaniSetup" => ev(bot.determine_perform_moritani_setup(game)),
         "DetermineTerrorPlanted" => opt(bot.determine_terror_planted(game)),
         "DetermineTerrorRevealed" => ev(bot.determine_terror_revealed(game)),

@@ -6,7 +6,7 @@ pub struct TerrorPlanted {
     pub stronghold: Option<Territory>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -174,12 +174,12 @@ impl GameEventMethods for TerrorPlanted {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::TerrorPlanted
+    fn event_type(&self) -> EventType {
+        EventType::TerrorPlanted
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::TerrorPlanted(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::TerrorPlanted(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

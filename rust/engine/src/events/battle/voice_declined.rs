@@ -5,7 +5,7 @@ use crate::prelude::*;
 /// decline closes Voice for the battle, also for the other player who could have used it.
 #[derive(Clone, Debug)]
 pub struct VoiceDeclined {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -52,12 +52,12 @@ impl GameEventMethods for VoiceDeclined {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::VoiceDeclined
+    fn event_type(&self) -> EventType {
+        EventType::VoiceDeclined
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::VoiceDeclined(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::VoiceDeclined(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

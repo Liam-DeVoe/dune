@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct GuildDelay {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -44,12 +44,12 @@ impl GameEventMethods for GuildDelay {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::GuildDelay
+    fn event_type(&self) -> EventType {
+        EventType::GuildDelay
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::GuildDelay(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::GuildDelay(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

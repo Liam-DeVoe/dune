@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct KarmaEcazDial {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -52,12 +52,12 @@ impl GameEventMethods for KarmaEcazDial {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::KarmaEcazDial
+    fn event_type(&self) -> EventType {
+        EventType::KarmaEcazDial
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::KarmaEcazDial(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::KarmaEcazDial(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

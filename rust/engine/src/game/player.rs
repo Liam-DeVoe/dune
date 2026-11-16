@@ -850,9 +850,9 @@ impl Player {
         game.applicable(Rule::Homeworlds) && self.home_worlds.iter().any(|w| self.has_low_threshold(game, w.world()))
     }
 
-    pub fn initiated(&self, e: Option<&GameEvent>) -> bool {
+    pub fn initiated(&self, e: Option<&Event>) -> bool {
                 match e {
-            Some(e) => e.initiator() == self.faction,
+            Some(e) => e.legacy_initiator() == self.faction,
             None => false,
         }
     }

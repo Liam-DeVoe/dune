@@ -5,7 +5,7 @@ pub struct TakeLosses {
     pub force_amount: u16,
     pub special_force_amount: u16,
     pub use_useless_card: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -154,12 +154,12 @@ impl GameEventMethods for TakeLosses {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::TakeLosses
+    fn event_type(&self) -> EventType {
+        EventType::TakeLosses
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::TakeLosses(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::TakeLosses(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

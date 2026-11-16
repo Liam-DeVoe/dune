@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct NexusVoted {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -58,12 +58,12 @@ impl GameEventMethods for NexusVoted {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::NexusVoted
+    fn event_type(&self) -> EventType {
+        EventType::NexusVoted
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::NexusVoted(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::NexusVoted(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

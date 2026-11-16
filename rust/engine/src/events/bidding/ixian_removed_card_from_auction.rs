@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct IxianRemovedCardFromAuction {
     pub put_on_top: bool,
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -75,12 +75,12 @@ impl GameEventMethods for IxianRemovedCardFromAuction {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::IxianRemovedCardFromAuction
+    fn event_type(&self) -> EventType {
+        EventType::IxianRemovedCardFromAuction
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::IxianRemovedCardFromAuction(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::IxianRemovedCardFromAuction(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

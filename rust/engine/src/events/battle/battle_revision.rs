@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct BattleRevision {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -56,12 +56,12 @@ impl GameEventMethods for BattleRevision {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BattleRevision
+    fn event_type(&self) -> EventType {
+        EventType::BattleRevision
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BattleRevision(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BattleRevision(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

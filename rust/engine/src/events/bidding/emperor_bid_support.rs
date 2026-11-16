@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct EmperorBidSupport {
     pub amounts: Option<IndexMap<Faction, i32>>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -74,12 +74,12 @@ impl GameEventMethods for EmperorBidSupport {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::EmperorBidSupport
+    fn event_type(&self) -> EventType {
+        EventType::EmperorBidSupport
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::EmperorBidSupport(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::EmperorBidSupport(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

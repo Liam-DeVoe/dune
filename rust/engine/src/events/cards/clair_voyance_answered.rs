@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct ClairVoyanceAnswered {
     pub answer: Option<ClairVoyanceAnswer>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -112,12 +112,12 @@ impl GameEventMethods for ClairVoyanceAnswered {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::ClairVoyanceAnswered
+    fn event_type(&self) -> EventType {
+        EventType::ClairVoyanceAnswered
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::ClairVoyanceAnswered(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::ClairVoyanceAnswered(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

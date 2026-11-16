@@ -9,7 +9,7 @@ pub struct EstablishPlayers {
     pub applicable_rules: Option<Vec<Rule>>,
     pub players: Option<String>,
     pub factions_in_play: Option<String>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -161,22 +161,6 @@ impl EstablishPlayers {
         }
 
         result
-    }
-
-    /// Overrides `GameEvent.Execute`: no try/catch, no applicability check,
-    /// `RecentMilestones` is not cleared.
-    pub fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, _is_host: bool) -> GameResult<Option<Message>> {
-        if perform_validation {
-            if let Some(refusal) = self.validate(game) {
-                return Ok(Some(refusal));
-            }
-        }
-
-        let ev = self.clone().into_event();
-        game.perform_pre_event_tasks(&ev);
-        self.execute_concrete_event(game)?;
-        game.perform_post_event_tasks(&ev, true);
-        Ok(None)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -357,20 +341,16 @@ impl GameEventMethods for EstablishPlayers {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::EstablishPlayers
+    fn event_type(&self) -> EventType {
+        EventType::EstablishPlayers
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::EstablishPlayers(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::EstablishPlayers(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {
         EstablishPlayers::validate(self, game)
-    }
-
-    fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> GameResult<Option<Message>> {
-        EstablishPlayers::try_execute(self, game, perform_validation, is_host)
     }
 
     fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

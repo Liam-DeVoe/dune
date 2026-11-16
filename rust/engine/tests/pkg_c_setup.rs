@@ -150,7 +150,7 @@ fn establish_players_copies_factions_list() {
     ev.seed = 1234;
     ev.settings = Some(s);
     let ev = Rc::new(ev);
-    let r = ev.execute(&mut g, false, true);
+    let r = g.play_for_message(HistoryEntry::new(None, ev.clone()), false, true);
     assert!(r.is_none());
     assert_eq!(g.players.len(), 3);
     assert_eq!(g.turn.current_phase, Phase::SelectingFactions);
@@ -168,7 +168,7 @@ fn establish_players_null_initial_rules() {
     let mut ev = EstablishPlayers::new(&g, None);
     ev.settings = Some(s);
     let ev = Rc::new(ev);
-    let text = exception_text(|| ev.execute(&mut g, false, true));
+    let text = exception_text(|| g.play_for_message(HistoryEntry::new(None, ev), false, true));
     assert_eq!(text, "rules");
 }
 
@@ -181,7 +181,7 @@ fn establish_players_is_deterministic() {
         let mut ev = EstablishPlayers::new(&g, None);
         ev.seed = 42;
         ev.settings = Some(s);
-        Rc::new(ev).execute(&mut g, false, true);
+        g.play_for_message(HistoryEntry::new(None, Rc::new(ev)), false, true);
         let factions: Vec<Option<Faction>> = g.players.iter().map(|p| p.faction).collect();
         let seats: Vec<Option<Seat>> = g.players.iter().map(|p| p.seat).collect();
         (factions, seats, g.turn.current_phase)

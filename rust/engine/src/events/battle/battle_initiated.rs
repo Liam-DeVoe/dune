@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct BattleInitiated {
     pub territory: Option<Territory>,
     pub target: Option<Faction>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -275,12 +275,12 @@ impl GameEventMethods for BattleInitiated {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BattleInitiated
+    fn event_type(&self) -> EventType {
+        EventType::BattleInitiated
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BattleInitiated(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BattleInitiated(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

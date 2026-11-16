@@ -3,7 +3,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct ResidualPlayed {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -76,12 +76,12 @@ impl GameEventMethods for ResidualPlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::ResidualPlayed
+    fn event_type(&self) -> EventType {
+        EventType::ResidualPlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::ResidualPlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::ResidualPlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

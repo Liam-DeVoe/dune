@@ -107,12 +107,12 @@ impl ClassicBot {
         Some(Rc::new(e))
     }
 
-    pub fn determine_divide_resources(&self, game: &Game) -> Rc<DivideResources> {
+    pub fn determine_divide_resources(&self, game: &Game) -> DivideResources {
         let tbd = DivideResources::get_resources_to_be_divided(game);
         let spice_i_want = std::cmp::max(0, tbd.expect("resources to be divided").amount - self.resources(game));
-        let mut e = DivideResources::new(game, self.faction(game));
+        let mut e = DivideResources::default();
         e.portion_to_first_player = treachery_engine::game::amounts::clamp_u16(spice_i_want);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_card_given(&self, game: &Game) -> Rc<CardGiven> {
@@ -124,7 +124,7 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_divide_resources_accepted(&self, game: &Game) -> Rc<DivideResourcesAccepted> {
+    pub fn determine_divide_resources_accepted(&self, game: &Game) -> DivideResourcesAccepted {
         let tbd = DivideResources::get_resources_to_be_divided(game);
 
         let portion = i32::from(game.collection.current_division_proposal.as_ref().expect("current division proposal").portion_to_first_player);
@@ -133,9 +133,9 @@ impl ClassicBot {
 
         let accepted = i_get_when_agreed >= i_get_when_denied || self.resources(game) >= game.player(self.player).allied_resources(game);
 
-        let mut e = DivideResourcesAccepted::new(game, self.faction(game));
+        let mut e = DivideResourcesAccepted::default();
         e.passed = !accepted;
-        Rc::new(e)
+        e
     }
 
     pub fn determine_discarded(&self, game: &Game) -> Rc<Discarded> {
@@ -481,9 +481,9 @@ impl ClassicBot {
         true
     }
 
-    pub fn determine_charity_claimed(&self, game: &Game) -> Option<Rc<CharityClaimed>> {
+    pub fn determine_charity_claimed(&self, game: &Game) -> Option<CharityClaimed> {
         if !(game.charity.economics_status == Some(ChoamEconomicsStatus::Cancel) || game.charity.economics_status == Some(ChoamEconomicsStatus::CancelFlipped)) {
-            return Some(Rc::new(CharityClaimed::new(game, self.faction(game))));
+            return Some(CharityClaimed::default());
         }
 
         None

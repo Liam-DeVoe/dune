@@ -5,7 +5,7 @@
 mod common;
 
 use common::{first_bot_state, load, load_text, viewer_of, with_rules, OBSERVER};
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
@@ -281,7 +281,7 @@ fn hand_cards_name_the_actions_that_play_them() {
                 for a in &c.playable_with {
                     playable += 1;
                     assert!(view.actions.iter().any(|x| &x.event_type == a), "{fixture}: {a} is applicable");
-                    let t = GameEventType::ALL.iter().copied().find(|t| t.name() == a).unwrap();
+                    let t = EventType::ALL.iter().copied().find(|t| t.name() == a).unwrap();
                     assert!(treachery_view::shield::cards_for(&r.game, p, t).contains(&card));
                     if a.starts_with("Karma") {
                         assert!(Karma::valid_karma_cards(&r.game, p).any(|k| k == card));
@@ -568,7 +568,7 @@ fn recent_moves() {
             let to = m.placement_to(g).unwrap();
             if !to.is_homeworld() {
                 for _ in m.placement_force_locations(g).keys() {
-                    expected_ends.push((name(m.placement_initiator()), to.id()));
+                    expected_ends.push((name(m.legacy_initiator().expect("faction")), to.id()));
                 }
             }
         }
@@ -673,8 +673,8 @@ fn timing() {
     r.timer = 30;
     let view = r.view(OBSERVER);
     let g = &r.game;
-    assert_eq!(view.timing.started, g.history.entries[0].time().to_json_string());
-    assert_eq!(view.timing.last_activity, Some(g.history.entries.last().unwrap().time().to_json_string()));
+    assert_eq!(view.timing.started, g.history.entries[0].at.to_json_string());
+    assert_eq!(view.timing.last_activity, Some(g.history.entries.last().unwrap().at.to_json_string()));
     assert_eq!(view.timing.duration, g.duration().ticks as f64 / 1e7);
     assert_eq!(view.timing.timer, 30);
     assert_eq!(view.timing.time_spent.len(), g.players.len());

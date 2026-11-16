@@ -1,7 +1,7 @@
 //! `System.DateTimeOffset` and `System.TimeSpan`, as far as the engine and its
 //! JSON need them. Support module (no C# counterpart in Shared).
 //!
-//! Event timestamps (`GameEvent.Time`) feed game state through timers
+//! Event timestamps (`Event.Time`) feed game state through timers
 //!, and they are part of the savegame JSON.
 
 use std::cmp::Ordering;

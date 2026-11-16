@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::enumerations::{MainPhase, Phase};
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::random::{self, SharedRandom, SliceRandom};
 use treachery_engine::game::PlayerId;
 
@@ -15,10 +15,10 @@ use crate::ids;
 use crate::timers::Timer;
 
 /// How long the bots wait after `latest` before acting, in milliseconds, at speed 1.
-pub fn bot_delay(phase: MainPhase, latest: Option<&GameEvent>) -> u64 {
+pub fn bot_delay(phase: MainPhase, latest: Option<&Event>) -> u64 {
     match latest {
-        Some(GameEvent::AllyPermission(_) | GameEvent::DealOffered(_) | GameEvent::SetShipmentPermission(_)) => 800,
-        Some(GameEvent::Bid(_)) => 1600,
+        Some(Event::AllyPermission(_) | Event::DealOffered(_) | Event::SetShipmentPermission(_)) => 800,
+        Some(Event::Bid(_)) => 1600,
         _ if phase == MainPhase::Resurrection || phase == MainPhase::Charity => 2400,
         _ if phase == MainPhase::ShipmentAndMove || phase == MainPhase::Battle => 9600,
         _ => 4800,
@@ -51,7 +51,7 @@ impl Server {
         if speed <= 0 || g.scene {
             return;
         }
-        let delay = bot_delay(g.game.turn.current_main_phase, g.game.latest_event_0().as_ref()) / speed as u64;
+        let delay = bot_delay(g.game.turn.current_main_phase, g.game.latest_event_0().as_ref().map(|e| &e.event)) / speed as u64;
         g.bot_turn += 1;
         self.services.timers.schedule(Duration::from_millis(delay), Timer::BotTurn { game: game.to_string(), turn: g.bot_turn });
     }
@@ -90,6 +90,7 @@ impl Server {
                 let bot = &mut bots[index].1;
                 let event = bot.decide(state, Priority::ALL[level], options);
                 if let Some(event) = event {
+                    let event = treachery_engine::events::HistoryEntry::decided(state.player(player).faction, event);
                     return match Box::pin(self.execute(game, event, level == 4, None, true)).await {
                         Err(CallError::Refused(ErrorCode::InvalidGameEvent, _)) => Ok(()),
                         r => r,
@@ -113,7 +114,7 @@ mod tests {
         assert_eq!(bot_delay(MainPhase::Battle, None), 9600);
         assert_eq!(bot_delay(MainPhase::Charity, None), 2400);
         assert_eq!(bot_delay(MainPhase::Bidding, None), 4800);
-        let bid = treachery_engine::json::deserialize(r#"{"$type":"Bid","Initiator":20,"Amount":1}"#).unwrap();
-        assert_eq!(bot_delay(MainPhase::Bidding, Some(&bid)), 1600);
+        let bid: treachery_engine::events::HistoryEntry = treachery_engine::json::deserialize(r#"{"$type":"Bid","Initiator":20,"Amount":1}"#).unwrap();
+        assert_eq!(bot_delay(MainPhase::Bidding, Some(&bid.event)), 1600);
     }
 }

@@ -29,13 +29,16 @@ fn l(x: Option<Location>) -> String {
 fn state(b: &ClassicBot) -> String {
     let s = match &b.decided_shipment {
         None => "null".to_string(),
-        Some(s) => treachery_engine::json::serialize(&<Shipment as EventKind>::into_event(s.clone())),
+        Some(s) => treachery_engine::json::serialize(&HistoryEntry::legacy(s.clone())),
     };
     format!("A{} {} {}", b.decided_shipment_action as i32, s, l(b.final_destination))
 }
 
-fn ev<T: EventKind>(b: &ClassicBot, e: Option<Rc<T>>) -> String {
-    let e = e.map_or_else(|| "null".to_string(), |e| treachery_engine::json::serialize(&T::into_event(e)));
+fn ev<T: EventKind>(b: &ClassicBot, e: Option<Rc<T>>) -> String
+where
+    Event: From<Rc<T>>,
+{
+    let e = e.map_or_else(|| "null".to_string(), |e| treachery_engine::json::serialize(&HistoryEntry::legacy(e)));
     format!("{e} {}", state(b))
 }
 

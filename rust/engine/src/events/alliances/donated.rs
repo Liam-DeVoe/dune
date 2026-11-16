@@ -6,7 +6,7 @@ pub struct Donated {
     pub resources: i32,
     pub from_bank: bool,
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -211,12 +211,12 @@ impl GameEventMethods for Donated {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Donated
+    fn event_type(&self) -> EventType {
+        EventType::Donated
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Donated(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Donated(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

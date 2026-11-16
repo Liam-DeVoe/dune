@@ -2,17 +2,27 @@ use crate::prelude::*;
 
 /// The events played so far, the events undone, and what each event's moment and timing were.
 pub struct History {
-    pub entries: Vec<GameEvent>,
+    pub entries: Vec<HistoryEntry>,
     pub moments: Vec<Moment>,
     /// Keyed by the initiator, `None` for the host.
     pub timers: IndexMap<Option<Faction>, Timer<MainPhase>>,
     pub recently_undone_event_count: i32,
-    pub recently_undone_events: Vec<GameEvent>,
+    pub recently_undone_events: Vec<HistoryEntry>,
     /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
     pub previous_game_state: Option<Box<Game>>,
 }
 
 impl History {
+    /// Sets the time of the last event played, which the server knows only after it was applied.
+    pub fn stamp_last(&mut self, at: DateTimeOffset) {
+        if let Some(e) = self.entries.last_mut() {
+            e.at = at;
+            if let Some(base) = e.event.legacy_base() {
+                base.time.set(at);
+            }
+        }
+    }
+
     pub fn new() -> Self {
         History {
             entries: Vec::new(),
@@ -61,7 +71,7 @@ impl Game {
             return;
         }
 
-        let events: Vec<GameEvent> = self.history.entries.iter().chain(self.history.recently_undone_events.iter()).cloned().collect();
+        let events: Vec<HistoryEntry> = self.history.entries.iter().chain(self.history.recently_undone_events.iter()).cloned().collect();
         *self = self.replay(&events);
     }
 
@@ -72,34 +82,88 @@ impl Game {
         *self = self.replay(&history);
     }
 
-    /// A new game of the same version and human seats that has executed `events`.
-    fn replay(&self, events: &[GameEvent]) -> Game {
+    /// A new game of the same version and human seats that has played `events` without
+    /// validating them. An event that fails is left out, as when it was first played.
+    fn replay(&self, events: &[HistoryEntry]) -> Game {
         let mut result = self.new_like();
         for e in events {
-            e.initialize_game(&result);
-            e.execute(&mut result, false, false);
+            let _ = result.play(e.clone(), false, false);
         }
         result
     }
 
-    pub fn update_timers(&mut self, e: &GameEvent) {
-        if e.time() != DateTimeOffset::default() && self.history.entries.len() > 0 && self.in_timed_phase() {
+    /// Plays `event` for the submitter `by` (`None` for the host), as of `at`: checks that `by`
+    /// may play this kind of event now (`is_host` adds the host's events), validates it, applies
+    /// it and adds it to the history. On an error, the history doesn't change.
+    ///
+    /// `at` is the time the event sees while it is applied (the timers read it). The server
+    /// submits with no time and stamps the entry afterwards ([`History::stamp_last`]), as C# did.
+    pub fn submit(&mut self, by: Option<Faction>, event: Event, at: DateTimeOffset, is_host: bool) -> Result<(), SubmitError> {
+        self.play(HistoryEntry { by, at, event }, true, is_host)
+    }
+
+    /// [`play`](Game::play), with an error as the message the player sees, as C#'s `Execute`
+    /// returned it. For tests and tools that compare those messages.
+    pub fn play_for_message(&mut self, entry: HistoryEntry, validate: bool, is_host: bool) -> Option<Message> {
+        self.play(entry, validate, is_host).err().map(|e| e.message())
+    }
+
+    /// [`submit`](Game::submit) of a whole entry, validated or not. Unvalidated play is for
+    /// replaying a history and for tests.
+    pub fn play(&mut self, entry: HistoryEntry, validate: bool, is_host: bool) -> Result<(), SubmitError> {
+        entry.event.prepare(self, entry.by);
+        if let Some(base) = entry.event.legacy_base() {
+            base.time.set(entry.at);
+        }
+        let by = By::new(self, entry.by);
+
+        if matches!(entry.event, Event::EstablishPlayers(_)) {
+            // Starting the game skips the check for applicable events, keeps the recent
+            // milestones, and always counts as entering the start of a phase.
+            if validate {
+                entry.event.validate(self, by).map_err(SubmitError::Rejected)?;
+            }
+            self.perform_pre_event_tasks(&entry);
+            entry.event.apply(self, by)?;
+            self.perform_post_event_tasks(entry, true);
+            return Ok(());
+        }
+
+        let moment_just_before_event = self.turn.current_moment;
+
+        if validate {
+            if !self.get_applicable_events(by.player, is_host).contains(&entry.event_type()) {
+                return Err(SubmitError::NotApplicable(express!("Event '", entry.event.try_describe(self, by)?, "' is not applicable")));
+            }
+            entry.event.try_validate(self, by)?.map_err(SubmitError::Rejected)?;
+        }
+
+        self.turn.recent_milestones.clear();
+        self.perform_pre_event_tasks(&entry);
+        entry.event.apply(self, by)?;
+        let just_entered_start_of_phase = moment_just_before_event != Some(MainPhaseMoment::Start) && self.turn.current_moment == Some(MainPhaseMoment::Start);
+        self.perform_post_event_tasks(entry, just_entered_start_of_phase);
+        Ok(())
+    }
+
+    pub fn update_timers(&mut self, e: &HistoryEntry) {
+        if e.at != DateTimeOffset::default() && self.history.entries.len() > 0 && self.in_timed_phase() {
             let previous_event = match e.event_type() {
-                GameEventType::Battle => self.find_most_recent_event(vec![GameEventType::BattleInitiated]),
-                GameEventType::Move => self.find_most_recent_event(vec![GameEventType::Shipment, GameEventType::EndPhase]),
-                GameEventType::Shipment => self.find_most_recent_event(vec![GameEventType::Move, GameEventType::EndPhase]),
+                EventType::Battle => self.find_most_recent_event(vec![EventType::BattleInitiated]),
+                EventType::Move => self.find_most_recent_event(vec![EventType::Shipment, EventType::EndPhase]),
+                EventType::Shipment => self.find_most_recent_event(vec![EventType::Move, EventType::EndPhase]),
                 _ => self.find_most_recent_event(vec![]),
             };
 
             let Some(previous_event) = previous_event else { return };
 
             // DateTimeOffset.Subtract compares UTC instants.
-            let elapsed_time = TimeSpan::from_ticks(e.time().utc_ticks() - previous_event.time().utc_ticks());
+            let elapsed_time = TimeSpan::from_ticks(e.at.utc_ticks() - previous_event.at.utc_ticks());
             if elapsed_time >= TimeSpan::ONE_HOUR {
                 return;
             }
 
-            let initiator = e.initiator();
+            let initiator = e.by;
             if !self.history.timers.contains_key(&initiator) {
                 let timer = Timer::<MainPhase>::new();
                 self.history.timers.insert_new(initiator, timer);
@@ -113,7 +177,7 @@ impl Game {
     pub fn duration(&self) -> TimeSpan {
         if self.history.entries.len() > 0 {
             let last = &self.history.entries[self.history.entries.len() - 1];
-            TimeSpan::from_ticks(last.time().utc_ticks() - self.history.entries[0].time().utc_ticks())
+            TimeSpan::from_ticks(last.at.utc_ticks() - self.history.entries[0].at.utc_ticks())
         } else {
             TimeSpan::default()
         }
@@ -128,18 +192,18 @@ impl Game {
 
     pub fn started(&self) -> DateTimeOffset {
         if self.history.entries.len() > 0 {
-            self.history.entries[0].time()
+            self.history.entries[0].at
         } else {
             DateTimeOffset::default()
         }
     }
 
-    pub fn latest_event(&self, event_type: GameEventType) -> Option<GameEvent> {
+    pub fn latest_event(&self, event_type: EventType) -> Option<HistoryEntry> {
         // List<T>.LastOrDefault(pred) walks backwards; the predicate has no side effects.
         self.history.entries.iter().rev().find(|e| e.event_type() == event_type).cloned()
     }
 
-    pub fn latest_event_0(&self) -> Option<GameEvent> {
+    pub fn latest_event_0(&self) -> Option<HistoryEntry> {
         if self.history.entries.len() > 0 {
             Some(self.history.entries[self.history.entries.len() - 1].clone())
         } else {
@@ -151,7 +215,7 @@ impl Game {
         self.history.entries.len() as i32
     }
 
-    pub fn find_most_recent_event(&self, types: Vec<GameEventType>) -> Option<GameEvent> {
+    pub fn find_most_recent_event(&self, types: Vec<EventType>) -> Option<HistoryEntry> {
         if types.len() == 0 {
             return Some(self.history.entries.last().expect("an event in the history").clone());
         }
@@ -171,14 +235,14 @@ impl Game {
     /// returned as a `DateTimeOffset` with offset 0. `DateTime.MinValue` is tick 0.
     pub fn first_action(&self) -> DateTimeOffset {
         match self.history.entries.first() {
-            Some(e) => DateTimeOffset::new(e.time().ticks, 0),
+            Some(e) => DateTimeOffset::new(e.at.ticks, 0),
             None => DateTimeOffset::default(),
         }
     }
 
     pub fn last_action(&self) -> DateTimeOffset {
         match self.history.entries.last() {
-            Some(e) => DateTimeOffset::new(e.time().ticks, 0),
+            Some(e) => DateTimeOffset::new(e.at.ticks, 0),
             None => DateTimeOffset::default(),
         }
     }

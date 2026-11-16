@@ -1,7 +1,7 @@
 //! The viewer's own faction panel, the notekeeping panel and which hand cards can be played
 //! now.
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
@@ -30,8 +30,8 @@ fn hero_card(game: &Game, h: Hero, revealed: bool) -> HeroCard {
 }
 
 /// The actions that play a treachery card from the faction panel, and the card type each plays.
-fn card_type_played_by(t: GameEventType) -> Option<TreacheryCardType> {
-    use GameEventType as E;
+fn card_type_played_by(t: EventType) -> Option<TreacheryCardType> {
+    use EventType as E;
     Some(match t {
         E::Karma
         | E::KarmaChoamDiscard
@@ -63,7 +63,7 @@ fn card_type_played_by(t: GameEventType) -> Option<TreacheryCardType> {
 }
 
 /// The cards in hand that play this action.
-pub fn cards_for(game: &Game, p: PlayerId, action: GameEventType) -> Vec<TreacheryCard> {
+pub fn cards_for(game: &Game, p: PlayerId, action: EventType) -> Vec<TreacheryCard> {
     match card_type_played_by(action) {
         None => vec![],
         Some(TreacheryCardType::Karma) => Karma::valid_karma_cards(game, p).collect(),
@@ -72,7 +72,7 @@ pub fn cards_for(game: &Game, p: PlayerId, action: GameEventType) -> Vec<Treache
 }
 
 /// The applicable actions that play `card`.
-pub fn playable_with(game: &Game, p: PlayerId, card: TreacheryCard, actions: &[GameEventType]) -> Vec<String> {
+pub fn playable_with(game: &Game, p: PlayerId, card: TreacheryCard, actions: &[EventType]) -> Vec<String> {
     actions.iter().filter(|a| cards_for(game, p, **a).contains(&card)).map(|a| a.name().to_string()).collect()
 }
 
@@ -83,7 +83,7 @@ fn messiah_state(game: &Game, p: PlayerId) -> Option<MessiahState> {
 }
 
 /// The faction panel of the viewer's own seat. `actions` are the viewer's applicable events.
-pub fn private_player(game: &Game, p: PlayerId, actions: &[GameEventType]) -> PrivatePlayer {
+pub fn private_player(game: &Game, p: PlayerId, actions: &[EventType]) -> PrivatePlayer {
     let pl = game.player(p);
     let after_bene_gesserit_prediction = game.turn.current_phase > Phase::BeneGesseritPredicting;
     // PlayerPanel.StillPickingTraitor: while traitors are being picked, a player who picks still

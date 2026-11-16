@@ -6,7 +6,7 @@ pub struct SkillAssigned {
     pub leader: Option<Leader>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -97,12 +97,12 @@ impl GameEventMethods for SkillAssigned {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::SkillAssigned
+    fn event_type(&self) -> EventType {
+        EventType::SkillAssigned
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::SkillAssigned(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::SkillAssigned(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

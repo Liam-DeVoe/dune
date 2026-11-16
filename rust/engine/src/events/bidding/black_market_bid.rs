@@ -7,7 +7,7 @@ pub struct BlackMarketBid {
     pub emperor_contribution_amount: u16,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -158,7 +158,7 @@ impl BlackMarketBid {
         Ok(())
     }
 
-    pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerId, winning_bid: &GameEvent, card: TreacheryCard) {
+    pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerId, winning_bid: &Event, card: TreacheryCard) {
         game.bidding.card_just_won = Some(card);
         game.bidding.winning_bid = Some(winning_bid.clone());
         game.bidding.card_sold_on_black_market = Some(card);
@@ -284,12 +284,12 @@ impl GameEventMethods for BlackMarketBid {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BlackMarketBid
+    fn event_type(&self) -> EventType {
+        EventType::BlackMarketBid
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BlackMarketBid(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BlackMarketBid(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RicheseRevealedNoField {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -40,12 +40,12 @@ impl GameEventMethods for RicheseRevealedNoField {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::RicheseRevealedNoField
+    fn event_type(&self) -> EventType {
+        EventType::RicheseRevealedNoField
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::RicheseRevealedNoField(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::RicheseRevealedNoField(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

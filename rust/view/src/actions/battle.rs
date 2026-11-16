@@ -7,7 +7,7 @@
 //! savegame format, with the member name for images and the skin's label for text, so the client
 //! needs no enum tables.
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::prelude::*;
 use treachery_engine::game::amounts::clamp_u16;
 use treachery_engine::messages::part::Part as P;
@@ -25,49 +25,49 @@ use super::widgets::draft_json;
 // ------------------------------------------------------------------------------------------
 
 /// The event types whose forms this module builds.
-pub const TYPES: &[GameEventType] = &[
-    GameEventType::AuditCancelled,
-    GameEventType::Audited,
-    GameEventType::Battle,
-    GameEventType::BattleConcluded,
-    GameEventType::BattleInitiated,
-    GameEventType::BeneGesseritBattleAnnouncement,
-    GameEventType::CardsDetermined,
-    GameEventType::ClairVoyanceAnswered,
-    GameEventType::ClairVoyancePlayed,
-    GameEventType::Diplomacy,
-    GameEventType::FaceDanced,
-    GameEventType::FaceDancerReplaced,
-    GameEventType::FaceDancerRevealed,
-    GameEventType::HMSAdvantageChosen,
-    GameEventType::JuicePlayed,
-    GameEventType::LoserConcluded,
-    GameEventType::Planetology,
-    GameEventType::Prescience,
-    GameEventType::Retreat,
-    GameEventType::RockWasMelted,
-    GameEventType::TakeLosses,
-    GameEventType::ThoughtAnswered,
-    GameEventType::Thought,
-    GameEventType::TreacheryCalled,
-    GameEventType::Voice,
+pub const TYPES: &[EventType] = &[
+    EventType::AuditCancelled,
+    EventType::Audited,
+    EventType::Battle,
+    EventType::BattleConcluded,
+    EventType::BattleInitiated,
+    EventType::BeneGesseritBattleAnnouncement,
+    EventType::CardsDetermined,
+    EventType::ClairVoyanceAnswered,
+    EventType::ClairVoyancePlayed,
+    EventType::Diplomacy,
+    EventType::FaceDanced,
+    EventType::FaceDancerReplaced,
+    EventType::FaceDancerRevealed,
+    EventType::HMSAdvantageChosen,
+    EventType::JuicePlayed,
+    EventType::LoserConcluded,
+    EventType::Planetology,
+    EventType::Prescience,
+    EventType::Retreat,
+    EventType::RockWasMelted,
+    EventType::TakeLosses,
+    EventType::ThoughtAnswered,
+    EventType::Thought,
+    EventType::TreacheryCalled,
+    EventType::Voice,
 ];
 
 /// The default draft of a battle form, or None when `t` is not one of this module's events.
-pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, t: GameEventType) -> Option<Option<GameEvent>> {
+pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, t: EventType) -> Option<Option<Event>> {
     if !TYPES.contains(&t) {
         return None;
     }
     let Some(p) = v.player else { return Some(None) };
     Some(Some(match t {
-        GameEventType::AuditCancelled => {
+        EventType::AuditCancelled => {
             let mut e = AuditCancelled::new(game, faction);
             e.cancelled = true;
             event(e)
         }
-        GameEventType::Audited => event(Audited::new(game, faction)),
-        GameEventType::Battle => return Some(Some(battle_default(game, p, faction.expect("faction")))),
-        GameEventType::BattleConcluded => {
+        EventType::Audited => event(Audited::new(game, faction)),
+        EventType::Battle => return Some(Some(battle_default(game, p, faction.expect("faction")))),
+        EventType::BattleConcluded => {
             let mut e = BattleConcluded::new(game, faction);
             e.set_decision_to_capture(Some(CaptureDecision::Kill));
             e.traitor_to_replace = None;
@@ -86,7 +86,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             }
             event(e)
         }
-        GameEventType::BattleInitiated => {
+        EventType::BattleInitiated => {
             let mut e = BattleInitiated::new(game, faction);
             let fights = Battle::battles_to_be_fought(game, p, false);
             if let Some(first) = fights.first() {
@@ -96,23 +96,23 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             }
             event(e)
         }
-        GameEventType::BeneGesseritBattleAnnouncement => {
+        EventType::BeneGesseritBattleAnnouncement => {
             let mut e = BeneGesseritBattleAnnouncement::new(game, faction);
             e.territory = None;
             event(e)
         }
-        GameEventType::CardsDetermined => {
+        EventType::CardsDetermined => {
             let mut e = CardsDetermined::new(game, faction);
             e.set_treachery_cards(&game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default());
             e.set_richese_cards(&game.decks.richese_cache.clone());
             event(e)
         }
-        GameEventType::ClairVoyanceAnswered => {
+        EventType::ClairVoyanceAnswered => {
             let mut e = ClairVoyanceAnswered::new(game, faction);
             e.answer = Some(ClairVoyanceAnswer::Yes);
             event(e)
         }
-        GameEventType::ClairVoyancePlayed => {
+        EventType::ClairVoyancePlayed => {
             let mut e = ClairVoyancePlayed::new(game, faction);
             e.target = ClairVoyancePlayed::valid_targets(game, p).next();
             e.question = ClairVoyancePlayed::valid_questions(game, e.target).next().flatten();
@@ -121,12 +121,12 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             e.question_parameter2 = b;
             event(e)
         }
-        GameEventType::Diplomacy => {
+        EventType::Diplomacy => {
             let mut e = Diplomacy::new(game, faction);
             e.card = Diplomacy::valid_cards(game, p).first().copied();
             event(e)
         }
-        GameEventType::FaceDanced => {
+        EventType::FaceDanced => {
             let mut e = FaceDanced::new(game, faction);
             let shows_pickers = FaceDanced::maximum_number_of_forces(game, p) > 0;
             let sources: Vec<Location> = if shows_pickers { FaceDanced::valid_source_locations(game, p).collect() } else { vec![] };
@@ -142,46 +142,46 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             e.set_target_force_locations(game, &zero(&targets));
             event(e)
         }
-        GameEventType::FaceDancerReplaced => {
+        EventType::FaceDancerReplaced => {
             let mut e = FaceDancerReplaced::new(game, faction);
             e.passed = false;
             e.selected_dancer = FaceDancerReplaced::valid_face_dancers(game, p).next();
             event(e)
         }
-        GameEventType::FaceDancerRevealed => {
+        EventType::FaceDancerRevealed => {
             // ConfirmedResult: reveal. Without a face dancer to call only "No" is drawn.
             let mut e = FaceDancerRevealed::new(game, faction);
             e.passed = false;
             event(e)
         }
-        GameEventType::HMSAdvantageChosen => {
+        EventType::HMSAdvantageChosen => {
             let mut e = HMSAdvantageChosen::new(game, faction);
             e.advantage = HMSAdvantageChosen::valid_advantages(game, p).first().copied();
             event(e)
         }
-        GameEventType::JuicePlayed => {
+        EventType::JuicePlayed => {
             let mut e = JuicePlayed::new(game, faction);
             e.type_ = JuicePlayed::valid_types(game, p).first().copied();
             event(e)
         }
-        GameEventType::LoserConcluded => {
+        EventType::LoserConcluded => {
             let mut e = LoserConcluded::new(game, faction);
             e.kept_card = None;
             e.karma_forced_kept_card_decision = LoserConcluded::KARMA_NO;
             e.set_forced_kept_or_discarded_cards(&[]);
             event(e)
         }
-        GameEventType::Planetology => {
+        EventType::Planetology => {
             let mut e = Planetology::new(game, faction);
             e.add_one_to_movement = true;
             event(e)
         }
-        GameEventType::Prescience => {
+        EventType::Prescience => {
             let mut e = Prescience::new(game, faction);
             e.aspect = Prescience::valid_aspects(game, p).first().copied();
             event(e)
         }
-        GameEventType::Retreat => {
+        EventType::Retreat => {
             let mut e = Retreat::new(game, faction);
             e.location = None;
             let (f, s) = retreat_defaults(game, p);
@@ -189,30 +189,30 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             e.special_forces = treachery_engine::game::amounts::clamp_u16(s);
             event(e)
         }
-        GameEventType::RockWasMelted => {
+        EventType::RockWasMelted => {
             let mut e = RockWasMelted::new(game, faction);
             e.kill = true;
             event(e)
         }
-        GameEventType::TakeLosses => event(TakeLosses::new(game, faction)),
-        GameEventType::ThoughtAnswered => {
+        EventType::TakeLosses => event(TakeLosses::new(game, faction)),
+        EventType::ThoughtAnswered => {
             let mut e = ThoughtAnswered::new(game, faction);
             e.card = ThoughtAnswered::valid_cards(game, p).first().copied();
             event(e)
         }
-        GameEventType::Thought => {
+        EventType::Thought => {
             let mut e = Thought::new(game, faction);
             e.card = Thought::valid_cards(game).next();
             event(e)
         }
-        GameEventType::TreacheryCalled => {
+        EventType::TreacheryCalled => {
             // The form calls the traitor. It is shown only when the player may call; otherwise
             // the client passes for them.
             let mut e = TreacheryCalled::new(game, faction);
             e.traitor_called = true;
             event(e)
         }
-        GameEventType::Voice => {
+        EventType::Voice => {
             let mut e = Voice::new(game, faction);
             e.must = true;
             e.type_ = voice_types(game, &d_none()).first().and_then(|t| TreacheryCardType::from_value(t.value));
@@ -225,63 +225,63 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
 /// The form's options for `draft` and the validation of the draft the form would send, or None
 /// when the draft is not one of this module's events. A battle plan draft is first adjusted the
 /// way the form adjusts its inputs (an invalid leader or card is dropped).
-pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     if !TYPES.contains(&draft.event_type()) {
         return None;
     }
     let Some(p) = v.player else { return Some((None, None)) };
     let faction = game.player(p).faction;
-    let dj = draft_json(draft);
+    let dj = draft_json(faction, draft);
     let options = match draft {
-        GameEvent::AuditCancelled(_) => ActionOptions::AuditCancelled(AuditCancelledOptions {
+        Event::AuditCancelled(_) => ActionOptions::AuditCancelled(AuditCancelledOptions {
             cost: AuditCancelled::cost_of_cancelling(game),
             cards: AuditCancelled::get_number_of_cards_that_may_be_audited(game), draft: dj.clone() }),
-        GameEvent::Audited(_) => ActionOptions::Audited(AuditedOptions { cards: game.battle.audited_cards.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
-        GameEvent::Battle(b) => {
+        Event::Audited(_) => ActionOptions::Audited(AuditedOptions { cards: game.battle.audited_cards.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
+        Event::Battle(b) => {
             let (options, normalized) = battle_options(game, p, b, d);
-            return Some((Some(ActionOptions::Battle(options)), validate(game, event(normalized), d)));
+            return Some((Some(ActionOptions::Battle(options)), validate(game, faction, event(normalized), d)));
         }
-        GameEvent::BattleConcluded(_) => ActionOptions::BattleConcluded(battle_concluded_options(game, p, d, dj.clone())),
-        GameEvent::BattleInitiated(_) => ActionOptions::BattleInitiated(BattleInitiatedOptions {
+        Event::BattleConcluded(_) => ActionOptions::BattleConcluded(battle_concluded_options(game, p, d, dj.clone())),
+        Event::BattleInitiated(_) => ActionOptions::BattleInitiated(BattleInitiatedOptions {
             fights: Battle::battles_to_be_fought(game, p, false)
                 .iter()
                 .map(|f| BattleInitiatedFight { faction: enum_choice(f.faction, d), territory: f.territory.id(), territory_label: d.describe(&f.territory.into()) })
                 .collect(), draft: dj.clone() }),
-        GameEvent::BeneGesseritBattleAnnouncement(_) => ActionOptions::BeneGesseritBattleAnnouncement(BeneGesseritBattleAnnouncementOptions {
+        Event::BeneGesseritBattleAnnouncement(_) => ActionOptions::BeneGesseritBattleAnnouncement(BeneGesseritBattleAnnouncementOptions {
             territories: BeneGesseritBattleAnnouncement::valid_territories(game, p).map(|t| t.id()).collect(),
             locations: BeneGesseritBattleAnnouncement::valid_territories(game, p).flat_map(|t| t.locations().iter().copied()).map(|l| l.id()).collect(),
             draft: dj.clone(),
         }),
-        GameEvent::CardsDetermined(_) => ActionOptions::CardsDetermined(CardsDeterminedOptions {
+        Event::CardsDetermined(_) => ActionOptions::CardsDetermined(CardsDeterminedOptions {
             treachery_cards: game.decks.treachery_deck.as_ref().map(|d| d.items.iter().map(|c| c.id()).collect()).unwrap_or_default(),
             richese_cards: game.decks.richese_cache.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
-        GameEvent::ClairVoyanceAnswered(_) => {
-            let Some(latest) = game.turn.latest_clairvoyance.as_ref() else { return Some((None, validate(game, draft.clone(), d))) };
+        Event::ClairVoyanceAnswered(_) => {
+            let Some(latest) = game.turn.latest_clairvoyance.as_ref() else { return Some((None, validate(game, faction, draft.clone(), d))) };
             ActionOptions::ClairVoyanceAnswered(ClairVoyanceAnsweredOptions {
                 questioner: name_or_absent(latest.initiator()),
                 question: expr::message(&latest.get_question(game), d), draft: dj.clone() })
         }
-        GameEvent::ClairVoyancePlayed(e) => ActionOptions::ClairVoyancePlayed(clairvoyance_options(game, p, e.target, d, dj.clone())),
-        GameEvent::Diplomacy(_) => ActionOptions::Diplomacy(BattleCardsOptions { cards: Diplomacy::valid_cards(game, p).iter().map(|c| c.id()).collect(), draft: dj.clone() }),
-        GameEvent::FaceDanced(_) => ActionOptions::FaceDanced(face_danced_options(game, p, dj.clone())),
-        GameEvent::FaceDancerReplaced(_) => ActionOptions::FaceDancerReplaced(BattleHeroesOptions {
+        Event::ClairVoyancePlayed(e) => ActionOptions::ClairVoyancePlayed(clairvoyance_options(game, p, e.target, d, dj.clone())),
+        Event::Diplomacy(_) => ActionOptions::Diplomacy(BattleCardsOptions { cards: Diplomacy::valid_cards(game, p).iter().map(|c| c.id()).collect(), draft: dj.clone() }),
+        Event::FaceDanced(_) => ActionOptions::FaceDanced(face_danced_options(game, p, dj.clone())),
+        Event::FaceDancerReplaced(_) => ActionOptions::FaceDancerReplaced(BattleHeroesOptions {
             heroes: FaceDancerReplaced::valid_face_dancers(game, p).map(|h| form_hero(h, d)).collect(), draft: dj.clone() }),
-        GameEvent::FaceDancerRevealed(_) => ActionOptions::FaceDancerRevealed(BattleMayCallOptions { may_call: FaceDanced::may_call_face_dancer(game, p), draft: dj.clone() }),
-        GameEvent::HMSAdvantageChosen(_) => ActionOptions::HMSAdvantageChosen(BattleChoicesOptions {
+        Event::FaceDancerRevealed(_) => ActionOptions::FaceDancerRevealed(BattleMayCallOptions { may_call: FaceDanced::may_call_face_dancer(game, p), draft: dj.clone() }),
+        Event::HMSAdvantageChosen(_) => ActionOptions::HMSAdvantageChosen(BattleChoicesOptions {
             choices: HMSAdvantageChosen::valid_advantages(game, p).into_iter().map(|a| enum_choice(a, d)).collect(), draft: dj.clone() }),
-        GameEvent::JuicePlayed(_) => ActionOptions::JuicePlayed(BattleChoicesOptions {
+        Event::JuicePlayed(_) => ActionOptions::JuicePlayed(BattleChoicesOptions {
             choices: JuicePlayed::valid_types(game, p).into_iter().map(|t| enum_choice(t, d)).collect(), draft: dj.clone() }),
-        GameEvent::LoserConcluded(_) => ActionOptions::LoserConcluded(loser_concluded_options(game, p, dj.clone())),
-        GameEvent::Planetology(_) => ActionOptions::Planetology(BattleButtonsOptions { draft: dj.clone() }),
-        GameEvent::Prescience(_) => ActionOptions::Prescience(PrescienceOptions {
+        Event::LoserConcluded(_) => ActionOptions::LoserConcluded(loser_concluded_options(game, p, dj.clone())),
+        Event::Planetology(_) => ActionOptions::Planetology(BattleButtonsOptions { draft: dj.clone() }),
+        Event::Prescience(_) => ActionOptions::Prescience(PrescienceOptions {
             aspects: Prescience::valid_aspects(game, p).into_iter().map(|a| enum_choice(a, d)).collect(), draft: dj.clone() }),
-        GameEvent::Retreat(_) => ActionOptions::Retreat(RetreatOptions {
+        Event::Retreat(_) => ActionOptions::Retreat(RetreatOptions {
             targets: Retreat::valid_targets(game, p).map(|l| l.id()).collect(),
             max_forces: Retreat::max_forces(game, p),
             max_special_forces: Retreat::max_special_forces(game, p),
             max_total_forces: Retreat::max_total_forces(game, p), draft: dj.clone() }),
-        GameEvent::RockWasMelted(_) => ActionOptions::RockWasMelted(BattleButtonsOptions { draft: dj.clone() }),
-        GameEvent::TakeLosses(_) => {
+        Event::RockWasMelted(_) => ActionOptions::RockWasMelted(BattleButtonsOptions { draft: dj.clone() }),
+        Event::TakeLosses(_) => {
             let loss = TakeLosses::losses_to_take(game);
             let useless = if faction == Some(Faction::Choam) && TakeLosses::can_prevent_losses(game, p) { TakeLosses::valid_useless_card_to_prevent_losses(game, p) } else { None };
             ActionOptions::TakeLosses(TakeLossesOptions {
@@ -293,14 +293,14 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
                 useless_label: (faction == Some(Faction::Choam) && TakeLosses::can_prevent_losses(game, p))
                     .then(|| format1(d, "Use ", useless.map(P::from).unwrap_or(P::Null), " to prevent losses")), draft: dj.clone() })
         }
-        GameEvent::ThoughtAnswered(_) => ActionOptions::ThoughtAnswered(BattleCardsOptions { cards: ThoughtAnswered::valid_cards(game, p).iter().map(|c| c.id()).collect(), draft: dj.clone() }),
-        GameEvent::Thought(_) => ActionOptions::Thought(BattleCardsOptions { cards: Thought::valid_cards(game).map(|c| c.id()).collect(), draft: dj.clone() }),
-        GameEvent::TreacheryCalled(_) => ActionOptions::TreacheryCalled(BattleMayCallOptions { may_call: TreacheryCalled::may_call_treachery(game, p), draft: dj.clone() }),
-        GameEvent::Voice(_) => ActionOptions::Voice(VoiceOptions {
+        Event::ThoughtAnswered(_) => ActionOptions::ThoughtAnswered(BattleCardsOptions { cards: ThoughtAnswered::valid_cards(game, p).iter().map(|c| c.id()).collect(), draft: dj.clone() }),
+        Event::Thought(_) => ActionOptions::Thought(BattleCardsOptions { cards: Thought::valid_cards(game).map(|c| c.id()).collect(), draft: dj.clone() }),
+        Event::TreacheryCalled(_) => ActionOptions::TreacheryCalled(BattleMayCallOptions { may_call: TreacheryCalled::may_call_treachery(game, p), draft: dj.clone() }),
+        Event::Voice(_) => ActionOptions::Voice(VoiceOptions {
             types: voice_types(game, &Some(d)), draft: dj.clone() }),
         _ => return None,
     };
-    Some((Some(options), validate(game, draft.clone(), d)))
+    Some((Some(options), validate(game, faction, draft.clone(), d)))
 }
 
 // ------------------------------------------------------------------------------------------
@@ -509,7 +509,7 @@ fn clairvoyance_options(game: &Game, p: PlayerId, target: Option<Faction>, d: &d
 
 /// The battle plan form's starting inputs: the previous plan when one is valid and no plan is in
 /// yet, the token rows trimmed to the forces there, the first leader when one is required.
-fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> GameEvent {
+fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> Event {
     // ConfirmedResult sets every member; a fresh event's ids are 0, which are real objects.
     let mut e = Battle::new(game, faction);
     e.hero = None;
@@ -800,7 +800,7 @@ fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -
         max_banker_boost: Battle::max_banker_boost(game, p, hero),
         banker_label,
         leader,
-        draft: draft_json(&event(normalized.clone())),
+        draft: draft_json(pl.faction, &event(normalized.clone())),
     };
     let _ = faction;
     (options, normalized)

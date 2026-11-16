@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct StormSpellPlayed {
     pub move_amount: u16,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -54,12 +54,12 @@ impl GameEventMethods for StormSpellPlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::StormSpellPlayed
+    fn event_type(&self) -> EventType {
+        EventType::StormSpellPlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::StormSpellPlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::StormSpellPlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

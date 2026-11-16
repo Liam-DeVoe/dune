@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use common::*;
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::game::GameState;
 use treachery_engine::prelude::*;
 use treachery_view::actions;
@@ -68,14 +68,14 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
         let types = game.get_applicable_events(Some(p), false);
         let v = resolved(game, Some(p));
         let faction = game.player(p).faction;
-        for t in [GameEventType::Bid, GameEventType::BlackMarketBid] {
+        for t in [EventType::Bid, EventType::BlackMarketBid] {
             if !types.contains(&t) {
                 continue;
             }
             let view = actions::action_view(game, &v, &Default::default(), t, d);
             let options = view.options.unwrap_or_else(|| panic!("{at}: no options for {t:?}"));
             let emperor = game.spice_for_bids_emperor_can_pay(faction.expect("faction"));
-            let (expected, default_event) = if t == GameEventType::Bid {
+            let (expected, default_event) = if t == EventType::Bid {
                 let max_amount = Bid::valid_max_amount(game, p, false);
                 let max_ally = Bid::valid_max_ally_amount(game, Some(p));
                 let (amount, ally) = expected_defaults(game, p, max_amount, max_ally);
@@ -96,7 +96,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                         default_amount: amount,
                         default_ally_amount: ally,
                     },
-                    GameEvent::from(std::rc::Rc::new(e)),
+                    Event::from(std::rc::Rc::new(e)),
                 )
             } else {
                 let max_amount = BlackMarketBid::valid_max_amount(game, p);
@@ -107,18 +107,18 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                 e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
                 (
                     ActionOptions::BlackMarketBid { max_amount, max_ally_amount: max_ally, max_emperor_amount: emperor, default_amount: amount, default_ally_amount: ally },
-                    GameEvent::from(std::rc::Rc::new(e)),
+                    Event::from(std::rc::Rc::new(e)),
                 )
             };
             assert_eq!(options, expected, "{at}: {faction:?} {t:?}");
-            assert_eq!(view.validation, treachery_view::build::validate(game, default_event.clone(), d), "{at}: {faction:?} {t:?} validation");
+            assert_eq!(view.validation, treachery_view::build::validate(game, faction, default_event.clone(), d), "{at}: {faction:?} {t:?} validation");
             // Outside silent auctions the starting bid is the lowest that beats the current one,
             // so it is valid whenever the player and ally can pay for it.
             if !silent(game) {
                 let to_beat = game.bidding.current_bid.as_ref().map_or(0, |b| b.bid_total_amount());
                 let (amount, ally) = match &default_event {
-                    GameEvent::Bid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
-                    GameEvent::BlackMarketBid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
+                    Event::Bid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
+                    Event::BlackMarketBid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
                     _ => unreachable!(),
                 };
                 if amount + ally == to_beat + 1 {
@@ -189,8 +189,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
         let mut game = Game::of_version(state.version);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
         for (i, e) in state.events.as_ref().unwrap().iter().enumerate() {
-            e.initialize_game(&game);
-            assert!(e.execute(&mut game, false, false).is_none(), "{name}: event {i}");
+            assert!(game.play_for_message(e.clone(), false, false).is_none(), "{name}: event {i}");
             check_state(&mut game, d.as_ref(), &mut seen, &format!("{name} after event {i}"));
         }
     }

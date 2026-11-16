@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct AllianceByAmbassador {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -73,12 +73,12 @@ impl GameEventMethods for AllianceByAmbassador {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AllianceByAmbassador
+    fn event_type(&self) -> EventType {
+        EventType::AllianceByAmbassador
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AllianceByAmbassador(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AllianceByAmbassador(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

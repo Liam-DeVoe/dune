@@ -7,7 +7,7 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 
 use serde_json::{Map, Value};
-use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, FactionSelected, GameEvent, GameEventType, PerformHmsPlacement, PerformSetup};
+use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, FactionSelected, EventType, HistoryEntry, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -61,7 +61,7 @@ fn time_text(secs: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}+00:00", rem / 3600, rem / 60 % 60, rem % 60)
 }
 
-fn to_object(e: &GameEvent) -> Map<String, Value> {
+fn to_object(e: &HistoryEntry) -> Map<String, Value> {
     match serde_json::from_str(&json::serialize(e)) {
         Ok(Value::Object(m)) => m,
         _ => Map::new(),
@@ -77,7 +77,7 @@ impl<'a> Recorder<'a> {
         let _ = self.tx.send(Msg::Begin(line.clone()));
     }
 
-    fn query(&mut self, p: Option<usize>, host: bool) -> Result<Vec<GameEventType>, Stop> {
+    fn query(&mut self, p: Option<usize>, host: bool) -> Result<Vec<EventType>, Stop> {
         let line = Line::Query { p, host, result: Default::default() };
         self.begin(&line);
         match self.sess.query(p, host) {
@@ -127,7 +127,7 @@ impl<'a> Recorder<'a> {
         }
         if accepted {
             if let Some(f) = &mut self.fuzz {
-                if let Some(t) = GameEventType::ALL.iter().find(|t| t.name() == type_name) {
+                if let Some(t) = EventType::ALL.iter().find(|t| t.name() == type_name) {
                     f.note_accepted(t.name(), phase);
                 }
                 match type_name.as_str() {
@@ -170,7 +170,7 @@ impl<'a> Recorder<'a> {
     }
 
     /// Queries every player and asks the bots. Returns the choice and the queried types.
-    fn deliberate(&mut self) -> Result<(Option<trace::BotChoice>, bool, Vec<(usize, Vec<GameEventType>)>), Stop> {
+    fn deliberate(&mut self) -> Result<(Option<trace::BotChoice>, bool, Vec<(usize, Vec<EventType>)>), Stop> {
         let n = self.sess.player_count();
         let mut order: Vec<usize> = (0..n).collect();
         if self.cfg.style != HostStyle::Tests {
@@ -217,9 +217,9 @@ impl<'a> Recorder<'a> {
                 continue;
             }
             let types = self.query(Some(i), false)?;
-            if types.contains(&GameEventType::AlliancePassed) {
+            if types.contains(&EventType::AlliancePassed) {
                 let e = AlliancePassed::new(&self.sess.game, faction);
-                return Ok(Some((to_object(&treachery_view::build::event(e)), i)));
+                return Ok(Some((to_object(&HistoryEntry::legacy(treachery_view::build::event(e))), i)));
             }
         }
         Ok(None)
@@ -229,7 +229,7 @@ impl<'a> Recorder<'a> {
     fn host_action(&mut self) -> Result<Option<Map<String, Value>>, Stop> {
         let types = self.query(None, true)?;
         let game: &Game = &self.sess.game;
-        if types.contains(&GameEventType::FactionSelected) {
+        if types.contains(&EventType::FactionSelected) {
             let valid: Vec<Faction> = FactionSelected::valid_factions(game).collect();
             if let Some(i) = game.players.iter().position(|p| p.faction == None) {
                 let p = &game.players[i];
@@ -239,35 +239,35 @@ impl<'a> Recorder<'a> {
                     e.seat = Seat::number_or_minus_one(p.seat);
                     e.faction = Some(valid[self.rng.below(valid.len())]);
                     e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
-                    return Ok(Some(to_object(&treachery_view::build::event(e))));
+                    return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
                 }
             }
         }
-        if types.contains(&GameEventType::CardsDetermined) {
+        if types.contains(&EventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
             let mut e = CardsDetermined::new(game, None);
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
-            return Ok(Some(to_object(&treachery_view::build::event(e))));
+            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
         }
-        if types.contains(&GameEventType::PerformSetup) {
+        if types.contains(&EventType::PerformSetup) {
             let mut e = PerformSetup::new(game, game.next_faction_to_perform_custom_setup());
             e.resources = treachery_engine::game::amounts::clamp_u16(self.rng.range(0, 21));
             e.force_locations = Some(String::new());
-            return Ok(Some(to_object(&treachery_view::build::event(e))));
+            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
         }
-        if types.contains(&GameEventType::PerformHmsPlacement) && !game.players.is_empty() {
+        if types.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
             let p = game.player_at(0);
             let valid: Vec<Location> = PerformHmsPlacement::valid_locations(game, p).collect();
             if !valid.is_empty() {
                 let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
                 e.target = Some(valid[self.rng.below(valid.len())]);
-                return Ok(Some(to_object(&treachery_view::build::event(e))));
+                return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
             }
         }
-        if types.contains(&GameEventType::EndPhase) {
-            return Ok(Some(to_object(&treachery_view::build::event(EndPhase::new(game, None)))));
+        if types.contains(&EventType::EndPhase) {
+            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(EndPhase::new(game, None))))));
         }
         Ok(None)
     }
@@ -351,7 +351,7 @@ impl<'a> Recorder<'a> {
                 let f = self.fuzz.as_mut().unwrap();
                 let host = f.rng.chance(0.5);
                 let actor = if n > 0 && f.rng.chance(0.85) { Some(f.rng.below(n)) } else { None };
-                let t = GameEventType::ALL[f.rng.below(GameEventType::ALL.len())];
+                let t = EventType::ALL[f.rng.below(EventType::ALL.len())];
                 let shadow = &self.shadow.as_ref().unwrap().game;
                 if let Some(e) = f.build(shadow, actor, t) {
                     self.submit(e, "fuzz", actor, host)?;
@@ -398,7 +398,7 @@ impl<'a> Recorder<'a> {
                     let shadow = &self.shadow.as_ref().unwrap().game;
                     let replanning: Vec<usize> = queried
                         .iter()
-                        .filter(|(i, ts)| ts.contains(&GameEventType::Battle) && shadow.players.get(*i).is_some_and(|p| f.plans.contains_key(&value_or_absent(p.faction))))
+                        .filter(|(i, ts)| ts.contains(&EventType::Battle) && shadow.players.get(*i).is_some_and(|p| f.plans.contains_key(&value_or_absent(p.faction))))
                         .map(|(i, _)| *i)
                         .collect();
                     if let Some(&i) = f.rng.pick(&replanning) {
@@ -503,7 +503,7 @@ impl<'a> Recorder<'a> {
                 let mut m = event.clone();
                 let f = self.fuzz.as_mut().unwrap();
                 let shadow = &self.shadow.as_ref().unwrap().game;
-                let t = m.get("$type").and_then(|t| t.as_str()).and_then(|n| GameEventType::ALL.iter().copied().find(|t| t.name() == n));
+                let t = m.get("$type").and_then(|t| t.as_str()).and_then(|n| EventType::ALL.iter().copied().find(|t| t.name() == n));
                 let changed = match t {
                     Some(t) => fuzz::mutate_steered(&mut m, shadow, &f.seating, choice.p, t, &mut f.rng),
                     None => fuzz::mutate(&mut m, shadow, Some(choice.p), 1, &mut f.rng),

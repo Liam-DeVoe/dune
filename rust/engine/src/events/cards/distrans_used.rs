@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct DistransUsed {
     pub target: Option<Faction>,
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -86,13 +86,15 @@ impl DistransUsed {
         // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
         // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
         if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
-            let mut bid = Bid::new(game, game.player(player).faction.expect("faction"));
+            let faction = game.player(player).faction.expect("faction");
+            let mut bid = Bid::new(game, faction);
             bid.passed = true;
-            Rc::new(bid).execute(game, false, false);
+            let _ = game.play(HistoryEntry::new(faction, Rc::new(bid)), false, false);
         } else if game.turn.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
-            let mut bid = Bid::new(game, game.player(player).faction.expect("faction"));
+            let faction = game.player(player).faction.expect("faction");
+            let mut bid = Bid::new(game, faction);
             bid.passed = true;
-            Rc::new(bid).execute(game, false, false);
+            let _ = game.play(HistoryEntry::new(faction, Rc::new(bid)), false, false);
         }
     }
 
@@ -107,12 +109,12 @@ impl GameEventMethods for DistransUsed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DistransUsed
+    fn event_type(&self) -> EventType {
+        EventType::DistransUsed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DistransUsed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::DistransUsed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

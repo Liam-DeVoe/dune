@@ -14,16 +14,16 @@ fn fixture(name: &str) -> Game {
     let state = GameState::load(&text).expect("savegame");
     let mut game = Game::of_version(state.version);
     for e in state.events() {
-        e.initialize_game(&game);
-        assert!(e.execute(&mut game, false, false).is_none(), "{name}: {} failed", e.event_type().name());
+        let event_name = e.event_type().name();
+        assert!(game.play_for_message(e, false, false).is_none(), "{name}: {} failed", event_name);
     }
     game
 }
 
 /// Submits `e` with validation; the refusal, if any.
-fn submit(g: &mut Game, make: impl FnOnce(&Game) -> GameEvent) -> Option<String> {
+fn submit(g: &mut Game, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     let e = make(g);
-    e.execute(g, true, false).map(|m| m.plain_text())
+    g.play_for_message(HistoryEntry::legacy(e), true, false).map(|m| m.plain_text())
 }
 
 fn idx(g: &Game, f: Faction) -> PlayerId {
@@ -79,7 +79,7 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
         s.to = Some(sand);
         s.force_amount = forces;
         s.special_force_amount = specials;
-        GameEvent::Shipment(Rc::new(s))
+        Event::Shipment(Rc::new(s))
     };
 
     // More than there are, or amounts with the wrong sign, are refused.
@@ -116,15 +116,15 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     let mv = |to: Location, g: &Game| {
         let mut m = Move::new(g, Faction::Emperor);
         m.to = Some(to);
-        GameEvent::Move(Rc::new(m))
+        Event::Move(Rc::new(m))
     };
-    g.ship_move.intrusions.push(Intrusion::new(&mv(intruded, &g), IntrusionType::BeneGesseritIntrusion));
+    g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: Some(intruded), type_: IntrusionType::BeneGesseritIntrusion });
     g.ship_move.last_shipment_or_movement = Some(mv(elsewhere, &g));
     g.turn.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
 
     let mut flip = BeneGesseritFlip::new(&g, Faction::BeneGesserit);
     flip.as_advisors = false;
-    assert_eq!(submit(&mut g, |_| GameEvent::BeneGesseritFlip(Rc::new(flip))), None);
+    assert_eq!(submit(&mut g, |_| Event::BeneGesseritFlip(Rc::new(flip))), None);
     let log = g.current_report().messages.iter().map(|m| m.plain_text()).collect::<Vec<_>>();
     assert!(log.iter().any(|m| m.contains("become")), "{log:?}");
     let pl = g.player(bg);
@@ -143,14 +143,14 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
 
     let mut permission = AllyPermission::new(&g, Faction::Emperor);
     permission.emperor_will_pay_for_extra_revival = 3;
-    assert_eq!(submit(&mut g, |_| GameEvent::AllyPermission(Rc::new(permission))), None);
+    assert_eq!(submit(&mut g, |_| Event::AllyPermission(Rc::new(permission))), None);
 
     let revival = |own: u16, by_emperor: u16, g: &Game| {
         let mut r = Revival::new(g, Faction::Fremen);
         r.hero = None;
         r.amount_of_special_forces = own;
         r.extra_special_forces_paid_by_emperor = by_emperor;
-        GameEvent::Revival(Rc::new(r))
+        Event::Revival(Rc::new(r))
     };
     assert_eq!(submit(&mut g, |g| revival(0, 1, g)), None);
     assert_eq!(g.player(fremen).special_forces_killed, 1);
@@ -167,7 +167,7 @@ fn karama_worm_needs_a_territory() {
     let monster = |t: Option<Territory>, g: &Game| {
         let mut m = KarmaMonster::new(g, Faction::Fremen);
         m.territory = t;
-        GameEvent::KarmaMonster(Rc::new(m))
+        Event::KarmaMonster(Rc::new(m))
     };
     let karama_cards = |g: &Game| g.player(fremen).treachery_cards.iter().filter(|c| c.type_() == TreacheryCardType::Karma).count();
     if karama_cards(&g) == 0 {
@@ -198,8 +198,8 @@ fn ally_permissions_without_an_ally_store_nothing() {
     let mut g = fixture("ship");
     let mut permission = AllyPermission::new(&g, Faction::Guild);
     permission.permitted_resources = 3;
-    let e = GameEvent::AllyPermission(Rc::new(permission));
-    assert!(e.execute(&mut g, false, false).is_none());
+    let e = HistoryEntry::new(Faction::Guild, Rc::new(permission));
+    assert!(g.play_for_message(e, false, false).is_none());
     assert!(g.alliances.permitted_use_of_ally_spice.is_empty(), "{:?}", g.alliances.permitted_use_of_ally_spice);
 }
 
@@ -217,9 +217,9 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     let mut establish = EstablishPlayers::new(&g, None);
     establish.seed = 7;
     establish.settings = Some(s);
-    assert!(GameEvent::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
-    let end = GameEvent::EndPhase(Rc::new(EndPhase::new(&g, None)));
-    assert!(end.execute(&mut g, false, true).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(None, Rc::new(establish)), false, true).is_none());
+    let end = HistoryEntry::new(None, Rc::new(EndPhase::new(&g, None)));
+    assert!(g.play_for_message(end, false, true).is_none());
 
     let in_deck = |g: &Game, c: TreacheryCard| g.decks.treachery_deck.as_ref().unwrap().items.contains(&c);
     let both: Vec<TreacheryCard> = g.decks.richese_cache.iter().copied().filter(|c| in_deck(&g, *c)).collect();
@@ -241,7 +241,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);
     auction.direction = 1;
-    assert!(GameEvent::RicheseSpecifiesAuction(Rc::new(auction)).execute(&mut g, false, false).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(Faction::Richese, Rc::new(auction)), false, false).is_none());
     assert!(!g.decks.richese_cache.contains(&sold));
     assert!(!in_deck(&g, sold));
 }
@@ -263,7 +263,7 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
         b.passed = passed;
         b.karma_bid = true;
         b.karma_card = card;
-        GameEvent::Bid(Rc::new(b))
+        Event::Bid(Rc::new(b))
     };
     let history = g.history.entries.len();
     assert_eq!(submit(&mut g, |g| bid(true, Some(karama), g)).as_deref(), Some("You can't pass and use Karma in the same bid"));
@@ -283,7 +283,7 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     let mut g = fixture("bene_gesserit");
     let mut m = Move::new(&g, Faction::Emperor);
     m.to = Some(location(&g, 5));
-    g.ship_move.intrusions.push(Intrusion::new(&GameEvent::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
+    g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: m.to, type_: IntrusionType::BeneGesseritIntrusion });
     g.main_phase_start(MainPhase::Battle, false);
     assert!(g.ship_move.intrusions.is_empty());
 }
@@ -318,14 +318,14 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     // The ally offered enough but has less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
     g.player_mut(pally).resources = (cost - 1) as u16;
-    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
+    assert_eq!(submit(&mut g, |g| Event::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
     // The ally has enough but offered less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost - 1);
     g.player_mut(pally).resources = cost as u16;
-    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
+    assert_eq!(submit(&mut g, |g| Event::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
 
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
-    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost as u16)))), None);
+    assert_eq!(submit(&mut g, |g| Event::Shipment(Rc::new(shipment(g, cost as u16)))), None);
     assert_eq!(i32::from(g.player(pally).resources), 0);
     assert_eq!(i32::from(g.player(shipper).resources), 0);
     assert_eq!(g.alliances.permitted_use_of_ally_spice[&f], 0);
@@ -337,10 +337,7 @@ fn revival_fixture(name: &str) -> (Game, PlayerId) {
     let candidates: Vec<PlayerId> = g.player_indices().filter(|p| g.player(*p).faction != Some(Faction::Tleilaxu)).collect();
     let p = candidates
         .into_iter()
-        .find(|p| {
-            let r = Revival::new(&g, g.player(*p).faction);
-            r.is_applicable(&mut g, false)
-        })
+        .find(|p| g.get_applicable_events(Some(*p), false).contains(&EventType::Revival))
         .expect("a faction that may revive");
     g.player_mut(p).resources = 30;
     (g, p)
@@ -358,7 +355,7 @@ fn only_a_dead_leader_can_be_revived() {
     let revival = |g: &Game| {
         let mut r = Revival::new(g, f);
         r.hero = Some(Hero::Leader(leader));
-        GameEvent::Revival(Rc::new(r))
+        Event::Revival(Rc::new(r))
     };
     let karama_revival = |g: &Game| {
         let mut r = KarmaFreeRevival::new(g, f);
@@ -389,7 +386,7 @@ fn a_living_ghola_can_be_taken_back() {
 
     let mut r = Revival::new(&g, f);
     r.hero = Some(Hero::Leader(leader));
-    assert_eq!(submit(&mut g, |_| GameEvent::Revival(Rc::new(r))), None);
+    assert_eq!(submit(&mut g, |_| Event::Revival(Rc::new(r))), None);
     assert!(g.is_alive(Hero::Leader(leader)));
     assert!(g.player(p).leaders.contains(&leader));
     assert!(!g.player(tleilaxu).leaders.contains(&leader));

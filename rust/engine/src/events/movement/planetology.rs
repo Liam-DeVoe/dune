@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct Planetology {
     pub add_one_to_movement: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -54,12 +54,12 @@ impl GameEventMethods for Planetology {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Planetology
+    fn event_type(&self) -> EventType {
+        EventType::Planetology
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Planetology(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Planetology(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

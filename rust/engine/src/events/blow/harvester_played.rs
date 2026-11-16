@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct HarvesterPlayed {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -54,12 +54,12 @@ impl GameEventMethods for HarvesterPlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::HarvesterPlayed
+    fn event_type(&self) -> EventType {
+        EventType::HarvesterPlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::HarvesterPlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::HarvesterPlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

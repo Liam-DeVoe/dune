@@ -18,7 +18,7 @@ pub struct Battle {
     pub original_weapon: Cell<Option<TreacheryCard>>,
     /// Interior mutability: written after the event is stored in game state.
     pub original_defense: Cell<Option<TreacheryCard>>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -1208,12 +1208,12 @@ impl GameEventMethods for Battle {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Battle
+    fn event_type(&self) -> EventType {
+        EventType::Battle
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Battle(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Battle(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

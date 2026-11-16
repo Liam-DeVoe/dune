@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct KarmaShipmentPrevention {
     pub target: Option<Faction>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -57,12 +57,12 @@ impl GameEventMethods for KarmaShipmentPrevention {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::KarmaShipmentPrevention
+    fn event_type(&self) -> EventType {
+        EventType::KarmaShipmentPrevention
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::KarmaShipmentPrevention(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::KarmaShipmentPrevention(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

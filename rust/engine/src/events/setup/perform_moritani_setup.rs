@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct PerformMoritaniSetup {
     pub target: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -64,12 +64,12 @@ impl GameEventMethods for PerformMoritaniSetup {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::PerformMoritaniSetup
+    fn event_type(&self) -> EventType {
+        EventType::PerformMoritaniSetup
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::PerformMoritaniSetup(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::PerformMoritaniSetup(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

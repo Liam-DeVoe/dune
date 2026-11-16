@@ -6,7 +6,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct FremenSentMonster {
     pub territory: Option<Territory>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -70,12 +70,12 @@ impl GameEventMethods for FremenSentMonster {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FremenSentMonster
+    fn event_type(&self) -> EventType {
+        EventType::FremenSentMonster
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FremenSentMonster(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FremenSentMonster(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

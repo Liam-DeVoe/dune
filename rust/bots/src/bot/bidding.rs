@@ -12,7 +12,7 @@ impl ClassicBot {
             .unwrap_or(0);
 
         let current_bid = game.bidding.current_bid.as_ref().map(|b| b.bid_total_amount()).unwrap_or(0);
-        let current_bid_is_from_ally = game.bidding.current_bid.as_ref().is_some_and(|b| b.initiator() == self.ally(game));
+        let current_bid_is_from_ally = game.bidding.current_bid.as_ref().is_some_and(|b| b.legacy_initiator() == self.ally(game));
         let top = game.bidding.cards_on_auction.as_ref().expect("cards on auction").top();
         let is_known_card = game.has_bidding_prescience(me)
             || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))

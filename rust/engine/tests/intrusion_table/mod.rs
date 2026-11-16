@@ -92,7 +92,7 @@ pub fn seated_with(factions: &[Faction], change_rules: impl FnOnce(&mut Vec<Rule
     let mut establish = EstablishPlayers::new(&g, None);
     establish.seed = 7;
     establish.settings = Some(s);
-    assert!(GameEvent::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(None, Rc::new(establish)), false, true).is_none());
     // Out of faction trading into setup: leaders and Ecaz's ambassadors are assigned.
     host_ends_phase(&mut g);
     assert_eq!(g.turn.current_main_phase, MainPhase::Setup);
@@ -112,14 +112,14 @@ pub fn seated_with(factions: &[Faction], change_rules: impl FnOnce(&mut Vec<Rule
 /// Players pass their shipments and moves until it's `f`'s turn to ship (not the Guild).
 pub fn pass_until_shipment_of(g: &mut Game, f: Faction) {
     for _ in 0..30 {
-        let shippers = asked(g, GameEventType::Shipment);
+        let shippers = asked(g, EventType::Shipment);
         match phase(g) {
             Phase::NonGuildShip if shippers == [f] => return,
             Phase::GuildShip => accept(g, &shipment_passed(GUILD)),
             Phase::GuildMove => accept(g, &movement_passed(GUILD)),
             Phase::NonGuildShip => accept(g, &shipment_passed(shippers[0].value())),
             Phase::NonGuildMove => {
-                let movers = asked(g, GameEventType::Move);
+                let movers = asked(g, EventType::Move);
                 accept(g, &movement_passed(movers[0].value()));
             }
             p => panic!("{p:?} while passing to {f:?}'s shipment"),
@@ -129,8 +129,8 @@ pub fn pass_until_shipment_of(g: &mut Game, f: Faction) {
 }
 
 pub fn host_ends_phase(g: &mut Game) {
-    let e = GameEvent::EndPhase(Rc::new(EndPhase::new(g, None)));
-    assert_eq!(e.execute(g, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.turn.current_phase);
+    let e = HistoryEntry::new(None, Rc::new(EndPhase::new(g, None)));
+    assert_eq!(g.play_for_message(e, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.turn.current_phase);
 }
 
 pub fn idx(g: &Game, f: Faction) -> PlayerId {
@@ -140,9 +140,8 @@ pub fn idx(g: &Game, f: Faction) -> PlayerId {
 /// Submits an event given as JSON (without `Time`), with validation. The refusal, if any.
 pub fn submit(g: &mut Game, event_json: &str) -> Option<String> {
     let text = format!("{},\"Time\":\"2026-11-15T00:00:00+00:00\"}}", event_json.trim_end().strip_suffix('}').expect("an object"));
-    let e: GameEvent = json::deserialize(&text).unwrap_or_else(|e| panic!("{text}: {e:?}"));
-    e.initialize_game(g);
-    e.execute(g, true, false).map(|m| m.plain_text())
+    let e: HistoryEntry = json::deserialize(&text).unwrap_or_else(|e| panic!("{text}: {e:?}"));
+    g.play_for_message(e, true, false).map(|m| m.plain_text())
 }
 
 /// Submits an event and fails the test if it's refused.
@@ -158,7 +157,7 @@ pub fn phase(g: &Game) -> Phase {
 }
 
 /// Who may submit an event of this type now.
-pub fn asked(g: &mut Game, t: GameEventType) -> Vec<Faction> {
+pub fn asked(g: &mut Game, t: EventType) -> Vec<Faction> {
     let players: Vec<PlayerId> = g.player_indices().collect();
     let mut result = Vec::new();
     for p in players {

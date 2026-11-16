@@ -56,6 +56,11 @@ impl Game {
         &mut self.log.report_list[last]
     }
 
+    /// Adds an event's message to the current report (`Event.Log()` in C#).
+    pub fn log_event(&mut self, message: Message) {
+        self.current_report_mut().express_event(message);
+    }
+
     pub fn log(&mut self, expression: Vec<Part>) {
         // A message logged on its own keeps what it carries, such as a route.
         if expression.len() == 1 {

@@ -24,6 +24,16 @@ use serde_json::{json, Value};
 use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 
+/// A decision method's result as the goldens write it, for a converted event (returned by value)
+/// or a legacy one: the entry of the bot's faction, "null" for no event.
+#[allow(dead_code)]
+pub fn decision<R: treachery_bots::bot::IntoDecision>(bot: &ClassicBot, game: &Game, e: R) -> String {
+    match e.into_event() {
+        Some(e) => treachery_engine::json::serialize(&HistoryEntry::decided(bot.by(game).faction, e)),
+        None => "null".to_string(),
+    }
+}
+
 /// Whether this run rewrites the snapshots instead of comparing with them.
 pub fn updating() -> bool {
     std::env::var("UPDATE_GOLDENS").is_ok()
@@ -83,10 +93,9 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
             }
             "step" => {
                 let game = game.as_mut().unwrap();
-                let e: GameEvent = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
-                e.initialize_game(game);
+                let e: HistoryEntry = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = catch_panic(|| e.execute(game, validate, is_host));
+                let _ = catch_panic(|| game.play_for_message(e, validate, is_host));
                 at_step(game, o["n"].as_i64().unwrap());
             }
             _ => {}

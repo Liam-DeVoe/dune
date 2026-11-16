@@ -13,7 +13,7 @@ use std::panic::{self, AssertUnwindSafe};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::events::{GameEvent, GameEventType};
+use treachery_engine::events::{EventType, HistoryEntry};
 use treachery_engine::messages::part::Part;
 use treachery_engine::game::Game;
 use treachery_engine::json;
@@ -37,7 +37,7 @@ pub struct Session {
     /// outlive undo, as on the server.
     pub bots: Vec<(Option<Faction>, ClassicBot)>,
     /// The applicable types from the latest query of each player, for the bots.
-    last_query: Vec<Option<Vec<GameEventType>>>,
+    last_query: Vec<Option<Vec<EventType>>>,
     /// Number of log messages already reported.
     log_seen: usize,
     pub full_views: bool,
@@ -112,7 +112,7 @@ impl Session {
     }
 
     /// `GetApplicableEvents` for player `p` (an index) or for nobody.
-    pub fn query(&mut self, p: Option<usize>, host: bool) -> Result<(QueryResult, Vec<GameEventType>), Panicked> {
+    pub fn query(&mut self, p: Option<usize>, host: bool) -> Result<(QueryResult, Vec<EventType>), Panicked> {
         let player = p.map(|i| self.player(i));
         let game = &mut self.game;
         let r = guarded(|| game.get_applicable_events(player, host))?;
@@ -138,7 +138,7 @@ impl Session {
     pub fn deliberate(&mut self, order: &[usize], end: bool, seed_for: &mut dyn FnMut(Option<Faction>) -> Option<i32>) -> Result<(BotsResult, Vec<(String, i32)>), Panicked> {
         let mut created = Vec::new();
         let levels = if end { 5 } else { 4 };
-        let outcome = guarded(|| -> Result<Option<(usize, usize, GameEvent)>, String> {
+        let outcome = guarded(|| -> Result<Option<(usize, usize, HistoryEntry)>, String> {
             for level in 0..levels {
                 for &i in order {
                     let p = self.game.player_at(i);
@@ -161,7 +161,7 @@ impl Session {
                     let g = &mut self.game;
                     let evt = bot.decide(g, Priority::ALL[level], &events);
                     if let Some(e) = evt {
-                        return Ok(Some((i, level, e)));
+                        return Ok(Some((i, level, HistoryEntry::decided(faction, e))));
                     }
                 }
             }
@@ -189,13 +189,10 @@ impl Session {
     }
 
     /// The same for an event that is already decoded.
-    pub fn submit_event(&mut self, ev: GameEvent, host: bool) -> Result<EventOutcome, Panicked> {
+    pub fn submit_event(&mut self, ev: HistoryEntry, host: bool) -> Result<EventOutcome, Panicked> {
         let before = self.game.history.entries.len();
         let game = &mut self.game;
-        let r = guarded(|| {
-            ev.initialize_game(game);
-            ev.execute(game, true, host)
-        })?;
+        let r = guarded(|| game.play(ev, true, host).err().map(|e| e.message()))?;
         let accepted = self.game.history.entries.len() > before;
         let (result, message) = match r {
             Err(e) => ("error", Some(e)),

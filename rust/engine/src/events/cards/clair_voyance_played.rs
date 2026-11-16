@@ -7,7 +7,7 @@ pub struct ClairVoyancePlayed {
     pub target: Option<Faction>,
     pub question_parameter1: Option<String>,
     pub question_parameter2: Option<String>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -321,12 +321,12 @@ impl GameEventMethods for ClairVoyancePlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::ClairVoyancePlayed
+    fn event_type(&self) -> EventType {
+        EventType::ClairVoyancePlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::ClairVoyancePlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::ClairVoyancePlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

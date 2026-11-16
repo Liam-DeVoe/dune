@@ -11,7 +11,7 @@ pub struct TerrorRevealed {
     pub card_to_give_in_sabotage: Option<TreacheryCard>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -319,7 +319,7 @@ impl TerrorRevealed {
                             elems![self.initiator(), " sneak attack ", territory, " with ", i32::from(self.forces_in_sneak_attack), force],
                         );
                         Player::ship_forces(game, self.player(), sneak_attack_to, i32::from(self.forces_in_sneak_attack))?;
-                        game.check_intrusion(&self.clone().into_event())?;
+                        game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
                     }
                 }
 
@@ -355,12 +355,12 @@ impl GameEventMethods for TerrorRevealed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::TerrorRevealed
+    fn event_type(&self) -> EventType {
+        EventType::TerrorRevealed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::TerrorRevealed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::TerrorRevealed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {
@@ -385,10 +385,6 @@ impl PassableGameEventMethods for TerrorRevealed {
 }
 
 impl crate::events::location_event::LocationEvent for TerrorRevealed {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         TerrorRevealed::to(self, game)
     }

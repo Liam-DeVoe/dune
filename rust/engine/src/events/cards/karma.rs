@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct Karma {
     pub prevented: Option<FactionAdvantage>,
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -364,12 +364,12 @@ impl GameEventMethods for Karma {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Karma
+    fn event_type(&self) -> EventType {
+        EventType::Karma
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Karma(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Karma(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

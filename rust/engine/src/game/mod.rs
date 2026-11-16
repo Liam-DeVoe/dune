@@ -170,13 +170,14 @@ impl Game {
         game
     }
 
-    pub fn perform_pre_event_tasks(&mut self, e: &GameEvent) {
-        self.update_timers(e);
+    pub fn perform_pre_event_tasks(&mut self, entry: &HistoryEntry) {
+        self.update_timers(entry);
+        let e = &entry.event;
 
         // e is AllyPermission or PlayerReplaced or NexusPlayed { IsBetrayal: true, Faction: Faction.Richese }
         let skip = match e {
-            GameEvent::AllyPermission(_) | GameEvent::PlayerReplaced(_) => true,
-            GameEvent::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Some(Faction::Richese),
+            Event::AllyPermission(_) | Event::PlayerReplaced(_) => true,
+            Event::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Some(Faction::Richese),
             _ => false,
         };
         if skip {
@@ -185,22 +186,22 @@ impl Game {
 
         self.clear_recent_payments();
 
-        if !matches!(e, GameEvent::DealOffered(_) | GameEvent::DealAccepted(_) | GameEvent::DealRejected(_)) {
+        if !matches!(e, Event::DealOffered(_) | Event::DealAccepted(_) | Event::DealRejected(_)) {
             self.decks.recently_discarded.clear();
         }
     }
 
-    pub fn perform_post_event_tasks(&mut self, e: &GameEvent, just_entered_start_of_phase: bool) {
+    pub fn perform_post_event_tasks(&mut self, entry: HistoryEntry, just_entered_start_of_phase: bool) {
         if !just_entered_start_of_phase
             && !matches!(
-                e,
-                GameEvent::AllyPermission(_) | GameEvent::DealOffered(_) | GameEvent::DealAccepted(_) | GameEvent::DealRejected(_)
+                entry.event,
+                Event::AllyPermission(_) | Event::DealOffered(_) | Event::DealAccepted(_) | Event::DealRejected(_)
             )
         {
             self.main_phase_middle();
         }
 
-        self.history.entries.push(e.clone());
+        self.history.entries.push(entry);
         self.history.moments.push(Moment::new(self.turn.current_turn, self.turn.current_main_phase));
     }
 
@@ -432,9 +433,8 @@ impl Game {
         game.human_seats = human_seats.clone();
         let events = state.events.as_ref().ok_or_else(|| express!("The savegame has no events"))?;
         for (nr, e) in events.iter().enumerate() {
-            e.initialize_game(&game);
-            if let Some(message) = e.execute(&mut game, perform_validation, is_host) {
-                return Err(express!(e.event_type().name(), "(", nr as i32, "):", message));
+            if let Err(error) = game.play(e.clone(), perform_validation, is_host) {
+                return Err(express!(e.event_type().name(), "(", nr as i32, "):", error.message()));
             }
         }
         Ok(game)

@@ -8,7 +8,7 @@
 //! each player may submit, and how far the game's random stream has advanced.
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::HistoryEntry;
 use treachery_engine::game::{Game, GameState, Seat};
 use treachery_engine::json;
 
@@ -72,9 +72,8 @@ fn same_dump(what: &str, actual: &str, want: &str) {
 /// As a client submits an event: initialize, then execute with validation.
 fn run(g: &mut Game, events: &[&str]) {
     for text in events {
-        let e: GameEvent = json::deserialize(text).expect("event json");
-        e.initialize_game(g);
-        let _ = catch_panic(|| e.execute(g, true, true));
+        let e: HistoryEntry = json::deserialize(text).expect("event json");
+        let _ = catch_panic(|| g.play_for_message(e, true, true));
     }
 }
 

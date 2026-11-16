@@ -122,7 +122,7 @@ fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &t
     }
     let mut pass = TreacheryCalled::new(game, f);
     pass.traitor_called = false;
-    let json = treachery_engine::json::serialize(&GameEvent::from(std::rc::Rc::new(pass)));
+    let json = treachery_engine::json::serialize(&HistoryEntry::new(f, std::rc::Rc::new(pass)));
     replica.apply(&json)?;
     Ok(true)
 }

@@ -122,11 +122,11 @@ fn obstruct(g: &mut Game, obstacle: Obstacle, at: Location) {
     }
 }
 
-fn reaction(obstacle: Obstacle) -> (GameEventType, Faction, String) {
+fn reaction(obstacle: Obstacle) -> (EventType, Faction, String) {
     match obstacle {
-        Obstacle::BeneGesserit => (GameEventType::BeneGesseritFlip, Faction::BeneGesserit, flip(false)),
-        Obstacle::Terror => (GameEventType::TerrorRevealed, Faction::Moritani, terror_passed()),
-        Obstacle::Ambassador => (GameEventType::AmbassadorActivated, Faction::Ecaz, ambassador_passed()),
+        Obstacle::BeneGesserit => (EventType::BeneGesseritFlip, Faction::BeneGesserit, flip(false)),
+        Obstacle::Terror => (EventType::TerrorRevealed, Faction::Moritani, terror_passed()),
+        Obstacle::Ambassador => (EventType::AmbassadorActivated, Faction::Ecaz, ambassador_passed()),
     }
 }
 
@@ -175,7 +175,7 @@ macro_rules! intrusion {
 
 // The Guild's shipment: Bene Gesserit may accompany it next.
 fn bene_gesserit_may_accompany(g: &mut Game) {
-    assert_eq!(asked(g, GameEventType::BeneGesseritAccompanies), [Faction::BeneGesserit]);
+    assert_eq!(asked(g, EventType::BeneGesseritAccompanies), [Faction::BeneGesserit]);
 }
 
 intrusion!(bene_gesserit_by_guild_ship, GuildShip, BeneGesserit, BeneGesseritIntrudedByGuildShip, BeneGesseritAccompaniesGuildShip, |g| bene_gesserit_may_accompany(&mut g));
@@ -188,7 +188,7 @@ intrusion!(ambassador_by_non_guild_ship, NonGuildShip, Ambassador, AmbassadorTri
 
 // The Guild's move: the first other faction ships next.
 fn first_non_guild_ships(g: &mut Game) {
-    let shippers = asked(g, GameEventType::Shipment);
+    let shippers = asked(g, EventType::Shipment);
     assert_eq!(shippers.len(), 1);
     assert_ne!(shippers[0], Faction::Guild);
 }
@@ -199,7 +199,7 @@ intrusion!(ambassador_by_guild_move, GuildMove, Ambassador, AmbassadorTriggeredB
 
 // Tleilaxu's move: the next faction in order ships.
 fn next_after_tleilaxu_ships(g: &mut Game) {
-    let shippers = asked(g, GameEventType::Shipment);
+    let shippers = asked(g, EventType::Shipment);
     assert_eq!(shippers.len(), 1);
     assert!(g.turn.has_acted_or_passed.contains(&Faction::Tleilaxu));
     assert!(!g.turn.has_acted_or_passed.contains(&shippers[0]));
@@ -211,7 +211,7 @@ intrusion!(ambassador_by_non_guild_move, NonGuildMove, Ambassador, AmbassadorTri
 
 // Caravan, played instead of shipping: Tleilaxu still ship.
 fn tleilaxu_still_ship(g: &mut Game) {
-    assert_eq!(asked(g, GameEventType::Shipment), [Faction::Tleilaxu]);
+    assert_eq!(asked(g, EventType::Shipment), [Faction::Tleilaxu]);
     assert_eq!(g.ship_move.phase_before_caravan_caused_intrusion, Some(Phase::NonGuildShip));
 }
 
@@ -223,7 +223,7 @@ intrusion!(ambassador_by_caravan, Caravan, Ambassador, AmbassadorTriggeredByCara
 // the tanks, may revive again.
 fn back_to_revivals(g: &mut Game) {
     assert_eq!(g.ship_move.phase_before_revival_caused_intrusion, Some(Phase::Resurrection));
-    assert_eq!(asked(g, GameEventType::Revival), [Faction::Tleilaxu]);
+    assert_eq!(asked(g, EventType::Revival), [Faction::Tleilaxu]);
 }
 
 intrusion!(bene_gesserit_by_revival, Revival, BeneGesserit, BeneGesseritIntrudedByRevival, Resurrection, |g| back_to_revivals(&mut g));

@@ -12,7 +12,7 @@ pub struct Revival {
     pub hero: Option<Hero>,
     pub assign_skill: bool,
     pub uses_emperor_secret_ally: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -726,7 +726,7 @@ impl Revival {
                 game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             }
 
-            if game.check_intrusion(&self.clone().into_event())? {
+            if game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))? {
                 game.ship_move.phase_before_revival_caused_intrusion = Some(game.turn.current_phase);
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
@@ -791,12 +791,12 @@ impl GameEventMethods for Revival {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Revival
+    fn event_type(&self) -> EventType {
+        EventType::Revival
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Revival(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Revival(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {
@@ -814,10 +814,6 @@ impl GameEventMethods for Revival {
 }
 
 impl crate::events::location_event::LocationEvent for Revival {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         Revival::to(self, game)
     }

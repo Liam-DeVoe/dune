@@ -4,7 +4,7 @@
 //! field is filled only for the viewers who may see it under the game rules.
 
 use std::collections::BTreeMap;
-use std::rc::Rc;
+
 
 use treachery_engine::game::GameStatus;
 use treachery_engine::prelude::*;
@@ -186,14 +186,15 @@ fn status_view(game: &Game, status: &GameStatus, v: &ResolvedViewer, d: &dyn Des
             .iter()
             .filter_map(|se| se.player.map(|p| SequenceEntry { faction: name_or_absent(game.player(p).faction), has_turn: se.has_turn }))
             .collect(),
-        timed_event_time: status.timed_event.as_ref().map(|e| e.time().to_json_string()),
+        timed_event_time: status.timed_event.as_ref().map(|e| e.at.to_json_string()),
     }
 }
 
-/// The event's validation message, rendered, with "Validation failed" when validating panics.
-pub fn validate(game: &Game, event: GameEvent, d: &dyn Describer) -> Option<RichText> {
-    match draft_check(|| event.validate(game)) {
-        Some(m) => m.map(|m| expr::message(&m, d)),
+/// The event's validation message for the submitter `by`, rendered, with "Validation failed"
+/// when validating panics.
+pub fn validate(game: &Game, by: Option<Faction>, event: Event, d: &dyn Describer) -> Option<RichText> {
+    match draft_check(|| event.validate(game, By::new(game, by))) {
+        Some(m) => m.err().map(|r| expr::message(&r.0, d)),
         None => Some(vec![Part::Text { v: "Validation failed".to_string() }]),
     }
 }
@@ -205,11 +206,11 @@ pub fn draft_check<R>(f: impl FnOnce() -> R) -> Option<R> {
 }
 
 /// Wraps a freshly built event for [`validate`].
-pub fn event<E>(e: E) -> GameEvent
+pub fn event<E>(e: E) -> Event
 where
-    GameEvent: From<Rc<E>>,
+    Event: From<E>,
 {
-    GameEvent::from(Rc::new(e))
+    Event::from(e)
 }
 
 /// Prescience waits while the Bene Gesserit (or their ally) may still use Voice, so a player who

@@ -66,7 +66,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
             if to.is_homeworld() {
                 continue;
             }
-            let initiator = m.placement_initiator();
+            let initiator = m.legacy_initiator().expect("faction");
             for origin in m.placement_force_locations(game).keys() {
                 let path = map.find_first_shortest_path(*origin, to, false, initiator, game);
                 match path {
@@ -434,7 +434,7 @@ pub fn flash(flashes: &[FlashInfo], d: &dyn Describer) -> Vec<FlashView> {
 pub fn timing(game: &Game, timer: i32) -> TimingView {
     TimingView {
         started: game.started().to_json_string(),
-        last_activity: game.history.entries.last().map(|e| e.time().to_json_string()),
+        last_activity: game.history.entries.last().map(|e| e.at.to_json_string()),
         duration: seconds(game.duration()),
         time_spent: game
             .players

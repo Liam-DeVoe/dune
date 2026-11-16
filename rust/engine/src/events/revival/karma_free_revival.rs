@@ -6,7 +6,7 @@ pub struct KarmaFreeRevival {
     pub amount_of_forces: u16,
     pub amount_of_special_forces: u16,
     pub assign_skill: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -143,12 +143,12 @@ impl GameEventMethods for KarmaFreeRevival {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::KarmaFreeRevival
+    fn event_type(&self) -> EventType {
+        EventType::KarmaFreeRevival
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::KarmaFreeRevival(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::KarmaFreeRevival(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

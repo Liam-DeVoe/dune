@@ -371,7 +371,7 @@ fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
     let from = s.to.unwrap();
     assert_eq!((s.force_amount, game.player(guild).forces_in(Some(from))), (-4, 4));
     let reserve = game.player(guild).forces_in_reserve();
-    assert!(GameEvent::Shipment(Rc::new(s)).execute(&mut game, true, false).is_none());
+    assert!(game.play_for_message(HistoryEntry::legacy(Rc::new(s)), true, false).is_none());
     assert_eq!(game.player(guild).forces_in(Some(from)), 0);
     assert_eq!(game.player(guild).forces_in_reserve(), reserve + 4);
 }

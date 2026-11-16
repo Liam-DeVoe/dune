@@ -6,7 +6,7 @@ pub struct ChoamRemoveForce {
     pub target: Option<Faction>,
     pub special_force: bool,
     pub location: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -165,12 +165,12 @@ impl GameEventMethods for ChoamRemoveForce {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::ChoamRemoveForce
+    fn event_type(&self) -> EventType {
+        EventType::ChoamRemoveForce
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::ChoamRemoveForce(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::ChoamRemoveForce(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -6,7 +6,7 @@ pub struct LoserConcluded {
     pub forced_kept_or_discarded_card_ids: Option<String>,
     pub assassinate: bool,
     pub kept_card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -36,11 +36,11 @@ impl LoserConcluded {
     pub const KARMA_DISCARD: i32 = 2;
 
     pub fn forced_kept_or_discarded_cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(self.forced_kept_or_discarded_card_ids.as_deref(), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(self.forced_kept_or_discarded_card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
 
     pub fn set_forced_kept_or_discarded_cards(&mut self, value: &[TreacheryCard]) {
-        self.forced_kept_or_discarded_card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.forced_kept_or_discarded_card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -280,12 +280,12 @@ impl GameEventMethods for LoserConcluded {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::LoserConcluded
+    fn event_type(&self) -> EventType {
+        EventType::LoserConcluded
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::LoserConcluded(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::LoserConcluded(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct TreacheryCalled {
     pub traitor_called: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -128,12 +128,12 @@ impl GameEventMethods for TreacheryCalled {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::TreacheryCalled
+    fn event_type(&self) -> EventType {
+        EventType::TreacheryCalled
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::TreacheryCalled(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::TreacheryCalled(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

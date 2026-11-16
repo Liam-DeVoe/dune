@@ -11,7 +11,7 @@ pub struct FaceDanced {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -297,12 +297,12 @@ impl GameEventMethods for FaceDanced {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FaceDanced
+    fn event_type(&self) -> EventType {
+        EventType::FaceDanced
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FaceDanced(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FaceDanced(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {
@@ -346,10 +346,6 @@ impl PlacementEventMethods for FaceDanced {
 }
 
 impl crate::events::location_event::LocationEvent for FaceDanced {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }
@@ -369,10 +365,6 @@ impl crate::events::location_event::LocationEvent for FaceDanced {
 }
 
 impl crate::events::placement::Placement for FaceDanced {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }

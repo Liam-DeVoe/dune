@@ -10,7 +10,7 @@ pub struct DealRejected {
     pub end: Option<Phase>,
     pub price: u16,
     pub benefit: u16,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -104,12 +104,12 @@ impl GameEventMethods for DealRejected {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DealRejected
+    fn event_type(&self) -> EventType {
+        EventType::DealRejected
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DealRejected(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::DealRejected(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

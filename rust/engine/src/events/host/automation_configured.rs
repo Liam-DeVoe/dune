@@ -8,7 +8,7 @@ pub struct AutomationConfigured {
     pub rule_type: AutomationRuleType,
     pub bidding_above_amount: u16,
     pub bidding_winning_faction: Option<Faction>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -157,12 +157,12 @@ impl GameEventMethods for AutomationConfigured {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AutomationConfigured
+    fn event_type(&self) -> EventType {
+        EventType::AutomationConfigured
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AutomationConfigured(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AutomationConfigured(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

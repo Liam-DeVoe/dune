@@ -20,7 +20,7 @@ pub struct Shipment {
     pub guild_income_prevented: Cell<bool>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -795,7 +795,7 @@ impl Shipment {
             }
 
             if !self.is_back_to_reserves() {
-                game.check_intrusion(&self.clone().into_event())?;
+                game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
             }
 
             game.determine_next_shipment_and_move_sub_phase()?;
@@ -880,9 +880,8 @@ impl Shipment {
             }
         }
 
-        let ev = self.clone().into_event();
-        game.set_recent_payment(receiver_profit, self.initiator(), Some(Faction::Guild), &ev);
-        game.set_recent_payment_to_bank(total_cost - receiver_profit, self.initiator(), &ev);
+        game.set_recent_payment(receiver_profit, self.initiator(), Some(Faction::Guild), EventType::Shipment);
+        game.set_recent_payment_to_bank(total_cost - receiver_profit, self.initiator(), EventType::Shipment);
 
         receiver_profit
     }
@@ -1122,12 +1121,12 @@ impl GameEventMethods for Shipment {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Shipment
+    fn event_type(&self) -> EventType {
+        EventType::Shipment
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Shipment(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Shipment(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {
@@ -1152,10 +1151,6 @@ impl PassableGameEventMethods for Shipment {
 }
 
 impl crate::events::location_event::LocationEvent for Shipment {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }

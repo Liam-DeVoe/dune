@@ -5,7 +5,7 @@ pub struct FactionSelected {
     pub initiator_player_name: Option<String>,
     pub seat: i32,
     pub faction: Option<Faction>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -64,12 +64,12 @@ impl GameEventMethods for FactionSelected {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FactionSelected
+    fn event_type(&self) -> EventType {
+        EventType::FactionSelected
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FactionSelected(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FactionSelected(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

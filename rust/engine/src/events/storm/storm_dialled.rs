@@ -11,7 +11,7 @@ macro_rules! elems {
 #[derive(Clone, Debug)]
 pub struct StormDialled {
     pub amount: u16,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -156,12 +156,12 @@ impl GameEventMethods for StormDialled {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::StormDialled
+    fn event_type(&self) -> EventType {
+        EventType::StormDialled
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::StormDialled(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::StormDialled(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

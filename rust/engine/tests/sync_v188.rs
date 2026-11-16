@@ -13,7 +13,7 @@ mod common;
 use std::rc::Rc;
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::game::Game;
 use treachery_engine::game::GameStatus;
 use treachery_engine::json;
@@ -45,9 +45,8 @@ fn new_game(version: i32) -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::of_version(version);
     g.human_seats.insert(Seat::new(2));
-    let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
-    e.initialize_game(&g);
-    assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
+    let e: HistoryEntry = json::deserialize(ESTABLISH).expect("event json");
+    assert!(g.play_for_message(e, true, true).is_none(), "establish rejected");
     g
 }
 
@@ -92,16 +91,16 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     }
 }
 
-fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
-    e.initialize_game(g);
-    let applicable = catch_panic(|| e.is_applicable(g, false));
+fn exec(l: &mut Lines, g: &mut Game, at: &str, e: Event) {
+    let by = e.legacy_initiator();
+    let applicable = catch_panic(|| g.get_applicable_events(By::new(g, by).player, false).contains(&e.event_type()));
     match applicable {
         Ok(b) => l.p(&format!("{at}.applicable"), if b { "True" } else { "False" }),
         Err(x) => l.p(&format!("{at}.applicable"), format!("exception {}", x)),
     }
-    l.try_(&format!("{at}.validate"), || message(e.validate(g), "valid"));
-    l.try_(&format!("{at}.message"), || e.get_message(g).plain_text());
-    let r = catch_panic(|| message(e.execute(g, false, true), "ok"));
+    l.try_(&format!("{at}.validate"), || message(e.validate_for(g, by).err().map(|r| r.0), "valid"));
+    l.try_(&format!("{at}.message"), || e.describe(g, By::new(g, by)).plain_text());
+    let r = catch_panic(|| message(g.play_for_message(HistoryEntry::new(by, e.clone()), false, true), "ok"));
     match r {
         Ok(v) => l.p(&format!("{at}.execute"), v),
         Err(x) => l.p(&format!("{at}.execute"), format!("exception {}", x)),
@@ -109,13 +108,13 @@ fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
     state(l, g, at);
 }
 
-fn offered(g: &Game, by: Faction, target: Faction) -> GameEvent {
+fn offered(g: &Game, by: Faction, target: Faction) -> Event {
     let mut e = AllianceOffered::new(g, by);
     e.target = Some(target);
     Rc::new(e).into_event()
 }
 
-fn passed(g: &Game, by: Faction) -> GameEvent {
+fn passed(g: &Game, by: Faction) -> Event {
     Rc::new(AlliancePassed::new(g, by)).into_event()
 }
 
@@ -177,7 +176,7 @@ fn seen(g: &Game, plans: &[Option<Rc<Battle>>]) -> String {
 
 fn revise(g: &mut Game) -> String {
     let e = Rc::new(BattleRevision::new(g, Faction::Choam)).into_event();
-    message(e.execute(g, false, true), "ok")
+    message(g.play_for_message(HistoryEntry::new(Faction::Choam, e), false, true), "ok")
 }
 
 fn prescience(l: &mut Lines, v: i32) {

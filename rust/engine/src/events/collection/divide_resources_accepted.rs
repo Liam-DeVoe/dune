@@ -1,33 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+/// The other faction agrees to the proposed division of collected spice, or doesn't.
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DivideResourcesAccepted {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for DivideResourcesAccepted {
-    fn default() -> Self {
-        DivideResourcesAccepted {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl DivideResourcesAccepted {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_phase == Phase::AcceptingResourceDivision
             && Self::get_resources_to_be_divided(g).map(|t| t.other_faction) == g.player(p).faction
@@ -36,50 +15,21 @@ impl DivideResourcesAccepted {
     pub fn get_resources_to_be_divided(g: &Game) -> Option<ResourcesToBeDivided> {
         g.collection.collected_resources_to_be_divided.first().cloned()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for DivideResourcesAccepted {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, _by: By) -> GameResult {
         game.divide_resources_from_collection(!self.passed);
         let any = !game.collection.collected_resources_to_be_divided.is_empty();
         game.enter_or_else(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), if !self.passed { "" } else { " don't" }, " agree with the proposed division")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, if !self.passed { "" } else { " don't" }, " agree with the proposed division")
     }
-
-}
-
-impl GameEventMethods for DivideResourcesAccepted {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DivideResourcesAccepted
-    }
-
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DivideResourcesAccepted(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DivideResourcesAccepted::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DivideResourcesAccepted::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DivideResourcesAccepted::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for DivideResourcesAccepted {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

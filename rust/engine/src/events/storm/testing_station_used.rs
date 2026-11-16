@@ -9,7 +9,7 @@ macro_rules! elems {
 #[derive(Clone, Debug)]
 pub struct TestingStationUsed {
     pub value_added: i32,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -66,12 +66,12 @@ impl GameEventMethods for TestingStationUsed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::TestingStationUsed
+    fn event_type(&self) -> EventType {
+        EventType::TestingStationUsed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::TestingStationUsed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::TestingStationUsed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

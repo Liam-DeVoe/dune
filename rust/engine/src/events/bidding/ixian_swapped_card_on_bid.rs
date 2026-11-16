@@ -5,7 +5,7 @@ pub struct IxianSwappedCardOnBid {
     pub card: Option<TreacheryCard>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -70,12 +70,12 @@ impl GameEventMethods for IxianSwappedCardOnBid {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::IxianSwappedCardOnBid
+    fn event_type(&self) -> EventType {
+        EventType::IxianSwappedCardOnBid
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::IxianSwappedCardOnBid(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::IxianSwappedCardOnBid(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

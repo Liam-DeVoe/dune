@@ -251,13 +251,13 @@ impl Game {
         self.turn.recent_milestones.push(m);
     }
 
-    pub fn set_recent_payment(&mut self, amount: i32, by: Option<Faction>, to: Option<Faction>, reason: &GameEvent) {
+    pub fn set_recent_payment(&mut self, amount: i32, by: Option<Faction>, to: Option<Faction>, reason: EventType) {
         if amount > 0 {
-            self.turn.recently_paid.push(Payment::new_full(amount, by, to, Some(reason.clone())));
+            self.turn.recently_paid.push(Payment::new_full(amount, by, to, Some(reason)));
         }
     }
 
-    pub fn set_recent_payment_to_bank(&mut self, amount: i32, by: Option<Faction>, reason: &GameEvent) {
+    pub fn set_recent_payment_to_bank(&mut self, amount: i32, by: Option<Faction>, reason: EventType) {
         self.set_recent_payment(amount, by, None, reason);
     }
 
@@ -266,8 +266,8 @@ impl Game {
         self.turn.stored_recently_paid = std::mem::take(&mut self.turn.recently_paid);
     }
 
-    pub fn has_recent_payment_for(&self, t: GameEventType) -> bool {
-        self.turn.recently_paid.iter().any(|p| p.reason.as_ref().map_or(false, |r| r.event_type() == t))
+    pub fn has_recent_payment_for(&self, t: EventType) -> bool {
+        self.turn.recently_paid.iter().any(|p| p.reason == Some(t))
     }
 
     pub fn has_quite_recent_payment_to(&self, f: Faction) -> bool {

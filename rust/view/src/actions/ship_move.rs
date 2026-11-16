@@ -13,7 +13,7 @@
 //! click makes (a new map pick, the amounts it starts with).
 
 use serde_json::Value;
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::json;
 use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
@@ -45,15 +45,15 @@ fn forces_at(game: &Game, p: PlayerId, l: Location) -> ForcesAt {
 
 /// The draft a form sends before the player touches it: its starting inputs, after its widgets
 /// adjusted them (a required image choice picks the first value).
-pub fn default_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventType) -> Option<Event> {
     let draft = initial_draft(game, p, faction, t)?;
     Some(normalized(game, p, &draft))
 }
 
 /// The form's starting inputs, before any adjustment.
-fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventType) -> Option<Event> {
     Some(match t {
-        GameEventType::Shipment => {
+        EventType::Shipment => {
             let mut e = Shipment::new(game, faction);
             e.shipment_type = ShipmentType::ShipmentNormal;
             e.set_no_field_value(-1);
@@ -63,28 +63,28 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEven
             e.karma_card = None;
             event(e)
         }
-        GameEventType::Move => {
+        EventType::Move => {
             let mut e = Move::new(game, faction);
             e.to = None;
             event(e)
         }
-        GameEventType::Caravan => {
+        EventType::Caravan => {
             let mut e = Caravan::new(game, faction);
             e.to = None;
             event(e)
         }
-        GameEventType::FremenRidesMonster => {
+        EventType::FremenRidesMonster => {
             let mut e = FremenRidesMonster::new(game, faction);
             e.to = None;
             event(e)
         }
-        GameEventType::PerformFremenSetup => event(PerformFremenSetup::new(game, faction)),
-        GameEventType::DiscoveryEntered => {
+        EventType::PerformFremenSetup => event(PerformFremenSetup::new(game, faction)),
+        EventType::DiscoveryEntered => {
             let mut e = DiscoveryEntered::new(game, faction);
             e.to = None;
             event(e)
         }
-        GameEventType::AmbassadorActivated => {
+        EventType::AmbassadorActivated => {
             let mut e = AmbassadorActivated::new(game, faction);
             let ambassador = AmbassadorActivated::get_ambassador(game);
             // BeneGesserit: the required image choice picks the first ambassador.
@@ -105,76 +105,76 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEven
             e.tleilaxu_hero = None;
             event(e)
         }
-        GameEventType::AmbassadorPlaced => {
+        EventType::AmbassadorPlaced => {
             let mut e = AmbassadorPlaced::new(game, faction);
             e.ambassador = AmbassadorPlaced::valid_ambassadors(game, p).first().copied();
             e.stronghold = None;
             event(e)
         }
-        GameEventType::BeneGesseritAccompanies => {
+        EventType::BeneGesseritAccompanies => {
             let mut e = BeneGesseritAccompanies::new(game, faction);
             e.location = None;
             e.accompanies = true;
             event(e)
         }
-        GameEventType::BeneGesseritFlip => event(BeneGesseritFlip::new(game, faction)),
-        GameEventType::ChoamMovePrevention => {
+        EventType::BeneGesseritFlip => event(BeneGesseritFlip::new(game, faction)),
+        EventType::ChoamMovePrevention => {
             let mut e = ChoamMovePrevention::new(game, faction);
             e.territory = None;
             event(e)
         }
-        GameEventType::ChoamRemoveForce => {
+        EventType::ChoamRemoveForce => {
             let mut e = ChoamRemoveForce::new(game, faction);
             e.location = None;
             event(e)
         }
-        GameEventType::DiscoveryRevealed => {
+        EventType::DiscoveryRevealed => {
             let mut e = DiscoveryRevealed::new(game, faction);
             let first = DiscoveryRevealed::get_locations(game, p).next();
             e.location = first;
             event(e)
         }
-        GameEventType::FlightUsed => {
+        EventType::FlightUsed => {
             let mut e = FlightUsed::new(game, faction);
             e.move_three_territories = true;
             event(e)
         }
-        GameEventType::KarmaHmsMovement => {
+        EventType::KarmaHmsMovement => {
             let mut e = KarmaHmsMovement::new(game, faction);
             e.target = None;
             event(e)
         }
-        GameEventType::KarmaShipmentPrevention => {
+        EventType::KarmaShipmentPrevention => {
             let mut e = KarmaShipmentPrevention::new(game, faction);
             e.target = KarmaShipmentPrevention::get_valid_targets(game, p).next();
             event(e)
         }
-        GameEventType::PerformBeneGesseritPlacement => {
+        EventType::PerformBeneGesseritPlacement => {
             let mut e = PerformBeneGesseritPlacement::new(game, faction);
             e.target = None;
             event(e)
         }
-        GameEventType::PerformMoritaniSetup => {
+        EventType::PerformMoritaniSetup => {
             let mut e = PerformMoritaniSetup::new(game, faction);
             e.target = None;
             event(e)
         }
-        GameEventType::PerformHmsMovement => {
+        EventType::PerformHmsMovement => {
             let mut e = PerformHmsMovement::new(game, faction);
             e.target = None;
             event(e)
         }
-        GameEventType::PerformHmsPlacement => {
+        EventType::PerformHmsPlacement => {
             let mut e = PerformHmsPlacement::new(game, faction);
             e.target = None;
             event(e)
         }
-        GameEventType::SetShipmentPermission => {
+        EventType::SetShipmentPermission => {
             let mut e = SetShipmentPermission::new(game, faction);
             e.factions = Some(vec![]);
             event(e)
         }
-        GameEventType::TerrorPlanted => {
+        EventType::TerrorPlanted => {
             let mut e = TerrorPlanted::new(game, faction);
             // Removing: the required select picks the first type. Placing: the type is
             // chosen in the pinned panel, which only shows once a stronghold is picked.
@@ -184,20 +184,20 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEven
             e.stronghold = None;
             event(e)
         }
-        GameEventType::TerrorRevealed => {
+        EventType::TerrorRevealed => {
             let mut e = TerrorRevealed::new(game, faction);
             e.type_ = TerrorRevealed::get_types(game).next();
             e.card_to_give_in_sabotage = None;
             e.sneak_attack_to = None;
             event(e)
         }
-        GameEventType::TestingStationUsed => {
+        EventType::TestingStationUsed => {
             let mut e = TestingStationUsed::new(game, faction);
             // The required radio over [-1, 1] replaces the initial 0 with -1.
             e.value_added = -1;
             event(e)
         }
-        GameEventType::FremenSentMonster => {
+        EventType::FremenSentMonster => {
             let mut e = FremenSentMonster::new(game, faction);
             e.territory = None;
             event(e)
@@ -208,22 +208,22 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEven
 
 /// The options of the form for `draft`, or `None` when the draft is not one of this module's
 /// event types. A helper that panics for the draft leaves the form without options.
-pub fn options(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Option<Option<ActionOptions>> {
+pub fn options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Option<Option<ActionOptions>> {
     options_and_validation(game, p, draft, d).map(|(o, _)| o)
 }
 
 /// The options of the form for `draft` after [`normalize`], carrying the adjusted draft, and the
 /// validation of the adjusted draft. `None` when the draft is not one of this module's types.
-pub fn options_and_validation(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     if !handles(draft.event_type()) {
         return None;
     }
     let draft = normalized(game, p, draft);
     let options = crate::build::draft_check(|| build(game, p, &draft, d)).map(|mut o| {
-        set_draft(&mut o, draft_json(&draft));
+        set_draft(&mut o, draft_json(game.player(p).faction, &draft));
         o
     });
-    Some((options, validate(game, draft, d)))
+    Some((options, validate(game, game.player(p).faction, draft, d)))
 }
 
 fn set_draft(o: &mut ActionOptions, draft: Value) {
@@ -254,17 +254,17 @@ fn set_draft(o: &mut ActionOptions, draft: Value) {
 
 /// [`normalize`], or the draft itself when a helper it calls panics on the draft (the options
 /// builder then reports the failure).
-fn normalized(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
+fn normalized(game: &Game, p: PlayerId, draft: &Event) -> Event {
     crate::build::draft_check(|| normalize(game, p, draft)).unwrap_or_else(|| draft.clone())
 }
 
 /// The draft after one round of the form's adjustments, repeated until it stops changing (each
 /// step only clears an input or picks a valid value, so this ends at once).
-pub fn normalize(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
+pub fn normalize(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let mut current = draft.clone();
     for _ in 0..8 {
         let next = normalize_once(game, p, &current);
-        if json::serialize(&next) == json::serialize(&current) {
+        if json::serialize(&HistoryEntry::new(None, next.clone())) == json::serialize(&HistoryEntry::new(None, current.clone())) {
             return next;
         }
         current = next;
@@ -272,13 +272,13 @@ pub fn normalize(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     current
 }
 
-fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
+fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let pl = game.player(p);
     let faction = pl.faction;
     match draft {
         // The pinned panel, drawn while the shipment has a destination or goes back to reserves
         // (and Karama does not stop it).
-        GameEvent::Shipment(s) => {
+        Event::Shipment(s) => {
             let mut s = (**s).clone();
             let cross = Shipment::may_ship_cross_planet(game, p);
             let prevented = faction != Some(Faction::Fremen) && game.prevented_from_shipping(faction) && !cross;
@@ -316,14 +316,14 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             event(s)
         }
         // The pinned panel, drawn while there is a destination.
-        GameEvent::Move(e) => {
+        Event::Move(e) => {
             let mut e = (**e).clone();
             if let Some(to) = e.to {
                 e.as_advisors = as_advisors(game, p, &e.force_locations(game), to, e.as_advisors);
             }
             event(e)
         }
-        GameEvent::Caravan(e) => {
+        Event::Caravan(e) => {
             let mut e = (**e).clone();
             if let Some(to) = e.to {
                 e.as_advisors = as_advisors(game, p, &e.force_locations(game), to, e.as_advisors);
@@ -332,7 +332,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
         }
         // OnPickChanged: the forces that may enter are those next to the pinned stronghold, all
         // of them when first picked. The client clears them when it pins another stronghold.
-        GameEvent::DiscoveryEntered(e) => {
+        Event::DiscoveryEntered(e) => {
             let mut e = (**e).clone();
             let current = e.force_locations(game);
             let mut forces = IndexMap::new();
@@ -345,7 +345,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             e.set_force_locations(game, &forces);
             event(e)
         }
-        GameEvent::AmbassadorActivated(e) => {
+        Event::AmbassadorActivated(e) => {
             let mut e = (**e).clone();
             let ambassador = AmbassadorActivated::get_ambassador(game);
             let actual = if ambassador == Some(Ambassador::BeneGesserit) {
@@ -391,13 +391,13 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             }
             event(e)
         }
-        GameEvent::AmbassadorPlaced(e) => {
+        Event::AmbassadorPlaced(e) => {
             let mut e = (**e).clone();
             e.ambassador = required_opt(e.ambassador, &AmbassadorPlaced::valid_ambassadors(game, p));
             event(e)
         }
         // PinContent, drawn while a location is pinned.
-        GameEvent::BeneGesseritAccompanies(e) => {
+        Event::BeneGesseritAccompanies(e) => {
             let mut e = (**e).clone();
             if let Some(l) = e.location {
                 if !BeneGesseritAccompanies::may_send_extra_advisor(game, p, l) {
@@ -407,7 +407,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             event(e)
         }
         // OnPickChanged and SetTarget: the faction and force type follow the pinned location.
-        GameEvent::ChoamRemoveForce(e) => {
+        Event::ChoamRemoveForce(e) => {
             let mut e = (**e).clone();
             if let Some(l) = e.location {
                 let factions: Vec<Faction> = ChoamRemoveForce::valid_factions(game, Some(p), Some(l)).collect();
@@ -418,7 +418,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             event(e)
         }
         // The selected location falls back to the first location.
-        GameEvent::DiscoveryRevealed(e) => {
+        Event::DiscoveryRevealed(e) => {
             let mut e = (**e).clone();
             let locations: Vec<Location> = DiscoveryRevealed::get_locations(game, p).collect();
             if !e.location.is_some_and(|l| locations.contains(&l)) {
@@ -426,7 +426,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             }
             event(e)
         }
-        GameEvent::KarmaShipmentPrevention(e) => {
+        Event::KarmaShipmentPrevention(e) => {
             let mut e = (**e).clone();
             let targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, p).collect();
             e.target = required_opt(e.target, &targets);
@@ -434,7 +434,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
         }
         // Removing: the required select. Placing: the pinned panel, drawn while a stronghold is
         // pinned.
-        GameEvent::TerrorPlanted(e) => {
+        Event::TerrorPlanted(e) => {
             let mut e = (**e).clone();
             if TerrorPlanted::may_remove_tokens(game, p) {
                 let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, true).collect();
@@ -445,7 +445,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             }
             event(e)
         }
-        GameEvent::TerrorRevealed(e) => {
+        Event::TerrorRevealed(e) => {
             let mut e = (**e).clone();
             let types: Vec<TerrorType> = TerrorRevealed::get_types(game).collect();
             e.type_ = required_opt(e.type_, &types);
@@ -461,7 +461,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             event(e)
         }
         // The required radio over [-1, 1].
-        GameEvent::TestingStationUsed(e) => {
+        Event::TestingStationUsed(e) => {
             let mut e = (**e).clone();
             e.value_added = required(e.value_added, &[-1, 1], 0);
             event(e)
@@ -482,8 +482,8 @@ fn as_advisors(game: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>,
     if choice { current } else { may_move_as_advisors }
 }
 
-fn handles(t: GameEventType) -> bool {
-    use GameEventType as T;
+fn handles(t: EventType) -> bool {
+    use EventType as T;
     matches!(
         t,
         T::AmbassadorActivated
@@ -514,23 +514,23 @@ fn handles(t: GameEventType) -> bool {
     )
 }
 
-fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
+fn build(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOptions {
     use ActionOptions as O;
     match draft {
-        GameEvent::Shipment(s) => O::Shipment(shipment(game, p, s, d)),
-        GameEvent::Move(e) => {
+        Event::Shipment(s) => O::Shipment(shipment(game, p, s, d)),
+        Event::Move(e) => {
             let forces = e.force_locations(game);
             let to = e.to;
             let mut o = placement(game, p, &forces, to, PlacementEvent::valid_movement_sources(game, p));
             o.inform_about_caravan = game.player(p).has_treachery_card_type(TreacheryCardType::Caravan);
             O::Move(o)
         }
-        GameEvent::Caravan(e) => {
+        Event::Caravan(e) => {
             let forces = e.force_locations(game);
             O::Caravan(placement(game, p, &forces, e.to, PlacementEvent::valid_movement_sources(game, p)))
         }
-        GameEvent::FremenRidesMonster(e) => O::FremenRidesMonster(fremen_ride(game, p, e, d)),
-        GameEvent::PerformFremenSetup(_) => {
+        Event::FremenRidesMonster(e) => O::FremenRidesMonster(fremen_ride(game, p, e, d)),
+        Event::PerformFremenSetup(_) => {
             let pl = game.player(p);
             let m = &game.board.map;
             let mut targets = vec![m.sietch_tabr().id()];
@@ -549,7 +549,7 @@ fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Acti
                 ],
             })
         }
-        GameEvent::DiscoveryEntered(e) => {
+        Event::DiscoveryEntered(e) => {
             let sources = match e.to.and_then(|l| l.as_discovered_location()) {
                 Some(ds) => DiscoveryEntered::valid_sources(game, p, ds).map(|l| forces_at(game, p, l)).collect(),
                 None => vec![],
@@ -559,22 +559,22 @@ fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Acti
                 sources,
             })
         }
-        GameEvent::AmbassadorActivated(e) => O::AmbassadorActivated(ambassador_activated(game, p, e)),
-        GameEvent::AmbassadorPlaced(_) => O::AmbassadorPlaced(AmbassadorPlacedOptions { draft: Value::Null,
+        Event::AmbassadorActivated(e) => O::AmbassadorActivated(ambassador_activated(game, p, e)),
+        Event::AmbassadorPlaced(_) => O::AmbassadorPlaced(AmbassadorPlacedOptions { draft: Value::Null,
             ambassadors: AmbassadorPlaced::valid_ambassadors(game, p).into_iter().map(name).collect(),
             targets: sectors_of(AmbassadorPlaced::valid_strongholds(game, p)),
             cost: game.revival.ambassadors_placed_this_turn + 1,
         }),
-        GameEvent::BeneGesseritAccompanies(e) => O::BeneGesseritAccompanies(BeneGesseritAccompaniesOptions { draft: Value::Null,
+        Event::BeneGesseritAccompanies(e) => O::BeneGesseritAccompanies(BeneGesseritAccompaniesOptions { draft: Value::Null,
             targets: ids(BeneGesseritAccompanies::valid_targets(game, p)),
             may_send_extra_advisor: e.location.is_some_and(|l| BeneGesseritAccompanies::may_send_extra_advisor(game, p, l)),
         }),
-        GameEvent::BeneGesseritFlip(_) => O::BeneGesseritFlip(BeneGesseritFlipOptions { draft: Value::Null, territory: BeneGesseritFlip::get_territory(game).id() }),
-        GameEvent::ChoamMovePrevention(_) => O::ChoamMovePrevention(ChoamMovePreventionOptions { draft: Value::Null,
+        Event::BeneGesseritFlip(_) => O::BeneGesseritFlip(BeneGesseritFlipOptions { draft: Value::Null, territory: BeneGesseritFlip::get_territory(game).id() }),
+        Event::ChoamMovePrevention(_) => O::ChoamMovePrevention(ChoamMovePreventionOptions { draft: Value::Null,
             card: ChoamMovePrevention::card_to_use(game, p).map(|c| c.id()),
             targets: sectors_of(ChoamMovePrevention::valid_territories(game, p)),
         }),
-        GameEvent::ChoamRemoveForce(e) => {
+        Event::ChoamRemoveForce(e) => {
             let l = e.location;
             O::ChoamRemoveForce(ChoamRemoveForceOptions { draft: Value::Null,
                 card: ChoamRemoveForce::card_to_use(game, p).map(|c| c.id()),
@@ -586,7 +586,7 @@ fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Acti
                     .collect(),
             })
         }
-        GameEvent::DiscoveryRevealed(_) => O::DiscoveryRevealed(DiscoveryRevealedOptions { draft: Value::Null,
+        Event::DiscoveryRevealed(_) => O::DiscoveryRevealed(DiscoveryRevealedOptions { draft: Value::Null,
             locations: DiscoveryRevealed::get_locations(game, p)
                 .map(|l| RevealableDiscovery {
                     location: l.id(),
@@ -595,24 +595,24 @@ fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Acti
                 })
                 .collect(),
         }),
-        GameEvent::FlightUsed(_) => O::FlightUsed(NoOptions { draft: Value::Null }),
-        GameEvent::TestingStationUsed(_) => O::TestingStationUsed(NoOptions { draft: Value::Null }),
-        GameEvent::KarmaHmsMovement(_) => {
+        Event::FlightUsed(_) => O::FlightUsed(NoOptions { draft: Value::Null }),
+        Event::TestingStationUsed(_) => O::TestingStationUsed(NoOptions { draft: Value::Null }),
+        Event::KarmaHmsMovement(_) => {
             O::KarmaHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(KarmaHmsMovement::valid_locations(game)), moves_left: game.storm.karma_hms_moves_left })
         }
-        GameEvent::PerformHmsMovement(_) => {
+        Event::PerformHmsMovement(_) => {
             O::PerformHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(PerformHmsMovement::valid_locations(game)), moves_left: game.storm.hms_moves_left })
         }
-        GameEvent::KarmaShipmentPrevention(_) => O::KarmaShipmentPrevention(FactionTargetsOptions { draft: Value::Null,
+        Event::KarmaShipmentPrevention(_) => O::KarmaShipmentPrevention(FactionTargetsOptions { draft: Value::Null,
             targets: KarmaShipmentPrevention::get_valid_targets(game, p).map(name).collect(),
         }),
-        GameEvent::PerformBeneGesseritPlacement(_) => {
+        Event::PerformBeneGesseritPlacement(_) => {
             O::PerformBeneGesseritPlacement(LocationPickOptions { draft: Value::Null, targets: ids(PerformBeneGesseritPlacement::valid_locations(game)) })
         }
-        GameEvent::PerformMoritaniSetup(_) => O::PerformMoritaniSetup(LocationPickOptions { draft: Value::Null, targets: ids(PerformMoritaniSetup::valid_locations(game)) }),
-        GameEvent::PerformHmsPlacement(_) => O::PerformHmsPlacement(LocationPickOptions { draft: Value::Null, targets: ids(PerformHmsPlacement::valid_locations(game, p)) }),
-        GameEvent::FremenSentMonster(_) => O::FremenSentMonster(LocationPickOptions { draft: Value::Null, targets: sectors_of(FremenSentMonster::valid_targets(game)) }),
-        GameEvent::SetShipmentPermission(_) => O::SetShipmentPermission(SetShipmentPermissionOptions { draft: Value::Null,
+        Event::PerformMoritaniSetup(_) => O::PerformMoritaniSetup(LocationPickOptions { draft: Value::Null, targets: ids(PerformMoritaniSetup::valid_locations(game)) }),
+        Event::PerformHmsPlacement(_) => O::PerformHmsPlacement(LocationPickOptions { draft: Value::Null, targets: ids(PerformHmsPlacement::valid_locations(game, p)) }),
+        Event::FremenSentMonster(_) => O::FremenSentMonster(LocationPickOptions { draft: Value::Null, targets: sectors_of(FremenSentMonster::valid_targets(game)) }),
+        Event::SetShipmentPermission(_) => O::SetShipmentPermission(SetShipmentPermissionOptions { draft: Value::Null,
             permissions: game
                 .ship_move.shipment_permissions
                 .iter()
@@ -625,14 +625,14 @@ fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Acti
                 .collect(),
             targets: SetShipmentPermission::valid_targets(game, p).map(name).collect(),
         }),
-        GameEvent::TerrorPlanted(_) => O::TerrorPlanted(TerrorPlantedOptions { draft: Value::Null,
+        Event::TerrorPlanted(_) => O::TerrorPlanted(TerrorPlantedOptions { draft: Value::Null,
             may_remove: TerrorPlanted::may_remove_tokens(game, p),
             remove_types: TerrorPlanted::valid_terror_types(game, true).map(name).collect(),
             place_types: TerrorPlanted::valid_terror_types(game, false).map(name).collect(),
             unplaced: game.board.unplaced_terror_tokens.iter().map(|t| name(*t)).collect(),
             targets: sectors_of(TerrorPlanted::valid_strongholds(game, p)),
         }),
-        GameEvent::TerrorRevealed(_) => O::TerrorRevealed(TerrorRevealedOptions { draft: Value::Null,
+        Event::TerrorRevealed(_) => O::TerrorRevealed(TerrorRevealedOptions { draft: Value::Null,
             victim: name_or_absent(TerrorRevealed::get_victim(game)),
             territory: TerrorRevealed::get_territory(game).map(|t| t.id()),
             types: TerrorRevealed::get_types(game).map(name).collect(),

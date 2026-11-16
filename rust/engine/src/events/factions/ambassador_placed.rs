@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct AmbassadorPlaced {
     pub ambassador: Option<Ambassador>,
     pub stronghold: Option<Territory>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -104,12 +104,12 @@ impl GameEventMethods for AmbassadorPlaced {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AmbassadorPlaced
+    fn event_type(&self) -> EventType {
+        EventType::AmbassadorPlaced
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AmbassadorPlaced(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AmbassadorPlaced(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

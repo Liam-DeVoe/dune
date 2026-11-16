@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
 impl Game {
-    pub fn get_applicable_events(&mut self, player: Option<PlayerId>, is_host: bool) -> Vec<GameEventType> {
-        let mut result: Vec<GameEventType> = Vec::new();
+    pub fn get_applicable_events(&mut self, player: Option<PlayerId>, is_host: bool) -> Vec<EventType> {
+        let mut result: Vec<EventType> = Vec::new();
 
         if self.turn.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == None) {
-            result.push(GameEventType::FactionSelected);
+            result.push(EventType::FactionSelected);
         } else if let Some(p) = player {
             if self.player(p).faction != None {
                 self.add_player_actions(p, is_host, &mut result);
@@ -19,14 +19,14 @@ impl Game {
         result
     }
 
-    pub fn add_host_actions(&self, result: &mut Vec<GameEventType>) {
+    pub fn add_host_actions(&self, result: &mut Vec<EventType>) {
         match self.turn.current_phase {
-            Phase::AwaitingPlayers => result.push(GameEventType::EstablishPlayers),
-            Phase::CustomizingDecks => result.push(GameEventType::CardsDetermined),
-            Phase::PerformCustomSetup => result.push(GameEventType::PerformSetup),
+            Phase::AwaitingPlayers => result.push(EventType::EstablishPlayers),
+            Phase::CustomizingDecks => result.push(EventType::CardsDetermined),
+            Phase::PerformCustomSetup => result.push(EventType::PerformSetup),
             Phase::HmsPlacement => {
                 if !self.is_playing(Faction::Ixian) && self.applicable(Rule::HmSwithoutIxian) {
-                    result.push(GameEventType::PerformHmsPlacement);
+                    result.push(EventType::PerformHmsPlacement);
                 }
             }
             Phase::SelectingFactions
@@ -56,235 +56,235 @@ impl Game {
             | Phase::Extortion
             | Phase::Contemplate
             | Phase::TurnConcluded
-            | Phase::CancellingTraitor => result.push(GameEventType::EndPhase),
-            Phase::ReplacingCardJustWon => result.push(GameEventType::EndPhase),
+            | Phase::CancellingTraitor => result.push(EventType::EndPhase),
+            Phase::ReplacingCardJustWon => result.push(EventType::EndPhase),
             _ => {}
         }
     }
 
-    pub fn add_player_actions(&mut self, player: PlayerId, is_host: bool, result: &mut Vec<GameEventType>) {
+    pub fn add_player_actions(&mut self, player: PlayerId, is_host: bool, result: &mut Vec<EventType>) {
         let faction = self.player(player).faction;
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
 
         match self.turn.current_phase {
             Phase::Discarding => {
                 if self.turn.factions_that_must_discard.contains_opt(faction) {
-                    result.push(GameEventType::Discarded);
+                    result.push(EventType::Discarded);
                 }
             }
             Phase::DiscardingTraitor => {
                 if faction == self.turn.faction_that_must_discard_traitor {
-                    result.push(GameEventType::TraitorDiscarded);
+                    result.push(EventType::TraitorDiscarded);
                 }
             }
             Phase::AllianceByTerror => {
                 if faction == self.ship_move.alliance_by_terror_offered_to {
-                    result.push(GameEventType::AllianceByTerror);
+                    result.push(EventType::AllianceByTerror);
                 }
             }
             Phase::AllianceByAmbassador => {
                 if faction == self.ship_move.alliance_by_ambassador_offered_to {
-                    result.push(GameEventType::AllianceByAmbassador);
+                    result.push(EventType::AllianceByAmbassador);
                 }
             }
             Phase::Bureaucracy => {
                 if Some(player) == self.player_skilled_as(LeaderSkill::Bureaucrat) {
-                    result.push(GameEventType::Bureaucracy);
+                    result.push(EventType::Bureaucracy);
                 }
             }
             Phase::AssigningInitialSkills | Phase::AssigningSkill => {
                 if !self.player(player).skills_to_choose_from.is_empty() {
-                    result.push(GameEventType::SkillAssigned);
+                    result.push(EventType::SkillAssigned);
                 }
             }
             Phase::SelectingFactions => {
                 if self.player(player).faction == None {
-                    result.push(GameEventType::FactionSelected);
+                    result.push(EventType::FactionSelected);
                 }
             }
             Phase::DiallingStorm => {
                 let f = self.player(player).faction;
                 if self.storm.has_battle_wheel.contains_opt(f) && !self.turn.has_acted_or_passed.contains_opt(f) {
-                    result.push(GameEventType::StormDialled);
+                    result.push(EventType::StormDialled);
                 }
             }
             Phase::TradingFactions => {
                 if self.players.len() > 1 {
-                    result.push(GameEventType::FactionTradeOffered);
+                    result.push(EventType::FactionTradeOffered);
                 }
             }
             Phase::PerformCustomSetup => {}
             Phase::BeneGesseritPredicting => {
                 if faction == Some(Faction::BeneGesserit) {
-                    result.push(GameEventType::BeneGesseritPrediction);
+                    result.push(EventType::BeneGesseritPrediction);
                 }
             }
             Phase::FremenSettingUp => {
                 if faction == Some(Faction::Fremen) {
-                    result.push(GameEventType::PerformFremenSetup);
+                    result.push(EventType::PerformFremenSetup);
                 }
             }
             Phase::BeneGesseritSettingUp => {
                 if faction == Some(Faction::BeneGesserit) {
-                    result.push(GameEventType::PerformBeneGesseritPlacement);
+                    result.push(EventType::PerformBeneGesseritPlacement);
                 }
             }
             Phase::MoritaniSettingUp => {
                 if faction == Some(Faction::Moritani) {
-                    result.push(GameEventType::PerformMoritaniSetup);
+                    result.push(EventType::PerformMoritaniSetup);
                 }
             }
             Phase::HarkonnenMulligan => {
                 if faction == Some(Faction::Harkonnen) {
-                    result.push(GameEventType::MulliganPerformed);
+                    result.push(EventType::MulliganPerformed);
                 }
             }
             Phase::SelectingTraitors => {
                 if faction != Some(Faction::Harkonnen) && faction != Some(Faction::Tleilaxu) && !self.turn.has_acted_or_passed.contains_opt(faction) {
-                    result.push(GameEventType::TraitorsSelected);
+                    result.push(EventType::TraitorsSelected);
                 }
             }
             Phase::IxianSelectingCard => {
                 if faction == Some(Faction::Ixian) {
-                    result.push(GameEventType::IxianSelectedStartingCard);
+                    result.push(EventType::IxianSelectedStartingCard);
                 }
             }
             Phase::HmsPlacement => {
                 if faction == Some(Faction::Ixian) {
-                    result.push(GameEventType::PerformHmsPlacement);
+                    result.push(EventType::PerformHmsPlacement);
                 }
             }
             Phase::BeginningOfStorm => {
                 if !DiscoveryEntered::valid_targets(self, player).next().is_none() {
-                    result.push(GameEventType::DiscoveryEntered);
+                    result.push(EventType::DiscoveryEntered);
                 }
             }
             Phase::HmsMovement => {
                 if faction == Some(Faction::Ixian) {
-                    result.push(GameEventType::PerformHmsMovement);
+                    result.push(EventType::PerformHmsMovement);
                 }
             }
             Phase::MetheorAndStormSpell => {
                 if self.player(player).has_treachery_card_type(TreacheryCardType::StormSpell) && self.turn.current_turn > Turn::FIRST {
-                    result.push(GameEventType::StormSpellPlayed);
+                    result.push(EventType::StormSpellPlayed);
                 }
                 if MetheorPlayed::may_play_metheor(self, player) {
-                    result.push(GameEventType::MetheorPlayed);
+                    result.push(EventType::MetheorPlayed);
                 }
                 if TestingStationUsed::can_be_played(self, player) {
-                    result.push(GameEventType::TestingStationUsed);
+                    result.push(EventType::TestingStationUsed);
                 }
             }
             Phase::Thumper => {
                 if self.player(player).has_treachery_card_type(TreacheryCardType::Thumper) {
-                    result.push(GameEventType::ThumperPlayed);
+                    result.push(EventType::ThumperPlayed);
                 }
             }
             Phase::VoteAllianceA | Phase::VoteAllianceB => {
                 if self.blow.nexus_votes.iter().all(|v| v.initiator() != faction) {
-                    result.push(GameEventType::NexusVoted);
+                    result.push(EventType::NexusVoted);
                 }
             }
             Phase::HarvesterA | Phase::HarvesterB => {
                 if self.player(player).has_treachery_card_type(TreacheryCardType::Harvester) {
-                    result.push(GameEventType::HarvesterPlayed);
+                    result.push(EventType::HarvesterPlayed);
                 }
             }
             Phase::StormLosses => {
                 if faction == TakeLosses::losses_to_take(self).faction {
-                    result.push(GameEventType::TakeLosses);
+                    result.push(EventType::TakeLosses);
                 }
             }
             Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB => {
                 if faction == Some(Faction::Fremen) {
-                    result.push(GameEventType::FremenSentMonster);
+                    result.push(EventType::FremenSentMonster);
                 }
             }
             Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB => {
                 if faction == Some(Faction::Fremen) {
-                    result.push(GameEventType::FremenRidesMonster);
+                    result.push(EventType::FremenRidesMonster);
                 }
             }
             Phase::AllianceA | Phase::AllianceB => {
                 if !self.turn.has_acted_or_passed.contains_opt(faction) {
                     if self.player(player).ally == None && self.players.len() > 1 {
-                        result.push(GameEventType::AllianceOffered);
+                        result.push(EventType::AllianceOffered);
                     }
                     if self.player(player).ally != None {
-                        result.push(GameEventType::AllianceBroken);
+                        result.push(EventType::AllianceBroken);
                     }
-                    result.push(GameEventType::AlliancePassed);
+                    result.push(EventType::AlliancePassed);
                 }
             }
             Phase::NexusCards => {
                 if NexusCardDrawn::applicable(self, player) {
-                    result.push(GameEventType::NexusCardDrawn);
+                    result.push(EventType::NexusCardDrawn);
                 }
             }
             Phase::BlowReport => {}
             Phase::ClaimingCharity => {
                 if !is_host && faction == Some(Faction::Atreides) {
-                    result.push(GameEventType::EndPhase);
+                    result.push(EventType::EndPhase);
                 }
                 if CharityClaimed::can_be_played(self, player) {
-                    result.push(GameEventType::CharityClaimed);
+                    result.push(EventType::CharityClaimed);
                 }
             }
             Phase::BlackMarketAnnouncement => {
                 if faction == Some(Faction::Richese) {
-                    result.push(GameEventType::RicheseAnnouncesBlackMarket);
+                    result.push(EventType::RicheseAnnouncesBlackMarket);
                 }
             }
             Phase::BlackMarketBidding => {
                 if BlackMarketBid::may_be_played(self, player) {
-                    result.push(GameEventType::BlackMarketBid);
+                    result.push(EventType::BlackMarketBid);
                 }
                 if faction == Some(Faction::Emperor) && self.applicable(Rule::EmperorSupportingNonAllyBids) {
-                    result.push(GameEventType::EmperorBidSupport);
+                    result.push(EventType::EmperorBidSupport);
                 }
             }
             Phase::RicheseAnnouncingAuction => {
                 if faction == Some(Faction::Richese) {
-                    result.push(GameEventType::RicheseAnnouncesAuction);
+                    result.push(EventType::RicheseAnnouncesAuction);
                 }
             }
             Phase::RicheseSpecifyingAuction => {
                 if RicheseSpecifiesAuction::may_specify_card(self, player) || RicheseSpecifiesAuction::may_specify_type_of_auction(self, player) {
-                    result.push(GameEventType::RicheseSpecifiesAuction);
+                    result.push(EventType::RicheseSpecifiesAuction);
                 }
             }
             Phase::Bidding => {
                 if Bid::may_be_played(self, Some(player)) {
-                    result.push(GameEventType::Bid);
+                    result.push(EventType::Bid);
                 }
                 if faction == Some(Faction::Emperor) && self.applicable(Rule::EmperorSupportingNonAllyBids) {
-                    result.push(GameEventType::EmperorBidSupport);
+                    result.push(EventType::EmperorBidSupport);
                 }
             }
             Phase::RicheseKeepingUnsoldCard => {
                 if faction == Some(Faction::Richese) {
-                    result.push(GameEventType::RicheseKeepsUnsoldCard);
+                    result.push(EventType::RicheseKeepsUnsoldCard);
                 }
             }
             Phase::IxianRemovingCardFromBid => {
                 let occupier_of_ixian_homeworld = self.occupier_of(World::Ixian);
                 if (occupier_of_ixian_homeworld.is_none() && faction == Some(Faction::Ixian)) || occupier_of_ixian_homeworld == Some(player) {
-                    result.push(GameEventType::IxianRemovedCardFromAuction);
+                    result.push(EventType::IxianRemovedCardFromAuction);
                 }
             }
             Phase::IxianSwappingCard => {
                 if faction == Some(Faction::Ixian) {
-                    result.push(GameEventType::IxianSwappedCardOnBid);
+                    result.push(EventType::IxianSwappedCardOnBid);
                 }
             }
             Phase::ReplacingCardJustWon => {
                 if faction == self.bidding.faction_that_may_replace_bought_card {
-                    result.push(GameEventType::ReplacedCardWon);
+                    result.push(EventType::ReplacedCardWon);
                 }
             }
             Phase::WaitingForNextBiddingRound => {
                 if !is_host && faction == Some(Faction::Atreides) {
-                    result.push(GameEventType::EndPhase);
+                    result.push(EventType::EndPhase);
                 }
             }
             Phase::BiddingReport => {
@@ -292,11 +292,11 @@ impl Game {
                     && self.players.len() > 1
                     && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
                 {
-                    result.push(GameEventType::SetIncreasedRevivalLimits);
+                    result.push(EventType::SetIncreasedRevivalLimits);
                 }
                 // Kaitain's high threshold. Salusa Secundus has no discard.
                 if faction == Some(Faction::Emperor) && self.player(player).has_high_threshold(self, World::Emperor) && i32::from(self.player(player).resources) >= 2 {
-                    result.push(GameEventType::EmperorDiscarded);
+                    result.push(EventType::EmperorDiscarded);
                 }
             }
 
@@ -305,10 +305,10 @@ impl Game {
                     && self.players.len() > 1
                     && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
                 {
-                    result.push(GameEventType::SetIncreasedRevivalLimits);
+                    result.push(EventType::SetIncreasedRevivalLimits);
                 }
                 if RecruitsPlayed::is_applicable(self, player) {
-                    result.push(GameEventType::RecruitsPlayed);
+                    result.push(EventType::RecruitsPlayed);
                 }
             }
 
@@ -318,50 +318,50 @@ impl Game {
                     && !self.killed_heroes(player).is_empty()
                     && Revival::normally_revivable_heroes(self, player).is_empty()
                 {
-                    result.push(GameEventType::RequestTleilaxuRevival);
+                    result.push(EventType::RequestTleilaxuRevival);
                 }
 
                 if faction == Some(Faction::Tleilaxu) && (!self.revival.current_revival_requests.is_empty() || !self.revival.early_revivals_offers.is_empty()) {
-                    result.push(GameEventType::AcceptOrCancelTleilaxuRevival);
+                    result.push(EventType::AcceptOrCancelTleilaxuRevival);
                 }
                 if self.has_something_to_revive(player) && !self.prevented_from_reviving(faction) {
-                    result.push(GameEventType::Revival);
+                    result.push(EventType::Revival);
                 }
                 if faction == Some(Faction::Tleilaxu)
                     && self.players.len() > 1
                     && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
                 {
-                    result.push(GameEventType::SetIncreasedRevivalLimits);
+                    result.push(EventType::SetIncreasedRevivalLimits);
                 }
             }
 
             Phase::ResurrectionReport => {
                 if faction == Some(Faction::Ecaz) && AmbassadorPlaced::is_applicable(self, player) {
-                    result.push(GameEventType::AmbassadorPlaced);
+                    result.push(EventType::AmbassadorPlaced);
                 }
             }
 
             Phase::GuildShip => {
                 if faction == Some(Faction::Guild) {
                     if self.guild_may_delay() {
-                        result.push(GameEventType::GuildDelay);
+                        result.push(EventType::GuildDelay);
                     }
-                    result.push(GameEventType::Shipment);
+                    result.push(EventType::Shipment);
                     if has_caravan(self) && !PlacementEvent::valid_movement_sources(self, player).is_empty() {
-                        result.push(GameEventType::Caravan);
+                        result.push(EventType::Caravan);
                     }
                 }
             }
             Phase::BeneGesseritAccompaniesGuildShip | Phase::BeneGesseritAccompaniesNonGuildShip => {
                 if faction == Some(Faction::BeneGesserit) {
-                    result.push(GameEventType::BeneGesseritAccompanies);
+                    result.push(EventType::BeneGesseritAccompanies);
                 }
             }
             Phase::NonGuildShip => {
                 if self.is_current_shipment_and_move_player(player) {
-                    result.push(GameEventType::Shipment);
+                    result.push(EventType::Shipment);
                     if has_caravan(self) {
-                        result.push(GameEventType::Caravan);
+                        result.push(EventType::Caravan);
                     }
                 }
             }
@@ -385,7 +385,7 @@ impl Game {
             | Phase::BeneGesseritIntrudedByCaravan
             | Phase::BeneGesseritIntrudedByRevival => {
                 if faction == Some(Faction::BeneGesserit) {
-                    result.push(GameEventType::BeneGesseritFlip);
+                    result.push(EventType::BeneGesseritFlip);
                 }
             }
 
@@ -400,7 +400,7 @@ impl Game {
             | Phase::TerrorTriggeredByCaravan
             | Phase::TerrorTriggeredByRevival => {
                 if faction == Some(Faction::Moritani) {
-                    result.push(GameEventType::TerrorRevealed);
+                    result.push(EventType::TerrorRevealed);
                 }
             }
 
@@ -415,7 +415,7 @@ impl Game {
             | Phase::AmbassadorTriggeredByCaravan
             | Phase::AmbassadorTriggeredByRevival => {
                 if faction == Some(Faction::Ecaz) || (self.player(player).ally == Some(Faction::Ecaz) && self.alliances.ecaz_shares_ambassadors) {
-                    result.push(GameEventType::AmbassadorActivated);
+                    result.push(EventType::AmbassadorActivated);
                 }
             }
 
@@ -425,48 +425,48 @@ impl Game {
             Phase::BattlePhase => {
                 // NextPlayerToBattle mutates BattleSequence; only read when CurrentBattle is null.
                 if self.battle.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
-                    result.push(GameEventType::BattleInitiated);
+                    result.push(EventType::BattleInitiated);
                 }
 
                 if self.battle.current_battle.is_some() && SwitchedSkilledLeader::can_be_played(self, player) {
-                    result.push(GameEventType::SwitchedSkilledLeader);
+                    result.push(EventType::SwitchedSkilledLeader);
                 }
 
                 if HMSAdvantageChosen::can_be_played(self, player) {
-                    result.push(GameEventType::HMSAdvantageChosen);
+                    result.push(EventType::HMSAdvantageChosen);
                 }
 
                 if Voice::may_use_voice(self, player) {
-                    result.push(GameEventType::Voice);
+                    result.push(EventType::Voice);
                 }
 
                 if VoiceDeclined::may_decline(self, player) {
-                    result.push(GameEventType::VoiceDeclined);
+                    result.push(EventType::VoiceDeclined);
                 }
 
                 if Thought::may_be_used(self, player) {
-                    result.push(GameEventType::Thought);
+                    result.push(EventType::Thought);
                 }
 
                 if Prescience::may_use_prescience(self, player) {
-                    result.push(GameEventType::Prescience);
+                    result.push(EventType::Prescience);
                 }
 
                 if let Some(cb) = self.battle.current_battle.clone() {
                     if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_none() {
-                        result.push(GameEventType::Battle);
+                        result.push(EventType::Battle);
                     } else if faction == cb.defender(self) && self.battle.defender_plan.is_none() {
-                        result.push(GameEventType::Battle);
+                        result.push(EventType::Battle);
                     }
 
                     if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_some() {
-                        result.push(GameEventType::BattleRevision);
+                        result.push(EventType::BattleRevision);
                     } else if faction == cb.defender(self) && self.battle.defender_plan.is_some() {
-                        result.push(GameEventType::BattleRevision);
+                        result.push(EventType::BattleRevision);
                     }
 
                     if ResidualPlayed::may_play(self, player) {
-                        result.push(GameEventType::ResidualPlayed);
+                        result.push(EventType::ResidualPlayed);
                     }
                 }
 
@@ -479,10 +479,10 @@ impl Game {
                         None => None,
                     };
                     if opponent.is_some_and(|o| self.player(o).is(faction)) {
-                        result.push(GameEventType::BattleClaimed);
+                        result.push(EventType::BattleClaimed);
                     }
                 } else if faction == Some(Faction::Ecaz) {
-                    result.push(GameEventType::BattleClaimed);
+                    result.push(EventType::BattleClaimed);
                 }
             }
 
@@ -503,7 +503,7 @@ impl Game {
                             && ap.hero.is_some()
                             && traitors.contains(&ap.hero.expect("hero")))
                     {
-                        result.push(GameEventType::TreacheryCalled);
+                        result.push(EventType::TreacheryCalled);
                     }
                 }
 
@@ -512,7 +512,7 @@ impl Game {
                         && ap.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
                         && !self.battle.poison_tooth_cancelled
                     {
-                        result.push(GameEventType::PoisonToothCancelled);
+                        result.push(EventType::PoisonToothCancelled);
                     }
                 }
 
@@ -521,67 +521,67 @@ impl Game {
                         && dp.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
                         && !self.battle.poison_tooth_cancelled
                     {
-                        result.push(GameEventType::PoisonToothCancelled);
+                        result.push(EventType::PoisonToothCancelled);
                     }
                 }
 
                 if PortableAntidoteUsed::can_be_played(self, player) {
-                    result.push(GameEventType::PortableAntidoteUsed);
+                    result.push(EventType::PortableAntidoteUsed);
                 }
 
                 if Diplomacy::can_be_played(self, player) {
-                    result.push(GameEventType::Diplomacy);
+                    result.push(EventType::Diplomacy);
                 }
             }
 
             Phase::Retreating => {
                 if Some(faction) == self.battle.battle_loser {
-                    result.push(GameEventType::Retreat);
+                    result.push(EventType::Retreat);
                 }
             }
 
             Phase::MeltingRock => {
                 if RockWasMelted::can_be_played(self, player) {
-                    result.push(GameEventType::RockWasMelted);
+                    result.push(EventType::RockWasMelted);
                 }
             }
 
             Phase::CaptureDecision => {
                 if faction == Some(Faction::Harkonnen) {
-                    result.push(GameEventType::Captured);
+                    result.push(EventType::Captured);
                 }
             }
 
             Phase::BattleConclusion => {
                 if Some(faction) == self.battle.battle_winner && !self.battle.battle_was_concluded_by_winner {
-                    result.push(GameEventType::BattleConcluded);
+                    result.push(EventType::BattleConcluded);
                 }
                 if LoserConcluded::is_applicable(self, Some(player)) {
-                    result.push(GameEventType::LoserConcluded);
+                    result.push(EventType::LoserConcluded);
                 }
             }
 
             Phase::AvoidingAudit => {
                 if Some(player) == self.auditee() {
-                    result.push(GameEventType::AuditCancelled);
+                    result.push(EventType::AuditCancelled);
                 }
             }
 
             Phase::Auditing => {
                 if faction == Some(Faction::Choam) {
-                    result.push(GameEventType::Audited);
+                    result.push(EventType::Audited);
                 }
             }
 
             Phase::RevealingFacedancer => {
                 if faction == Some(Faction::Tleilaxu) {
-                    result.push(GameEventType::FaceDancerRevealed);
+                    result.push(EventType::FaceDancerRevealed);
                 }
             }
 
             Phase::Facedancing => {
                 if faction == Some(Faction::Tleilaxu) {
-                    result.push(GameEventType::FaceDanced);
+                    result.push(EventType::FaceDanced);
                 }
             }
 
@@ -592,31 +592,31 @@ impl Game {
 
             Phase::DividingCollectedResources => {
                 if DivideResources::is_applicable(self, player) {
-                    result.push(GameEventType::DivideResources);
+                    result.push(EventType::DivideResources);
                 }
             }
 
             Phase::AcceptingResourceDivision => {
                 if DivideResourcesAccepted::is_applicable(self, player) {
-                    result.push(GameEventType::DivideResourcesAccepted);
+                    result.push(EventType::DivideResourcesAccepted);
                 }
             }
 
             Phase::ReplacingFaceDancer => {
                 if faction == Some(Faction::Tleilaxu) {
-                    result.push(GameEventType::FaceDancerReplaced);
+                    result.push(EventType::FaceDancerReplaced);
                 }
             }
 
             Phase::Extortion => {
                 if ExtortionPrevented::can_be_played(self, player) {
-                    result.push(GameEventType::ExtortionPrevented);
+                    result.push(EventType::ExtortionPrevented);
                 }
             }
 
             Phase::BeginningOfCollection | Phase::CollectionReport => {
                 if faction == Some(Faction::Moritani) && TerrorPlanted::is_applicable(self, player) {
-                    result.push(GameEventType::TerrorPlanted);
+                    result.push(EventType::TerrorPlanted);
                 }
             }
 
@@ -625,28 +625,28 @@ impl Game {
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
                     && self.charity.economics_status == None
                 {
-                    result.push(GameEventType::ChoamEconomics);
+                    result.push(EventType::ChoamEconomics);
                 }
                 if faction == Some(Faction::Moritani) && TerrorPlanted::is_applicable(self, player) {
-                    result.push(GameEventType::TerrorPlanted);
+                    result.push(EventType::TerrorPlanted);
                 }
             }
 
             Phase::PerformingKarmaHandSwap => {
                 if faction == Some(Faction::Harkonnen) && !self.karma_prevented(faction) {
-                    result.push(GameEventType::KarmaHandSwap);
+                    result.push(EventType::KarmaHandSwap);
                 }
             }
 
             Phase::TradingCards => {
                 if Some(faction) == self.alliances.current_card_trade_offer.as_ref().map(|o| o.target) {
-                    result.push(GameEventType::CardTraded);
+                    result.push(EventType::CardTraded);
                 }
             }
 
             Phase::Clairvoyance => {
                 if Some(faction) == self.turn.latest_clairvoyance.as_ref().map(|c| c.target) {
-                    result.push(GameEventType::ClairVoyanceAnswered);
+                    result.push(EventType::ClairVoyanceAnswered);
                 }
             }
 
@@ -658,13 +658,13 @@ impl Game {
                     None => None,
                 };
                 if Some(player) == opponent {
-                    result.push(GameEventType::ThoughtAnswered);
+                    result.push(EventType::ThoughtAnswered);
                 }
             }
 
             Phase::SearchingDiscarded => {
                 if DiscardedSearched::can_be_played(self, player) {
-                    result.push(GameEventType::DiscardedSearched);
+                    result.push(EventType::DiscardedSearched);
                 }
             }
 
@@ -672,7 +672,7 @@ impl Game {
         }
 
         if self.turn.current_phase > Phase::TradingFactions {
-            result.push(GameEventType::AutomationConfigured);
+            result.push(EventType::AutomationConfigured);
         }
 
         if self.turn.current_main_phase > MainPhase::Setup
@@ -681,23 +681,23 @@ impl Game {
             && !self.is_occupied_world(World::Choam)
             && !ResourcesAudited::valid_factions(self, player).next().is_none()
         {
-            result.push(GameEventType::ResourcesAudited);
+            result.push(EventType::ResourcesAudited);
         }
 
         if self.turn.current_main_phase == MainPhase::ShipmentAndMove && SetShipmentPermission::is_applicable(self, player) {
-            result.push(GameEventType::SetShipmentPermission);
+            result.push(EventType::SetShipmentPermission);
         }
 
         if self.turn.current_main_phase == MainPhase::Collection && DiscoveryRevealed::applicable(self, player) {
-            result.push(GameEventType::DiscoveryRevealed);
+            result.push(EventType::DiscoveryRevealed);
         }
 
         if NexusPlayed::is_applicable(self, player) {
-            result.push(GameEventType::NexusPlayed);
+            result.push(EventType::NexusPlayed);
         }
 
         if self.player(player).ally != None {
-            result.push(GameEventType::AllyPermission);
+            result.push(EventType::AllyPermission);
         }
 
         let is_after_setup = self.turn.current_main_phase > MainPhase::Setup;
@@ -707,11 +707,11 @@ impl Game {
             && self.battle.current_battle.as_ref().is_some_and(|cb| cb.plan_of(self, Some(player)).is_some());
 
         if JuicePlayed::can_be_played_by(self, player) {
-            result.push(GameEventType::JuicePlayed);
+            result.push(EventType::JuicePlayed);
         }
 
         if CardGiven::is_applicable(self, player) {
-            result.push(GameEventType::CardGiven);
+            result.push(EventType::CardGiven);
         }
 
         if faction == Some(Faction::Ecaz)
@@ -725,7 +725,7 @@ impl Game {
         {
             let plan_of_ecaz = self.battle.current_battle.as_ref().expect("current battle").plan_of_faction(self, Faction::Ecaz);
             if plan_of_ecaz.is_some_and(|p| p.defense().is_none() && p.weapon().is_none()) {
-                result.push(GameEventType::KarmaEcazDial);
+                result.push(EventType::KarmaEcazDial);
             }
         }
 
@@ -733,7 +733,7 @@ impl Game {
             let p = self.player(player);
 
             if self.turn.current_main_phase < MainPhase::Battle && p.no_field_is_active() {
-                result.push(GameEventType::RicheseRevealedNoField);
+                result.push(EventType::RicheseRevealedNoField);
             }
 
             if faction == Some(Faction::Choam)
@@ -741,39 +741,39 @@ impl Game {
                 && self.consider_as_end_of_phase()
                 && !ChoamDiscarded::valid_cards(self, player).next().is_none()
             {
-                result.push(GameEventType::ChoamDiscarded);
+                result.push(EventType::ChoamDiscarded);
             }
 
-            if !result.contains(&GameEventType::AmalPlayed) && p.has_treachery_card_type(TreacheryCardType::Amal) && self.consider_as_start_of_phase() {
-                result.push(GameEventType::AmalPlayed);
+            if !result.contains(&EventType::AmalPlayed) && p.has_treachery_card_type(TreacheryCardType::Amal) && self.consider_as_start_of_phase() {
+                result.push(EventType::AmalPlayed);
             }
 
             if DiscardedTaken::can_be_played(self, player) {
-                result.push(GameEventType::DiscardedTaken);
+                result.push(EventType::DiscardedTaken);
             }
 
             if self.turn.current_phase != Phase::SearchingDiscarded && DiscardedSearchedAnnounced::can_be_played(self, player) {
-                result.push(GameEventType::DiscardedSearchedAnnounced);
+                result.push(EventType::DiscardedSearchedAnnounced);
             }
 
             if self.turn.current_main_phase == MainPhase::ShipmentAndMove && ChoamMovePrevention::can_be_played_by(self, player) {
-                result.push(GameEventType::ChoamMovePrevention);
+                result.push(EventType::ChoamMovePrevention);
             }
 
             if ChoamKarmaPrevention::can_be_played_by(self, player) {
-                result.push(GameEventType::ChoamKarmaPrevention);
+                result.push(EventType::ChoamKarmaPrevention);
             }
 
             if self.turn.current_main_phase == MainPhase::ShipmentAndMove && ChoamExtraMove::can_be_played_by(self, player) {
-                result.push(GameEventType::ChoamExtraMove);
+                result.push(EventType::ChoamExtraMove);
             }
 
             if self.turn.current_main_phase == MainPhase::Resurrection && ChoamFreeRevivalPrevention::can_be_played_by(self, player) {
-                result.push(GameEventType::ChoamFreeRevivalPrevention);
+                result.push(EventType::ChoamFreeRevivalPrevention);
             }
 
             if self.turn.current_main_phase == MainPhase::Contemplate && ChoamRemoveForce::can_be_played_by(self, player) {
-                result.push(GameEventType::ChoamRemoveForce);
+                result.push(EventType::ChoamRemoveForce);
             }
 
             if ((faction == Some(Faction::Choam) && p.has_ally()) || p.ally == Some(Faction::Choam))
@@ -782,21 +782,21 @@ impl Game {
                 && !p.treachery_cards.is_empty()
                 && self.alliances.last_turn_card_was_traded < Some(self.turn.current_turn)
             {
-                result.push(GameEventType::CardTraded);
+                result.push(EventType::CardTraded);
             }
 
             if p.has_treachery_card_type(TreacheryCardType::RaiseDead) {
-                result.push(GameEventType::RaiseDeadPlayed);
+                result.push(EventType::RaiseDeadPlayed);
             }
 
             if p.has_treachery_card_type(TreacheryCardType::Clairvoyance)
                 || (p.occupies(self, Some(self.board.map.shrine().location())) && p.has_karma(self))
             {
-                result.push(GameEventType::ClairVoyancePlayed);
+                result.push(EventType::ClairVoyancePlayed);
             }
 
             if !self.karma_prevented(faction) && p.has_karma(self) {
-                result.push(GameEventType::Karma);
+                result.push(EventType::Karma);
             }
 
             if self.players.len() > 1
@@ -807,7 +807,7 @@ impl Game {
                 && self.turn.current_main_phase == MainPhase::Bidding
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaHandSwapInitiated);
+                result.push(EventType::KarmaHandSwapInitiated);
             }
 
             if faction == Some(Faction::Guild)
@@ -817,7 +817,7 @@ impl Game {
                 && self.turn.current_main_phase == MainPhase::ShipmentAndMove
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaShipmentPrevention);
+                result.push(EventType::KarmaShipmentPrevention);
             }
 
             if faction == Some(Faction::Tleilaxu)
@@ -827,7 +827,7 @@ impl Game {
                 && self.turn.current_main_phase == MainPhase::Resurrection
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaRevivalPrevention);
+                result.push(EventType::KarmaRevivalPrevention);
             }
 
             if faction == Some(Faction::Choam)
@@ -836,7 +836,7 @@ impl Game {
                 && p.has_karma(self)
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaChoamDiscard);
+                result.push(EventType::KarmaChoamDiscard);
             }
 
             if faction == Some(Faction::Richese)
@@ -846,7 +846,7 @@ impl Game {
                 && self.applicable(Rule::AdvancedKarama)
                 && !self.has_bid_to_pay(player)
             {
-                result.push(GameEventType::KarmaRicheseBuy);
+                result.push(EventType::KarmaRicheseBuy);
             }
 
             if faction == Some(Faction::Emperor)
@@ -856,7 +856,7 @@ impl Game {
                 && self.turn.current_main_phase == MainPhase::Resurrection
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaFreeRevival);
+                result.push(EventType::KarmaFreeRevival);
             }
 
             if faction == Some(Faction::Ixian)
@@ -866,7 +866,7 @@ impl Game {
                 && p.any_forces_in(Some(self.board.map.hidden_mobile_stronghold().location())) > 0
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaHmsMovement);
+                result.push(EventType::KarmaHmsMovement);
             }
 
             if faction == Some(Faction::Fremen)
@@ -877,7 +877,7 @@ impl Game {
                 && p.has_karma(self)
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaMonster);
+                result.push(EventType::KarmaMonster);
             }
 
             if faction == Some(Faction::Atreides)
@@ -889,7 +889,7 @@ impl Game {
                 && p.has_karma(self)
                 && self.applicable(Rule::AdvancedKarama)
             {
-                result.push(GameEventType::KarmaPrescience);
+                result.push(EventType::KarmaPrescience);
             }
 
             if faction == Some(Faction::BeneGesserit)
@@ -899,11 +899,11 @@ impl Game {
                         && self.turn.current_main_phase == MainPhase::ShipmentAndMove))
                 && !BeneGesseritBattleAnnouncement::valid_territories(self, player).next().is_none()
             {
-                result.push(GameEventType::BeneGesseritBattleAnnouncement);
+                result.push(EventType::BeneGesseritBattleAnnouncement);
             }
 
             if ResourcesTransferred::can_be_played(self, player) {
-                result.push(GameEventType::ResourcesTransferred);
+                result.push(EventType::ResourcesTransferred);
             }
 
             if self.players.len() > 1
@@ -913,7 +913,7 @@ impl Game {
                 && self.battle.aggressor_plan.as_ref().is_none_or(|ap| faction != ap.initiator())
                 && self.battle.defender_plan.as_ref().is_none_or(|dp| faction != dp.initiator())
             {
-                result.push(GameEventType::Donated);
+                result.push(EventType::Donated);
             }
 
             if faction == Some(Faction::Richese)
@@ -924,7 +924,7 @@ impl Game {
                 && !RicheseGaveCard::valid_cards(self, player).next().is_none()
                 && self.player(p.allied_player(self).expect("allied player")).has_room_for_cards(self)
             {
-                result.push(GameEventType::RicheseGaveCard);
+                result.push(EventType::RicheseGaveCard);
             }
 
             if self.turn.current_phase != Phase::BlackMarketBidding
@@ -932,12 +932,12 @@ impl Game {
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && DistransUsed::can_be_played(self, player)
             {
-                result.push(GameEventType::DistransUsed);
+                result.push(EventType::DistransUsed);
             }
 
-            result.push(GameEventType::DealOffered);
-            result.push(GameEventType::DealAccepted);
-            result.push(GameEventType::DealRejected);
+            result.push(EventType::DealOffered);
+            result.push(EventType::DealAccepted);
+            result.push(EventType::DealRejected);
         }
     }
 
@@ -950,19 +950,19 @@ impl Game {
     }
 
     /// The actions shared by the `GuildMove` and `NonGuildMove` cases.
-    fn add_move_actions(&self, player: PlayerId, result: &mut Vec<GameEventType>) {
+    fn add_move_actions(&self, player: PlayerId, result: &mut Vec<EventType>) {
         if self.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan) {
-            result.push(GameEventType::Caravan);
+            result.push(EventType::Caravan);
         }
-        result.push(GameEventType::Move);
+        result.push(EventType::Move);
         if FlightUsed::is_available(self, player) {
-            result.push(GameEventType::FlightUsed);
+            result.push(EventType::FlightUsed);
         }
         if FlightDiscoveryUsed::is_available(self, player) {
-            result.push(GameEventType::FlightDiscoveryUsed);
+            result.push(EventType::FlightDiscoveryUsed);
         }
         if Planetology::can_be_played(self, player) {
-            result.push(GameEventType::Planetology);
+            result.push(EventType::Planetology);
         }
     }
 

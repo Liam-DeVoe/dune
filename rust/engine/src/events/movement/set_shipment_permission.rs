@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct SetShipmentPermission {
     pub factions: Option<Vec<Faction>>,
     pub permission: ShipmentPermission,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -102,12 +102,12 @@ impl GameEventMethods for SetShipmentPermission {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::SetShipmentPermission
+    fn event_type(&self) -> EventType {
+        EventType::SetShipmentPermission
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::SetShipmentPermission(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::SetShipmentPermission(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct Discarded {
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -64,12 +64,12 @@ impl GameEventMethods for Discarded {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Discarded
+    fn event_type(&self) -> EventType {
+        EventType::Discarded
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Discarded(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Discarded(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -82,8 +82,7 @@ fn a_game_finds_move_targets_for_its_current_storm() {
     let state = treachery_engine::game::GameState::load(&std::fs::read_to_string(path).unwrap()).expect("savegame");
     let mut g = Game::of_version(state.version);
     for e in state.events() {
-        e.initialize_game(&g);
-        assert!(e.execute(&mut g, false, false).is_none());
+        assert!(g.play_for_message(e, false, false).is_none());
     }
 
     let (p, from, battalion) = g

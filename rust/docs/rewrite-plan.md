@@ -205,7 +205,7 @@ Delete `dotnet-compat`. Rewrite engine-conventions.md, engine.md, protocol.md an
 
 ## 3. Verification
 
-`rust/tools/check.sh` and 200 bot plus 200 fuzz games gate every merge, as now. A trace holds the reference's event JSON, which the working tree replays, so the harness needs three changes first.
+`rust/tools/check.sh` and 50 bot plus 50 fuzz games gate every merge. 200 + 200 games run once per wave, after its last merge, and for every wave 5 merge. A trace holds the reference's event JSON, which the working tree replays, so the harness needs three changes first.
 
 **Wave 0 changes to `observe`:**
 
@@ -223,11 +223,14 @@ Delete `dotnet-compat`. Rewrite engine-conventions.md, engine.md, protocol.md an
 
 | Wave | Check | Reference rebuild |
 |---|---|---|
-| 1, 3a, 3b, 4a, 4c, 5 | No differences in 200 + 200 games | No |
+| 1, 3a, 3b, 4a, 4c | No differences in 50 + 50 games per merge, and in 200 + 200 once the wave is merged | No |
+| 5 | No differences in 200 + 200 games per merge | No |
 | 2a, 2b, 2c | Every first difference attributed to the one change, by replaying with that change reverted (the method in native-harness.md) | Once, after 2d |
-| 2d | Differences only after an event carrying an undefined or negative value | Same rebuild |
+| 2d | In a sample of about 20 failing games out of 50 + 50, the first difference is at an event carrying an undefined, negative or out-of-range value | After 2d |
 | 3c | Not covered by `observe`. Server protocol tests, `scripts/ui/e2e_server.py`, `npm run build`. | No |
 | 4b | The three steps above | Yes, in step 3 |
+
+From 2d on, a deliberate behavior change isn't attributed game by game (the owner's decision, 2026-11-15). For a sample of about 20 failing games, check that the first difference is the intended change. Any other first difference is a bug to find. Then the reference is rebuilt.
 
 Changes players will see on purpose: the order of spice, forces, terror tokens, ambassadors and discoveries in views and logs (2a), moves that the stale cache wrongly allowed or refused (2b), corrected log text and card lists that no longer update after the fact (2c), and a different error text for malformed events (2d). Each gets an entry in behavior-changes.md.
 

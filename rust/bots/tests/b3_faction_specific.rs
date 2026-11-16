@@ -64,21 +64,21 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineReplacedCardWon" => ev(bot.determine_replaced_card_won(game)),
         "DetermineIxianRemovedCardFromAuction" => ev(bot.determine_ixian_removed_card_from_auction(game)),
         "DetermineIxianSwappedCardOnBid" => ev(bot.determine_ixian_swapped_card_on_bid(game)),
-        "DetermineIxianSelectedStartingCard" => ev(bot.determine_ixian_selected_starting_card(game)),
+        "DetermineIxianSelectedStartingCard" => common::decision(bot, game, bot.determine_ixian_selected_starting_card(game)),
         "DeterminePerformHmsMovement" => common::decision(bot, game, bot.determine_perform_hms_movement(game)),
-        "DeterminePerformHmsPlacement" => ev(bot.determine_perform_hms_placement(game)),
+        "DeterminePerformHmsPlacement" => common::decision(bot, game, bot.determine_perform_hms_placement(game)),
         "DetermineTakeLosses" => common::decision(bot, game, bot.determine_take_losses(game)),
-        "DeterminePerformFremenSetup" => ev(bot.determine_perform_fremen_setup(game)),
+        "DeterminePerformFremenSetup" => common::decision(bot, game, bot.determine_perform_fremen_setup(game)),
         "DetermineFremenSentMonster" => common::decision(bot, game, bot.determine_fremen_sent_monster(game)),
         "DetermineFremenRidesMonster" => common::decision(bot, game, bot.determine_fremen_rides_monster(game)),
-        "DetermineBeneGesseritPlacement" => ev(bot.determine_bene_gesserit_placement(game)),
+        "DetermineBeneGesseritPlacement" => common::decision(bot, game, bot.determine_bene_gesserit_placement(game)),
         "DetermineBeneGesseritFlip" => common::decision(bot, game, bot.determine_bene_gesserit_flip(game)),
         "DetermineBeneGesseritBattleAnnouncement" => {
             let e = bot.determine_bene_gesserit_battle_announcement(game);
             common::decision(bot, game, e)
         }
         "DetermineBeneGesseritAccompanies" => common::decision(bot, game, bot.determine_bene_gesserit_accompanies(game)),
-        "DetermineBeneGesseritPrediction" => ev(bot.determine_bene_gesserit_prediction(game)),
+        "DetermineBeneGesseritPrediction" => common::decision(bot, game, bot.determine_bene_gesserit_prediction(game)),
         "DetermineVoice" => {
             let e = bot.determine_voice(game);
             common::decision(bot, game, e)
@@ -109,7 +109,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             let e = bot.determine_extortion_prevented(game);
             common::decision(bot, game, e)
         }
-        "DeterminePerformMoritaniSetup" => ev(bot.determine_perform_moritani_setup(game)),
+        "DeterminePerformMoritaniSetup" => common::decision(bot, game, bot.determine_perform_moritani_setup(game)),
         "DetermineTerrorPlanted" => opt(bot.determine_terror_planted(game)),
         "DetermineTerrorRevealed" => ev(bot.determine_terror_revealed(game)),
         "DetermineAmbassadorPlaced" => opt(bot.determine_ambassador_placed(game)),

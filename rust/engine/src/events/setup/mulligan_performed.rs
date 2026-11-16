@@ -1,61 +1,14 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MulliganPerformed {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for MulliganPerformed {
-    fn default() -> Self {
-        MulliganPerformed {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl MulliganPerformed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !self.passed && !Self::may_mulligan(game, self.player()) {
-            return Some(express!("You can't take a mulligan"));
-        }
-
-        None
-    }
-
     pub fn may_mulligan(game: &Game, p: PlayerId) -> bool {
         let faction = game.player(p).faction;
         game.player(p).traitors.iter().filter(|l| l.is(faction)).count() >= 2
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        if !self.passed {
-            let me = self.player();
-            // TraitorDeck is dereferenced before Player.Traitors is read.
-            game.decks.traitor_deck.as_ref().required("traitor deck")?;
-            let traitors = game.player(me).traitors.clone();
-            game.decks.traitor_deck.as_mut().required("traitor deck")?.items.extend(traitors);
-            game.player_mut(me).traitors.clear();
-            game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle();
-            game.stone(Milestone::Shuffled);
-            game.deal_harkonnen_traitor_cards();
-            game.enter(Phase::HarkonnenMulligan, true);
-        } else {
-            self.deal_non_harkonnen_traitor_cards(game);
-            game.enter_select_traitors()?;
-        }
-
-        self.log(game);
-        Ok(())
     }
 
     pub fn deal_non_harkonnen_traitor_cards(&self, game: &mut Game) {
@@ -70,43 +23,40 @@ impl MulliganPerformed {
             }
         }
     }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), if self.passed { " pass" } else { " take" }, " a mulligan")
-    }
-
 }
 
-impl GameEventMethods for MulliganPerformed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for MulliganPerformed {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !self.passed && !Self::may_mulligan(game, by.player()) {
+            return Err(Rejection(express!("You can't take a mulligan")));
+        }
+
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::MulliganPerformed
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        if !self.passed {
+            let me = by.player();
+            // TraitorDeck is dereferenced before Player.Traitors is read.
+            game.decks.traitor_deck.as_ref().required("traitor deck")?;
+            let traitors = game.player(me).traitors.clone();
+            game.decks.traitor_deck.as_mut().required("traitor deck")?.items.extend(traitors);
+            game.player_mut(me).traitors.clear();
+            game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle();
+            game.stone(Milestone::Shuffled);
+            game.deal_harkonnen_traitor_cards();
+            game.enter(Phase::HarkonnenMulligan, true);
+        } else {
+            self.deal_non_harkonnen_traitor_cards(game);
+            game.enter_select_traitors()?;
+        }
+
+        let m = self.describe(game, by);
+        game.log_event(m);
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::MulliganPerformed(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, if self.passed { " pass" } else { " take" }, " a mulligan")
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        MulliganPerformed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        MulliganPerformed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        MulliganPerformed::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for MulliganPerformed {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

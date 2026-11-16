@@ -1,37 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FactionTradeOffered {
     pub target: Option<Faction>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for FactionTradeOffered {
-    fn default() -> Self {
-        FactionTradeOffered {
-            target: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl FactionTradeOffered {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
-        if !Self::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
-            return Some(express!("Invalid target"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         let factions: Vec<Faction> = g.rules.factions_in_play.clone();
@@ -39,90 +13,61 @@ impl FactionTradeOffered {
         crate::iter::unique(factions.into_iter().chain(g.players.iter().filter_map(|p| p.faction))).filter(move |f| Some(*f) != g.player(p).faction)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        if !self.is_playing(game, self.target) {
-            self.log_objects(game, vec![self.initiator().into(), " switch to ".into(), self.target.into()]);
+    pub fn remove_invalid_trade_offers(&self, game: &mut Game, by: By) {
+        let initiator = by.faction;
+        let target = self.target;
+        // C# removed each matching offer by reference; no two offers are equal, so this removes the same ones.
+        game.setup.current_trade_offers.retain(|x| !(x.initiator == initiator || x.initiator == target));
+    }
+}
 
-            game.player_mut(self.player()).faction = self.target;
+impl EventRules for FactionTradeOffered {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        // `p.Faction` is read inside the lazy predicate, so a null Player throws only once the union has an element.
+        if !Self::valid_targets(game, by.player()).any(|v| Some(v) == self.target) {
+            return Err(Rejection(express!("Invalid target")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        if !game.is_playing(self.target) {
+            game.log(vec![by.faction.into(), " switch to ".into(), self.target.into()]);
+
+            game.player_mut(by.player()).faction = self.target;
         } else {
-            let initiator = self.initiator();
+            let initiator = by.faction;
             let target_faction = self.target;
             let r#match = game
                 .setup.current_trade_offers
                 .iter()
-                .find(|m| m.initiator() == target_faction && m.target == initiator)
+                .find(|m| m.initiator == target_faction && m.target == initiator)
                 .cloned();
             if let Some(r#match) = r#match {
-                self.log_objects(
-                    game,
-                    vec![self.initiator().into(), " and ".into(), r#match.initiator().into(), " traded factions".into()],
+                game.log(vec![by.faction.into(), " and ".into(), r#match.initiator.into(), " traded factions".into()],
                 );
-                let target = self.get_player(game, self.target);
+                let target = game.get_player(self.target);
                 // (target.Faction, Player.Faction) = (Player.Faction, target.Faction);
-                let me = self.player();
+                let me = by.player();
                 let my_faction = game.player(me).faction;
                 let target = target.required("target")?;
                 let target_faction = game.player(target).faction;
                 game.player_mut(target).faction = my_faction;
                 game.player_mut(me).faction = target_faction;
-                self.remove_invalid_trade_offers(game);
+                self.remove_invalid_trade_offers(game, by);
             } else {
-                let message = self.get_message(game);
-                self.log_objects(game, vec![message.into()]);
-                if !game.setup.current_trade_offers.iter().any(|o| o.initiator() == initiator && o.target == target_faction) {
-                    game.setup.current_trade_offers.push(self.clone());
+                let message = self.describe(game, by);
+                game.log(vec![message.into()]);
+                if !game.setup.current_trade_offers.iter().any(|o| o.initiator == initiator && o.target == target_faction) {
+                    game.setup.current_trade_offers.push(TradeOffer { initiator, target: target_faction });
                 }
             }
         }
         Ok(())
     }
 
-    pub fn remove_invalid_trade_offers(&self, game: &mut Game) {
-        let initiator = self.initiator();
-        let target = self.target;
-        let invalid_offers: Vec<Rc<FactionTradeOffered>> = game
-            .setup.current_trade_offers
-            .iter()
-            .filter(|x| x.initiator() == initiator || x.initiator() == target)
-            .cloned()
-            .collect();
-        for invalid_offer in invalid_offers {
-            // List.Remove: the first element that is the same object.
-            if let Some(i) = game.setup.current_trade_offers.iter().position(|o| Rc::ptr_eq(o, &invalid_offer)) {
-                game.setup.current_trade_offers.remove(i);
-            }
-        }
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " offer to trade factions with ", self.target)
     }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " offer to trade factions with ", self.target)
-    }
-
-}
-
-impl GameEventMethods for FactionTradeOffered {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::FactionTradeOffered
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::FactionTradeOffered(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        FactionTradeOffered::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        FactionTradeOffered::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        FactionTradeOffered::get_message(self, game)
-    }
-
 }

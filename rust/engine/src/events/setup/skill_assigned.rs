@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SkillAssigned {
     pub skill: Option<LeaderSkill>,
     pub leader: Option<Leader>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for SkillAssigned {
@@ -16,26 +13,11 @@ impl Default for SkillAssigned {
             skill: Default::default(),
             leader: None,
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl SkillAssigned {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.passed && game.turn.current_phase == Phase::AssigningInitialSkills {
-            return Some(express!("You must assign a leader skill"));
-        }
-
-        None
-    }
-
     pub fn players_must_choose_leader_skills(g: &Game) -> bool {
         g.players.iter().any(|p| !p.skills_to_choose_from.is_empty())
     }
@@ -51,16 +33,27 @@ impl SkillAssigned {
         }
         vec![g.player(p).most_recently_revived_leader]
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for SkillAssigned {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        if self.passed && game.turn.current_phase == Phase::AssigningInitialSkills {
+            return Err(Rejection(express!("You must assign a leader skill")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // C# parity: Passed is ignored.
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         let leader = match self.leader {
             Some(l) => l,
             None => game_error!("No leader was chosen for the skill"),
         };
         game.set_skill(leader, self.skill);
-        let me = self.player();
+        let me = by.player();
         let skills = &mut game.player_mut(me).skills_to_choose_from;
         if let Some(i) = skills.iter().position(|s| Some(*s) == self.skill) {
             skills.remove(i);
@@ -86,42 +79,7 @@ impl SkillAssigned {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, _by: By) -> Message {
         express!(self.leader, " becomes ", self.skill)
     }
-
-}
-
-impl GameEventMethods for SkillAssigned {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::SkillAssigned
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::SkillAssigned(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        SkillAssigned::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        SkillAssigned::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        SkillAssigned::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for SkillAssigned {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

@@ -1,74 +1,38 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct IxianSelectedStartingCard {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for IxianSelectedStartingCard {
     fn default() -> Self {
         IxianSelectedStartingCard {
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
-impl IxianSelectedStartingCard {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for IxianSelectedStartingCard {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.get_player(game, self.initiator()).required("get player")?;
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = game.get_player(by.faction).required("get player")?;
         // C# parity: Validate accepts the id of any card, not only one of the starting cards.
         let card = self.card.required("card")?;
         game.player_mut(me).treachery_cards.push(card);
         crate::iter::remove_first(&mut game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle();
         game.stone(Milestone::Shuffled);
         game.deal_remaining_starting_treachery_cards_to_non_ixian()?;
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " pick their starting treachery card")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " pick their starting treachery card")
     }
-
-}
-
-impl GameEventMethods for IxianSelectedStartingCard {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::IxianSelectedStartingCard
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::IxianSelectedStartingCard(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        IxianSelectedStartingCard::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        IxianSelectedStartingCard::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        IxianSelectedStartingCard::get_message(self, game)
-    }
-
 }

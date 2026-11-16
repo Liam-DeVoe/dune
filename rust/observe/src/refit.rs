@@ -18,7 +18,7 @@ use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, Event, EventType, PerformHmsPlacement, PerformSetup};
+use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, EventType, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -261,35 +261,35 @@ impl Refit {
         // What the host does when no bot acts.
         let host = quiet(|| self.game.get_applicable_events(None, true)).unwrap_or_default();
         let game = &self.game;
-        let mut candidates: Vec<Event> = Vec::new();
+        let mut candidates: Vec<HistoryEntry> = Vec::new();
         if host.contains(&EventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
             let mut e = CardsDetermined::new(game, None);
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
-            candidates.push(Rc::new(e).into_event());
+            candidates.push(HistoryEntry::legacy(Rc::new(e).into_event()));
         }
         if host.contains(&EventType::PerformSetup) {
             if let Some(mut e) = quiet(|| PerformSetup::new(game, game.next_faction_to_perform_custom_setup())) {
                 e.resources = 10;
                 e.force_locations = Some(String::new());
-                candidates.push(Rc::new(e).into_event());
+                candidates.push(HistoryEntry::legacy(Rc::new(e).into_event()));
             }
         }
         if host.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
             let p = game.player_at(0);
             if let Some(l) = PerformHmsPlacement::valid_locations(game, p).next() {
-                let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
+                let mut e = PerformHmsPlacement::default();
                 e.target = Some(l);
-                candidates.push(Rc::new(e).into_event());
+                candidates.push(HistoryEntry::new(game.player(p).faction, e));
             }
         }
         if host.contains(&EventType::EndPhase) {
-            candidates.push(Rc::new(EndPhase::new(game, None)).into_event());
+            candidates.push(HistoryEntry::legacy(Rc::new(EndPhase::new(game, None)).into_event()));
         }
         for e in candidates {
-            if self.add(to_object(&HistoryEntry::legacy(e)), true, time) {
+            if self.add(to_object(&e), true, time) {
                 return true;
             }
         }

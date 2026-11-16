@@ -592,10 +592,10 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_mulligan_performed(&self, game: &Game) -> Rc<MulliganPerformed> {
-        let mut e = MulliganPerformed::new(game, self.faction(game));
+    pub fn determine_mulligan_performed(&self, game: &Game) -> MulliganPerformed {
+        let mut e = MulliganPerformed::default();
         e.passed = !MulliganPerformed::may_mulligan(game, self.player);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_delay(&self, game: &Game) -> Option<GuildDelay> {
@@ -884,7 +884,7 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_traitors_selected(&self, game: &Game) -> Rc<TraitorsSelected> {
+    pub fn determine_traitors_selected(&self, game: &Game) -> TraitorsSelected {
         let me = game.player(self.player);
         let faction = self.faction(game);
         let traitor = me.traitors.iter().copied().filter(|l| l.faction() != Some(faction)).random_highest(&self.random, |l| l.value()).or_else(|| {
@@ -892,20 +892,20 @@ impl ClassicBot {
                 l.value() - if l.faction() == Some(Faction::Atreides) && game.applicable(Rule::AtreidesMessiah) { 2 } else { 0 }
             })
         });
-        let mut e = TraitorsSelected::new(game, faction);
+        let mut e = TraitorsSelected::default();
         e.selected_traitor = traitor;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<Rc<FactionTradeOffered>> {
+    pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<FactionTradeOffered> {
         let faction = self.faction(game);
         let mut matching = game.setup.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
         let m = matching.next()?;
         // C# parity: SingleOrDefault throws when two factions offer me a trade.
         assert!(matching.next().is_none(), "more than one trade offer to {faction}");
-        let mut e = FactionTradeOffered::new(game, faction);
-        e.target = m.initiator();
-        Some(Rc::new(e))
+        let mut e = FactionTradeOffered::default();
+        e.target = m.initiator;
+        Some(e)
     }
 
     pub fn determine_thumper_played(&self, _game: &Game) -> ThumperPlayed {
@@ -1203,7 +1203,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_skill_assigned(&self, game: &Game) -> Rc<SkillAssigned> {
+    pub fn determine_skill_assigned(&self, game: &Game) -> SkillAssigned {
         let me = game.player(self.player);
         let skills: Vec<LeaderSkill> = SkillAssigned::valid_skills(game, self.player);
         let holds = |is: fn(&TreacheryCard) -> bool| me.treachery_cards.iter().any(is);
@@ -1238,11 +1238,11 @@ impl ClassicBot {
             .unwrap_or_else(|| skills.iter().copied().next().expect("an element"));
 
         let leader = self.random_item_from(&SkillAssigned::valid_leaders(game, self.player));
-        let mut e = SkillAssigned::new(game, self.faction(game));
+        let mut e = SkillAssigned::default();
         e.passed = false;
         e.leader = leader;
         e.skill = Some(skill);
-        Rc::new(e)
+        e
     }
 
     pub fn random_item_from<T: Clone>(&self, items: &[T]) -> T {

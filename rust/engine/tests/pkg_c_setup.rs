@@ -85,24 +85,18 @@ fn may_mulligan_needs_two_own_leaders() {
 
 // ---------------------------------------------------------------- FactionTradeOffered
 
-/// RemoveInvalidTradeOffers removes offers by either trading party, by identity.
+/// RemoveInvalidTradeOffers removes the offers by either trading party.
 #[test]
-fn remove_invalid_trade_offers_by_identity() {
+fn remove_invalid_trade_offers_by_either_party() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit]);
-    let mk = |g: &Game, from: Faction, to: Faction| {
-        let mut e = FactionTradeOffered::new(g, from);
-        e.target = Some(to);
-        Rc::new(e)
-    };
-    let a = mk(&g, Faction::Atreides, Faction::Emperor);
-    let b = mk(&g, Faction::BeneGesserit, Faction::Atreides);
-    let c = mk(&g, Faction::Emperor, Faction::BeneGesserit);
-    g.setup.current_trade_offers = vec![a.clone(), b.clone(), c.clone()];
-    let trade = mk(&g, Faction::Atreides, Faction::Emperor);
-    trade.remove_invalid_trade_offers(&mut g);
-    // Initiator Atreides or Emperor: a and c go, b (by BeneGesserit) stays.
-    assert_eq!(g.setup.current_trade_offers.len(), 1);
-    assert!(Rc::ptr_eq(&g.setup.current_trade_offers[0], &b));
+    let mk = |from: Faction, to: Faction| TradeOffer { initiator: Some(from), target: Some(to) };
+    let b = mk(Faction::BeneGesserit, Faction::Atreides);
+    g.setup.current_trade_offers = vec![mk(Faction::Atreides, Faction::Emperor), b, mk(Faction::Emperor, Faction::BeneGesserit)];
+    let trade = FactionTradeOffered { target: Some(Faction::Emperor) };
+    let by = By::new(&g, Faction::Atreides);
+    trade.remove_invalid_trade_offers(&mut g, by);
+    // Initiator Atreides or Emperor: the first and last go, b (by BeneGesserit) stays.
+    assert_eq!(g.setup.current_trade_offers, vec![b]);
 }
 
 // ---------------------------------------------------------------- AutomationConfigured

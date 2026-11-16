@@ -245,12 +245,11 @@ impl<'a> Recorder<'a> {
             if let Some(i) = game.players.iter().position(|p| p.faction == None) {
                 let p = &game.players[i];
                 if !valid.is_empty() {
-                    let mut e = FactionSelected::new(game);
-                    e.base.initiator.set(None);
+                    let mut e = FactionSelected::default();
                     e.seat = Seat::number_or_minus_one(p.seat);
                     e.faction = Some(valid[self.rng.below(valid.len())]);
                     e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
-                    return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
+                    return Ok(Some(to_object(&HistoryEntry::new(None, e))));
                 }
             }
         }
@@ -272,9 +271,9 @@ impl<'a> Recorder<'a> {
             let p = game.player_at(0);
             let valid: Vec<Location> = PerformHmsPlacement::valid_locations(game, p).collect();
             if !valid.is_empty() {
-                let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
+                let mut e = PerformHmsPlacement::default();
                 e.target = Some(valid[self.rng.below(valid.len())]);
-                return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
+                return Ok(Some(to_object(&HistoryEntry::new(game.player(p).faction, e))));
             }
         }
         if types.contains(&EventType::EndPhase) {

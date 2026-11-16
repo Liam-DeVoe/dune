@@ -1,8 +1,15 @@
 use crate::prelude::*;
 
+/// An open offer of `initiator` to trade factions with `target` (`FactionTradeOffered`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TradeOffer {
+    pub initiator: Option<Faction>,
+    pub target: Option<Faction>,
+}
+
 /// State of the setup phases: faction trades, skill assignment and the starting cards.
 pub struct SetupState {
-    pub current_trade_offers: Vec<Rc<FactionTradeOffered>>,
+    pub current_trade_offers: Vec<TradeOffer>,
     pub phase_before_skill_assignment: Option<Phase>,
     pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
     pub extra_starting_card_for_harkonnen: Option<TreacheryCard>,

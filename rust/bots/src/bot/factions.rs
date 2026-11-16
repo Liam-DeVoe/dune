@@ -307,7 +307,7 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> Rc<IxianSelectedStartingCard> {
+    pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> IxianSelectedStartingCard {
         use TreacheryCardType as T;
         let cards = || game.setup.starting_treachery_cards.as_ref().expect("starting treachery cards").items.iter().copied();
         let any = |f: fn(&TreacheryCard) -> bool| cards().any(|c| f(&c));
@@ -333,9 +333,9 @@ impl ClassicBot {
             .find_map(|(applies, wanted)| if *applies { cards().find(wanted) } else { None })
             .or_else(|| cards().next());
 
-        let mut e = IxianSelectedStartingCard::new(game, self.faction(game));
+        let mut e = IxianSelectedStartingCard::default();
         e.card = card;
-        Rc::new(e)
+        e
     }
 
     pub fn determine_perform_hms_movement(&self, game: &Game) -> PerformHmsMovement {
@@ -389,7 +389,7 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_perform_hms_placement(&self, game: &Game) -> Rc<PerformHmsPlacement> {
+    pub fn determine_perform_hms_placement(&self, game: &Game) -> PerformHmsPlacement {
         let faction = self.faction(game);
         let target = if faction != Faction::Ixian {
             game.board.map.shield_wall().locations().iter().copied().next().expect("an element")
@@ -400,9 +400,9 @@ impl ClassicBot {
             game.board.map.polar_sink()
         };
 
-        let mut e = PerformHmsPlacement::new(game, faction);
+        let mut e = PerformHmsPlacement::default();
         e.target = Some(target);
-        Rc::new(e)
+        e
     }
 
     // ---- Fremen ----
@@ -417,7 +417,7 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_perform_fremen_setup(&self, game: &Game) -> Rc<PerformFremenSetup> {
+    pub fn determine_perform_fremen_setup(&self, game: &Game) -> PerformFremenSetup {
         let faction = self.faction(game);
         let special_forces_in_reserve = game.player(self.player).special_forces_in_reserve();
         let mut force_locations: IndexMap<Location, Battalion> = IndexMap::new();
@@ -434,9 +434,9 @@ impl ClassicBot {
             force_locations.insert_new(west, Battalion::new(faction, force_amount(forces_left - i32::from(special)), special, west));
         }
 
-        let mut e = PerformFremenSetup::new(game, faction);
+        let mut e = PerformFremenSetup::default();
         e.set_force_locations(game, &force_locations);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_fremen_sent_monster(&self, game: &Game) -> FremenSentMonster {
@@ -515,7 +515,7 @@ impl ClassicBot {
 
     // ---- BeneGesserit ----
 
-    pub fn determine_bene_gesserit_placement(&self, game: &Game) -> Rc<PerformBeneGesseritPlacement> {
+    pub fn determine_bene_gesserit_placement(&self, game: &Game) -> PerformBeneGesseritPlacement {
         let map = &game.board.map;
         let empty = |l: Location| l.forces_of(game, self.player) == 0;
         let target = if empty(map.arrakeen()) {
@@ -528,9 +528,9 @@ impl ClassicBot {
             map.carthag()
         };
 
-        let mut e = PerformBeneGesseritPlacement::new(game, self.faction(game));
+        let mut e = PerformBeneGesseritPlacement::default();
         e.target = Some(target);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_bene_gesserit_flip(&self, game: &Game) -> BeneGesseritFlip {
@@ -663,7 +663,7 @@ impl ClassicBot {
         no_accompany()
     }
 
-    pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> Rc<BeneGesseritPrediction> {
+    pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> BeneGesseritPrediction {
         // A random human player if there is one, else any other player.
         let humans = self.others(game).into_iter().filter(|p| !game.is_bot(*p));
         let predicted = humans.random_item(&self.random).or_else(|| self.others(game).into_iter().random_item(&self.random));
@@ -685,10 +685,10 @@ impl ClassicBot {
             2 + self.d(1, maximum_turns - 2)
         };
 
-        let mut e = BeneGesseritPrediction::new(game, self.faction(game));
+        let mut e = BeneGesseritPrediction::default();
         e.to_win = predicted.faction;
         e.turn = Turn::new(u8::try_from(turn).expect("a turn of the game"));
-        Rc::new(e)
+        e
     }
 
     pub fn determine_voice(&mut self, game: &Game) -> Option<Voice> {
@@ -1114,7 +1114,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_perform_moritani_setup(&self, game: &Game) -> Rc<PerformMoritaniSetup> {
+    pub fn determine_perform_moritani_setup(&self, game: &Game) -> PerformMoritaniSetup {
         let map = &game.board.map;
         let valid = || PerformMoritaniSetup::valid_locations(game);
         let preferred = [
@@ -1131,9 +1131,9 @@ impl ClassicBot {
             .find(|l| valid().any(|v| v == *l))
             .unwrap_or_else(|| valid().find(|l| l.is_protected_from_storm()).expect("a location protected from the storm"));
 
-        let mut e = PerformMoritaniSetup::new(game, self.faction(game));
+        let mut e = PerformMoritaniSetup::default();
         e.target = Some(target);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_terror_planted(&self, game: &Game) -> Option<Rc<TerrorPlanted>> {

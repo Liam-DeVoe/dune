@@ -212,7 +212,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
         }
         EventType::FactionSelected => {
             // Named and seated as the player.
-            let mut e = FactionSelected::new(game);
+            let mut e = FactionSelected::default();
             e.initiator_player_name = Some(s.player_name(game, p));
             e.seat = pl.seated().number();
             event(e)
@@ -330,7 +330,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
                 m.emperor_will_pay_for_extra_revival = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.emperor_will_pay_for_extra_revival), 0, 3));
             }
         }),
-        Event::BeneGesseritPrediction(e) => adjust!(e, |m| {
+        Event::BeneGesseritPrediction(e) => adjust!(@plain e, |m| {
             let targets: Vec<Faction> = BeneGesseritPrediction::valid_targets(game, p).collect();
             m.to_win = required_opt(m.to_win, &targets);
             m.turn = Turn::new(picker(m.turn.number().into(), 1, game.maximum_turns().number().into()) as u8);
@@ -401,13 +401,13 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::EmperorDiscarded(e) => adjust!(e, |m| {
             m.card = required_opt(m.card, &hand);
         }),
-        Event::FactionSelected(e) => adjust!(e, |m| {
+        Event::FactionSelected(e) => adjust!(@plain e, |m| {
             let fs: Vec<Faction> = FactionSelected::valid_factions(game).collect();
             m.faction = required_opt(m.faction, &fs);
             m.seat = pl.seated().number();
             m.initiator_player_name = Some(s.player_name(game, p));
         }),
-        Event::FactionTradeOffered(e) => adjust!(e, |m| {
+        Event::FactionTradeOffered(e) => adjust!(@plain e, |m| {
             let targets: Vec<Faction> = FactionTradeOffered::valid_targets(game, p).collect();
             m.target = required_opt(m.target, &targets);
         }),
@@ -415,7 +415,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let cards: Vec<TreacheryCard> = game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
             m.card = required_opt(m.card, &cards);
         }),
-        Event::IxianSelectedStartingCard(e) => adjust!(e, |m| {
+        Event::IxianSelectedStartingCard(e) => adjust!(@plain e, |m| {
             let cards: Vec<TreacheryCard> = game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
             m.card = required_opt(m.card, &cards);
         }),
@@ -444,7 +444,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::KarmaRicheseBuy(e) => adjust!(e, |m| {
             m.card = required_opt(m.card, &game.decks.richese_cache.iter().copied().into_iter().collect::<Vec<_>>());
         }),
-        Event::MulliganPerformed(e) => adjust!(e, |m| {
+        Event::MulliganPerformed(e) => adjust!(@plain e, |m| {
             m.passed = false;
         }),
         Event::NexusCardDrawn(e) => adjust!(@plain e, |m| {
@@ -461,7 +461,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::ResourcesTransferred(e) => adjust!(e, |m| {
             m.resources = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.resources), 0, ResourcesTransferred::max_amount(game, p)));
         }),
-        Event::SkillAssigned(e) => adjust!(e, |m| {
+        Event::SkillAssigned(e) => adjust!(@plain e, |m| {
             m.passed = false;
             m.skill = required_opt(m.skill, &SkillAssigned::valid_skills(game, p));
             let leaders: Vec<Option<Leader>> = SkillAssigned::valid_leaders(game, p).into_iter().collect();
@@ -474,7 +474,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let heroes: Vec<Hero> = TraitorDiscarded::valid_traitors(game, p).into_iter().collect();
             m.traitor = required_opt(m.traitor, &heroes);
         }),
-        Event::TraitorsSelected(e) => adjust!(e, |m| {
+        Event::TraitorsSelected(e) => adjust!(@plain e, |m| {
             m.selected_traitor = required_opt(m.selected_traitor, &pl.traitors);
         }),
         Event::RicheseAnnouncesAuction(e) => adjust!(e, |m| {

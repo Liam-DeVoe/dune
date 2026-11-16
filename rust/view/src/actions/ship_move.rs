@@ -83,7 +83,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             e.to = None;
             event(e)
         }
-        EventType::PerformFremenSetup => event(PerformFremenSetup::new(game, faction)),
+        EventType::PerformFremenSetup => event(PerformFremenSetup::default()),
         EventType::DiscoveryEntered => {
             let mut e = DiscoveryEntered::default();
             e.to = None;
@@ -155,12 +155,12 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::PerformBeneGesseritPlacement => {
-            let mut e = PerformBeneGesseritPlacement::new(game, faction);
+            let mut e = PerformBeneGesseritPlacement::default();
             e.target = None;
             event(e)
         }
         EventType::PerformMoritaniSetup => {
-            let mut e = PerformMoritaniSetup::new(game, faction);
+            let mut e = PerformMoritaniSetup::default();
             e.target = None;
             event(e)
         }
@@ -170,7 +170,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::PerformHmsPlacement => {
-            let mut e = PerformHmsPlacement::new(game, faction);
+            let mut e = PerformHmsPlacement::default();
             e.target = None;
             event(e)
         }

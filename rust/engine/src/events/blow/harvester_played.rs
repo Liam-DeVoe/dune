@@ -1,32 +1,16 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct HarvesterPlayed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for HarvesterPlayed {
-    fn default() -> Self {
-        HarvesterPlayed {
-            base: Default::default(),
-        }
-    }
-}
-
-impl HarvesterPlayed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for HarvesterPlayed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.discard(self.player(), TreacheryCardType::Harvester)?;
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.discard(by.player(), TreacheryCardType::Harvester)?;
         let last_resource_card = if game.turn.current_phase == Phase::HarvesterA { game.blow.latest_spice_card_a } else { game.blow.latest_spice_card_b };
         // lastResourceCard!.Location!: a null card is a NullReferenceException; a null Location
         // (a Shai-Hulud card) reaches TryGetValue, which throws ArgumentNullException.
@@ -37,41 +21,14 @@ impl HarvesterPlayed {
             game.change_resources_on_planet(location, i32::from(current_amount_of_spice))?;
         }
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.move_to_next_phase_after_resource_blow()?;
         game.stone(Milestone::Harvester);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use a ", TreacheryCardType::Harvester)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use a ", TreacheryCardType::Harvester)
     }
-
-}
-
-impl GameEventMethods for HarvesterPlayed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::HarvesterPlayed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::HarvesterPlayed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        HarvesterPlayed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        HarvesterPlayed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        HarvesterPlayed::get_message(self, game)
-    }
-
 }

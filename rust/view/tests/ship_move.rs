@@ -89,7 +89,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
     let o = opts(game, p, &draft, d);
     seen.add(t);
     // The default draft is already as the component shows it.
-    assert_eq!(json::serialize(&HistoryEntry::legacy(adjusted(game, p, &draft, d))), json::serialize(&HistoryEntry::legacy(draft.clone())), "{}: the default draft is stable", t.name());
+    assert_eq!(json::serialize(&HistoryEntry::new(f, adjusted(game, p, &draft, d))), json::serialize(&HistoryEntry::new(f, draft.clone())), "{}: the default draft is stable", t.name());
     check_adjustments(game, p, &draft, d);
     let pl = game.player(p);
     match (&draft, o) {
@@ -114,7 +114,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
             assert_eq!(o.targets, targets.iter().map(|ds| ds.location().id()).collect::<Vec<_>>());
             assert!(o.sources.is_empty(), "no sources before a stronghold is picked");
             for ds in targets {
-                let mut e = DiscoveryEntered::new(game, f);
+                let mut e = DiscoveryEntered::default();
                 e.to = Some(ds.location());
                 let ActionOptions::DiscoveryEntered(o) = opts(game, p, &event(e), d) else { panic!() };
                 let expected: Vec<ForcesAt> = DiscoveryEntered::valid_sources(game, p, ds).map(|l| forces_at(game, p, l)).collect();
@@ -421,7 +421,7 @@ fn placement_draft(game: &Game, f: Faction, t: EventType, forces: &IndexMap<Loca
             event(e)
         }
         EventType::FremenRidesMonster => {
-            let mut e = FremenRidesMonster::new(game, f);
+            let mut e = FremenRidesMonster::default();
             e.set_force_locations(game, forces);
             e.to = to;
             event(e)
@@ -595,11 +595,11 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
         Event::DiscoveryEntered(_) => {
             for ds in DiscoveryEntered::valid_targets(game, p).collect::<Vec<_>>() {
                 let sources: Vec<Location> = DiscoveryEntered::valid_sources(game, p, ds).collect();
-                let mut e = DiscoveryEntered::new(game, f);
+                let mut e = DiscoveryEntered::default();
                 e.to = Some(ds.location());
                 let Event::DiscoveryEntered(a) = adjusted(game, p, &event(e.clone()), d) else { panic!() };
                 // OnPickChanged: every force next to the stronghold.
-                let got = a.force_locations(game);
+                let got = a.force_locations(game, p);
                 assert_eq!(got.keys().copied().collect::<Vec<_>>(), sources);
                 for l in &sources {
                     let b = got.get(l).unwrap();
@@ -611,7 +611,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
                     forces.insert(*l, Battalion::new(f.expect("faction"), 0, 0, *l));
                     e.set_force_locations(game, &forces);
                     let Event::DiscoveryEntered(a) = adjusted(game, p, &event(e), d) else { panic!() };
-                    assert_eq!(a.force_locations(game).get(l).map(|b| b.amount_of_forces), Some(0));
+                    assert_eq!(a.force_locations(game, p).get(l).map(|b| b.amount_of_forces), Some(0));
                 }
             }
         }
@@ -725,7 +725,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
         Event::DiscoveryRevealed(_) => {
             let locations: Vec<Location> = DiscoveryRevealed::get_locations(game, p).collect();
             for l in locations.iter().copied().map(Some).chain([None]) {
-                let mut e = DiscoveryRevealed::new(game, f);
+                let mut e = DiscoveryRevealed::default();
                 e.location = l;
                 let Event::DiscoveryRevealed(a) = adjusted(game, p, &event(e), d) else { panic!() };
                 assert_eq!(a.location, l.or(locations.first().copied()));
@@ -776,7 +776,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
         }
         Event::TestingStationUsed(_) => {
             for (v, expected) in [(0, -1), (1, 1), (-1, -1), (5, -1)] {
-                let mut e = TestingStationUsed::new(game, f);
+                let mut e = TestingStationUsed::default();
                 e.value_added = v;
                 let Event::TestingStationUsed(a) = adjusted(game, p, &event(e), d) else { panic!() };
                 assert_eq!(a.value_added, expected);

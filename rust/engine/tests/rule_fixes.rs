@@ -26,6 +26,12 @@ fn submit(g: &mut Game, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     g.play_for_message(HistoryEntry::legacy(e), true, false).map(|m| m.plain_text())
 }
 
+/// Submits a converted event `e` by `by` with validation; the refusal, if any.
+fn submit_by(g: &mut Game, by: Faction, make: impl FnOnce(&Game) -> Event) -> Option<String> {
+    let e = make(g);
+    g.play_for_message(HistoryEntry::new(by, e), true, false).map(|m| m.plain_text())
+}
+
 fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).expect("faction in game")
 }
@@ -164,10 +170,10 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
 fn karama_worm_needs_a_territory() {
     let mut g = fixture("karma-monster");
     let fremen = idx(&g, Faction::Fremen);
-    let monster = |t: Option<Territory>, g: &Game| {
-        let mut m = KarmaMonster::new(g, Faction::Fremen);
+    let monster = |t: Option<Territory>, _g: &Game| {
+        let mut m = KarmaMonster::default();
         m.territory = t;
-        Event::KarmaMonster(Rc::new(m))
+        Event::KarmaMonster(m)
     };
     let karama_cards = |g: &Game| g.player(fremen).treachery_cards.iter().filter(|c| c.type_() == TreacheryCardType::Karma).count();
     if karama_cards(&g) == 0 {
@@ -177,15 +183,15 @@ fn karama_worm_needs_a_territory() {
     }
     assert_eq!(karama_cards(&g), 1);
 
-    assert_eq!(submit(&mut g, |g| monster(None, g)).as_deref(), Some("No territory selected"));
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(None, g)).as_deref(), Some("No territory selected"));
     let stronghold = g.board.map.territories(false).find(|t| t.is_stronghold()).unwrap();
-    assert_eq!(submit(&mut g, |g| monster(Some(stronghold), g)).as_deref(), Some("Selected territory is protected"));
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(Some(stronghold), g)).as_deref(), Some("Selected territory is protected"));
     assert_eq!(karama_cards(&g), 1);
     assert!(!g.player(fremen).special_karma_power_used);
 
     let monsters = g.blow.number_of_monsters;
     let target = KarmaMonster::valid_targets(&g).next().unwrap();
-    assert_eq!(submit(&mut g, |g| monster(Some(target), g)), None);
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(Some(target), g)), None);
     assert_eq!(karama_cards(&g), 0);
     assert!(g.player(fremen).special_karma_power_used);
     assert_eq!(g.blow.number_of_monsters, monsters + 1);

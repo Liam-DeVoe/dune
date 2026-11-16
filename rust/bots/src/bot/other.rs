@@ -4,7 +4,6 @@ use treachery_engine::messages::part::Part;
 use treachery_engine::random::IndexedRandom;
 use crate::support::{cast_hero, unbox_enum, unbox_int, unbox_strength};
 use std::cmp::Reverse;
-use treachery_engine::events::PlacementEventMethods;
 
 /// Total forces in `locations` that belong to a faction `counted` accepts.
 fn forces_in(game: &Game, locations: &[Location], counted: impl Fn(Faction) -> bool) -> i32 {
@@ -43,7 +42,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_discovery_entered(&self, game: &Game) -> Rc<DiscoveryEntered> {
+    pub fn determine_discovery_entered(&self, game: &Game) -> DiscoveryEntered {
         let to = DiscoveryEntered::valid_targets(game, self.player).next();
         // Fails right away when there is no target.
         let me = game.player(self.player);
@@ -51,20 +50,20 @@ impl ClassicBot {
         for l in DiscoveryEntered::valid_sources(game, self.player, to.expect("destination")) {
             battalions_to_move.insert_new(l, me.battalion_in_location(l).expect("battalion in location"));
         }
-        let mut e = DiscoveryEntered::new(game, self.faction(game));
+        let mut e = DiscoveryEntered::default();
         e.set_force_locations(game, &battalions_to_move);
         e.to = to.map(|d| d.location());
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_discovery_revealed(&self, game: &Game) -> Rc<DiscoveryRevealed> {
-        let mut e = DiscoveryRevealed::new(game, self.faction(game));
+    pub fn determine_discovery_revealed(&self, game: &Game) -> DiscoveryRevealed {
+        let mut e = DiscoveryRevealed::default();
         let location = DiscoveryRevealed::get_locations(game, self.player).next().expect("an element");
         e.location = Some(location);
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_testing_station_used(&self, game: &Game) -> Option<Rc<TestingStationUsed>> {
+    pub fn determine_testing_station_used(&self, game: &Game) -> Option<TestingStationUsed> {
         let faction = self.faction(game);
         let ally = self.ally(game);
         let me = game.player(self.player);
@@ -102,9 +101,9 @@ impl ClassicBot {
         } else {
             return None;
         };
-        let mut e = TestingStationUsed::new(game, faction);
+        let mut e = TestingStationUsed::default();
         e.value_added = value_added;
-        Some(Rc::new(e))
+        Some(e)
     }
 
     pub fn determine_divide_resources(&self, game: &Game) -> DivideResources {
@@ -582,12 +581,12 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_harvester_played(&self, game: &Game) -> Option<Rc<HarvesterPlayed>> {
+    pub fn determine_harvester_played(&self, game: &Game) -> Option<HarvesterPlayed> {
         if game.turn.current_turn > Turn::FIRST
             && ((game.turn.current_phase == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
                 || (game.turn.current_phase == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
         {
-            return Some(Rc::new(HarvesterPlayed::new(game, self.faction(game))));
+            return Some(HarvesterPlayed::default());
         }
 
         None
@@ -867,22 +866,22 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_metheor_played(&self, game: &Game) -> Option<Rc<MetheorPlayed>> {
+    pub fn determine_metheor_played(&self, game: &Game) -> Option<MetheorPlayed> {
         let faction = self.faction(game);
         let ally = self.ally(game);
         let targets = [game.board.map.arrakeen(), game.board.map.carthag()];
         let others = forces_in(game, &targets, |f| f != faction && Some(f) != ally);
         let ours = forces_in(game, &targets, |f| f == faction || Some(f) == ally);
 
-        (others > 2 * ours).then(|| Rc::new(MetheorPlayed::new(game, faction)))
+        (others > 2 * ours).then(|| MetheorPlayed::default())
     }
 
-    pub fn determine_storm_dialled(&self, game: &Game) -> Rc<StormDialled> {
+    pub fn determine_storm_dialled(&self, game: &Game) -> StormDialled {
         let min = StormDialled::valid_min_amount(game);
         let max = StormDialled::valid_max_amount(game);
-        let mut e = StormDialled::new(game, self.faction(game));
+        let mut e = StormDialled::default();
         e.amount = treachery_engine::game::amounts::clamp_u16(min + self.d(1, 1 + max - min) - 1);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_traitors_selected(&self, game: &Game) -> Rc<TraitorsSelected> {
@@ -909,11 +908,11 @@ impl ClassicBot {
         Some(Rc::new(e))
     }
 
-    pub fn determine_thumper_played(&self, game: &Game) -> Rc<ThumperPlayed> {
-        Rc::new(ThumperPlayed::new(game, self.faction(game)))
+    pub fn determine_thumper_played(&self, _game: &Game) -> ThumperPlayed {
+        ThumperPlayed::default()
     }
 
-    pub fn determine_storm_spell_played(&self, game: &Game) -> Option<Rc<StormSpellPlayed>> {
+    pub fn determine_storm_spell_played(&self, game: &Game) -> Option<StormSpellPlayed> {
         let faction = self.faction(game);
         let ally = self.ally(game);
 
@@ -931,9 +930,9 @@ impl ClassicBot {
         let best = options.into_iter().random_highest(&self.random, |k| k.enemy - k.mine).expect("there are always 11 options");
 
         if best.enemy - best.mine >= 10 - (i32::from(game.turn.current_turn) + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
-            let mut storm_spell = StormSpellPlayed::new(game, faction);
+            let mut storm_spell = StormSpellPlayed::default();
             storm_spell.move_amount = treachery_engine::game::amounts::clamp_u16(best.moves);
-            return Some(Rc::new(storm_spell));
+            return Some(storm_spell);
         }
 
         None

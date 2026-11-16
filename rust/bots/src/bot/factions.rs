@@ -338,14 +338,14 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_perform_hms_movement(&self, game: &Game) -> Rc<PerformHmsMovement> {
+    pub fn determine_perform_hms_movement(&self, game: &Game) -> PerformHmsMovement {
         let current_location = game.board.map.hidden_mobile_stronghold().attached_to_location(&game.board.map);
         let faction = self.faction(game);
         let target_event = |target: Option<Location>| {
-            let mut e = PerformHmsMovement::new(game, faction);
+            let mut e = PerformHmsMovement::default();
             e.passed = false;
             e.target = target;
-            Rc::new(e)
+            e
         };
         let step_towards = |target: Location, distance: i32| {
             PerformHmsMovement::valid_locations(game).find(|l| self.within_distance(game, *l, target, distance))
@@ -384,9 +384,9 @@ impl ClassicBot {
             }
         }
 
-        let mut e = PerformHmsMovement::new(game, faction);
+        let mut e = PerformHmsMovement::default();
         e.passed = true;
-        Rc::new(e)
+        e
     }
 
     pub fn determine_perform_hms_placement(&self, game: &Game) -> Rc<PerformHmsPlacement> {
@@ -407,14 +407,14 @@ impl ClassicBot {
 
     // ---- Fremen ----
 
-    pub fn determine_take_losses(&self, game: &Game) -> Rc<TakeLosses> {
+    pub fn determine_take_losses(&self, game: &Game) -> TakeLosses {
         let losses = TakeLosses::losses_to_take(game).amount;
         let normal_forces = std::cmp::min(losses, TakeLosses::valid_max_force_amount(game, self.player));
-        let mut e = TakeLosses::new(game, self.faction(game));
+        let mut e = TakeLosses::default();
         e.force_amount = treachery_engine::game::amounts::clamp_u16(normal_forces);
         e.special_force_amount = treachery_engine::game::amounts::clamp_u16(losses - normal_forces);
         e.use_useless_card = TakeLosses::can_prevent_losses(game, self.player);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_perform_fremen_setup(&self, game: &Game) -> Rc<PerformFremenSetup> {
@@ -439,13 +439,13 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_fremen_sent_monster(&self, game: &Game) -> Rc<FremenSentMonster> {
+    pub fn determine_fremen_sent_monster(&self, game: &Game) -> FremenSentMonster {
         let target = FremenSentMonster::valid_targets(game).random_highest(&self.random, |t| {
             FloatKey(self.total_max_dial_of_opponents(game, *t) + (2 * t.forces_of(game, self.player)) as f32)
         });
-        let mut e = FremenSentMonster::new(game, self.faction(game));
+        let mut e = FremenSentMonster::default();
         e.territory = target;
-        Rc::new(e)
+        e
     }
 
     /// Where Fremen forces riding a worm (or moved by the Fremen ambassador) go: the first of
@@ -464,7 +464,7 @@ impl ClassicBot {
         })
     }
 
-    pub fn determine_fremen_rides_monster(&self, game: &Game) -> Rc<FremenRidesMonster> {
+    pub fn determine_fremen_rides_monster(&self, game: &Game) -> FremenRidesMonster {
         let me = game.player(self.player);
         let valid_locations: Vec<Location> = FremenRidesMonster::valid_targets(game, self.player).collect();
         // `add` throws if a source is listed twice.
@@ -500,7 +500,7 @@ impl ClassicBot {
             + forces_from_reserves
             + special_forces_from_reserves;
 
-        let mut e = FremenRidesMonster::new(game, self.faction(game));
+        let mut e = FremenRidesMonster::default();
         if total_forces > 0 {
             e.passed = false;
             e.set_force_locations(game, &battalions_to_move.clone());
@@ -510,7 +510,7 @@ impl ClassicBot {
         } else {
             e.passed = true;
         }
-        Rc::new(e)
+        e
     }
 
     // ---- BeneGesserit ----

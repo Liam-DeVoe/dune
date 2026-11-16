@@ -1,36 +1,19 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct NexusVoted {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for NexusVoted {
-    fn default() -> Self {
-        NexusVoted {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-impl NexusVoted {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for NexusVoted {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.blow.nexus_votes.push(self.clone());
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.blow.nexus_votes.push(NexusVote { initiator: by.faction, passed: self.passed });
         if game.blow.nexus_votes.len() == game.players.len() {
             let passed = game.blow.nexus_votes.iter().filter(|v| v.passed).count() as i32;
             if (2i32 * passed) >= game.players.len() as i32 {
@@ -47,42 +30,7 @@ impl NexusVoted {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " vote ", if self.passed { "No" } else { "Yes" })
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " vote ", if self.passed { "No" } else { "Yes" })
     }
-
-}
-
-impl GameEventMethods for NexusVoted {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::NexusVoted
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::NexusVoted(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        NexusVoted::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        NexusVoted::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        NexusVoted::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for NexusVoted {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

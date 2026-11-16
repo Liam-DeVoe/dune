@@ -181,7 +181,7 @@ impl Game {
                 }
             }
             Phase::VoteAllianceA | Phase::VoteAllianceB => {
-                if self.blow.nexus_votes.iter().all(|v| v.initiator() != faction) {
+                if self.blow.nexus_votes.iter().all(|v| v.initiator != faction) {
                     result.push(EventType::NexusVoted);
                 }
             }

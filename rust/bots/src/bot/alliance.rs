@@ -95,10 +95,10 @@ impl ClassicBot {
             || self.player_standing(game, offering.expect("offering")) as f32 > 0.75 * self.player_standing(game, self.allied_player(game).expect("allied player")) as f32
     }
 
-    pub fn determine_nexus_voted(&self, game: &Game) -> Rc<NexusVoted> {
-        let mut result = NexusVoted::new(game, self.faction(game));
+    pub fn determine_nexus_voted(&self, _game: &Game) -> NexusVoted {
+        let mut result = NexusVoted::default();
         result.passed = false;
-        Rc::new(result)
+        result
     }
 
     pub fn determine_alliance_offered(&self, game: &Game) -> Option<Rc<AllianceOffered>> {
@@ -191,7 +191,7 @@ impl ClassicBot {
         better_than_my_ally.then(|| Rc::new(AllianceBroken::new(game, faction)))
     }
 
-    pub fn determine_nexus_card_drawn(&self, game: &Game) -> Rc<NexusCardDrawn> {
+    pub fn determine_nexus_card_drawn(&self, game: &Game) -> NexusCardDrawn {
         let faction = self.faction(game);
         let nexus = game.player(self.player).nexus;
         let draw = NexusCardDrawn::may_draw(game, self.player)
@@ -199,9 +199,9 @@ impl ClassicBot {
                 || (faction == Faction::Emperor && nexus == Some(Faction::Emperor) && !game.applicable(Rule::EmperorSpecialForces))
                 || (faction == Faction::BeneGesserit && nexus == Some(Faction::BeneGesserit) && !game.applicable(Rule::BeneGesseritAdvisors))
                 || (faction == Faction::Ixian && nexus == Some(Faction::Ixian) && !game.applicable(Rule::AdvancedCombat)));
-        let mut result = NexusCardDrawn::new(game, faction);
+        let mut result = NexusCardDrawn::default();
         result.passed = !draw;
-        Rc::new(result)
+        result
     }
 
     /// Share spice, a Karama card and my faction's advantages with my ally, when they changed.

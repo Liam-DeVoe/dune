@@ -6,6 +6,13 @@ use crate::log::blow::{
 use crate::prelude::*;
 use crate::messages::part::Part;
 
+/// One faction's vote in a Nexus (`NexusVoted`): `passed` is a vote against alliances.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NexusVote {
+    pub initiator: Option<Faction>,
+    pub passed: bool,
+}
+
 /// State of the spice blow phase, including the Nexus that a Shai-Hulud starts.
 pub struct BlowState {
     pub latest_spice_card_a: Option<ResourceCard>,
@@ -13,7 +20,7 @@ pub struct BlowState {
     pub ignored_monsters: Vec<ResourceCard>,
     pub monsters: Vec<MonsterAppearance>,
     pub number_of_monsters: i32,
-    pub nexus_votes: Vec<Rc<NexusVoted>>,
+    pub nexus_votes: Vec<NexusVote>,
     pub thumper_called_shai_hulud: bool,
     pub ignored_sandtrout: Option<ResourceCard>,
     pub sand_trout: Option<ResourceCard>,

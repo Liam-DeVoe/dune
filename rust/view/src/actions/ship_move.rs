@@ -74,13 +74,13 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::FremenRidesMonster => {
-            let mut e = FremenRidesMonster::new(game, faction);
+            let mut e = FremenRidesMonster::default();
             e.to = None;
             event(e)
         }
         EventType::PerformFremenSetup => event(PerformFremenSetup::new(game, faction)),
         EventType::DiscoveryEntered => {
-            let mut e = DiscoveryEntered::new(game, faction);
+            let mut e = DiscoveryEntered::default();
             e.to = None;
             event(e)
         }
@@ -129,7 +129,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::DiscoveryRevealed => {
-            let mut e = DiscoveryRevealed::new(game, faction);
+            let mut e = DiscoveryRevealed::default();
             let first = DiscoveryRevealed::get_locations(game, p).next();
             e.location = first;
             event(e)
@@ -140,7 +140,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::KarmaHmsMovement => {
-            let mut e = KarmaHmsMovement::new(game, faction);
+            let mut e = KarmaHmsMovement::default();
             e.target = None;
             event(e)
         }
@@ -160,7 +160,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::PerformHmsMovement => {
-            let mut e = PerformHmsMovement::new(game, faction);
+            let mut e = PerformHmsMovement::default();
             e.target = None;
             event(e)
         }
@@ -192,13 +192,13 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::TestingStationUsed => {
-            let mut e = TestingStationUsed::new(game, faction);
+            let mut e = TestingStationUsed::default();
             // The required radio over [-1, 1] replaces the initial 0 with -1.
             e.value_added = -1;
             event(e)
         }
         EventType::FremenSentMonster => {
-            let mut e = FremenSentMonster::new(game, faction);
+            let mut e = FremenSentMonster::default();
             e.territory = None;
             event(e)
         }
@@ -333,8 +333,8 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         // OnPickChanged: the forces that may enter are those next to the pinned stronghold, all
         // of them when first picked. The client clears them when it pins another stronghold.
         Event::DiscoveryEntered(e) => {
-            let mut e = (**e).clone();
-            let current = e.force_locations(game);
+            let mut e = e.clone();
+            let current = e.force_locations(game, p);
             let mut forces = IndexMap::new();
             if let Some(ds) = e.to.and_then(|l| l.as_discovered_location()) {
                 for l in DiscoveryEntered::valid_sources(game, p, ds) {
@@ -419,7 +419,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         }
         // The selected location falls back to the first location.
         Event::DiscoveryRevealed(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let locations: Vec<Location> = DiscoveryRevealed::get_locations(game, p).collect();
             if !e.location.is_some_and(|l| locations.contains(&l)) {
                 e.location = locations.first().copied();
@@ -462,7 +462,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         }
         // The required radio over [-1, 1].
         Event::TestingStationUsed(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             e.value_added = required(e.value_added, &[-1, 1], 0);
             event(e)
         }
@@ -778,7 +778,7 @@ fn fremen_ride(game: &Game, p: PlayerId, e: &FremenRidesMonster, d: &dyn Describ
     let max_from_reserves = FremenRidesMonster::max_forces_from_reserves(game, p, false);
     let max_special_from_reserves = FremenRidesMonster::max_forces_from_reserves(game, p, true);
     let from_reserves = ride_sources.is_empty() && (max_from_reserves > 0 || max_special_from_reserves > 0);
-    let forces = e.force_locations(game);
+    let forces = e.force_locations(game, p);
     let title = match to_ride {
         None => treachery_engine::express!("Ride ", Concept::Monster, "?"),
         Some(m) if m.is_great_monster => treachery_engine::express!("Ride the ", Concept::GreatMonster, " with forces from your reserves?"),

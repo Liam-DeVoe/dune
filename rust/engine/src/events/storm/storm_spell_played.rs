@@ -1,77 +1,31 @@
 use crate::log::storm::StormMoved;
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StormSpellPlayed {
     pub move_amount: u16,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for StormSpellPlayed {
-    fn default() -> Self {
-        StormSpellPlayed {
-            move_amount: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-impl StormSpellPlayed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
+impl EventRules for StormSpellPlayed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         if self.move_amount > 10 {
-            return Some(express!("Invalid number of sectors"));
+            return Err(Rejection(express!("Invalid number of sectors")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let card = game.player(self.player()).card(TreacheryCardType::StormSpell);
-        game.discard(self.player(), TreacheryCardType::StormSpell)?;
-        let msg = self.get_message(game).with_log(StormMoved::new(game.board.sector_in_storm, i32::from(self.move_amount), self.initiator(), card));
-        self.log_objects(game, vec![Part::from(msg)]);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let card = game.player(by.player()).card(TreacheryCardType::StormSpell);
+        game.discard(by.player(), TreacheryCardType::StormSpell)?;
+        let msg = self.describe(game, by).with_log(StormMoved::new(game.board.sector_in_storm, i32::from(self.move_amount), by.faction, card));
+        game.log(parts![msg]);
         game.move_storm_and_determine_next(i32::from(self.move_amount))?;
         game.end_storm_phase();
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::StormSpell, " to move the storm ", i32::from(self.move_amount), " sectors")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", TreacheryCardType::StormSpell, " to move the storm ", i32::from(self.move_amount), " sectors")
     }
-
-}
-
-impl GameEventMethods for StormSpellPlayed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::StormSpellPlayed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::StormSpellPlayed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        StormSpellPlayed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        StormSpellPlayed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        StormSpellPlayed::get_message(self, game)
-    }
-
 }

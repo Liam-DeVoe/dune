@@ -18,3 +18,5 @@ mod nexus_voted;
 pub use nexus_voted::*;
 mod thumper_played;
 pub use thumper_played::*;
+mod placed_forces;
+pub use placed_forces::*;

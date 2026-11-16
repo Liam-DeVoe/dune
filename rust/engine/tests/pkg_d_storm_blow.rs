@@ -34,9 +34,9 @@ fn storm_dial_bounds_depend_on_turn() {
 
     let mut e = StormDialled::default();
     e.amount = 0;
-    assert!(e.validate(&g).is_some());
+    assert!(e.validate(&g, By::NOBODY).is_err());
     e.amount = 3;
-    assert!(e.validate(&g).is_none());
+    assert!(e.validate(&g, By::NOBODY).is_ok());
 }
 
 #[test]
@@ -77,7 +77,7 @@ fn testing_station_accepts_only_plus_or_minus_one() {
     let mut e = TestingStationUsed::default();
     for (v, ok) in [(-2, false), (-1, true), (0, false), (1, true), (2, false)] {
         e.value_added = v;
-        assert_eq!(e.validate(&g).is_none(), ok, "value {v}");
+        assert_eq!(e.validate(&g, By::NOBODY).is_ok(), ok, "value {v}");
     }
 }
 
@@ -87,7 +87,7 @@ fn storm_spell_range() {
     let mut e = StormSpellPlayed::default();
     for (v, ok) in [(0, true), (10, true), (11, false)] {
         e.move_amount = v;
-        assert_eq!(e.validate(&g).is_none(), ok, "value {v}");
+        assert_eq!(e.validate(&g, By::NOBODY).is_ok(), ok, "value {v}");
     }
 }
 

@@ -197,7 +197,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
         }
         EventType::KarmaMonster => {
             // Nothing picked on the map yet.
-            let mut e = KarmaMonster::new(game, faction);
+            let mut e = KarmaMonster::default();
             e.territory = None;
             event(e)
         }
@@ -447,7 +447,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::MulliganPerformed(e) => adjust!(e, |m| {
             m.passed = false;
         }),
-        Event::NexusCardDrawn(e) => adjust!(e, |m| {
+        Event::NexusCardDrawn(e) => adjust!(@plain e, |m| {
             m.passed = false;
         }),
         Event::NexusPlayed(_) => other_nexus::normalize(game, p, draft),
@@ -467,7 +467,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let leaders: Vec<Option<Leader>> = SkillAssigned::valid_leaders(game, p).into_iter().collect();
             m.leader = required(m.leader, &leaders, None);
         }),
-        Event::StormSpellPlayed(e) => adjust!(e, |m| {
+        Event::StormSpellPlayed(e) => adjust!(@plain e, |m| {
             m.move_amount = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.move_amount), 0, 10));
         }),
         Event::TraitorDiscarded(e) => adjust!(e, |m| {

@@ -1,89 +1,38 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-/// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TestingStationUsed {
     pub value_added: i32,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for TestingStationUsed {
-    fn default() -> Self {
-        TestingStationUsed {
-            value_added: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl TestingStationUsed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        if self.value_added != -1 && self.value_added != 1 {
-            return Some(express!("Invalid amount"));
-        }
-
-        None
-    }
-
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.turn.current_phase == Phase::MetheorAndStormSpell
             && g.player(p).occupies(g, Some(g.board.map.testing_station().location()))
             && !g.storm.current_testing_station_used
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for TestingStationUsed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        if self.value_added != -1 && self.value_added != 1 {
+            return Err(Rejection(express!("Invalid amount")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         game.stone(Milestone::WeatherControlled);
         game.storm.current_testing_station_used = true;
         game.board.next_storm_moves += self.value_added;
         let next = game.board.next_storm_moves;
-        self.log_objects(
-            game,
-            elems![self.initiator(), " use ", DiscoveryToken::TestingStation, ": storm ", if self.value_added > 0 { "increases" } else { "weakens" }, " to ", next],
+        game.log(parts![by.faction, " use ", DiscoveryToken::TestingStation, ": storm ", if self.value_added > 0 { "increases" } else { "weakens" }, " to ", next],
         );
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", DiscoveryToken::TestingStation, " to influence Storm movement")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", DiscoveryToken::TestingStation, " to influence Storm movement")
     }
-
-}
-
-impl GameEventMethods for TestingStationUsed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::TestingStationUsed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::TestingStationUsed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        TestingStationUsed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        TestingStationUsed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        TestingStationUsed::get_message(self, game)
-    }
-
 }

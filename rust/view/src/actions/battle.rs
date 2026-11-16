@@ -194,7 +194,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             e.kill = true;
             event(e)
         }
-        EventType::TakeLosses => event(TakeLosses::new(game, faction)),
+        EventType::TakeLosses => event(TakeLosses::default()),
         EventType::ThoughtAnswered => {
             let mut e = ThoughtAnswered::new(game, faction);
             e.card = ThoughtAnswered::valid_cards(game, p).first().copied();

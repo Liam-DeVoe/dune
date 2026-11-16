@@ -671,37 +671,50 @@ impl Game {
     }
 }
 
+
 impl GameStatus {
     /// The status in the Mentat phase and the end of the game, or `None` in another phase.
-    pub(crate) fn contemplate_status(_game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
-        Some(match phase {
-            Phase::Extortion => Self::host_status(
+    /// `TurnConcluded` has the end-of-phase status in `determine_status`.
+    pub(crate) fn contemplate_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        if phase == Phase::GameEnded {
+            return Some(Self::status("The game has ended.", None));
+        }
+        Some(match ContemplateStep::of(phase)? {
+            ContemplateStep::Extortion => Self::host_status(
                 express!("You may proceed when done waiting for players to avoid future {0} by {1}", TerrorType::Extortion, Faction::Moritani),
                 express!("Players may pay {0} to avoid future {1} by {2}...", Concept::Resource, TerrorType::Extortion, Faction::Moritani),
                 None,
             ),
 
-            Phase::Contemplate => Self::host_status("Check for victories?", "Waiting for the host to start determining victories...", None),
+            ContemplateStep::Contemplate => Self::host_status("Check for victories?", "Waiting for the host to start determining victories...", None),
 
-            Phase::GameEnded => Self::status("The game has ended.", None),
+            ContemplateStep::ReplacingFaceDancer => Self::faction_status(
+                game,
+                "You may replace an unrevealed Face Dancer with a new one from the Traitor Deck.",
+                "Waiting for a Face Dancer to be replaced...",
+                Some(Faction::Tleilaxu),
+                None,
+            ),
 
-            _ => return None,
+            ContemplateStep::TurnConcluded => return None,
         })
     }
 }
 
 impl Game {
-    /// What `player` may do in the Mentat phase and the end of the game (see `add_player_actions`).
+    /// What `player` may do in the Mentat phase (see `add_player_actions`). Only while its step
+    /// is on top (no interrupt suspends it).
     pub(crate) fn add_contemplate_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
         let faction = self.player(player).faction;
-        match self.phase() {
-            Phase::Extortion => {
+        let Some(step) = ContemplateStep::of(self.phase()) else { return };
+        match step {
+            ContemplateStep::Extortion => {
                 if ExtortionPrevented::can_be_played(self, player) {
                     result.push(EventType::ExtortionPrevented);
                 }
             }
 
-            Phase::Contemplate => {
+            ContemplateStep::Contemplate => {
                 if faction == Some(Faction::Choam)
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
                     && self.board.choam_economics_status == None
@@ -713,7 +726,13 @@ impl Game {
                 }
             }
 
-            _ => {}
+            ContemplateStep::ReplacingFaceDancer => {
+                if faction == Some(Faction::Tleilaxu) {
+                    result.push(EventType::FaceDancerReplaced);
+                }
+            }
+
+            ContemplateStep::TurnConcluded => {}
         }
     }
 }

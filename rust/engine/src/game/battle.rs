@@ -2066,14 +2066,6 @@ impl GameStatus {
 
             Phase::BattleReport if game.next_player_to_battle().is_none() => Self::status(express!(game.turn.current_main_phase, " phase ended."), None),
 
-            Phase::ReplacingFaceDancer => Self::faction_status(
-                game,
-                "You may replace an unrevealed Face Dancer with a new one from the Traitor Deck.",
-                "Waiting for a Face Dancer to be replaced...",
-                Some(Faction::Tleilaxu),
-                None,
-            ),
-
             _ => return None,
         })
     }
@@ -2083,14 +2075,6 @@ impl Game {
     /// What `player` may do in the battle phase (see `add_player_actions`).
     pub(crate) fn add_battle_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
         let faction = self.player(player).faction;
-        // Replacing a Face Dancer happens at the end of the turn; its status is with the battle's.
-        if self.phase() == Phase::ReplacingFaceDancer {
-            if faction == Some(Faction::Tleilaxu) {
-                result.push(EventType::FaceDancerReplaced);
-            }
-            return;
-        }
-
         // Only while the battle step is on top (no interrupt suspends it).
         let Some(step) = BattleStep::of(self.phase()) else { return };
         match step {

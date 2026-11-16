@@ -1,13 +1,11 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ChoamRemoveForce {
     pub target: Option<Faction>,
     pub special_force: bool,
     pub location: Option<Location>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for ChoamRemoveForce {
@@ -16,37 +14,11 @@ impl Default for ChoamRemoveForce {
             target: Default::default(),
             special_force: Default::default(),
             location: Location::from_id(0),
-            base: Default::default(),
         }
     }
 }
 
 impl ChoamRemoveForce {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let location = self.location;
-        let Some(l) = location else {
-            return Some(express!("Invalid location"));
-        };
-        if !ChoamRemoveForce::valid_locations(game).any(|v| v == l) {
-            return Some(express!("Invalid location"));
-        }
-        // Location is not null here, so ValidFactions never reads Player.
-        if !ChoamRemoveForce::valid_factions(game, self.player_opt(), location).any(|v| Some(v) == self.target) {
-            return Some(express!("Invalid faction"));
-        }
-        if !ChoamRemoveForce::valid_special_force_choices(game, location, self.target.expect("faction")).contains(&self.special_force) {
-            return Some(express!("Invalid type of forces"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // The dictionary is built at the call; Where and Distinct run as the caller pulls.
@@ -97,20 +69,42 @@ impl ChoamRemoveForce {
     pub fn card_to_use(game: &Game, p: PlayerId) -> Option<TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_TRIP_TO_GAMONT)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for ChoamRemoveForce {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        let location = self.location;
+        let Some(l) = location else {
+            return Err(Rejection(express!("Invalid location")));
+        };
+        if !ChoamRemoveForce::valid_locations(game).any(|v| v == l) {
+            return Err(Rejection(express!("Invalid location")));
+        }
+        // Location is not null here, so ValidFactions never reads Player.
+        if !ChoamRemoveForce::valid_factions(game, by.player, location).any(|v| Some(v) == self.target) {
+            return Err(Rejection(express!("Invalid faction")));
+        }
+        if !ChoamRemoveForce::valid_special_force_choices(game, location, self.target.expect("faction")).contains(&self.special_force) {
+            return Err(Rejection(express!("Invalid type of forces")));
+        }
 
-        let me = self.player();
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+
+        let me = by.player();
         let card = ChoamRemoveForce::card_to_use(game, me);
         if card.is_none() && NexusPlayed::can_use_cunning(game, me) {
             game.play_nexus_card(me, vec!["send a force back to reserves".into()]);
-            game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
+            game.let_player_discard_treachery_card_of_choice(by.faction.required("faction")?);
         } else {
             game.discard_card(card, true)?;
         }
 
-        let target = self.get_player(game, self.target);
+        let target = game.get_player(self.target);
 
         let target = target.required("target")?;
         let location = self.location;
@@ -144,49 +138,17 @@ impl ChoamRemoveForce {
         Ok(())
     }
 
-    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+    fn try_describe(&self, game: &Game, by: By) -> GameResult<Message> {
         let target_player = game.get_player(self.target).required("target player")?;
         let force: Part = if self.special_force {
             game.player(target_player).special_force().into()
         } else {
             game.player(target_player).force().into()
         };
-        Ok(express!(self.initiator(), " remove ", 1, force, " from ", self.location))
+        Ok(express!(by.faction, " remove ", 1, force, " from ", self.location))
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        self.try_get_message(game).expect("the message of an applicable ChoamRemoveForce event")
+    fn describe(&self, game: &Game, by: By) -> Message {
+        self.try_describe(game, by).expect("the message of an applicable ChoamRemoveForce event")
     }
-
-}
-
-impl GameEventMethods for ChoamRemoveForce {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ChoamRemoveForce
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ChoamRemoveForce(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ChoamRemoveForce::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ChoamRemoveForce::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ChoamRemoveForce::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        ChoamRemoveForce::try_get_message(self, game)
-    }
-
 }

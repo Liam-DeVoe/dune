@@ -19,12 +19,6 @@ fn fixture(name: &str) -> Game {
     game
 }
 
-/// Submits `e` with validation; the refusal, if any.
-fn submit(g: &mut Game, make: impl FnOnce(&Game) -> Event) -> Option<String> {
-    let e = make(g);
-    g.play_for_message(HistoryEntry::legacy(e), true, false).map(|m| m.plain_text())
-}
-
 /// Submits `e` by `faction` with validation; the refusal, if any.
 fn submit_by(g: &mut Game, faction: impl Into<Option<Faction>>, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     let e = make(g);

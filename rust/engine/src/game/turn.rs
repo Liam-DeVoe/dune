@@ -7,6 +7,12 @@ pub enum Step {
     Run(fn(&mut Game) -> GameResult),
 }
 
+/// CHOAM's prevention of `target`'s Karama this phase (`ChoamKarmaPrevention`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct KarmaPrevention {
+    pub target: Option<Faction>,
+}
+
 /// A turn of the game, numbered from 1. Turn 0 is [`Turn::BEFORE_START`]: the setup, before
 /// the first storm. It is a real moment of the game, with its own report and moments, so it is a
 /// value of the type rather than `Option<Turn>`. A game has at most 255 turns.
@@ -72,7 +78,7 @@ pub struct TurnState {
     pub latest_clairvoyance_battle: Option<InitiatedBattle>,
     pub resource_audited_factions: Vec<Faction>,
     pub current_juice: Option<JuiceUsed>,
-    pub current_karma_prevention: Option<Rc<ChoamKarmaPrevention>>,
+    pub current_karma_prevention: Option<KarmaPrevention>,
     pub current_planetology: Option<PlanetologyUse>,
     pub bureaucrat_was_used_this_phase: bool,
     pub phase_before_bureaucrat_was_activated: Option<Phase>,

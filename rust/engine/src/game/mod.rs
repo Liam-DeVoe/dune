@@ -67,7 +67,7 @@ pub use status::*;
 mod storm;
 pub use storm::StormState;
 mod turn;
-pub use turn::{JuiceUsed, NexusCardPlayed, Step, Turn, TurnState};
+pub use turn::{JuiceUsed, KarmaPrevention, NexusCardPlayed, Step, Turn, TurnState};
 
 use crate::prelude::*;
 use crate::messages::part::Part;

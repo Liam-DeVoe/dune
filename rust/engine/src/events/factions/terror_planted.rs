@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TerrorPlanted {
     pub type_: Option<TerrorType>,
     pub stronghold: Option<Territory>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for TerrorPlanted {
@@ -16,42 +13,11 @@ impl Default for TerrorPlanted {
             type_: Default::default(),
             stronghold: Territory::from_id(0),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl TerrorPlanted {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.passed {
-            return None;
-        }
-
-        match self.stronghold {
-            None => {
-                if !self.type_.is_some_and(|t| game.board.terror_on_planet.contains_key(&t)) {
-                    return Some(express!("You can't remove a token that is not on the board"));
-                }
-            }
-            Some(stronghold) => {
-                if !TerrorPlanted::valid_strongholds(game, self.player()).any(|v| v == stronghold) {
-                    return Some(express!("Invalid Stronghold"));
-                }
-                if !TerrorPlanted::valid_terror_types(game, false).any(|v| Some(v) == self.type_) {
-                    return Some(express!(self.type_, " not available"));
-                }
-            }
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_strongholds(g: &Game, p: PlayerId) -> impl Iterator<Item = Territory> {
         use either::Either;
@@ -101,9 +67,50 @@ impl TerrorPlanted {
                 && !g.prevented(FactionAdvantage::MoritaniPlantingTerror))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let m = self.get_verbose_message(game);
-        self.log_objects(game, vec![m.into()]);
+    pub fn get_verbose_message(&self, game: &Game, by: By) -> Message {
+        if self.passed {
+            return express!(by.faction, " don't plant terror");
+        }
+
+        if let Some(stronghold) = self.stronghold {
+            if let Some(territory) = self.type_.and_then(|t| game.board.terror_on_planet.get(&t).copied()) {
+                return express!(by.faction, " move terror from ", territory, " to ", stronghold);
+            }
+            return express!(by.faction, " plant terror in ", stronghold);
+        }
+
+        express!(by.faction, " remove a terror token to get ", Payment::of(4))
+    }
+}
+
+impl EventRules for TerrorPlanted {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if self.passed {
+            return Ok(());
+        }
+
+        match self.stronghold {
+            None => {
+                if !self.type_.is_some_and(|t| game.board.terror_on_planet.contains_key(&t)) {
+                    return Err(Rejection(express!("You can't remove a token that is not on the board")));
+                }
+            }
+            Some(stronghold) => {
+                if !TerrorPlanted::valid_strongholds(game, by.player()).any(|v| v == stronghold) {
+                    return Err(Rejection(express!("Invalid Stronghold")));
+                }
+                if !TerrorPlanted::valid_terror_types(game, false).any(|v| Some(v) == self.type_) {
+                    return Err(Rejection(express!(self.type_, " not available")));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.get_verbose_message(game, by);
+        game.log(parts![m]);
 
         game.contemplate.moritani_has_performed_terror = true;
 
@@ -115,11 +122,11 @@ impl TerrorPlanted {
                 None => {
                     game.board.terror_on_planet.shift_remove(&type_);
                     game.board.unplaced_terror_tokens.push(type_);
-                    let me = game.player_mut(self.player());
+                    let me = game.player_mut(by.player());
                     me.resources += 4;
                 }
                 Some(stronghold) => {
-                    let me = self.player();
+                    let me = by.player();
                     if !game.terror_in(stronghold).next().is_none() && !game.player(me).has_high_threshold(game, World::Moritani) {
                         game.play_nexus_card(
                             me,
@@ -143,62 +150,13 @@ impl TerrorPlanted {
         Ok(())
     }
 
-    pub fn get_verbose_message(&self, game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " don't plant terror");
-        }
-
-        if let Some(stronghold) = self.stronghold {
-            if let Some(territory) = self.type_.and_then(|t| game.board.terror_on_planet.get(&t).copied()) {
-                return express!(self.initiator(), " move terror from ", territory, " to ", stronghold);
-            }
-            return express!(self.initiator(), " plant terror in ", stronghold);
-        }
-
-        express!(self.initiator(), " remove a terror token to get ", Payment::of(4))
-    }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        if self.passed {
-            return express!(self.initiator(), " don't plant terror");
+            return express!(by.faction, " don't plant terror");
         }
         if let Some(stronghold) = self.stronghold {
-            return express!(self.initiator(), " plant terror in ", stronghold);
+            return express!(by.faction, " plant terror in ", stronghold);
         }
-        express!(self.initiator(), " remove a terror token to get ", Payment::of(4))
+        express!(by.faction, " remove a terror token to get ", Payment::of(4))
     }
-}
-
-impl GameEventMethods for TerrorPlanted {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::TerrorPlanted
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::TerrorPlanted(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        TerrorPlanted::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        TerrorPlanted::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        TerrorPlanted::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for TerrorPlanted {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

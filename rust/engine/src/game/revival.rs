@@ -30,7 +30,7 @@ pub struct RevivalState {
     pub current_revival_requests: Vec<RevivalRequest>,
     // In the order Tleilaxu made the offers.
     pub early_revivals_offers: IndexMap<Hero, i32>,
-    pub current_free_revival_prevention: Option<Rc<ChoamFreeRevivalPrevention>>,
+    pub current_free_revival_prevention: Option<RevivalPrevention>,
     pub current_karma_revival_prevention: Option<RevivalPrevention>,
     pub ambassadors_placed_this_turn: i32,
 }

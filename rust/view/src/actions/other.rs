@@ -184,7 +184,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
             event(e)
         }
         EventType::ChoamEconomics => {
-            let mut e = ChoamEconomics::new(game, faction);
+            let mut e = ChoamEconomics::default();
             e.status = Some(ChoamEconomicsStatus::Double);
             event(e)
         }
@@ -345,13 +345,13 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
                 _ => m.requested_card = None,
             }
         }),
-        Event::ChoamDiscarded(e) => adjust!(e, |m| {
+        Event::ChoamDiscarded(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &ChoamDiscarded::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
-        Event::ChoamEconomics(e) => adjust!(e, |m| {
+        Event::ChoamEconomics(e) => adjust!(@plain e, |m| {
             m.status = required(m.status, &[Some(ChoamEconomicsStatus::Double), Some(ChoamEconomicsStatus::Cancel)], None);
         }),
-        Event::ChoamKarmaPrevention(e) => adjust!(e, |m| {
+        Event::ChoamKarmaPrevention(e) => adjust!(@plain e, |m| {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
             m.target = required_opt(m.target, &targets);
         }),
@@ -427,7 +427,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.card = required_opt(m.card, &Karma::valid_karma_cards(game, p).into_iter().collect::<Vec<_>>());
             m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), None);
         }),
-        Event::KarmaChoamDiscard(e) => adjust!(e, |m| {
+        Event::KarmaChoamDiscard(e) => adjust!(@plain e, |m| {
             let karma: Vec<TreacheryCard> = Karma::valid_karma_cards(game, p).into_iter().collect();
             let before = m.card_to_use;
             // More than one: a required picker. Otherwise `CardToUse = ValidKarmaCards.FirstOrDefault()`.
@@ -454,7 +454,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::ReplacedCardWon(e) => adjust!(@plain e, |m| {
             m.passed = false;
         }),
-        Event::ResourcesAudited(e) => adjust!(e, |m| {
+        Event::ResourcesAudited(e) => adjust!(@plain e, |m| {
             let targets: Vec<Faction> = ResourcesAudited::valid_factions(game, p).collect();
             m.target = required_opt(m.target, &targets);
         }),

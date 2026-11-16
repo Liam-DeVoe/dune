@@ -1,36 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResourcesAudited {
     pub target: Option<Faction>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for ResourcesAudited {
-    fn default() -> Self {
-        ResourcesAudited {
-            target: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl ResourcesAudited {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !ResourcesAudited::valid_factions(game, self.player()).any(|v| Some(v) == self.target) {
-            return Some(express!("Invalid faction"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_factions(game: &Game, player: PlayerId) -> impl Iterator<Item = Faction> {
         (0..game.players.len())
@@ -44,66 +19,34 @@ impl ResourcesAudited {
             })
             .filter_map(move |p| game.player(p).faction)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for ResourcesAudited {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !ResourcesAudited::valid_factions(game, by.player()).any(|v| Some(v) == self.target) {
+            return Err(Rejection(express!("Invalid faction")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         game.turn.resource_audited_factions.push(self.target.required("faction")?);
-        let target = self.get_player(game, self.target);
-        self.log(game);
+        let target = game.get_player(self.target);
+        let m = self.describe(game, by);
+        game.log_event(m);
         let t = game.player(target.required("target")?);
         let resources = i32::from(t.resources);
         let weapons = t.treachery_cards.iter().filter(|tc| tc.is_weapon()).count() as i32;
         let defenses = t.treachery_cards.iter().filter(|tc| tc.is_defense()).count() as i32;
-        self.log_to(
-            game,
-            self.initiator().required("faction")?,
-            vec![
-                self.target.into(),
-                " own ".into(),
-                Payment::of(resources).into(),
-                ", ".into(),
-                weapons.into(),
-                " weapons and ".into(),
-                defenses.into(),
-                " defenses".into(),
-            ],
+        game.log_to(
+            by.faction.required("faction")?,
+            parts![self.target, " own ", Payment::of(resources), ", ", weapons, " weapons and ", defenses, " defenses"],
         );
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(
-            self.initiator(),
-            " force ",
-            self.target,
-            " to reveal the amount of weapons, defenses and ",
-            Concept::Resource
-        )
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " force ", self.target, " to reveal the amount of weapons, defenses and ", Concept::Resource)
     }
-}
-
-impl GameEventMethods for ResourcesAudited {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ResourcesAudited
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ResourcesAudited(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ResourcesAudited::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ResourcesAudited::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ResourcesAudited::get_message(self, game)
-    }
-
 }

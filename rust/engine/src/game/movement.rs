@@ -26,7 +26,7 @@ pub struct ShipMoveState {
     pub current_flight_used: Option<FlightUse>,
     /// Who used the Flight discovery token for their next move.
     pub current_flight_discovery_used: Option<By>,
-    pub current_ambassador_activated: Option<Rc<AmbassadorActivated>>,
+    pub current_ambassador_activated: Option<AmbassadorActivation>,
     pub alliance_by_ambassador_offered_to: Option<Faction>,
     pub paused_ambassador_phase: Option<Phase>,
     pub paused_terror_phase: Option<Phase>,
@@ -107,6 +107,26 @@ impl RecentMove {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ShipmentPrevention {
     pub target: Option<Faction>,
+}
+
+/// The Ambassador activation that the current intrusion led to (`AmbassadorActivated`), as
+/// `AllianceByAmbassador` reads it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct AmbassadorActivation {
+    pub submitter: By,
+    pub ecaz_give_vidal_to_ally: bool,
+    pub ecaz_take_vidal: bool,
+}
+
+impl AmbassadorActivation {
+    pub fn initiator(&self) -> Option<Faction> {
+        self.submitter.faction
+    }
+
+    #[track_caller]
+    pub fn player(&self) -> PlayerId {
+        self.submitter.player()
+    }
 }
 
 /// A Flight card played for the next move.

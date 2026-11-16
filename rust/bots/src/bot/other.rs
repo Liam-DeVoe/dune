@@ -1185,10 +1185,10 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_bureaucracy(&self, game: &Game) -> Rc<Bureaucracy> {
-        let mut e = Bureaucracy::new(game, self.faction(game));
+    pub fn determine_bureaucracy(&self, game: &Game) -> Bureaucracy {
+        let mut e = Bureaucracy::default();
         e.passed = game.turn.target_of_bureaucracy == self.ally(game);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_diplomacy(&self, game: &Game) -> Option<Diplomacy> {

@@ -6,7 +6,6 @@ use treachery_engine::enumerations::{AutomationRuleType, DealType, Faction, Fact
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_engine::game::Deal;
 use treachery_engine::messages::part::Part;
-use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::events::{AutomationConfigured, By, EventRules, FlightDiscoveryUsed, FlightUsed, HistoryEntry, Karma, KarmaChoamDiscard, Shipment, Voice};
 use treachery_engine::game::Game;
 use treachery_engine::json;
@@ -59,8 +58,7 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
 fn choam_karama_discard_reads_choam_using() {
     let g = game();
     let e = KarmaChoamDiscard::default();
-    e.initialize(&g, Some(Faction::Choam));
-    let rendered = text(&e.get_message(&g));
+    let rendered = text(&e.describe(&g, By::new(&g, Faction::Choam)));
     assert!(rendered.starts_with("CHOAM using Karama, CHOAM discard"), "{rendered}");
 }
 

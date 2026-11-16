@@ -63,19 +63,19 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     let useless = card_of(TreacheryCardType::Useless, 0);
     g.player_mut(choam).treachery_cards.extend([k1, k2, useless]);
 
-    let mut e = KarmaChoamDiscard::new(&g, Faction::Choam);
+    let by = By::new(&g, Faction::Choam);
+    let mut e = KarmaChoamDiscard::default();
     e.card_to_use = Some(k2);
     e.set_cards(&[useless]);
-    assert!(e.validate(&g).is_none());
+    assert!(e.validate(&g, by).is_ok());
 
     // The selected card is validated.
-    let mut bad = KarmaChoamDiscard::new(&g, Faction::Choam);
+    let mut bad = KarmaChoamDiscard::default();
     bad.card_to_use = Some(k2);
     bad.set_cards(&[k2]);
-    assert!(bad.validate(&g).is_some());
+    assert!(bad.validate(&g, by).is_err());
 
-    let e = Rc::new(e);
-    e.execute_concrete_event(&mut g).unwrap();
+    e.apply(&mut g, by).unwrap();
     // C# parity: k1 (the first valid card) is played, k2 stays in hand.
     let hand = &g.player(choam).treachery_cards;
     assert!(!hand.contains(&k1));
@@ -177,11 +177,11 @@ fn terror_robbery_takes_half_rounded_up() {
     let moritani = idx(&g, Faction::Moritani);
     g.player_mut(atreides).resources = 7;
 
-    let mut e = TerrorRevealed::new(&g, Faction::Moritani);
+    let by = By::new(&g, Faction::Moritani);
+    let mut e = TerrorRevealed::default();
     e.type_ = Some(TerrorType::Robbery);
-    let e = Rc::new(e);
-    assert!(e.validate(&g).is_none());
-    let _ = outcome(|| e.execute_concrete_event(&mut g));
+    assert!(e.validate(&g, by).is_ok());
+    let _ = outcome(|| e.apply(&mut g, by));
     assert_eq!(g.player(moritani).resources, 4);
     assert_eq!(g.player(atreides).resources, 3);
     assert!(!g.board.terror_on_planet.contains_key(&TerrorType::Robbery));
@@ -199,9 +199,9 @@ fn terror_types_follow_the_trigger_territory() {
     assert_eq!(TerrorRevealed::get_victim(&g), Some(Faction::Atreides));
 
     // Only Moritani may reveal.
-    let mut e = TerrorRevealed::new(&g, Faction::Atreides);
+    let mut e = TerrorRevealed::default();
     e.type_ = Some(TerrorType::Extortion);
-    assert!(e.validate(&g).is_some());
+    assert!(e.validate(&g, By::new(&g, Faction::Atreides)).is_err());
 }
 
 #[test]
@@ -230,17 +230,17 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
     g.player_mut(ecaz).ambassadors = vec![Ambassador::Emperor, Ambassador::BeneGesserit];
     let t = a_stronghold(&g);
 
-    let mut first = AmbassadorPlaced::new(&g, Faction::Ecaz);
+    let by = By::new(&g, Faction::Ecaz);
+    let mut first = AmbassadorPlaced::default();
     first.ambassador = Some(Ambassador::Emperor);
     first.stronghold = Some(t);
-    Rc::new(first).execute_concrete_event(&mut g).unwrap();
+    first.apply(&mut g, by).unwrap();
 
-    let mut second = AmbassadorPlaced::new(&g, Faction::Ecaz);
+    let mut second = AmbassadorPlaced::default();
     second.ambassador = Some(Ambassador::BeneGesserit);
     second.stronghold = Some(t);
-    let second = Rc::new(second);
-    assert!(second.validate(&g).is_some());
-    let e = second.execute_concrete_event(&mut g).unwrap_err();
+    assert!(second.validate(&g, by).is_err());
+    let e = second.apply(&mut g, by).unwrap_err();
     assert_eq!(e.message(), "There already is an ambassador in Treachery.Shared.Territory");
     // Paid 1, then 2, before the failure; the BeneGesserit ambassador stays in supply.
     assert_eq!(i32::from(g.player(ecaz).resources), 7);
@@ -251,10 +251,10 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
 #[test]
 fn ambassador_placed_without_stronghold_fails() {
     let mut g = game_with(&[Faction::Ecaz]);
-    let mut e = AmbassadorPlaced::new(&g, Faction::Ecaz);
+    let mut e = AmbassadorPlaced::default();
     e.stronghold = None;
-    let e = Rc::new(e);
-    assert_eq!(e.execute_concrete_event(&mut g).unwrap_err().message(), "Stronghold is null");
+    let by = By::new(&g, Faction::Ecaz);
+    assert_eq!(e.apply(&mut g, by).unwrap_err().message(), "Stronghold is null");
     assert_eq!(g.revival.ambassadors_placed_this_turn, 0);
 }
 

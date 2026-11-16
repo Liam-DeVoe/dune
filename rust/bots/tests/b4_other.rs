@@ -15,17 +15,9 @@ mod common;
 
 use std::panic::{catch_unwind, resume_unwind, AssertUnwindSafe};
 
-use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
-
-fn ev<T: EventKind>(e: Rc<T>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
-}
 
 fn hero(h: Option<Hero>) -> String {
     h.map_or_else(|| "null".to_string(), |h| format!("H{}", h.id()))
@@ -81,7 +73,10 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDiscardedSearched" => common::decision(bot, game, bot.determine_discarded_searched(game)),
         "DetermineDiscardedTaken" => common::decision(bot, game, bot.determine_discarded_taken(game)),
         "DetermineJuicePlayed" => common::decision(bot, game, bot.determine_juice_played(game)),
-        "DetermineBureaucracy" => ev(bot.determine_bureaucracy(game)),
+        "DetermineBureaucracy" => {
+            let e = bot.determine_bureaucracy(game);
+            common::decision(bot, game, e)
+        }
         "DetermineDiplomacy" => common::decision(bot, game, bot.determine_diplomacy(game)),
         "DetermineSkillAssigned" => common::decision(bot, game, bot.determine_skill_assigned(game)),
         "DeterminePlanetology" => common::decision(bot, game, bot.determine_planetology(game)),

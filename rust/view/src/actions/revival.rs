@@ -58,7 +58,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
             event(e)
         }
         EventType::KarmaRevivalPrevention => event(KarmaRevivalPrevention::default()),
-        EventType::ChoamFreeRevivalPrevention => event(ChoamFreeRevivalPrevention::new(game, faction)),
+        EventType::ChoamFreeRevivalPrevention => event(ChoamFreeRevivalPrevention::default()),
         EventType::RequestTleilaxuRevival => {
             let mut e = RequestTleilaxuRevival::default();
             e.hero = None;
@@ -162,7 +162,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::ChoamFreeRevivalPrevention(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let targets: Vec<Faction> = game.players_other_than(p).collect();
             e.target = required_opt(e.target, &targets);
             event(e)

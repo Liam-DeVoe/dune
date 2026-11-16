@@ -54,8 +54,8 @@ events! {
     AlliancePassed,
     AllyPermission,
     AmalPlayed,
-    @legacy AmbassadorActivated,
-    @legacy AmbassadorPlaced,
+    AmbassadorActivated,
+    AmbassadorPlaced,
     AuditCancelled,
     Audited,
     AutomationConfigured,
@@ -70,20 +70,20 @@ events! {
     BeneGesseritPrediction,
     Bid,
     BlackMarketBid,
-    @legacy Bureaucracy,
+    Bureaucracy,
     Captured,
     Caravan,
     CardGiven,
     @legacy CardTraded,
     CardsDetermined,
     CharityClaimed,
-    @legacy ChoamDiscarded,
-    @legacy ChoamEconomics,
-    @legacy ChoamExtraMove,
-    @legacy ChoamFreeRevivalPrevention,
-    @legacy ChoamKarmaPrevention,
-    @legacy ChoamMovePrevention,
-    @legacy ChoamRemoveForce,
+    ChoamDiscarded,
+    ChoamEconomics,
+    ChoamExtraMove,
+    ChoamFreeRevivalPrevention,
+    ChoamKarmaPrevention,
+    ChoamMovePrevention,
+    ChoamRemoveForce,
     ClairVoyanceAnswered,
     ClairVoyancePlayed,
     @legacy DealAccepted,
@@ -123,7 +123,7 @@ events! {
     IxianSwappedCardOnBid,
     JuicePlayed,
     Karma,
-    @legacy KarmaChoamDiscard,
+    KarmaChoamDiscard,
     KarmaEcazDial,
     KarmaFreeRevival,
     KarmaHandSwap,
@@ -157,7 +157,7 @@ events! {
     ReplacedCardWon,
     RequestTleilaxuRevival,
     ResidualPlayed,
-    @legacy ResourcesAudited,
+    ResourcesAudited,
     ResourcesTransferred,
     Retreat,
     Revival,
@@ -176,8 +176,8 @@ events! {
     StormSpellPlayed,
     SwitchedSkilledLeader,
     TakeLosses,
-    @legacy TerrorPlanted,
-    @legacy TerrorRevealed,
+    TerrorPlanted,
+    TerrorRevealed,
     TestingStationUsed,
     Thought,
     ThoughtAnswered,
@@ -265,7 +265,7 @@ impl Event {
     /// `((LocationEvent)this).To`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_to(&self, game: &Game) -> Option<Location> {
         match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::to(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::to(e, game),
             Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::to(e, game),
             Event::Caravan(e) => <Caravan as location_event::LocationEvent>::to(e, game),
             Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::to(e, game),
@@ -277,7 +277,7 @@ impl Event {
             Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::to(e, game),
             Event::Revival(e) => <Revival as location_event::LocationEvent>::to(e, game),
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::to(e, game),
-            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::to(&**e, game),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::to(e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
@@ -285,7 +285,7 @@ impl Event {
     /// `((LocationEvent)this).TotalAmountOfForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::Caravan(e) => <Caravan as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
@@ -297,7 +297,7 @@ impl Event {
             Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::Revival(e) => <Revival as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
-            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
@@ -305,7 +305,7 @@ impl Event {
     /// `((LocationEvent)this).ForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_forces_added_to_location(&self, game: &Game) -> i32 {
         match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::Caravan(e) => <Caravan as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::forces_added_to_location(e, game),
@@ -317,25 +317,8 @@ impl Event {
             Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::Revival(e) => <Revival as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::forces_added_to_location(e, game),
-            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::forces_added_to_location(e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
-
-    /// `((Placement)this).ForceLocations`; InvalidCastException for events that do not implement `Placement`.
-    pub fn placement_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::force_locations(&**e, game),
-            _ => panic!("{} is not a Placement", self.event_type().name()),
-        }
-    }
-
-    /// `((Placement)this).To`; InvalidCastException for events that do not implement `Placement`.
-    pub fn placement_to(&self, game: &Game) -> Option<Location> {
-        match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::to(&**e, game),
-            _ => panic!("{} is not a Placement", self.event_type().name()),
-        }
-    }
-
 }

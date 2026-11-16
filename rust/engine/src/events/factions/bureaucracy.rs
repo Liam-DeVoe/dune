@@ -1,36 +1,27 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Bureaucracy {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for Bureaucracy {
-    fn default() -> Self {
-        Bureaucracy {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl Bureaucracy {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+    pub fn get_dynamic_message(&self, game: &Game, by: By) -> Message {
+        if self.passed {
+            return express!(by.faction, " don't apply Bureaucracy");
+        }
+        express!(by.faction, " apply Bureaucracy → ", game.turn.target_of_bureaucracy, " lose ", Payment::of(2))
+    }
+}
+
+impl EventRules for Bureaucracy {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let m = self.get_dynamic_message(game);
-        self.log_objects(game, vec![m.into()]);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.get_dynamic_message(game, by);
+        game.log(parts![m]);
 
         if !self.passed {
             game.stone(Milestone::Bureaucracy);
@@ -47,52 +38,10 @@ impl Bureaucracy {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " don't apply Bureaucracy");
+            return express!(by.faction, " don't apply Bureaucracy");
         }
-        express!(self.initiator(), " apply Bureaucracy")
+        express!(by.faction, " apply Bureaucracy")
     }
-
-    pub fn get_dynamic_message(&self, game: &Game) -> Message {
-        if self.passed {
-            return express!(self.initiator(), " don't apply Bureaucracy");
-        }
-        express!(self.initiator(), " apply Bureaucracy → ", game.turn.target_of_bureaucracy, " lose ", Payment::of(2))
-    }
-
-}
-
-impl GameEventMethods for Bureaucracy {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Bureaucracy
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Bureaucracy(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Bureaucracy::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Bureaucracy::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Bureaucracy::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for Bureaucracy {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

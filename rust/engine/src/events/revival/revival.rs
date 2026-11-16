@@ -85,6 +85,12 @@ impl Revival {
         }
 
         let p = p_opt.expect("player");
+        if let Some(hero) = self.hero() {
+            if Self::is_living_leader(game, hero) && !Self::is_ghola_returning_home(game, initiator, hero) {
+                return Some(express!("You can't revive a leader who isn't dead"));
+            }
+        }
+
         let pl = game.player(p);
         if forces > pl.forces_killed {
             return Some(express!("You can't revive that many ", pl.force()));
@@ -240,6 +246,23 @@ impl Revival {
         }
 
         cost
+    }
+
+    /// Whether `hero` is a leader or the Messiah and alive. Reviving one would put them in the
+    /// tanks instead.
+    pub fn is_living_leader(game: &Game, hero: Hero) -> bool {
+        game.leaders.leader_state.get(&hero).is_some_and(|s| s.alive())
+    }
+
+    /// Whether reviving `hero` takes back a living leader of `initiator` that the Tleilaxu hold
+    /// as a ghola. That leader isn't dead, and the revival moves them back to their faction.
+    fn is_ghola_returning_home(game: &Game, initiator: Faction, hero: Hero) -> bool {
+        let Hero::Leader(leader) = hero else { return false };
+        leader.faction() == initiator
+            && initiator != Faction::Tleilaxu
+            && game
+                .get_player(Some(Faction::Tleilaxu))
+                .is_some_and(|tleilaxu| game.player(tleilaxu).leaders.contains(&leader))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.

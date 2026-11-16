@@ -20,6 +20,8 @@ pub const MORITANI: i32 = 120;
 pub const GUILD: i32 = 50;
 pub const FREMEN: i32 = 10;
 pub const TLEILAXU: i32 = 80;
+pub const CHOAM: i32 = 90;
+pub const ATREIDES: i32 = 20;
 
 /// The sector the storm is in. Nothing the tests use lies in it.
 pub const STORM: i32 = 9;
@@ -62,15 +64,27 @@ pub fn at_blow(phase: Phase) -> Game {
 
 /// The factions seated with their forces, spice, leaders and ambassadors, in no phase yet.
 pub fn seated(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
-    let codes = [BENE_GESSERIT, ECAZ, MORITANI, GUILD, FREMEN, TLEILAXU];
-    let factions = [Faction::BeneGesserit, Faction::Ecaz, Faction::Moritani, Faction::Guild, Faction::Fremen, Faction::Tleilaxu];
+    let codes = [BENE_GESSERIT, ECAZ, MORITANI, GUILD, FREMEN, TLEILAXU, CHOAM, ATREIDES];
+    let factions = [
+        Faction::BeneGesserit,
+        Faction::Ecaz,
+        Faction::Moritani,
+        Faction::Guild,
+        Faction::Fremen,
+        Faction::Tleilaxu,
+        Faction::Choam,
+        Faction::Atreides,
+    ];
     assert_eq!(codes, factions.map(|f| f.value()), "the faction numbers in event JSON");
+    seated_with(&factions[..6], change_rules)
+}
 
+/// [`seated`] with other factions.
+pub fn seated_with(factions: &[Faction], change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
     let mut g = Game::of_version(Game::LATEST_VERSION);
     let mut s = GameSettings::new();
-    s.number_of_players = 6;
-    s.allowed_factions_in_play =
-        Some(vec![Faction::BeneGesserit, Faction::Ecaz, Faction::Moritani, Faction::Guild, Faction::Fremen, Faction::Tleilaxu]);
+    s.number_of_players = factions.len() as i32;
+    s.allowed_factions_in_play = Some(factions.to_vec());
     let mut rules = Game::ruleset_definition()[&Ruleset::AdvancedGame].clone();
     rules.extend([Rule::Homeworlds, Rule::BeneGesseritAccompaniesToShipmentLocation]);
     change_rules(&mut rules);
@@ -81,7 +95,7 @@ pub fn seated(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
     assert!(GameEvent::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
     // Out of faction trading into setup: leaders and Ecaz's ambassadors are assigned.
     host_ends_phase(&mut g);
-    assert_eq!(g.turn.current_phase, Phase::BeneGesseritPredicting);
+    assert_eq!(g.turn.current_main_phase, MainPhase::Setup);
 
     // The rest of setup by hand: forces on the homeworlds, starting spice, and the Guild's,
     // Ecaz's and Bene Gesserit's starting forces on the planet. Then everyone gets 20 spice.

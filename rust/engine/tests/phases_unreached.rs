@@ -220,3 +220,63 @@ fn storm_losses_taken_during_a_shipment_go_back_to_the_shipment() {
     let fremen = idx(&g, Faction::Fremen);
     assert_eq!(g.player(fremen).forces_in(Some(flat)), 2);
 }
+
+// Two other phases that fuzz games reach in only a few games per 200, and that suspend another
+// phase: `Discarding` and `Auditing`.
+
+/// Robbery that takes a card puts Moritani over its hand limit. The terror resolves first, so the
+/// discard interrupts the phase the shipment went on to, and the game comes back to it.
+#[test]
+fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
+    use treachery_engine::enum_type::GameEnum;
+
+    let mut g = table();
+    let moritani = idx(&g, Faction::Moritani);
+    for _ in 0..4 {
+        let card = g.draw_treachery_card().expect("a card");
+        g.player_mut(moritani).treachery_cards.push(card);
+    }
+    pass_until_shipment_of(&mut g, Faction::Tleilaxu);
+    let to = open_sand(&g, &[]);
+    put_terror(&mut g, to.territory(), TerrorType::Robbery);
+    accept(&mut g, &shipment(TLEILAXU, to, 3));
+    assert_eq!(phase(&g), Phase::TerrorTriggeredByNonGuildShip);
+
+    let robbery = format!(
+        r#"{{"$type":"TerrorRevealed","AllianceOffered":false,"Type":{},"ForcesInSneakAttack":0,"RobberyTakesCard":true,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":false,"Initiator":{MORITANI}}}"#,
+        TerrorType::Robbery.value()
+    );
+    accept(&mut g, &robbery);
+    assert_eq!(phase(&g), Phase::Discarding);
+    assert_eq!(g.turn.phase_before_discarding, Phase::BeneGesseritAccompaniesNonGuildShip);
+    assert_eq!(asked(&mut g, GameEventType::Discarded), [Faction::Moritani]);
+    assert_eq!(g.player(moritani).treachery_cards.len(), 5);
+
+    let card = g.player(moritani).treachery_cards[0];
+    accept(&mut g, &format!(r#"{{"$type":"Discarded","_cardId":{},"Initiator":{MORITANI}}}"#, card.id()));
+    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
+    assert_eq!(asked(&mut g, GameEventType::BeneGesseritAccompanies), [Faction::BeneGesserit]);
+    assert_eq!(g.player(moritani).treachery_cards.len(), 4);
+}
+
+/// After CHOAM's audit the battle goes on to its conclusion when there is a winner and Harkonnen
+/// don't need to decide on a capture. The test starts in `Auditing`, as `AuditCancelled` leaves
+/// it, without the battle that led there.
+#[test]
+fn auditing_goes_on_to_the_battle_conclusion() {
+    let mut g = seated_with(&[Faction::Choam, Faction::Atreides], |_| {});
+    assert!(g.applicable(Rule::ChoamAuditor));
+    let choam = idx(&g, Faction::Choam);
+    let atreides = idx(&g, Faction::Atreides);
+    let card = g.draw_treachery_card().expect("a card");
+    g.player_mut(atreides).treachery_cards.push(card);
+    g.turn.current_main_phase = MainPhase::Battle;
+    g.turn.current_phase = Phase::Auditing;
+    g.battle.battle_winner = Some(Faction::Atreides);
+    g.battle.audited_cards = vec![card];
+    assert_eq!(asked(&mut g, GameEventType::Audited), [Faction::Choam]);
+
+    accept(&mut g, &format!(r#"{{"$type":"Audited","Initiator":{CHOAM}}}"#));
+    assert_eq!(phase(&g), Phase::BattleConclusion);
+    assert!(g.player(choam).known_cards.contains(&card));
+}

@@ -346,7 +346,7 @@ impl AmbassadorActivated {
         game.dequeue_intrusion(IntrusionType::Ambassador)?;
 
         if let (false, Some(territory)) = (self.passed, territory) {
-            game.board.ambassadors_on_planet.remove(&territory);
+            game.board.ambassadors_on_planet.shift_remove(&territory);
             game.stone(Milestone::AmbassadorActivated);
 
             let ecaz = self.get_player(game, Some(Faction::Ecaz));

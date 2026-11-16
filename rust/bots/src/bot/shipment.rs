@@ -251,7 +251,7 @@ impl ClassicBot {
             .map(|kvp| kvp.0);
 
         if let Some(best_location) = best_location {
-            let amount = *game.board.resources_on_planet.index(&best_location);
+            let amount = game.board.resources_on_planet[&best_location];
             let forces_needed_for_collection = self.make_even_if_efficient_for_shipping(
                 game,
                 math_min_f32(amount as f32 / game.resource_collection_rate(me) as f32, 4.0)
@@ -344,7 +344,7 @@ impl ClassicBot {
             .map(|kvp| kvp.0);
 
         if let Some(best_location) = best_location {
-            let amount = *game.board.resources_on_planet.index(&best_location);
+            let amount = game.board.resources_on_planet[&best_location];
             let forces_to_rally = math_max_f32(
                 7.0,
                 2.0 + self.total_max_dial_of_opponents(game, best_location.territory()) + amount as f32 / game.resource_collection_rate(me) as f32,
@@ -770,7 +770,7 @@ impl ClassicBot {
             && from.sector(&game.board.map) != game.board.sector_in_storm
             && self.not_occupied_by_others(game, from.territory())
         {
-            let bat = game.player(me).forces_in_locations.index(&from).clone();
+            let bat = game.player(me).forces_in_locations[&from].clone();
             if self.not_occupied_by_others(game, from.territory()) && bat.total_amount_of_forces() > 1 {
                 let one_of_them = bat.take(1, true);
                 if PlacementEvent::valid_targets(game, me, from, &one_of_them).contains(&to) {

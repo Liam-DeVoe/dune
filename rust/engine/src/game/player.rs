@@ -11,9 +11,11 @@ pub struct Player {
     pub banked_resources: i32,
     pub transferable_resources: i32,
     pub treachery_cards: Vec<TreacheryCard>,
-    pub known_cards: NetHashSet<TreacheryCard>,
+    // In the order the player learned of them.
+    pub known_cards: IndexSet<TreacheryCard>,
     pub traitors: Vec<Hero>,
-    pub revealed_traitors: NetHashSet<Hero>,
+    // In the order they were revealed.
+    pub revealed_traitors: IndexSet<Hero>,
     pub told_traitors: IndexSet<Hero>,
     pub told_non_traitors: IndexSet<Hero>,
     pub known_non_traitors: IndexSet<Hero>,
@@ -23,7 +25,8 @@ pub struct Player {
     pub told_face_dancers: IndexSet<Hero>,
     pub told_non_face_dancers: IndexSet<Hero>,
     pub leaders: Vec<Leader>,
-    pub forces_in_locations: NetDictionary<Location, Battalion>,
+    // In map order (by location id), like spice on the board.
+    pub forces_in_locations: BTreeMap<Location, Battalion>,
     pub ambassadors: Vec<Ambassador>,
     pub predicted_faction: Faction,
     pub predicted_turn: i32,
@@ -52,9 +55,9 @@ impl Player {
             banked_resources: 0,
             transferable_resources: 0,
             treachery_cards: Vec::new(),
-            known_cards: NetHashSet::new(),
+            known_cards: IndexSet::new(),
             traitors: Vec::new(),
-            revealed_traitors: NetHashSet::new(),
+            revealed_traitors: IndexSet::new(),
             told_traitors: IndexSet::new(),
             told_non_traitors: IndexSet::new(),
             known_non_traitors: IndexSet::new(),
@@ -64,7 +67,7 @@ impl Player {
             told_face_dancers: IndexSet::new(),
             told_non_face_dancers: IndexSet::new(),
             leaders: Vec::new(),
-            forces_in_locations: NetDictionary::new(),
+            forces_in_locations: BTreeMap::new(),
             ambassadors: Vec::new(),
             predicted_faction: Faction::default(),
             predicted_turn: 0,
@@ -104,12 +107,8 @@ impl Player {
 
     /// Returns the live battalion, not a copy.
     pub fn get_and_create_if_needed(&mut self, location: Location) -> &mut Battalion {
-                if !self.forces_in_locations.contains_key(&location) {
-            let result = Battalion::new(self.faction, 0, 0, location);
-            self.forces_in_locations.insert_new(location, result);
-        }
-
-        &mut self.forces_in_locations[&location]
+        let faction = self.faction;
+        self.forces_in_locations.entry(location).or_insert_with(|| Battalion::new(faction, 0, 0, location))
     }
 
     pub fn change_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {

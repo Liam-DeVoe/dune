@@ -10,7 +10,8 @@ pub struct BiddingState {
     pub current_auction_type: AuctionType,
     pub card_number: i32,
     pub current_bid: Option<GameEvent>,
-    pub bids: NetDictionary<Faction, GameEvent>,
+    // In the order the bids were made (a new bid of a faction replaces its old one and goes last).
+    pub bids: IndexMap<Faction, GameEvent>,
     pub card_just_won: Option<TreacheryCard>,
     pub winning_bid: Option<GameEvent>,
     pub bidding_round_was_started: bool,
@@ -182,7 +183,7 @@ impl Game {
             g.skip_players_that_cant_bid(seq);
         });
         let initiator = GameEventMethods::initiator(&**bid);
-        self.bidding.bids.remove(&initiator);
+        self.bidding.bids.shift_remove(&initiator);
         self.bidding.bids.insert_new(initiator, bid.clone().into_event());
         let as_event = bid.clone().into_event();
         self.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
@@ -653,7 +654,7 @@ impl Game {
         self.bidding.current_auction_type = auction_type;
     }
 
-    pub fn determine_highest_bid(&self, bids: &NetDictionary<Faction, GameEvent>) -> Option<GameEvent> {
+    pub fn determine_highest_bid(&self, bids: &IndexMap<Faction, GameEvent>) -> Option<GameEvent> {
         let highest_bid_value = bids.values().map(|b| b.bid_total_amount()).max().expect("a bid");
         let mut determine_bid_winner_sequence = PlayerSequence::starting_with_first_player_options(self, false, 1);
 

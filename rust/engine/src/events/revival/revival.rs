@@ -688,7 +688,7 @@ impl Revival {
                 game.prepare_skill_assignment_to_revived_leader(me, leader);
             }
 
-            game.revival.early_revivals_offers.remove(&hero);
+            game.revival.early_revivals_offers.shift_remove(&hero);
         }
 
         //Logging

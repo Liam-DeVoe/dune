@@ -1436,7 +1436,7 @@ impl Game {
         };
 
         if let Some(sole_player_on_planet) = sole_player_on_planet {
-            self.board.homeworld_occupation.remove(&hw);
+            self.board.homeworld_occupation.shift_remove(&hw);
 
             if !self.player(sole_player_on_planet).is_native_homeworld(hw) {
                 let f = self.player(sole_player_on_planet).faction;

@@ -12,7 +12,8 @@ pub struct RevivalState {
     /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
     pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
     pub current_revival_requests: Vec<Rc<RequestTleilaxuRevival>>,
-    pub early_revivals_offers: NetDictionary<Hero, i32>,
+    // In the order Tleilaxu made the offers.
+    pub early_revivals_offers: IndexMap<Hero, i32>,
     pub current_free_revival_prevention: Option<Rc<ChoamFreeRevivalPrevention>>,
     pub current_karma_revival_prevention: Option<Rc<KarmaRevivalPrevention>>,
     pub ambassadors_placed_this_turn: i32,

@@ -58,7 +58,7 @@ impl SetShipmentPermission {
 
         let factions = self.factions.as_ref().required("factions")?;
         for f in factions {
-            game.ship_move.shipment_permissions.remove(f);
+            game.ship_move.shipment_permissions.shift_remove(f);
         }
 
         if self.permission != ShipmentPermission::None {

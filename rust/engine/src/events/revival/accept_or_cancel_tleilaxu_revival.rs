@@ -57,7 +57,7 @@ impl AcceptOrCancelTleilaxuRevival {
                 game.revival.current_revival_requests.clear();
             }
             Some(hero) => {
-                game.revival.early_revivals_offers.remove(&hero);
+                game.revival.early_revivals_offers.shift_remove(&hero);
 
                 if !self.cancel {
                     game.revival.early_revivals_offers.insert_new(hero, self.price);

@@ -17,7 +17,7 @@ use crate::map::data::{LOCATIONS, LOCATION_COUNT};
 use crate::map::territory::Territory;
 
 /// Handle to a location of the map. Equality is by id.
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Location(u8);
 
 static ALL_LOCATIONS: [Location; LOCATION_COUNT] = {

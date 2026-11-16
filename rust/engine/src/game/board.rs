@@ -7,14 +7,17 @@ pub struct Board {
     pub sector_in_storm: i32,
     pub next_storm_moves: i32,
     pub shield_wall_destroyed: bool,
-    pub resources_on_planet: NetDictionary<Location, i32>,
-    pub terror_on_planet: NetDictionary<TerrorType, Territory>,
+    // Spice, discoveries and stronghold owners are in map order (by location id), so the board lists
+    // them the same way every time. Terror tokens, ambassadors and occupied homeworlds are in the
+    // order they were placed or taken, which a sort by token, territory or world wouldn't improve.
+    pub resources_on_planet: BTreeMap<Location, i32>,
+    pub terror_on_planet: IndexMap<TerrorType, Territory>,
     pub unplaced_terror_tokens: Vec<TerrorType>,
     pub atomics_aftermath: Option<Territory>,
-    pub discoveries_on_planet: NetDictionary<Location, Discovery>,
-    pub ambassadors_on_planet: NetDictionary<Territory, Ambassador>,
-    pub homeworld_occupation: NetDictionary<Homeworld, Faction>,
-    pub stronghold_ownership: NetDictionary<Location, Faction>,
+    pub discoveries_on_planet: BTreeMap<Location, Discovery>,
+    pub ambassadors_on_planet: IndexMap<Territory, Ambassador>,
+    pub homeworld_occupation: IndexMap<Homeworld, Faction>,
+    pub stronghold_ownership: BTreeMap<Location, Faction>,
 }
 
 impl Board {
@@ -109,7 +112,7 @@ impl Game {
 
     pub fn determine_occupation_at_start_or_end_of_turn(&mut self) {
         let current_occupier_of_ecaz_homeworld = self.occupier_of(World::Ecaz);
-        let mut updated_occupation: NetDictionary<Homeworld, Faction> = NetDictionary::new();
+        let mut updated_occupation: IndexMap<Homeworld, Faction> = IndexMap::new();
 
         for hw in self.board.map.homeworlds() {
             for i in 0..self.players.len() {

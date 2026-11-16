@@ -120,7 +120,7 @@ impl TerrorPlanted {
 
             match self.stronghold(game) {
                 None => {
-                    game.board.terror_on_planet.remove(&self.type_);
+                    game.board.terror_on_planet.shift_remove(&self.type_);
                     game.board.unplaced_terror_tokens.push(self.type_);
                     let me = game.player_mut(self.player());
                     me.resources += 4;
@@ -141,7 +141,7 @@ impl TerrorPlanted {
                             game.board.unplaced_terror_tokens.remove(pos);
                         }
                     } else {
-                        game.board.terror_on_planet.remove(&self.type_);
+                        game.board.terror_on_planet.shift_remove(&self.type_);
                         game.board.terror_on_planet.insert_new(self.type_, stronghold);
                     }
                 }

@@ -584,7 +584,7 @@ impl NexusPlayed {
                         .into_iter()
                         .random_item(game.random.as_ref().required("random")?)
                         .unwrap_or_default();
-                    game.board.terror_on_planet.remove(&terror_to_remove);
+                    game.board.terror_on_planet.shift_remove(&terror_to_remove);
                     game.board.unplaced_terror_tokens.push(terror_to_remove);
                     let moritani_territory = self.moritani_territory(game);
                     game.play_nexus_card(

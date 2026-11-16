@@ -3,7 +3,7 @@
 pub use std::cell::{Cell, RefCell};
 pub use std::rc::Rc;
 
-pub use dotnet_compat::{NetDictionary, NetHashSet};
+pub use std::collections::BTreeMap;
 pub use indexmap::{IndexMap, IndexSet};
 
 pub use crate::iter::{IterExt, MapExt};

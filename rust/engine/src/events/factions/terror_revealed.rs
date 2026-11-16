@@ -204,7 +204,7 @@ impl TerrorRevealed {
         } else {
             game.stone(Milestone::TerrorRevealed);
 
-            game.board.terror_on_planet.remove(&self.type_);
+            game.board.terror_on_planet.shift_remove(&self.type_);
 
             // C# parity: Passed is always false here.
             if self.passed || TerrorRevealed::terror_in(game, territory).next().is_none() {

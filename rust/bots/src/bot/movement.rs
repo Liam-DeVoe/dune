@@ -68,10 +68,7 @@ impl ClassicBot {
             let decided = self.decided_shipment.clone().expect("decided shipment");
             let decided_to = decided.to(game).expect("to");
             if game.player(me).forces_in_locations.contains_key(&decided_to) {
-                let to_move = game
-                    .player(me)
-                    .forces_in_locations
-                    .index(&decided_to)
+                let to_move = game.player(me).forces_in_locations[&decided_to]
                     .take(decided.force_amount + decided.special_force_amount, faction == Faction::Ixian);
 
                 if let Some(final_destination) = self.final_destination

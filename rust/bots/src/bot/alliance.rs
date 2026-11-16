@@ -75,24 +75,27 @@ impl SharedAdvantage {
 }
 
 impl ClassicBot {
-    pub fn determine_alliance_by_terror(&self, game: &Game) -> AllianceByTerror {
+    pub fn determine_alliance_by_terror(&self, game: &Game) -> Option<AllianceByTerror> {
         let mut result = AllianceByTerror::default();
-        result.passed = !self.accepts_forced_alliance_with(game, Faction::Moritani);
-        result
+        result.passed = !self.accepts_forced_alliance_with(game, Faction::Moritani)?;
+        Some(result)
     }
 
-    pub fn determine_alliance_by_ambassador(&self, game: &Game) -> AllianceByAmbassador {
+    pub fn determine_alliance_by_ambassador(&self, game: &Game) -> Option<AllianceByAmbassador> {
         let mut result = AllianceByAmbassador::default();
-        result.passed = !self.accepts_forced_alliance_with(game, Faction::Ecaz);
-        result
+        result.passed = !self.accepts_forced_alliance_with(game, Faction::Ecaz)?;
+        Some(result)
     }
 
     /// Whether to ally with `faction` when it offers through terror or an ambassador: when I have
-    /// no ally, or `faction` stands better than 3/4 of my ally.
-    fn accepts_forced_alliance_with(&self, game: &Game, faction: Faction) -> bool {
+    /// no ally, or `faction` stands better than 3/4 of my ally. `None` (no decision) when
+    /// `faction` or my ally isn't seated.
+    fn accepts_forced_alliance_with(&self, game: &Game, faction: Faction) -> Option<bool> {
         let offering = game.get_player(Some(faction));
-        !game.player(self.player).has_ally()
-            || self.player_standing(game, offering.expect("offering")) as f32 > 0.75 * self.player_standing(game, self.allied_player(game).expect("allied player")) as f32
+        Some(
+            !game.player(self.player).has_ally()
+                || self.player_standing(game, offering?) as f32 > 0.75 * self.player_standing(game, self.allied_player(game)?) as f32,
+        )
     }
 
     pub fn determine_nexus_voted(&self, _game: &Game) -> NexusVoted {

@@ -307,9 +307,11 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> IxianSelectedStartingCard {
+    /// No decision without starting cards to choose from.
+    pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> Option<IxianSelectedStartingCard> {
         use TreacheryCardType as T;
-        let cards = || game.setup.starting_treachery_cards.as_ref().expect("starting treachery cards").items.iter().copied();
+        let starting_cards = game.setup.starting_treachery_cards.as_ref()?;
+        let cards = || starting_cards.items.iter().copied();
         let any = |f: fn(&TreacheryCard) -> bool| cards().any(|c| f(&c));
 
         // (whether to look, which card to pick), in order of preference.
@@ -335,7 +337,7 @@ impl ClassicBot {
 
         let mut e = IxianSelectedStartingCard::default();
         e.card = card;
-        e
+        Some(e)
     }
 
     pub fn determine_perform_hms_movement(&self, game: &Game) -> PerformHmsMovement {
@@ -464,13 +466,18 @@ impl ClassicBot {
         })
     }
 
-    pub fn determine_fremen_rides_monster(&self, game: &Game) -> FremenRidesMonster {
+    /// No decision when there is no monster to ride, which the fuzzer can bring about.
+    pub fn determine_fremen_rides_monster(&self, game: &Game) -> Option<FremenRidesMonster> {
         let me = game.player(self.player);
         let valid_locations: Vec<Location> = FremenRidesMonster::valid_targets(game, self.player).collect();
+        // `valid_sources` needs the monster to ride once the Fremen are in the game.
+        if game.get_player(Some(Faction::Fremen)).is_some() {
+            FremenRidesMonster::to_ride(game)?;
+        }
         // `add` throws if a source is listed twice.
         let mut battalions_to_move: IndexMap<Location, Battalion> = IndexMap::new();
         for l in FremenRidesMonster::valid_sources(game) {
-            battalions_to_move.insert_new(l, me.battalion_in_location(l).expect("battalion in location"));
+            battalions_to_move.insert_new(l, me.battalion_in_location(l)?);
         }
         let forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, false), 4);
         let special_forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, true), 2);
@@ -510,7 +517,7 @@ impl ClassicBot {
         } else {
             e.passed = true;
         }
-        e
+        Some(e)
     }
 
     // ---- BeneGesserit ----
@@ -663,41 +670,44 @@ impl ClassicBot {
         no_accompany()
     }
 
-    pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> BeneGesseritPrediction {
+    /// No decision when there is nobody to predict, or when a game of few turns leaves no turn
+    /// to draw from.
+    pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> Option<BeneGesseritPrediction> {
         // A random human player if there is one, else any other player.
         let humans = self.others(game).into_iter().filter(|p| !game.is_bot(*p));
         let predicted = humans.random_item(&self.random).or_else(|| self.others(game).into_iter().random_item(&self.random));
 
-        let predicted = game.player(predicted.expect("predicted"));
+        let predicted = game.player(predicted?);
         let maximum_turns = i32::from(game.maximum_turns());
-        // In `self.d(1, sides)` with a drawn `sides`, the draw for `sides` comes first.
-        // A `sides` below 0 panics.
+        // A die of `sides` sides, with nothing to draw from when `sides` is below 0. In
+        // `roll(sides)` with a drawn `sides`, the draw for `sides` comes first.
+        let roll = |sides: i32| (sides >= 0).then(|| self.d(1, sides));
         let turn = if predicted.is(Faction::Harkonnen) {
             let sides = if self.d(1, 2) == 1 { std::cmp::min(3, maximum_turns) } else { maximum_turns };
-            self.d(1, sides)
+            roll(sides)?
         } else if predicted.is(Faction::Atreides) || predicted.is(Faction::Ixian) {
-            if self.d(1, 2) == 1 { self.d(1, maximum_turns) } else { 2 + self.d(1, maximum_turns - 2) }
+            if self.d(1, 2) == 1 { roll(maximum_turns)? } else { 2 + roll(maximum_turns - 2)? }
         } else if predicted.is(Faction::Tleilaxu) {
-            3 + self.d(1, maximum_turns - 3)
+            3 + roll(maximum_turns - 3)?
         } else if self.d(1, 2) == 1 {
-            1 + self.d(1, maximum_turns - 1)
+            1 + roll(maximum_turns - 1)?
         } else {
-            2 + self.d(1, maximum_turns - 2)
+            2 + roll(maximum_turns - 2)?
         };
 
         let mut e = BeneGesseritPrediction::default();
         e.to_win = predicted.faction;
-        e.turn = Turn::new(u8::try_from(turn).expect("a turn of the game"));
-        e
+        e.turn = Turn::new(u8::try_from(turn).ok()?);
+        Some(e)
     }
 
     pub fn determine_voice(&mut self, game: &Game) -> Option<Voice> {
         self.voice_plan = None;
 
-        let battle = game.battle.current_battle.clone().expect("current battle");
+        let battle = game.battle.current_battle.clone()?;
         if battle.is_aggressor_or_defender(game, self.player) {
             let opponent = battle.opponent_of_faction(game, self.faction(game));
-            let plan = self.best_voice(game, game.battle.current_battle.clone(), self.player, opponent.expect("opponent"));
+            let plan = self.best_voice(game, game.battle.current_battle.clone(), self.player, opponent?);
             let voice = plan.voice.clone();
             self.voice_plan = Some(plan);
             return Some(voice);
@@ -804,7 +814,7 @@ impl ClassicBot {
     // ---- Atreides ----
 
     pub fn determine_prescience(&self, game: &Game) -> Option<Prescience> {
-        let battle = game.battle.current_battle.clone().expect("current battle");
+        let battle = game.battle.current_battle.clone()?;
         let opponent = battle.opponent_of_faction(game, self.faction(game));
 
         if Voice::may_use_voice_opt(game, opponent) && game.battle.current_voice.is_none() && battle.plan_of(game, opponent).is_none() {
@@ -818,9 +828,9 @@ impl ClassicBot {
 
         let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
         let mut e = Prescience::default();
-        let territory = battle.territory.expect("territory");
+        let territory = battle.territory?;
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
-        e.aspect = self.best_prescience(game, self.player, opponent.expect("opponent"), max_dial, existing_aspect, territory);
+        e.aspect = self.best_prescience(game, self.player, opponent?, max_dial, existing_aspect, territory);
         Some(e)
     }
 

@@ -316,7 +316,7 @@ fn bene_gesserit_prediction_draws_no_coin() {
     let bg = player_of(&game, Faction::BeneGesserit);
     for seed in 1..20 {
         let b = ClassicBot::new(bg, BotParameters::for_faction(Faction::BeneGesserit), SharedRandom::from_seed(seed));
-        let e = b.determine_bene_gesserit_prediction(&game);
+        let e = b.determine_bene_gesserit_prediction(&game).expect("a prediction");
         // The same draws from a fresh generator: the pick, then the coin and the die of the turn
         // (Tleilaxu, which draws once, isn't in this game).
         let r = SharedRandom::from_seed(seed);

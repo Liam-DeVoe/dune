@@ -480,8 +480,10 @@ impl ClassicBot {
     }
 
     /// Runs `decide` if the player may submit its event type, and checks the event it comes up
-    /// with. `None` if the type isn't allowed, or `decide` came up with nothing or panicked.
-    /// Random draws and changes to the bot made before a panic stay.
+    /// with. `None` if the type isn't allowed, or `decide` came up with nothing. A decision
+    /// method that can't handle the state it finds returns `None` at that point, so random draws
+    /// and changes to the bot made before it stay. A panic in a decision is a bug, and goes on to
+    /// the server's crash barrier.
     pub fn try_decide<R: IntoDecision>(
         &mut self,
         game: &Game,
@@ -492,10 +494,8 @@ impl ClassicBot {
             return None;
         }
 
-        // The bots aren't written to avoid every state they can't handle (a card the game doesn't
-        // have, for example), so a decision that panics counts as no decision.
         let faction = self.by(game).faction;
-        let entry = guarded(|| decide(self, game)).ok()?.into_entry(faction)?;
+        let entry = decide(self, game).into_entry(faction)?;
 
         let by = entry.by_in(game);
         let valid = entry.event.validate(game, by).is_ok();
@@ -511,11 +511,6 @@ impl ClassicBot {
         }
         (0..amount).map(|_| self.random.lock().random_range(1..=sides)).sum()
     }
-}
-
-/// Runs a bot decision, turning a panic into its message.
-pub(crate) fn guarded<R>(f: impl FnOnce() -> R) -> Result<R, String> {
-    std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).map_err(|p| treachery_engine::error::panic_message(p.as_ref()))
 }
 
 #[cfg(test)]

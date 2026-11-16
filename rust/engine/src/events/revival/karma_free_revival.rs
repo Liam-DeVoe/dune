@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct KarmaFreeRevival {
-    pub hero_id: i32,
+    pub hero: Option<Hero>,
     pub amount_of_forces: i32,
     pub amount_of_special_forces: i32,
     pub assign_skill: bool,
@@ -13,7 +13,7 @@ pub struct KarmaFreeRevival {
 impl Default for KarmaFreeRevival {
     fn default() -> Self {
         KarmaFreeRevival {
-            hero_id: Default::default(),
+            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             amount_of_forces: Default::default(),
             amount_of_special_forces: Default::default(),
             assign_skill: false,
@@ -27,14 +27,6 @@ impl KarmaFreeRevival {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.hero_id)
-    }
-
-    pub fn set_hero(&mut self, value: Option<Hero>) {
-        self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -56,10 +48,10 @@ impl KarmaFreeRevival {
         if self.amount_of_special_forces > 0 && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(self.initiator()) {
             return Some(express!("You already revived one ", pl.special_force(), " this turn."));
         }
-        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
+        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero.is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
-        if self.hero().is_some_and(|h| Revival::is_living_leader(game, h)) {
+        if self.hero.is_some_and(|h| Revival::is_living_leader(game, h)) {
             return Some(express!("You can't revive a leader who isn't dead"));
         }
 
@@ -78,7 +70,7 @@ impl KarmaFreeRevival {
         let card = Karma::valid_karma_cards(game, self.player()).into_iter().next();
 
         // A face down leader stays a plain line, so the log doesn't name them.
-        let hero = self.hero();
+        let hero = self.hero;
         if hero.is_some() && game.is_face_down_dead(hero.required("hero")?) {
             self.log(game);
         } else {
@@ -117,7 +109,7 @@ impl KarmaFreeRevival {
 
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         let p = self.player_opt();
-        if let Some(hero) = self.hero() {
+        if let Some(hero) = self.hero {
             if !game.leaders.leader_state.contains_key(&hero) {
                 game_error!("{} is not in this game", dotnet_compat::exception::CsToString::cs_to_string(&hero));
             }

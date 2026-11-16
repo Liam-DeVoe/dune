@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct Karma {
     pub prevented: Option<FactionAdvantage>,
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -13,7 +13,7 @@ impl Default for Karma {
     fn default() -> Self {
         Karma {
             prevented: Default::default(),
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -24,14 +24,6 @@ impl Karma {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -288,13 +280,13 @@ impl Karma {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.discard_card(self.card(), false)?;
+        game.discard_card(self.card, false)?;
         let effect: Vec<Part> = if self.prevented == None {
             vec![]
         } else {
             vec!["prevent ".into(), self.prevented.into()]
         };
-        let m = Game::karma_played(self.initiator().required("faction")?, self.card(), effect);
+        let m = Game::karma_played(self.initiator().required("faction")?, self.card, effect);
         game.log(vec![m.into()]);
         game.stone(Milestone::Karma);
 
@@ -351,7 +343,7 @@ impl Karma {
     }
 
     pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
-        let card = self.card().required("card")?;
+        let card = self.card.required("card")?;
         Ok(express!(
             self.initiator(),
             " play ",

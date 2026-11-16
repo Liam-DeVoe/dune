@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct DiscardedSearched {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct DiscardedSearched {
 impl Default for DiscardedSearched {
     fn default() -> Self {
         DiscardedSearched {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,18 +23,10 @@ impl DiscardedSearched {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // List.Contains(null) is false.
         let valid_cards = DiscardedSearched::valid_cards(game);
-        if !self.card().is_some_and(|x| valid_cards.contains(&x)) {
+        if !self.card.is_some_and(|x| valid_cards.contains(&x)) {
             return Some(express!("Invalid card"));
         }
 
@@ -57,7 +49,7 @@ impl DiscardedSearched {
             Game::unregister_all_known_by_player(game, game.player_at(i), &items);
         }
 
-        let card = self.card().required("card")?;
+        let card = self.card.required("card")?;
         crate::iter::remove_first(&mut game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, &card);
         let me = self.player();
         game.player_mut(me).treachery_cards.push(card);

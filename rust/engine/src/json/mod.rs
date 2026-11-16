@@ -507,6 +507,37 @@ impl<T: FromJson + JsonNullable> FromJson for Option<T> {
     }
 }
 
+/// Event JSON names a static game object by its id, and none by -1. An id that names no object
+/// of the type doesn't decode.
+macro_rules! json_handle {
+    ($($t:ty => $name:literal, $find:expr;)*) => {$(
+        impl ToJson for Option<$t> {
+            fn write_json(&self, w: &mut JsonWriter) {
+                w.int(self.map_or(-1, |h| h.id()) as i64)
+            }
+        }
+
+        impl FromJson for Option<$t> {
+            fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
+                let id = i32::from_json(v)?;
+                if id == -1 {
+                    return Ok(None);
+                }
+                let find: fn(i32) -> Option<$t> = $find;
+                find(id).map(Some).ok_or_else(|| JsonError::new("JsonException", format!("{id} is not a valid {}", $name)))
+            }
+        }
+    )*};
+}
+
+json_handle! {
+    crate::map::location::Location => "Location", crate::map::location::Location::from_id;
+    crate::map::territory::Territory => "Territory", crate::map::territory::Territory::from_id;
+    crate::heroes::leader::Leader => "Leader", |id| crate::identity::Fetcher::find(&crate::heroes::leader_manager::LeaderManager::leader_lookup(), id);
+    crate::heroes::hero::Hero => "Hero", |id| crate::identity::Fetcher::find(&crate::heroes::leader_manager::LeaderManager::hero_lookup(), id);
+    crate::cards::treachery_card::TreacheryCard => "TreacheryCard", |id| crate::identity::Fetcher::find(&crate::cards::treachery_card_manager::TreacheryCardManager::lookup(), id);
+}
+
 impl<T: ToJson> ToJson for Vec<T> {
     fn write_json(&self, w: &mut JsonWriter) {
         w.array_value();

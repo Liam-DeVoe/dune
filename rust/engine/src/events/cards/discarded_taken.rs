@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct DiscardedTaken {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct DiscardedTaken {
 impl Default for DiscardedTaken {
     fn default() -> Self {
         DiscardedTaken {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,18 +23,10 @@ impl DiscardedTaken {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // ValidCards(Game, Player) is lazy: a null Player and a null discard pile are
         // dereferenced inside the predicate, per element, up to the first match.
-        if !DiscardedTaken::valid_cards(game, self.player()).any(|v| Some(v) == self.card()) {
+        if !DiscardedTaken::valid_cards(game, self.player()).any(|v| Some(v) == self.card) {
             return Some(express!("Invalid card"));
         }
 
@@ -58,7 +50,7 @@ impl DiscardedTaken {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
         // Dictionary.Remove(null) throws.
-        let Some(card) = self.card() else {
+        let Some(card) = self.card else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
         game.decks.recently_discarded.shift_remove(&card);
@@ -76,7 +68,7 @@ impl DiscardedTaken {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::TakeDiscarded, " to acquire the discarded ", self.card())
+        express!(self.initiator(), " use ", TreacheryCardType::TakeDiscarded, " to acquire the discarded ", self.card)
     }
 
 }

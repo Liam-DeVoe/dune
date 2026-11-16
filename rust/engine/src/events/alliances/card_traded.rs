@@ -3,8 +3,8 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct CardTraded {
     pub target: Option<Faction>,
-    pub card_id: i32,
-    pub requested_card_id: i32,
+    pub card: Option<TreacheryCard>,
+    pub requested_card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -13,8 +13,8 @@ impl Default for CardTraded {
     fn default() -> Self {
         CardTraded {
             target: Default::default(),
-            card_id: Default::default(),
-            requested_card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
+            requested_card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -27,26 +27,10 @@ impl CardTraded {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
-    pub fn requested_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.requested_card_id)
-    }
-
-    pub fn set_requested_card(&mut self, value: Option<TreacheryCard>) {
-        self.requested_card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // List.Contains(null) is true when the list holds a null card.
         let valid_cards = CardTraded::valid_cards(game, self.player());
-        if !self.card().is_some_and(|x| valid_cards.contains(&x)) {
+        if !self.card.is_some_and(|x| valid_cards.contains(&x)) {
             return Some(express!("Invalid card"));
         }
         let ally = game.player(self.player()).allied_player(game).expect("allied player");
@@ -65,10 +49,10 @@ impl CardTraded {
             return Some(express!("You can only trade cards with your ally"));
         }
 
-        if self.requested_card().is_some() && !game.is_bot(game.player(self.player()).allied_player(game).expect("allied player")) {
+        if self.requested_card.is_some() && !game.is_bot(game.player(self.player()).allied_player(game).expect("allied player")) {
             return Some(express!("You can only select a card from a Bot ally"));
         }
-        if let Some(requested) = self.requested_card() {
+        if let Some(requested) = self.requested_card {
             if !CardTraded::valid_cards(game, target_player).contains(&requested) {
                 return Some(express!("Invalid requested card"));
             }
@@ -109,10 +93,10 @@ impl CardTraded {
 
             let other_player = other_player.required("other player")?;
             let me = self.player();
-            let card = self.card().required("card")?;
+            let card = self.card.required("card")?;
             game.player_mut(other_player).treachery_cards.push(card);
             crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);
-            let offered_card = offer.card().required("offered card")?;
+            let offered_card = offer.card.required("offered card")?;
             game.player_mut(me).treachery_cards.push(offered_card);
             crate::iter::remove_first(&mut game.player_mut(other_player).treachery_cards, &offered_card);
             game.alliances.current_card_trade_offer = None;

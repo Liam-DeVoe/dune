@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ChoamDiscarded {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct ChoamDiscarded {
 impl Default for ChoamDiscarded {
     fn default() -> Self {
         ChoamDiscarded {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,16 +23,8 @@ impl ChoamDiscarded {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let card = self.card();
+        let card = self.card;
         if !ChoamDiscarded::valid_cards(game, self.player()).into_iter().any(|c| Some(c) == card) {
             Some(express!("Invalid card"))
         } else {
@@ -55,7 +47,7 @@ impl ChoamDiscarded {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(card) = self.card() else {
+        let Some(card) = self.card else {
             game_error!("Card is null");
         };
 
@@ -74,10 +66,10 @@ impl ChoamDiscarded {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        if self.card().map(|c| c.type_()) == Some(TreacheryCardType::Useless) {
+        if self.card.map(|c| c.type_()) == Some(TreacheryCardType::Useless) {
             express!(self.initiator(), " get ", Payment::of(2), " by discarding a ", TreacheryCardType::Useless, " card")
         } else {
-            express!(self.initiator(), " get ", Payment::of(3), " by discarding a duplicate ", self.card())
+            express!(self.initiator(), " get ", Payment::of(3), " by discarding a duplicate ", self.card)
         }
     }
 }

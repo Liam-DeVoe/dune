@@ -32,14 +32,14 @@ fn battle(g: &Game, initiator: Faction, target: Faction) -> Rc<BattleInitiated> 
     b.target = Some(target);
     // A plain sand territory (not a homeworld).
     let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
-    b.territory_id = t.id();
+    b.territory = Some(t);
     Rc::new(b)
 }
 
 fn plan(g: &Game, f: Faction, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>) -> Rc<Battle> {
     let b = Battle::new(g, f);
-    b.weapon_card_id.set(TreacheryCardManager::get_id(weapon));
-    b.defense_card_id.set(TreacheryCardManager::get_id(defense));
+    b.weapon.set(weapon);
+    b.defense.set(defense);
     Rc::new(b)
 }
 
@@ -118,7 +118,7 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
     // Emperor wins with a leader that is one of Tleilaxu's face dancers.
     let emperor_leader = LeaderManager::get_leaders(Faction::Emperor).next().unwrap();
     let mut p = Battle::new(&g, Faction::Emperor);
-    p.hero_id = emperor_leader.id();
+    p.hero = Some(Hero::Leader(emperor_leader));
     g.battle.aggressor_plan = Some(Rc::new(p));
     g.battle.battle_winner = Some(Some(Faction::Emperor));
     g.player_mut(tleilaxu).face_dancers.push(Hero::Leader(emperor_leader));
@@ -186,7 +186,7 @@ fn traitor_discarded_appends_without_shuffling() {
     g.turn.phase_before_discarding_traitor = Some(Phase::BattlePhase);
 
     let mut e = TraitorDiscarded::new(&g, Faction::Harkonnen);
-    e.set_traitor(Some(leaders[2]));
+    e.traitor = Some(leaders[2]);
     assert!(e.validate(&g).is_none());
     let e = Rc::new(e);
     e.execute_concrete_event(&mut g).unwrap();
@@ -196,7 +196,7 @@ fn traitor_discarded_appends_without_shuffling() {
     assert_eq!(g.turn.current_phase, Phase::BattlePhase);
 
     let mut bad = TraitorDiscarded::new(&g, Faction::Harkonnen);
-    bad.set_traitor(Some(leaders[0]));
+    bad.traitor = Some(leaders[0]);
     assert_eq!(bad.validate(&g).map(|m| m.plain_text()), Some("Invalid traitor".to_string()));
 }
 
@@ -208,12 +208,12 @@ fn thought_answered_shows_only_the_asked_card_when_held() {
     let shield = card_of(TreacheryCardType::Shield, 0);
     g.player_mut(atreides).treachery_cards = vec![shield, laser];
     let mut t = Thought::new(&g, Faction::Emperor);
-    t.set_card(Some(laser));
+    t.card = Some(laser);
     g.battle.current_thought = Some(Rc::new(t));
     assert_eq!(ThoughtAnswered::valid_cards(&g, atreides), vec![laser]);
 
     let mut t = Thought::new(&g, Faction::Emperor);
-    t.set_card(Some(card_of(TreacheryCardType::Laser, 0)));
+    t.card = Some(card_of(TreacheryCardType::Laser, 0));
     g.player_mut(atreides).treachery_cards = vec![shield];
     g.battle.current_thought = Some(Rc::new(t));
     assert_eq!(ThoughtAnswered::valid_cards(&g, atreides), vec![shield]);

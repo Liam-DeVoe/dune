@@ -3,7 +3,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct ThoughtAnswered {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -11,7 +11,7 @@ pub struct ThoughtAnswered {
 impl Default for ThoughtAnswered {
     fn default() -> Self {
         ThoughtAnswered {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -28,20 +28,12 @@ impl ThoughtAnswered {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if Self::valid_cards_opt(game, self.player_opt()).is_empty() {
             return None;
         }
         // Enumerable.Contains(null) on a sequence of cards is false.
-        let card = self.card();
+        let card = self.card;
         if !Self::valid_cards_opt(game, self.player_opt()).into_iter().any(|c| Some(c) == card) {
             return Some(express!("Select a valid card to show"));
         }
@@ -55,7 +47,7 @@ impl ThoughtAnswered {
 
     /// `ValidCards` with a possibly null `p`: `g.CurrentThought.Card` is read before `p.Has`.
     fn valid_cards_opt(g: &Game, p: Option<PlayerIndex>) -> Vec<TreacheryCard> {
-        let card = g.battle.current_thought.as_ref().expect("current thought").card();
+        let card = g.battle.current_thought.as_ref().expect("current thought").card;
         let p = p.expect("player");
         if g.player(p).has(card) {
             return vec![card.expect("card")];
@@ -65,7 +57,7 @@ impl ThoughtAnswered {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        match self.card() {
+        match self.card {
             None => {
                 game.log(elems![self.initiator(), " don't own any cards"]);
             }
@@ -84,7 +76,7 @@ impl ThoughtAnswered {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        if self.card().is_none() {
+        if self.card.is_none() {
             return express!(self.initiator(), " don't have a card to show");
         }
         express!(self.initiator(), " show one of their cards")

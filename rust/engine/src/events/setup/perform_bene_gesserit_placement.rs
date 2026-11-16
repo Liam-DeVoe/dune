@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PerformBeneGesseritPlacement {
-    pub target_id: i32,
+    pub target: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct PerformBeneGesseritPlacement {
 impl Default for PerformBeneGesseritPlacement {
     fn default() -> Self {
         PerformBeneGesseritPlacement {
-            target_id: Default::default(),
+            target: Location::from_id(0),
             base: Default::default(),
         }
     }
@@ -23,16 +23,8 @@ impl PerformBeneGesseritPlacement {
         e
     }
 
-    pub fn target(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.target_id)
-    }
-
-    pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let target = self.target(game);
+        let target = self.target;
         if !Self::valid_locations(game).any(|l| Some(l) == target) {
             return Some(express!("Invalid location"));
         }
@@ -57,14 +49,14 @@ impl PerformBeneGesseritPlacement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // A null Target (only without validation) is passed on as in C#: IsOccupied(null)
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
-        let condition = game.is_occupied_territory(self.target(game).required("target")?.territory());
+        let condition = game.is_occupied_territory(self.target.required("target")?.territory());
         if condition {
             // Player is read before Target.
             let me = self.player();
-            Player::ship_advisors(game, me, self.target(game).required("target")?, 1);
+            Player::ship_advisors(game, me, self.target.required("target")?, 1);
         } else {
             let me = self.player();
-            Player::ship_forces(game, me, self.target(game).required("target")?, 1);
+            Player::ship_forces(game, me, self.target.required("target")?, 1);
         }
 
         self.log(game);
@@ -74,8 +66,8 @@ impl PerformBeneGesseritPlacement {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " position themselves in ", self.target(game))
+    pub fn get_message(&self, _game: &Game) -> Message {
+        express!(self.initiator(), " position themselves in ", self.target)
     }
 
 }

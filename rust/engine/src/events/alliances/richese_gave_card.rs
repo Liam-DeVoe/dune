@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RicheseGaveCard {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct RicheseGaveCard {
 impl Default for RicheseGaveCard {
     fn default() -> Self {
         RicheseGaveCard {
-            card_id: -1,
+            card: None,
             base: Default::default(),
         }
     }
@@ -21,14 +21,6 @@ impl RicheseGaveCard {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::lookup().get_id(value);
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
@@ -44,7 +36,7 @@ impl RicheseGaveCard {
         let me = self.player();
         let target = game.player(me).allied_player(game);
 
-        let card = self.card();
+        let card = self.card;
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_by_player(game, me, card);
         let target = target.required("target")?;

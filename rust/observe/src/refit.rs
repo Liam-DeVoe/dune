@@ -288,7 +288,7 @@ impl Refit {
             let p = game.player_at(0);
             if let Some(l) = PerformHmsPlacement::valid_locations(game, p).next() {
                 let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
-                e.set_target(game, Some(l));
+                e.target = Some(l);
                 candidates.push(Rc::new(e).into_event());
             }
         }

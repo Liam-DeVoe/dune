@@ -78,7 +78,6 @@ fn shipment_cost_product_wraps_before_widening() {
 
 #[test]
 fn shipment_type_inference() {
-    let g = game_with(&[Faction::Emperor]);
     let mut s = Shipment::default();
     s.shipment_type = ShipmentType::Unknown;
     s.force_amount = -2;
@@ -87,10 +86,10 @@ fn shipment_type_inference() {
     s.force_amount = i32::MIN;
     s.special_force_amount = -1;
     assert!(!s.is_back_to_reserves());
-    s.from_id = -1;
-    assert!(!s.is_site_to_site(&g));
-    s.from_id = 0;
-    assert!(s.is_site_to_site(&g));
+    s.from = None;
+    assert!(!s.is_site_to_site());
+    s.from = Location::from_id(0);
+    assert!(s.is_site_to_site());
 }
 
 #[test]

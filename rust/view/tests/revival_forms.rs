@@ -130,7 +130,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
             assert_eq!(hero_of(draft), targets.first().copied().filter(|_| !hero_of(draft).is_some_and(|h| targets.contains(&h))).or(hero_of(draft)), "{at}");
         }
         ActionOptions::AcceptOrCancelTleilaxuRevival(o) => {
-            let requests: Vec<Hero> = game.revival.current_revival_requests.iter().filter_map(|r| r.hero()).collect();
+            let requests: Vec<Hero> = game.revival.current_revival_requests.iter().filter_map(|r| r.hero).collect();
             assert_eq!(o.requests, heroes(requests.clone()), "{at}");
             let offers: Vec<(i32, Option<i32>)> = game.revival.early_revivals_offers.iter().map(|(h, v)| (h.id(), (*v != i32::MAX).then_some(*v))).collect();
             assert_eq!(o.offers.iter().map(|x| (x.hero.id, x.price)).collect::<Vec<_>>(), offers, "{at}");

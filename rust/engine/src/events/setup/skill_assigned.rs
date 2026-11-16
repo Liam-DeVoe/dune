@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct SkillAssigned {
     pub skill: Option<LeaderSkill>,
-    pub leader_id: i32,
+    pub leader: Option<Leader>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -14,7 +14,7 @@ impl Default for SkillAssigned {
     fn default() -> Self {
         SkillAssigned {
             skill: Default::default(),
-            leader_id: Default::default(),
+            leader: None,
             passed: Default::default(),
             base: Default::default(),
         }
@@ -26,14 +26,6 @@ impl SkillAssigned {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn leader(&self) -> Option<Leader> {
-        LeaderManager::leader_lookup().find(self.leader_id)
-    }
-
-    pub fn set_leader(&mut self, value: Option<Leader>) {
-        self.leader_id = LeaderManager::leader_lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -63,7 +55,7 @@ impl SkillAssigned {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // C# parity: Passed is ignored.
         self.log(game);
-        let leader = match self.leader() {
+        let leader = match self.leader {
             Some(l) => l,
             None => game_error!("No leader was chosen for the skill"),
         };
@@ -95,7 +87,7 @@ impl SkillAssigned {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.leader(), " becomes ", self.skill)
+        express!(self.leader, " becomes ", self.skill)
     }
 
 }

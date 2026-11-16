@@ -10,7 +10,7 @@ impl JsonObject for AcceptOrCancelTleilaxuRevival {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Cancel", &self.cancel);
         w.member("Price", &self.price);
-        w.member("_heroId", &self.hero_id);
+        w.member("_heroId", &self.hero);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -19,7 +19,7 @@ impl JsonObject for AcceptOrCancelTleilaxuRevival {
         match key {
             "Cancel" => self.cancel = FromJson::from_json(value)?,
             "Price" => self.price = FromJson::from_json(value)?,
-            "_heroId" => self.hero_id = FromJson::from_json(value)?,
+            "_heroId" => self.hero = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -133,7 +133,7 @@ impl JsonObject for AllyPermission {
         w.member("MoritaniAllowsKeepingCards", &self.moritani_allows_keeping_cards);
         w.member("EcazSharesAmbassadors", &self.ecaz_shares_ambassadors);
         w.member("PermittedResources", &self.permitted_resources);
-        w.member("_permittedKarmaCardId", &self.permitted_karma_card_id);
+        w.member("_permittedKarmaCardId", &self.permitted_karma_card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -157,7 +157,7 @@ impl JsonObject for AllyPermission {
             "MoritaniAllowsKeepingCards" => self.moritani_allows_keeping_cards = FromJson::from_json(value)?,
             "EcazSharesAmbassadors" => self.ecaz_shares_ambassadors = FromJson::from_json(value)?,
             "PermittedResources" => self.permitted_resources = FromJson::from_json(value)?,
-            "_permittedKarmaCardId" => self.permitted_karma_card_id = FromJson::from_json(value)?,
+            "_permittedKarmaCardId" => self.permitted_karma_card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -192,10 +192,10 @@ impl JsonObject for AmbassadorActivated {
         w.member("TleilaxuAmountOfForces", &self.tleilaxu_amount_of_forces);
         w.member("TleilaxuAssignSkill", &self.tleilaxu_assign_skill);
         w.member("_choamCardIds", &self.choam_card_ids);
-        w.member("_fremenOrGuildToId", &self.fremen_or_guild_to_id);
+        w.member("_fremenOrGuildToId", &self.fremen_or_guild_to);
         w.member("_fremenForceLocations", &self.fremen_force_locations);
-        w.member("_ixianCardId", &self.ixian_card_id);
-        w.member("_tleilaxuHeroId", &self.tleilaxu_hero_id);
+        w.member("_ixianCardId", &self.ixian_card);
+        w.member("_tleilaxuHeroId", &self.tleilaxu_hero);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -211,10 +211,10 @@ impl JsonObject for AmbassadorActivated {
             "TleilaxuAmountOfForces" => self.tleilaxu_amount_of_forces = FromJson::from_json(value)?,
             "TleilaxuAssignSkill" => self.tleilaxu_assign_skill = FromJson::from_json(value)?,
             "_choamCardIds" => self.choam_card_ids = FromJson::from_json(value)?,
-            "_fremenOrGuildToId" => self.fremen_or_guild_to_id = FromJson::from_json(value)?,
+            "_fremenOrGuildToId" => self.fremen_or_guild_to = FromJson::from_json(value)?,
             "_fremenForceLocations" => self.fremen_force_locations = FromJson::from_json(value)?,
-            "_ixianCardId" => self.ixian_card_id = FromJson::from_json(value)?,
-            "_tleilaxuHeroId" => self.tleilaxu_hero_id = FromJson::from_json(value)?,
+            "_ixianCardId" => self.ixian_card = FromJson::from_json(value)?,
+            "_tleilaxuHeroId" => self.tleilaxu_hero = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -227,7 +227,7 @@ impl JsonObject for AmbassadorActivated {
 impl JsonObject for AmbassadorPlaced {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Ambassador", &self.ambassador);
-        w.member("_strongholdId", &self.stronghold_id);
+        w.member("_strongholdId", &self.stronghold);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -235,7 +235,7 @@ impl JsonObject for AmbassadorPlaced {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Ambassador" => self.ambassador = FromJson::from_json(value)?,
-            "_strongholdId" => self.stronghold_id = FromJson::from_json(value)?,
+            "_strongholdId" => self.stronghold = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -313,9 +313,9 @@ impl JsonObject for Battle {
         w.member("SpecialForcesAtHalfStrength", &self.special_forces_at_half_strength);
         w.member("AllyContributionAmount", &self.ally_contribution_amount);
         w.member("BankerBonus", &self.banker_bonus);
-        w.member("_heroId", &self.hero_id);
-        w.member("_weaponCardId", &self.weapon_card_id);
-        w.member("_defenseCardId", &self.defense_card_id);
+        w.member("_heroId", &self.hero);
+        w.member("_weaponCardId", &self.weapon);
+        w.member("_defenseCardId", &self.defense);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -329,9 +329,9 @@ impl JsonObject for Battle {
             "SpecialForcesAtHalfStrength" => self.special_forces_at_half_strength = FromJson::from_json(value)?,
             "AllyContributionAmount" => self.ally_contribution_amount = FromJson::from_json(value)?,
             "BankerBonus" => self.banker_bonus = FromJson::from_json(value)?,
-            "_heroId" => self.hero_id = FromJson::from_json(value)?,
-            "_weaponCardId" => self.weapon_card_id = FromJson::from_json(value)?,
-            "_defenseCardId" => self.defense_card_id = FromJson::from_json(value)?,
+            "_heroId" => self.hero = FromJson::from_json(value)?,
+            "_weaponCardId" => self.weapon = FromJson::from_json(value)?,
+            "_defenseCardId" => self.defense = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -365,8 +365,8 @@ impl JsonObject for BattleConcluded {
         w.member("SpecialForceLossesReplaced", &self.special_force_losses_replaced);
         w.member("StolenToken", &self.stolen_token);
         w.member("AddExtraForce", &self.add_extra_force);
-        w.member("_traitorToReplaceId", &self.traitor_to_replace_id);
-        w.member("_newTraitorId", &self.new_traitor_id);
+        w.member("_traitorToReplaceId", &self.traitor_to_replace);
+        w.member("_newTraitorId", &self.new_traitor);
         w.member("_cardIds", &self.card_ids);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -379,8 +379,8 @@ impl JsonObject for BattleConcluded {
             "SpecialForceLossesReplaced" => self.special_force_losses_replaced = FromJson::from_json(value)?,
             "StolenToken" => self.stolen_token = FromJson::from_json(value)?,
             "AddExtraForce" => self.add_extra_force = FromJson::from_json(value)?,
-            "_traitorToReplaceId" => self.traitor_to_replace_id = FromJson::from_json(value)?,
-            "_newTraitorId" => self.new_traitor_id = FromJson::from_json(value)?,
+            "_traitorToReplaceId" => self.traitor_to_replace = FromJson::from_json(value)?,
+            "_newTraitorId" => self.new_traitor = FromJson::from_json(value)?,
             "_cardIds" => self.card_ids = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -393,7 +393,7 @@ impl JsonObject for BattleConcluded {
 impl JsonObject for BattleInitiated {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Target", &self.target);
-        w.member("_territoryId", &self.territory_id);
+        w.member("_territoryId", &self.territory);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -401,7 +401,7 @@ impl JsonObject for BattleInitiated {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Target" => self.target = FromJson::from_json(value)?,
-            "_territoryId" => self.territory_id = FromJson::from_json(value)?,
+            "_territoryId" => self.territory = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -430,7 +430,7 @@ impl JsonObject for BeneGesseritAccompanies {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Accompanies", &self.accompanies);
         w.member("ExtraAdvisor", &self.extra_advisor);
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.location);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -439,7 +439,7 @@ impl JsonObject for BeneGesseritAccompanies {
         match key {
             "Accompanies" => self.accompanies = FromJson::from_json(value)?,
             "ExtraAdvisor" => self.extra_advisor = FromJson::from_json(value)?,
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.location = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -450,14 +450,14 @@ impl JsonObject for BeneGesseritAccompanies {
 
 impl JsonObject for BeneGesseritBattleAnnouncement {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_territoryId", &self.territory_id);
+        w.member("_territoryId", &self.territory);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_territoryId" => self.territory_id = FromJson::from_json(value)?,
+            "_territoryId" => self.territory = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -511,7 +511,7 @@ impl JsonObject for Bid {
         w.member("EmperorContributionAmount", &self.emperor_contribution_amount);
         w.member("UsesEmperorSecretAlly", &self.uses_emperor_secret_ally);
         w.member("KarmaBid", &self.karma_bid);
-        w.member("_karmaCardId", &self.karma_card_id);
+        w.member("_karmaCardId", &self.karma_card);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -524,7 +524,7 @@ impl JsonObject for Bid {
             "EmperorContributionAmount" => self.emperor_contribution_amount = FromJson::from_json(value)?,
             "UsesEmperorSecretAlly" => self.uses_emperor_secret_ally = FromJson::from_json(value)?,
             "KarmaBid" => self.karma_bid = FromJson::from_json(value)?,
-            "_karmaCardId" => self.karma_card_id = FromJson::from_json(value)?,
+            "_karmaCardId" => self.karma_card = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -597,7 +597,7 @@ impl JsonObject for Captured {
 impl JsonObject for Caravan {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("AsAdvisors", &self.as_advisors);
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -607,7 +607,7 @@ impl JsonObject for Caravan {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "AsAdvisors" => self.as_advisors = FromJson::from_json(value)?,
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -639,8 +639,8 @@ impl JsonObject for CardGiven {
 impl JsonObject for CardTraded {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Target", &self.target);
-        w.member("_cardId", &self.card_id);
-        w.member("_requestedCardId", &self.requested_card_id);
+        w.member("_cardId", &self.card);
+        w.member("_requestedCardId", &self.requested_card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -648,8 +648,8 @@ impl JsonObject for CardTraded {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Target" => self.target = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
-            "_requestedCardId" => self.requested_card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
+            "_requestedCardId" => self.requested_card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -696,14 +696,14 @@ impl JsonObject for CharityClaimed {
 
 impl JsonObject for ChoamDiscarded {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -784,14 +784,14 @@ impl JsonObject for ChoamKarmaPrevention {
 
 impl JsonObject for ChoamMovePrevention {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_territoryId", &self.territory_id);
+        w.member("_territoryId", &self.territory);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_territoryId" => self.territory_id = FromJson::from_json(value)?,
+            "_territoryId" => self.territory = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -804,7 +804,7 @@ impl JsonObject for ChoamRemoveForce {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Target", &self.target);
         w.member("SpecialForce", &self.special_force);
-        w.member("_locationId", &self.location_id);
+        w.member("_locationId", &self.location);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -813,7 +813,7 @@ impl JsonObject for ChoamRemoveForce {
         match key {
             "Target" => self.target = FromJson::from_json(value)?,
             "SpecialForce" => self.special_force = FromJson::from_json(value)?,
-            "_locationId" => self.location_id = FromJson::from_json(value)?,
+            "_locationId" => self.location = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -964,14 +964,14 @@ impl JsonObject for DealRejected {
 
 impl JsonObject for Diplomacy {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -982,14 +982,14 @@ impl JsonObject for Diplomacy {
 
 impl JsonObject for Discarded {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1000,14 +1000,14 @@ impl JsonObject for Discarded {
 
 impl JsonObject for DiscardedSearched {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1034,14 +1034,14 @@ impl JsonObject for DiscardedSearchedAnnounced {
 
 impl JsonObject for DiscardedTaken {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1052,7 +1052,7 @@ impl JsonObject for DiscardedTaken {
 
 impl JsonObject for DiscoveryEntered {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -1061,7 +1061,7 @@ impl JsonObject for DiscoveryEntered {
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -1074,7 +1074,7 @@ impl JsonObject for DiscoveryEntered {
 
 impl JsonObject for DiscoveryRevealed {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_locationId", &self.location_id);
+        w.member("_locationId", &self.location);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -1082,7 +1082,7 @@ impl JsonObject for DiscoveryRevealed {
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_locationId" => self.location_id = FromJson::from_json(value)?,
+            "_locationId" => self.location = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1095,7 +1095,7 @@ impl JsonObject for DiscoveryRevealed {
 impl JsonObject for DistransUsed {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Target", &self.target);
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1103,7 +1103,7 @@ impl JsonObject for DistransUsed {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Target" => self.target = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1155,7 +1155,7 @@ impl JsonObject for Donated {
         w.member("Target", &self.target);
         w.member("Resources", &self.resources);
         w.member("FromBank", &self.from_bank);
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1165,7 +1165,7 @@ impl JsonObject for Donated {
             "Target" => self.target = FromJson::from_json(value)?,
             "Resources" => self.resources = FromJson::from_json(value)?,
             "FromBank" => self.from_bank = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1194,14 +1194,14 @@ impl JsonObject for EmperorBidSupport {
 
 impl JsonObject for EmperorDiscarded {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1277,7 +1277,7 @@ impl JsonObject for FaceDanced {
         w.member("ForcesFromReserve", &self.forces_from_reserve);
         w.member("FaceDancerCalled", &self.face_dancer_called);
         w.member("_targetForceLocations", &self.target_force_locations);
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -1289,7 +1289,7 @@ impl JsonObject for FaceDanced {
             "ForcesFromReserve" => self.forces_from_reserve = FromJson::from_json(value)?,
             "FaceDancerCalled" => self.face_dancer_called = FromJson::from_json(value)?,
             "_targetForceLocations" => self.target_force_locations = FromJson::from_json(value)?,
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -1302,7 +1302,7 @@ impl JsonObject for FaceDanced {
 
 impl JsonObject for FaceDancerReplaced {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("dancerId", &self.dancer_id);
+        w.member("dancerId", &self.selected_dancer);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -1310,7 +1310,7 @@ impl JsonObject for FaceDancerReplaced {
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "dancerId" => self.dancer_id = FromJson::from_json(value)?,
+            "dancerId" => self.selected_dancer = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1416,7 +1416,7 @@ impl JsonObject for FremenRidesMonster {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("ForcesFromReserves", &self.forces_from_reserves);
         w.member("SpecialForcesFromReserves", &self.special_forces_from_reserves);
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -1427,7 +1427,7 @@ impl JsonObject for FremenRidesMonster {
         match key {
             "ForcesFromReserves" => self.forces_from_reserves = FromJson::from_json(value)?,
             "SpecialForcesFromReserves" => self.special_forces_from_reserves = FromJson::from_json(value)?,
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -1440,14 +1440,14 @@ impl JsonObject for FremenRidesMonster {
 
 impl JsonObject for FremenSentMonster {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_territoryId", &self.territory_id);
+        w.member("_territoryId", &self.territory);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_territoryId" => self.territory_id = FromJson::from_json(value)?,
+            "_territoryId" => self.territory = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1525,7 +1525,7 @@ impl JsonObject for HideSecrets {
 impl JsonObject for IxianRemovedCardFromAuction {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("PutOnTop", &self.put_on_top);
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1533,7 +1533,7 @@ impl JsonObject for IxianRemovedCardFromAuction {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "PutOnTop" => self.put_on_top = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1544,14 +1544,14 @@ impl JsonObject for IxianRemovedCardFromAuction {
 
 impl JsonObject for IxianSelectedStartingCard {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1562,7 +1562,7 @@ impl JsonObject for IxianSelectedStartingCard {
 
 impl JsonObject for IxianSwappedCardOnBid {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -1570,7 +1570,7 @@ impl JsonObject for IxianSwappedCardOnBid {
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1601,7 +1601,7 @@ impl JsonObject for JuicePlayed {
 impl JsonObject for Karma {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Prevented", &self.prevented);
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1609,7 +1609,7 @@ impl JsonObject for Karma {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Prevented" => self.prevented = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1659,7 +1659,7 @@ impl JsonObject for KarmaFreeRevival {
         w.member("AmountOfForces", &self.amount_of_forces);
         w.member("AmountOfSpecialForces", &self.amount_of_special_forces);
         w.member("AssignSkill", &self.assign_skill);
-        w.member("_heroId", &self.hero_id);
+        w.member("_heroId", &self.hero);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1669,7 +1669,7 @@ impl JsonObject for KarmaFreeRevival {
             "AmountOfForces" => self.amount_of_forces = FromJson::from_json(value)?,
             "AmountOfSpecialForces" => self.amount_of_special_forces = FromJson::from_json(value)?,
             "AssignSkill" => self.assign_skill = FromJson::from_json(value)?,
-            "_heroId" => self.hero_id = FromJson::from_json(value)?,
+            "_heroId" => self.hero = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1717,7 +1717,7 @@ impl JsonObject for KarmaHandSwapInitiated {
 impl JsonObject for KarmaHmsMovement {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Passed", &self.passed);
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.target);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1725,7 +1725,7 @@ impl JsonObject for KarmaHmsMovement {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Passed" => self.passed = FromJson::from_json(value)?,
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.target = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1736,14 +1736,14 @@ impl JsonObject for KarmaHmsMovement {
 
 impl JsonObject for KarmaMonster {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_territoryId", &self.territory_id);
+        w.member("_territoryId", &self.territory);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_territoryId" => self.territory_id = FromJson::from_json(value)?,
+            "_territoryId" => self.territory = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1788,14 +1788,14 @@ impl JsonObject for KarmaRevivalPrevention {
 
 impl JsonObject for KarmaRicheseBuy {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1827,7 +1827,7 @@ impl JsonObject for LoserConcluded {
         w.member("KarmaForcedKeptCardDecision", &self.karma_forced_kept_card_decision);
         w.member("Assassinate", &self.assassinate);
         w.member("_forcedKeptOrDiscardedCardIds", &self.forced_kept_or_discarded_card_ids);
-        w.member("_keptCardId", &self.kept_card_id);
+        w.member("_keptCardId", &self.kept_card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1837,7 +1837,7 @@ impl JsonObject for LoserConcluded {
             "KarmaForcedKeptCardDecision" => self.karma_forced_kept_card_decision = FromJson::from_json(value)?,
             "Assassinate" => self.assassinate = FromJson::from_json(value)?,
             "_forcedKeptOrDiscardedCardIds" => self.forced_kept_or_discarded_card_ids = FromJson::from_json(value)?,
-            "_keptCardId" => self.kept_card_id = FromJson::from_json(value)?,
+            "_keptCardId" => self.kept_card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1865,7 +1865,7 @@ impl JsonObject for MetheorPlayed {
 impl JsonObject for Move {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("AsAdvisors", &self.as_advisors);
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -1875,7 +1875,7 @@ impl JsonObject for Move {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "AsAdvisors" => self.as_advisors = FromJson::from_json(value)?,
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -1931,11 +1931,11 @@ impl JsonObject for NexusPlayed {
         w.member("TleilaxuAssignSkill", &self.tleilaxu_assign_skill);
         w.member("EcazFaction", &self.ecaz_faction);
         w.member("TleilaxuNumberOfSpecialForcesInLocation", &self.tleilaxu_number_of_special_forces_in_location);
-        w.member("_tleilaxuHeroId", &self.tleilaxu_hero_id);
-        w.member("_choamCardId", &self.choam_card_id);
-        w.member("_ecazTerritoryId", &self.ecaz_territory_id);
-        w.member("_moritaniTerritoryId", &self.moritani_territory_id);
-        w.member("_tleilaxuLocationId", &self.tleilaxu_location_id);
+        w.member("_tleilaxuHeroId", &self.tleilaxu_hero);
+        w.member("_choamCardId", &self.choam_card);
+        w.member("_ecazTerritoryId", &self.ecaz_territory);
+        w.member("_moritaniTerritoryId", &self.moritani_territory);
+        w.member("_tleilaxuLocationId", &self.tleilaxu_location);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -1949,11 +1949,11 @@ impl JsonObject for NexusPlayed {
             "TleilaxuAssignSkill" => self.tleilaxu_assign_skill = FromJson::from_json(value)?,
             "EcazFaction" => self.ecaz_faction = FromJson::from_json(value)?,
             "TleilaxuNumberOfSpecialForcesInLocation" => self.tleilaxu_number_of_special_forces_in_location = FromJson::from_json(value)?,
-            "_tleilaxuHeroId" => self.tleilaxu_hero_id = FromJson::from_json(value)?,
-            "_choamCardId" => self.choam_card_id = FromJson::from_json(value)?,
-            "_ecazTerritoryId" => self.ecaz_territory_id = FromJson::from_json(value)?,
-            "_moritaniTerritoryId" => self.moritani_territory_id = FromJson::from_json(value)?,
-            "_tleilaxuLocationId" => self.tleilaxu_location_id = FromJson::from_json(value)?,
+            "_tleilaxuHeroId" => self.tleilaxu_hero = FromJson::from_json(value)?,
+            "_choamCardId" => self.choam_card = FromJson::from_json(value)?,
+            "_ecazTerritoryId" => self.ecaz_territory = FromJson::from_json(value)?,
+            "_moritaniTerritoryId" => self.moritani_territory = FromJson::from_json(value)?,
+            "_tleilaxuLocationId" => self.tleilaxu_location = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -1982,14 +1982,14 @@ impl JsonObject for NexusVoted {
 
 impl JsonObject for PerformBeneGesseritPlacement {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.target);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.target = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2000,7 +2000,7 @@ impl JsonObject for PerformBeneGesseritPlacement {
 
 impl JsonObject for PerformFremenSetup {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -2009,7 +2009,7 @@ impl JsonObject for PerformFremenSetup {
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -2022,7 +2022,7 @@ impl JsonObject for PerformFremenSetup {
 
 impl JsonObject for PerformHmsMovement {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.target);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -2030,7 +2030,7 @@ impl JsonObject for PerformHmsMovement {
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.target = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2042,14 +2042,14 @@ impl JsonObject for PerformHmsMovement {
 
 impl JsonObject for PerformHmsPlacement {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.target);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.target = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2060,14 +2060,14 @@ impl JsonObject for PerformHmsPlacement {
 
 impl JsonObject for PerformMoritaniSetup {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.target);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.target = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2079,7 +2079,7 @@ impl JsonObject for PerformMoritaniSetup {
 impl JsonObject for PerformSetup {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Resources", &self.resources);
-        w.member("_toId", &self.to_id);
+        w.member("_toId", &self.to);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -2089,7 +2089,7 @@ impl JsonObject for PerformSetup {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Resources" => self.resources = FromJson::from_json(value)?,
-            "_toId" => self.to_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -2192,8 +2192,8 @@ impl JsonObject for RaiseDeadPlayed {
         w.member("AmountOfSpecialForces", &self.amount_of_special_forces);
         w.member("AssignSkill", &self.assign_skill);
         w.member("NumberOfSpecialForcesInLocation", &self.number_of_special_forces_in_location);
-        w.member("_heroId", &self.hero_id);
-        w.member("_locationId", &self.location_id);
+        w.member("_heroId", &self.hero);
+        w.member("_locationId", &self.location);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -2204,8 +2204,8 @@ impl JsonObject for RaiseDeadPlayed {
             "AmountOfSpecialForces" => self.amount_of_special_forces = FromJson::from_json(value)?,
             "AssignSkill" => self.assign_skill = FromJson::from_json(value)?,
             "NumberOfSpecialForcesInLocation" => self.number_of_special_forces_in_location = FromJson::from_json(value)?,
-            "_heroId" => self.hero_id = FromJson::from_json(value)?,
-            "_locationId" => self.location_id = FromJson::from_json(value)?,
+            "_heroId" => self.hero = FromJson::from_json(value)?,
+            "_locationId" => self.location = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2250,14 +2250,14 @@ impl JsonObject for ReplacedCardWon {
 
 impl JsonObject for RequestTleilaxuRevival {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_heroId", &self.hero_id);
+        w.member("_heroId", &self.hero);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_heroId" => self.hero_id = FromJson::from_json(value)?,
+            "_heroId" => self.hero = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2322,7 +2322,7 @@ impl JsonObject for Retreat {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Forces", &self.forces);
         w.member("SpecialForces", &self.special_forces);
-        w.member("_targetId", &self.target_id);
+        w.member("_targetId", &self.location);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -2331,7 +2331,7 @@ impl JsonObject for Retreat {
         match key {
             "Forces" => self.forces = FromJson::from_json(value)?,
             "SpecialForces" => self.special_forces = FromJson::from_json(value)?,
-            "_targetId" => self.target_id = FromJson::from_json(value)?,
+            "_targetId" => self.location = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2350,8 +2350,8 @@ impl JsonObject for Revival {
         w.member("NumberOfSpecialForcesInLocation", &self.number_of_special_forces_in_location);
         w.member("AssignSkill", &self.assign_skill);
         w.member("UsesEmperorSecretAlly", &self.uses_emperor_secret_ally);
-        w.member("_locationId", &self.location_id);
-        w.member("_heroId", &self.hero_id);
+        w.member("_locationId", &self.location);
+        w.member("_heroId", &self.hero);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -2366,8 +2366,8 @@ impl JsonObject for Revival {
             "NumberOfSpecialForcesInLocation" => self.number_of_special_forces_in_location = FromJson::from_json(value)?,
             "AssignSkill" => self.assign_skill = FromJson::from_json(value)?,
             "UsesEmperorSecretAlly" => self.uses_emperor_secret_ally = FromJson::from_json(value)?,
-            "_locationId" => self.location_id = FromJson::from_json(value)?,
-            "_heroId" => self.hero_id = FromJson::from_json(value)?,
+            "_locationId" => self.location = FromJson::from_json(value)?,
+            "_heroId" => self.hero = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2398,7 +2398,7 @@ impl JsonObject for RicheseAnnouncesBlackMarket {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("AuctionType", &self.auction_type);
         w.member("Direction", &self.direction);
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -2408,7 +2408,7 @@ impl JsonObject for RicheseAnnouncesBlackMarket {
         match key {
             "AuctionType" => self.auction_type = FromJson::from_json(value)?,
             "Direction" => self.direction = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2420,14 +2420,14 @@ impl JsonObject for RicheseAnnouncesBlackMarket {
 
 impl JsonObject for RicheseGaveCard {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2474,7 +2474,7 @@ impl JsonObject for RicheseSpecifiesAuction {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("AuctionType", &self.auction_type);
         w.member("Direction", &self.direction);
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
@@ -2483,7 +2483,7 @@ impl JsonObject for RicheseSpecifiesAuction {
         match key {
             "AuctionType" => self.auction_type = FromJson::from_json(value)?,
             "Direction" => self.direction = FromJson::from_json(value)?,
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2557,11 +2557,11 @@ impl JsonObject for Shipment {
         w.member("SmuggledSpecialAmount", &self.smuggled_special_amount);
         w.member("AllyContributionAmount", &self.ally_contribution_amount);
         w.member("UseRicheseSecretAlly", &self.use_richese_secret_ally);
-        w.member("_toId", &self.to_id);
-        w.member("_fromId", &self.from_id);
+        w.member("_toId", &self.to);
+        w.member("_fromId", &self.from);
         w.member("_noFieldValue", &self.no_field_value);
         w.member("_cunningNoFieldValue", &self.cunning_no_field_value);
-        w.member("_karmaCardId", &self.karma_card_id);
+        w.member("_karmaCardId", &self.karma_card);
         w.member("_forceLocations", &self.force_locations);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
@@ -2577,11 +2577,11 @@ impl JsonObject for Shipment {
             "SmuggledSpecialAmount" => self.smuggled_special_amount = FromJson::from_json(value)?,
             "AllyContributionAmount" => self.ally_contribution_amount = FromJson::from_json(value)?,
             "UseRicheseSecretAlly" => self.use_richese_secret_ally = FromJson::from_json(value)?,
-            "_toId" => self.to_id = FromJson::from_json(value)?,
-            "_fromId" => self.from_id = FromJson::from_json(value)?,
+            "_toId" => self.to = FromJson::from_json(value)?,
+            "_fromId" => self.from = FromJson::from_json(value)?,
             "_noFieldValue" => self.no_field_value = FromJson::from_json(value)?,
             "_cunningNoFieldValue" => self.cunning_no_field_value = FromJson::from_json(value)?,
-            "_karmaCardId" => self.karma_card_id = FromJson::from_json(value)?,
+            "_karmaCardId" => self.karma_card = FromJson::from_json(value)?,
             "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
@@ -2595,7 +2595,7 @@ impl JsonObject for Shipment {
 impl JsonObject for SkillAssigned {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Skill", &self.skill);
-        w.member("_leaderId", &self.leader_id);
+        w.member("_leaderId", &self.leader);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -2604,7 +2604,7 @@ impl JsonObject for SkillAssigned {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Skill" => self.skill = FromJson::from_json(value)?,
-            "_leaderId" => self.leader_id = FromJson::from_json(value)?,
+            "_leaderId" => self.leader = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2691,7 +2691,7 @@ impl JsonObject for TakeLosses {
 impl JsonObject for TerrorPlanted {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Type", &self.type_);
-        w.member("_territoryId", &self.territory_id);
+        w.member("_territoryId", &self.stronghold);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -2700,7 +2700,7 @@ impl JsonObject for TerrorPlanted {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "Type" => self.type_ = FromJson::from_json(value)?,
-            "_territoryId" => self.territory_id = FromJson::from_json(value)?,
+            "_territoryId" => self.stronghold = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2717,7 +2717,7 @@ impl JsonObject for TerrorRevealed {
         w.member("ForcesInSneakAttack", &self.forces_in_sneak_attack);
         w.member("RobberyTakesCard", &self.robbery_takes_card);
         w.member("_sneakAttackTo", &self.sneak_attack_to);
-        w.member("_cardToGiveInSabotageId", &self.card_to_give_in_sabotage_id);
+        w.member("_cardToGiveInSabotageId", &self.card_to_give_in_sabotage);
         w.member("Passed", &self.passed);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
@@ -2730,7 +2730,7 @@ impl JsonObject for TerrorRevealed {
             "ForcesInSneakAttack" => self.forces_in_sneak_attack = FromJson::from_json(value)?,
             "RobberyTakesCard" => self.robbery_takes_card = FromJson::from_json(value)?,
             "_sneakAttackTo" => self.sneak_attack_to = FromJson::from_json(value)?,
-            "_cardToGiveInSabotageId" => self.card_to_give_in_sabotage_id = FromJson::from_json(value)?,
+            "_cardToGiveInSabotageId" => self.card_to_give_in_sabotage = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2760,14 +2760,14 @@ impl JsonObject for TestingStationUsed {
 
 impl JsonObject for Thought {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2778,14 +2778,14 @@ impl JsonObject for Thought {
 
 impl JsonObject for ThoughtAnswered {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_cardId", &self.card_id);
+        w.member("_cardId", &self.card);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_cardId" => self.card_id = FromJson::from_json(value)?,
+            "_cardId" => self.card = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2812,14 +2812,14 @@ impl JsonObject for ThumperPlayed {
 
 impl JsonObject for TraitorDiscarded {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_traitorId", &self.traitor_id);
+        w.member("_traitorId", &self.traitor);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_traitorId" => self.traitor_id = FromJson::from_json(value)?,
+            "_traitorId" => self.traitor = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),
@@ -2830,14 +2830,14 @@ impl JsonObject for TraitorDiscarded {
 
 impl JsonObject for TraitorsSelected {
     fn write_members(&self, w: &mut JsonWriter) {
-        w.member("_traitorId", &self.traitor_id);
+        w.member("_traitorId", &self.selected_traitor);
         w.member("Initiator", &self.base.initiator);
         w.member("Time", &self.base.time);
     }
 
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
-            "_traitorId" => self.traitor_id = FromJson::from_json(value)?,
+            "_traitorId" => self.selected_traitor = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
             _ => return Ok(false),

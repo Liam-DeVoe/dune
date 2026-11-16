@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct TerrorPlanted {
     pub type_: Option<TerrorType>,
-    pub territory_id: i32,
+    pub stronghold: Option<Territory>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -14,7 +14,7 @@ impl Default for TerrorPlanted {
     fn default() -> Self {
         TerrorPlanted {
             type_: Default::default(),
-            territory_id: Default::default(),
+            stronghold: Territory::from_id(0),
             passed: Default::default(),
             base: Default::default(),
         }
@@ -28,20 +28,12 @@ impl TerrorPlanted {
         e
     }
 
-    pub fn stronghold(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.territory_id)
-    }
-
-    pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if self.passed {
             return None;
         }
 
-        match self.stronghold(game) {
+        match self.stronghold {
             None => {
                 if !self.type_.is_some_and(|t| game.board.terror_on_planet.contains_key(&t)) {
                     return Some(express!("You can't remove a token that is not on the board"));
@@ -119,7 +111,7 @@ impl TerrorPlanted {
             let type_ = self.type_.required("terror type")?;
             game.stone(Milestone::TerrorPlanted);
 
-            match self.stronghold(game) {
+            match self.stronghold {
                 None => {
                     game.board.terror_on_planet.shift_remove(&type_);
                     game.board.unplaced_terror_tokens.push(type_);
@@ -156,7 +148,7 @@ impl TerrorPlanted {
             return express!(self.initiator(), " don't plant terror");
         }
 
-        if let Some(stronghold) = self.stronghold(game) {
+        if let Some(stronghold) = self.stronghold {
             if let Some(territory) = self.type_.and_then(|t| game.board.terror_on_planet.get(&t).copied()) {
                 return express!(self.initiator(), " move terror from ", territory, " to ", stronghold);
             }
@@ -166,11 +158,11 @@ impl TerrorPlanted {
         express!(self.initiator(), " remove a terror token to get ", Payment::of(4))
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn get_message(&self, _game: &Game) -> Message {
         if self.passed {
             return express!(self.initiator(), " don't plant terror");
         }
-        if let Some(stronghold) = self.stronghold(game) {
+        if let Some(stronghold) = self.stronghold {
             return express!(self.initiator(), " plant terror in ", stronghold);
         }
         express!(self.initiator(), " remove a terror token to get ", Payment::of(4))

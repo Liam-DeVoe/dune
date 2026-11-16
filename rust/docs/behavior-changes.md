@@ -293,6 +293,15 @@ Not part of the review. Each has an escapes.md entry with the details.
 - The shared reference has refused undefined values of the enums closed above since it was rebuilt from main 4d68cc7. For each enum closed after that, the branch is compared against `~/2d-ref/bin/observe`, built from a copy of the shared reference's sources (`~/2d-ref/rust`) whose `json/mod.rs` also refuses a number that names no member for the open enums listed in `TREACHERY_CLOSED_ENUMS` (comma-separated), and for a `[Flags]` enum a number with a bit no member has. The patch is `~/2d-ref/closed-enums.patch` and the list `~/2d-ref/closed-enums.txt`. Build it with `tools/build-native-ref.sh --source ~/2d-ref/rust --out ~/2d-ref/bin` and run it as `TREACHERY_CLOSED_ENUMS=$(cat ~/2d-ref/closed-enums.txt) observe live --reference ~/2d-ref/bin/observe`. Rebuild it from a fresh copy whenever the shared reference is rebuilt.
 - Tests: `view/tests/trace_events_decode.rs` checks that every accepted event of the recorded test games still decodes. Seven `AutomationConfigured` steps with an undefined `Action` in two of those games are marked refused (`tools/drop-undecodable-steps.py`). The event JSON snapshot (`engine/tests/golden/events.jsonl`) records the cases with undefined values as refused.
 
+## Event ids that name no game object
+
+- Area: event JSON from clients, savegames and the fuzzer (rewrite-plan.md change 2d, milestone 2)
+- What happened: an event named a location, territory, leader, hero or treachery card by an integer id, looked up when the event ran. An id that named nothing was treated as no object at all, or, for a location, made the event fail with a Game Error. A negative id other than -1 also meant "none" for cards and heroes.
+- Now: the event holds the object itself, and an id that names no object of the field's type is refused when the event is decoded: "500 is not a valid Location". -1 still means none. A decoded `SkillAssigned` with `_leaderId` 0 is refused too (no leader has id 0), and a default `SkillAssigned` writes -1 there instead of 0. No client sends either: the form always picks a leader or -1.
+- Why: rewrite-plan.md, section 1. A decoded event can't hold an id that the game has to check again.
+- Test: `engine/tests/event_json.rs` records the 66 snapshot cases with unknown ids as refused.
+- Effect (seed 1): see the harness note in rewrite-plan.md's progress section. The second reference (`~/2d-ref/bin/observe`) refuses the same ids when `TREACHERY_CHECKED_IDS` is set (patch `~/2d-ref/handle-ids.patch`).
+
 ## Braces in a custom skin's advantage titles
 
 - Area: faction sheets drawn with a host's custom skin (rewrite-plan.md wave 3b)

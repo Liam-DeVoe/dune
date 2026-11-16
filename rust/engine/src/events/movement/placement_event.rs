@@ -7,25 +7,17 @@ pub struct PlacementEvent;
 /// The instance members of placement events. Every placement event implements this trait
 /// (generated in its module); members an event overrides are delegated to its inherent method.
 pub trait PlacementEventMethods: PassableGameEventMethods {
-    /// The inherited field `_toId` (`self.to_id` on the event struct).
-    fn field_to_id(&self) -> &i32;
+    /// The inherited field `_toId` (`self.to` on the event struct).
+    fn field_to(&self) -> &Option<Location>;
 
     /// The inherited field `_forceLocations` (`self.force_locations` on the event struct).
     fn field_force_locations(&self) -> &Option<String>;
 
     /// The inherited field `_toId`, for the `To` setter.
-    fn field_to_id_mut(&mut self) -> &mut i32;
+    fn field_to_mut(&mut self) -> &mut Option<Location>;
 
     /// The inherited field `_forceLocations`, for the `ForceLocations` setter.
     fn field_force_locations_mut(&mut self) -> &mut Option<String>;
-
-    fn to(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(*self.field_to_id())
-    }
-
-    fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        *self.field_to_id_mut() = game.board.map.location_lookup().get_id(value);
-    }
 
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         // ParseForceLocations(Game, Player.Faction, _forceLocations): Player is dereferenced
@@ -84,11 +76,11 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
             return Some(express!("No forces selected"));
         }
 
-        if self.to(game).is_none() {
+        if (*self.field_to()).is_none() {
             return Some(express!("To not selected"));
         }
         let valid_targets = PlacementEvent::valid_targets_for_forces(game, p.expect("player"), &force_locations);
-        if !valid_targets.contains(&self.to(game).expect("destination")) {
+        if !valid_targets.contains(&(*self.field_to()).expect("destination")) {
             return Some(express!("Invalid To location"));
         }
         if as_advisors && !(pl().is(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritAdvisors)) {
@@ -96,10 +88,10 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         }
 
         if self.initiator() == Some(Faction::BeneGesserit) {
-            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), self.to(game).expect("destination").territory(), special_force_amount > 0) {
+            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), (*self.field_to()).expect("destination").territory(), special_force_amount > 0) {
                 return Some(express!("You can't be advisors there"));
             }
-            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.expect("player"), self.to(game).expect("destination").territory()) {
+            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.expect("player"), (*self.field_to()).expect("destination").territory()) {
                 return Some(express!("You can't be fighters there"));
             }
         }

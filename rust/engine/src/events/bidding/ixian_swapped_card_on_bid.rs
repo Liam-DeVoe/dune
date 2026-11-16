@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct IxianSwappedCardOnBid {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -12,7 +12,7 @@ pub struct IxianSwappedCardOnBid {
 impl Default for IxianSwappedCardOnBid {
     fn default() -> Self {
         IxianSwappedCardOnBid {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             passed: Default::default(),
             base: Default::default(),
         }
@@ -26,21 +26,13 @@ impl IxianSwappedCardOnBid {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, _game: &Game) -> Option<Message> {
         None
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        if !self.passed && self.card().is_some() {
-            let card = self.card().required("card")?;
+        if !self.passed && self.card.is_some() {
+            let card = self.card.required("card")?;
             game.bidding.ixian_swapped_card_on_bid = true;
             let me = self.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, Some(card));

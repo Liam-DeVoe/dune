@@ -13,7 +13,7 @@ pub struct FremenRidesMonster {
     pub forces_from_reserves: i32,
     pub special_forces_from_reserves: i32,
     // ---- inherited from PlacementEvent ----
-    pub to_id: i32,
+    pub to: Option<Location>,
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -26,7 +26,7 @@ impl Default for FremenRidesMonster {
         FremenRidesMonster {
             forces_from_reserves: Default::default(),
             special_forces_from_reserves: Default::default(),
-            to_id: Default::default(),
+            to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
             base: Default::default(),
@@ -55,10 +55,10 @@ impl FremenRidesMonster {
         if Self::total_amount_of_forces_added_to_location(self, game) == 0 {
             return Some(express!("No forces selected"));
         }
-        if self.to(game).is_none() {
+        if self.to.is_none() {
             return Some(express!("Target location not selected"));
         }
-        if !Self::valid_targets(game, self.player()).any(|v| v == self.to(game).expect("destination")) {
+        if !Self::valid_targets(game, self.player()).any(|v| v == self.to.expect("destination")) {
             return Some(express!("Invalid target location"));
         }
 
@@ -208,9 +208,9 @@ impl FremenRidesMonster {
             for (from, value) in self.force_locations(game).iter() {
                 let from = *from;
                 let ini = initiator.required("initiator")?;
-                let to = self.to(game).required("to")?;
+                let to = self.to.required("to")?;
                 Player::move_forces(game, ini, from, to, value.amount_of_forces);
-                let to = self.to(game).required("to")?;
+                let to = self.to.required("to")?;
                 Player::move_special_forces(game, ini, from, to, value.amount_of_special_forces);
                 let msg = express!(
                     self.initiator(),
@@ -220,11 +220,11 @@ impl FremenRidesMonster {
                     " from ",
                     from,
                     " to ",
-                    self.to(game)
+                    self.to
                 )
-                .with_route(self.initiator().required("faction")?, [from], self.to(game))
+                .with_route(self.initiator().required("faction")?, [from], self.to)
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator().required("faction")?, value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to(game).required("to")?)),
+                    Some(NexusRide::new(self.initiator().required("faction")?, value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to.required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -233,12 +233,12 @@ impl FremenRidesMonster {
             if self.forces_from_reserves > 0 || self.special_forces_from_reserves > 0 {
                 if self.forces_from_reserves > 0 {
                     let ini = initiator.required("initiator")?;
-                    let to = self.to(game).required("to")?;
+                    let to = self.to.required("to")?;
                     Player::ship_forces(game, ini, to, self.forces_from_reserves);
                 }
                 if self.special_forces_from_reserves > 0 {
                     let ini = initiator.required("initiator")?;
-                    let to = self.to(game).required("to")?;
+                    let to = self.to.required("to")?;
                     Player::ship_special_forces(game, ini, to, self.special_forces_from_reserves);
                 }
                 let ini = initiator.required("initiator")?;
@@ -248,11 +248,11 @@ impl FremenRidesMonster {
                     express_part_if!(self.forces_from_reserves > 0; self.forces_from_reserves, game.player(ini).force()),
                     express_part_if!(self.special_forces_from_reserves > 0; self.special_forces_from_reserves, game.player(ini).special_force()),
                     " from their reserves to ",
-                    self.to(game)
+                    self.to
                 )
-                .with_route(self.initiator().required("faction")?, [], self.to(game))
+                .with_route(self.initiator().required("faction")?, [], self.to)
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator().required("faction")?, self.forces_from_reserves, self.special_forces_from_reserves, None, self.to(game).required("to")?)),
+                    Some(NexusRide::new(self.initiator().required("faction")?, self.forces_from_reserves, self.special_forces_from_reserves, None, self.to.required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -276,10 +276,10 @@ impl FremenRidesMonster {
 
         let from = self.force_locations(game).keys().next().map(|l| l.territory());
         if let Some(from) = from {
-            return express!(self.initiator(), " ride from ", from, " to ", self.to(game))
-                .with_route(self.initiator().expect("faction"), self.force_locations(game).keys().copied(), self.to(game));
+            return express!(self.initiator(), " ride from ", from, " to ", self.to)
+                .with_route(self.initiator().expect("faction"), self.force_locations(game).keys().copied(), self.to);
         }
-        express!(self.initiator(), " ride from reserves to ", self.to(game))
+        express!(self.initiator(), " ride from reserves to ", self.to)
     }
 
 }
@@ -319,16 +319,16 @@ impl PassableGameEventMethods for FremenRidesMonster {
 }
 
 impl PlacementEventMethods for FremenRidesMonster {
-    fn field_to_id(&self) -> &i32 {
-        &self.to_id
+    fn field_to(&self) -> &Option<Location> {
+        &self.to
     }
 
     fn field_force_locations(&self) -> &Option<String> {
         &self.force_locations
     }
 
-    fn field_to_id_mut(&mut self) -> &mut i32 {
-        &mut self.to_id
+    fn field_to_mut(&mut self) -> &mut Option<Location> {
+        &mut self.to
     }
 
     fn field_force_locations_mut(&mut self) -> &mut Option<String> {
@@ -346,8 +346,8 @@ impl crate::events::location_event::LocationEvent for FremenRidesMonster {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -373,8 +373,8 @@ impl crate::events::placement::Placement for FremenRidesMonster {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
 }

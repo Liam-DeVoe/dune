@@ -822,9 +822,9 @@ impl ClassicBot {
         // the shipment form does: a normal shipment of negative amounts is refused. C# sent it as
         // normal, so its bots never shipped back.
         result.shipment_type = if size.forces + size.special_forces < 0 { ShipmentType::ShipmentBack } else { ShipmentType::ShipmentNormal };
-        result.set_from(game, None);
-        result.set_karma_card(None);
-        result.set_to(game, Some(location));
+        result.from = None;
+        result.karma_card = None;
+        result.to = Some(location);
 
         if funding == Funding::WithAllyAndKarma && size.no_field_value < 0 {
             self.use_karma_if_applicable(game, &mut result);
@@ -905,7 +905,7 @@ impl ClassicBot {
             && Shipment::determine_cost(game, me, shipment) > 7
         {
             let card = Karma::valid_karma_cards(game, me).next();
-            shipment.set_karma_card(card);
+            shipment.karma_card = card;
         }
     }
 
@@ -1012,11 +1012,11 @@ impl ClassicBot {
         shipment.force_amount = 0;
         shipment.special_force_amount = 1;
         shipment.passed = false;
-        shipment.set_from(game, None);
-        shipment.set_karma_card(None);
+        shipment.from = None;
+        shipment.karma_card = None;
         shipment.shipment_type = ShipmentType::ShipmentNormal;
         shipment.set_no_field_value(0);
-        shipment.set_to(game, Some(location));
+        shipment.to = Some(location);
 
         shipment.is_valid(game).then_some(PlannedShipment { action, shipment, then_move_to: None })
     }

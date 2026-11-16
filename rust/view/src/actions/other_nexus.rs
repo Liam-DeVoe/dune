@@ -12,7 +12,7 @@ use crate::expr::message;
 use crate::schema::*;
 
 use super::other::enum_option;
-use super::widgets::{card_ids, describe, faction_options, hero_options, picker, required, required_opt};
+use super::widgets::{card_ids, describe, faction_options, hero_options, picker, required_opt};
 
 /// The case of the form that applies, chosen by the Nexus card the player holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -148,14 +148,14 @@ pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameE
             let on_planet = max_special_on_planet(game, p, m.tleilaxu_special_forces);
             m.tleilaxu_number_of_special_forces_in_location =
                 if on_planet > 0 { picker(m.tleilaxu_number_of_special_forces_in_location, 0, on_planet) } else { 0 };
-            let hero = m.tleilaxu_hero();
+            let hero = m.tleilaxu_hero;
             if !(hero.is_some() && Revival::may_assign_skill(game, p, hero)) {
                 m.tleilaxu_assign_skill = false;
             }
         }
         Some(Case::ChoamSecretAllyCollection) => {
-            let cards = card_ids(NexusPlayed::valid_choam_cards(game, p));
-            m.choam_card_id = required(m.choam_card_id, &cards, -1);
+            let cards: Vec<TreacheryCard> = NexusPlayed::valid_choam_cards(game, p).into_iter().collect();
+            m.choam_card = required_opt(m.choam_card, &cards);
         }
         Some(Case::EcazSecretAlly) => {
             let fs: Vec<Faction> = NexusPlayed::valid_ecaz_factions(game).collect();
@@ -169,14 +169,14 @@ pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameE
         MapChoice::MoritaniTerritory => NexusPlayed::valid_moritani_territories(game).collect(),
         _ => vec![],
     };
-    let ecaz = m.ecaz_territory(game).filter(|t| pick == MapChoice::EcazTerritory && territories.contains(t));
-    m.set_ecaz_territory(game, ecaz);
-    let moritani = m.moritani_territory(game).filter(|t| pick == MapChoice::MoritaniTerritory && territories.contains(t));
-    m.set_moritani_territory(game, moritani);
+    let ecaz = m.ecaz_territory.filter(|t| pick == MapChoice::EcazTerritory && territories.contains(t));
+    m.ecaz_territory = ecaz;
+    let moritani = m.moritani_territory.filter(|t| pick == MapChoice::MoritaniTerritory && territories.contains(t));
+    m.moritani_territory = moritani;
     let location = m
-        .tleilaxu_location(game)
+        .tleilaxu_location
         .filter(|l| pick == MapChoice::TleilaxuLocation && Revival::valid_revived_force_locations(game, p).any(|x| x == *l));
-    m.set_tleilaxu_location(game, location);
+    m.tleilaxu_location = location;
     event(m)
 }
 
@@ -248,7 +248,7 @@ pub(super) fn options(game: &Game, p: PlayerIndex, e: &NexusPlayed, d: &dyn Desc
         max_special_forces_on_planet: max_special_on_planet(game, p, e.tleilaxu_special_forces),
         locations: Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect(),
         heroes: hero_options(NexusPlayed::valid_tleilaxu_heroes(game, p)),
-        may_assign_skill: e.tleilaxu_hero().is_some() && Revival::may_assign_skill(game, p, e.tleilaxu_hero()),
+        may_assign_skill: e.tleilaxu_hero.is_some() && Revival::may_assign_skill(game, p, e.tleilaxu_hero),
         cost: NexusPlayed::tleilaxu_cost_of_forces(e.tleilaxu_forces, e.tleilaxu_special_forces),
     });
 

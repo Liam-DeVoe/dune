@@ -3,7 +3,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct Thought {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -11,7 +11,7 @@ pub struct Thought {
 impl Default for Thought {
     fn default() -> Self {
         Thought {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -28,17 +28,9 @@ impl Thought {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // Enumerable.Contains(null) on a sequence of cards is false.
-        let card = self.card();
+        let card = self.card;
         if !Self::valid_cards(game).into_iter().any(|c| Some(c) == card) {
             return Some(express!("Invalid card"));
         }
@@ -64,7 +56,7 @@ impl Thought {
         game.battle.current_thought = Some(self.clone());
         let battle = game.battle.current_battle.clone().required("current battle")?;
         let opponent = game.player(battle.opponent_of_faction(game, self.initiator()).required("opponent of faction")?).faction;
-        game.log(elems![self.initiator(), " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card()]);
+        game.log(elems![self.initiator(), " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card]);
         game.stone(Milestone::Prescience);
         game.enter(Phase::Thought, true);
         Ok(())

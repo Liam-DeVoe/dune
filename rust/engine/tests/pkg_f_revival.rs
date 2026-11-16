@@ -121,13 +121,13 @@ fn deny_all_requests_adds_max_offers() {
     let mut g = game_with(&[Faction::Emperor, Faction::Tleilaxu]);
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let mut req = RequestTleilaxuRevival::default();
-    req.set_hero(Some(Hero::Leader(emperor_leaders[0])));
+    req.hero = Some(Hero::Leader(emperor_leaders[0]));
     g.revival.current_revival_requests.push(Rc::new(req));
 
     // _heroId defaults to 0, and HeroLookup.Find(0) is treachery card 0, not null
     // (LeaderManager.cs:137). Deny-all is Hero == null, i.e. _heroId -1.
     let mut deny = AcceptOrCancelTleilaxuRevival::default();
-    deny.set_hero(None);
+    deny.hero = None;
     let deny = Rc::new(as_player(deny, &g, Faction::Tleilaxu));
     assert!(!deny.is_denial());
     deny.execute_concrete_event(&mut g).unwrap();
@@ -143,7 +143,7 @@ fn offer_for_hero_with_existing_denial_replaces_it() {
     g.revival.early_revivals_offers.insert(hero, i32::MAX);
 
     let mut offer = AcceptOrCancelTleilaxuRevival::default();
-    offer.set_hero(Some(hero));
+    offer.hero = Some(hero);
     offer.price = 3;
     let offer = Rc::new(as_player(offer, &g, Faction::Tleilaxu));
     offer.execute_concrete_event(&mut g).unwrap();

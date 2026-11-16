@@ -41,26 +41,26 @@ impl TreacheryCalled {
 
     pub fn may_call_treachery(g: &Game, p: PlayerIndex) -> bool {
         if let (Some(aggressor_plan), Some(defender_plan)) = (&g.battle.aggressor_plan, &g.battle.defender_plan) {
-            let territory = g.battle.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
+            let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
             let pl = g.player(p);
             if !territory.is_homeworld() || pl.is_native(territory) {
                 if !defender_plan.messiah {
-                    if (aggressor_plan.initiator() == pl.faction && TreacheryCalled::has_traitor(g, p, defender_plan.hero()))
+                    if (aggressor_plan.initiator() == pl.faction && TreacheryCalled::has_traitor(g, p, defender_plan.hero))
                         || (pl.is(Faction::Harkonnen)
                             && pl.ally == aggressor_plan.initiator()
                             && !g.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly)
-                            && TreacheryCalled::has_traitor(g, p, defender_plan.hero()))
+                            && TreacheryCalled::has_traitor(g, p, defender_plan.hero))
                     {
                         return true;
                     }
                 }
 
                 if !aggressor_plan.messiah {
-                    if (defender_plan.initiator() == pl.faction && TreacheryCalled::has_traitor(g, p, aggressor_plan.hero()))
+                    if (defender_plan.initiator() == pl.faction && TreacheryCalled::has_traitor(g, p, aggressor_plan.hero))
                         || (pl.is(Faction::Harkonnen)
                             && pl.ally == defender_plan.initiator()
                             && !g.prevented(FactionAdvantage::HarkonnenCallTraitorForAlly)
-                            && TreacheryCalled::has_traitor(g, p, aggressor_plan.hero()))
+                            && TreacheryCalled::has_traitor(g, p, aggressor_plan.hero))
                     {
                         return true;
                     }
@@ -86,7 +86,7 @@ impl TreacheryCalled {
             if self.traitor_called {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
-                let hero = game.battle.defender_plan.as_ref().required("defender plan")?.hero();
+                let hero = game.battle.defender_plan.as_ref().required("defender plan")?.hero;
                 game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }
@@ -97,7 +97,7 @@ impl TreacheryCalled {
             if self.traitor_called {
                 self.log(game);
                 game.stone(Milestone::TreacheryCalled);
-                let hero = game.battle.aggressor_plan.as_ref().required("aggressor plan")?.hero();
+                let hero = game.battle.aggressor_plan.as_ref().required("aggressor plan")?.hero;
                 game.player_mut(self.player()).revealed_traitors.insert(hero.required("hero")?);
             }
         }

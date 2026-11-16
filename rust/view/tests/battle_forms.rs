@@ -125,7 +125,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
             assert_eq!(got, want, "{at}");
             // The default is the first opponent and its first territory.
             assert_eq!(e.target, Some(fights[0].faction), "{at}");
-            assert_eq!(e.territory(game), Some(fights[0].territory), "{at}");
+            assert_eq!(e.territory, Some(fights[0].territory), "{at}");
             assert_eq!(view.validation, None, "{at}: the first fight is a valid battle");
         }
         (ActionOptions::BeneGesseritBattleAnnouncement(o), _) => {
@@ -172,7 +172,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
         }
         (ActionOptions::JuicePlayed(o), _) => assert_eq!(o.choices.iter().map(|x| x.value).collect::<Vec<_>>(), values(JuicePlayed::valid_types(game, p)), "{at}"),
         (ActionOptions::LoserConcluded(o), GameEvent::LoserConcluded(e)) => {
-            assert_eq!(e.kept_card(), None, "{at}: default kept card");
+            assert_eq!(e.kept_card, None, "{at}: default kept card");
             assert_eq!(o.cards_to_keep, ids(LoserConcluded::cards_loser_may_keep(game)), "{at}");
             assert_eq!(o.assassination.is_some(), LoserConcluded::can_assassinate(game, p), "{at}");
             assert_eq!(o.may_use_karma, LoserConcluded::may_use_karma_to_force_kept_cards(game, p), "{at}");
@@ -212,23 +212,23 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
 fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
     let battle = game.battle.current_battle.as_ref().unwrap();
-    let territory = battle.territory(game);
+    let territory = battle.territory;
     let supplier = Battle::determine_force_supplier(game, p);
     let heroes = Battle::valid_battle_heroes(game, p);
     assert_eq!(o.heroes.iter().map(|h| h.id).collect::<Vec<_>>(), ids(heroes.iter().copied()), "{at}");
     assert_eq!(o.normal_tokens, Battle::max_forces(game, supplier, false), "{at}");
     assert_eq!(o.special_tokens, Battle::max_forces(game, supplier, true), "{at}");
     assert_eq!(o.must_pay, Battle::must_pay_for_any_forces_in_battle(game, p), "{at}");
-    assert_eq!(o.max_banker_boost, Battle::max_banker_boost(game, p, draft.hero()), "{at}");
+    assert_eq!(o.max_banker_boost, Battle::max_banker_boost(game, p, draft.hero), "{at}");
     // Without a previous plan, the form starts with no cards (ids 0 are real cards).
     if battle.previous_plan_of(game, game.player(p).faction.expect("faction")).is_none() {
         assert!(draft.weapon().is_none() && draft.defense().is_none(), "{at}: default cards");
     }
     // The default draft takes the first leader when one is required, and its cards are valid for it.
     if !game.applicable(Rule::BattleWithoutLeader) && !heroes.is_empty() {
-        assert!(draft.hero().is_some(), "{at}: a leader is required");
+        assert!(draft.hero.is_some(), "{at}: a leader is required");
     }
-    assert_eq!(o.weapons, cards_by_name(Battle::valid_weapons(game, p, draft.defense(), draft.hero(), territory, false), d), "{at}");
+    assert_eq!(o.weapons, cards_by_name(Battle::valid_weapons(game, p, draft.defense(), draft.hero, territory, false), d), "{at}");
     assert_eq!(o.defenses, cards_by_name(Battle::valid_defenses(game, p, draft.weapon(), territory, false), d), "{at}");
     if !o.weapons.is_empty() || !o.defenses.is_empty() {
         stats.add("Battle with cards");
@@ -259,20 +259,20 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
     choices.push(None);
     for hero in choices {
         let mut q = Battle::new(game, game.player(p).faction);
-        q.set_hero(hero);
+        q.hero = hero;
         let (opts, validation) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
         let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
         let normalized = check_draft(game, game.player(p).faction.expect("faction"), &o.draft, GameEventType::Battle, at);
         let GameEvent::Battle(n) = &normalized else { unreachable!() };
         // A hero that isn't valid, or none when one is required, is replaced.
         if hero.is_some() || game.applicable(Rule::BattleWithoutLeader) || heroes.is_empty() {
-            assert_eq!(n.hero(), hero, "{at}: the chosen leader stays");
+            assert_eq!(n.hero, hero, "{at}: the chosen leader stays");
         }
         assert_eq!(validation, treachery_view::build::validate(game, normalized.clone(), d), "{at}");
-        assert_eq!(o.weapons, cards_by_name(Battle::valid_weapons(game, p, None, n.hero(), territory, false), d), "{at}");
+        assert_eq!(o.weapons, cards_by_name(Battle::valid_weapons(game, p, None, n.hero, territory, false), d), "{at}");
         for &w in &o.weapons {
             let mut q = Battle::new(game, game.player(p).faction);
-            q.set_hero(n.hero());
+            q.hero = n.hero;
             q.set_weapon(TreacheryCardManager::lookup().find(w));
             let (opts, _) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
             let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
@@ -280,7 +280,7 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
             stats.add("Battle weapon query");
         }
         if let Some(l) = &o.leader {
-            let h = n.hero().unwrap();
+            let h = n.hero.unwrap();
             assert_eq!(l.value, h.value_in_combat_against(None), "{at}");
         }
     }
@@ -436,7 +436,7 @@ fn hms_battle_state() -> ViewReplica {
     g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa.expect("faction"));
     let mut battle = BattleInitiated::new(g, fa);
     battle.target = fb;
-    battle.territory_id = hms.location().territory().id();
+    battle.territory = Some(hms.location().territory());
     g.battle.current_battle = Some(std::rc::Rc::new(battle));
     g.turn.current_phase = Phase::BattlePhase;
     g.battle.chosen_hms_advantage = Some(None);

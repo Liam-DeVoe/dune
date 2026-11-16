@@ -339,7 +339,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                         card: r.bidding.card_just_won.map(|c| card(c, rd)),
                         amount: wb.bid_total_amount(),
                         karma_card: match wb {
-                            GameEvent::Bid(b) => b.karma_card().map(|c| card(c, rd)),
+                            GameEvent::Bid(b) => b.karma_card.map(|c| card(c, rd)),
                             _ => None,
                         },
                         auction: (r.bidding.current_auction_type != Some(AuctionType::Normal)).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
@@ -376,7 +376,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if matches!(evt, GameEvent::BattleInitiated(_)) {
-            if let Some(t) = r.battle.battle_about_to_start.as_ref().and_then(|b| b.territory(r)) {
+            if let Some(t) = r.battle.battle_about_to_start.as_ref().and_then(|b| b.territory) {
                 out.push(StoryBlock::BattleFor { territory: t.id() });
             }
         }
@@ -510,7 +510,7 @@ fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advan
     StoryPlan {
         faction: name_or_absent(b.initiator()),
         winner: g.battle.battle_winner == Some(b.initiator()),
-        hero: b.hero().map(hero_ref),
+        hero: b.hero.map(hero_ref),
         messiah: b.messiah,
         weapon: b.weapon().map(|c| c.id()),
         defense: b.defense().map(|c| c.id()),

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ChoamMovePrevention {
-    pub territory_id: i32,
+    pub territory: Option<Territory>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct ChoamMovePrevention {
 impl Default for ChoamMovePrevention {
     fn default() -> Self {
         ChoamMovePrevention {
-            territory_id: Default::default(),
+            territory: Territory::from_id(0),
             base: Default::default(),
         }
     }
@@ -23,16 +23,8 @@ impl ChoamMovePrevention {
         e
     }
 
-    pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.territory_id)
-    }
-
-    pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let territory = self.territory(game);
+        let territory = self.territory;
         if !ChoamMovePrevention::valid_territories(game, self.player()).any(|v| Some(v) == territory) {
             return Some(express!("Invalid territory"));
         }
@@ -70,13 +62,13 @@ impl ChoamMovePrevention {
         }
 
         // `Territory!` does not throw: a null territory (only without validation) is stored.
-        game.ship_move.current_blocked_territories.push(self.territory(game).required("territory")?);
+        game.ship_move.current_blocked_territories.push(self.territory.required("territory")?);
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " prevent forces moving into ", self.territory(game))
+    pub fn get_message(&self, _game: &Game) -> Message {
+        express!(self.initiator(), " prevent forces moving into ", self.territory)
     }
 
 }

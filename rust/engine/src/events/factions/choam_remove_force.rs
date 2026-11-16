@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct ChoamRemoveForce {
     pub target: Option<Faction>,
     pub special_force: bool,
-    pub location_id: i32,
+    pub location: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -15,7 +15,7 @@ impl Default for ChoamRemoveForce {
         ChoamRemoveForce {
             target: Default::default(),
             special_force: Default::default(),
-            location_id: Default::default(),
+            location: Location::from_id(0),
             base: Default::default(),
         }
     }
@@ -28,16 +28,8 @@ impl ChoamRemoveForce {
         e
     }
 
-    pub fn location(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.location_id)
-    }
-
-    pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let location = self.location(game);
+        let location = self.location;
         let Some(l) = location else {
             return Some(express!("Invalid location"));
         };
@@ -121,7 +113,7 @@ impl ChoamRemoveForce {
         let target = self.get_player(game, self.target);
 
         let target = target.required("target")?;
-        let location = self.location(game);
+        let location = self.location;
         if self.special_force {
             match location {
                 Some(location) => Player::special_forces_to_reserves(game, target, location, 1),
@@ -159,7 +151,7 @@ impl ChoamRemoveForce {
         } else {
             game.player(target_player).force().into()
         };
-        Ok(express!(self.initiator(), " remove ", 1, force, " from ", self.location(game)))
+        Ok(express!(self.initiator(), " remove ", 1, force, " from ", self.location))
     }
 
     pub fn get_message(&self, game: &Game) -> Message {

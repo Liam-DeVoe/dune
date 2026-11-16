@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct Move {
     pub as_advisors: bool,
     // ---- inherited from PlacementEvent ----
-    pub to_id: i32,
+    pub to: Option<Location>,
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -16,7 +16,7 @@ impl Default for Move {
     fn default() -> Self {
         Move {
             as_advisors: Default::default(),
-            to_id: Default::default(),
+            to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
             base: Default::default(),
@@ -73,7 +73,7 @@ impl Move {
             game.ship_move.recent_moves.push(self.clone().into_event());
 
             let me = self.player();
-            let to = PlacementEventMethods::to(&**self, game);
+            let to = self.to;
             if contains_conflicting_ally_opt(game, me, to)? {
                 game.ship_move.chosen_destinations_with_allies.push(to.required("to")?.territory());
             }
@@ -104,11 +104,11 @@ impl Move {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn get_message(&self, _game: &Game) -> Message {
         if self.passed {
             return express!(self.initiator(), " pass move");
         }
-        express!(self.initiator(), " move to ", PlacementEventMethods::to(self, game))
+        express!(self.initiator(), " move to ", self.to)
     }
 
 }
@@ -165,16 +165,16 @@ impl PassableGameEventMethods for Move {
 }
 
 impl PlacementEventMethods for Move {
-    fn field_to_id(&self) -> &i32 {
-        &self.to_id
+    fn field_to(&self) -> &Option<Location> {
+        &self.to
     }
 
     fn field_force_locations(&self) -> &Option<String> {
         &self.force_locations
     }
 
-    fn field_to_id_mut(&mut self) -> &mut i32 {
-        &mut self.to_id
+    fn field_to_mut(&mut self) -> &mut Option<Location> {
+        &mut self.to
     }
 
     fn field_force_locations_mut(&mut self) -> &mut Option<String> {
@@ -188,8 +188,8 @@ impl crate::events::location_event::LocationEvent for Move {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -215,8 +215,8 @@ impl crate::events::placement::Placement for Move {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
 }

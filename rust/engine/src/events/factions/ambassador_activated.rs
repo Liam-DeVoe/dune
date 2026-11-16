@@ -8,12 +8,12 @@ pub struct AmbassadorActivated {
     pub ecaz_offer_alliance: bool,
     pub ecaz_give_vidal_to_ally: bool,
     pub ecaz_take_vidal: bool,
-    pub fremen_or_guild_to_id: i32,
+    pub fremen_or_guild_to: Option<Location>,
     pub fremen_force_locations: Option<String>,
-    pub ixian_card_id: i32,
+    pub ixian_card: Option<TreacheryCard>,
     pub guild_force_amount: i32,
     pub tleilaxu_amount_of_forces: i32,
-    pub tleilaxu_hero_id: i32,
+    pub tleilaxu_hero: Option<Hero>,
     pub tleilaxu_assign_skill: bool,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -29,12 +29,12 @@ impl Default for AmbassadorActivated {
             ecaz_offer_alliance: Default::default(),
             ecaz_give_vidal_to_ally: Default::default(),
             ecaz_take_vidal: Default::default(),
-            fremen_or_guild_to_id: Default::default(),
+            fremen_or_guild_to: Location::from_id(0),
             fremen_force_locations: Some("".to_string()),
-            ixian_card_id: Default::default(),
+            ixian_card: TreacheryCardManager::get(0),
             guild_force_amount: Default::default(),
             tleilaxu_amount_of_forces: Default::default(),
-            tleilaxu_hero_id: -1,
+            tleilaxu_hero: None,
             tleilaxu_assign_skill: Default::default(),
             passed: Default::default(),
             base: Default::default(),
@@ -61,16 +61,8 @@ impl AmbassadorActivated {
         self.choam_card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
-    pub fn fremen_or_guild_to(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.fremen_or_guild_to_id)
-    }
-
-    pub fn set_fremen_or_guild_to(&mut self, game: &Game, value: Option<Location>) {
-        self.fremen_or_guild_to_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        self.fremen_or_guild_to(game)
+    pub fn to(&self, _game: &Game) -> Option<Location> {
+        self.fremen_or_guild_to
     }
 
     /// Re-parsed on every read.
@@ -81,22 +73,6 @@ impl AmbassadorActivated {
 
     pub fn set_fremen_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
         self.fremen_force_locations = Some(PlacementEvent::force_locations_string(game, value));
-    }
-
-    pub fn ixian_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.ixian_card_id)
-    }
-
-    pub fn set_ixian_card(&mut self, value: Option<TreacheryCard>) {
-        self.ixian_card_id = TreacheryCardManager::get_id(value);
-    }
-
-    pub fn tleilaxu_hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.tleilaxu_hero_id)
-    }
-
-    pub fn set_tleilaxu_hero(&mut self, value: Option<Hero>) {
-        self.tleilaxu_hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -178,7 +154,7 @@ impl AmbassadorActivated {
                     {
                         return Some(express!("Invalid amount of ", game.player(self.player()).special_force()));
                     }
-                    let to = self.fremen_or_guild_to(game);
+                    let to = self.fremen_or_guild_to;
                     if !AmbassadorActivated::valid_fremen_targets(game, player()).into_iter().any(|l| Some(l) == to) {
                         return Some(express!("Invalid target location"));
                     }
@@ -188,8 +164,8 @@ impl AmbassadorActivated {
                     if AmbassadorActivated::get_valid_ixian_cards(game, player()).is_empty() {
                         return Some(express!("You don't have a card to discard"));
                     }
-                    if self.ixian_card().is_some()
-                        && !AmbassadorActivated::get_valid_ixian_cards(game, player()).contains(&self.ixian_card().expect("ixian card"))
+                    if self.ixian_card.is_some()
+                        && !AmbassadorActivated::get_valid_ixian_cards(game, player()).contains(&self.ixian_card.expect("ixian card"))
                     {
                         return Some(express!("Invalid card selected"));
                     }
@@ -205,7 +181,7 @@ impl AmbassadorActivated {
                 }
 
                 Some(Ambassador::Guild) => {
-                    let to = self.fremen_or_guild_to(game);
+                    let to = self.fremen_or_guild_to;
                     if !AmbassadorActivated::valid_guild_targets(game, player()).into_iter().any(|l| Some(l) == to) {
                         return Some(express!("Invalid target location"));
                     }
@@ -221,18 +197,18 @@ impl AmbassadorActivated {
                     if self.tleilaxu_amount_of_forces > AmbassadorActivated::valid_tleilaxu_max_amount(game, player()) {
                         return Some(express!("You can't revive that many"));
                     }
-                    if self.tleilaxu_amount_of_forces > 0 && self.tleilaxu_hero().is_some() {
+                    if self.tleilaxu_amount_of_forces > 0 && self.tleilaxu_hero.is_some() {
                         return Some(express!("You can't revive both forces and a leader"));
                     }
-                    if self.tleilaxu_hero().is_some()
-                        && !AmbassadorActivated::valid_tleilaxu_heroes(game, player()).contains(&self.tleilaxu_hero().expect("tleilaxu hero"))
+                    if self.tleilaxu_hero.is_some()
+                        && !AmbassadorActivated::valid_tleilaxu_heroes(game, player()).contains(&self.tleilaxu_hero.expect("tleilaxu hero"))
                     {
                         return Some(express!("Invalid leader"));
                     }
-                    if self.tleilaxu_assign_skill && self.tleilaxu_hero().is_none() {
+                    if self.tleilaxu_assign_skill && self.tleilaxu_hero.is_none() {
                         return Some(express!("Select a leader to assign a skill to"));
                     }
-                    if self.tleilaxu_assign_skill && !Revival::may_assign_skill(game, self.player(), self.tleilaxu_hero()) {
+                    if self.tleilaxu_assign_skill && !Revival::may_assign_skill(game, self.player(), self.tleilaxu_hero) {
                         return Some(express!("You can't assign a skill to this leader"));
                     }
                 }
@@ -483,7 +459,7 @@ impl AmbassadorActivated {
             }
 
             Ambassador::Ixian => {
-                game.discard_card_of(Some(self.player()), self.ixian_card(), true);
+                game.discard_card_of(Some(self.player()), self.ixian_card, true);
                 self.log_objects(game, elems![self.initiator(), " draw a new card"]);
                 let drawn = game.draw_treachery_card();
                 if let Some(drawn) = drawn {
@@ -505,9 +481,9 @@ impl AmbassadorActivated {
 
             Ambassador::Guild => {
                 let force = game.player(self.player()).force();
-                let to = self.fremen_or_guild_to(game);
+                let to = self.fremen_or_guild_to;
                 self.log_objects(game, elems![self.initiator(), " send ", self.guild_force_amount, force, " to ", to]);
-                if let Some(to) = self.fremen_or_guild_to(game) {
+                if let Some(to) = self.fremen_or_guild_to {
                     Player::ship_forces(game, self.player(), to, self.guild_force_amount);
                 }
                 let this = self.clone().into_event();
@@ -518,7 +494,7 @@ impl AmbassadorActivated {
 
             Ambassador::Tleilaxu => {
                 game.determine_next_shipment_and_move_sub_phase()?;
-                if let Some(tleilaxu_hero) = self.tleilaxu_hero() {
+                if let Some(tleilaxu_hero) = self.tleilaxu_hero {
                     if !game.is_face_down_dead(tleilaxu_hero) {
                         self.log_objects(game, elems![self.initiator(), " revive ", tleilaxu_hero]);
                     } else {

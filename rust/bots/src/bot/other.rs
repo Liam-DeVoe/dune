@@ -52,14 +52,14 @@ impl ClassicBot {
         }
         let mut e = DiscoveryEntered::new(game, self.faction(game));
         e.set_force_locations(game, &battalions_to_move);
-        e.set_to(game, to.map(|d| d.location()));
+        e.to = to.map(|d| d.location());
         Rc::new(e)
     }
 
     pub fn determine_discovery_revealed(&self, game: &Game) -> Rc<DiscoveryRevealed> {
         let mut e = DiscoveryRevealed::new(game, self.faction(game));
         let location = DiscoveryRevealed::get_locations(game, self.player).next().expect("an element");
-        e.set_location(game, Some(location));
+        e.location = Some(location);
         Rc::new(e)
     }
 
@@ -142,7 +142,7 @@ impl ClassicBot {
             panic!("Sequence contains no elements")
         };
         let mut e = Discarded::new(game, self.faction(game));
-        e.set_card(Some(worst_card));
+        e.card = Some(worst_card);
         Rc::new(e)
     }
 
@@ -151,7 +151,7 @@ impl ClassicBot {
             .determine_worst_traitor(game)
             .or_else(|| game.player(self.player).traitors.iter().copied().random_lowest(&self.random, |t| t.value()));
         let mut e = TraitorDiscarded::new(game, self.faction(game));
-        e.set_traitor(worst_traitor);
+        e.traitor = worst_traitor;
         Rc::new(e)
     }
 
@@ -221,7 +221,7 @@ impl ClassicBot {
                         && self.is_winning_or_is_opponent_in_battle(game, Faction::Emperor)
                         && game
                             .player(game.get_player(Some(Faction::Emperor)).expect("player"))
-                            .special_forces_in_territory(game.battle.current_battle.as_ref().expect("current battle").territory(game))
+                            .special_forces_in_territory(game.battle.current_battle.as_ref().expect("current battle").territory)
                             >= 3)
             }
 
@@ -253,7 +253,7 @@ impl ClassicBot {
                 game.turn.current_phase == Phase::ResurrectionReport
                     && match self.determine_territory_to_remove_ecaz_from(game) {
                         Some(t) => {
-                            result.set_ecaz_territory(game, Some(t));
+                            result.ecaz_territory = Some(t);
                             true
                         }
                         None => false,
@@ -267,10 +267,10 @@ impl ClassicBot {
                         && game.turn.current_phase == Phase::NonGuildShip
                         && game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(game) == Some(self.player));
                 my_shipment_turn && {
-                    let territory = self.determine_shipment(game).to(game).expect("destination").territory();
+                    let territory = self.determine_shipment(game).to.expect("destination").territory();
                     let has_terror = game.terror_in(territory).next().is_some();
                     if has_terror {
-                        result.set_moritani_territory(game, Some(territory));
+                        result.moritani_territory = Some(territory);
                     }
                     has_terror
                 }
@@ -330,7 +330,7 @@ impl ClassicBot {
             return None;
         }
 
-        let territory = battle.territory(game);
+        let territory = battle.territory;
         let max_dial = Self::max_dial(game, self.player, territory.expect("territory"), opponent, false);
         self.best_prescience(game, self.player, opponent.expect("opponent"), max_dial, earlier, territory.expect("territory"))
     }
@@ -348,7 +348,7 @@ impl ClassicBot {
             Some(Faction::Fremen) => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
             Some(Faction::Emperor) => {
-                let t = game.battle.current_battle.as_ref().expect("current battle").territory(game);
+                let t = game.battle.current_battle.as_ref().expect("current battle").territory;
                 game.player(self.player).forces_in_territory(t) >= 4
             }
 
@@ -364,7 +364,7 @@ impl ClassicBot {
             Some(Faction::BeneGesserit) => self.determine_bene_gesserit_battle_announcement(game).is_some(),
 
             Some(Faction::Ixian) => {
-                let t = game.battle.current_battle.as_ref().expect("current battle").territory(game);
+                let t = game.battle.current_battle.as_ref().expect("current battle").territory;
                 game.player(self.player).forces_in_territory(t) >= 3
             }
 
@@ -407,7 +407,7 @@ impl ClassicBot {
                 MainPhase::Collection => {
                     self.faction(game) != Faction::BeneGesserit && {
                         let card = NexusPlayed::valid_choam_cards(game, self.player).next();
-                        result.set_choam_card(card);
+                        result.choam_card = card;
                         true
                     }
                 }
@@ -420,7 +420,7 @@ impl ClassicBot {
                     // The plan is only needed (and fails when missing) if the opponent holds any cards.
                     game.player(auditee.expect("auditee")).treachery_cards.iter().copied().any(|c| {
                         let plan = recent_battle_plan.as_ref().expect("recent battle plan");
-                        let auditable = Some(c) != plan.weapon() && Some(c) != plan.defense() && Some(Hero::TreacheryCard(c)) != plan.hero();
+                        let auditable = Some(c) != plan.weapon() && Some(c) != plan.defense() && Some(Hero::TreacheryCard(c)) != plan.hero;
                         auditable && !me.known_cards.contains(&c)
                     })
                 }
@@ -470,13 +470,13 @@ impl ClassicBot {
 
         result.tleilaxu_forces = forces;
         result.tleilaxu_special_forces = special_forces;
-        result.set_tleilaxu_hero(hero);
+        result.tleilaxu_hero = hero;
         result.tleilaxu_assign_skill = Revival::may_assign_skill(game, self.player, hero);
 
         let to_planet = Revival::number_of_special_forces_that_may_be_placed_on_planet(game, self.player, special_forces);
         let (location, to_planet) = self.revival_target(game, to_planet);
         result.tleilaxu_number_of_special_forces_in_location = to_planet;
-        result.set_tleilaxu_location(game, location);
+        result.tleilaxu_location = location;
         true
     }
 
@@ -495,7 +495,7 @@ impl ClassicBot {
         if self.last_turn(game) || forces_killed + special_forces_that_can_be_revived >= 6 {
             let forces = std::cmp::max(0, std::cmp::min(3, forces_killed) - special_forces_that_can_be_revived);
             let mut e = KarmaFreeRevival::new(game, self.faction(game));
-            e.set_hero(None);
+            e.hero = None;
             e.amount_of_forces = forces;
             e.amount_of_special_forces = special_forces_that_can_be_revived;
             return Some(Rc::new(e));
@@ -667,7 +667,7 @@ impl ClassicBot {
             Some(Rc::new(e))
         };
 
-        let territory = battle.territory(game);
+        let territory = battle.territory;
         let my_weapons: Vec<TreacheryCard> =
             Battle::valid_weapons(game, self.player, None, None, territory, false).into_iter().flatten().collect();
         // Looked up lazily: it fails when my ally isn't seated.
@@ -745,7 +745,7 @@ impl ClassicBot {
                     yes_no(
                         defends_with(&plan)
                             || attacks_with(&plan)
-                            || (plan.hero().is_some_and(|h| h.as_treachery_card().is_some()) && card_type() == TreacheryCardType::Mercenary),
+                            || (plan.hero.is_some_and(|h| h.as_treachery_card().is_some()) && card_type() == TreacheryCardType::Mercenary),
                     )
                 }
 
@@ -755,7 +755,7 @@ impl ClassicBot {
                     yes_no(plan.dial(game, game.player(opponent).faction.expect("faction")) > unbox_float(&p1()))
                 }
 
-                Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => yes_no(my_plan().hero() == cast_hero(&p1())),
+                Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => yes_no(my_plan().hero == cast_hero(&p1())),
 
                 Some(ClairvoyanceQuestion::HasCardTypeInHand) => yes_no(me.treachery_cards.iter().any(|c| covers(c.type_(), card_type()))),
 
@@ -814,11 +814,11 @@ impl ClassicBot {
             let (target_of_forces, special_forces_to_planet) = self.revival_target(game, special_forces_to_planet);
 
             let mut e = RaiseDeadPlayed::new(game, self.faction(game));
-            e.set_hero(None);
+            e.hero = None;
             e.amount_of_forces = forces;
             e.amount_of_special_forces = special_forces_that_can_be_revived;
             e.assign_skill = false;
-            e.set_location(game, target_of_forces);
+            e.location = target_of_forces;
             e.number_of_special_forces_in_location = special_forces_to_planet;
             return Some(Rc::new(e));
         }
@@ -832,7 +832,7 @@ impl ClassicBot {
         )?;
 
         let mut e = RaiseDeadPlayed::new(game, self.faction(game));
-        e.set_hero(Some(leader_to_revive));
+        e.hero = Some(leader_to_revive);
         e.amount_of_forces = 0;
         e.amount_of_special_forces = 0;
         e.assign_skill = Revival::may_assign_skill(game, self.player, Some(leader_to_revive));
@@ -893,7 +893,7 @@ impl ClassicBot {
             })
         });
         let mut e = TraitorsSelected::new(game, faction);
-        e.set_selected_traitor(traitor);
+        e.selected_traitor = traitor;
         Rc::new(e)
     }
 
@@ -955,7 +955,7 @@ impl ClassicBot {
             .random_highest(&self.random, |p| game.number_of_victory_points(*p, true))?;
 
         let mut e = DistransUsed::new(game, self.faction(game));
-        e.set_card(Some(worst_card));
+        e.card = Some(worst_card);
         e.target = game.player(target).faction;
         Some(Rc::new(e))
     }
@@ -1051,14 +1051,14 @@ impl ClassicBot {
         }
 
         let mut e = Revival::new(game, faction);
-        e.set_hero(leader_to_revive);
+        e.hero = leader_to_revive;
         e.amount_of_forces = normal_forces_to_revive;
         e.extra_forces_paid_by_emperor = forces_revived_by_emperor;
         e.amount_of_special_forces = special_forces_to_revive;
         e.extra_special_forces_paid_by_emperor = special_forces_revived_by_emperor;
         e.assign_skill = assign_skill;
         e.uses_emperor_secret_ally = use_secret_ally;
-        e.set_location(game, target_of_forces);
+        e.location = target_of_forces;
         e.number_of_forces_in_location = forces_to_planet;
         e.number_of_special_forces_in_location = special_forces_to_planet;
         Some(Rc::new(e))
@@ -1149,7 +1149,7 @@ impl ClassicBot {
         let card_to_search =
             DiscardedSearched::valid_cards(game).into_iter().random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
         let mut e = DiscardedSearched::new(game, self.faction(game));
-        e.set_card(card_to_search);
+        e.card = card_to_search;
         Rc::new(e)
     }
 
@@ -1161,7 +1161,7 @@ impl ClassicBot {
         }
 
         let mut e = DiscardedTaken::new(game, self.faction(game));
-        e.set_card(Some(card_to_take));
+        e.card = Some(card_to_take);
         Some(Rc::new(e))
     }
 
@@ -1196,7 +1196,7 @@ impl ClassicBot {
         let opponent_plan = opponent_plan.expect("opponent plan");
         if opponent_plan.weapon().is_some_and(|w| w.countered_by(opponent_plan.defense(), None)) {
             let mut e = Diplomacy::new(game, self.faction(game));
-            e.set_card(Some(Diplomacy::valid_cards(game, self.player).into_iter().next().expect("an element")));
+            e.card = Some(Diplomacy::valid_cards(game, self.player).into_iter().next().expect("an element"));
             return Some(Rc::new(e));
         }
 
@@ -1240,7 +1240,7 @@ impl ClassicBot {
         let leader = self.random_item_from(&SkillAssigned::valid_leaders(game, self.player));
         let mut e = SkillAssigned::new(game, self.faction(game));
         e.passed = false;
-        e.set_leader(leader);
+        e.leader = leader;
         e.skill = Some(skill);
         Rc::new(e)
     }

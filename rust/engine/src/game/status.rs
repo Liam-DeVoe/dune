@@ -490,10 +490,10 @@ impl GameStatus {
 
             Phase::ClaimingBattle => {
                 let g: &Game = game;
-                let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory(g));
+                let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory);
                 let battle = g.battle.battle_about_to_start.clone().expect("battle about to start");
                 let f: Option<Option<Faction>> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction) } else { Some(Some(Faction::Ecaz)) };
-                let w = express!(f, " are deciding who will fight in ", battle.territory(g), "...");
+                let w = express!(f, " are deciding who will fight in ", battle.territory, "...");
                 let p = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz) } else { g.get_player(Some(Faction::Ecaz)) };
                 Self::player_status(a, w, p, None)
             }
@@ -532,8 +532,8 @@ impl GameStatus {
 
             Phase::Retreating => {
                 let g: &Game = game;
-                let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
-                let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
+                let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
+                let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
                 Self::faction_status(g, a, w, g.battle.battle_loser.flatten(), None)
             }
 
@@ -730,7 +730,7 @@ impl GameStatus {
                 if game.battle.current_battle.is_some() =>
             {
                 // `Territory!` does not throw: a null territory becomes a null element.
-                vec![game.battle.current_battle.as_ref().expect("current battle").territory(game)]
+                vec![game.battle.current_battle.as_ref().expect("current battle").territory]
             }
 
             _ => vec![],
@@ -754,21 +754,21 @@ impl GameStatus {
 
         if battle.aggressor(g) == my_faction.flatten() {
             return Self::players_status(
-                express!("You are aggressor against ", battle.defender(g), " in ", battle.territory(g), "! Please confirm your Battle Plan."),
-                express!("You are waiting for ", battle.defender(g), " to defend ", battle.territory(g), "..."),
+                express!("You are aggressor against ", battle.defender(g), " in ", battle.territory, "! Please confirm your Battle Plan."),
+                express!("You are waiting for ", battle.defender(g), " to defend ", battle.territory, "..."),
                 to_make_plan,
                 latest_battle_event,
             );
         }
         if battle.defender(g) == my_faction.flatten() {
             return Self::players_status(
-                express!("You must defend against ", battle.aggressor(g), " in ", battle.territory(g), "! Please confirm your Battle Plan."),
-                express!("You are waiting for ", battle.aggressor(g), " to attack ", battle.territory(g), "..."),
+                express!("You must defend against ", battle.aggressor(g), " in ", battle.territory, "! Please confirm your Battle Plan."),
+                express!("You are waiting for ", battle.aggressor(g), " to attack ", battle.territory, "..."),
                 to_make_plan,
                 latest_battle_event,
             );
         }
-        let message = express!(battle.defender(g), " are defending against ", battle.aggressor(g), " aggression in ", battle.territory(g), "...");
+        let message = express!(battle.defender(g), " are defending against ", battle.aggressor(g), " aggression in ", battle.territory, "...");
         Self::players_status(message.clone(), message, to_make_plan, latest_battle_event)
     }
 
@@ -997,8 +997,8 @@ impl GameStatus {
             GameEvent::TreacheryCalled(t) => {
                 let victim = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, t.initiator());
                 let victim_plan = game.battle.current_battle.as_ref().expect("current battle").plan_of(game, victim);
-                let msg = express!(victim_plan.as_ref().and_then(|p| p.hero()), " is a ", t.initiator(), " traitor!");
-                let hero = victim_plan.as_ref().expect("victim plan").hero();
+                let msg = express!(victim_plan.as_ref().and_then(|p| p.hero), " is a ", t.initiator(), " traitor!");
+                let hero = victim_plan.as_ref().expect("victim plan").hero;
                 Self::flash(flashes, msg, hero);
             }
 

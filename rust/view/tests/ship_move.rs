@@ -115,7 +115,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             assert!(o.sources.is_empty(), "no sources before a stronghold is picked");
             for ds in targets {
                 let mut e = DiscoveryEntered::new(game, f);
-                e.set_to(game, Some(ds.location()));
+                e.to = Some(ds.location());
                 let ActionOptions::DiscoveryEntered(o) = opts(game, p, &event(e), d) else { panic!() };
                 let expected: Vec<ForcesAt> = DiscoveryEntered::valid_sources(game, p, ds).map(|l| forces_at(game, p, l)).collect();
                 assert_eq!(o.sources, expected);
@@ -140,7 +140,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             assert!(!o.may_assign_skill, "no hero picked yet");
             for h in heroes {
                 let mut e = AmbassadorActivated::new(game, f);
-                e.set_tleilaxu_hero(Some(h));
+                e.tleilaxu_hero = Some(h);
                 let ActionOptions::AmbassadorActivated(o) = opts(game, p, &event(e), d) else { panic!() };
                 assert_eq!(o.may_assign_skill, Revival::may_assign_skill(game, p, Some(h)));
                 assert!(o.tleilaxu_heroes.iter().any(|x| x.hero == hero_ref(h)));
@@ -159,7 +159,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             assert!(!o.may_send_extra_advisor);
             for l in targets {
                 let mut e = BeneGesseritAccompanies::new(game, f);
-                e.set_location(game, Some(l));
+                e.location = Some(l);
                 e.accompanies = true;
                 let ActionOptions::BeneGesseritAccompanies(o) = opts(game, p, &event(e), d) else { panic!() };
                 assert_eq!(o.may_send_extra_advisor, BeneGesseritAccompanies::may_send_extra_advisor(game, p, l));
@@ -175,7 +175,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             assert_eq!(o.targets, ids(locations.clone()));
             for l in locations {
                 let mut e = ChoamRemoveForce::new(game, f);
-                e.set_location(game, Some(l));
+                e.location = Some(l);
                 let ActionOptions::ChoamRemoveForce(o) = opts(game, p, &event(e), d) else { panic!() };
                 let factions: Vec<Faction> = ChoamRemoveForce::valid_factions(game, Some(p), Some(l)).collect();
                 assert_eq!(o.factions.iter().map(|x| x.faction.clone()).collect::<Vec<_>>(), names(factions.clone()));
@@ -190,7 +190,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             for (x, l) in o.locations.iter().zip(&locations) {
                 assert_eq!(x.token, game.board.discoveries_on_planet.get(l).unwrap().token.to_string());
             }
-            assert_eq!(e.location(game), locations.first().copied(), "the form starts on the first location");
+            assert_eq!(e.location, locations.first().copied(), "the form starts on the first location");
         }
         (GameEvent::FlightUsed(e), ActionOptions::FlightUsed(_)) => assert!(e.move_three_territories),
         (GameEvent::TestingStationUsed(e), ActionOptions::TestingStationUsed(_)) => assert_eq!(e.value_added, -1),
@@ -248,8 +248,8 @@ fn shipment_max(game: &Game, p: PlayerIndex, s: &Shipment, special: bool) -> i32
     match s.shipment_type {
         ShipmentType::ShipmentNormal => Shipment::valid_max_normal_shipment_forces(game, p, special, s.no_field_value()),
         ShipmentType::ShipmentRicheseSecretAlly => Shipment::valid_max_secret_ally_shipment_forces(game, p, special),
-        ShipmentType::ShipmentSiteToSite => Shipment::valid_max_shipment_site_to_site_forces(game, p, special, s.from(game)),
-        ShipmentType::ShipmentBack => Shipment::valid_max_shipment_back_forces(game, p, special, s.to(game)),
+        ShipmentType::ShipmentSiteToSite => Shipment::valid_max_shipment_site_to_site_forces(game, p, special, s.from),
+        ShipmentType::ShipmentBack => Shipment::valid_max_shipment_back_forces(game, p, special, s.to),
         _ => 0,
     }
 }
@@ -269,12 +269,12 @@ fn check_shipment_draft(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentO
     assert_eq!(o.max_forces, shipment_max(game, p, s, false));
     assert_eq!(o.max_special_forces, shipment_max(game, p, s, true));
     assert_eq!(o.cost, Shipment::determine_cost(game, p, s));
-    assert_eq!(o.may_smuggle, Shipment::may_smuggle(game, p, s.to(game)));
+    assert_eq!(o.may_smuggle, Shipment::may_smuggle(game, p, s.to));
     assert_eq!(o.cunning_no_field_values, Shipment::valid_cunning_no_field_values(game, p, s.no_field_value()));
     assert_eq!(o.default_no_field_special_force_amount, Shipment::default_no_field_special_force_amount(pl.faction.expect("faction"), s.no_field_value()));
     let expected_ally = if pl.ally != None && o.cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 };
     assert_eq!(o.ally_can_pay, expected_ally);
-    let destination = if s.shipment_type == ShipmentType::ShipmentBack { None } else { s.to(game) };
+    let destination = if s.shipment_type == ShipmentType::ShipmentBack { None } else { s.to };
     assert_eq!(o.conflicting_ally, destination.is_some_and(|l| game.contains_conflicting_ally(p, l)));
     assert_eq!(
         o.may_karma,
@@ -287,9 +287,9 @@ fn shipment_draft(game: &Game, f: Faction, ty: ShipmentType, from: Option<Locati
     s.shipment_type = ty;
     s.set_no_field_value(-1);
     s.set_cunning_no_field_value(-1);
-    s.set_from(game, from);
-    s.set_to(game, to);
-    s.set_karma_card(None);
+    s.from = from;
+    s.to = to;
+    s.karma_card = None;
     let direction = if ty == ShipmentType::ShipmentBack { -1 } else { 1 };
     s.force_amount = direction * forces;
     s.special_force_amount = direction * special;
@@ -411,19 +411,19 @@ fn placement_draft(game: &Game, f: Faction, t: GameEventType, forces: &IndexMap<
         GameEventType::Move => {
             let mut e = Move::new(game, f);
             e.set_force_locations(game, forces);
-            e.set_to(game, to);
+            e.to = to;
             event(e)
         }
         GameEventType::Caravan => {
             let mut e = Caravan::new(game, f);
             e.set_force_locations(game, forces);
-            e.set_to(game, to);
+            e.to = to;
             event(e)
         }
         GameEventType::FremenRidesMonster => {
             let mut e = FremenRidesMonster::new(game, f);
             e.set_force_locations(game, forces);
-            e.set_to(game, to);
+            e.to = to;
             event(e)
         }
         _ => unreachable!(),
@@ -596,7 +596,7 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
             for ds in DiscoveryEntered::valid_targets(game, p).collect::<Vec<_>>() {
                 let sources: Vec<Location> = DiscoveryEntered::valid_sources(game, p, ds).collect();
                 let mut e = DiscoveryEntered::new(game, f);
-                e.set_to(game, Some(ds.location()));
+                e.to = Some(ds.location());
                 let GameEvent::DiscoveryEntered(a) = adjusted(game, p, &event(e.clone()), d) else { panic!() };
                 // OnPickChanged: every force next to the stronghold.
                 let got = a.force_locations(game);
@@ -634,9 +634,9 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                     e.ecaz_give_vidal_to_ally = true;
                     e.guild_force_amount = 3;
                     e.tleilaxu_amount_of_forces = 99;
-                    e.set_tleilaxu_hero(hero);
+                    e.tleilaxu_hero = hero;
                     e.tleilaxu_assign_skill = true;
-                    e.set_ixian_card(None);
+                    e.ixian_card = None;
                     let GameEvent::AmbassadorActivated(a) = adjusted(game, p, &event(e), d) else { panic!() };
                     // BeneGesserit: the required image choice; otherwise the shown one.
                     let valid_bg = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game);
@@ -675,8 +675,8 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                     }
                     assert_eq!((a.ecaz_take_vidal, a.ecaz_offer_alliance, a.ecaz_give_vidal_to_ally), (take, offer, give), "Ecaz checkboxes");
                     assert_eq!((a.guild_force_amount, a.tleilaxu_amount_of_forces, a.tleilaxu_assign_skill), (guild, tleilaxu, skill));
-                    assert_eq!(a.ixian_card(), ixian);
-                    assert_eq!(a.tleilaxu_hero(), hero, "the hero picker is not required");
+                    assert_eq!(a.ixian_card, ixian);
+                    assert_eq!(a.tleilaxu_hero, hero, "the hero picker is not required");
                 }
             }
         }
@@ -691,14 +691,14 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
         GameEvent::BeneGesseritAccompanies(_) => {
             for l in BeneGesseritAccompanies::valid_targets(game, p) {
                 let mut e = BeneGesseritAccompanies::new(game, f);
-                e.set_location(game, Some(l));
+                e.location = Some(l);
                 e.accompanies = true;
                 e.extra_advisor = true;
                 let GameEvent::BeneGesseritAccompanies(a) = adjusted(game, p, &event(e), d) else { panic!() };
                 assert_eq!(a.extra_advisor, BeneGesseritAccompanies::may_send_extra_advisor(game, p, l));
             }
             let mut e = BeneGesseritAccompanies::new(game, f);
-            e.set_location(game, None);
+            e.location = None;
             e.extra_advisor = true;
             let GameEvent::BeneGesseritAccompanies(a) = adjusted(game, p, &event(e), d) else { panic!() };
             assert!(a.extra_advisor, "no pinned panel without a location");
@@ -708,7 +708,7 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                 for start in game.players.iter().map(|x| x.faction).chain([None]).collect::<Vec<_>>() {
                     for special in [false, true] {
                         let mut e = ChoamRemoveForce::new(game, f);
-                        e.set_location(game, Some(l));
+                        e.location = Some(l);
                         e.target = start;
                         e.special_force = special;
                         let GameEvent::ChoamRemoveForce(a) = adjusted(game, p, &event(e), d) else { panic!() };
@@ -726,9 +726,9 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
             let locations: Vec<Location> = DiscoveryRevealed::get_locations(game, p).collect();
             for l in locations.iter().copied().map(Some).chain([None]) {
                 let mut e = DiscoveryRevealed::new(game, f);
-                e.set_location(game, l);
+                e.location = l;
                 let GameEvent::DiscoveryRevealed(a) = adjusted(game, p, &event(e), d) else { panic!() };
-                assert_eq!(a.location(game), l.or(locations.first().copied()));
+                assert_eq!(a.location, l.or(locations.first().copied()));
             }
         }
         GameEvent::KarmaShipmentPrevention(_) => {
@@ -745,7 +745,7 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                 for ty in [Some(TerrorType::Atomics), Some(TerrorType::Robbery), None] {
                     let mut e = TerrorPlanted::new(game, f);
                     e.type_ = ty;
-                    e.set_stronghold(game, stronghold);
+                    e.stronghold = stronghold;
                     let GameEvent::TerrorPlanted(a) = adjusted(game, p, &event(e), d) else { panic!() };
                     let expected = if removing || stronghold.is_some() {
                         let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, removing).collect();
@@ -764,13 +764,13 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                 let mut e = TerrorRevealed::new(game, f);
                 e.type_ = ty;
                 e.robbery_takes_card = true;
-                e.set_card_to_give_in_sabotage(pl.treachery_cards.first().copied());
+                e.card_to_give_in_sabotage = pl.treachery_cards.first().copied();
                 e.forces_in_sneak_attack = 2;
                 let GameEvent::TerrorRevealed(a) = adjusted(game, p, &event(e), d) else { panic!() };
                 let ty = match ty { Some(t) if types.contains(&t) => t, _ => types[0] };
                 assert_eq!(a.type_, Some(ty));
                 assert_eq!(a.robbery_takes_card, ty == TerrorType::Robbery);
-                assert_eq!(a.card_to_give_in_sabotage(), if ty == TerrorType::Sabotage { pl.treachery_cards.first().copied() } else { None });
+                assert_eq!(a.card_to_give_in_sabotage, if ty == TerrorType::Sabotage { pl.treachery_cards.first().copied() } else { None });
                 assert_eq!(a.forces_in_sneak_attack, if ty == TerrorType::SneakAttack && possible { 2 } else { 0 });
             }
         }
@@ -829,7 +829,7 @@ fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
         s.set_cunning_no_field_value(no_field);
         s.smuggled_amount = 1;
         s.smuggled_special_amount = 1;
-        s.set_karma_card(any_karma);
+        s.karma_card = any_karma;
         s.ally_contribution_amount = 2;
         if let Some(w) = worlds.first() {
             let mut origins: IndexMap<Location, Battalion> = IndexMap::new();
@@ -839,7 +839,7 @@ fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
         let GameEvent::Shipment(a) = adjusted(game, p, &event(s.clone()), d) else { panic!() };
         let ty = s.shipment_type;
         let back = ty == ShipmentType::ShipmentBack;
-        let pinned = !prevented && (back || s.to(game).is_some());
+        let pinned = !prevented && (back || s.to.is_some());
         let mut e = s.clone();
         if pinned {
             let from_reserves = matches!(ty, ShipmentType::ShipmentNormal | ShipmentType::ShipmentRicheseSecretAlly);
@@ -851,19 +851,19 @@ fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
                 e.set_no_field_value(-1);
                 e.set_cunning_no_field_value(-1);
             }
-            if !Shipment::may_smuggle(game, p, s.to(game)) || !from_reserves || f == Some(Faction::Fremen) {
+            if !Shipment::may_smuggle(game, p, s.to) || !from_reserves || f == Some(Faction::Fremen) {
                 e.smuggled_amount = 0;
                 e.smuggled_special_amount = 0;
             }
             if !(Shipment::can_karma(game, p) && (f != Some(Faction::Fremen) || ty == ShipmentType::ShipmentSiteToSite) && !cross) {
-                e.set_karma_card(None);
+                e.karma_card = None;
             }
             let cost = Shipment::determine_cost(game, p, &e);
             if !(pl.ally != None && cost > 0 && game.resources_your_ally_can_pay(p) > 0) {
                 e.ally_contribution_amount = 0;
             }
         }
-        assert_eq!(json::serialize(&event((*a).clone())), json::serialize(&event(e)), "shipment adjustments for {:?} to {:?}", ty, s.to(game).map(|l| l.id()));
+        assert_eq!(json::serialize(&event((*a).clone())), json::serialize(&event(e)), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
         let ActionOptions::Shipment(o) = opts(game, p, &event(s), d) else { panic!() };
         check_shipment_draft(game, p, &a, &o);
     }

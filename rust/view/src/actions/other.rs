@@ -197,7 +197,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Game
         GameEventType::KarmaMonster => {
             // Nothing picked on the map yet.
             let mut e = KarmaMonster::new(game, faction);
-            e.set_territory(game, None);
+            e.territory = None;
             event(e)
         }
         GameEventType::EmperorBidSupport => {
@@ -248,7 +248,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Game
 fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
     let ally = game.player(game.get_player(Some(faction)).expect("player")).ally;
     e.permitted_resources = game.get_permitted_use_of_ally_resources(ally);
-    e.set_permitted_karma_card(game.get_permitted_use_of_ally_karma(ally));
+    e.permitted_karma_card = game.get_permitted_use_of_ally_karma(ally);
     match faction {
         Faction::Tleilaxu => e.set_tleilaxu_allows_revival_discount(game.alliances.tleilaxu_allows_revival_discount),
         Faction::Ixian => e.set_ixian_allows_replacing_cards(game.alliances.ixian_allows_replacing_cards),
@@ -292,8 +292,7 @@ fn deal_end_phases(t: DealType) -> Vec<Option<Phase>> {
 /// The draft as the form holds it after adjusting these inputs.
 pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
-    let hand: Vec<i32> = card_ids(pl.treachery_cards.iter().copied());
-    let none_card = TreacheryCardManager::get_id(None);
+    let hand: Vec<TreacheryCard> = pl.treachery_cards.clone();
     macro_rules! adjust {
         ($e:expr, |$m:ident| $body:block) => {{
             let mut $m = (**$e).clone();
@@ -318,7 +317,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         GameEvent::AllyPermission(e) => adjust!(e, |m| {
             m.permitted_resources = picker(m.permitted_resources, 0, pl.resources);
             if !Karma::can_karma(game, p) {
-                m.set_permitted_karma_card(None);
+                m.permitted_karma_card = None;
             }
             if pl.faction == Some(Faction::Emperor) {
                 m.emperor_will_pay_for_extra_revival = picker(m.emperor_will_pay_for_extra_revival, 0, 3);
@@ -331,16 +330,16 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::CardTraded(e) => adjust!(e, |m| {
             m.target = pl.ally;
-            let cards = card_ids(CardTraded::valid_cards(game, p));
-            m.card_id = required(m.card_id, &cards, none_card);
+            let cards: Vec<TreacheryCard> = CardTraded::valid_cards(game, p).into_iter().collect();
+            m.card = required_opt(m.card, &cards);
             match pl.allied_player(game) {
                 // An optional image choice keeps whatever card was asked for.
                 Some(a) if game.is_bot(a) => {}
-                _ => m.requested_card_id = none_card,
+                _ => m.requested_card = None,
             }
         }),
         GameEvent::ChoamDiscarded(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(ChoamDiscarded::valid_cards(game, p)), none_card);
+            m.card = required_opt(m.card, &ChoamDiscarded::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
         GameEvent::ChoamEconomics(e) => adjust!(e, |m| {
             m.status = required(m.status, &[Some(ChoamEconomicsStatus::Double), Some(ChoamEconomicsStatus::Cancel)], None);
@@ -357,18 +356,18 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             m.benefit = picker(m.benefit, 0, 50);
         }),
         GameEvent::Discarded(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &hand, none_card);
+            m.card = required_opt(m.card, &hand);
         }),
         GameEvent::DiscardedSearched(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(DiscardedSearched::valid_cards(game)), none_card);
+            m.card = required_opt(m.card, &DiscardedSearched::valid_cards(game).into_iter().collect::<Vec<_>>());
         }),
         GameEvent::DiscardedTaken(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(DiscardedTaken::valid_cards(game, p)), none_card);
+            m.card = required_opt(m.card, &DiscardedTaken::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
         GameEvent::DistransUsed(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = DistransUsed::valid_targets(game, p).collect();
             m.target = required_opt(m.target, &targets);
-            m.card_id = required(m.card_id, &card_ids(DistransUsed::valid_cards(game, p)), none_card);
+            m.card = required_opt(m.card, &DistransUsed::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
         GameEvent::DivideResources(e) => adjust!(e, |m| {
             let amount = DivideResources::get_resources_to_be_divided(game).map_or(0, |t| t.amount);
@@ -382,7 +381,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             m.target = required_opt(m.target, &targets);
             m.resources = picker(m.resources, min, max);
             if !game.applicable(Rule::CardsCanBeTraded) {
-                m.card_id = none_card;
+                m.card = None;
             }
         }),
         GameEvent::EmperorBidSupport(e) => adjust!(e, |m| {
@@ -393,7 +392,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             }
         }),
         GameEvent::EmperorDiscarded(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &hand, none_card);
+            m.card = required_opt(m.card, &hand);
         }),
         GameEvent::FactionSelected(e) => adjust!(e, |m| {
             let fs: Vec<Faction> = FactionSelected::valid_factions(game).collect();
@@ -406,27 +405,27 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             m.target = required_opt(m.target, &targets);
         }),
         GameEvent::IxianRemovedCardFromAuction(e) => adjust!(e, |m| {
-            let cards = card_ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
-            m.card_id = required(m.card_id, &cards, none_card);
+            let cards: Vec<TreacheryCard> = game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
+            m.card = required_opt(m.card, &cards);
         }),
         GameEvent::IxianSelectedStartingCard(e) => adjust!(e, |m| {
-            let cards = card_ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default());
-            m.card_id = required(m.card_id, &cards, none_card);
+            let cards: Vec<TreacheryCard> = game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
+            m.card = required_opt(m.card, &cards);
         }),
         GameEvent::IxianSwappedCardOnBid(e) => adjust!(e, |m| {
             m.passed = false;
-            m.card_id = required(m.card_id, &hand, none_card);
+            m.card = required_opt(m.card, &hand);
         }),
         GameEvent::Karma(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(Karma::valid_karma_cards(game, p)), none_card);
+            m.card = required_opt(m.card, &Karma::valid_karma_cards(game, p).into_iter().collect::<Vec<_>>());
             m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), None);
         }),
         GameEvent::KarmaChoamDiscard(e) => adjust!(e, |m| {
-            let karma = card_ids(Karma::valid_karma_cards(game, p));
+            let karma: Vec<TreacheryCard> = Karma::valid_karma_cards(game, p).into_iter().collect();
             let before = m.card_to_use;
             // More than one: a required picker. Otherwise `CardToUse = ValidKarmaCards.FirstOrDefault()`.
-            m.card_to_use = if karma.len() > 1 { required(m.card_to_use, &karma, none_card) } else { karma.first().copied().unwrap_or(none_card) };
-            if m.card_to_use != before && karma.len() > 1 && karma.contains(&before) {
+            m.card_to_use = if karma.len() > 1 { required_opt(m.card_to_use, &karma) } else { karma.first().copied() };
+            if m.card_to_use != before && karma.len() > 1 && before.is_some_and(|b| karma.contains(&b)) {
                 // ChangeCardToUse clears the selection.
                 m.set_cards(&[]);
             }
@@ -436,7 +435,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             m.target = required_opt(m.target, &targets);
         }),
         GameEvent::KarmaRicheseBuy(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(game.decks.richese_cache.iter().copied()), none_card);
+            m.card = required_opt(m.card, &game.decks.richese_cache.iter().copied().into_iter().collect::<Vec<_>>());
         }),
         GameEvent::MulliganPerformed(e) => adjust!(e, |m| {
             m.passed = false;
@@ -458,26 +457,25 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         GameEvent::SkillAssigned(e) => adjust!(e, |m| {
             m.passed = false;
             m.skill = required_opt(m.skill, &SkillAssigned::valid_skills(game, p));
-            let leaders: Vec<i32> = SkillAssigned::valid_leaders(game, p).into_iter().map(|l| l.map_or(-1, |l| l.id())).collect();
-            m.leader_id = required(m.leader_id, &leaders, -1);
+            let leaders: Vec<Option<Leader>> = SkillAssigned::valid_leaders(game, p).into_iter().collect();
+            m.leader = required(m.leader, &leaders, None);
         }),
         GameEvent::StormSpellPlayed(e) => adjust!(e, |m| {
             m.move_amount = picker(m.move_amount, 0, 10);
         }),
         GameEvent::TraitorDiscarded(e) => adjust!(e, |m| {
-            let heroes: Vec<i32> = TraitorDiscarded::valid_traitors(game, p).into_iter().map(|h| h.id()).collect();
-            m.traitor_id = required(m.traitor_id, &heroes, -1);
+            let heroes: Vec<Hero> = TraitorDiscarded::valid_traitors(game, p).into_iter().collect();
+            m.traitor = required_opt(m.traitor, &heroes);
         }),
         GameEvent::TraitorsSelected(e) => adjust!(e, |m| {
-            let heroes: Vec<i32> = pl.traitors.iter().map(|h| h.id()).collect();
-            m.traitor_id = required(m.traitor_id, &heroes, -1);
+            m.selected_traitor = required_opt(m.selected_traitor, &pl.traitors);
         }),
         GameEvent::RicheseAnnouncesAuction(e) => adjust!(e, |m| {
             m.first = true;
         }),
         GameEvent::RicheseAnnouncesBlackMarket(e) => adjust!(e, |m| {
             m.passed = false;
-            m.card_id = required(m.card_id, &card_ids(RicheseAnnouncesBlackMarket::valid_cards(game, p)), none_card);
+            m.card = required_opt(m.card, &RicheseAnnouncesBlackMarket::valid_cards(game, p).into_iter().collect::<Vec<_>>());
             let types = [Some(AuctionType::BlackMarketNormal), Some(AuctionType::BlackMarketOnceAround), Some(AuctionType::BlackMarketSilent)];
             m.auction_type = required(m.auction_type, &types, None);
             if m.auction_type == Some(AuctionType::BlackMarketOnceAround) {
@@ -485,14 +483,14 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             }
         }),
         GameEvent::RicheseGaveCard(e) => adjust!(e, |m| {
-            m.card_id = required(m.card_id, &card_ids(RicheseGaveCard::valid_cards(game, p)), none_card);
+            m.card = required_opt(m.card, &RicheseGaveCard::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
         GameEvent::RicheseKeepsUnsoldCard(e) => adjust!(e, |m| {
             m.passed = false;
         }),
         GameEvent::RicheseSpecifiesAuction(e) => adjust!(e, |m| {
             if RicheseSpecifiesAuction::may_specify_card(game, p) {
-                m.card_id = required(m.card_id, &card_ids(RicheseSpecifiesAuction::valid_cards(game)), none_card);
+                m.card = required_opt(m.card, &RicheseSpecifiesAuction::valid_cards(game).into_iter().collect::<Vec<_>>());
             }
             if RicheseSpecifiesAuction::may_specify_type_of_auction(game, p) {
                 let types = [Some(AuctionType::RicheseOnceAround), Some(AuctionType::RicheseSilent)];
@@ -654,7 +652,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
         }),
         GameEvent::KarmaChoamDiscard(e) => ActionOptions::KarmaChoamDiscard(KarmaChoamDiscardOptions {
             karma_cards: card_ids(Karma::valid_karma_cards(game, p)),
-            cards: hand().into_iter().filter(|c| *c != e.card_to_use).collect(),
+            cards: hand().into_iter().filter(|c| Some(*c) != e.card_to_use.map(|c| c.id())).collect(),
             draft: json.clone(),
         }),
         GameEvent::KarmaHandSwap(_) => ActionOptions::KarmaHandSwap(KarmaHandSwapOptions {
@@ -853,7 +851,7 @@ fn yes_no_options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Descri
         GameEventType::AllianceByTerror => yes_no(m(express!("Enter an alliance with ", Faction::Moritani, "?")), true, draft),
         GameEventType::AllianceByAmbassador => yes_no(m(express!("Enter an alliance with ", Faction::Ecaz, "?")), true, draft),
         GameEventType::BattleClaimed => {
-            let territory = game.battle.battle_about_to_start.as_ref().and_then(|b| b.territory(game));
+            let territory = game.battle.battle_about_to_start.as_ref().and_then(|b| b.territory);
             let title = if game.player(p).faction == Some(Faction::Ecaz) {
                 express!("Do you wish to fight in ", territory, "? Otherwise, your ally will.")
             } else {

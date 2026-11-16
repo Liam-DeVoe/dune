@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RequestTleilaxuRevival {
-    pub hero_id: i32,
+    pub hero: Option<Hero>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct RequestTleilaxuRevival {
 impl Default for RequestTleilaxuRevival {
     fn default() -> Self {
         RequestTleilaxuRevival {
-            hero_id: Default::default(),
+            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             base: Default::default(),
         }
     }
@@ -23,17 +23,9 @@ impl RequestTleilaxuRevival {
         e
     }
 
-    pub fn hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.hero_id)
-    }
-
-    pub fn set_hero(&mut self, value: Option<Hero>) {
-        self.hero_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !Self::valid_targets(game, self.player()).any(|h| Some(h) == self.hero()) {
-            return Some(express!(self.hero(), " can't be revived this way"));
+        if !Self::valid_targets(game, self.player()).any(|h| Some(h) == self.hero) {
+            return Some(express!(self.hero, " can't be revived this way"));
         }
 
         None
@@ -55,8 +47,8 @@ impl RequestTleilaxuRevival {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let hero = self.hero();
-        let existing_request = game.revival.current_revival_requests.iter().find(|r| r.hero() == hero).cloned();
+        let hero = self.hero;
+        let existing_request = game.revival.current_revival_requests.iter().find(|r| r.hero == hero).cloned();
         if let Some(existing_request) = existing_request {
             // List.Remove: events compare by reference.
             if let Some(i) = game.revival.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &existing_request)) {

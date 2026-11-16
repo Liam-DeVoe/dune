@@ -17,7 +17,7 @@ impl ClassicBot {
         let (forces, as_advisors) = self.move_details(game, &moved);
         let mut result = Move::new(game, self.faction(game));
         result.passed = false;
-        result.set_to(game, Some(moved.to));
+        result.to = Some(moved.to);
         result.set_force_locations(game, &forces);
         result.as_advisors = as_advisors;
 
@@ -34,7 +34,7 @@ impl ClassicBot {
         let (forces, as_advisors) = self.move_details(game, &moved);
         let mut result = Caravan::new(game, self.faction(game));
         result.passed = false;
-        result.set_to(game, Some(moved.to));
+        result.to = Some(moved.to);
         result.set_force_locations(game, &forces);
         result.as_advisors = as_advisors;
 
@@ -66,7 +66,7 @@ impl ClassicBot {
         if self.decided_shipment_action == ShipmentDecision::StrongholdNearResources {
             // The shipment's location ids are the same as those of `game`.
             let decided = self.decided_shipment.clone().expect("decided shipment");
-            let decided_to = decided.to(game).expect("to");
+            let decided_to = decided.to.expect("to");
             if game.player(me).forces_in_locations.contains_key(&decided_to) {
                 let to_move = game.player(me).forces_in_locations[&decided_to]
                     .take(decided.force_amount + decided.special_force_amount, faction == Faction::Ixian);

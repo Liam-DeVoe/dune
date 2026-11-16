@@ -73,10 +73,10 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
     let shipment = |forces: i32, specials: i32, g: &Game| {
         let mut s = Shipment::new(g, Faction::Emperor);
         s.shipment_type = ShipmentType::ShipmentBack;
-        s.set_karma_card(None);
+        s.karma_card = None;
         s.set_no_field_value(-1);
         s.set_cunning_no_field_value(-1);
-        s.set_to(g, Some(sand));
+        s.to = Some(sand);
         s.force_amount = forces;
         s.special_force_amount = specials;
         GameEvent::Shipment(Rc::new(s))
@@ -115,7 +115,7 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
 
     let mv = |to: Location, g: &Game| {
         let mut m = Move::new(g, Faction::Emperor);
-        m.set_to(g, Some(to));
+        m.to = Some(to);
         GameEvent::Move(Rc::new(m))
     };
     g.ship_move.intrusions.push(Intrusion::new(&mv(intruded, &g), IntrusionType::BeneGesseritIntrusion));
@@ -147,7 +147,7 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
 
     let revival = |own: i32, by_emperor: i32, g: &Game| {
         let mut r = Revival::new(g, Faction::Fremen);
-        r.set_hero(None);
+        r.hero = None;
         r.amount_of_special_forces = own;
         r.extra_special_forces_paid_by_emperor = by_emperor;
         GameEvent::Revival(Rc::new(r))
@@ -166,7 +166,7 @@ fn karama_worm_needs_a_territory() {
     let fremen = idx(&g, Faction::Fremen);
     let monster = |t: Option<Territory>, g: &Game| {
         let mut m = KarmaMonster::new(g, Faction::Fremen);
-        m.set_territory(g, t);
+        m.territory = t;
         GameEvent::KarmaMonster(Rc::new(m))
     };
     let karama_cards = |g: &Game| g.player(fremen).treachery_cards.iter().filter(|c| c.type_() == TreacheryCardType::Karma).count();
@@ -238,7 +238,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     g.bidding.cards_on_auction = Some(Deck::empty(None));
     g.turn.current_phase = Phase::RicheseSpecifyingAuction;
     let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
-    auction.set_card(Some(sold));
+    auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);
     auction.direction = 1;
     assert!(GameEvent::RicheseSpecifiesAuction(Rc::new(auction)).execute(&mut g, false, false).is_none());
@@ -262,7 +262,7 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
         let mut b = Bid::new(g, faction);
         b.passed = passed;
         b.karma_bid = true;
-        b.set_karma_card(card);
+        b.karma_card = card;
         GameEvent::Bid(Rc::new(b))
     };
     let history = g.history.entries.len();
@@ -282,7 +282,7 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
 fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     let mut g = fixture("bene_gesserit");
     let mut m = Move::new(&g, Faction::Emperor);
-    m.set_to(&g, Some(location(&g, 5)));
+    m.to = Some(location(&g, 5));
     g.ship_move.intrusions.push(Intrusion::new(&GameEvent::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
     g.main_phase_start(MainPhase::Battle, false);
     assert!(g.ship_move.intrusions.is_empty());
@@ -303,10 +303,10 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     let shipment = |g: &Game, contribution: i32| {
         let mut s = Shipment::new(g, f);
         s.shipment_type = ShipmentType::ShipmentNormal;
-        s.set_karma_card(None);
+        s.karma_card = None;
         s.set_no_field_value(-1);
         s.set_cunning_no_field_value(-1);
-        s.set_to(g, Some(to));
+        s.to = Some(to);
         s.force_amount = 2;
         s.ally_contribution_amount = contribution;
         s
@@ -357,12 +357,12 @@ fn only_a_dead_leader_can_be_revived() {
 
     let revival = |g: &Game| {
         let mut r = Revival::new(g, f);
-        r.set_hero(Some(Hero::Leader(leader)));
+        r.hero = Some(Hero::Leader(leader));
         GameEvent::Revival(Rc::new(r))
     };
     let karama_revival = |g: &Game| {
         let mut r = KarmaFreeRevival::new(g, f);
-        r.set_hero(Some(Hero::Leader(leader)));
+        r.hero = Some(Hero::Leader(leader));
         r.validate(g).map(|m| m.plain_text())
     };
     let refusal = Some("You can't revive a leader who isn't dead");
@@ -388,7 +388,7 @@ fn a_living_ghola_can_be_taken_back() {
     g.player_mut(tleilaxu).leaders.push(leader);
 
     let mut r = Revival::new(&g, f);
-    r.set_hero(Some(Hero::Leader(leader)));
+    r.hero = Some(Hero::Leader(leader));
     assert_eq!(submit(&mut g, |_| GameEvent::Revival(Rc::new(r))), None);
     assert!(g.is_alive(Hero::Leader(leader)));
     assert!(g.player(p).leaders.contains(&leader));

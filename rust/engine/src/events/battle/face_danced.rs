@@ -7,7 +7,7 @@ pub struct FaceDanced {
     pub forces_from_reserve: i32,
     pub face_dancer_called: bool,
     // ---- inherited from PlacementEvent ----
-    pub to_id: i32,
+    pub to: Option<Location>,
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -21,7 +21,7 @@ impl Default for FaceDanced {
             target_force_locations: Some("".to_string()),
             forces_from_reserve: Default::default(),
             face_dancer_called: Default::default(),
-            to_id: Default::default(),
+            to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
             base: Default::default(),
@@ -73,7 +73,7 @@ impl FaceDanced {
                 "The amount of forces you selected from the planet and from reserves (",
                 amount_of_forces,
                 ") should equal the amount you wish to put in ",
-                game.battle.current_battle.as_ref().expect("current battle").territory(game),
+                game.battle.current_battle.as_ref().expect("current battle").territory,
                 " (",
                 amount_of_placed_forces,
                 ")"
@@ -85,7 +85,7 @@ impl FaceDanced {
 
     pub fn maximum_number_of_forces(g: &Game, p: PlayerIndex) -> i32 {
         let ally = g.player(p).allied_player(g);
-        let territory = || g.battle.current_battle.as_ref().expect("current battle").territory(g);
+        let territory = || g.battle.current_battle.as_ref().expect("current battle").territory;
         let condition = match ally {
             None => true,
             Some(ally) => g.battle.battle_winner == Some(g.player(p).ally) || g.player(ally).any_forces_in_territory(territory()) == 0,
@@ -120,7 +120,7 @@ impl FaceDanced {
         }
         let Some(battle) = g.battle.current_battle.as_ref() else { return false };
 
-        let territory = battle.territory(g).expect("territory");
+        let territory = battle.territory.expect("territory");
         if territory.is_homeworld() && !g.player(p.expect("player")).is_native(territory) {
             return false;
         }
@@ -146,7 +146,7 @@ impl FaceDanced {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_target_locations(g: &Game) -> impl Iterator<Item = Location> {
-        let territory = g.battle.current_battle.as_ref().expect("current battle").territory(g).expect("territory");
+        let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
         territory
             .locations()
             .iter()
@@ -192,7 +192,7 @@ impl FaceDanced {
         let Some(battle) = game.battle.current_battle.clone() else { return };
 
         let winner = self.get_player(game, game.battle.battle_winner.flatten());
-        let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory(game));
+        let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory);
         let winner = winner.expect("winner");
         let co_occupying_player = if game.battle.battle_winner == game.battle.current_ecaz_or_ally_fighter {
             game.player(winner).allied_player(game)
@@ -200,13 +200,13 @@ impl FaceDanced {
             None
         };
         if let Some(co) = co_occupying_player {
-            nr_of_removed_forces += game.player(co).any_forces_in_territory(battle.territory(game));
+            nr_of_removed_forces += game.player(co).any_forces_in_territory(battle.territory);
         }
 
         if nr_of_removed_forces > 0 {
-            Player::forces_in_territory_to_reserves(game, winner, battle.territory(game).expect("territory"));
+            Player::forces_in_territory_to_reserves(game, winner, battle.territory.expect("territory"));
             if let Some(co) = co_occupying_player {
-                Player::forces_in_territory_to_reserves(game, co, battle.territory(game).expect("territory"));
+                Player::forces_in_territory_to_reserves(game, co, battle.territory.expect("territory"));
             }
             Player::add_forces_to_reserves(game, self.player(), -self.forces_from_reserve);
 
@@ -317,16 +317,16 @@ impl PassableGameEventMethods for FaceDanced {
 }
 
 impl PlacementEventMethods for FaceDanced {
-    fn field_to_id(&self) -> &i32 {
-        &self.to_id
+    fn field_to(&self) -> &Option<Location> {
+        &self.to
     }
 
     fn field_force_locations(&self) -> &Option<String> {
         &self.force_locations
     }
 
-    fn field_to_id_mut(&mut self) -> &mut i32 {
-        &mut self.to_id
+    fn field_to_mut(&mut self) -> &mut Option<Location> {
+        &mut self.to
     }
 
     fn field_force_locations_mut(&mut self) -> &mut Option<String> {
@@ -340,8 +340,8 @@ impl crate::events::location_event::LocationEvent for FaceDanced {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -367,8 +367,8 @@ impl crate::events::placement::Placement for FaceDanced {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
 }

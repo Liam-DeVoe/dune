@@ -262,7 +262,7 @@ impl<'a> Recorder<'a> {
             let valid: Vec<Location> = PerformHmsPlacement::valid_locations(game, p).collect();
             if !valid.is_empty() {
                 let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
-                e.set_target(game, Some(valid[self.rng.below(valid.len())]));
+                e.target = Some(valid[self.rng.below(valid.len())]);
                 return Ok(Some(to_object(&treachery_view::build::event(e))));
             }
         }

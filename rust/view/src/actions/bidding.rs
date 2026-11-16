@@ -83,7 +83,7 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
     let faction = game.player(p).faction;
     match draft {
         GameEvent::Bid(bid) => {
-            let max_amount = Bid::valid_max_amount(game, p, bid.karma_card().is_some());
+            let max_amount = Bid::valid_max_amount(game, p, bid.karma_card.is_some());
             let max_ally_amount = Bid::valid_max_ally_amount(game, Some(p));
             let (default_amount, default_ally_amount) =
                 clamped(game, p, starting_amounts(game, p), Bid::valid_max_amount(game, p, false), max_ally_amount);

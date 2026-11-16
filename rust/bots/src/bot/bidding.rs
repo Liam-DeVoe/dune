@@ -126,7 +126,7 @@ impl ClassicBot {
             let mut bid = Bid::new(game, self.faction(game));
             bid.amount = amount;
             bid.karma_bid = false;
-            bid.set_karma_card(Some(karma_card));
+            bid.karma_card = Some(karma_card);
             bid.passed = false;
             return Rc::new(bid);
         }
@@ -146,7 +146,7 @@ impl ClassicBot {
         bid.ally_contribution_amount = ally_contribution;
         bid.emperor_contribution_amount = emperor_contribution;
         bid.karma_bid = false;
-        bid.set_karma_card(None);
+        bid.karma_card = None;
         bid.passed = false;
         bid.uses_emperor_secret_ally = use_emperor_secret_ally;
         Rc::new(bid)

@@ -4,8 +4,8 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct Shipment {
     pub shipment_type: ShipmentType,
-    pub to_id: i32,
-    pub from_id: i32,
+    pub to: Option<Location>,
+    pub from: Option<Location>,
     pub force_amount: i32,
     pub special_force_amount: i32,
     pub smuggled_amount: i32,
@@ -13,7 +13,7 @@ pub struct Shipment {
     pub no_field_value: i32,
     pub cunning_no_field_value: i32,
     pub ally_contribution_amount: i32,
-    pub karma_card_id: i32,
+    pub karma_card: Option<TreacheryCard>,
     pub use_richese_secret_ally: bool,
     pub force_locations: Option<String>,
     /// Interior mutability: written after the event is stored in game state.
@@ -28,8 +28,8 @@ impl Default for Shipment {
     fn default() -> Self {
         Shipment {
             shipment_type: Default::default(),
-            to_id: Default::default(),
-            from_id: Default::default(),
+            to: Location::from_id(0),
+            from: Location::from_id(0),
             force_amount: Default::default(),
             special_force_amount: Default::default(),
             smuggled_amount: Default::default(),
@@ -37,7 +37,7 @@ impl Default for Shipment {
             no_field_value: Default::default(),
             cunning_no_field_value: Default::default(),
             ally_contribution_amount: Default::default(),
-            karma_card_id: Default::default(),
+            karma_card: TreacheryCardManager::get(0),
             use_richese_secret_ally: Default::default(),
             force_locations: Some("".to_string()),
             guild_income_prevented: Cell::new(Default::default()),
@@ -59,28 +59,12 @@ impl Shipment {
         e
     }
 
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.to_id)
+    pub fn source_location_for_shipment_to_reserves(&self) -> Option<Location> {
+        self.to
     }
 
-    pub fn set_to(&mut self, game: &Game, value: Option<Location>) {
-        self.to_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn source_location_for_shipment_to_reserves(&self, game: &Game) -> Option<Location> {
-        self.to(game)
-    }
-
-    pub fn from(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.from_id)
-    }
-
-    pub fn set_from(&mut self, game: &Game, value: Option<Location>) {
-        self.from_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn target_world_for_shipment_to_reserves(&self, game: &Game) -> Option<Homeworld> {
-        self.from(game).and_then(|l| l.as_homeworld())
+    pub fn target_world_for_shipment_to_reserves(&self) -> Option<Homeworld> {
+        self.from.and_then(|l| l.as_homeworld())
     }
 
     pub fn no_field_value(&self) -> i32 {
@@ -99,16 +83,8 @@ impl Shipment {
         self.cunning_no_field_value = value + 1;
     }
 
-    pub fn karma_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.karma_card_id)
-    }
-
-    pub fn set_karma_card(&mut self, value: Option<TreacheryCard>) {
-        self.karma_card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn is_using_karma(&self) -> bool {
-        self.karma_card().is_some()
+        self.karma_card.is_some()
     }
 
     pub fn is_back_to_reserves(&self) -> bool {
@@ -117,9 +93,9 @@ impl Shipment {
             || (self.shipment_type == ShipmentType::Unknown && (self.force_amount + self.special_force_amount) < 0)
     }
 
-    pub fn is_site_to_site(&self, game: &Game) -> bool {
+    pub fn is_site_to_site(&self) -> bool {
         self.shipment_type == ShipmentType::ShipmentSiteToSite
-            || (self.shipment_type == ShipmentType::Unknown && self.from(game).is_some())
+            || (self.shipment_type == ShipmentType::Unknown && self.from.is_some())
     }
 
     pub fn is_no_field(&self) -> bool {
@@ -160,7 +136,7 @@ impl Shipment {
     }
 
     pub fn determine_cost_to_initiator(&self, g: &Game) -> i32 {
-        let Some(_to) = self.to(g) else { return 0 };
+        let Some(_to) = self.to else { return 0 };
 
         Shipment::determine_cost(g, self.player(), self) - self.ally_contribution_amount
     }
@@ -206,7 +182,7 @@ impl Shipment {
         let p_opt = self.player_opt();
         let p = || p_opt.expect("player");
 
-        if !self.is_site_to_site(game) && game.prevented_from_shipping(self.initiator()) {
+        if !self.is_site_to_site() && game.prevented_from_shipping(self.initiator()) {
             return Some(express!(TreacheryCardType::Karma, " prevents you from shipping"));
         }
 
@@ -214,14 +190,14 @@ impl Shipment {
             return Some(express!("You can't ship back to reserves"));
         }
         if self.is_back_to_reserves() {
-            let source = self.source_location_for_shipment_to_reserves(game);
+            let source = self.source_location_for_shipment_to_reserves();
             let mut valid = Shipment::valid_source_locations(game, p());
             if !valid.any(|v| Some(v) == source) {
                 return Some(express!("You can't ship back to reserves from there"));
             }
         }
         if self.is_back_to_reserves() {
-            if let Some(target) = self.target_world_for_shipment_to_reserves(game) {
+            if let Some(target) = self.target_world_for_shipment_to_reserves() {
                 // List<Homeworld>.Contains: Location.Equals, by Id.
                 if !game.player(p()).home_worlds.iter().any(|hw| hw.location() == target.location()) {
                     return Some(express!("You can't ship back to that home world"));
@@ -229,11 +205,11 @@ impl Shipment {
             }
         }
 
-        if self.is_site_to_site(game) && !Shipment::may_ship_cross_planet(game, p()) {
+        if self.is_site_to_site() && !Shipment::may_ship_cross_planet(game, p()) {
             return Some(express!("You can't ship site-to-site"));
         }
-        if self.is_site_to_site(game) {
-            let from = self.from(game);
+        if self.is_site_to_site() {
+            let from = self.from;
             let mut valid = Shipment::valid_source_locations(game, p());
             if !valid.any(|v| Some(v) == from) {
                 return Some(express!("You can't ship site-to-site from there"));
@@ -246,7 +222,7 @@ impl Shipment {
         if self.force_amount == 0 && self.special_force_amount == 0 {
             return Some(express!("Select forces to ship"));
         }
-        let Some(to) = self.to(game) else {
+        let Some(to) = self.to else {
             return Some(express!("Target location not selected"));
         };
 
@@ -276,7 +252,7 @@ impl Shipment {
         if self.ally_contribution_amount > 0 && self.ally_contribution_amount > game.resources_your_ally_can_pay(p()) {
             return Some(express!("Your ally won't pay that much"));
         }
-        let cross_planet = self.is_back_to_reserves() || (self.is_site_to_site(game) && !self.from(game).is_some_and(|f| f.as_homeworld().is_some()));
+        let cross_planet = self.is_back_to_reserves() || (self.is_site_to_site() && !self.from.is_some_and(|f| f.as_homeworld().is_some()));
         if !Shipment::valid_shipment_locations(game, p(), cross_planet, self.use_richese_secret_ally).any(|v| v == to) {
             return Some(express!("Cannot ship there"));
         }
@@ -317,10 +293,10 @@ impl Shipment {
         }
 
         // C# parity: the sums wrap, so int.MaxValue + 1 passes the check.
-        if !self.is_site_to_site(game) && (self.force_amount + self.smuggled_amount) > game.player(p()).forces_in_reserve() {
+        if !self.is_site_to_site() && (self.force_amount + self.smuggled_amount) > game.player(p()).forces_in_reserve() {
             return Some(express!("Not enough ", game.player(p()).force(), " in reserve"));
         }
-        if !self.is_site_to_site(game)
+        if !self.is_site_to_site()
             && !is_richese_no_field_shipment
             && (self.special_force_amount + self.smuggled_special_amount) > game.player(p()).special_forces_in_reserve()
         {
@@ -328,7 +304,7 @@ impl Shipment {
         }
 
         let is_smuggling = self.smuggled_amount > 0 || self.smuggled_special_amount > 0;
-        let is_shipping_from_off_planet = !(self.is_back_to_reserves() || self.is_site_to_site(game))
+        let is_shipping_from_off_planet = !(self.is_back_to_reserves() || self.is_site_to_site())
             && self.initiator() != Some(Faction::Fremen)
             && (self.force_amount > 0 || self.special_force_amount > 0);
         if is_smuggling && (!is_shipping_from_off_planet || !Shipment::may_smuggle(game, p(), Some(to))) {
@@ -338,10 +314,10 @@ impl Shipment {
             return Some(express!("You can't smuggle more than 1 force"));
         }
 
-        if self.is_site_to_site(game) && self.force_amount > game.player(p()).forces_in(self.from(game)) {
+        if self.is_site_to_site() && self.force_amount > game.player(p()).forces_in(self.from) {
             return Some(express!("Not enough ", game.player(p()).force(), " for site-to-site shipment"));
         }
-        if self.is_site_to_site(game) && self.special_force_amount > game.player(p()).special_forces_in(self.from(game)) {
+        if self.is_site_to_site() && self.special_force_amount > game.player(p()).special_forces_in(self.from) {
             return Some(express!("Not enough ", game.player(p()).special_force(), " for site-to-site shipment"));
         }
 
@@ -353,9 +329,9 @@ impl Shipment {
             }
         }
 
-        if let Some(karma_card) = self.karma_card() {
+        if let Some(karma_card) = self.karma_card {
             if !Shipment::valid_karma_cards(game, p()).contains(&karma_card) {
-                return Some(express!("Invalid ", TreacheryCardType::Karma, " card: ", self.karma_card()));
+                return Some(express!("Invalid ", TreacheryCardType::Karma, " card: ", self.karma_card));
             }
         }
 
@@ -442,7 +418,7 @@ impl Shipment {
     }
 
     pub fn determine_cost(g: &Game, p: PlayerIndex, s: &Shipment) -> i32 {
-        match s.to(g) {
+        match s.to {
             None => 0,
             Some(to) => {
                 let forces = s.force_amount.abs();
@@ -455,7 +431,7 @@ impl Shipment {
                     to,
                     s.is_using_karma(),
                     s.is_back_to_reserves(),
-                    s.is_site_to_site(g),
+                    s.is_site_to_site(),
                     s.is_richese_no_field(),
                     s.is_non_richese_no_field(),
                 )
@@ -739,18 +715,18 @@ impl Shipment {
         let mut total_cost = 0;
 
         if !self.passed {
-            let owner_of_karma = match self.karma_card() {
+            let owner_of_karma = match self.karma_card {
                 Some(c) => game.owner_of_treachery_card(c),
                 None => None,
             };
             total_cost = self.pay_for_shipment(game)?;
 
-            if self.is_no_field() && self.to(game).is_some() {
+            if self.is_no_field() && self.to.is_some() {
                 let richese = self.get_player(game, Some(Faction::Richese)).required("get player")?;
 
                 if self.cunning_no_field_value() >= 0 {
                     game.reveal_current_no_field(richese, None);
-                    Player::ship_special_forces(game, richese, self.to(game).required("to")?, 1);
+                    Player::ship_special_forces(game, richese, self.to.required("to")?, 1);
                     game.ship_move.current_no_field_value = self.cunning_no_field_value();
                     let me = self.player();
                     game.play_nexus_card(me, elems!["ship and reveal a second ", FactionSpecialForce::Richese]);
@@ -766,7 +742,7 @@ impl Shipment {
                 }
             }
 
-            if let Some(to) = self.to(game) {
+            if let Some(to) = self.to {
                 if game.contains_conflicting_ally(self.player(), to) {
                     game.ship_move.chosen_destinations_with_allies.push(to.territory());
                 }
@@ -775,17 +751,17 @@ impl Shipment {
             game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
             let must_be_advisors = {
                 let pl = game.player(self.player());
-                let to = self.to(game);
+                let to = self.to;
                 (pl.is(Faction::BeneGesserit) && pl.special_forces_in(to) > 0)
                     || (to.is_some() && pl.special_forces_in_territory(to.map(|t| t.territory())) > 0)
             };
 
-            if self.is_site_to_site(game) {
+            if self.is_site_to_site() {
                 self.perform_site_to_site_shipment(game);
             } else if self.is_back_to_reserves() {
-                if let Some(source) = self.source_location_for_shipment_to_reserves(game) {
+                if let Some(source) = self.source_location_for_shipment_to_reserves() {
                     let me = self.player();
-                    let target = match self.target_world_for_shipment_to_reserves(game) {
+                    let target = match self.target_world_for_shipment_to_reserves() {
                         Some(hw) => hw,
                         None => game.player(me).home_worlds[0],
                     };
@@ -793,10 +769,10 @@ impl Shipment {
                     Player::move_forces(game, me, source, target.location(), -self.force_amount);
                     Player::special_forces_back_to_reserves(game, me, source, target, -self.special_force_amount);
                 }
-            } else if self.is_no_field() && self.initiator() == Some(Faction::Richese) && self.to(game).is_some() {
-                let to = self.to(game).required("to")?;
+            } else if self.is_no_field() && self.initiator() == Some(Faction::Richese) && self.to.is_some() {
+                let to = self.to.required("to")?;
                 self.perform_normal_shipment(game, self.player(), to, self.force_amount + self.smuggled_amount, 1);
-            } else if let Some(to) = self.to(game) {
+            } else if let Some(to) = self.to {
                 self.perform_normal_shipment(
                     game,
                     self.player(),
@@ -814,7 +790,7 @@ impl Shipment {
                 game.stone(Milestone::Shipment);
             }
 
-            if let Some(to) = self.to(game) {
+            if let Some(to) = self.to {
                 Player::flip_forces(game, self.player(), to, must_be_advisors);
             }
 
@@ -835,7 +811,7 @@ impl Shipment {
             }
 
             game.flip_bene_gesserit_advisors_when_alone();
-            let to = self.to(game);
+            let to = self.to;
             game.determine_occupation_location(to);
         } else {
             let m = self.get_verbose_message(game, total_cost, &received_payment_message, None).with_log(self.log_record(game, 0, 0));
@@ -852,7 +828,7 @@ impl Shipment {
         pl.resources -= cost_to_initiator;
 
         if self.is_using_karma() {
-            let karma_card = self.karma_card();
+            let karma_card = self.karma_card;
             game.discard_card(karma_card, true)?;
             game.stone(Milestone::Karma);
         }
@@ -912,7 +888,7 @@ impl Shipment {
     }
 
     pub fn perform_site_to_site_shipment(&self, game: &mut Game) {
-        let (Some(from), Some(to)) = (self.from(game), self.to(game)) else { return };
+        let (Some(from), Some(to)) = (self.from, self.to) else { return };
 
         Player::move_forces(game, self.player(), from, to, self.force_amount);
         Player::move_special_forces(game, self.player(), from, to, self.special_force_amount);
@@ -983,32 +959,32 @@ impl Shipment {
         }
 
         let f = game.player(initiator).faction;
-        if f != Some(Faction::Fremen) && f != Some(Faction::Guild) && !self.is_site_to_site(game) {
+        if f != Some(Faction::Fremen) && f != Some(Faction::Guild) && !self.is_site_to_site() {
             game.ship_move.ships_tech_token_income = true;
         }
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn get_message(&self, _game: &Game) -> Message {
         if self.passed {
             return express!(self.initiator(), " pass shipment");
         }
 
         if self.is_back_to_reserves() {
-            express!(self.initiator(), " ship from ", self.to(game), " to reserves").with_route(self.initiator().expect("faction"), self.sources(game), None)
+            express!(self.initiator(), " ship from ", self.to, " to reserves").with_route(self.initiator().expect("faction"), self.sources(), None)
         } else {
-            express!(self.initiator(), " ship to ", self.to(game)).with_route(self.initiator().expect("faction"), self.sources(game), self.to(game))
+            express!(self.initiator(), " ship to ", self.to).with_route(self.initiator().expect("faction"), self.sources(), self.to)
         }
     }
 
-    pub fn sources(&self, game: &Game) -> Vec<Location> {
+    pub fn sources(&self) -> Vec<Location> {
         if self.is_back_to_reserves() {
-            return match self.to(game) {
+            return match self.to {
                 Some(to) => vec![to],
                 None => vec![],
             };
         }
-        if self.is_site_to_site(game) {
-            if let Some(from) = self.from(game) {
+        if self.is_site_to_site() {
+            if let Some(from) = self.from {
                 return vec![from];
             }
         }
@@ -1026,29 +1002,29 @@ impl Shipment {
                 " ship ",
                 express_part_if!(self.force_amount > 0; self.force_amount, game.player(self.player()).force(), " "),
                 "from ",
-                self.to(game),
+                self.to,
                 " back to reserves",
                 self.cost_message(game, cost),
                 self.karama_message(game, owner_of_karma),
                 guild_income.clone()
             )
-            .with_route(self.initiator().expect("faction"), self.sources(game), None);
+            .with_route(self.initiator().expect("faction"), self.sources(), None);
         }
 
-        if self.is_site_to_site(game) {
+        if self.is_site_to_site() {
             return express!(
                 self.initiator(),
                 " site-to-site ship ",
                 self.force_message(game),
                 " from ",
-                self.from(game),
+                self.from,
                 " to ",
-                self.to(game),
+                self.to,
                 self.cost_message(game, cost),
                 self.karama_message(game, owner_of_karma),
                 guild_income.clone()
             )
-            .with_route(self.initiator().expect("faction"), self.sources(game), self.to(game));
+            .with_route(self.initiator().expect("faction"), self.sources(), self.to);
         }
 
         if cost > 0 {
@@ -1057,16 +1033,16 @@ impl Shipment {
                 " ship ",
                 self.force_message(game),
                 " to ",
-                self.to(game),
+                self.to,
                 self.no_field_message(),
                 self.cost_message(game, cost),
                 self.karama_message(game, owner_of_karma),
                 guild_income.clone()
             )
-            .with_route(self.initiator().expect("faction"), self.sources(game), self.to(game));
+            .with_route(self.initiator().expect("faction"), self.sources(), self.to);
         }
 
-        express!(self.initiator(), " rally ", self.force_message(game), " in ", self.to(game)).with_route(self.initiator().expect("faction"), self.sources(game), self.to(game))
+        express!(self.initiator(), " rally ", self.force_message(game), " in ", self.to).with_route(self.initiator().expect("faction"), self.sources(), self.to)
     }
 
     pub fn log_record(&self, game: &Game, cost: i32, guild_income: i32) -> ShipLogged {
@@ -1074,7 +1050,7 @@ impl Shipment {
             ShipKind::Passed
         } else if self.is_back_to_reserves() {
             ShipKind::BackToReserves
-        } else if self.is_site_to_site(game) {
+        } else if self.is_site_to_site() {
             ShipKind::SiteToSite
         } else {
             ShipKind::Normal
@@ -1094,13 +1070,13 @@ impl Shipment {
             kind,
             forces: if self.passed { 0 } else { self.force_amount },
             special_forces: if self.passed || self.is_back_to_reserves() { 0 } else { self.special_force_amount },
-            from: if self.is_site_to_site(game) || self.is_back_to_reserves() { self.sources(game).into_iter().next() } else { None },
-            to: if self.is_back_to_reserves() || self.passed { None } else { self.to(game) },
+            from: if self.is_site_to_site() || self.is_back_to_reserves() { self.sources().into_iter().next() } else { None },
+            to: if self.is_back_to_reserves() || self.passed { None } else { self.to },
             cost,
             ally_share: self.ally_contribution_amount,
             ally: game.player(self.player()).ally,
             guild_paid: guild_income > 0,
-            karama: self.karma_card(),
+            karama: self.karma_card,
             blocked,
             blocked_by,
             plain,
@@ -1128,7 +1104,7 @@ impl Shipment {
     }
 
     pub fn karama_message(&self, _game: &Game, owner_of_karma: Option<PlayerIndex>) -> MessagePart {
-        let karma_card = self.karma_card();
+        let karma_card = self.karma_card;
         express_part_if!(
             karma_card.is_some();
             " using ",
@@ -1179,8 +1155,8 @@ impl crate::events::location_event::LocationEvent for Shipment {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        Shipment::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {

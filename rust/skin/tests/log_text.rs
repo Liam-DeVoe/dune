@@ -47,8 +47,8 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
     let to = g.board.map.locations(false).find(|l| l.id() != 0 && !l.territory().is_stronghold()).unwrap();
     let mut s = Shipment::default();
     s.force_amount = 2;
-    s.karma_card_id = -1;
-    s.to_id = to.id();
+    s.karma_card = None;
+    s.to = Some(to);
     s.initialize(&g, Some(Faction::Atreides));
     let s = Rc::new(s);
     g.prevent(Faction::Atreides, FactionAdvantage::GuildReceiveShipment, false);
@@ -121,7 +121,7 @@ fn ornithopter_and_discovery_texts_have_single_spaces() {
 fn a_karama_card_play_has_single_spaces() {
     let g = game();
     let mut e = Karma::default();
-    e.card_id = TreacheryCardManager::items().iter().find(|c| c.type_() == TreacheryCardType::Karma).unwrap().id();
+    e.card = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma);
     e.initialize(&g, Some(Faction::Atreides));
     assert_eq!(text(&e.get_message(&g)), "Atreides play a Karama card");
 }

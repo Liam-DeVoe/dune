@@ -4,8 +4,8 @@ use crate::prelude::*;
 pub struct BattleConcluded {
     pub kill: bool,
     pub capture: bool,
-    pub traitor_to_replace_id: i32,
-    pub new_traitor_id: i32,
+    pub traitor_to_replace: Option<Hero>,
+    pub new_traitor: Option<Hero>,
     pub special_force_losses_replaced: i32,
     pub card_ids: Option<String>,
     pub stolen_token: Option<TechToken>,
@@ -19,8 +19,8 @@ impl Default for BattleConcluded {
         BattleConcluded {
             kill: Default::default(),
             capture: true,
-            traitor_to_replace_id: -1,
-            new_traitor_id: -1,
+            traitor_to_replace: None,
+            new_traitor: None,
             special_force_losses_replaced: Default::default(),
             card_ids: Default::default(),
             stolen_token: Default::default(),
@@ -51,22 +51,6 @@ impl BattleConcluded {
         }
     }
 
-    pub fn traitor_to_replace(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.traitor_to_replace_id)
-    }
-
-    pub fn set_traitor_to_replace(&mut self, value: Option<Hero>) {
-        self.traitor_to_replace_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
-    pub fn new_traitor(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.new_traitor_id)
-    }
-
-    pub fn set_new_traitor(&mut self, value: Option<Hero>) {
-        self.new_traitor_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
     pub fn discarded_cards(&self) -> Vec<TreacheryCard> {
         GameEvent::id_string_to_objects(Some(self.card_ids.as_deref().unwrap_or("")), &TreacheryCardManager::lookup())
     }
@@ -93,11 +77,11 @@ impl BattleConcluded {
         }
 
         if game.battle.decipherer_may_replace_traitor {
-            if self.new_traitor().is_some() && self.traitor_to_replace().is_none() {
-                return Some(express!("Select a traitor to be replaced by ", self.new_traitor()));
+            if self.new_traitor.is_some() && self.traitor_to_replace.is_none() {
+                return Some(express!("Select a traitor to be replaced by ", self.new_traitor));
             }
-            if self.new_traitor().is_none() && self.traitor_to_replace().is_some() {
-                return Some(express!("Select a traitor to replace ", self.traitor_to_replace()));
+            if self.new_traitor.is_none() && self.traitor_to_replace.is_some() {
+                return Some(express!("Select a traitor to replace ", self.traitor_to_replace));
             }
         }
 
@@ -118,7 +102,7 @@ impl BattleConcluded {
         game.battle.battle_was_concluded_by_winner = true;
 
         if self.add_extra_force {
-            let territory = current_battle.territory(game);
+            let territory = current_battle.territory;
             let to = territory.and_then(|t| t.locations().iter().copied().find(|l| game.player(self.player()).any_forces_in(Some(*l)) > 0));
             if let Some(to) = to {
                 Player::ship_forces(game, self.player(), to, 1);
@@ -144,7 +128,7 @@ impl BattleConcluded {
             self.log_objects(game, vec![self.initiator().into(), " look at ".into(), count.into(), " leaders in the traitor deck".into()]);
         }
 
-        if self.traitor_to_replace().is_some() && self.new_traitor().is_some() && game.battle.decipherer_may_replace_traitor {
+        if self.traitor_to_replace.is_some() && self.new_traitor.is_some() && game.battle.decipherer_may_replace_traitor {
             self.decipherer_replaces_traitors(game);
         }
 
@@ -173,7 +157,7 @@ impl BattleConcluded {
                 self.initiator().into(),
                 " replaced ".into(),
                 to_replace.into(),
-                self.traitor_to_replace().into(),
+                self.traitor_to_replace.into(),
                 " with another leader from the traitor deck".into(),
             ],
         );
@@ -181,7 +165,7 @@ impl BattleConcluded {
         let me = self.player();
         let tleilaxu = self.initiator() == Some(Faction::Tleilaxu);
 
-        let (Some(new_traitor), Some(traitor_to_replace)) = (self.new_traitor(), self.traitor_to_replace()) else {
+        let (Some(new_traitor), Some(traitor_to_replace)) = (self.new_traitor, self.traitor_to_replace) else {
             return;
         };
 
@@ -247,7 +231,7 @@ impl BattleConcluded {
             let Some(current_battle) = game.battle.current_battle.clone() else { return };
 
             let plan = current_battle.plan_of(game, Some(self.player()));
-            let territory = current_battle.territory(game);
+            let territory = current_battle.territory;
             let (Some(plan), Some(territory)) = (plan, territory) else { return };
 
             let Some(winner_gambit) = game.winner_battle_action() else { return };
@@ -279,7 +263,7 @@ impl BattleConcluded {
             let mut special_forces_to_save_in_territory = 0;
             let mut forces_to_save_in_territory = 0;
 
-            if plan.hero().is_some() && game.skilled_as(plan.hero().expect("hero"), LeaderSkill::Graduate) {
+            if plan.hero.is_some() && game.skilled_as(plan.hero.expect("hero"), LeaderSkill::Graduate) {
                 special_forces_to_save_in_territory = std::cmp::min(special_forces_to_lose, 1);
                 forces_to_save_in_territory = std::cmp::max(0, std::cmp::min(forces_to_lose, 1 - special_forces_to_save_in_territory));
 
@@ -368,7 +352,7 @@ impl BattleConcluded {
             return vec![0];
         }
 
-        let territory = g.battle.current_battle.as_ref().and_then(|b| b.territory(g));
+        let territory = g.battle.current_battle.as_ref().and_then(|b| b.territory);
         let winner_battle_action = g.winner_battle_action();
         let (Some(territory), Some(winner_battle_action)) = (territory, winner_battle_action) else {
             return vec![0];
@@ -395,7 +379,7 @@ impl BattleConcluded {
             return 0;
         }
 
-        let territory = g.battle.current_battle.as_ref().and_then(|b| b.territory(g));
+        let territory = g.battle.current_battle.as_ref().and_then(|b| b.territory);
         let winner_battle_action = g.winner_battle_action();
         let (Some(territory), Some(winner_battle_action)) = (territory, winner_battle_action) else {
             return 0;
@@ -440,7 +424,7 @@ impl BattleConcluded {
     }
 
     pub fn may_add_extra_force(g: &Game, p: PlayerIndex) -> bool {
-        let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory(g)) else {
+        let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory) else {
             return false;
         };
         let pl = g.player(p);

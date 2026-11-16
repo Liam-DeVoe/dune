@@ -3,7 +3,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct Diplomacy {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -11,7 +11,7 @@ pub struct Diplomacy {
 impl Default for Diplomacy {
     fn default() -> Self {
         Diplomacy {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -26,14 +26,6 @@ impl Diplomacy {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
@@ -82,13 +74,13 @@ impl Diplomacy {
             .as_ref()
             .and_then(|b| b.plan_of_opponent(game, self.player_opt()))
             .and_then(|plan| plan.defense());
-        game.log(elems![self.initiator(), " use Diplomacy to turn ", self.card(), " into a ", opponent_defense]);
+        game.log(elems![self.initiator(), " use Diplomacy to turn ", self.card, " into a ", opponent_defense]);
         game.battle.current_diplomacy = Some(self.clone());
         Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use Diplomacy to turn ", self.card(), " into a copy of the opponent's defense")
+        express!(self.initiator(), " use Diplomacy to turn ", self.card, " into a copy of the opponent's defense")
     }
 }
 

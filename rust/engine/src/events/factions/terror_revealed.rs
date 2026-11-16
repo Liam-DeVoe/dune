@@ -6,9 +6,9 @@ pub struct TerrorRevealed {
     pub alliance_offered: bool,
     pub type_: Option<TerrorType>,
     pub forces_in_sneak_attack: i32,
-    pub sneak_attack_to: i32,
+    pub sneak_attack_to: Option<Location>,
     pub robbery_takes_card: bool,
-    pub card_to_give_in_sabotage_id: i32,
+    pub card_to_give_in_sabotage: Option<TreacheryCard>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -21,9 +21,9 @@ impl Default for TerrorRevealed {
             alliance_offered: Default::default(),
             type_: Default::default(),
             forces_in_sneak_attack: Default::default(),
-            sneak_attack_to: Default::default(),
+            sneak_attack_to: Location::from_id(0),
             robbery_takes_card: Default::default(),
-            card_to_give_in_sabotage_id: Default::default(),
+            card_to_give_in_sabotage: TreacheryCardManager::get(0),
             passed: Default::default(),
             base: Default::default(),
         }
@@ -41,24 +41,8 @@ impl TerrorRevealed {
         e
     }
 
-    pub fn sneak_attack_to(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.sneak_attack_to)
-    }
-
-    pub fn set_sneak_attack_to(&mut self, game: &Game, value: Option<Location>) {
-        self.sneak_attack_to = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn card_to_give_in_sabotage(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_to_give_in_sabotage_id)
-    }
-
-    pub fn set_card_to_give_in_sabotage(&mut self, value: Option<TreacheryCard>) {
-        self.card_to_give_in_sabotage_id = TreacheryCardManager::get_id(value);
-    }
-
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        self.sneak_attack_to(game)
+    pub fn to(&self, _game: &Game) -> Option<Location> {
+        self.sneak_attack_to
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -91,12 +75,12 @@ impl TerrorRevealed {
             return Some(express!("Your faction can't reveal terror tokens"));
         }
 
-        if self.type_ == Some(TerrorType::SneakAttack) && self.sneak_attack_to(game).is_none() && self.forces_in_sneak_attack > 0 {
+        if self.type_ == Some(TerrorType::SneakAttack) && self.sneak_attack_to.is_none() && self.forces_in_sneak_attack > 0 {
             return Some(express!("You cannot send forces there"));
         }
         if self.type_ == Some(TerrorType::SneakAttack)
-            && self.sneak_attack_to(game).is_some()
-            && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).any(|v| v == self.sneak_attack_to(game).expect("sneak attack to"))
+            && self.sneak_attack_to.is_some()
+            && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).any(|v| v == self.sneak_attack_to.expect("sneak attack to"))
         {
             return Some(express!("Invalid location of sneak attack"));
         }
@@ -314,7 +298,7 @@ impl TerrorRevealed {
                         self.log_objects(game, elems![victim_faction, " have no treachery cards to discard"]);
                     }
 
-                    if let Some(card) = self.card_to_give_in_sabotage() {
+                    if let Some(card) = self.card_to_give_in_sabotage {
                         // List.Remove: the first equal element
                         let cards = &mut game.player_mut(self.player()).treachery_cards;
                         if let Some(pos) = cards.iter().position(|c| *c == card) {
@@ -327,7 +311,7 @@ impl TerrorRevealed {
                 }
 
                 Some(TerrorType::SneakAttack) => {
-                    if let Some(sneak_attack_to) = self.sneak_attack_to(game) {
+                    if let Some(sneak_attack_to) = self.sneak_attack_to {
                         let force = game.player(self.player()).force();
                         self.log_objects(
                             game,

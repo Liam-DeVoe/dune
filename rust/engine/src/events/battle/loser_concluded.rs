@@ -5,7 +5,7 @@ pub struct LoserConcluded {
     pub karma_forced_kept_card_decision: i32,
     pub forced_kept_or_discarded_card_ids: Option<String>,
     pub assassinate: bool,
-    pub kept_card_id: i32,
+    pub kept_card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -16,7 +16,7 @@ impl Default for LoserConcluded {
             karma_forced_kept_card_decision: Default::default(),
             forced_kept_or_discarded_card_ids: Default::default(),
             assassinate: Default::default(),
-            kept_card_id: Default::default(),
+            kept_card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -43,19 +43,11 @@ impl LoserConcluded {
         self.forced_kept_or_discarded_card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
-    pub fn kept_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.kept_card_id)
-    }
-
-    pub fn set_kept_card(&mut self, value: Option<TreacheryCard>) {
-        self.kept_card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if self.assassinate && !LoserConcluded::can_assassinate(game, self.player()) {
             return Some(express!("You can't assassinate"));
         }
-        if let Some(kept_card) = self.kept_card() {
+        if let Some(kept_card) = self.kept_card {
             if !LoserConcluded::cards_loser_may_keep(game).contains(&kept_card) {
                 return Some(express!("You can't keep ", kept_card));
             }
@@ -140,7 +132,7 @@ impl LoserConcluded {
         if let Some(defense) = winner_plan.defense() {
             result.push(defense);
         }
-        if let Some(cheap_hero) = winner_plan.hero().and_then(|h| h.as_treachery_card()) {
+        if let Some(cheap_hero) = winner_plan.hero.and_then(|h| h.as_treachery_card()) {
             result.push(cheap_hero);
         }
 
@@ -148,7 +140,7 @@ impl LoserConcluded {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        if let Some(kept_card) = self.kept_card() {
+        if let Some(kept_card) = self.kept_card {
             if game.battle.secret_ally_allows_keeping_cards_after_losing_battle {
                 game.battle.secret_ally_allows_keeping_cards_after_losing_battle = false;
                 game.play_nexus_card(self.player(), vec!["keep ".into(), kept_card.into()]);
@@ -158,7 +150,7 @@ impl LoserConcluded {
         }
 
         // The lazy Where reads a list that Discard doesn't change.
-        let kept_card = self.kept_card();
+        let kept_card = self.kept_card;
         let to_discard: Vec<TreacheryCard> =
             game.battle.cards_to_be_discarded_by_loser_after_battle.iter().copied().filter(|c| Some(*c) != kept_card).collect();
         for c in to_discard {

@@ -36,7 +36,7 @@ fn a_stronghold(g: &Game) -> Territory {
 /// Makes `faction` the triggering event of a terror intrusion in `t`.
 fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
     let mut e = NexusPlayed::new(g, faction);
-    e.tleilaxu_location_id = t.locations()[0].id();
+    e.tleilaxu_location = Some(t.locations()[0]);
     let e = Rc::new(e).into_event();
     g.ship_move.intrusions.push(Intrusion::new(&e, IntrusionType::Terror));
 }
@@ -65,13 +65,13 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     g.player_mut(choam).treachery_cards.extend([k1, k2, useless]);
 
     let mut e = KarmaChoamDiscard::new(&g, Faction::Choam);
-    e.set_card_to_use(Some(k2));
+    e.card_to_use = Some(k2);
     e.set_cards(&[useless]);
     assert!(e.validate(&g).is_none());
 
     // The selected card is validated.
     let mut bad = KarmaChoamDiscard::new(&g, Faction::Choam);
-    bad.set_card_to_use(Some(k2));
+    bad.card_to_use = Some(k2);
     bad.set_cards(&[k2]);
     assert!(bad.validate(&g).is_some());
 
@@ -100,7 +100,7 @@ fn moritani_betrayal_without_a_token_returns_nothing() {
 
     let mut e = NexusPlayed::new(&g, Faction::Atreides);
     e.faction = Some(Faction::Moritani);
-    e.moritani_territory_id = t.id();
+    e.moritani_territory = Some(t);
     let e = Rc::new(e);
     assert!(e.is_betrayal(&g));
     // Validation rejects it, but the execution path is still defined.
@@ -135,7 +135,7 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
     g.random = Some(SharedRandom::from_seed(11));
     let mut e = NexusPlayed::new(&g, Faction::Atreides);
     e.faction = Some(Faction::Moritani);
-    e.moritani_territory_id = t.id();
+    e.moritani_territory = Some(t);
     assert!(e.validate(&g).is_none());
     Rc::new(e).execute_concrete_event(&mut g).unwrap();
     assert!(!g.board.terror_on_planet.contains_key(&expected));
@@ -233,12 +233,12 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
 
     let mut first = AmbassadorPlaced::new(&g, Faction::Ecaz);
     first.ambassador = Some(Ambassador::Emperor);
-    first.set_stronghold(&g, Some(t));
+    first.stronghold = Some(t);
     Rc::new(first).execute_concrete_event(&mut g).unwrap();
 
     let mut second = AmbassadorPlaced::new(&g, Faction::Ecaz);
     second.ambassador = Some(Ambassador::BeneGesserit);
-    second.set_stronghold(&g, Some(t));
+    second.stronghold = Some(t);
     let second = Rc::new(second);
     assert!(second.validate(&g).is_some());
     let e = second.execute_concrete_event(&mut g).unwrap_err();
@@ -253,7 +253,7 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
 fn ambassador_placed_without_stronghold_fails() {
     let mut g = game_with(&[Faction::Ecaz]);
     let mut e = AmbassadorPlaced::new(&g, Faction::Ecaz);
-    e.set_stronghold(&g, None);
+    e.stronghold = None;
     let e = Rc::new(e);
     assert_eq!(e.execute_concrete_event(&mut g).unwrap_err().message(), "Stronghold is null");
     assert_eq!(g.revival.ambassadors_placed_this_turn, 0);

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PerformHmsMovement {
-    pub target_id: i32,
+    pub target: Option<Location>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -12,7 +12,7 @@ pub struct PerformHmsMovement {
 impl Default for PerformHmsMovement {
     fn default() -> Self {
         PerformHmsMovement {
-            target_id: Default::default(),
+            target: Location::from_id(0),
             passed: Default::default(),
             base: Default::default(),
         }
@@ -26,17 +26,9 @@ impl PerformHmsMovement {
         e
     }
 
-    pub fn target(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.target_id)
-    }
-
-    pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if !self.passed {
-            if !PerformHmsMovement::valid_locations(game).any(|v| Some(v) == self.target(game)) {
+            if !PerformHmsMovement::valid_locations(game).any(|v| Some(v) == self.target) {
                 return Some(express!("Invalid location"));
             }
         }
@@ -64,7 +56,7 @@ impl PerformHmsMovement {
         game.collect_spice_from(self.initiator().required("faction")?, current_location, collection_rate);
 
         if !self.passed {
-            let target = self.target(game).required("target")?;
+            let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
             game.collect_spice_from(self.initiator().required("faction")?, target, collection_rate);
             game.storm.hms_moves_left -= 1;
@@ -80,7 +72,7 @@ impl PerformHmsMovement {
     pub fn get_message(&self, game: &Game) -> Message {
         let hms = game.board.map.hidden_mobile_stronghold();
         if !self.passed {
-            return express!(self.initiator(), " move the ", hms, " to ", self.target(game));
+            return express!(self.initiator(), " move the ", hms, " to ", self.target);
         }
         express!(self.initiator(), " pass (further) movement of the ", hms)
     }

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct FaceDancerReplaced {
-    pub dancer_id: i32,
+    pub selected_dancer: Option<Hero>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -12,7 +12,7 @@ pub struct FaceDancerReplaced {
 impl Default for FaceDancerReplaced {
     fn default() -> Self {
         FaceDancerReplaced {
-            dancer_id: Default::default(),
+            selected_dancer: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             passed: Default::default(),
             base: Default::default(),
         }
@@ -26,17 +26,9 @@ impl FaceDancerReplaced {
         e
     }
 
-    pub fn selected_dancer(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.dancer_id)
-    }
-
-    pub fn set_selected_dancer(&mut self, value: Option<Hero>) {
-        self.dancer_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if !self.passed {
-            let Some(selected_dancer) = self.selected_dancer() else {
+            let Some(selected_dancer) = self.selected_dancer else {
                 return Some(express!("Select a leader"));
             };
             let p = game.player(self.player());
@@ -53,7 +45,7 @@ impl FaceDancerReplaced {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !self.passed {
-            if let Some(selected_dancer) = self.selected_dancer() {
+            if let Some(selected_dancer) = self.selected_dancer {
                 let player = self.player();
                 // List.Remove: the first match, if any.
                 if let Some(i) = game.player(player).face_dancers.iter().position(|d| *d == selected_dancer) {

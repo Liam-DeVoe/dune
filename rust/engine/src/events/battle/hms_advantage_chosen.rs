@@ -32,7 +32,7 @@ impl HMSAdvantageChosen {
         g.battle.chosen_hms_advantage == Some(None)
             && g.battle.current_battle.is_some()
             && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
-            && g.battle.current_battle.as_ref().expect("current battle").territory(g) == Some(hms.location().territory())
+            && g.battle.current_battle.as_ref().expect("current battle").territory == Some(hms.location().territory())
             && g.owns_stronghold(g.player(p).faction, hms.location())
             && !HMSAdvantageChosen::valid_advantages(g, p).is_empty()
     }

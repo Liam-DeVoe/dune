@@ -98,7 +98,7 @@ fn deciding_never_changes_the_game() {
 fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
     let mut game = load("mc-treachery");
     let (agg, def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
-    assert!(agg.hero().is_some() && def.hero().is_some());
+    assert!(agg.hero.is_some() && def.hero.is_some());
     agg.set_weapon(Some(card(&game, T::MirrorWeapon)));
     def.set_weapon(Some(card(&game, T::Laser)));
 
@@ -109,7 +109,7 @@ fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
     assert_eq!(agg.weapon().map(|c| c.type_()), Some(T::MirrorWeapon), "the live plan keeps its Mirror Weapon");
 
     // The same outcome, worked out for real, logs the Mirror Weapon and picks the same winner.
-    let territory = game.battle.current_battle.as_ref().unwrap().territory(&game).unwrap();
+    let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
     let outcome = Battle::determine_battle_outcome(&agg, &def, territory, &mut game);
     assert_eq!(game.current_report().messages.len(), messages + 1);
     assert_eq!(decision.kill, outcome.winner == Some(def.player()));
@@ -125,7 +125,7 @@ fn the_fingerprint_sees_what_the_impure_rock_melter_decision_changed() {
     agg.set_weapon(Some(card(&game, T::MirrorWeapon)));
     def.set_weapon(Some(card(&game, T::Laser)));
     let before = fingerprint(&game);
-    let territory = game.battle.current_battle.as_ref().unwrap().territory(&game).unwrap();
+    let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
     let _ = Battle::determine_battle_outcome(&agg, &def, territory, &mut game);
     assert!(fingerprint(&game) != before);
 }
@@ -231,7 +231,7 @@ fn bene_gesserit_voices_a_useless_defense_against_poison() {
 #[test]
 fn dial_needed_for_another_player_is_theirs() {
     let game = load("battle");
-    let territory = game.battle.current_battle.as_ref().unwrap().territory(&game).unwrap();
+    let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
     let aggressor = player_of(&game, game.battle.current_battle.as_ref().unwrap().aggressor(&game).expect("faction"));
     let defender = player_of(&game, game.battle.current_battle.as_ref().unwrap().defender(&game).expect("faction"));
     let estimator = game.player_indices().find(|p| *p != aggressor && *p != defender && game.player(*p).faction != Some(Faction::BeneGesserit)).unwrap();
@@ -250,7 +250,7 @@ fn dial_needed_for_another_player_is_theirs() {
 fn traitors_told_by_the_opponent_count_as_known_traitors() {
     let mut game = load("battle");
     let battle = game.battle.current_battle.clone().unwrap();
-    let territory = battle.territory(&game).unwrap();
+    let territory = battle.territory.unwrap();
     let (mut me, mut opponent) = (player_of(&game, battle.aggressor(&game).expect("faction")), player_of(&game, battle.defender(&game).expect("faction")));
     if game.player(me).faction == Some(Faction::Atreides) {
         // Avoid the Kwisatz Haderach, who makes traitors harmless.
@@ -368,7 +368,7 @@ fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
         .expect("a back-to-reserves plan");
     let s = plan.shipment;
     assert_eq!(s.shipment_type, ShipmentType::ShipmentBack);
-    let from = s.to(&game).unwrap();
+    let from = s.to.unwrap();
     assert_eq!((s.force_amount, game.player(guild).forces_in(Some(from))), (-4, 4));
     let reserve = game.player(guild).forces_in_reserve();
     assert!(GameEvent::Shipment(Rc::new(s)).execute(&mut game, true, false).is_none());

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct TraitorsSelected {
-    pub traitor_id: i32,
+    pub selected_traitor: Option<Hero>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct TraitorsSelected {
 impl Default for TraitorsSelected {
     fn default() -> Self {
         TraitorsSelected {
-            traitor_id: Default::default(),
+            selected_traitor: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             base: Default::default(),
         }
     }
@@ -23,16 +23,8 @@ impl TraitorsSelected {
         e
     }
 
-    pub fn selected_traitor(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.traitor_id)
-    }
-
-    pub fn set_selected_traitor(&mut self, value: Option<Hero>) {
-        self.traitor_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let selected = self.selected_traitor();
+        let selected = self.selected_traitor;
         if !game.player(self.player()).traitors.iter().any(|t| Some(*t) == selected) {
             return Some(express!("Invalid traitor"));
         }
@@ -41,7 +33,7 @@ impl TraitorsSelected {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
-        let selected = self.selected_traitor();
+        let selected = self.selected_traitor;
         // Snapshot (ToList).
         let to_remove: Vec<Hero> = game.player(me).traitors.iter().copied().filter(|l| Some(*l) != selected).collect();
 

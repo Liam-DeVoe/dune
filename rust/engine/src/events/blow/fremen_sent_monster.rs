@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct FremenSentMonster {
-    pub territory_id: i32,
+    pub territory: Option<Territory>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -13,7 +13,7 @@ pub struct FremenSentMonster {
 impl Default for FremenSentMonster {
     fn default() -> Self {
         FremenSentMonster {
-            territory_id: Default::default(),
+            territory: Territory::from_id(0),
             base: Default::default(),
         }
     }
@@ -26,19 +26,11 @@ impl FremenSentMonster {
         e
     }
 
-    pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.territory_id)
-    }
-
-    pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.territory(game).is_none() {
+    pub fn validate(&self, _game: &Game) -> Option<Message> {
+        if self.territory.is_none() {
             return Some(express!("No territory selected"));
         }
-        if self.territory(game).expect("territory").is_protected_from_worm() {
+        if self.territory.expect("territory").is_protected_from_worm() {
             return Some(express!("Selected territory is protected"));
         }
 
@@ -54,7 +46,7 @@ impl FremenSentMonster {
         // A null Territory (only without validation) is stored in WormSentLog and the
         // MonsterAppearance; PerformMonster then throws on `m.Territory.Locations`.
         let msg = self.get_message(game);
-        let territory = self.territory(game).required("territory")?;
+        let territory = self.territory.required("territory")?;
         let msg = msg.with_log(WormSentLog::new(self.initiator().required("faction")?, territory));
         self.log_objects(game, vec![Part::from(msg)]);
         let monster = MonsterAppearance::new(territory, false);
@@ -67,8 +59,8 @@ impl FremenSentMonster {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " send ", Concept::Monster, " to ", self.territory(game))
+    pub fn get_message(&self, _game: &Game) -> Message {
+        express!(self.initiator(), " send ", Concept::Monster, " to ", self.territory)
     }
 
 }

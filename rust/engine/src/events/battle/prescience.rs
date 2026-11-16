@@ -31,7 +31,7 @@ impl Prescience {
         let battle = g.battle.current_battle.as_ref().expect("current battle");
         let opponent = battle.opponent_of(g, p).expect("opponent of");
         // HasNoFieldIn(Territory) with a null territory: SpecialForcesIn(null) is 0, so false.
-        let has_no_field = match battle.territory(g) {
+        let has_no_field = match battle.territory {
             Some(t) => g.player(opponent).has_no_field_in(t),
             None => false,
         };

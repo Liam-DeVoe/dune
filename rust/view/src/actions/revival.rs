@@ -44,30 +44,30 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) ->
     let draft = match t {
         GameEventType::Revival => {
             let mut e = Revival::new(game, faction);
-            e.set_hero(None);
+            e.hero = None;
             event(e)
         }
         GameEventType::RaiseDeadPlayed => {
             let mut e = RaiseDeadPlayed::new(game, faction);
-            e.set_hero(None);
+            e.hero = None;
             event(e)
         }
         GameEventType::KarmaFreeRevival => {
             let mut e = KarmaFreeRevival::new(game, faction);
-            e.set_hero(None);
+            e.hero = None;
             event(e)
         }
         GameEventType::KarmaRevivalPrevention => event(KarmaRevivalPrevention::new(game, faction)),
         GameEventType::ChoamFreeRevivalPrevention => event(ChoamFreeRevivalPrevention::new(game, faction)),
         GameEventType::RequestTleilaxuRevival => {
             let mut e = RequestTleilaxuRevival::new(game, faction);
-            e.set_hero(None);
+            e.hero = None;
             event(e)
         }
         GameEventType::AcceptOrCancelTleilaxuRevival => {
             let mut e = AcceptOrCancelTleilaxuRevival::new(game, faction);
             e.cancel = false;
-            e.set_hero(None);
+            e.hero = None;
             event(e)
         }
         // OnInitialized: the factions that already have the increased limit.
@@ -119,14 +119,14 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             e.number_of_forces_in_location = forces(e.number_of_forces_in_location, on_planet);
             e.number_of_special_forces_in_location = forces(e.number_of_special_forces_in_location, special_on_planet);
             if Revival::valid_revival_heroes(game, p).next().is_none() {
-                e.set_hero(None);
+                e.hero = None;
             }
-            if !e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
+            if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
             let pick_enabled = e.number_of_forces_in_location > 0 || e.number_of_special_forces_in_location > 0;
-            let location = e.location(game).filter(|l| pick_enabled && Revival::valid_revived_force_locations(game, p).any(|v| v == *l));
-            e.set_location(game, location);
+            let location = e.location.filter(|l| pick_enabled && Revival::valid_revived_force_locations(game, p).any(|v| v == *l));
+            e.location = location;
             event(e)
         }
         GameEvent::RaiseDeadPlayed(e) => {
@@ -135,22 +135,22 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             e.amount_of_special_forces = forces(e.amount_of_special_forces, RaiseDeadPlayed::valid_max_amount(game, p, true));
             let special_on_planet = raise_dead_on_planet(game, p, &e);
             e.number_of_special_forces_in_location = forces(e.number_of_special_forces_in_location, special_on_planet);
-            if !e.hero().is_some_and(|h| RaiseDeadPlayed::valid_heroes(game, p).contains(&h)) {
-                e.set_hero(None);
+            if !e.hero.is_some_and(|h| RaiseDeadPlayed::valid_heroes(game, p).contains(&h)) {
+                e.hero = None;
             }
-            if !e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
+            if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
             let pick_enabled = e.number_of_special_forces_in_location > 0;
-            let location = e.location(game).filter(|l| pick_enabled && Revival::valid_revived_force_locations(game, p).any(|v| v == *l));
-            e.set_location(game, location);
+            let location = e.location.filter(|l| pick_enabled && Revival::valid_revived_force_locations(game, p).any(|v| v == *l));
+            e.location = location;
             event(e)
         }
         GameEvent::KarmaFreeRevival(e) => {
             let mut e = (**e).clone();
             e.amount_of_forces = forces(e.amount_of_forces, KarmaFreeRevival::valid_max_amount(game, p, false));
             e.amount_of_special_forces = forces(e.amount_of_special_forces, KarmaFreeRevival::valid_max_amount(game, p, true));
-            if !e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
+            if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                 e.assign_skill = false;
             }
             event(e)
@@ -170,9 +170,9 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::RequestTleilaxuRevival(e) => {
             let mut e = (**e).clone();
             let heroes: Vec<Hero> = RequestTleilaxuRevival::valid_targets(game, p).collect();
-            let hero = e.hero();
+            let hero = e.hero;
             if !hero.is_some_and(|h| heroes.contains(&h)) {
-                e.set_hero(heroes.first().copied());
+                e.hero = heroes.first().copied();
             }
             event(e)
         }
@@ -182,8 +182,8 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             e.cancel = false;
             if !game.revival.current_revival_requests.is_empty() {
                 let heroes = request_heroes(game);
-                if !e.hero().is_some_and(|h| heroes.contains(&h)) {
-                    e.set_hero(heroes.first().copied());
+                if !e.hero.is_some_and(|h| heroes.contains(&h)) {
+                    e.hero = heroes.first().copied();
                 }
                 e.price = picker(e.price, 0, 50);
             }
@@ -213,7 +213,7 @@ fn raise_dead_on_planet(game: &Game, p: PlayerIndex, e: &RaiseDeadPlayed) -> i32
 }
 
 fn request_heroes(game: &Game) -> Vec<Hero> {
-    game.revival.current_revival_requests.iter().filter_map(|r| r.hero()).collect()
+    game.revival.current_revival_requests.iter().filter_map(|r| r.hero).collect()
 }
 
 /// The options and validation of a revival form for `draft`, or `None` for other event types.
@@ -237,7 +237,7 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
             let cost = Revival::determine_cost(
                 game,
                 p,
-                e.hero(),
+                e.hero,
                 e.amount_of_forces,
                 e.amount_of_special_forces,
                 e.extra_forces_paid_by_emperor,
@@ -253,7 +253,7 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
                 max_forces_on_planet,
                 max_special_forces_on_planet,
                 heroes: hero_options(Revival::valid_revival_heroes(game, p)),
-                may_assign_skill: e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
+                may_assign_skill: e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
                 cost_for_player: cost.total_cost_for_player(),
                 cost_for_emperor: (pl.ally == Some(Faction::Emperor)).then_some(cost.cost_for_emperor),
                 draft: json,
@@ -266,7 +266,7 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
             locations: Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect(),
             max_special_forces_on_planet: raise_dead_on_planet(game, p, e),
             heroes: hero_options(RaiseDeadPlayed::valid_heroes(game, p)),
-            may_assign_skill: e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
+            may_assign_skill: e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
             draft: json,
         }),
         GameEvent::KarmaFreeRevival(e) => ActionOptions::KarmaFreeRevival(KarmaFreeRevivalOptions {
@@ -274,7 +274,7 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
             max_forces: KarmaFreeRevival::valid_max_amount(game, p, false),
             max_special_forces: KarmaFreeRevival::valid_max_amount(game, p, true),
             heroes: hero_options(game.killed_heroes(p)),
-            may_assign_skill: e.hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
+            may_assign_skill: e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))),
             draft: json,
         }),
         GameEvent::KarmaRevivalPrevention(_) => ActionOptions::KarmaRevivalPrevention(KarmaRevivalPreventionOptions {
@@ -302,8 +302,8 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
                     price: (*price != i32::MAX).then_some(*price),
                 })
                 .collect(),
-            offer_label: render(d, &parts!["Offer ", e.hero(), " for ", e.price]),
-            deny_label: render(d, &parts!["Deny revival of ", e.hero()]),
+            offer_label: render(d, &parts!["Offer ", e.hero, " for ", e.price]),
+            deny_label: render(d, &parts!["Deny revival of ", e.hero]),
             draft: json,
         }),
         GameEvent::SetIncreasedRevivalLimits(_) => ActionOptions::SetIncreasedRevivalLimits(SetIncreasedRevivalLimitsOptions {

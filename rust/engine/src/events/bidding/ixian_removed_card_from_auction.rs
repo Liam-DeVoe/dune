@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct IxianRemovedCardFromAuction {
     pub put_on_top: bool,
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -12,7 +12,7 @@ impl Default for IxianRemovedCardFromAuction {
     fn default() -> Self {
         IxianRemovedCardFromAuction {
             put_on_top: Default::default(),
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -25,20 +25,12 @@ impl IxianRemovedCardFromAuction {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, _game: &Game) -> Option<Message> {
         None
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let card = self.card();
+        let card = self.card;
         crate::game::remove_card(&mut game.bidding.cards_on_auction.as_mut().required("cards on auction")?.items, card);
         let card = card.required("card")?;
 

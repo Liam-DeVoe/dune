@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct Caravan {
     pub as_advisors: bool,
     // ---- inherited from PlacementEvent ----
-    pub to_id: i32,
+    pub to: Option<Location>,
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -16,7 +16,7 @@ impl Default for Caravan {
     fn default() -> Self {
         Caravan {
             as_advisors: Default::default(),
-            to_id: Default::default(),
+            to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
             base: Default::default(),
@@ -46,7 +46,7 @@ impl Caravan {
         let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
         game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, true);
 
-        let to = PlacementEventMethods::to(&**self, game);
+        let to = self.to;
         if crate::events::contains_conflicting_ally_opt(game, me, to)? {
             game.ship_move.chosen_destinations_with_allies.push(to.required("to")?.territory());
         }
@@ -70,11 +70,11 @@ impl Caravan {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn get_message(&self, _game: &Game) -> Message {
         if self.passed {
             return express!(self.initiator(), " pass ", TreacheryCardType::Caravan);
         }
-        express!(self.initiator(), " move to ", PlacementEventMethods::to(self, game), " by ", TreacheryCardType::Caravan)
+        express!(self.initiator(), " move to ", self.to, " by ", TreacheryCardType::Caravan)
     }
 
 }
@@ -114,16 +114,16 @@ impl PassableGameEventMethods for Caravan {
 }
 
 impl PlacementEventMethods for Caravan {
-    fn field_to_id(&self) -> &i32 {
-        &self.to_id
+    fn field_to(&self) -> &Option<Location> {
+        &self.to
     }
 
     fn field_force_locations(&self) -> &Option<String> {
         &self.force_locations
     }
 
-    fn field_to_id_mut(&mut self) -> &mut i32 {
-        &mut self.to_id
+    fn field_to_mut(&mut self) -> &mut Option<Location> {
+        &mut self.to
     }
 
     fn field_force_locations_mut(&mut self) -> &mut Option<String> {
@@ -137,8 +137,8 @@ impl crate::events::location_event::LocationEvent for Caravan {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -164,8 +164,8 @@ impl crate::events::placement::Placement for Caravan {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
 }

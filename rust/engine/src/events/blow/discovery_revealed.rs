@@ -8,7 +8,7 @@ macro_rules! elems {
 
 #[derive(Clone, Debug)]
 pub struct DiscoveryRevealed {
-    pub location_id: i32,
+    pub location: Option<Location>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -18,7 +18,7 @@ pub struct DiscoveryRevealed {
 impl Default for DiscoveryRevealed {
     fn default() -> Self {
         DiscoveryRevealed {
-            location_id: Default::default(),
+            location: Location::from_id(0),
             passed: Default::default(),
             base: Default::default(),
         }
@@ -32,16 +32,8 @@ impl DiscoveryRevealed {
         e
     }
 
-    pub fn location(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.location_id)
-    }
-
-    pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let location = self.location(game);
+        let location = self.location;
         if !Self::get_locations(game, self.player()).any(|l| Some(l) == location) {
             return Some(express!("Invalid location"));
         }
@@ -63,7 +55,7 @@ impl DiscoveryRevealed {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         // Location!: a null key would be ArgumentNullException; Validate guarantees a valid location.
-        let Some(location) = self.location(game) else {
+        let Some(location) = self.location else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
         let discovery = game.board.discoveries_on_planet[&location].clone();
@@ -114,11 +106,11 @@ impl DiscoveryRevealed {
         Ok(())
     }
 
-    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+    pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
         Ok(if self.passed {
             express!(self.initiator(), " don't reveal a discovery")
         } else {
-            express!(self.initiator(), " reveal a discovery in ", self.location(game).required("location")?.territory())
+            express!(self.initiator(), " reveal a discovery in ", self.location.required("location")?.territory())
         })
     }
 

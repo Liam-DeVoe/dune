@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct AmbassadorPlaced {
     pub ambassador: Option<Ambassador>,
-    pub stronghold_id: i32,
+    pub stronghold: Option<Territory>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -12,7 +12,7 @@ impl Default for AmbassadorPlaced {
     fn default() -> Self {
         AmbassadorPlaced {
             ambassador: Default::default(),
-            stronghold_id: Default::default(),
+            stronghold: Territory::from_id(0),
             base: Default::default(),
         }
     }
@@ -25,16 +25,8 @@ impl AmbassadorPlaced {
         e
     }
 
-    pub fn stronghold(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.stronghold_id)
-    }
-
-    pub fn set_stronghold(&mut self, game: &Game, value: Option<Territory>) {
-        self.stronghold_id = game.board.map.territory_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let stronghold = self.stronghold(game);
+        let stronghold = self.stronghold;
         if !AmbassadorPlaced::valid_strongholds(game, self.player()).into_iter().any(|t| Some(t) == stronghold) {
             return Some(express!("Invalid stronghold"));
         }
@@ -67,7 +59,7 @@ impl AmbassadorPlaced {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(stronghold) = self.stronghold(game) else {
+        let Some(stronghold) = self.stronghold else {
             game_error!("Stronghold is null");
         };
 
@@ -102,8 +94,8 @@ impl AmbassadorPlaced {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " station the ", self.ambassador, " ambassador in ", self.stronghold(game))
+    pub fn get_message(&self, _game: &Game) -> Message {
+        express!(self.initiator(), " station the ", self.ambassador, " ambassador in ", self.stronghold)
     }
 }
 

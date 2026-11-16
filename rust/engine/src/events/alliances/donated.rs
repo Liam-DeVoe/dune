@@ -5,7 +5,7 @@ pub struct Donated {
     pub target: Option<Faction>,
     pub resources: i32,
     pub from_bank: bool,
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -16,7 +16,7 @@ impl Default for Donated {
             target: Default::default(),
             resources: Default::default(),
             from_bank: false,
-            card_id: -1,
+            card: None,
             base: Default::default(),
         }
     }
@@ -27,14 +27,6 @@ impl Donated {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::lookup().get_id(value);
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -56,7 +48,7 @@ impl Donated {
         if !may_donate {
             return Some(express!("You currently have an outstanding bid"));
         }
-        if self.card().is_none() && self.resources <= 0 {
+        if self.card.is_none() && self.resources <= 0 {
             return Some(express!("Invalid amount"));
         }
         if game.player(self.player()).resources < self.resources {
@@ -76,7 +68,7 @@ impl Donated {
         }
 
         let target_player = game.get_player(self.target);
-        if self.card().is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
+        if self.card.is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
             return Some(express!("Target faction's hand is full"));
         }
 
@@ -129,7 +121,7 @@ impl Donated {
             }
             let target = target.required("target")?;
 
-            if let Some(card) = self.card() {
+            if let Some(card) = self.card {
                 let me = self.player();
                 {
                     let cards = &mut game.player_mut(me).treachery_cards;
@@ -196,7 +188,7 @@ impl Donated {
             self.initiator(),
             " give ",
             Payment::of(self.resources),
-            express_part_if!(self.card().is_some(); " and a card"),
+            express_part_if!(self.card.is_some(); " and a card"),
             " to ",
             self.target
         )

@@ -120,7 +120,7 @@ fn bid_with_null_player_and_karma_card_is_invalid_not_a_crash() {
     let mut bid = Bid::default();
     bid.amount = 1;
     let karma = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma).unwrap();
-    bid.set_karma_card(Some(karma));
+    bid.karma_card = Some(karma);
     let bid = as_player(bid, &g, Faction::Emperor);
     // UsingKarmaToRemoveBidLimit skips Player.Resources; p == null makes the card invalid.
     let r = outcome(|| text(bid.validate(&g)));

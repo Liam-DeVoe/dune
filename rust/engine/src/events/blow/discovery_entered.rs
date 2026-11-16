@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct DiscoveryEntered {
     // ---- inherited from PlacementEvent ----
-    pub to_id: i32,
+    pub to: Option<Location>,
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -14,7 +14,7 @@ pub struct DiscoveryEntered {
 impl Default for DiscoveryEntered {
     fn default() -> Self {
         DiscoveryEntered {
-            to_id: Default::default(),
+            to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
             base: Default::default(),
@@ -32,7 +32,7 @@ impl DiscoveryEntered {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if !self.passed {
             // IEnumerable<DiscoveredLocation>.Contains(Location): Location equality.
-            let to = self.to(game);
+            let to = self.to;
             if !Self::valid_targets(game, self.player()).any(|ds| Some(ds.location()) == to) {
                 return Some(express!("You can't move there"));
             }
@@ -61,7 +61,7 @@ impl DiscoveryEntered {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let Some(discovered_location) = self.to(game).and_then(|l| l.as_discovered_location()) else { return Ok(()) };
+        let Some(discovered_location) = self.to.and_then(|l| l.as_discovered_location()) else { return Ok(()) };
 
         if let Some(i) = game.collection.just_revealed_discovery_strongholds.iter().position(|d| d.location() == discovered_location.location()) {
             game.collection.just_revealed_discovery_strongholds.remove(i);
@@ -79,7 +79,7 @@ impl DiscoveryEntered {
                 for (key, value) in self.force_locations(game).iter().filter(|(k, _)| k.territory() == from_territory) {
                     if value.total_amount_of_forces() > 0 {
                         let me = self.player();
-                        let to = self.to(game).required("to")?;
+                        let to = self.to.required("to")?;
                         game.perform_move_from_location(me, *key, value, to, &mut total_number_of_forces, &mut total_number_of_special_forces, true);
                     }
                 }
@@ -92,7 +92,7 @@ impl DiscoveryEntered {
                         .map(|(k, _)| *k)
                         .collect();
                     let me = self.player();
-                    let to = self.to(game).required("to")?;
+                    let to = self.to.required("to")?;
                     game.log_move(me, from_territory, &from_locations, to, total_number_of_forces, total_number_of_special_forces, false, false, None);
                     game.flip_bene_gesserit_advisors_when_alone();
                 }
@@ -101,9 +101,9 @@ impl DiscoveryEntered {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn get_message(&self, _game: &Game) -> Message {
         if !self.passed {
-            return express!(self.initiator(), " enter ", self.to(game));
+            return express!(self.initiator(), " enter ", self.to);
         }
         express!(self.initiator(), " don't enter ")
     }
@@ -145,16 +145,16 @@ impl PassableGameEventMethods for DiscoveryEntered {
 }
 
 impl PlacementEventMethods for DiscoveryEntered {
-    fn field_to_id(&self) -> &i32 {
-        &self.to_id
+    fn field_to(&self) -> &Option<Location> {
+        &self.to
     }
 
     fn field_force_locations(&self) -> &Option<String> {
         &self.force_locations
     }
 
-    fn field_to_id_mut(&mut self) -> &mut i32 {
-        &mut self.to_id
+    fn field_to_mut(&mut self) -> &mut Option<Location> {
+        &mut self.to
     }
 
     fn field_force_locations_mut(&mut self) -> &mut Option<String> {
@@ -168,8 +168,8 @@ impl crate::events::location_event::LocationEvent for DiscoveryEntered {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -195,8 +195,8 @@ impl crate::events::placement::Placement for DiscoveryEntered {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }
 
-    fn to(&self, game: &Game) -> Option<Location> {
-        <Self as PlacementEventMethods>::to(self, game)
+    fn to(&self, _game: &Game) -> Option<Location> {
+        self.to
     }
 
 }

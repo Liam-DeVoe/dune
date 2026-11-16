@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct BeneGesseritBattleAnnouncement {
-    pub territory_id: i32,
+    pub territory: Option<Territory>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct BeneGesseritBattleAnnouncement {
 impl Default for BeneGesseritBattleAnnouncement {
     fn default() -> Self {
         BeneGesseritBattleAnnouncement {
-            territory_id: Default::default(),
+            territory: Territory::from_id(0),
             base: Default::default(),
         }
     }
@@ -23,28 +23,20 @@ impl BeneGesseritBattleAnnouncement {
         e
     }
 
-    pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.territory_id)
-    }
-
-    pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if self.initiator() != Some(Faction::BeneGesserit) {
             return Some(express!("Your faction can't announce battle"));
         }
         // p.SpecialForcesIn(Territory): the argument (a lookup that may throw) is evaluated
         // before the call dereferences a null p.
-        let territory = self.territory(game);
+        let territory = self.territory;
         let p = self.player();
         if game.player(p).special_forces_in_territory(territory) == 0 {
             return Some(express!("You don't have advisors there"));
         }
         let ally = game.get_player(game.player(p).ally);
         if let Some(ally) = ally {
-            if game.player(ally).any_forces_in_territory(self.territory(game)) > 0 {
+            if game.player(ally).any_forces_in_territory(self.territory) > 0 {
                 return Some(express!("Can't announce battle due to ally presence"));
             }
         }
@@ -68,14 +60,14 @@ impl BeneGesseritBattleAnnouncement {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let initiator = self.get_player(game, self.initiator());
         let Some(initiator) = initiator else { return Ok(()) };
-        let Some(territory) = self.territory(game) else { return Ok(()) };
+        let Some(territory) = self.territory else { return Ok(()) };
         Player::flip_forces_in_territory(game, initiator, territory, false);
         self.log(game);
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " flip to ", FactionForce::BeneGesserit, " in ", self.territory(game))
+    pub fn get_message(&self, _game: &Game) -> Message {
+        express!(self.initiator(), " flip to ", FactionForce::BeneGesserit, " in ", self.territory)
     }
 }
 

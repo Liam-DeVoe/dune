@@ -3,7 +3,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct KarmaChoamDiscard {
-    pub card_to_use: i32,
+    pub card_to_use: Option<TreacheryCard>,
     pub card_ids: Option<String>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -12,7 +12,7 @@ pub struct KarmaChoamDiscard {
 impl Default for KarmaChoamDiscard {
     fn default() -> Self {
         KarmaChoamDiscard {
-            card_to_use: Default::default(),
+            card_to_use: TreacheryCardManager::get(0),
             card_ids: Default::default(),
             base: Default::default(),
         }
@@ -30,14 +30,6 @@ impl KarmaChoamDiscard {
         e
     }
 
-    pub fn card_to_use(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.card_to_use)
-    }
-
-    pub fn set_card_to_use(&mut self, value: Option<TreacheryCard>) {
-        self.card_to_use = TreacheryCardManager::lookup().get_id(value);
-    }
-
     pub fn cards(&self) -> Vec<TreacheryCard> {
         GameEvent::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
@@ -52,7 +44,7 @@ impl KarmaChoamDiscard {
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
-        let Some(karma_card_to_use) = self.card_to_use() else {
+        let Some(karma_card_to_use) = self.card_to_use else {
             return Some(express!("You must select a ", TreacheryCardType::Karma, " card to use"));
         };
 

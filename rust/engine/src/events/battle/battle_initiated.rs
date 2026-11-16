@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct BattleInitiated {
-    pub territory_id: i32,
+    pub territory: Option<Territory>,
     pub target: Option<Faction>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -11,7 +11,7 @@ pub struct BattleInitiated {
 impl Default for BattleInitiated {
     fn default() -> Self {
         BattleInitiated {
-            territory_id: Default::default(),
+            territory: Territory::from_id(0),
             target: Default::default(),
             base: Default::default(),
         }
@@ -23,14 +23,6 @@ impl BattleInitiated {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.territory_id)
-    }
-
-    pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.board.map.territory_lookup().get_id(value);
     }
 
     pub fn actual_initiator(&self, game: &Game) -> Option<Faction> {
@@ -213,7 +205,7 @@ impl BattleInitiated {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let Some(territory) = self.territory(game) else {
+        let Some(territory) = self.territory else {
             return Some(express!("Territory not selected"));
         };
 
@@ -222,7 +214,7 @@ impl BattleInitiated {
         }
         if !Battle::battles_to_be_fought(game, self.player(), false)
             .iter()
-            .any(|f| Some(f.faction) == self.target && f.territory.id() == self.territory_id)
+            .any(|f| Some(f.faction) == self.target && Some(f.territory) == self.territory)
         {
             return Some(express!("Invalid battle selected"));
         }
@@ -243,7 +235,7 @@ impl BattleInitiated {
         // Aggressor, Defender and Territory only read state that StartReport doesn't touch.
         let aggressor = self.aggressor(game);
         let defender = self.defender(game);
-        let territory = self.territory(game);
+        let territory = self.territory;
         let report = game.start_report(MainPhase::Battle);
         report.aggressor = aggressor;
         report.defender = defender;
@@ -265,8 +257,8 @@ impl BattleInitiated {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        let territory = self.territory(game);
+    pub fn get_message(&self, _game: &Game) -> Message {
+        let territory = self.territory;
         express!(
             self.initiator(),
             " initiate battle against ",

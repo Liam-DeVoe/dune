@@ -94,7 +94,7 @@ fn winner_hero_with_null_battle_winner() {
     assert_eq!(g.winner_hero(), None);
     g.battle.aggressor_plan = Some(plan(&g, Faction::Emperor));
     let mut d = Battle::new(&g, Faction::Atreides);
-    d.set_hero(Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap())));
+    d.hero = Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap()));
     g.battle.defender_plan = Some(Rc::new(d));
     assert_eq!(g.winner_hero(), Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap())));
     assert!(g.winner_battle_action().is_none());

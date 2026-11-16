@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct AcceptOrCancelTleilaxuRevival {
     pub cancel: bool,
     pub price: i32,
-    pub hero_id: i32,
+    pub hero: Option<Hero>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -14,7 +14,7 @@ impl Default for AcceptOrCancelTleilaxuRevival {
         AcceptOrCancelTleilaxuRevival {
             cancel: Default::default(),
             price: Default::default(),
-            hero_id: Default::default(),
+            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             base: Default::default(),
         }
     }
@@ -25,14 +25,6 @@ impl AcceptOrCancelTleilaxuRevival {
         let e = Self::default();
         e.initialize(game, initiator.into());
         e
-    }
-
-    pub fn hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.hero_id)
-    }
-
-    pub fn set_hero(&mut self, value: Option<Hero>) {
-        self.hero_id = LeaderManager::hero_lookup().get_id(value);
     }
 
     pub fn is_denial(&self) -> bool {
@@ -46,11 +38,11 @@ impl AcceptOrCancelTleilaxuRevival {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
 
-        match self.hero() {
+        match self.hero {
             None => {
                 let requests = game.revival.current_revival_requests.clone();
                 for r in requests.iter() {
-                    let Some(h) = r.hero() else { game_error!("A revival request has no leader") };
+                    let Some(h) = r.hero else { game_error!("A revival request has no leader") };
                     game.revival.early_revivals_offers.insert_new(h, i32::MAX);
                 }
 
@@ -64,7 +56,7 @@ impl AcceptOrCancelTleilaxuRevival {
                 }
 
                 let request_to_remove =
-                    game.revival.current_revival_requests.iter().find(|r| r.hero() == Some(hero)).cloned();
+                    game.revival.current_revival_requests.iter().find(|r| r.hero == Some(hero)).cloned();
                 if let Some(request_to_remove) = request_to_remove {
                     // List.Remove: events compare by reference.
                     if let Some(i) = game.revival.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &request_to_remove)) {
@@ -77,7 +69,7 @@ impl AcceptOrCancelTleilaxuRevival {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        let Some(hero) = self.hero() else {
+        let Some(hero) = self.hero else {
             return express!(self.initiator(), " deny all outstanding requests for early revival");
         };
 

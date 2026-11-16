@@ -171,7 +171,7 @@ impl Game {
             self.return_karma_card_used_for_bid();
             if bid.using_karma_to_remove_bid_limit() {
                 let p = GameEventMethods::player(&**bid);
-                let karma_card = bid.karma_card();
+                let karma_card = bid.karma_card;
                 remove_card(&mut self.player_mut(p).treachery_cards, karma_card);
             }
             self.bidding.current_bid = Some(bid.clone().into_event());

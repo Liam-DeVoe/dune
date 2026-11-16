@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct BeneGesseritAccompanies {
-    pub target_id: i32,
+    pub location: Option<Location>,
     pub accompanies: bool,
     pub extra_advisor: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -12,7 +12,7 @@ pub struct BeneGesseritAccompanies {
 impl Default for BeneGesseritAccompanies {
     fn default() -> Self {
         BeneGesseritAccompanies {
-            target_id: Default::default(),
+            location: Location::from_id(0),
             accompanies: Default::default(),
             extra_advisor: Default::default(),
             base: Default::default(),
@@ -27,16 +27,8 @@ impl BeneGesseritAccompanies {
         e
     }
 
-    pub fn location(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.target_id)
-    }
-
-    pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        self.location(game)
+    pub fn to(&self, _game: &Game) -> Option<Location> {
+        self.location
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
@@ -56,7 +48,7 @@ impl BeneGesseritAccompanies {
 
         if self.accompanies {
             let me = self.player();
-            let location = self.location(game).required("location")?;
+            let location = self.location.required("location")?;
             let amount = self.special_forces_added_to_location(game);
             if game.player(me).occupies_territory(game, Some(location.territory()))
                 || !game.is_occupied_territory(location.territory())
@@ -83,9 +75,9 @@ impl BeneGesseritAccompanies {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    pub fn get_message(&self, _game: &Game) -> Message {
         if self.accompanies {
-            return express!(self.initiator(), " accompany shipment to ", self.location(game));
+            return express!(self.initiator(), " accompany shipment to ", self.location);
         }
         express!(self.initiator(), " don't accompany shipment")
     }
@@ -95,7 +87,7 @@ impl BeneGesseritAccompanies {
             if game.player(self.player()).forces_in_reserve() <= 0 {
                 return Some(express!("You don't have forces in reserve"));
             }
-            let location = self.location(game);
+            let location = self.location;
             if !location.is_some_and(|l| BeneGesseritAccompanies::valid_targets(game, self.player()).contains(&l)) {
                 return Some(express!("You can't accompany there"));
             }

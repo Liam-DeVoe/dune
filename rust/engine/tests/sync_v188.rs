@@ -204,12 +204,12 @@ fn prescience(l: &mut Lines, v: i32) {
     let mut battle = BattleInitiated::new(&g, Faction::Atreides);
     battle.target = Some(Faction::Choam);
     let territory = g.board.map.arrakeen().territory();
-    battle.set_territory(&g, Some(territory));
+    battle.territory = Some(territory);
     g.battle.current_battle = Some(Rc::new(battle));
 
     let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: i32| -> Rc<Battle> {
         let mut b = Battle::new(g, Faction::Choam);
-        b.set_hero(Some(Hero::Leader(hero)));
+        b.hero = Some(Hero::Leader(hero));
         b.set_weapon(weapon);
         b.set_defense(def);
         b.forces_at_half_strength = half;
@@ -258,7 +258,7 @@ fn prescience(l: &mut Lines, v: i32) {
     l.p(&format!("{at}.revise_without_plan.seen"), seen(&g, &plans));
 
     let mut richese = Battle::new(&g, Faction::Richese);
-    richese.set_hero(None);
+    richese.hero = None;
     richese.set_weapon(None);
     richese.set_defense(None);
     l.try_(&format!("{at}.outsider.validate"), || message(richese.validate(&g), "valid"));

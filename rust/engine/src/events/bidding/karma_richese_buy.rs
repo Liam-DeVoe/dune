@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct KarmaRicheseBuy {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct KarmaRicheseBuy {
 impl Default for KarmaRicheseBuy {
     fn default() -> Self {
         KarmaRicheseBuy {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,19 +23,11 @@ impl KarmaRicheseBuy {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if game.player(self.player()).resources < 3 {
             return Some(express!("You can't pay ", Payment::of(3)));
         }
-        if !game.decks.richese_cache.iter().any(|c| Some(*c) == self.card()) {
+        if !game.decks.richese_cache.iter().any(|c| Some(*c) == self.card) {
             return Some(express!("Invalid card"));
         }
 
@@ -46,7 +38,7 @@ impl KarmaRicheseBuy {
         let me = self.player();
         let karma_card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, karma_card, vec!["buy a card from their cache for ".into(), Payment::of(3).into()]);
-        let card = self.card();
+        let card = self.card;
         game.player_mut(me).treachery_cards.push(card.required("card")?);
         crate::game::remove_card(&mut game.decks.richese_cache, card);
         if let Some(card) = card {

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Discarded {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct Discarded {
 impl Default for Discarded {
     fn default() -> Self {
         Discarded {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,19 +23,11 @@ impl Discarded {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.card().is_none() {
+        if self.card.is_none() {
             return Some(express!("Choose a card to discard"));
         }
-        if !game.player(self.player()).has(self.card()) {
+        if !game.player(self.player()).has(self.card) {
             return Some(express!("Invalid card"));
         }
 
@@ -49,10 +41,10 @@ impl Discarded {
         }
         let m = self.get_message(game);
         let mut fact = BattleFact::new(BattleFactKind::Discard, initiator.required("faction")?);
-        fact.card = self.card();
+        fact.card = self.card;
         let m = m.with_fact(fact).with_log(AsideLog::aside());
         self.log_objects(game, vec![m.into()]);
-        game.discard_card_of(self.player_opt(), self.card(), false);
+        game.discard_card_of(self.player_opt(), self.card, false);
 
         if game.turn.factions_that_must_discard.is_empty() {
             let phase = game.turn.phase_before_discarding.required("phase before discarding")?;
@@ -62,7 +54,7 @@ impl Discarded {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " discard ", self.card())
+        express!(self.initiator(), " discard ", self.card)
     }
 
 }

@@ -3,7 +3,7 @@ use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct KarmaMonster {
-    pub territory_id: i32,
+    pub territory: Option<Territory>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -11,7 +11,7 @@ pub struct KarmaMonster {
 impl Default for KarmaMonster {
     fn default() -> Self {
         KarmaMonster {
-            territory_id: Default::default(),
+            territory: Territory::from_id(0),
             base: Default::default(),
         }
     }
@@ -24,16 +24,8 @@ impl KarmaMonster {
         e
     }
 
-    pub fn territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.territory_id)
-    }
-
-    pub fn set_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let Some(territory) = self.territory(game) else {
+        let Some(territory) = self.territory else {
             return Some(express!("No territory selected"));
         };
         if territory.is_protected_from_worm() {
@@ -54,12 +46,12 @@ impl KarmaMonster {
         // Arguments in C# order: Player, the karma card, then the effect (which reads Territory).
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).next();
-        let effect = vec![Part::from("send "), Part::from(Concept::Monster), Part::from(" to "), Part::from(self.territory(game))];
+        let effect = vec![Part::from("send "), Part::from(Concept::Monster), Part::from(" to "), Part::from(self.territory)];
         game.play_karma(me, card, effect);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
         game.blow.number_of_monsters += 1;
-        let territory = self.territory(game);
+        let territory = self.territory;
         game.let_monster_appear(territory, false);
 
         if game.turn.current_phase == Phase::BlowReport {
@@ -68,8 +60,8 @@ impl KarmaMonster {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " send ", Concept::Monster, " to ", self.territory(game))
+    pub fn get_message(&self, _game: &Game) -> Message {
+        express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " send ", Concept::Monster, " to ", self.territory)
     }
 
 }

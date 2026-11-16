@@ -229,7 +229,7 @@ impl ClassicBot {
 
         if self.card_quality(game, worst_card, None) <= 1 {
             let mut e = EmperorDiscarded::new(game, self.faction(game));
-            e.set_card(Some(worst_card));
+            e.card = Some(worst_card);
             Some(Rc::new(e))
         } else {
             None
@@ -279,7 +279,7 @@ impl ClassicBot {
         let put_on_top = (quality <= 2 && self.ally(game) == None) || (quality >= 4 && self.ally(game) != None);
 
         let mut e = IxianRemovedCardFromAuction::new(game, self.faction(game));
-        e.set_card(Some(to_be_removed));
+        e.card = Some(to_be_removed);
         e.put_on_top = put_on_top;
         Rc::new(e)
     }
@@ -297,7 +297,7 @@ impl ClassicBot {
         let mut e = IxianSwappedCardOnBid::new(game, self.faction(game));
         e.passed = worst_card.is_none();
         if worst_card.is_some() {
-            e.set_card(worst_card);
+            e.card = worst_card;
         }
         Rc::new(e)
     }
@@ -329,7 +329,7 @@ impl ClassicBot {
             .or_else(|| cards().next());
 
         let mut e = IxianSelectedStartingCard::new(game, self.faction(game));
-        e.set_card(card);
+        e.card = card;
         Rc::new(e)
     }
 
@@ -339,7 +339,7 @@ impl ClassicBot {
         let target_event = |target: Option<Location>| {
             let mut e = PerformHmsMovement::new(game, faction);
             e.passed = false;
-            e.set_target(game, target);
+            e.target = target;
             Rc::new(e)
         };
         let step_towards = |target: Location, distance: i32| {
@@ -396,7 +396,7 @@ impl ClassicBot {
         };
 
         let mut e = PerformHmsPlacement::new(game, faction);
-        e.set_target(game, Some(target));
+        e.target = Some(target);
         Rc::new(e)
     }
 
@@ -439,7 +439,7 @@ impl ClassicBot {
             self.total_max_dial_of_opponents(game, *t) + (2 * t.forces_of(game, self.player)) as f32
         });
         let mut e = FremenSentMonster::new(game, self.faction(game));
-        e.set_territory(game, target);
+        e.territory = target;
         Rc::new(e)
     }
 
@@ -499,7 +499,7 @@ impl ClassicBot {
         if total_forces > 0 {
             e.passed = false;
             e.set_force_locations(game, &battalions_to_move.clone());
-            e.set_to(game, Some(target));
+            e.to = Some(target);
             e.forces_from_reserves = forces_from_reserves;
             e.special_forces_from_reserves = special_forces_from_reserves;
         } else {
@@ -524,7 +524,7 @@ impl ClassicBot {
         };
 
         let mut e = PerformBeneGesseritPlacement::new(game, self.faction(game));
-        e.set_target(game, Some(target));
+        e.target = Some(target);
         Rc::new(e)
     }
 
@@ -587,7 +587,7 @@ impl ClassicBot {
 
             if let Some(territory) = territory {
                 let mut e = BeneGesseritBattleAnnouncement::new(game, self.faction(game));
-                e.set_territory(game, Some(territory));
+                e.territory = Some(territory);
                 return Some(Rc::new(e));
             }
         }
@@ -615,14 +615,14 @@ impl ClassicBot {
         let faction = self.faction(game);
         let accompany = |location: Location, extra_advisor: bool| {
             let mut e = BeneGesseritAccompanies::new(game, faction);
-            e.set_location(game, Some(location));
+            e.location = Some(location);
             e.accompanies = true;
             e.extra_advisor = extra_advisor;
             Rc::new(e)
         };
         let no_accompany = || {
             let mut e = BeneGesseritAccompanies::new(game, faction);
-            e.set_location(game, None);
+            e.location = None;
             e.accompanies = false;
             Rc::new(e)
         };
@@ -808,7 +808,7 @@ impl ClassicBot {
 
         let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
         let mut e = Prescience::new(game, self.faction(game));
-        let territory = battle.territory(game).expect("territory");
+        let territory = battle.territory.expect("territory");
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
         e.aspect = self.best_prescience(game, self.player, opponent.expect("opponent"), max_dial, existing_aspect, territory);
         Some(Rc::new(e))
@@ -947,7 +947,7 @@ impl ClassicBot {
         let mut e = FaceDancerReplaced::new(game, self.faction(game));
         e.passed = to_replace.is_none();
         if to_replace.is_some() {
-            e.set_selected_dancer(to_replace);
+            e.selected_dancer = to_replace;
         }
         Rc::new(e)
     }
@@ -985,13 +985,13 @@ impl ClassicBot {
         let to_revive = to_revive?;
         self.turn_when_revival_was_requested = game.turn.current_turn;
         let mut e = RequestTleilaxuRevival::new(game, faction);
-        e.set_hero(Some(to_revive));
+        e.hero = Some(to_revive);
         Some(Rc::new(e))
     }
 
     pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<AcceptOrCancelTleilaxuRevival>> {
         let request_to_handle = game.revival.current_revival_requests.first().cloned()?;
-        let hero = request_to_handle.hero().expect("hero");
+        let hero = request_to_handle.hero.expect("hero");
 
         let price = if request_to_handle.initiator() == self.ally(game) {
             0
@@ -1010,7 +1010,7 @@ impl ClassicBot {
         };
 
         let mut e = AcceptOrCancelTleilaxuRevival::new(game, self.faction(game));
-        e.set_hero(Some(hero));
+        e.hero = Some(hero);
         e.price = price;
         e.cancel = false;
         Some(Rc::new(e))
@@ -1084,7 +1084,7 @@ impl ClassicBot {
 
             if let Some(opp) = opponent_with_one_force_in_stronghold {
                 let mut e = ChoamRemoveForce::new(game, self.faction(game));
-                e.set_location(game, Some(stronghold));
+                e.location = Some(stronghold);
                 e.target = game.player(opp).faction;
                 e.special_force = game.player(opp).special_forces_in(Some(stronghold)) > 0;
                 return Some(Rc::new(e));
@@ -1122,7 +1122,7 @@ impl ClassicBot {
             .unwrap_or_else(|| valid().find(|l| l.is_protected_from_storm()).expect("a location protected from the storm"));
 
         let mut e = PerformMoritaniSetup::new(game, self.faction(game));
-        e.set_target(game, Some(target));
+        e.target = Some(target);
         Rc::new(e)
     }
 
@@ -1175,7 +1175,7 @@ impl ClassicBot {
 
         if let Some(stronghold) = stronghold {
             e.type_ = type_;
-            e.set_stronghold(game, Some(stronghold));
+            e.stronghold = Some(stronghold);
         } else {
             e.passed = true;
         }
@@ -1213,9 +1213,9 @@ impl ClassicBot {
         }
         e.type_ = type_;
         e.robbery_takes_card = false;
-        e.set_card_to_give_in_sabotage(card_in_sabotage);
+        e.card_to_give_in_sabotage = card_in_sabotage;
         e.forces_in_sneak_attack = TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player);
-        e.set_sneak_attack_to(game, TerrorRevealed::valid_sneak_attack_targets(game, self.player).next());
+        e.sneak_attack_to = TerrorRevealed::valid_sneak_attack_targets(game, self.player).next();
         Rc::new(e)
     }
 
@@ -1281,7 +1281,7 @@ impl ClassicBot {
         }
         let mut e = AmbassadorPlaced::new(game, self.faction(game));
         e.ambassador = ambassador;
-        e.set_stronghold(game, stronghold);
+        e.stronghold = stronghold;
         Some(Rc::new(e))
     }
 
@@ -1348,7 +1348,7 @@ impl ClassicBot {
                             forces_to_move.insert_new(to_move.from, to_move.battalion.clone());
 
                             let mut e = new_event();
-                            e.set_fremen_or_guild_to(game, target);
+                            e.fremen_or_guild_to = target;
                             e.set_fremen_force_locations(game, &forces_to_move);
                             return Some(Rc::new(e));
                         }
@@ -1361,7 +1361,7 @@ impl ClassicBot {
                     AmbassadorActivated::get_valid_ixian_cards(game, self.player).into_iter().find(|c| self.card_quality(game, *c, p) < 2);
                 if to_replace.is_some() {
                     let mut e = new_event();
-                    e.set_ixian_card(to_replace);
+                    e.ixian_card = to_replace;
                     return Some(Rc::new(e));
                 }
             }
@@ -1400,7 +1400,7 @@ impl ClassicBot {
 
                 if let Some(attack) = attack {
                     let mut e = new_event();
-                    e.set_fremen_or_guild_to(game, Some(attack.location));
+                    e.fremen_or_guild_to = Some(attack.location);
                     e.guild_force_amount = AmbassadorActivated::valid_guild_max_forces(game, self.player);
                     return Some(Rc::new(e));
                 }
@@ -1421,7 +1421,7 @@ impl ClassicBot {
                     && (game.player(self.player).forces_in_reserve() > 3 || Battle::valid_battle_heroes(game, self.player).len() <= 1)
                 {
                     let mut e = new_event();
-                    e.set_tleilaxu_hero(hero_to_revive);
+                    e.tleilaxu_hero = hero_to_revive;
                     e.tleilaxu_assign_skill = Revival::may_assign_skill(game, self.player, hero_to_revive);
                     return Some(Rc::new(e));
                 }
@@ -1456,7 +1456,7 @@ impl ClassicBot {
         let mut e = RicheseAnnouncesBlackMarket::new(game, self.faction(game));
         if card.is_some() {
             e.passed = false;
-            e.set_card(card);
+            e.card = card;
             // The auction type is drawn before the direction.
             e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::BlackMarketSilent) } else { Some(AuctionType::BlackMarketOnceAround) };
             e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
@@ -1492,7 +1492,7 @@ impl ClassicBot {
         to_auction.shuffle();
         let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
-        e.set_card(card);
+        e.card = card;
         e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::RicheseSilent) } else { Some(AuctionType::RicheseOnceAround) };
         e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
         Rc::new(e)

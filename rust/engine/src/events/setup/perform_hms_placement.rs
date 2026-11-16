@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PerformHmsPlacement {
-    pub target_id: i32,
+    pub target: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct PerformHmsPlacement {
 impl Default for PerformHmsPlacement {
     fn default() -> Self {
         PerformHmsPlacement {
-            target_id: Default::default(),
+            target: Location::from_id(0),
             base: Default::default(),
         }
     }
@@ -23,17 +23,9 @@ impl PerformHmsPlacement {
         e
     }
 
-    pub fn target(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.target_id)
-    }
-
-    pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         // A null Player throws NullReferenceException in ValidLocations.
-        if !Self::valid_locations(game, self.player()).any(|l| Some(l) == self.target(game)) {
+        if !Self::valid_locations(game, self.player()).any(|l| Some(l) == self.target) {
             return Some(express!("Invalid location"));
         }
 
@@ -50,7 +42,7 @@ impl PerformHmsPlacement {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let target = self.target(game).required("target")?;
+        let target = self.target.required("target")?;
         let hms = game.board.map.hidden_mobile_stronghold();
         hms.point_at(&mut game.board.map, target);
         self.log(game);
@@ -60,7 +52,7 @@ impl PerformHmsPlacement {
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " position the ", game.board.map.hidden_mobile_stronghold(), " above ", self.target(game))
+        express!(self.initiator(), " position the ", game.board.map.hidden_mobile_stronghold(), " above ", self.target)
     }
 
 }

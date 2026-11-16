@@ -53,7 +53,7 @@ struct HeroChoice {
 impl ClassicBot {
     pub fn determine_battle_claimed(&self, game: &Game) -> Rc<BattleClaimed> {
         let about = game.battle.battle_about_to_start.as_ref().expect("battle about to start");
-        let territory = about.territory(game);
+        let territory = about.territory;
         let opponent = game.get_player(about.target);
         let ecaz = game.get_player(Some(Faction::Ecaz));
         let ecaz_ally = game.player(ecaz.expect("Ecaz")).allied_player(game);
@@ -74,7 +74,7 @@ impl ClassicBot {
 
         let switchable_leader_is_behind_shield = !game.is_in_front_of_shield(switchable_leader);
         let switchable_leader_must_be_used = Battle::valid_battle_heroes(game, self.player).len() <= 1
-            || self.determine_battle_plan_if_not_waiting_for_prescience(game, true).and_then(|b| b.hero()) == switchable_leader;
+            || self.determine_battle_plan_if_not_waiting_for_prescience(game, true).and_then(|b| b.hero) == switchable_leader;
 
         if switchable_leader_is_behind_shield ^ switchable_leader_must_be_used {
             return Some(Rc::new(SwitchedSkilledLeader::new(game, self.faction(game))));
@@ -98,7 +98,7 @@ impl ClassicBot {
 
         let mut result = BattleInitiated::new(game, self.faction(game));
         result.target = Some(battle.faction);
-        result.set_territory(game, Some(battle.territory));
+        result.territory = Some(battle.territory);
         Rc::new(result)
     }
 
@@ -187,8 +187,8 @@ impl ClassicBot {
         result.stolen_token = game.player(opponent.expect("opponent")).tech_tokens.first().copied();
         result.kill = kill;
         result.special_force_losses_replaced = replaced_special_forces;
-        result.set_new_traitor(new_traitor);
-        result.set_traitor_to_replace(to_replace);
+        result.new_traitor = new_traitor;
+        result.traitor_to_replace = to_replace;
         result.add_extra_force = BattleConcluded::may_add_extra_force(game, self.player);
         Rc::new(result)
     }
@@ -212,7 +212,7 @@ impl ClassicBot {
     pub fn determine_battle_plan(&self, game: &Game, include_leader_in_front_of_shield: bool) -> Rc<Battle> {
         let current_battle = game.battle.current_battle.as_ref().expect("current battle");
         let opponent = current_battle.opponent_of(game, self.player);
-        let territory = current_battle.territory(game);
+        let territory = current_battle.territory;
 
         if self.decided_shipment_action == ShipmentDecision::DummyShipment {
             return self.construct_lost_battle_minimizing_losses(game, opponent.expect("opponent"), territory.expect("territory"));
@@ -295,7 +295,7 @@ impl ClassicBot {
         let mut paid_by_arrakeen = 0;
         let cost = Battle::cost_of_forces(game, self.player, forces.forces, forces.special_forces, &mut paid_by_arrakeen);
         let mut result = Battle::new(game, self.faction(game));
-        result.set_hero(hero);
+        result.hero = hero;
         result.messiah = messiah;
         result.forces = forces.forces;
         result.forces_at_half_strength = forces.forces_at_half_strength;
@@ -350,7 +350,7 @@ impl ClassicBot {
         let stronghold_free_forces = if game.has_stronghold_advantage(
             self.faction(game),
             StrongholdAdvantage::FreeResourcesForBattles,
-            game.battle.current_battle.as_ref().expect("current battle").territory(game).expect("territory"),
+            game.battle.current_battle.as_ref().expect("current battle").territory.expect("territory"),
         ) {
             2
         } else {
@@ -373,7 +373,7 @@ impl ClassicBot {
         };
 
         let mut result = Battle::new(game, self.faction(game));
-        result.set_hero(hero);
+        result.hero = hero;
         result.forces = forces;
         result.forces_at_half_strength = forces_at_half_strength;
         result.special_forces = special_forces;
@@ -571,7 +571,7 @@ impl ClassicBot {
         }
 
         let available_defenses =
-            Self::usable_defenses(game, player, chosen_weapon, game.battle.current_battle.as_ref().and_then(|b| b.territory(game)));
+            Self::usable_defenses(game, player, chosen_weapon, game.battle.current_battle.as_ref().and_then(|b| b.territory));
         let first_defense = |pred: &dyn Fn(TreacheryCard) -> bool| available_defenses.iter().copied().find(|d| pred(*d));
 
         if chosen_weapon.is_some_and(|w| w.is_artillery()) {
@@ -1156,7 +1156,7 @@ impl ClassicBot {
         }
 
         let opponent_leader = match &opponent_plan {
-            Some(plan) if prescience == Some(PrescienceAspect::Leader) => plan.hero(),
+            Some(plan) if prescience == Some(PrescienceAspect::Leader) => plan.hero,
             _ => {
                 // The opponent's strongest leader that isn't my traitor.
                 let traitors = &game.player(player).traitors;
@@ -1228,7 +1228,7 @@ impl ClassicBot {
         let copy = |plan: &Option<Rc<Battle>>| Rc::new(Battle::clone(plan.as_ref().expect("battle plan")));
         let agg = copy(&game.battle.aggressor_plan);
         let def = copy(&game.battle.defender_plan);
-        let territory = game.battle.current_battle.as_ref().expect("current battle").territory(game).expect("territory");
+        let territory = game.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
         let outcome = Battle::predict_battle_outcome(&agg, &def, territory, game);
         // Building the message can throw, which cancels the decision.
         let _ = outcome.get_message(game);
@@ -1274,7 +1274,7 @@ impl ClassicBot {
             .or(valid_cards.first().copied())?;
 
         let mut result = Thought::new(game, self.faction(game));
-        result.set_card(Some(card));
+        result.card = Some(card);
         Some(Rc::new(result))
     }
 
@@ -1283,7 +1283,7 @@ impl ClassicBot {
         let card = ThoughtAnswered::valid_cards(game, self.player)
             .into_iter()
             .random_lowest(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
-        result.set_card(card);
+        result.card = card;
         Rc::new(result)
     }
 
@@ -1331,7 +1331,7 @@ impl ClassicBot {
 
         if forces_to_retreat > 0 || special_forces_to_retreat > 0 {
             let mut result = Retreat::new(game, self.faction(game));
-            result.set_location(game, to);
+            result.location = to;
             result.forces = forces_to_retreat;
             result.special_forces = special_forces_to_retreat;
             return Some(Rc::new(result));
@@ -1349,7 +1349,7 @@ impl ClassicBot {
             .min_by_key(|(quality, _)| Reverse(*quality))
             .map(|(_, c)| c);
         let mut result = LoserConcluded::new(game, self.faction(game));
-        result.set_kept_card(to_keep);
+        result.kept_card = to_keep;
         result.assassinate = LoserConcluded::can_assassinate(game, self.player);
         Rc::new(result)
     }

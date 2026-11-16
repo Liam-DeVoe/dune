@@ -32,7 +32,7 @@ impl PortableAntidoteUsed {
             if let Some(plan) = plan {
                 if plan.defense().is_none()
                     && g.battle.current_portable_antidote_used.is_none()
-                    && Battle::valid_defenses(g, p, plan.weapon(), g.battle.current_battle.as_ref().and_then(|b| b.territory(g)), false)
+                    && Battle::valid_defenses(g, p, plan.weapon(), g.battle.current_battle.as_ref().and_then(|b| b.territory), false)
                         .contains(&Some(card))
                 {
                     return true;

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RicheseAnnouncesBlackMarket {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     pub auction_type: Option<AuctionType>,
     pub direction: i32,
     // ---- inherited from PassableGameEvent ----
@@ -14,7 +14,7 @@ pub struct RicheseAnnouncesBlackMarket {
 impl Default for RicheseAnnouncesBlackMarket {
     fn default() -> Self {
         RicheseAnnouncesBlackMarket {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             auction_type: Default::default(),
             direction: Default::default(),
             passed: Default::default(),
@@ -30,14 +30,6 @@ impl RicheseAnnouncesBlackMarket {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         if self.passed {
             return None;
@@ -46,7 +38,7 @@ impl RicheseAnnouncesBlackMarket {
         if self.auction_type != Some(AuctionType::BlackMarketNormal) && self.auction_type != Some(AuctionType::BlackMarketOnceAround) && self.auction_type != Some(AuctionType::BlackMarketSilent) {
             return Some(express!("Invalid auction type"));
         }
-        if !RicheseAnnouncesBlackMarket::valid_cards(game, self.player()).iter().any(|c| Some(*c) == self.card()) {
+        if !RicheseAnnouncesBlackMarket::valid_cards(game, self.player()).iter().any(|c| Some(*c) == self.card) {
             return Some(express!("Invalid card"));
         }
 
@@ -63,7 +55,7 @@ impl RicheseAnnouncesBlackMarket {
         if !self.passed {
             game.enter(Phase::BlackMarketBidding, true);
             let me = self.player();
-            let card = self.card();
+            let card = self.card;
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let card = card.required("card")?;
             game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);

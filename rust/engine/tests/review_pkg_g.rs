@@ -74,7 +74,7 @@ fn shipment_costs_match_csharp_at_the_edges() {
     let mut s = Shipment::default();
     s.shipment_type = ShipmentType::ShipmentBack;
     s.force_amount = i32::MIN;
-    s.to_id = to.id();
+    s.to = Some(to);
     s.initialize(&g, faction);
     assert_eq!(show(|| s.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
@@ -82,7 +82,7 @@ fn shipment_costs_match_csharp_at_the_edges() {
     s2.shipment_type = ShipmentType::Unknown;
     s2.force_amount = i32::MAX;
     s2.special_force_amount = 1;
-    s2.to_id = to.id();
+    s2.to = Some(to);
     s2.initialize(&g, faction);
     assert_eq!(show(|| s2.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 

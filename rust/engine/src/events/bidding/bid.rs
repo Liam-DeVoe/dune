@@ -6,7 +6,7 @@ pub struct Bid {
     pub ally_contribution_amount: i32,
     pub emperor_contribution_amount: i32,
     pub uses_emperor_secret_ally: bool,
-    pub karma_card_id: i32,
+    pub karma_card: Option<TreacheryCard>,
     pub karma_bid: bool,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -21,7 +21,7 @@ impl Default for Bid {
             ally_contribution_amount: Default::default(),
             emperor_contribution_amount: Default::default(),
             uses_emperor_secret_ally: Default::default(),
-            karma_card_id: -1,
+            karma_card: None,
             karma_bid: Default::default(),
             passed: Default::default(),
             base: Default::default(),
@@ -36,20 +36,12 @@ impl Bid {
         e
     }
 
-    pub fn karma_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.karma_card_id)
-    }
-
-    pub fn set_karma_card(&mut self, value: Option<TreacheryCard>) {
-        self.karma_card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn total_amount(&self) -> i32 {
         (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 
     pub fn using_karma_to_remove_bid_limit(&self) -> bool {
-        self.karma_card().is_some() && !self.karma_bid
+        self.karma_card.is_some() && !self.karma_bid
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -79,7 +71,7 @@ impl Bid {
         }
 
         if self.karma_bid {
-            if !self.karma_card().is_some_and(|c| Bid::valid_karma_cards(game, self.player_opt()).any(|v| v == c)) {
+            if !self.karma_card.is_some_and(|c| Bid::valid_karma_cards(game, self.player_opt()).any(|v| v == c)) {
                 return Some(express!("Invalid ", TreacheryCardType::Karma, " card"));
             }
             return None;
@@ -107,7 +99,7 @@ impl Bid {
         if !self.using_karma_to_remove_bid_limit() && self.amount > game.player(self.player()).resources {
             return Some(express!("You can't pay ", Payment::of(self.amount)));
         }
-        if let Some(karma_card) = self.karma_card() {
+        if let Some(karma_card) = self.karma_card {
             if p.is_none() || !Karma::valid_karma_cards(game, p.expect("player")).any(|v| v == karma_card) {
                 return Some(express!("Invalid ", TreacheryCardType::Karma, " card"));
             }
@@ -277,11 +269,11 @@ impl Bid {
 
     pub fn win_with_karma(&self, game: &mut Game, bid: &Bid) -> GameResult<TreacheryCard> {
         let winner = self.get_player(game, bid.initiator());
-        if winner.is_none() || bid.karma_card().is_none() || game.bidding.cards_on_auction.is_none() {
+        if winner.is_none() || bid.karma_card.is_none() || game.bidding.cards_on_auction.is_none() {
             game_error!("Cannot resolve karma bid winner or auction deck");
         }
         let winner = winner.required("winner")?;
-        let karma_card = bid.karma_card().required("karma card")?;
+        let karma_card = bid.karma_card.required("karma card")?;
 
         game.discard_card(Some(karma_card), true)?;
 
@@ -515,7 +507,7 @@ impl crate::events::bid_trait::BidEvent for Bid {
     }
 
     fn karma_card(&self) -> Option<TreacheryCard> {
-        Bid::karma_card(self)
+        self.karma_card
     }
 
     fn get_message(&self, game: &Game) -> Message {

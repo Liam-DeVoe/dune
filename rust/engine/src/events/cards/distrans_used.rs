@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct DistransUsed {
     pub target: Option<Faction>,
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -12,7 +12,7 @@ impl Default for DistransUsed {
     fn default() -> Self {
         DistransUsed {
             target: Default::default(),
-            card_id: -1,
+            card: None,
             base: Default::default(),
         }
     }
@@ -25,16 +25,8 @@ impl DistransUsed {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !DistransUsed::valid_cards(game, self.player()).any(|c| Some(c) == self.card()) {
+        if !DistransUsed::valid_cards(game, self.player()).any(|c| Some(c) == self.card) {
             return Some(express!("Invalid card"));
         }
         if !DistransUsed::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
@@ -69,7 +61,7 @@ impl DistransUsed {
         let target = target.required("target")?;
         let me = self.player();
         game.discard(me, TreacheryCardType::Distrans)?;
-        let card = self.card();
+        let card = self.card;
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
         Game::register_known_by_player(game, me, card);
         game.player_mut(target).treachery_cards.push(card.required("card")?);

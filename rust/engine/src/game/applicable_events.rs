@@ -489,14 +489,14 @@ impl Game {
                         || (self.battle.aggressor_traitor_action.is_none()
                             && faction == Some(Faction::Harkonnen)
                             && ally_of(ap.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
-                            && dp.hero().is_some()
-                            && traitors.contains(&dp.hero().expect("hero")))
+                            && dp.hero.is_some()
+                            && traitors.contains(&dp.hero.expect("hero")))
                         || (self.battle.defender_traitor_action.is_none() && faction == cb.defender(self))
                         || (self.battle.defender_traitor_action.is_none()
                             && faction == Some(Faction::Harkonnen)
                             && ally_of(dp.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
-                            && ap.hero().is_some()
-                            && traitors.contains(&ap.hero().expect("hero")))
+                            && ap.hero.is_some()
+                            && traitors.contains(&ap.hero.expect("hero")))
                     {
                         result.push(GameEventType::TreacheryCalled);
                     }

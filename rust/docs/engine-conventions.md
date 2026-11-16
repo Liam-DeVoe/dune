@@ -132,14 +132,16 @@ game.board.map.shield_wall()                  // Map.ShieldWall (a Territory)
 
 ### Ids in events
 
-Events store integer ids, as in C#, and resolve them through the fetchers. `Find` throws where C# throws: `LocationLookup.Find(200)` is ArgumentOutOfRangeException.
+An event field that names one location, territory, leader, hero or treachery card holds the handle: `Shipment.to` is an `Option<Location>`, `Battle.hero` an `Option<Hero>`. Event JSON still writes the id, and -1 for `None` (`json_handle!` in json/mod.rs). Reading an id that names no object of the field's type fails, so a decoded event never holds an unknown id: `"_toId":500` is refused with "500 is not a valid Location".
+
+A field's default is the object with id 0 where there is one (`Location::from_id(0)`, `TreacheryCardManager::get(0)`), because C# left the id at 0 and event JSON must not change. A default `Shipment` names card 0 as its Karama card, as it did in C#. Leaders start at id 1001, so a leader field defaults to `None`.
 
 ```rust
-use crate::identity::Fetcher;
-let to = game.board.map.location_lookup().find(self.to_id);        // Option<Location>
-let hero = LeaderManager::hero_lookup().find(self.hero_id);  // Option<Hero>
-let card = TreacheryCardManager::lookup().find(self.card_id);
+e.to = Some(location);                      // was e.set_to(game, Some(location))
+if let Some(card) = e.karma_card { /* ... */ }
 ```
+
+The lists of ids written as one string (`_cardIds`, `_forceLocations`) still go through the fetchers, `GameEvent::id_string_to_objects` and `PlacementEvent::parse_force_locations`. 4b replaces them with arrays.
 
 ### Absent values
 

@@ -5,9 +5,9 @@ pub struct RaiseDeadPlayed {
     pub amount_of_forces: i32,
     pub amount_of_special_forces: i32,
     pub assign_skill: bool,
-    pub hero_id: i32,
+    pub hero: Option<Hero>,
     pub number_of_special_forces_in_location: i32,
-    pub location_id: i32,
+    pub location: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -18,9 +18,9 @@ impl Default for RaiseDeadPlayed {
             amount_of_forces: 0,
             amount_of_special_forces: 0,
             assign_skill: false,
-            hero_id: Default::default(),
+            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             number_of_special_forces_in_location: Default::default(),
-            location_id: -1,
+            location: None,
             base: Default::default(),
         }
     }
@@ -33,24 +33,8 @@ impl RaiseDeadPlayed {
         e
     }
 
-    pub fn hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.hero_id)
-    }
-
-    pub fn set_hero(&mut self, value: Option<Hero>) {
-        self.hero_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
-    pub fn location(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.location_id)
-    }
-
-    pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        self.location(game)
+    pub fn to(&self, _game: &Game) -> Option<Location> {
+        self.location
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -91,22 +75,22 @@ impl RaiseDeadPlayed {
         {
             return Some(express!("You already revived one ", pl.special_force(), " this turn"));
         }
-        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero().is_some() {
+        if (self.amount_of_forces + self.amount_of_special_forces) > 0 && self.hero.is_some() {
             return Some(express!("You can't revive both forces and a leader"));
         }
-        if self.hero().is_some() && !Self::valid_heroes(game, p).contains(&self.hero().expect("hero")) {
+        if self.hero.is_some() && !Self::valid_heroes(game, p).contains(&self.hero.expect("hero")) {
             return Some(express!("Invalid leader"));
         }
 
-        if self.assign_skill && self.hero().is_none() {
+        if self.assign_skill && self.hero.is_none() {
             return Some(express!("You must revive a leader to assign a skill to"));
         }
-        if self.assign_skill && !Revival::may_assign_skill(game, p, self.hero()) {
+        if self.assign_skill && !Revival::may_assign_skill(game, p, self.hero) {
             return Some(express!("You can't assign a skill to this leader"));
         }
 
-        if self.location(game).is_some() {
-            let location = self.location(game);
+        if self.location.is_some() {
+            let location = self.location;
             if !Revival::valid_revived_force_locations(game, p).any(|l| Some(l) == location) {
                 return Some(express!("You can't place revived forces there"));
             }
@@ -139,7 +123,7 @@ impl RaiseDeadPlayed {
         // leader keeps the plain line so the table doesn't name them.
         let me = self.player();
         let initiator = self.initiator();
-        let hero = self.hero();
+        let hero = self.hero;
         let card = game.player(me).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::RaiseDead);
         let mut message = self.get_message(game);
         if hero.is_none() || !game.is_face_down_dead(hero.required("hero")?) {
@@ -188,10 +172,10 @@ impl RaiseDeadPlayed {
             }
         }
 
-        if self.location(game).is_some() && initiator == Some(Faction::Fremen) {
-            let to = self.location(game).required("location")?;
+        if self.location.is_some() && initiator == Some(Faction::Fremen) {
+            let to = self.location.required("location")?;
             Player::ship_special_forces(game, me, to, 1);
-            let location = self.location(game);
+            let location = self.location;
             self.log_objects(
                 game,
                 vec![initiator.into(), " place ".into(), FactionSpecialForce::Fremen.into(), " in ".into(), location.into()],
@@ -201,7 +185,7 @@ impl RaiseDeadPlayed {
     }
 
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        if let Some(hero) = self.hero() {
+        if let Some(hero) = self.hero {
             if !game.leaders.leader_state.contains_key(&hero) {
                 game_error!("{} is not in this game", dotnet_compat::exception::CsToString::cs_to_string(&hero));
             }

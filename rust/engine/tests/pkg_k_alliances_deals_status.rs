@@ -304,8 +304,8 @@ fn card_trade_offer_must_name_the_ally() {
         e.base().initiator.set(Some(Faction::Choam));
         e.base().player.set(g.get_player(Some(Faction::Choam)));
         e.target = Some(target);
-        e.set_card(Some(cards[0]));
-        e.set_requested_card(None);
+        e.card = Some(cards[0]);
+        e.requested_card = None;
         e.validate(&g).map(|m| m.plain_text())
     };
     assert_eq!(offer(Faction::Atreides), None);

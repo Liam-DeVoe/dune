@@ -457,7 +457,7 @@ fn battle_plans_once_both_are_in() {
             assert_eq!(shown.dial, Some(plan.dial(g, opponent.expect("faction")) as f64));
             assert_eq!(shown.weapon, plan.weapon().map(|c| c.id()));
             assert_eq!(shown.cost, Some(plan.cost(g)).filter(|c| *c > 0));
-            match (plan.hero(), &shown.hero) {
+            match (plan.hero, &shown.hero) {
                 (Some(Hero::Leader(l)), Some(PlanHero::Leader { id, .. })) => assert_eq!(*id, l.id()),
                 (Some(Hero::TreacheryCard(c)), Some(PlanHero::TreacheryCard { id })) => assert_eq!(*id, c.id()),
                 (None, None) => {}

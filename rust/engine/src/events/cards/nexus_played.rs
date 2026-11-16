@@ -7,14 +7,14 @@ pub struct NexusPlayed {
     pub atreides_prescience_aspect: Option<PrescienceAspect>,
     pub tleilaxu_forces: i32,
     pub tleilaxu_special_forces: i32,
-    pub tleilaxu_hero_id: i32,
+    pub tleilaxu_hero: Option<Hero>,
     pub tleilaxu_assign_skill: bool,
-    pub choam_card_id: i32,
-    pub ecaz_territory_id: i32,
+    pub choam_card: Option<TreacheryCard>,
+    pub ecaz_territory: Option<Territory>,
     pub ecaz_faction: Option<Faction>,
-    pub moritani_territory_id: i32,
+    pub moritani_territory: Option<Territory>,
     pub tleilaxu_number_of_special_forces_in_location: i32,
-    pub tleilaxu_location_id: i32,
+    pub tleilaxu_location: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -26,14 +26,14 @@ impl Default for NexusPlayed {
             atreides_prescience_aspect: Default::default(),
             tleilaxu_forces: Default::default(),
             tleilaxu_special_forces: Default::default(),
-            tleilaxu_hero_id: -1,
+            tleilaxu_hero: None,
             tleilaxu_assign_skill: false,
-            choam_card_id: Default::default(),
-            ecaz_territory_id: Default::default(),
+            choam_card: TreacheryCardManager::get(0),
+            ecaz_territory: Territory::from_id(0),
             ecaz_faction: Default::default(),
-            moritani_territory_id: Default::default(),
+            moritani_territory: Territory::from_id(0),
             tleilaxu_number_of_special_forces_in_location: Default::default(),
-            tleilaxu_location_id: -1,
+            tleilaxu_location: None,
             base: Default::default(),
         }
     }
@@ -50,48 +50,8 @@ impl NexusPlayed {
         e
     }
 
-    pub fn tleilaxu_hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.tleilaxu_hero_id)
-    }
-
-    pub fn set_tleilaxu_hero(&mut self, value: Option<Hero>) {
-        self.tleilaxu_hero_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
-    pub fn choam_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.choam_card_id)
-    }
-
-    pub fn set_choam_card(&mut self, value: Option<TreacheryCard>) {
-        self.choam_card_id = TreacheryCardManager::get_id(value);
-    }
-
-    pub fn ecaz_territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.ecaz_territory_id)
-    }
-
-    pub fn set_ecaz_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.ecaz_territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
-    pub fn moritani_territory(&self, game: &Game) -> Option<Territory> {
-        game.board.map.territory_lookup().find(self.moritani_territory_id)
-    }
-
-    pub fn set_moritani_territory(&mut self, game: &Game, value: Option<Territory>) {
-        self.moritani_territory_id = game.board.map.territory_lookup().get_id(value);
-    }
-
-    pub fn tleilaxu_location(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.tleilaxu_location_id)
-    }
-
-    pub fn set_tleilaxu_location(&mut self, game: &Game, value: Option<Location>) {
-        self.tleilaxu_location_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        self.tleilaxu_location(game)
+    pub fn to(&self, _game: &Game) -> Option<Location> {
+        self.tleilaxu_location
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -131,8 +91,8 @@ impl NexusPlayed {
             Some(Faction::Tleilaxu) => {
                 if self.is_secret_ally(game) {
                     let me = self.player();
-                    if self.tleilaxu_hero().is_some()
-                        && !NexusPlayed::valid_tleilaxu_heroes(game, me).contains(&self.tleilaxu_hero().expect("tleilaxu hero"))
+                    if self.tleilaxu_hero.is_some()
+                        && !NexusPlayed::valid_tleilaxu_heroes(game, me).contains(&self.tleilaxu_hero.expect("tleilaxu hero"))
                     {
                         return Some(express!("Invalid leader"));
                     }
@@ -148,16 +108,16 @@ impl NexusPlayed {
                     if (self.tleilaxu_forces + self.tleilaxu_special_forces) > 5 {
                         return Some(express!("You can't revive that many forces"));
                     }
-                    if self.tleilaxu_assign_skill && self.tleilaxu_hero().is_none() {
+                    if self.tleilaxu_assign_skill && self.tleilaxu_hero.is_none() {
                         return Some(express!("You must revive a leader to assign a skill to"));
                     }
                     if self.tleilaxu_assign_skill
-                        && (self.tleilaxu_hero().is_none() || !Revival::may_assign_skill(game, me, self.tleilaxu_hero()))
+                        && (self.tleilaxu_hero.is_none() || !Revival::may_assign_skill(game, me, self.tleilaxu_hero))
                     {
                         return Some(express!("You can't assign a skill to this leader"));
                     }
 
-                    if let Some(tleilaxu_location) = self.tleilaxu_location(game) {
+                    if let Some(tleilaxu_location) = self.tleilaxu_location {
                         if !Revival::valid_revived_force_locations(game, me).any(|v| v == tleilaxu_location) {
                             return Some(express!("You can't place revived forces there"));
                         }
@@ -173,11 +133,11 @@ impl NexusPlayed {
 
             Some(Faction::Choam) => {
                 if self.is_cunning() {
-                    if self.choam_card().is_none() {
+                    if self.choam_card.is_none() {
                         return Some(express!("Select a ", TreacheryCardType::Useless, " card to discard"));
                     }
-                    if self.choam_card().is_some()
-                        && !NexusPlayed::valid_choam_cards(game, self.player()).any(|v| v == self.choam_card().expect("choam card"))
+                    if self.choam_card.is_some()
+                        && !NexusPlayed::valid_choam_cards(game, self.player()).any(|v| v == self.choam_card.expect("choam card"))
                     {
                         return Some(express!("Invalid card"));
                     }
@@ -186,7 +146,7 @@ impl NexusPlayed {
 
             Some(Faction::Ecaz) => {
                 if self.is_betrayal(game) {
-                    let Some(ecaz_territory) = self.ecaz_territory(game) else {
+                    let Some(ecaz_territory) = self.ecaz_territory else {
                         return Some(express!("Select a territory"));
                     };
                     if !NexusPlayed::valid_ecaz_territories(game).any(|v| v == ecaz_territory) {
@@ -201,8 +161,8 @@ impl NexusPlayed {
 
             Some(Faction::Moritani) => {
                 if self.is_betrayal(game)
-                    && (self.moritani_territory(game).is_none()
-                        || !NexusPlayed::valid_moritani_territories(game).any(|v| v == self.moritani_territory(game).expect("moritani territory")))
+                    && (self.moritani_territory.is_none()
+                        || !NexusPlayed::valid_moritani_territories(game).any(|v| v == self.moritani_territory.expect("moritani territory")))
                 {
                     return Some(express!("This territory contains no terror token"));
                 }
@@ -408,7 +368,7 @@ impl NexusPlayed {
                     return Ok(());
                 }
                 let harkonnen = self.get_player(game, Some(Faction::Harkonnen));
-                let traitor = current_battle.plan_of_opponent_faction(game, Faction::Harkonnen).required("plan of opponent faction")?.hero();
+                let traitor = current_battle.plan_of_opponent_faction(game, Faction::Harkonnen).required("plan of opponent faction")?.hero;
                 if let (Some(harkonnen), Some(traitor)) = (harkonnen, traitor) {
                     // List.Remove: the first equal element
                     let traitors = &mut game.player_mut(harkonnen).traitors;
@@ -563,10 +523,10 @@ impl NexusPlayed {
 
             Some(Faction::Ecaz) => {
                 let ecazs_ally = game.get_player(Some(Faction::Ecaz)).and_then(|p| game.player(p).allied_player(game));
-                if let (Some(ecazs_ally), Some(ecaz_territory)) = (ecazs_ally, self.ecaz_territory(game)) {
+                if let (Some(ecazs_ally), Some(ecaz_territory)) = (ecazs_ally, self.ecaz_territory) {
                     Player::forces_in_territory_to_reserves(game, ecazs_ally, ecaz_territory);
                     let ally_faction = game.player(ecazs_ally).faction;
-                    let ecaz_territory = self.ecaz_territory(game);
+                    let ecaz_territory = self.ecaz_territory;
                     game.play_nexus_card(
                         actor,
                         elems!["return all ", ally_faction, " forces in ", ecaz_territory, " to reserves"],
@@ -576,7 +536,7 @@ impl NexusPlayed {
             }
 
             Some(Faction::Moritani) => {
-                if let Some(moritani_territory) = self.moritani_territory(game) {
+                if let Some(moritani_territory) = self.moritani_territory {
                     // Validation only offers a territory with terror. C# took `default(TerrorType)`
                     // (None) from an empty territory and added it to the unplaced tokens.
                     let terror_to_remove = game.terror_in(moritani_territory).into_iter().random_item(game.random.as_ref().required("random")?);
@@ -584,7 +544,7 @@ impl NexusPlayed {
                         game.board.terror_on_planet.shift_remove(&terror_to_remove);
                         game.board.unplaced_terror_tokens.push(terror_to_remove);
                     }
-                    let moritani_territory = self.moritani_territory(game);
+                    let moritani_territory = self.moritani_territory;
                     game.play_nexus_card(
                         actor,
                         elems!["return a terror token from ", moritani_territory, " to reserves"],
@@ -750,11 +710,11 @@ impl NexusPlayed {
                     game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator().expect("faction"));
                 }
 
-                if let Some(tleilaxu_hero) = self.tleilaxu_hero() {
+                if let Some(tleilaxu_hero) = self.tleilaxu_hero {
                     game.revive(actor, tleilaxu_hero);
 
                     if self.tleilaxu_assign_skill {
-                        if let Some(revived_leader) = self.tleilaxu_hero().expect("tleilaxu hero").as_leader() {
+                        if let Some(revived_leader) = self.tleilaxu_hero.expect("tleilaxu hero").as_leader() {
                             game.prepare_skill_assignment_to_revived_leader(player, Some(revived_leader));
                         }
                     }
@@ -767,18 +727,18 @@ impl NexusPlayed {
                     actor,
                     elems![
                         "revive ",
-                        express_part_if!(self.tleilaxu_hero().is_some(); self.tleilaxu_hero()),
-                        express_part_if!(self.tleilaxu_hero().is_some() && total > 0; " and "),
+                        express_part_if!(self.tleilaxu_hero.is_some(); self.tleilaxu_hero),
+                        express_part_if!(self.tleilaxu_hero.is_some() && total > 0; " and "),
                         express_part_if!(self.tleilaxu_forces > 0; self.tleilaxu_forces, " ", force),
                         express_part_if!(self.tleilaxu_forces > 0 && self.tleilaxu_special_forces > 0; " and "),
                         express_part_if!(self.tleilaxu_special_forces > 0; self.tleilaxu_special_forces, " ", special_force)
                     ],
                 );
 
-                if let Some(tleilaxu_location) = self.tleilaxu_location(game) {
+                if let Some(tleilaxu_location) = self.tleilaxu_location {
                     if self.initiator() == Some(Faction::Fremen) {
                         Player::ship_special_forces(game, player, tleilaxu_location, 1);
-                        let tleilaxu_location = self.tleilaxu_location(game);
+                        let tleilaxu_location = self.tleilaxu_location;
                         self.log_objects(
                             game,
                             elems![self.initiator(), " place ", FactionSpecialForce::Fremen, " in ", tleilaxu_location],
@@ -793,7 +753,7 @@ impl NexusPlayed {
                         actor,
                         elems!["discard a ", TreacheryCardType::Useless, " card to get ", Payment::of(2)],
                     );
-                    let Some(choam_card) = self.choam_card() else { return };
+                    let Some(choam_card) = self.choam_card else { return };
                     // C# parity: the card is not validated here.
                     game.discard_card_of(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
@@ -805,7 +765,7 @@ impl NexusPlayed {
                     let Some(recent_battle_plan) = current_battle.plan_of(game, Some(auditee)) else { return };
                     let weapon = recent_battle_plan.weapon();
                     let defense = recent_battle_plan.defense();
-                    let hero = recent_battle_plan.hero();
+                    let hero = recent_battle_plan.hero;
                     let auditable_cards: Vec<TreacheryCard> = game
                         .player(auditee)
                         .treachery_cards

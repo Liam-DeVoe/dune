@@ -217,7 +217,7 @@ impl ClassicBot {
         let allowed_karma_card = game.player(self.player).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::Karma);
         let mut permission = AllyPermission::new(game, self.faction(game));
         permission.permitted_resources = allowed_resources;
-        permission.set_permitted_karma_card(allowed_karma_card);
+        permission.permitted_karma_card = allowed_karma_card;
 
         let advantages = SharedAdvantage::of(self.faction(game));
         for advantage in advantages {
@@ -268,8 +268,8 @@ impl ClassicBot {
 
         let mut result = CardTraded::new(game, self.faction(game));
         result.target = offer.initiator();
-        if offer.requested_card().is_some() {
-            result.set_card(offer.requested_card());
+        if offer.requested_card.is_some() {
+            result.card = offer.requested_card;
         } else {
             let worst = game
                 .player(self.player)
@@ -277,9 +277,9 @@ impl ClassicBot {
                 .iter()
                 .copied()
                 .min_by_key(|c| self.card_quality(game, *c, Some(self.player)));
-            result.set_card(worst);
+            result.card = worst;
         }
-        result.set_requested_card(None);
+        result.requested_card = None;
         Some(Rc::new(result))
     }
 }

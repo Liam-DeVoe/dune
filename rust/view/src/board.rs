@@ -255,7 +255,7 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
     let current = game.battle.current_battle.clone()?;
     let aggressor = current.aggressor(game);
     let defender = current.defender(game);
-    let territory = current.territory(game);
+    let territory = current.territory;
     let mut view = BattleView {
         territory: territory.map(|t| t.id()),
         aggressor: name_or_absent(aggressor),
@@ -324,7 +324,7 @@ fn plan_view(
 
     let hero_shown = full || aspect(PrescienceAspect::Leader);
     let hero = if hero_shown {
-        match plan.hero() {
+        match plan.hero {
             Some(Hero::Leader(l)) => {
                 let h = Hero::Leader(l);
                 let skill = game.skill(Some(h));

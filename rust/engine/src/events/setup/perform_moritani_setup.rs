@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PerformMoritaniSetup {
-    pub target_id: i32,
+    pub target: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct PerformMoritaniSetup {
 impl Default for PerformMoritaniSetup {
     fn default() -> Self {
         PerformMoritaniSetup {
-            target_id: Default::default(),
+            target: Location::from_id(0),
             base: Default::default(),
         }
     }
@@ -23,16 +23,8 @@ impl PerformMoritaniSetup {
         e
     }
 
-    pub fn target(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.target_id)
-    }
-
-    pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        let target = self.target(game);
+        let target = self.target;
         if !Self::valid_locations(game).any(|l| Some(l) == target) {
             return Some(express!("Invalid location"));
         }
@@ -50,7 +42,7 @@ impl PerformMoritaniSetup {
         // Player is read before Target.
         let me = self.player();
         // `Target` may be null without validation: ShipForces passes it on.
-        let target = self.target(game).required("target")?;
+        let target = self.target.required("target")?;
         Player::ship_forces(game, me, target, 6);
         self.log(game);
         if game.treachery_cards_before_traitors() {

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct EmperorDiscarded {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct EmperorDiscarded {
 impl Default for EmperorDiscarded {
     fn default() -> Self {
         EmperorDiscarded {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,19 +23,11 @@ impl EmperorDiscarded {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.card().is_none() {
+        if self.card.is_none() {
             return Some(express!("Choose a card to discard"));
         }
-        if !game.player(self.player()).has(self.card()) {
+        if !game.player(self.player()).has(self.card) {
             return Some(express!("Invalid card"));
         }
 
@@ -49,12 +41,12 @@ impl EmperorDiscarded {
             let p = game.player_mut(me);
             p.resources -= 2;
         }
-        game.discard_card_of(Some(me), self.card(), true);
+        game.discard_card_of(Some(me), self.card, true);
         Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " pay ", Payment::of(2), " to discard ", self.card())
+        express!(self.initiator(), " pay ", Payment::of(2), " to discard ", self.card)
     }
 
 }

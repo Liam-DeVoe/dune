@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct IxianSelectedStartingCard {
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct IxianSelectedStartingCard {
 impl Default for IxianSelectedStartingCard {
     fn default() -> Self {
         IxianSelectedStartingCard {
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -23,14 +23,6 @@ impl IxianSelectedStartingCard {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, _game: &Game) -> Option<Message> {
         None
     }
@@ -38,7 +30,7 @@ impl IxianSelectedStartingCard {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.get_player(game, self.initiator()).required("get player")?;
         // C# parity: Validate accepts the id of any card, not only one of the starting cards.
-        let card = self.card().required("card")?;
+        let card = self.card.required("card")?;
         game.player_mut(me).treachery_cards.push(card);
         crate::iter::remove_first(&mut game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
         self.log(game);

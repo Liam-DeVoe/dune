@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct TraitorDiscarded {
-    pub traitor_id: i32,
+    pub traitor: Option<Hero>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -10,7 +10,7 @@ pub struct TraitorDiscarded {
 impl Default for TraitorDiscarded {
     fn default() -> Self {
         TraitorDiscarded {
-            traitor_id: Default::default(),
+            traitor: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             base: Default::default(),
         }
     }
@@ -23,18 +23,10 @@ impl TraitorDiscarded {
         e
     }
 
-    pub fn traitor(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.traitor_id)
-    }
-
-    pub fn set_traitor(&mut self, value: Option<Hero>) {
-        self.traitor_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let valid = Self::valid_traitors(game, self.player());
         // List<IHero>.Contains(null) is false: the list holds no nulls.
-        let traitor = self.traitor();
+        let traitor = self.traitor;
         if !valid.iter().any(|t| Some(*t) == traitor) {
             return Some(express!("Invalid traitor"));
         }
@@ -49,7 +41,7 @@ impl TraitorDiscarded {
         self.log(game);
         // C# parity: the message says the traitor is shuffled into the deck, but the deck is not shuffled.
         // A null Traitor (only reachable without validation) is added to the deck as null.
-        let traitor = self.traitor();
+        let traitor = self.traitor;
         let traitor = traitor.required("traitor")?;
         game.decks.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);
         let me = self.player();

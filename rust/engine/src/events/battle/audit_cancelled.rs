@@ -51,7 +51,7 @@ impl AuditCancelled {
         let Some(auditee) = g.auditee() else { return Vec::new() };
         let recent_battle_plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(auditee));
         if let Some(plan) = recent_battle_plan {
-            let (weapon, defense, hero) = (plan.weapon(), plan.defense(), plan.hero());
+            let (weapon, defense, hero) = (plan.weapon(), plan.defense(), plan.hero);
             return g
                 .player(auditee)
                 .treachery_cards

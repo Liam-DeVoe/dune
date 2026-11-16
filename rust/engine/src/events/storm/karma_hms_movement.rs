@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct KarmaHmsMovement {
     pub passed: bool,
-    pub target_id: i32,
+    pub target: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -12,7 +12,7 @@ impl Default for KarmaHmsMovement {
     fn default() -> Self {
         KarmaHmsMovement {
             passed: Default::default(),
-            target_id: Default::default(),
+            target: Location::from_id(0),
             base: Default::default(),
         }
     }
@@ -25,16 +25,8 @@ impl KarmaHmsMovement {
         e
     }
 
-    pub fn target(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.target_id)
-    }
-
-    pub fn set_target(&mut self, game: &Game, value: Option<Location>) {
-        self.target_id = game.board.map.location_lookup().get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !KarmaHmsMovement::valid_locations(game).any(|v| Some(v) == self.target(game)) {
+        if !KarmaHmsMovement::valid_locations(game).any(|v| Some(v) == self.target) {
             return Some(express!("Invalid location"));
         }
 
@@ -60,7 +52,7 @@ impl KarmaHmsMovement {
             if self.passed {
                 game.play_karma(me, card, vec!["pass movement of the ".into(), hms.into()]);
             } else {
-                let target = self.target(game);
+                let target = self.target;
                 game.play_karma(me, card, vec!["move the ".into(), hms.into(), " to ".into(), target.into()]);
             }
 
@@ -73,7 +65,7 @@ impl KarmaHmsMovement {
         game.collect_spice_from(self.initiator().required("faction")?, current_location, collection_rate);
 
         if !self.passed {
-            let target = self.target(game).required("target")?;
+            let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
             game.collect_spice_from(self.initiator().required("faction")?, target, collection_rate);
             game.storm.karma_hms_moves_left -= 1;
@@ -89,7 +81,7 @@ impl KarmaHmsMovement {
     pub fn get_message(&self, game: &Game) -> Message {
         let hms = game.board.map.hidden_mobile_stronghold();
         if !self.passed {
-            return express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " move the ", hms, " to ", self.target(game));
+            return express!("Using ", TreacheryCardType::Karma, ", ", self.initiator(), " move the ", hms, " to ", self.target);
         }
         express!(self.initiator(), " pass (further) movement of the ", hms, " using ", TreacheryCardType::Karma)
     }

@@ -69,8 +69,8 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
         GameEventType::BattleConcluded => {
             let mut e = BattleConcluded::new(game, faction);
             e.set_decision_to_capture(Some(CaptureDecision::Kill));
-            e.set_traitor_to_replace(None);
-            e.set_new_traitor(None);
+            e.traitor_to_replace = None;
+            e.new_traitor = None;
             e.set_discarded_cards(&[]);
             if game.battle.battle_winner == Some(faction) {
                 if BattleConcluded::may_capture_or_kill(game, Some(p)) {
@@ -91,13 +91,13 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             if let Some(first) = fights.first() {
                 e.target = Some(first.faction);
                 let t = fights.iter().find(|f| f.faction == first.faction).map(|f| f.territory);
-                e.set_territory(game, t);
+                e.territory = t;
             }
             event(e)
         }
         GameEventType::BeneGesseritBattleAnnouncement => {
             let mut e = BeneGesseritBattleAnnouncement::new(game, faction);
-            e.set_territory(game, None);
+            e.territory = None;
             event(e)
         }
         GameEventType::CardsDetermined => {
@@ -122,7 +122,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
         }
         GameEventType::Diplomacy => {
             let mut e = Diplomacy::new(game, faction);
-            e.set_card(Diplomacy::valid_cards(game, p).first().copied());
+            e.card = Diplomacy::valid_cards(game, p).first().copied();
             event(e)
         }
         GameEventType::FaceDanced => {
@@ -144,7 +144,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
         GameEventType::FaceDancerReplaced => {
             let mut e = FaceDancerReplaced::new(game, faction);
             e.passed = false;
-            e.set_selected_dancer(FaceDancerReplaced::valid_face_dancers(game, p).next());
+            e.selected_dancer = FaceDancerReplaced::valid_face_dancers(game, p).next();
             event(e)
         }
         GameEventType::FaceDancerRevealed => {
@@ -165,7 +165,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
         }
         GameEventType::LoserConcluded => {
             let mut e = LoserConcluded::new(game, faction);
-            e.set_kept_card(None);
+            e.kept_card = None;
             e.karma_forced_kept_card_decision = LoserConcluded::KARMA_NO;
             e.set_forced_kept_or_discarded_cards(&[]);
             event(e)
@@ -182,7 +182,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
         }
         GameEventType::Retreat => {
             let mut e = Retreat::new(game, faction);
-            e.set_location(game, None);
+            e.location = None;
             let (f, s) = retreat_defaults(game, p);
             e.forces = f;
             e.special_forces = s;
@@ -196,12 +196,12 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
         GameEventType::TakeLosses => event(TakeLosses::new(game, faction)),
         GameEventType::ThoughtAnswered => {
             let mut e = ThoughtAnswered::new(game, faction);
-            e.set_card(ThoughtAnswered::valid_cards(game, p).first().copied());
+            e.card = ThoughtAnswered::valid_cards(game, p).first().copied();
             event(e)
         }
         GameEventType::Thought => {
             let mut e = Thought::new(game, faction);
-            e.set_card(Thought::valid_cards(game).next());
+            e.card = Thought::valid_cards(game).next();
             event(e)
         }
         GameEventType::TreacheryCalled => {
@@ -373,7 +373,7 @@ fn face_danced_options(game: &Game, p: PlayerIndex, draft: serde_json::Value) ->
     FaceDancedOptions {
         maximum_forces: FaceDanced::maximum_number_of_forces(game, p),
         forces_in_reserve: pl.forces_in_reserve(),
-        territory: game.battle.current_battle.as_ref().and_then(|b| b.territory(game)).map_or(-1, |t| t.id()),
+        territory: game.battle.current_battle.as_ref().and_then(|b| b.territory).map_or(-1, |t| t.id()),
         sources: FaceDanced::valid_source_locations(game, p).map(at).collect(),
         targets: FaceDanced::valid_target_locations(game).map(at).collect(),
         draft,
@@ -417,7 +417,7 @@ fn battle_concluded_options(game: &Game, p: PlayerIndex, d: &dyn Describer, draf
     let plan = my_plan(game, faction.expect("faction"));
     let in_hand = |c: Option<TreacheryCard>| c.filter(|c| winner && pl.treachery_cards.contains(c)).map(|c| c.id());
     let may_discard = winner && BattleConcluded::may_choose_to_discard_cards(game);
-    let mercenary = plan.as_ref().and_then(|b| match b.hero() {
+    let mercenary = plan.as_ref().and_then(|b| match b.hero {
         Some(Hero::TreacheryCard(c)) => Some(c),
         _ => None,
     });
@@ -437,7 +437,7 @@ fn battle_concluded_options(game: &Game, p: PlayerIndex, d: &dyn Describer, draf
         traitors_to_replace: (winner && !game.battle.traitors_decipherer_can_look_at.is_empty() && game.battle.decipherer_may_replace_traitor)
             .then(|| BattleConcluded::valid_traitors_to_replace(game, p).map(|h| form_hero(h, d)).collect()),
         add_extra_force_in: (winner && BattleConcluded::may_add_extra_force(game, p))
-            .then(|| game.battle.current_battle.as_ref().and_then(|b| b.territory(game)).map_or(-1, |t| t.id())),
+            .then(|| game.battle.current_battle.as_ref().and_then(|b| b.territory).map_or(-1, |t| t.id())),
         draft,
     }
 }
@@ -519,7 +519,7 @@ fn clairvoyance_options(game: &Game, p: PlayerIndex, target: Option<Faction>, d:
 fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
     // ConfirmedResult sets every member; a fresh event's ids are 0, which are real objects.
     let mut e = Battle::new(game, faction);
-    e.set_hero(None);
+    e.hero = None;
     e.set_weapon(None);
     e.set_defense(None);
     if let Some(battle) = game.battle.current_battle.as_ref() {
@@ -531,7 +531,7 @@ fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
                     e.special_forces = prev.special_forces;
                     e.special_forces_at_half_strength = prev.special_forces_at_half_strength;
                     e.ally_contribution_amount = prev.ally_contribution_amount;
-                    e.set_hero(prev.hero());
+                    e.hero = prev.hero;
                     e.messiah = prev.messiah;
                     e.set_defense(prev.defense());
                     e.set_weapon(prev.weapon());
@@ -555,7 +555,7 @@ fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
 /// The adjustments the battle plan form makes to its inputs, in order.
 fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
     let pl = game.player(p);
-    let territory = game.battle.current_battle.as_ref().and_then(|b| b.territory(game));
+    let territory = game.battle.current_battle.as_ref().and_then(|b| b.territory);
     // The spice the ally pays, between what the player can't pay and what the ally can.
     let cost = Battle::cost_of_forces(game, p, e.forces, e.special_forces, &mut 0);
     let ally_cap = ally_cap(game, p);
@@ -565,13 +565,13 @@ fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
 
     let heroes = Battle::valid_battle_heroes(game, p);
     let leader_required = !game.applicable(Rule::BattleWithoutLeader);
-    if e.hero().is_some_and(|h| !heroes.contains(&h)) {
-        e.set_hero(None);
+    if e.hero.is_some_and(|h| !heroes.contains(&h)) {
+        e.hero = None;
     }
-    if e.hero().is_none() && leader_required && !heroes.is_empty() {
-        e.set_hero(Some(heroes[0]));
+    if e.hero.is_none() && leader_required && !heroes.is_empty() {
+        e.hero = Some(heroes[0]);
     }
-    let weapons = Battle::valid_weapons(game, p, e.defense(), e.hero(), territory, false);
+    let weapons = Battle::valid_weapons(game, p, e.defense(), e.hero, territory, false);
     if e.weapon().is_some_and(|w| !weapons.contains(&Some(w))) {
         e.set_weapon(None);
     }
@@ -582,7 +582,7 @@ fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
     if !messiah_available(game, p) {
         e.messiah = false;
     }
-    let max_banker = Battle::max_banker_boost(game, p, e.hero());
+    let max_banker = Battle::max_banker_boost(game, p, e.hero);
     // The spice picker clamps into [0, max] when it is drawn.
     e.banker_bonus = if max_banker <= 0 { 0 } else { e.banker_bonus.clamp(0, max_banker) };
 }
@@ -658,7 +658,7 @@ fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, pl
     let shown: Option<P> = match aspect {
         Some(PrescienceAspect::Defense) => plan.defense().filter(|c| show_everything || c.is_defense()).map(Into::into),
         Some(PrescienceAspect::Weapon) => plan.weapon().filter(|c| show_everything || c.is_weapon()).map(Into::into),
-        Some(PrescienceAspect::Leader) => plan.hero().map(Into::into),
+        Some(PrescienceAspect::Leader) => plan.hero.map(Into::into),
         _ => None,
     };
     BattleNote::Seen {
@@ -740,14 +740,14 @@ fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer
     let pl = game.player(p);
     let faction = pl.faction;
     let battle = game.battle.current_battle.as_ref().expect("a battle plan needs a battle");
-    let territory = battle.territory(game);
+    let territory = battle.territory;
     let opponent = battle.opponent_of(game, p).expect("a battle has an opponent");
     let supplier = Battle::determine_force_supplier(game, p);
     let aggressor = battle.aggressor(game);
 
     let mut normalized = draft.clone();
     normalize_battle(game, p, &mut normalized);
-    let weapons = by_name(Battle::valid_weapons(game, p, normalized.defense(), normalized.hero(), territory, false), d);
+    let weapons = by_name(Battle::valid_weapons(game, p, normalized.defense(), normalized.hero, territory, false), d);
     let defenses = by_name(Battle::valid_defenses(game, p, normalized.weapon(), territory, false), d);
 
     let mut opponent_groups = vec![force_group(game, opponent, territory, true)];
@@ -759,7 +759,7 @@ fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer
 
     let normal_tokens = Battle::max_forces(game, supplier, false);
     let special_tokens = Battle::max_forces(game, supplier, true);
-    let hero = normalized.hero();
+    let hero = normalized.hero;
     let leader = hero.map(|h| {
         let mut skill = None;
         let bonus = Battle::determine_skill_bonus_of_parts(

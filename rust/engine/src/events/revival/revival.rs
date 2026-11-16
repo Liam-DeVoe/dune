@@ -8,8 +8,8 @@ pub struct Revival {
     pub extra_special_forces_paid_by_emperor: i32,
     pub number_of_forces_in_location: i32,
     pub number_of_special_forces_in_location: i32,
-    pub location_id: i32,
-    pub hero_id: i32,
+    pub location: Option<Location>,
+    pub hero: Option<Hero>,
     pub assign_skill: bool,
     pub uses_emperor_secret_ally: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -25,8 +25,8 @@ impl Default for Revival {
             extra_special_forces_paid_by_emperor: Default::default(),
             number_of_forces_in_location: Default::default(),
             number_of_special_forces_in_location: Default::default(),
-            location_id: -1,
-            hero_id: Default::default(),
+            location: None,
+            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             assign_skill: Default::default(),
             uses_emperor_secret_ally: Default::default(),
             base: Default::default(),
@@ -41,24 +41,8 @@ impl Revival {
         e
     }
 
-    pub fn location(&self, game: &Game) -> Option<Location> {
-        game.board.map.location_lookup().find(self.location_id)
-    }
-
-    pub fn set_location(&mut self, game: &Game, value: Option<Location>) {
-        self.location_id = game.board.map.location_lookup().get_id(value);
-    }
-
-    pub fn to(&self, game: &Game) -> Option<Location> {
-        self.location(game)
-    }
-
-    pub fn hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.hero_id)
-    }
-
-    pub fn set_hero(&mut self, value: Option<Hero>) {
-        self.hero_id = LeaderManager::hero_lookup().get_id(value);
+    pub fn to(&self, _game: &Game) -> Option<Location> {
+        self.location
     }
 
     pub fn total_amount_of_forces_added_to_location(&self, _game: &Game) -> i32 {
@@ -80,12 +64,12 @@ impl Revival {
         let forces = self.amount_of_forces + self.extra_forces_paid_by_emperor;
         let special_forces = self.amount_of_special_forces + self.extra_special_forces_paid_by_emperor;
 
-        if forces <= 0 && special_forces <= 0 && self.hero().is_none() {
+        if forces <= 0 && special_forces <= 0 && self.hero.is_none() {
             return Some(express!("Select forces or a leader to revive"));
         }
 
         let p = p_opt.expect("player");
-        if let Some(hero) = self.hero() {
+        if let Some(hero) = self.hero {
             if Self::is_living_leader(game, hero) && !Self::is_ghola_returning_home(game, initiator.expect("faction"), hero) {
                 return Some(express!("You can't revive a leader who isn't dead"));
             }
@@ -130,7 +114,7 @@ impl Revival {
         let cost_of_revival = Self::determine_cost(
             game,
             p,
-            self.hero(),
+            self.hero,
             self.amount_of_forces,
             self.amount_of_special_forces,
             self.extra_forces_paid_by_emperor,
@@ -141,10 +125,10 @@ impl Revival {
             return Some(express!("You can't pay that many"));
         }
 
-        if self.assign_skill && self.hero().is_none() {
+        if self.assign_skill && self.hero.is_none() {
             return Some(express!("You must revive a leader to assign a skill to"));
         }
-        if self.assign_skill && !Self::may_assign_skill(game, p, self.hero()) {
+        if self.assign_skill && !Self::may_assign_skill(game, p, self.hero) {
             return Some(express!("You can't assign a skill to this leader"));
         }
 
@@ -152,8 +136,8 @@ impl Revival {
             return Some(express!("you can't use ", Faction::Emperor, " cunning"));
         }
 
-        if self.location(game).is_some() {
-            let location = self.location(game);
+        if self.location.is_some() {
+            let location = self.location;
             // Contains on the lazy Where: stops at the first match (see valid_revived_force_locations).
             if !Self::valid_revived_force_locations(game, p).any(|l| Some(l) == location) {
                 return Some(express!("You can't place revived forces there"));
@@ -579,7 +563,7 @@ impl Revival {
         let cost = Self::determine_cost(
             game,
             me,
-            self.hero(),
+            self.hero,
             self.amount_of_forces,
             self.amount_of_special_forces,
             self.extra_forces_paid_by_emperor,
@@ -683,7 +667,7 @@ impl Revival {
 
         //Hero revival
         let mut as_ghola = false;
-        if let Some(hero) = self.hero() {
+        if let Some(hero) = self.hero {
             let v = game.revival.leader_revivals_this_turn.get_opt(initiator).copied().unwrap_or(0) + 1;
             game.revival.leader_revivals_this_turn.insert(initiator.required("faction")?, v);
             let leader = hero.as_leader();
@@ -718,7 +702,7 @@ impl Revival {
         game.stone(Milestone::Revival);
         self.register_and_log_revival(game, &cost, total_profits_for_tleilaxu, as_ghola, high_threshold_extra_suboids);
 
-        if let Some(location) = self.location(game) {
+        if let Some(location) = self.location {
             if self.number_of_special_forces_in_location > 0 || self.number_of_forces_in_location > 0 {
                 let mut normal_force_message = express!();
                 if self.number_of_forces_in_location > 0 {
@@ -733,7 +717,7 @@ impl Revival {
                         express!(self.number_of_special_forces_in_location, game.player(me).special_force());
                 }
 
-                let to = self.location(game);
+                let to = self.location;
                 game.log(vec![
                     initiator.into(),
                     " place ".into(),
@@ -774,9 +758,9 @@ impl Revival {
         let message = express!(
             initiator,
             " revive ",
-            express_part_if!(self.hero().is_some(); self.hero()),
+            express_part_if!(self.hero.is_some(); self.hero),
             express_part_if!(as_ghola; " as Ghola"),
-            express_part_if!(self.hero().is_some() && (forces + special_forces) > 0; " and "),
+            express_part_if!(self.hero.is_some() && (forces + special_forces) > 0; " and "),
             express_part_if!(forces > 0; forces, pl.force()),
             express_part_if!(special_forces > 0; special_forces, pl.special_force()),
             " for ",
@@ -791,7 +775,7 @@ impl Revival {
             special_forces,
             total_cost,
         );
-        row.hero = self.hero();
+        row.hero = self.hero;
         row.as_ghola = as_ghola;
         row.paid_by_other = if paid_by_emperor { cost.cost_for_emperor } else { 0 };
         row.payer = if paid_by_emperor { Some(Faction::Emperor) } else { None };

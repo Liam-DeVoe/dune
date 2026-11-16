@@ -16,7 +16,7 @@ pub struct AllyPermission {
     pub moritani_allows_keeping_cards: bool,
     pub ecaz_shares_ambassadors: bool,
     pub permitted_resources: i32,
-    pub permitted_karma_card_id: i32,
+    pub permitted_karma_card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -38,7 +38,7 @@ impl Default for AllyPermission {
             moritani_allows_keeping_cards: Default::default(),
             ecaz_shares_ambassadors: Default::default(),
             permitted_resources: Default::default(),
-            permitted_karma_card_id: Default::default(),
+            permitted_karma_card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -75,14 +75,6 @@ impl AllyPermission {
         self.ally_may_replace_cards = value;
     }
 
-    pub fn permitted_karma_card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.permitted_karma_card_id)
-    }
-
-    pub fn set_permitted_karma_card(&mut self, value: Option<TreacheryCard>) {
-        self.permitted_karma_card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, _game: &Game) -> Option<Message> {
         None
     }
@@ -111,7 +103,7 @@ impl AllyPermission {
 
         if ally != None {
             game.alliances.permitted_use_of_ally_spice.insert(ally.required("faction")?, self.permitted_resources);
-            if let Some(card) = self.permitted_karma_card() {
+            if let Some(card) = self.permitted_karma_card {
                 game.alliances.permitted_use_of_ally_karma.insert(ally.required("faction")?, card);
             }
         }

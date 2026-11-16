@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct RicheseSpecifiesAuction {
     pub auction_type: Option<AuctionType>,
     pub direction: i32,
-    pub card_id: i32,
+    pub card: Option<TreacheryCard>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -14,7 +14,7 @@ impl Default for RicheseSpecifiesAuction {
         RicheseSpecifiesAuction {
             auction_type: Default::default(),
             direction: Default::default(),
-            card_id: Default::default(),
+            card: TreacheryCardManager::get(0),
             base: Default::default(),
         }
     }
@@ -27,16 +27,8 @@ impl RicheseSpecifiesAuction {
         e
     }
 
-    pub fn card(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::get(self.card_id)
-    }
-
-    pub fn set_card(&mut self, value: Option<TreacheryCard>) {
-        self.card_id = TreacheryCardManager::get_id(value);
-    }
-
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !game.bidding.richese_occupier_specified_card && !RicheseSpecifiesAuction::valid_cards(game).iter().any(|c| Some(*c) == self.card()) {
+        if !game.bidding.richese_occupier_specified_card && !RicheseSpecifiesAuction::valid_cards(game).iter().any(|c| Some(*c) == self.card) {
             return Some(express!("Invalid card"));
         }
 
@@ -66,7 +58,7 @@ impl RicheseSpecifiesAuction {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         if !game.bidding.richese_occupier_specified_card {
             game.bidding.richese_auction_should_still_happen = false;
-            let card = self.card().required("card")?;
+            let card = self.card.required("card")?;
             game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             crate::game::remove_card(&mut game.decks.richese_cache, Some(card));
             game.drop_copy_in_treachery_deck(card);

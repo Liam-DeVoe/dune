@@ -46,7 +46,7 @@ impl BattleClaimed {
         {
             let ecaz = self.get_player(game, Some(Faction::Ecaz));
             if let Some(ecaz) = ecaz {
-                let territory = game.battle.current_battle.as_ref().expect("current battle").territory(game).expect("territory");
+                let territory = game.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
                 let forces = game.player(ecaz).any_forces_in_territory(Some(territory));
                 // (int)Math.Ceiling(0.5f * n): the float widens to double
                 game.battle.current_ecaz_battle_contribution = ((0.5f32 * forces as f32) as f64).ceil() as i32;

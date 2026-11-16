@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Battle {
-    pub hero_id: i32,
+    pub hero: Option<Hero>,
     pub messiah: bool,
     pub forces: i32,
     pub forces_at_half_strength: i32,
@@ -10,9 +10,9 @@ pub struct Battle {
     pub special_forces_at_half_strength: i32,
     pub ally_contribution_amount: i32,
     /// Interior mutability: written after the event is stored in game state.
-    pub weapon_card_id: Cell<i32>,
+    pub weapon: Cell<Option<TreacheryCard>>,
     /// Interior mutability: written after the event is stored in game state.
-    pub defense_card_id: Cell<i32>,
+    pub defense: Cell<Option<TreacheryCard>>,
     pub banker_bonus: i32,
     /// Interior mutability: written after the event is stored in game state.
     pub original_weapon: Cell<Option<TreacheryCard>>,
@@ -32,15 +32,15 @@ struct DynamicWeaponSwap {
 impl Default for Battle {
     fn default() -> Self {
         Battle {
-            hero_id: Default::default(),
+            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             messiah: Default::default(),
             forces: Default::default(),
             forces_at_half_strength: Default::default(),
             special_forces: Default::default(),
             special_forces_at_half_strength: Default::default(),
             ally_contribution_amount: Default::default(),
-            weapon_card_id: Cell::new(Default::default()),
-            defense_card_id: Cell::new(Default::default()),
+            weapon: Cell::new(TreacheryCardManager::get(0)),
+            defense: Cell::new(TreacheryCardManager::get(0)),
             banker_bonus: Default::default(),
             original_weapon: Cell::new(Default::default()),
             original_defense: Cell::new(Default::default()),
@@ -63,28 +63,20 @@ impl Battle {
         e
     }
 
-    pub fn hero(&self) -> Option<Hero> {
-        LeaderManager::hero_lookup().find(self.hero_id)
-    }
-
-    pub fn set_hero(&mut self, value: Option<Hero>) {
-        self.hero_id = LeaderManager::hero_lookup().get_id(value);
-    }
-
     pub fn weapon(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.weapon_card_id.get())
+        self.weapon.get()
     }
 
     pub fn set_weapon(&self, value: Option<TreacheryCard>) {
-        self.weapon_card_id.set(TreacheryCardManager::lookup().get_id(value));
+        self.weapon.set(value);
     }
 
     pub fn defense(&self) -> Option<TreacheryCard> {
-        TreacheryCardManager::lookup().find(self.defense_card_id.get())
+        self.defense.get()
     }
 
     pub fn set_defense(&self, value: Option<TreacheryCard>) {
-        self.defense_card_id.set(TreacheryCardManager::lookup().get_id(value));
+        self.defense.set(value);
     }
 
     pub fn total_forces(&self) -> i32 {
@@ -152,7 +144,7 @@ impl Battle {
         }
 
         if let (Some(aggressor_plan), Some(defender_plan)) = (game.battle.aggressor_plan.clone(), game.battle.defender_plan.clone()) {
-            let battle_territory = current_battle.territory(game);
+            let battle_territory = current_battle.territory;
             if let Some(battle_territory) = battle_territory {
                 let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
                 game.reveal_current_no_field_in_territory(supplier, battle_territory);
@@ -219,7 +211,7 @@ impl Battle {
         Ok(express!(
             self.initiator(),
             " Plan → leader: ",
-            self.hero(),
+            self.hero,
             ", dial: ",
             self.dial(game, game.player(opponent).faction.required("faction")?),
             express_part_if!(game.applicable(Rule::AdvancedCombat); Payment::of(self.cost(game))),
@@ -233,7 +225,7 @@ impl Battle {
 
     pub fn get_plan_summary(&self, game: &Game) -> PlanSummary {
         let faction = self.initiator();
-        let leader = self.hero();
+        let leader = self.hero;
         let messiah = self.messiah;
         let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
         let dial = self.dial(game, game.player(opponent).faction.expect("faction"));
@@ -338,10 +330,10 @@ impl Battle {
     }
 
     pub fn determine_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &mut Game) -> BattleOutcome {
-        if agg.hero().is_some() {
+        if agg.hero.is_some() {
             agg.activate_dynamic_weapons(game, def.weapon(), def.defense());
         }
-        if def.hero().is_some() {
+        if def.hero.is_some() {
             def.activate_dynamic_weapons(game, agg.weapon(), agg.defense());
         }
         Battle::outcome_with_dynamic_weapons_active(agg, def, territory, game)
@@ -351,10 +343,10 @@ impl Battle {
     /// Weapon message and the Diplomat's card aren't recorded. The plans' cards are swapped while
     /// it runs and swapped back at the end, as in `determine_battle_outcome`.
     pub fn predict_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &Game) -> BattleOutcome {
-        if agg.hero().is_some() {
+        if agg.hero.is_some() {
             agg.swap_in_dynamic_weapons(game, def.weapon(), def.defense());
         }
-        if def.hero().is_some() {
+        if def.hero.is_some() {
             def.swap_in_dynamic_weapons(game, agg.weapon(), agg.defense());
         }
         Battle::outcome_with_dynamic_weapons_active(agg, def, territory, game)
@@ -375,7 +367,7 @@ impl Battle {
         Battle::determine_cause_of_death(
             agg,
             def,
-            agg.hero(),
+            agg.hero,
             poison_tooth_used,
             artillery_used,
             rock_melter_used && rock_melter_used_to_kill,
@@ -391,7 +383,7 @@ impl Battle {
         Battle::determine_cause_of_death(
             def,
             agg,
-            def.hero(),
+            def.hero,
             poison_tooth_used,
             artillery_used,
             rock_melter_used && rock_melter_used_to_kill,
@@ -403,12 +395,12 @@ impl Battle {
 
         let hero_strength_counts_to_total = !artillery_used && !(rock_melter_used && !rock_melter_used_to_kill);
 
-        result.agg_hero_effective_strength = match agg.hero() {
-            Some(h) if hero_strength_counts_to_total => h.value_in_combat_against(def.hero()),
+        result.agg_hero_effective_strength = match agg.hero {
+            Some(h) if hero_strength_counts_to_total => h.value_in_combat_against(def.hero),
             _ => 0,
         };
-        result.def_hero_effective_strength = match def.hero() {
-            Some(h) if hero_strength_counts_to_total => h.value_in_combat_against(agg.hero()),
+        result.def_hero_effective_strength = match def.hero {
+            Some(h) if hero_strength_counts_to_total => h.value_in_combat_against(agg.hero),
             _ => 0,
         };
 
@@ -419,7 +411,7 @@ impl Battle {
             } else {
                 0
             };
-            result.agg_messiah_contribution = if agg.messiah && agg.hero().is_some() { 2 } else { 0 };
+            result.agg_messiah_contribution = if agg.messiah && agg.hero.is_some() { 2 } else { 0 };
 
             result.def_hero_skill_bonus = Battle::determine_skill_bonus(game, def, &mut result.def_activated_bonus_skill);
             result.def_battle_penalty = if !result.agg_hero_killed {
@@ -427,7 +419,7 @@ impl Battle {
             } else {
                 0
             };
-            result.def_messiah_contribution = if def.messiah && def.hero().is_some() { 2 } else { 0 };
+            result.def_messiah_contribution = if def.messiah && def.hero.is_some() { 2 } else { 0 };
         }
 
         let agg_hero_contribution = if result.agg_hero_killed {
@@ -564,10 +556,10 @@ impl Battle {
                 " forces at full strength"
             ));
         }
-        if self.hero().is_none() && !Battle::valid_battle_heroes(game, p).is_empty() && !game.applicable(Rule::BattleWithoutLeader) {
+        if self.hero.is_none() && !Battle::valid_battle_heroes(game, p).is_empty() && !game.applicable(Rule::BattleWithoutLeader) {
             return Some(express!("You must select a leader"));
         }
-        if let Some(hero) = self.hero() {
+        if let Some(hero) = self.hero {
             if !Battle::valid_battle_heroes(game, p).contains(&hero) {
                 return Some(express!("Invalid leader"));
             }
@@ -575,17 +567,17 @@ impl Battle {
         if self.weapon().is_some() && self.weapon() == self.defense() {
             return Some(express!("Can't use the same card as weapon and defense"));
         }
-        if self.hero().is_none() && (self.weapon().is_some() || self.defense().is_some()) {
+        if self.hero.is_none() && (self.weapon().is_some() || self.defense().is_some()) {
             return Some(express!("Can't use treachery cards without a leader"));
         }
-        if let Some(hero @ Hero::Leader(_)) = self.hero() {
-            if let Some(t) = game.battle.current_battle.as_ref().expect("current battle").territory(game) {
+        if let Some(hero @ Hero::Leader(_)) = self.hero {
+            if let Some(t) = game.battle.current_battle.as_ref().expect("current battle").territory {
                 if !game.can_fight_in(hero, t) {
                     return Some(express!("Selected leader already fought in another territory"));
                 }
             }
         }
-        if self.hero().is_none() && self.messiah {
+        if self.hero.is_none() && self.messiah {
             return Some(express!("Can't use ", Concept::Messiah, " without a leader"));
         }
         if self.messiah && !Battle::messiah_may_be_used_in_battle(game, p) {
@@ -597,23 +589,23 @@ impl Battle {
         if self.defense().is_none() && self.weapon().is_some_and(|w| w.type_() == TreacheryCardType::Chemistry) {
             return Some(express!("You can't use ", TreacheryCardType::Chemistry, " as weapon without using a defense"));
         }
-        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory(game);
-        if !Battle::valid_weapons(game, p, self.defense(), self.hero(), battle_territory, true).contains(&self.weapon()) {
+        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory;
+        if !Battle::valid_weapons(game, p, self.defense(), self.hero, battle_territory, true).contains(&self.weapon()) {
             return Some(express!("Invalid weapon"));
         }
-        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory(game);
+        let battle_territory = game.battle.current_battle.as_ref().expect("current battle").territory;
         if !Battle::valid_defenses(game, p, self.weapon(), battle_territory, true).contains(&self.defense()) {
             return Some(express!("Invalid defense"));
         }
-        if game.is_in_front_of_shield(self.hero()) {
-            return Some(express!(self.hero(), " is currently in front of your player shield"));
+        if game.is_in_front_of_shield(self.hero) {
+            return Some(express!(self.hero, " is currently in front of your player shield"));
         }
-        if let Some(hero) = self.hero() {
+        if let Some(hero) = self.hero {
             if self.banker_bonus > 0 && !game.skilled_as(hero, LeaderSkill::Banker) {
                 return Some(express!("Only a leader skilled as ", LeaderSkill::Banker, " can be boosted by ", Concept::Resource));
             }
         }
-        if self.banker_bonus > Battle::max_banker_boost(game, self.player(), self.hero()) {
+        if self.banker_bonus > Battle::max_banker_boost(game, self.player(), self.hero) {
             return Some(express!("You cannot boost your leader this much"));
         }
         if (cost + self.banker_bonus) > (pl.resources + self.ally_contribution_amount) {
@@ -628,7 +620,7 @@ impl Battle {
             }
         }
 
-        if self.hero().is_some() && Battle::affected_by_voice(game, self.player(), game.battle.current_voice.as_ref()) {
+        if self.hero.is_some() && Battle::affected_by_voice(game, self.player(), game.battle.current_voice.as_ref()) {
             if let Some(current_voice) = game.battle.current_voice.as_ref().filter(|v| v.must) {
                 let vt = current_voice.type_;
                 if vt != Some(TreacheryCardType::Mercenary)
@@ -707,7 +699,7 @@ impl Battle {
 
     fn matches(&self, game: &Game, seen: &Battle, aspect: Option<PrescienceAspect>, opponent: Faction) -> bool {
         match aspect {
-            Some(PrescienceAspect::Leader) => self.hero() == seen.hero(),
+            Some(PrescienceAspect::Leader) => self.hero == seen.hero,
             Some(PrescienceAspect::Weapon) => self.weapon() == seen.weapon(),
             Some(PrescienceAspect::Defense) => self.defense() == seen.defense(),
             // float ==: NaN never matches.
@@ -786,7 +778,7 @@ impl Battle {
     }
 
     pub fn cost_reduction(g: &Game, p: PlayerIndex) -> i32 {
-        match g.battle.current_battle.as_ref().and_then(|b| b.territory(g)) {
+        match g.battle.current_battle.as_ref().and_then(|b| b.territory) {
             Some(t) if g.has_stronghold_advantage(g.player(p).faction, StrongholdAdvantage::FreeResourcesForBattles, t) => 2,
             _ => 0,
         }
@@ -826,7 +818,7 @@ impl Battle {
     pub fn max_forces(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
         let force_supplier = Battle::determine_force_supplier(g, p);
 
-        let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory(g)) else {
+        let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory) else {
             return 0;
         };
         let fs = g.player(force_supplier);
@@ -1100,7 +1092,7 @@ impl Battle {
         Battle::determine_skill_bonus_of_parts(
             g,
             plan.player(),
-            plan.hero(),
+            plan.hero,
             plan.weapon(),
             plan.defense(),
             plan.banker_bonus,
@@ -1195,7 +1187,7 @@ impl Battle {
     }
 
     pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerIndex, activated_skill: &mut Option<LeaderSkill>) -> i32 {
-        Battle::determine_skill_penalty_of_hero(g, plan.hero(), opponent, activated_skill)
+        Battle::determine_skill_penalty_of_hero(g, plan.hero, opponent, activated_skill)
     }
 
     pub fn determine_skill_penalty_of_hero(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut Option<LeaderSkill>) -> i32 {

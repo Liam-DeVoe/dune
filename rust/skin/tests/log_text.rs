@@ -21,7 +21,7 @@ const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlay
 fn game() -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::new();
-    g.human_seats.insert(2);
+    g.human_seats.insert(treachery_engine::game::Seat::new(2));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());

@@ -28,13 +28,13 @@ use treachery_skin::{default_skin, Skin};
 
 /// The seats users play, from the participation in a recorded game's header (.NET `Participation`
 /// JSON): the seats of `SeatedPlayers`.
-fn human_seats(o: &Value) -> IndexSet<i32> {
+fn human_seats(o: &Value) -> IndexSet<treachery_engine::game::Seat> {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
     let mut seated: IndexMap<i32, i32> = IndexMap::new();
     for kv in o["SeatedPlayers"].as_array().cloned().unwrap_or_default() {
         seated.insert(int(&kv[0]), int(&kv[1]));
     }
-    seated.into_values().collect()
+    seated.into_values().filter_map(treachery_engine::game::Seat::from_number).collect()
 }
 
 struct Renderer<'a> {

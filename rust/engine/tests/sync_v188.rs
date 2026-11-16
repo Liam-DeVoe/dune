@@ -44,7 +44,7 @@ impl Lines {
 fn new_game(version: i32) -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::of_version(version);
-    g.human_seats.insert(2);
+    g.human_seats.insert(Seat::new(2));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");

@@ -6,6 +6,7 @@
 //! server keeps only its digest. Logging out, a new password and deleting the account end
 //! sessions, which logs out their connections.
 
+use treachery_protocol::UserId;
 use treachery_engine::game::Game;
 
 use super::{refuse, Answer, CallError, Presence, Server, Session, LOGIN_LINK_HOURS, MAX_SESSIONS_PER_USER};
@@ -46,7 +47,7 @@ impl Server {
 
     /// Starts a session for the user and returns its token. Expired sessions end first, and
     /// the user's least recently used sessions beyond [`MAX_SESSIONS_PER_USER`].
-    pub(super) async fn create_session(&mut self, user: i32) -> Result<String, CallError> {
+    pub(super) async fn create_session(&mut self, user: UserId) -> Result<String, CallError> {
         self.drop_expired_sessions().await?;
         let mut own: Vec<(String, crate::time::Time)> = self.sessions.iter().filter(|(_, s)| s.user == user).map(|(d, s)| (d.clone(), s.last_used)).collect();
         own.sort_by_key(|(_, used)| *used);
@@ -65,7 +66,7 @@ impl Server {
     }
 
     /// Starts a session for the user, logs the connection in with it, and returns its token.
-    async fn start_session(&mut self, connection: ConnectionId, user: i32) -> Result<String, CallError> {
+    async fn start_session(&mut self, connection: ConnectionId, user: UserId) -> Result<String, CallError> {
         let token = self.create_session(user).await?;
         self.connections.log_in(connection, &ids::digest(&token), user);
         Ok(token)
@@ -80,7 +81,7 @@ impl Server {
     }
 
     /// Ends every session of the user but `keep`.
-    pub(super) async fn end_sessions_of(&mut self, user: i32, keep: Option<&str>) -> Result<(), CallError> {
+    pub(super) async fn end_sessions_of(&mut self, user: UserId, keep: Option<&str>) -> Result<(), CallError> {
         let ended: Vec<String> = self.sessions.iter().filter(|(d, s)| s.user == user && Some(d.as_str()) != keep).map(|(d, _)| d.clone()).collect();
         for digest in ended {
             self.end_session(&digest).await?;
@@ -105,7 +106,7 @@ impl Server {
 
     /// A single-use link that logs `user` in and opens `game`, for an async-play mail. Returns
     /// its token.
-    pub(super) async fn new_login_link(&mut self, user: i32, game: &str) -> Result<String, CallError> {
+    pub(super) async fn new_login_link(&mut self, user: UserId, game: &str) -> Result<String, CallError> {
         let token = ids::new_token();
         let row = LoginLinkRow { token_digest: ids::digest(&token), user_id: user, game_id: game.to_string(), created: self.now() };
         self.services.db.insert_login_link(&row).await?;
@@ -142,7 +143,7 @@ impl Server {
         }
 
         let mut user = UserRow {
-            id: 0,
+            id: UserId(0),
             name: name.clone(),
             password_hash: passwords::hash(password_hash),
             email: email.clone(),
@@ -291,7 +292,7 @@ impl Server {
     }
 
     /// An empty password keeps the old one. A new one ends the user's other sessions.
-    pub(super) async fn update_user_info(&mut self, connection: ConnectionId, id: i32, password_hash: Option<&str>, player_name: &str, email: Option<&str>) -> Answer<Account> {
+    pub(super) async fn update_user_info(&mut self, connection: ConnectionId, id: UserId, password_hash: Option<&str>, player_name: &str, email: Option<&str>) -> Answer<Account> {
         let mut user = self.users[&id].clone();
         user.player_name = player_name.trim().to_string();
         user.email = email.unwrap_or_default().trim().to_string();
@@ -308,7 +309,7 @@ impl Server {
         Ok(account(&user))
     }
 
-    pub(super) fn set_user_status(&mut self, user: i32, status: UserStatus) -> Lobby {
+    pub(super) fn set_user_status(&mut self, user: UserId, status: UserStatus) -> Lobby {
         self.presence.entry(user).or_insert(Presence { status, last_seen: None }).status = status;
         self.lobby_status(GameListScope::Active, user)
     }

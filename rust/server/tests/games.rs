@@ -473,6 +473,10 @@ fn the_protocol_envelope() {
             ("authenticate", Value::Null),
             ("authenticate", json!({"token": 12})),
             ("joinGame", json!({"game": "g", "seat": "three"})),
+            // A seat is a number from 0 to 255. -1, for no seat, only pairs a user with a seat.
+            ("joinGame", json!({"game": "g", "seat": -1})),
+            ("openOrCloseSeat", json!({"game": "g", "seat": 256})),
+            ("assignSeats", json!({"game": "g", "seats": [[1, -2]]})),
         ] {
             let (reply, _) = s.call_raw(c, call, args.clone()).await;
             assert_eq!(code(&reply), "badCall", "{call} {args}: {reply}");

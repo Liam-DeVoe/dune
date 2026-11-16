@@ -9,7 +9,7 @@ fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
         let mut p = Player::new(Some(*f));
-        p.seat = seat as i32;
+        p.seat = Seat::from_number(seat);
         g.players.push(p);
     }
     g

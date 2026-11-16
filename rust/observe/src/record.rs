@@ -236,7 +236,7 @@ impl<'a> Recorder<'a> {
                 if !valid.is_empty() {
                     let mut e = FactionSelected::new(game);
                     e.base.initiator.set(None);
-                    e.seat = p.seat;
+                    e.seat = Seat::number_or_minus_one(p.seat);
                     e.faction = Some(valid[self.rng.below(valid.len())]);
                     e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
                     return Ok(Some(to_object(&treachery_view::build::event(e))));

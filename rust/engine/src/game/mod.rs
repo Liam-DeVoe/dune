@@ -50,6 +50,7 @@ pub use revival::*;
 mod rules;
 pub use rules::Rules;
 mod seats;
+pub use seats::{seat_or_minus_one, Seat};
 mod settings;
 pub use settings::*;
 mod setup;
@@ -78,7 +79,7 @@ pub struct Game {
     /// The seats users play. Every other seat is a bot's (`is_bot`). The server seats users, so
     /// it keeps this up to date. It isn't part of the events: replaying a game's events gives
     /// the same game only with the same human seats.
-    pub human_seats: IndexSet<i32>,
+    pub human_seats: IndexSet<Seat>,
     pub board: Board,
     pub decks: Decks,
     pub leaders: Leaders,
@@ -421,7 +422,7 @@ impl Game {
     }
 
     /// Replays a savegame's events into a new game with these human seats, or says why it can't.
-    pub fn load(state: &GameState, human_seats: &IndexSet<i32>, perform_validation: bool, is_host: bool) -> Result<Game, Message> {
+    pub fn load(state: &GameState, human_seats: &IndexSet<Seat>, perform_validation: bool, is_host: bool) -> Result<Game, Message> {
         Game::check_version(state.version).map_err(|e| express!(e))?;
         let mut game = Game::of_version(state.version);
         game.human_seats = human_seats.clone();

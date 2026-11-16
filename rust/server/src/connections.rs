@@ -10,6 +10,7 @@
 //! also mark the game as needing new views, which the server sends after the call
 //! (`views.rs`), before its reply.
 
+use treachery_protocol::UserId;
 use std::collections::{BTreeMap, BTreeSet};
 
 use tokio::sync::mpsc;
@@ -46,17 +47,17 @@ pub struct PendingViews {
     /// The game was replaced (undo, restore, dismiss, load): views start over from its history.
     pub rebuild: bool,
     /// Connections that get a view whatever `all` says, with the user each is for.
-    pub callers: BTreeMap<ConnectionId, i32>,
+    pub callers: BTreeMap<ConnectionId, UserId>,
 }
 
 #[derive(Default)]
 pub struct Connections {
     sockets: BTreeMap<ConnectionId, mpsc::UnboundedSender<String>>,
     /// Game id to the connections following it, with the user each follows it as.
-    groups: BTreeMap<String, BTreeMap<ConnectionId, i32>>,
+    groups: BTreeMap<String, BTreeMap<ConnectionId, UserId>>,
     pending: BTreeMap<String, PendingViews>,
     /// The logged-in connections: the digest of their session, and its user.
-    logins: BTreeMap<ConnectionId, (String, i32)>,
+    logins: BTreeMap<ConnectionId, (String, UserId)>,
 }
 
 impl Connections {
@@ -81,7 +82,7 @@ impl Connections {
 
     /// Binds a session to the connection. A connection that was logged in as another user stops
     /// following the games it followed as that user.
-    pub fn log_in(&mut self, connection: ConnectionId, session: &str, user: i32) {
+    pub fn log_in(&mut self, connection: ConnectionId, session: &str, user: UserId) {
         if !self.sockets.contains_key(&connection) {
             return;
         }
@@ -92,7 +93,7 @@ impl Connections {
     }
 
     /// The session digest and user the connection is logged in with.
-    pub fn login(&self, connection: ConnectionId) -> Option<(&str, i32)> {
+    pub fn login(&self, connection: ConnectionId) -> Option<(&str, UserId)> {
         self.logins.get(&connection).map(|(s, u)| (s.as_str(), *u))
     }
 
@@ -114,14 +115,14 @@ impl Connections {
     }
 
     /// The connection follows the game as `user`.
-    pub fn follow(&mut self, game: &str, connection: ConnectionId, user: i32) {
+    pub fn follow(&mut self, game: &str, connection: ConnectionId, user: UserId) {
         if self.sockets.contains_key(&connection) {
             self.groups.entry(game.to_string()).or_default().insert(connection, user);
         }
     }
 
     /// Every connection of `user` stops following the game.
-    pub fn unfollow_user(&mut self, game: &str, user: i32) {
+    pub fn unfollow_user(&mut self, game: &str, user: UserId) {
         if let Some(members) = self.groups.get_mut(game) {
             members.retain(|_, u| *u != user);
             if members.is_empty() {
@@ -137,7 +138,7 @@ impl Connections {
     }
 
     /// The connections following a game, with their users.
-    pub fn members(&self, game: &str) -> BTreeMap<ConnectionId, i32> {
+    pub fn members(&self, game: &str) -> BTreeMap<ConnectionId, UserId> {
         self.groups.get(game).cloned().unwrap_or_default()
     }
 
@@ -165,7 +166,7 @@ impl Connections {
     }
 
     /// Sends a notification to the game's followers that follow it as one of `users`.
-    pub fn notify_users(&self, game: &str, users: &[i32], notification: Notification) {
+    pub fn notify_users(&self, game: &str, users: &[UserId], notification: Notification) {
         let text = protocol::notify(notification);
         for (connection, user) in self.groups.get(game).into_iter().flatten() {
             if users.contains(user) {
@@ -195,7 +196,7 @@ impl Connections {
     }
 
     /// One connection gets its view of the game.
-    pub fn view_for(&mut self, game: &str, connection: ConnectionId, user: i32) {
+    pub fn view_for(&mut self, game: &str, connection: ConnectionId, user: UserId) {
         self.pending.entry(game.to_string()).or_default().callers.insert(connection, user);
     }
 

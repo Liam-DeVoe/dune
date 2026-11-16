@@ -18,6 +18,7 @@
 //! Times are stored as RFC 3339 text in UTC ([`super::time::format`]). Session, login link and
 //! reset tokens are stored as their SHA-256 digests (`crate::ids::digest`).
 
+use treachery_protocol::UserId;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions, SqliteRow};
 use sqlx::{Row, Sqlite, Transaction};
 
@@ -72,7 +73,7 @@ const SCHEMA_V1: &[&str] = &[
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UserRow {
-    pub id: i32,
+    pub id: UserId,
     /// Trimmed and in lower case.
     pub name: String,
     /// The Argon2id hash of what the client sends (`crate::passwords`), `password_scheme` 1.
@@ -90,7 +91,7 @@ pub struct UserRow {
 pub struct SessionRow {
     /// The digest of the session token.
     pub token_digest: String,
-    pub user_id: i32,
+    pub user_id: UserId,
     pub created: Time,
     /// When a connection last logged in with it.
     pub last_used: Time,
@@ -101,7 +102,7 @@ pub struct SessionRow {
 pub struct LoginLinkRow {
     /// The digest of the link's token.
     pub token_digest: String,
-    pub user_id: i32,
+    pub user_id: UserId,
     /// The game the link opens.
     pub game_id: String,
     pub created: Time,
@@ -111,7 +112,7 @@ pub struct LoginLinkRow {
 pub struct GameRow {
     pub id: String,
     pub name: String,
-    pub creator_id: i32,
+    pub creator_id: UserId,
     pub password_hash: Option<String>,
     pub created: Time,
     pub last_activity: Time,
@@ -126,7 +127,7 @@ pub struct GameRow {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ScheduledGameRow {
     pub id: String,
-    pub creator_id: i32,
+    pub creator_id: UserId,
     pub creator_player_name: String,
     pub starts: Time,
     pub ruleset: Option<i32>,
@@ -135,7 +136,7 @@ pub struct ScheduledGameRow {
     pub factions: Vec<i32>,
     pub async_play: bool,
     /// User id and subscription type, in the order they subscribed.
-    pub subscriptions: Vec<(i32, i32)>,
+    pub subscriptions: Vec<(UserId, i32)>,
 }
 
 #[derive(Clone)]
@@ -161,7 +162,7 @@ fn json<T: serde::de::DeserializeOwned>(row: &SqliteRow, column: &str) -> Result
 impl UserRow {
     fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
         Ok(UserRow {
-            id: row.try_get("id")?,
+            id: UserId(row.try_get("id")?),
             name: row.try_get("name")?,
             password_hash: row.try_get("password_hash")?,
             email: row.try_get("email")?,
@@ -177,7 +178,7 @@ impl SessionRow {
     fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
         Ok(SessionRow {
             token_digest: row.try_get("token_digest")?,
-            user_id: row.try_get("user_id")?,
+            user_id: UserId(row.try_get("user_id")?),
             created: get_time(row, "created")?,
             last_used: get_time(row, "last_used")?,
         })
@@ -188,7 +189,7 @@ impl LoginLinkRow {
     fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
         Ok(LoginLinkRow {
             token_digest: row.try_get("token_digest")?,
-            user_id: row.try_get("user_id")?,
+            user_id: UserId(row.try_get("user_id")?),
             game_id: row.try_get("game_id")?,
             created: get_time(row, "created")?,
         })
@@ -200,7 +201,7 @@ impl GameRow {
         Ok(GameRow {
             id: row.try_get("id")?,
             name: row.try_get("name")?,
-            creator_id: row.try_get("creator_id")?,
+            creator_id: UserId(row.try_get("creator_id")?),
             password_hash: row.try_get("password_hash")?,
             created: get_time(row, "created")?,
             last_activity: get_time(row, "last_activity")?,
@@ -216,7 +217,7 @@ impl ScheduledGameRow {
     fn from_row(row: &SqliteRow) -> Result<Self, sqlx::Error> {
         Ok(ScheduledGameRow {
             id: row.try_get("id")?,
-            creator_id: row.try_get("creator_id")?,
+            creator_id: UserId(row.try_get("creator_id")?),
             creator_player_name: row.try_get("creator_player_name")?,
             starts: get_time(row, "starts")?,
             ruleset: row.try_get("ruleset")?,
@@ -311,7 +312,7 @@ impl Db {
     }
 
     /// Adds a user and returns its id; `user.id` is ignored.
-    pub async fn insert_user(&self, user: &UserRow) -> Result<i32, sqlx::Error> {
+    pub async fn insert_user(&self, user: &UserRow) -> Result<UserId, sqlx::Error> {
         let r = sqlx::query(
             "INSERT INTO users (name, password_hash, password_scheme, email, player_name, last_login, reset_token_digest, reset_token_created)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -326,7 +327,7 @@ impl Db {
         .bind(user.reset_token_created.map(time::format))
         .execute(&self.pool)
         .await?;
-        Ok(r.last_insert_rowid() as i32)
+        Ok(UserId(r.last_insert_rowid()))
     }
 
     pub async fn update_user(&self, user: &UserRow) -> Result<(), sqlx::Error> {
@@ -342,15 +343,15 @@ impl Db {
         .bind(time::format(user.last_login))
         .bind(&user.reset_token_digest)
         .bind(user.reset_token_created.map(time::format))
-        .bind(user.id)
+        .bind(user.id.0)
         .execute(&self.pool)
         .await?;
         Ok(())
     }
 
     /// Deletes a user, their sessions and their login links.
-    pub async fn delete_user(&self, id: i32) -> Result<(), sqlx::Error> {
-        sqlx::query("DELETE FROM users WHERE id = ?").bind(id).execute(&self.pool).await?;
+    pub async fn delete_user(&self, id: UserId) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM users WHERE id = ?").bind(id.0).execute(&self.pool).await?;
         Ok(())
     }
 
@@ -362,7 +363,7 @@ impl Db {
     pub async fn save_session(&self, session: &SessionRow) -> Result<(), sqlx::Error> {
         sqlx::query("INSERT OR REPLACE INTO sessions (token_digest, user_id, created, last_used) VALUES (?, ?, ?, ?)")
             .bind(&session.token_digest)
-            .bind(session.user_id)
+            .bind(session.user_id.0)
             .bind(time::format(session.created))
             .bind(time::format(session.last_used))
             .execute(&self.pool)
@@ -382,7 +383,7 @@ impl Db {
     pub async fn insert_login_link(&self, link: &LoginLinkRow) -> Result<(), sqlx::Error> {
         sqlx::query("INSERT INTO login_links (token_digest, user_id, game_id, created) VALUES (?, ?, ?, ?)")
             .bind(&link.token_digest)
-            .bind(link.user_id)
+            .bind(link.user_id.0)
             .bind(&link.game_id)
             .bind(time::format(link.created))
             .execute(&self.pool)
@@ -407,7 +408,7 @@ impl Db {
         )
         .bind(&game.id)
         .bind(&game.name)
-        .bind(game.creator_id)
+        .bind(game.creator_id.0)
         .bind(&game.password_hash)
         .bind(time::format(game.created))
         .bind(time::format(game.last_activity))
@@ -445,7 +446,7 @@ async fn save_scheduled_game<'e>(executor: impl sqlx::Executor<'e, Database = Sq
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(&game.id)
-    .bind(game.creator_id)
+    .bind(game.creator_id.0)
     .bind(&game.creator_player_name)
     .bind(time::format(game.starts))
     .bind(game.ruleset)
@@ -580,7 +581,7 @@ pub async fn migrate_from_csharp(tx: &mut Transaction<'_, Sqlite>) -> Result<(),
         let game = GameRow {
             id: r.try_get("GameId")?,
             name: r.try_get::<Option<String>, _>("GameName")?.unwrap_or_default(),
-            creator_id: r.try_get("CreatorUserId")?,
+            creator_id: UserId(r.try_get("CreatorUserId")?),
             password_hash: password.filter(|p| !p.is_empty()),
             created,
             last_activity: csharp_time(r.try_get("LastAction")?).unwrap_or(created),
@@ -595,7 +596,7 @@ pub async fn migrate_from_csharp(tx: &mut Transaction<'_, Sqlite>) -> Result<(),
         )
         .bind(&game.id)
         .bind(&game.name)
-        .bind(game.creator_id)
+        .bind(game.creator_id.0)
         .bind(&game.password_hash)
         .bind(time::format(game.created))
         .bind(time::format(game.last_activity))
@@ -615,7 +616,7 @@ pub async fn migrate_from_csharp(tx: &mut Transaction<'_, Sqlite>) -> Result<(),
         let factions: String = r.try_get("AllowedFactionsInPlay")?;
         let game = ScheduledGameRow {
             id: r.try_get("GameId")?,
-            creator_id: r.try_get("CreatorUserId")?,
+            creator_id: UserId(r.try_get("CreatorUserId")?),
             creator_player_name: r.try_get("CreatorPlayerName")?,
             starts: csharp_time(r.try_get("DateTime")?).unwrap_or_default(),
             ruleset: r.try_get("Ruleset")?,
@@ -625,7 +626,7 @@ pub async fn migrate_from_csharp(tx: &mut Transaction<'_, Sqlite>) -> Result<(),
             async_play: r.try_get("AsyncPlay")?,
             subscriptions: subscriptions
                 .iter()
-                .filter_map(|(user, kind)| Some((user.parse().ok()?, kind.as_i64()? as i32)))
+                .filter_map(|(user, kind)| Some((UserId(user.parse().ok()?), kind.as_i64()? as i32)))
                 .collect(),
         };
         save_scheduled_game(&mut **tx, &game).await?;
@@ -650,7 +651,7 @@ mod tests {
     async fn rows_round_trip() {
         let db = Db::open_in_memory().await.unwrap();
         let mut user = UserRow {
-            id: 0,
+            id: UserId(0),
             name: "alice".into(),
             password_hash: "h".into(),
             email: "".into(),
@@ -707,7 +708,7 @@ mod tests {
             max_turns: 10,
             factions: vec![20, 10],
             async_play: true,
-            subscriptions: vec![(user.id, 50), (3, 30)],
+            subscriptions: vec![(user.id, 50), (UserId(3), 30)],
         };
         db.save_scheduled_game(&scheduled).await.unwrap();
         assert_eq!(db.scheduled_games().await.unwrap(), vec![scheduled]);

@@ -9,3 +9,13 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 ## A leader who is alive can be revived
 
 The fuzzer reaches a revival of a leader who isn't in the tanks. Validation accepts it, and the leader ends up dead with no death time (0), so in a view of the tanks it sorts before every leader who really died. Sweep 1c found it in fuzz games 77, 97, 113 and 126 (seed 1) and kept the old order by starting the per-game death count at 1. Fix: revival validation refuses a leader who isn't dead, with a test, and the death count can then start at 0.
+
+## Found by 2c and left alone
+
+- A battle flash can read "null win!". Not investigated.
+- `TraitorDiscarded` logs that the traitor deck is shuffled, but the deck isn't shuffled. Either the rule or the text is wrong. Check the rulebook.
+- Plain-text output has no space between a number and a force name ("3forces"). The client draws them as separate tokens, so only mails and server texts show it.
+- "X is a Y facedancer!" and "CHOAM The Economics Token flips ..." read badly.
+- Faction sheets paste advantage titles into the sheet template before formatting it, so a custom skin label with `{N}` gets sheet parameter N, and a lone `{` leaves the whole sheet unformatted. 3b drops this.
+- A custom skin missing any default key is replaced by the default skin entirely (C#'s `FixDictionary`), so its custom names are lost.
+- The web client's Karama help text has typos ("an advantages ... occured").

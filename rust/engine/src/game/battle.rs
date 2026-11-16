@@ -258,10 +258,17 @@ impl Game {
         self.remove_ended_deals(step.phase());
     }
 
-    /// Puts the game in the battle phase at `step`, fighting `battle` if given, with the battle
-    /// order starting at the first player. For tests that build a battle by hand.
+    /// Puts the game in the battle phase at `step`, fighting `battle` if given. For tests that
+    /// build a battle by hand, so the battle order is the players in turn and needs no seats.
     pub fn enter_battle_state(&mut self, step: BattleStep, battle: Option<InitiatedBattle>) {
-        let order = PlayerSequence::starting_with_first_player(self);
+        let order = PlayerSequence {
+            players: self.player_indices().collect(),
+            played: Vec::new(),
+            skip_players_that_cant_bid_on_cards: false,
+            round: 1,
+            fully_circled: 0,
+            first_player: None,
+        };
         let current = battle.map(CurrentBattle::new);
         self.enter_state(PhaseState::Battle(BattlePhase { order, fought: 0, current, step }));
     }

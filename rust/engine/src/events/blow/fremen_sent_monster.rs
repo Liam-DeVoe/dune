@@ -45,7 +45,7 @@ impl EventRules for FremenSentMonster {
         let monster = MonsterAppearance::new(territory, false);
         game.blow.monsters.push(monster.clone());
         game.perform_monster(&monster)?;
-        let condition = game.turn.current_phase == Phase::FremenSendingMonsterA;
+        let condition = game.phase() == Phase::FremenSendingMonsterA;
         game.enter_either(condition, Phase::BlowA, Phase::BlowB);
         game.draw_resource_card()?;
         game.let_factions_discard_surplus_cards();

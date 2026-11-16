@@ -4,7 +4,6 @@ use crate::prelude::*;
 pub struct Alliances {
     pub current_alliance_offers: Vec<AllianceOffer>,
     pub current_card_trade_offer: Option<CardTradeOffer>,
-    pub phase_before_card_trade: Option<Phase>,
     pub last_turn_card_was_traded: Option<Turn>,
     pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
     /// `Option` because `EmperorBidSupport` assigns its `Amounts`, which JSON can leave null.
@@ -64,7 +63,6 @@ impl Alliances {
         Alliances {
             current_alliance_offers: Vec::new(),
             current_card_trade_offer: None,
-            phase_before_card_trade: None,
             last_turn_card_was_traded: None,
             permitted_use_of_ally_spice: Default::default(),
             permitted_use_of_emperor_spice: Some(IndexMap::new()),

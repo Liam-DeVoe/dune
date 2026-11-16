@@ -86,8 +86,7 @@ impl EventRules for ClairVoyanceAnswered {
             }
         }
 
-        let paused = game.turn.phase_paused_by_clairvoyance.required("phase paused by clairvoyance")?;
-        game.enter(paused, false);
+        game.resume(Interrupt::Clairvoyance, false)?;
         Ok(())
     }
 

@@ -26,7 +26,6 @@ pub struct BiddingState {
     pub replacing_bought_card_using_nexus: bool,
     pub karma_hand_swap_number_of_cards: i32,
     pub karma_hand_swap_target: Option<Faction>,
-    pub karma_hand_swap_paused_phase: Option<Phase>,
     pub black_market_auction_type: Option<AuctionType>,
     pub card_sold_on_black_market: Option<TreacheryCard>,
     pub richese_auction_should_still_happen: bool,
@@ -57,7 +56,6 @@ impl BiddingState {
             replacing_bought_card_using_nexus: Default::default(),
             karma_hand_swap_number_of_cards: Default::default(),
             karma_hand_swap_target: Default::default(),
-            karma_hand_swap_paused_phase: Default::default(),
             black_market_auction_type: Default::default(),
             card_sold_on_black_market: None,
             richese_auction_should_still_happen: Default::default(),
@@ -786,7 +784,7 @@ impl Game {
 
     pub fn has_bid_to_pay(&self, p: PlayerId) -> bool {
         match &self.bidding.current_bid {
-            Some(current_bid) if self.turn.current_phase == Phase::Bidding => {
+            Some(current_bid) if self.phase() == Phase::Bidding => {
                 Some(current_bid.bid_initiator()) == self.player(p).faction
                     || (Some(current_bid.bid_initiator()) == self.player(p).ally && current_bid.bid_ally_contribution_amount() > 0)
             }
@@ -800,7 +798,7 @@ impl Game {
     /// no spice. Spice given away in between was paid anyway,
     /// which left the winner below zero (escapes.md, "Forces below zero").
     pub fn spice_committed_to_bids(&self, p: PlayerId) -> i32 {
-        if !matches!(self.turn.current_phase, Phase::Bidding | Phase::BlackMarketBidding) {
+        if !matches!(self.phase(), Phase::Bidding | Phase::BlackMarketBidding) {
             return 0;
         }
         let pending: Vec<&PlacedBid> = match self.bidding.current_auction_type {
@@ -850,6 +848,182 @@ impl Game {
         match &self.bidding.current_bid {
             Some(current_bid) if current_bid.bid_player() == Some(p) && current_bid.bid_using_karma_to_remove_bid_limit() => current_bid.bid_karma_card(),
             _ => None,
+        }
+    }
+}
+
+impl GameStatus {
+    /// The status in the bidding phase, or `None` in another phase.
+    pub(crate) fn bidding_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::BlackMarketAnnouncement => {
+                let a = express!("You may now select a card to sell on the Black Market, or pass.");
+                let w = express!(Faction::Richese, " are thinking about selling one of their cards on the Black Market...");
+                Self::faction_status(game, a, w, Some(Faction::Richese), None)
+            }
+
+            Phase::BlackMarketBidding if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) => {
+                let a = express!("Please bid or pass.");
+                let w = express!(g.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(g), " are thinking about their bid...");
+                let seq = BlackMarketBid::players_to_bid(g);
+                let latest = g.latest_event_0();
+                Self::sequence_status(a, w, seq, latest)
+            }
+
+            Phase::BlackMarketBidding if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) => {
+                let players = Self::players_with_room_and_no_bid(g);
+                let latest = g.latest_event(EventType::RicheseAnnouncesBlackMarket);
+                Self::players_status("Please bid.", "Factions are thinking about their bids...", players, latest)
+            }
+
+            Phase::RicheseAnnouncingAuction => {
+                let a = express!("Please decide if you will auction a card from your cache First or Last.");
+                let w = express!(Faction::Richese, " are deciding to auction a card from their cache First or Last...");
+                Self::faction_status(game, a, w, Some(Faction::Richese), None)
+            }
+
+            Phase::RicheseSpecifyingAuction => {
+                let a = express!("Please select a ", Faction::Richese, " card to put on auction.");
+                let w = express!(Self::faction_or_occupier(g, Faction::Richese, World::Richese), " are putting a ", Faction::Richese, " card on auction...");
+                let f = Self::faction_or_occupier(g, Faction::Richese, World::Richese);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            Phase::RicheseKeepingUnsoldCard => {
+                let a = express!("Please decide if you wish to keep this unsold card.");
+                let w = express!(Self::faction_or_occupier(g, Faction::Richese, World::Richese), " are deciding about keeping the unsold card...");
+                let f = Self::faction_or_occupier(g, Faction::Richese, World::Richese);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            Phase::IxianRemovingCardFromBid => {
+                let a = express!("Please put one card from the auction on top or at the bottom of the Treachery Card deck.");
+                let w = express!(Self::faction_or_occupier(g, Faction::Ixian, World::Ixian), " are putting one card from the auction on top or at the bottom of the Treachery Card deck...");
+                let f = Self::faction_or_occupier(g, Faction::Ixian, World::Ixian);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            Phase::IxianSwappingCard => {
+                let a = express!("You may swap the next card on auction with a card from your hand, or pass.");
+                let w = express!(Faction::Ixian, " are thinking about swapping the next card on auction with a card from their hand...");
+                Self::faction_status(game, a, w, Some(Faction::Ixian), None)
+            }
+
+            Phase::Bidding if game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) => {
+                let a = express!("Please bid or pass.");
+                let w = express!(g.bidding.bid_sequence.as_ref().expect("bid sequence").current_faction(g), " are thinking about their bid...");
+                let seq = Bid::players_to_bid(g);
+                let latest = g.latest_event_0();
+                Self::sequence_status(a, w, seq, latest)
+            }
+
+            Phase::Bidding if game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) => {
+                let players = Self::players_with_room_and_no_bid(g);
+                let latest = g.latest_event(EventType::RicheseSpecifiesAuction);
+                Self::players_status("Please bid.", "Factions are thinking about their bids...", players, latest)
+            }
+
+            Phase::ReplacingCardJustWon => {
+                let a = express!("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage.");
+                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.initiator), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
+                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator).flatten());
+                Self::player_status(a, w, p, None)
+            }
+
+            Phase::WaitingForNextBiddingRound => Self::status("Factions are waiting for the next card to be put on auction...", None),
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the bidding phase (see `add_player_actions`).
+    pub(crate) fn add_bidding_actions(&self, player: PlayerId, is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::BlackMarketAnnouncement => {
+                if faction == Some(Faction::Richese) {
+                    result.push(EventType::RicheseAnnouncesBlackMarket);
+                }
+            }
+
+            Phase::BlackMarketBidding => {
+                if BlackMarketBid::may_be_played(self, player) {
+                    result.push(EventType::BlackMarketBid);
+                }
+                if faction == Some(Faction::Emperor) && self.applicable(Rule::EmperorSupportingNonAllyBids) {
+                    result.push(EventType::EmperorBidSupport);
+                }
+            }
+
+            Phase::RicheseAnnouncingAuction => {
+                if faction == Some(Faction::Richese) {
+                    result.push(EventType::RicheseAnnouncesAuction);
+                }
+            }
+
+            Phase::RicheseSpecifyingAuction => {
+                if RicheseSpecifiesAuction::may_specify_card(self, player) || RicheseSpecifiesAuction::may_specify_type_of_auction(self, player) {
+                    result.push(EventType::RicheseSpecifiesAuction);
+                }
+            }
+
+            Phase::Bidding => {
+                if Bid::may_be_played(self, Some(player)) {
+                    result.push(EventType::Bid);
+                }
+                if faction == Some(Faction::Emperor) && self.applicable(Rule::EmperorSupportingNonAllyBids) {
+                    result.push(EventType::EmperorBidSupport);
+                }
+            }
+
+            Phase::RicheseKeepingUnsoldCard => {
+                if faction == Some(Faction::Richese) {
+                    result.push(EventType::RicheseKeepsUnsoldCard);
+                }
+            }
+
+            Phase::IxianRemovingCardFromBid => {
+                let occupier_of_ixian_homeworld = self.occupier_of(World::Ixian);
+                if (occupier_of_ixian_homeworld.is_none() && faction == Some(Faction::Ixian)) || occupier_of_ixian_homeworld == Some(player) {
+                    result.push(EventType::IxianRemovedCardFromAuction);
+                }
+            }
+
+            Phase::IxianSwappingCard => {
+                if faction == Some(Faction::Ixian) {
+                    result.push(EventType::IxianSwappedCardOnBid);
+                }
+            }
+
+            Phase::ReplacingCardJustWon => {
+                if faction == self.bidding.faction_that_may_replace_bought_card {
+                    result.push(EventType::ReplacedCardWon);
+                }
+            }
+
+            Phase::WaitingForNextBiddingRound => {
+                if !is_host && faction == Some(Faction::Atreides) {
+                    result.push(EventType::EndPhase);
+                }
+            }
+
+            Phase::BiddingReport => {
+                if faction == Some(Faction::Tleilaxu)
+                    && self.players.len() > 1
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
+                {
+                    result.push(EventType::SetIncreasedRevivalLimits);
+                }
+                // Kaitain's high threshold. Salusa Secundus has no discard.
+                if faction == Some(Faction::Emperor) && self.player(player).has_high_threshold(self, World::Emperor) && i32::from(self.player(player).resources) >= 2 {
+                    result.push(EventType::EmperorDiscarded);
+                }
+            }
+
+            _ => {}
         }
     }
 }

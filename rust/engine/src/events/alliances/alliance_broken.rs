@@ -21,7 +21,7 @@ impl EventRules for AllianceBroken {
         game.log(vec![m.into()]);
 
         // The former ally gets to act again in the alliance phase, even if they already passed.
-        if matches!(game.turn.current_phase, Phase::AllianceA | Phase::AllianceB) {
+        if matches!(game.phase(), Phase::AllianceA | Phase::AllianceB) {
             // List.Remove: the first occurrence, if any.
             if let Some(i) = game.turn.has_acted_or_passed.iter().position(|f| Some(*f) == ally) {
                 game.turn.has_acted_or_passed.remove(i);

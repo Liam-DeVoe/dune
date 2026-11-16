@@ -18,6 +18,13 @@ pub struct Board {
     pub ambassadors_on_planet: IndexMap<Territory, Ambassador>,
     pub homeworld_occupation: IndexMap<Homeworld, Faction>,
     pub stronghold_ownership: BTreeMap<Location, Faction>,
+    /// The discovery tokens that may be revealed in this turn's collection phase: those where
+    /// forces were when it began. Kept until the next collection phase.
+    pub pending_discoveries: Vec<DiscoveryToken>,
+    /// Who holds the Flight discovery. `Some(None)`: decided, and nobody.
+    pub owner_of_flight_discovery: Option<Option<Faction>>,
+    /// Strongholds revealed as discoveries that forces may still enter, until the next storm.
+    pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
 }
 
 impl Board {
@@ -35,6 +42,9 @@ impl Board {
             ambassadors_on_planet: Default::default(),
             homeworld_occupation: Default::default(),
             stronghold_ownership: Default::default(),
+            pending_discoveries: Vec::new(),
+            owner_of_flight_discovery: None,
+            just_revealed_discovery_strongholds: Vec::new(),
         }
     }
 }

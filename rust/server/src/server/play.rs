@@ -153,7 +153,7 @@ impl Server {
         let turn = if g.game.turn.current_turn == treachery_engine::game::Turn::BEFORE_START {
             "Setting up a new game".to_string()
         } else {
-            render::format_turn_and_phase(g.game.turn.current_turn.into(), g.game.turn.current_phase)
+            render::format_turn_and_phase(g.game.turn.current_turn.into(), g.game.phase())
         };
 
         let seated: Vec<UserId> = g.participation.seated_players.keys().copied().collect();

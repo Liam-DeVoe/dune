@@ -71,8 +71,7 @@ impl EventRules for CardTraded {
                 card: self.card,
                 requested_card: self.requested_card,
             });
-            game.alliances.phase_before_card_trade = Some(game.turn.current_phase);
-            game.enter(Phase::TradingCards, true);
+            game.interrupt(Interrupt::CardTrade);
         } else {
             let offer = game.alliances.current_card_trade_offer.clone().required("current card trade offer")?;
             game.log(parts![by.faction, " and ", offer.initiator, " exchange a card"]);
@@ -103,9 +102,7 @@ impl EventRules for CardTraded {
             game.alliances.current_card_trade_offer = None;
             game.stone(Milestone::CardTraded);
             game.alliances.last_turn_card_was_traded = Some(game.turn.current_turn);
-            if let Some(phase) = game.alliances.phase_before_card_trade {
-                game.enter(phase, true);
-            }
+            game.resume(Interrupt::CardTrade, true)?;
         }
         Ok(())
     }

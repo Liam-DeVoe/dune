@@ -298,7 +298,7 @@ fn hand_cards_name_the_actions_that_play_them() {
 #[test]
 fn traitors_hidden_while_picking() {
     let mut r = load("mc-traitors");
-    assert_eq!(r.game.turn.current_phase, Phase::SelectingTraitors);
+    assert_eq!(r.game.phase(), Phase::SelectingTraitors);
     let mut hidden = 0;
     for f in factions(&r) {
         let view = r.view(viewer_of(&r, f));

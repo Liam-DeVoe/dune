@@ -34,13 +34,13 @@ pub fn table() -> Game {
 pub fn table_with(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
     let mut g = seated(change_rules);
     g.turn.current_main_phase = MainPhase::Resurrection;
-    g.turn.current_phase = Phase::ResurrectionReport;
+    g.enter(Phase::ResurrectionReport, false);
 
     // ResurrectionReport -> BeginningOfShipAndMove -> the Guild's shipment.
     host_ends_phase(&mut g);
-    assert_eq!(g.turn.current_phase, Phase::BeginningOfShipAndMove);
+    assert_eq!(g.phase(), Phase::BeginningOfShipAndMove);
     host_ends_phase(&mut g);
-    assert_eq!(g.turn.current_phase, Phase::GuildShip);
+    assert_eq!(g.phase(), Phase::GuildShip);
     g
 }
 
@@ -48,7 +48,7 @@ pub fn table_with(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
 pub fn at_resurrection() -> Game {
     let mut g = seated(|_| {});
     g.turn.current_main_phase = MainPhase::Resurrection;
-    g.turn.current_phase = Phase::Resurrection;
+    g.enter(Phase::Resurrection, false);
     g
 }
 
@@ -57,7 +57,7 @@ pub fn at_blow(phase: Phase) -> Game {
     let mut g = seated(|_| {});
     g.turn.current_turn = Turn::new(2);
     g.turn.current_main_phase = MainPhase::Blow;
-    g.turn.current_phase = phase;
+    g.enter(phase, false);
     g
 }
 
@@ -129,7 +129,7 @@ pub fn pass_until_shipment_of(g: &mut Game, f: Faction) {
 
 pub fn host_ends_phase(g: &mut Game) {
     let e = HistoryEntry::new(None, EndPhase::default());
-    assert_eq!(g.play_for_message(e, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.turn.current_phase);
+    assert_eq!(g.play_for_message(e, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.phase());
 }
 
 pub fn idx(g: &Game, f: Faction) -> PlayerId {
@@ -145,14 +145,14 @@ pub fn submit(g: &mut Game, event_json: &str) -> Option<String> {
 
 /// Submits an event and fails the test if it's refused.
 pub fn accept(g: &mut Game, event_json: &str) {
-    let phase = g.turn.current_phase;
+    let phase = g.phase();
     if let Some(refusal) = submit(g, event_json) {
         panic!("refused in {phase:?}: {refusal}\n{event_json}");
     }
 }
 
 pub fn phase(g: &Game) -> Phase {
-    g.turn.current_phase
+    g.phase()
 }
 
 /// Who may submit an event of this type now.

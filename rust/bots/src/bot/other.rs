@@ -129,7 +129,7 @@ impl ClassicBot {
     pub fn determine_divide_resources_accepted(&self, game: &Game) -> Option<DivideResourcesAccepted> {
         let tbd = DivideResources::get_resources_to_be_divided(game);
 
-        let portion = i32::from(game.collection.current_division_proposal.as_ref()?.portion_to_first_player);
+        let portion = i32::from(game.collection()?.current_division_proposal.as_ref()?.portion_to_first_player);
         let i_get_when_agreed = DivideResources::gained_by_other_faction(tbd.as_ref(), true, portion);
         let i_get_when_denied = DivideResources::gained_by_other_faction(tbd.as_ref(), false, portion);
 
@@ -252,7 +252,7 @@ impl ClassicBot {
             }
 
             Some(Faction::Ecaz) => {
-                game.turn.current_phase == Phase::ResurrectionReport
+                game.phase() == Phase::ResurrectionReport
                     && match self.determine_territory_to_remove_ecaz_from(game) {
                         Some(t) => {
                             result.ecaz_territory = Some(t);
@@ -264,9 +264,9 @@ impl ClassicBot {
 
             Some(Faction::Moritani) => {
                 let faction = self.faction(game);
-                let my_shipment_turn = (faction == Faction::Guild && game.turn.current_phase == Phase::GuildShip && !game.guild_may_delay())
+                let my_shipment_turn = (faction == Faction::Guild && game.phase() == Phase::GuildShip && !game.guild_may_delay())
                     || (faction != Faction::Guild
-                        && game.turn.current_phase == Phase::NonGuildShip
+                        && game.phase() == Phase::NonGuildShip
                         && game.ship_move.shipment_and_move_sequence.as_ref()?.current_player(game) == Some(self.player));
                 my_shipment_turn && {
                     let territory = self.determine_shipment(game).to?.territory();
@@ -315,7 +315,7 @@ impl ClassicBot {
 
     /// The current battle, if it is the battle phase and I am the aggressor or defender.
     fn battle_im_fighting<'g>(&self, game: &'g Game) -> Option<&'g InitiatedBattle> {
-        if game.turn.current_phase != Phase::BattlePhase {
+        if game.phase() != Phase::BattlePhase {
             return None;
         }
         game.battle.current_battle.as_ref().filter(|b| b.is_aggressor_or_defender(game, self.player))
@@ -346,7 +346,7 @@ impl ClassicBot {
                 result.atreides_prescience_aspect != None
             }),
 
-            Some(Faction::Harkonnen) => game.turn.current_phase == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
+            Some(Faction::Harkonnen) => game.phase() == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
 
             Some(Faction::Fremen) => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
@@ -526,7 +526,7 @@ impl ClassicBot {
     }
 
     pub fn determine_karma_shipment_prevention(&self, game: &Game) -> Option<KarmaShipmentPrevention> {
-        if game.turn.current_phase != Phase::NonGuildShip {
+        if game.phase() != Phase::NonGuildShip {
             return None;
         }
 
@@ -559,7 +559,7 @@ impl ClassicBot {
     }
 
     pub fn determine_karma_hand_swap_initiated(&self, game: &Game) -> Option<KarmaHandSwapInitiated> {
-        if game.turn.current_phase != Phase::BiddingReport {
+        if game.phase() != Phase::BiddingReport {
             return None;
         }
 
@@ -594,8 +594,8 @@ impl ClassicBot {
 
     pub fn determine_harvester_played(&self, game: &Game) -> Option<HarvesterPlayed> {
         if game.turn.current_turn > Turn::FIRST
-            && ((game.turn.current_phase == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
-                || (game.turn.current_phase == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
+            && ((game.phase() == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
+                || (game.phase() == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
         {
             return Some(HarvesterPlayed::default());
         }
@@ -631,7 +631,7 @@ impl ClassicBot {
             }
         }
 
-        if game.turn.current_phase == Phase::Bidding && !game.player(self.player).has_room_for_cards(game) {
+        if game.phase() == Phase::Bidding && !game.player(self.player).has_room_for_cards(game) {
             let me = game.player(self.player);
             // Looked up lazily: it fails when my ally isn't seated.
             let mut safe: Option<Vec<Hero>> = None;
@@ -879,7 +879,7 @@ impl ClassicBot {
         let our_resources = self.resources(game) + ally_resources;
 
         let play = if self.faction(game) == Faction::Guild {
-            game.turn.current_phase == Phase::Resurrection && opponents_resources() > 2 * our_resources
+            game.phase() == Phase::Resurrection && opponents_resources() > 2 * our_resources
         } else {
             game.turn.current_turn > Turn::FIRST
                 && game.turn.current_main_phase == MainPhase::Bidding
@@ -975,7 +975,7 @@ impl ClassicBot {
     }
 
     pub fn determine_distrans_used(&self, game: &Game) -> Option<DistransUsed> {
-        if game.turn.current_phase != Phase::WaitingForNextBiddingRound {
+        if game.phase() != Phase::WaitingForNextBiddingRound {
             return None;
         }
 

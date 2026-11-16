@@ -179,7 +179,7 @@ fn fremen_in_sector(g: &mut Game, sector: Sector, forces: i32, avoid: &[Territor
 fn storm_losses_taken_in_the_storm_phase_end_in_the_storm_report() {
     let mut g = seated(|_| {});
     g.turn.current_main_phase = MainPhase::Storm;
-    g.turn.current_phase = Phase::MetheorAndStormSpell;
+    g.enter(Phase::MetheorAndStormSpell, false);
     g.board.next_storm_moves = 1;
     let first = fremen_in_sector(&mut g, STORM.moved(1), 4, &[]);
     let second = fremen_in_sector(&mut g, STORM.moved(1), 2, &[first.territory()]);
@@ -248,7 +248,7 @@ fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
     );
     accept(&mut g, &robbery);
     assert_eq!(phase(&g), Phase::Discarding);
-    assert_eq!(g.turn.phase_before_discarding, Some(Phase::BeneGesseritAccompaniesNonGuildShip));
+    assert_eq!(g.phase_under(Interrupt::Discarding), Some(Phase::BeneGesseritAccompaniesNonGuildShip));
     assert_eq!(asked(&mut g, EventType::Discarded), [Faction::Moritani]);
     assert_eq!(g.player(moritani).treachery_cards.len(), 5);
 
@@ -271,7 +271,7 @@ fn auditing_goes_on_to_the_battle_conclusion() {
     let card = g.draw_treachery_card().expect("a card");
     g.player_mut(atreides).treachery_cards.push(card);
     g.turn.current_main_phase = MainPhase::Battle;
-    g.turn.current_phase = Phase::Auditing;
+    g.enter(Phase::Auditing, false);
     g.battle.battle_winner = Some(Some(Faction::Atreides));
     g.battle.audited_cards = vec![card];
     assert_eq!(asked(&mut g, EventType::Audited), [Faction::Choam]);

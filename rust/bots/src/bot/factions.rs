@@ -195,7 +195,7 @@ impl ClassicBot {
     // ---- Guild ----
 
     pub fn determine_set_shipment_permission(&self, game: &Game) -> Option<SetShipmentPermission> {
-        if game.turn.current_phase != Phase::BeginningOfShipAndMove {
+        if game.phase() != Phase::BeginningOfShipAndMove {
             return None;
         }
 
@@ -1486,7 +1486,7 @@ impl ClassicBot {
     }
 
     pub fn determine_richese_revealed_no_field(&self, game: &Game) -> Option<RicheseRevealedNoField> {
-        if game.turn.current_phase == Phase::ShipmentAndMoveConcluded {
+        if game.phase() == Phase::ShipmentAndMoveConcluded {
             let location_with_no_field =
                 self.forces_on_planet(game).iter().find(|(_, b)| b.amount_of_special_forces > 0).map(|(l, _)| *l);
             if let Some(l) = location_with_no_field {

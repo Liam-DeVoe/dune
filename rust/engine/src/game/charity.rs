@@ -103,3 +103,33 @@ impl Game {
         }
     }
 }
+
+impl GameStatus {
+    /// The status in the charity phase, or `None` in another phase.
+    pub(crate) fn charity_status(_game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        Some(match phase {
+            Phase::ClaimingCharity => Self::status(express!("Factions may now claim charity if eligible."), None),
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the charity phase (see `add_player_actions`).
+    pub(crate) fn add_charity_actions(&self, player: PlayerId, is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::ClaimingCharity => {
+                if !is_host && faction == Some(Faction::Atreides) {
+                    result.push(EventType::EndPhase);
+                }
+                if CharityClaimed::can_be_played(self, player) {
+                    result.push(EventType::CharityClaimed);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

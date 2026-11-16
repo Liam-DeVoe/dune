@@ -25,7 +25,7 @@ impl Default for DiscoveryEntered {
 impl DiscoveryEntered {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = DiscoveredLocation> {
-        g.collection.just_revealed_discovery_strongholds
+        g.board.just_revealed_discovery_strongholds
             .iter()
             .copied()
             .filter(move |ds| g.player(p).any_forces_in_territory(Some(ds.attached_to_location(&g.board.map).expect("attached to location").territory())) > 0)
@@ -59,8 +59,8 @@ impl EventRules for DiscoveryEntered {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let Some(discovered_location) = self.to.and_then(|l| l.as_discovered_location()) else { return Ok(()) };
 
-        if let Some(i) = game.collection.just_revealed_discovery_strongholds.iter().position(|d| d.location() == discovered_location.location()) {
-            game.collection.just_revealed_discovery_strongholds.remove(i);
+        if let Some(i) = game.board.just_revealed_discovery_strongholds.iter().position(|d| d.location() == discovered_location.location()) {
+            game.board.just_revealed_discovery_strongholds.remove(i);
         }
         game.stone(Milestone::Move);
 

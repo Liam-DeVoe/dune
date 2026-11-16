@@ -10,12 +10,12 @@ pub struct DivideResourcesAccepted {
 
 impl DivideResourcesAccepted {
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
-        g.turn.current_phase == Phase::AcceptingResourceDivision
+        g.phase() == Phase::AcceptingResourceDivision
             && Self::get_resources_to_be_divided(g).map(|t| t.other_faction) == g.player(p).faction
     }
 
     pub fn get_resources_to_be_divided(g: &Game) -> Option<ResourcesToBeDivided> {
-        g.collection.collected_resources_to_be_divided.first().cloned()
+        g.collection().and_then(|c| c.collected_resources_to_be_divided.first().cloned())
     }
 }
 
@@ -26,8 +26,7 @@ impl EventRules for DivideResourcesAccepted {
 
     fn apply(&self, game: &mut Game, _by: By) -> GameResult {
         game.divide_resources_from_collection(!self.passed);
-        let any = !game.collection.collected_resources_to_be_divided.is_empty();
-        game.enter_or_else(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+        game.divide_next_collection_or_end();
         Ok(())
     }
 

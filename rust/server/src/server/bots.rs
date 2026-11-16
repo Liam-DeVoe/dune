@@ -72,7 +72,7 @@ impl Server {
     pub(super) async fn bot_turn(&mut self, game: &str) -> Result<(), CallError> {
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
         let (speed, no_host) = (g.participation.bots_speed, g.participation.hosts.is_empty());
-        if speed <= 0 || g.game.turn.current_phase <= Phase::AwaitingPlayers || g.scene {
+        if speed <= 0 || g.game.phase() <= Phase::AwaitingPlayers || g.scene {
             return Ok(());
         }
         let bots_act_as_hosts = no_host && g.participation.number_of_observers() > 0;

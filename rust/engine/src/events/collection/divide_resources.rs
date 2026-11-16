@@ -12,11 +12,11 @@ pub struct DivideResources {
 
 impl DivideResources {
     pub fn get_resources_to_be_divided(g: &Game) -> Option<ResourcesToBeDivided> {
-        g.collection.collected_resources_to_be_divided.first().cloned()
+        g.collection().and_then(|c| c.collected_resources_to_be_divided.first().cloned())
     }
 
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
-        g.turn.current_phase == Phase::DividingCollectedResources
+        g.phase() == Phase::DividingCollectedResources
             && Some(Self::get_resources_to_be_divided(g).expect("resources to be divided").first_faction) == g.player(p).faction
     }
 
@@ -51,18 +51,18 @@ impl EventRules for DivideResources {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.collection.current_division_proposal = Some(DivisionProposal { portion_to_first_player: self.portion_to_first_player });
+        game.collection_mut().required("collection phase")?.current_division_proposal =
+            Some(DivisionProposal { portion_to_first_player: self.portion_to_first_player });
 
         if self.passed {
             game.divide_resources_from_collection(false);
-            let any = !game.collection.collected_resources_to_be_divided.is_empty();
-            game.enter_or_else(any, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+            game.divide_next_collection_or_end();
         } else {
             let to_be_divided = Self::get_resources_to_be_divided(game);
             let gained_by_other_faction = Self::gained_by_other_faction(to_be_divided.as_ref(), true, i32::from(self.portion_to_first_player));
             let other = to_be_divided.required("to be divided")?.other_faction;
             game.log(parts![by.faction, " propose that they take ", Payment::of(i32::from(self.portion_to_first_player)), " and ", other, " take ", Payment::of(gained_by_other_faction)]);
-            game.enter(Phase::AcceptingResourceDivision, true);
+            game.enter_collection(CollectionStep::Accepting);
         }
         Ok(())
     }

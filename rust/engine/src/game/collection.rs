@@ -2,28 +2,57 @@ use crate::log::collection::SpiceCollected;
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-/// State of the spice collection phase, including the discoveries revealed during it.
+/// The spice collection phase (`PhaseState::Collection`): its step, the spice collected, and the
+/// shared collections still to divide. It is dropped when the phase ends.
 pub struct CollectionState {
+    pub step: CollectionStep,
     pub resources_collected_by_fremen: i32,
     pub resources_collected_by_harkonnen_from_desert_or_homeworld: i32,
-    pub pending_discoveries: Vec<DiscoveryToken>,
     pub collected_resources_to_be_divided: Vec<ResourcesToBeDivided>,
     pub current_division_proposal: Option<DivisionProposal>,
-    /// `Some(None)`: decided, and nobody.
-    pub owner_of_flight_discovery: Option<Option<Faction>>,
-    pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
 }
 
 impl CollectionState {
-    pub fn new() -> Self {
+    pub fn new(step: CollectionStep) -> Self {
         CollectionState {
-            resources_collected_by_fremen: Default::default(),
-            resources_collected_by_harkonnen_from_desert_or_homeworld: Default::default(),
-            pending_discoveries: Vec::new(),
+            step,
+            resources_collected_by_fremen: 0,
+            resources_collected_by_harkonnen_from_desert_or_homeworld: 0,
             collected_resources_to_be_divided: Vec::new(),
             current_division_proposal: None,
-            owner_of_flight_discovery: None,
-            just_revealed_discovery_strongholds: Vec::new(),
+        }
+    }
+}
+
+/// Where the collection phase is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CollectionStep {
+    /// Before spice is collected, while the host may still wait for players.
+    Beginning,
+    /// The first faction of a shared collection proposes how to divide it.
+    Dividing,
+    /// The other faction answers the proposal.
+    Accepting,
+    Report,
+}
+
+impl CollectionStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            CollectionStep::Beginning => Phase::BeginningOfCollection,
+            CollectionStep::Dividing => Phase::DividingCollectedResources,
+            CollectionStep::Accepting => Phase::AcceptingResourceDivision,
+            CollectionStep::Report => Phase::CollectionReport,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<CollectionStep> {
+        match phase {
+            Phase::BeginningOfCollection => Some(CollectionStep::Beginning),
+            Phase::DividingCollectedResources => Some(CollectionStep::Dividing),
+            Phase::AcceptingResourceDivision => Some(CollectionStep::Accepting),
+            Phase::CollectionReport => Some(CollectionStep::Report),
+            _ => None,
         }
     }
 }
@@ -40,15 +69,55 @@ pub struct DivisionProposal {
 }
 
 impl Game {
+    /// The collection phase's state, while the game is in it (an interrupt may suspend it).
+    pub fn collection(&self) -> Option<&CollectionState> {
+        match &self.phase {
+            PhaseState::Collection(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    pub fn collection_mut(&mut self) -> Option<&mut CollectionState> {
+        match &mut self.phase {
+            PhaseState::Collection(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    /// Starts the collection phase (`enter_spice_collection_phase` in end_phase.rs does the rest).
+    pub fn begin_collection(&mut self) {
+        self.enter_state(PhaseState::Collection(CollectionState::new(CollectionStep::Beginning)));
+    }
+
+    /// Moves the collection phase to `step`, dropping any interrupt, as entering a phase did.
+    pub fn enter_collection(&mut self, step: CollectionStep) {
+        match self.collection_mut() {
+            Some(c) => {
+                c.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => self.enter_state(PhaseState::Collection(CollectionState::new(step))),
+        }
+    }
+
+    /// The next shared collection to divide, or the end of the phase.
+    pub fn divide_next_collection_or_end(&mut self) {
+        if self.collection().is_some_and(|c| !c.collected_resources_to_be_divided.is_empty()) {
+            self.enter_collection(CollectionStep::Dividing);
+        } else {
+            self.end_collection_main_phase();
+        }
+    }
+
     pub fn start_collection(&mut self) {
         self.collect_resources_from_territories();
         self.collect_resources_from_strongholds_and_homeworlds();
-        let condition = !self.collection.collected_resources_to_be_divided.is_empty();
-        self.enter_or_else(condition, Phase::DividingCollectedResources, Game::end_collection_main_phase);
+        self.divide_next_collection_or_end();
     }
 
     pub fn divide_resources_from_collection(&mut self, division_was_agreed: bool) {
-        let Some(proposal) = self.collection.current_division_proposal.clone() else { return };
+        let Some(proposal) = self.collection().and_then(|c| c.current_division_proposal) else { return };
 
         let to_be_divided = DivideResources::get_resources_to_be_divided(self);
 
@@ -62,9 +131,9 @@ impl Game {
         self.gain_collected_resources(to_be_divided.other_faction, to_be_divided.territory, gained_by_other_faction, None, false);
 
         // `Remove(toBeDivided)` removes by reference; `toBeDivided` is the first element.
-        self.collection.collected_resources_to_be_divided.remove(0);
-
-        self.collection.current_division_proposal = None;
+        let c = self.collection_mut().expect("in the collection phase");
+        c.collected_resources_to_be_divided.remove(0);
+        c.current_division_proposal = None;
     }
 
     // field: the location collected from, when spice was taken from the desert.
@@ -76,12 +145,13 @@ impl Game {
         if let Some(player) = self.get_player(Some(faction)) {
             crate::game::amounts::gain(&mut self.player_mut(player).resources, amount, "spice").expect("collected spice");
         }
+        let harkonnen_from_desert_or_homeworld = faction == Faction::Harkonnen && !from.is_stronghold() && !from.is_protected_from_worm();
+        let c = self.collection_mut().expect("in the collection phase");
         if faction == Faction::Fremen {
-            self.collection.resources_collected_by_fremen += amount;
+            c.resources_collected_by_fremen += amount;
         }
-        if faction == Faction::Harkonnen && !from.is_stronghold() && !from.is_protected_from_worm() {
-            self.collection.resources_collected_by_harkonnen_from_desert_or_homeworld =
-                self.collection.resources_collected_by_harkonnen_from_desert_or_homeworld + amount;
+        if harkonnen_from_desert_or_homeworld {
+            c.resources_collected_by_harkonnen_from_desert_or_homeworld += amount;
         }
     }
 
@@ -217,7 +287,7 @@ impl Game {
                     other_faction: other_faction.expect("faction"),
                     territory: key.territory(),
                 };
-                self.collection.collected_resources_to_be_divided.push(to_be_divided);
+                self.collection_mut().expect("in the collection phase").collected_resources_to_be_divided.push(to_be_divided);
                 self.log(elems![
                     first_faction,
                     " and ",
@@ -232,16 +302,20 @@ impl Game {
     }
 
     pub fn end_collection_main_phase(&mut self) {
+        let (by_fremen, by_harkonnen) = {
+            let c = self.collection().expect("in the collection phase");
+            (c.resources_collected_by_fremen, c.resources_collected_by_harkonnen_from_desert_or_homeworld)
+        };
         if let Some(fremen) = self.get_player(Some(Faction::Fremen)) {
-            let mut received_amount_by_fremen_after_taking_into_account_occupation = self.collection.resources_collected_by_fremen;
+            let mut received_amount_by_fremen_after_taking_into_account_occupation = by_fremen;
             self.modify_income_because_of_low_threshold_or_occupation(fremen, &mut received_amount_by_fremen_after_taking_into_account_occupation);
 
-            let lost = self.collection.resources_collected_by_fremen - received_amount_by_fremen_after_taking_into_account_occupation;
+            let lost = by_fremen - received_amount_by_fremen_after_taking_into_account_occupation;
             crate::game::amounts::spend(&mut self.player_mut(fremen).resources, lost, "spice").expect("the Fremen's income lost to the occupier");
         }
 
         let harkonnen = self.get_player(Some(Faction::Harkonnen));
-        if self.collection.resources_collected_by_harkonnen_from_desert_or_homeworld != 0 {
+        if by_harkonnen != 0 {
             if let Some(harkonnen) = harkonnen.filter(|b| self.player(*b).has_any_high_threshold(self)) {
                 let r = &mut self.player_mut(harkonnen).resources;
                 *r += 2;
@@ -250,7 +324,7 @@ impl Game {
         }
 
         self.main_phase_end();
-        self.enter(Phase::CollectionReport, true);
+        self.enter_collection(CollectionStep::Report);
     }
 
     pub fn resource_collection_rate(&self, p: PlayerId) -> i32 {
@@ -273,3 +347,54 @@ pub struct ResourcesToBeDivided {
     pub territory: Territory,
 }
 
+impl GameStatus {
+    /// The status in the collection phase, or `None` in another phase.
+    pub(crate) fn collection_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::DividingCollectedResources => {
+                let a = express!("Please make a proposal about how to divide collected ", Concept::Resource, ".");
+                let w = express!("Waiting for ", g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| Some(r.first_faction)), " to propose how to divide collected ", Concept::Resource);
+                let f = g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| r.first_faction);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            Phase::AcceptingResourceDivision => {
+                let a = express!("Please decide about the proposed division of ", Concept::Resource, ".");
+                let w = express!(g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| Some(r.other_faction)), " are thinking about the proposed division");
+                let f = g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| r.other_faction);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the collection phase (see `add_player_actions`).
+    pub(crate) fn add_collection_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::DividingCollectedResources => {
+                if DivideResources::is_applicable(self, player) {
+                    result.push(EventType::DivideResources);
+                }
+            }
+
+            Phase::AcceptingResourceDivision => {
+                if DivideResourcesAccepted::is_applicable(self, player) {
+                    result.push(EventType::DivideResourcesAccepted);
+                }
+            }
+
+            Phase::BeginningOfCollection | Phase::CollectionReport => {
+                if faction == Some(Faction::Moritani) && TerrorPlanted::is_applicable(self, player) {
+                    result.push(EventType::TerrorPlanted);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

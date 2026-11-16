@@ -219,7 +219,7 @@ fn threshold_for_win() {
 #[test]
 fn status_unknown_phase_waits_for_host() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.turn.current_phase = Phase::DiscardingTraitor;
+    g.enter(Phase::DiscardingTraitor, false);
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.waiting_for_host);
     assert_eq!(s.get_message(g.player_at(0), true).plain_text(), "Unknown phase: DiscardingTraitor");
@@ -229,7 +229,7 @@ fn status_unknown_phase_waits_for_host() {
 #[test]
 fn status_discarding_waits_for_present_factions() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.turn.current_phase = Phase::Discarding;
+    g.enter(Phase::Discarding, false);
     g.turn.factions_that_must_discard = vec![Faction::BeneGesserit, Faction::Emperor];
     let s = GameStatus::determine_status(&mut g, None, false);
     let emperor = idx(&g, Faction::Emperor);
@@ -245,7 +245,7 @@ fn status_discarding_waits_for_present_factions() {
 fn flash_battle_conclusion_with_null_winner() {
     let g = game_with(&[Faction::Atreides]);
     let mut g = g;
-    g.turn.current_phase = Phase::BattleConclusion;
+    g.enter(Phase::BattleConclusion, false);
     g.battle.battle_winner = None;
     let flashes = GameStatus::determine_flash(&g, None, false);
     assert_eq!(flashes.len(), 1);
@@ -256,7 +256,7 @@ fn flash_battle_conclusion_with_null_winner() {
 #[test]
 fn flash_game_ended_lists_winners() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.turn.current_phase = Phase::GameEnded;
+    g.enter(Phase::GameEnded, false);
     g.contemplate.winners = vec![idx(&g, Faction::Emperor), idx(&g, Faction::Atreides)];
     let flashes = GameStatus::determine_flash(&g, None, false);
     let texts: Vec<String> = flashes.iter().map(|f| f.message.plain_text()).collect();
@@ -269,7 +269,7 @@ fn flash_game_ended_lists_winners() {
 #[test]
 fn status_ambassador_without_ecaz_throws() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.turn.current_phase = Phase::AmbassadorTriggeredByGuildShip;
+    g.enter(Phase::AmbassadorTriggeredByGuildShip, false);
     let text = exception_text(|| GameStatus::determine_status(&mut g, None, false));
     assert_eq!(text, "player");
 }
@@ -277,7 +277,7 @@ fn status_ambassador_without_ecaz_throws() {
 #[test]
 fn status_highlights_fremen_setup() {
     let mut g = game_with(&[Faction::Fremen]);
-    g.turn.current_phase = Phase::FremenSettingUp;
+    g.enter(Phase::FremenSettingUp, false);
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.highlighted_territories.is_empty());
     let fremen = idx(&g, Faction::Fremen);

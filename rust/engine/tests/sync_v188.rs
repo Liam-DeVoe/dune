@@ -73,7 +73,7 @@ fn applicable(g: &mut Game) -> String {
 }
 
 fn state(l: &mut Lines, g: &mut Game, at: &str) {
-    l.p(&format!("{at}.phase"), g.turn.current_phase);
+    l.p(&format!("{at}.phase"), g.phase());
     l.p(&format!("{at}.acted"), factions(g.turn.has_acted_or_passed.clone()));
     let offers: Vec<_> = g.alliances.current_alliance_offers.iter().map(|o| format!("{}>{}", treachery_engine::enum_type::name_or_absent(o.initiator), treachery_engine::enum_type::name_or_absent(o.target))).collect();
     l.p(&format!("{at}.offers"), offers.join(","));

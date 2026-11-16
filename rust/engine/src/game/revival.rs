@@ -57,9 +57,7 @@ impl RevivalState {
 
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerId, leader: Option<Leader>) {
-        if self.turn.current_phase != Phase::AssigningSkill && leader.is_some() {
-            self.setup.phase_before_skill_assignment = Some(self.turn.current_phase);
-        }
+        let already_assigning = self.phase() == Phase::AssigningSkill;
 
         self.player_mut(player).most_recently_revived_leader = leader;
         self.decks.skill_deck.as_mut().expect("skill deck").shuffle(&mut self.rng);
@@ -68,7 +66,11 @@ impl Game {
         self.player_mut(player).skills_to_choose_from.push(skill);
         let skill = self.decks.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);
-        self.enter(Phase::AssigningSkill, true);
+        if already_assigning {
+            self.remove_ended_deals(Phase::AssigningSkill);
+        } else {
+            self.interrupt(Interrupt::SkillAssignment);
+        }
     }
 
     pub fn free_revivals(&self, player: PlayerId, uses_emperor_secret_ally: bool) -> i32 {
@@ -290,4 +292,66 @@ impl RevivalCost {
         self.cost_for_force_revival_for_player + self.cost_for_emperor
     }
 
+}
+
+impl GameStatus {
+    /// The status in the revival phase, or `None` in another phase.
+    pub(crate) fn revival_status(_game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        Some(match phase {
+            Phase::Resurrection => Self::status("Factions may now reclaim forces and leaders.", None),
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the revival phase (see `add_player_actions`).
+    pub(crate) fn add_revival_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::BeginningOfResurrection => {
+                if faction == Some(Faction::Tleilaxu)
+                    && self.players.len() > 1
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
+                {
+                    result.push(EventType::SetIncreasedRevivalLimits);
+                }
+                if RecruitsPlayed::is_applicable(self, player) {
+                    result.push(EventType::RecruitsPlayed);
+                }
+            }
+
+            Phase::Resurrection => {
+                if self.is_playing(Faction::Tleilaxu)
+                    && faction != Some(Faction::Tleilaxu)
+                    && !self.killed_heroes(player).is_empty()
+                    && Revival::normally_revivable_heroes(self, player).is_empty()
+                {
+                    result.push(EventType::RequestTleilaxuRevival);
+                }
+
+                if faction == Some(Faction::Tleilaxu) && (!self.revival.current_revival_requests.is_empty() || !self.revival.early_revivals_offers.is_empty()) {
+                    result.push(EventType::AcceptOrCancelTleilaxuRevival);
+                }
+                if self.has_something_to_revive(player) && !self.prevented_from_reviving(faction) {
+                    result.push(EventType::Revival);
+                }
+                if faction == Some(Faction::Tleilaxu)
+                    && self.players.len() > 1
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
+                {
+                    result.push(EventType::SetIncreasedRevivalLimits);
+                }
+            }
+
+            Phase::ResurrectionReport => {
+                if faction == Some(Faction::Ecaz) && AmbassadorPlaced::is_applicable(self, player) {
+                    result.push(EventType::AmbassadorPlaced);
+                }
+            }
+
+            _ => {}
+        }
+    }
 }

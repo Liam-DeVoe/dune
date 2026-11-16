@@ -98,7 +98,7 @@ impl Server {
     /// of its settings; after, those of its players.
     pub(super) fn game_info(&self, g: &RunningGame) -> GameInfo {
         let game = &g.game;
-        let before_start = game.turn.current_phase <= Phase::AwaitingPlayers;
+        let before_start = game.phase() <= Phase::AwaitingPlayers;
         let (factions_in_play, ruleset, max_players, max_turns) = match &game.rules.settings {
             Some(settings) => {
                 let allowed: Vec<Faction> = settings.allowed_factions_in_play.clone().unwrap_or_default();
@@ -125,7 +125,7 @@ impl Server {
             max_players,
             max_turns,
             main_phase: enum_name(game.turn.current_main_phase),
-            phase: enum_name(game.turn.current_phase),
+            phase: enum_name(game.phase()),
             turn: game.turn.current_turn.into(),
             bots: game.number_of_bots(),
             players: participation.seated_players.len() as i32,

@@ -57,7 +57,7 @@ fn case(game: &Game, p: PlayerId) -> Option<Case> {
     let secret_ally = NexusPlayed::can_use_secret_ally(game, p);
     let betrayal = NexusPlayed::can_use_betrayal(game, p);
     let mp = game.turn.current_main_phase;
-    let phase = game.turn.current_phase.value();
+    let phase = game.phase().value();
     let selecting = Phase::IxianSelectingCard.value();
     Some(match game.player(p).nexus {
         Some(Faction::Atreides) if betrayal => AtreidesBetrayal,

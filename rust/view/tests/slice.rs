@@ -114,7 +114,7 @@ fn views_hold_no_one_elses_secrets() {
                     assert_eq!(me.faction, f.to_string());
                     assert_eq!(me.hand.iter().map(|c| c.id).collect::<Vec<_>>(), p.treachery_cards.iter().map(|c| c.id()).collect::<Vec<_>>());
                     // PlayerPanel.StillPickingTraitor hides the dealt candidates until the pick.
-                    let picking = r.game.turn.current_phase == Phase::SelectingTraitors
+                    let picking = r.game.phase() == Phase::SelectingTraitors
                         && f != Faction::Harkonnen
                         && f != Faction::Tleilaxu
                         && !r.game.turn.has_acted_or_passed.contains(&f);
@@ -283,7 +283,7 @@ fn views_leave_the_battle_sequence_alone() {
         seq.current_player(g).is_some_and(|p| Battle::battles_to_be_fought(g, p, false).is_empty())
     };
     let mut r = common::first_bot_state("a battle to choose, with a player before it who has none", |g| {
-        g.turn.current_phase == Phase::BattlePhase && g.battle.current_battle.is_none() && g.next_player_to_battle().is_some() && passes_someone(g)
+        g.phase() == Phase::BattlePhase && g.battle.current_battle.is_none() && g.next_player_to_battle().is_some() && passes_someone(g)
     });
     r.game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(&r.game));
     let before = format!("{:?}", r.game.battle.battle_sequence);

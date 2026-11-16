@@ -53,26 +53,21 @@ impl std::fmt::Display for Turn {
     }
 }
 
-/// Where the game is (turn, main phase, phase) and what lasts only for the current turn or main
-/// phase: who has acted, payments and milestones, prevented advantages, cards and Nexus cards in
-/// effect, and the phases paused by Clairvoyance, discarding and Bureaucracy.
+/// Where the game is (turn and main phase; the phase is `game.phase`) and what lasts only for
+/// the current turn or main phase: who has acted, payments and milestones, prevented advantages,
+/// and cards and Nexus cards in effect.
 pub struct TurnState {
     pub current_turn: Turn,
     pub current_main_phase: MainPhase,
     pub current_moment: Option<MainPhaseMoment>,
-    pub current_phase: Phase,
     pub has_acted_or_passed: Vec<Faction>,
     pub recent_milestones: Vec<Milestone>,
     pub recently_paid: Vec<Payment>,
     pub stored_recently_paid: Vec<Payment>,
     pub prevented_advantages: Vec<FactionAdvantage>,
-    pub phase_before_discarding: Option<Phase>,
     pub factions_that_must_discard: Vec<Faction>,
-    pub phase_before_discarding_traitor: Option<Phase>,
     pub faction_that_must_discard_traitor: Option<Faction>,
     pub number_of_traitors_to_discard: i32,
-    pub phase_before_searching_discarded: Option<Phase>,
-    pub phase_paused_by_clairvoyance: Option<Phase>,
     pub latest_clairvoyance: Option<ClairvoyanceAsked>,
     pub latest_clairvoyance_qn_a: Option<ClairVoyanceQandA>,
     pub latest_clairvoyance_battle: Option<InitiatedBattle>,
@@ -81,7 +76,6 @@ pub struct TurnState {
     pub current_karma_prevention: Option<KarmaPrevention>,
     pub current_planetology: Option<PlanetologyUse>,
     pub bureaucrat_was_used_this_phase: bool,
-    pub phase_before_bureaucrat_was_activated: Option<Phase>,
     pub target_of_bureaucracy: Option<Faction>,
     pub was_victim_of_bureaucracy: Option<Faction>,
     pub banker_was_used_this_phase: bool,
@@ -102,19 +96,14 @@ impl TurnState {
             current_turn: Default::default(),
             current_main_phase: MainPhase::Started,
             current_moment: None,
-            current_phase: Phase::AwaitingPlayers,
             has_acted_or_passed: Vec::new(),
             recent_milestones: Vec::new(),
             recently_paid: Vec::new(),
             stored_recently_paid: Vec::new(),
             prevented_advantages: Vec::new(),
-            phase_before_discarding: Default::default(),
             factions_that_must_discard: Vec::new(),
-            phase_before_discarding_traitor: Default::default(),
             faction_that_must_discard_traitor: Default::default(),
             number_of_traitors_to_discard: Default::default(),
-            phase_before_searching_discarded: Default::default(),
-            phase_paused_by_clairvoyance: Default::default(),
             latest_clairvoyance: None,
             latest_clairvoyance_qn_a: None,
             latest_clairvoyance_battle: None,
@@ -123,7 +112,6 @@ impl TurnState {
             current_karma_prevention: None,
             current_planetology: None,
             bureaucrat_was_used_this_phase: Default::default(),
-            phase_before_bureaucrat_was_activated: Default::default(),
             target_of_bureaucracy: Default::default(),
             was_victim_of_bureaucracy: Default::default(),
             banker_was_used_this_phase: Default::default(),
@@ -226,14 +214,6 @@ impl Game {
         }
     }
 
-    pub fn enter(&mut self, phase: Phase, cleanup_deals: bool) {
-        self.turn.current_phase = phase;
-
-        if cleanup_deals {
-            self.remove_ended_deals(phase);
-        }
-    }
-
     pub fn enter_either(&mut self, condition: bool, phase_if_true: Phase, phase_if_false: Phase) {
         self.enter(if condition { phase_if_true } else { phase_if_false }, true);
     }
@@ -278,12 +258,12 @@ impl Game {
     }
 
     pub fn in_timed_phase(&self) -> bool {
-        self.turn.current_phase == Phase::Bidding
-            || self.turn.current_phase == Phase::GuildShip
-            || self.turn.current_phase == Phase::GuildMove
-            || self.turn.current_phase == Phase::NonGuildShip
-            || self.turn.current_phase == Phase::NonGuildMove
-            || self.turn.current_phase == Phase::BattlePhase
+        self.phase() == Phase::Bidding
+            || self.phase() == Phase::GuildShip
+            || self.phase() == Phase::GuildMove
+            || self.phase() == Phase::NonGuildShip
+            || self.phase() == Phase::NonGuildMove
+            || self.phase() == Phase::BattlePhase
     }
 
     pub fn everyone_acted_or_passed(&self) -> bool {

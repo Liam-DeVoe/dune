@@ -285,8 +285,7 @@ impl EventRules for ClairVoyancePlayed {
             });
             game.turn.latest_clairvoyance_qn_a = None;
             game.turn.latest_clairvoyance_battle = game.battle.current_battle.clone();
-            game.turn.phase_paused_by_clairvoyance = Some(game.turn.current_phase);
-            game.enter(Phase::Clairvoyance, true);
+            game.interrupt(Interrupt::Clairvoyance);
         }
         Ok(())
     }

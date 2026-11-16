@@ -32,7 +32,7 @@ impl AmbassadorPlaced {
 
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         i32::from(g.player(p).resources) > g.revival.ambassadors_placed_this_turn
-            && g.turn.current_phase == Phase::ResurrectionReport
+            && g.phase() == Phase::ResurrectionReport
             && !g.prevented(FactionAdvantage::EcazAmbassadors)
             && !AmbassadorPlaced::valid_ambassadors(g, p).is_empty()
             && !AmbassadorPlaced::valid_strongholds(g, p).next().is_none()

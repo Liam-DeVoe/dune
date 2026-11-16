@@ -59,7 +59,7 @@ impl EventRules for Move {
         if !game.ship_move.current_player_may_perform_extra_move && !game.ship_move.in_guild_cunning_shipment {
             game.turn.has_acted_or_passed.push(by.required_faction()?);
 
-            if game.turn.current_phase == Phase::NonGuildMove {
+            if game.phase() == Phase::NonGuildMove {
                 let mut seq = game.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
                 seq.next_player(game);
                 game.ship_move.shipment_and_move_sequence = Some(seq);

@@ -83,7 +83,7 @@ impl LoserConcluded {
             && !game.karma_prevented(pl.faction)
             && !pl.special_karma_power_used
             && pl.has_karma(game)
-            && game.turn.current_phase == Phase::BattleConclusion
+            && game.phase() == Phase::BattleConclusion
             && game.battle.battle_loser == Some(pl.faction)
             && game.applicable(Rule::AdvancedKarama)
     }

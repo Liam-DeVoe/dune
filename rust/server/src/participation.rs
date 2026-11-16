@@ -83,7 +83,7 @@ impl Participation {
     /// Whether a user may join on this seat, or on none: any seat or none while the game waits
     /// for players and has room, otherwise only a seat the host opened.
     pub fn is_open(&self, game: &Game, seat: Option<Seat>) -> bool {
-        game.turn.current_phase == Phase::AwaitingPlayers && (self.seated_players.len() as i32) < game.maximum_players() || seat.is_some_and(|s| self.seat_is_available(s))
+        game.phase() == Phase::AwaitingPlayers && (self.seated_players.len() as i32) < game.maximum_players() || seat.is_some_and(|s| self.seat_is_available(s))
     }
 
     pub fn number_of_hosts(&self) -> i32 {

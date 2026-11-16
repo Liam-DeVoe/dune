@@ -131,7 +131,7 @@ impl Server {
             pause = new_pause(&mut counter, state, None, true);
         }
         if let Some((executed, by)) = executed {
-            if matches!(executed, Event::EndPhase(_)) || pause.phase != Some(state.turn.current_phase) || pause.turn != i32::from(state.turn.current_turn) {
+            if matches!(executed, Event::EndPhase(_)) || pause.phase != Some(state.phase()) || pause.turn != i32::from(state.turn.current_turn) {
                 pause = new_pause(&mut counter, state, Some(&pause), false);
             } else {
                 pause.suspended = false;
@@ -214,7 +214,7 @@ fn new_pause(counter: &mut u32, g: &treachery_engine::game::Game, previous: Opti
     *counter += 1;
     Pause {
         id: *counter,
-        phase: Some(g.turn.current_phase),
+        phase: Some(g.phase()),
         turn: g.turn.current_turn.into(),
         suspended,
         last_sent: previous.and_then(|p| p.last_sent.clone()),

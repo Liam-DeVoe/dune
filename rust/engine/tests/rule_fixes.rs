@@ -114,7 +114,7 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
 
     g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: Some(intruded), type_: IntrusionType::BeneGesseritIntrusion });
     g.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: Some(elsewhere) });
-    g.turn.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
+    g.enter(Phase::BeneGesseritIntrudedByNonGuildMove, false);
 
     let mut flip = BeneGesseritFlip::default();
     flip.as_advisors = false;
@@ -230,7 +230,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
 
     // Sold from the cache: it leaves the deck.
     g.bidding.cards_on_auction = Some(Deck::empty());
-    g.turn.current_phase = Phase::RicheseSpecifyingAuction;
+    g.enter(Phase::RicheseSpecifyingAuction, false);
     let mut auction = RicheseSpecifiesAuction::default();
     auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);

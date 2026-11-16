@@ -61,7 +61,7 @@ impl EventRules for Donated {
         let may_donate = match by.player {
             Some(p) => Donated::may_donate(game, p),
             None => {
-                if game.turn.current_phase == Phase::Bidding && game.bidding.current_bid.is_some() {
+                if game.phase() == Phase::Bidding && game.bidding.current_bid.is_some() {
                     return Err(Rejection(express!("You are not playing")));
                 }
                 true

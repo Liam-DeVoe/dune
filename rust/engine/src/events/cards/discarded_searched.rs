@@ -50,8 +50,7 @@ impl EventRules for DiscardedSearched {
         game.player_mut(me).treachery_cards.push(card);
         game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.shuffle(&mut game.rng);
         game.discard(me, TreacheryCardType::SearchDiscarded)?;
-        let phase = game.turn.phase_before_searching_discarded.required("phase before searching discarded")?;
-        game.enter(phase, true);
+        game.resume(Interrupt::SearchingDiscarded, true)?;
         game.stone(Milestone::Shuffled);
         Ok(())
     }

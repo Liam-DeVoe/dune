@@ -43,8 +43,7 @@ impl EventRules for TraitorDiscarded {
         crate::iter::remove_first(&mut game.player_mut(me).traitors, &traitor);
         game.turn.number_of_traitors_to_discard -= 1;
         if game.turn.number_of_traitors_to_discard == 0 {
-            let phase = game.turn.phase_before_discarding_traitor.required("phase before discarding traitor")?;
-            game.enter(phase, true);
+            game.resume(Interrupt::DiscardingTraitor, true)?;
         }
         Ok(())
     }

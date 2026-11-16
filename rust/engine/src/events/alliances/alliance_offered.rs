@@ -18,7 +18,7 @@ impl AllianceOffered {
     }
 
     fn has_passed_in_alliance_phase(g: &Game, p: PlayerId) -> bool {
-        matches!(g.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains_opt(g.player(p).faction)
+        matches!(g.phase(), Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains_opt(g.player(p).faction)
     }
 }
 

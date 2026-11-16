@@ -34,8 +34,7 @@ impl EventRules for Bureaucracy {
             game.turn.was_victim_of_bureaucracy = game.turn.target_of_bureaucracy;
         }
 
-        let phase = game.turn.phase_before_bureaucrat_was_activated.required("phase before bureaucrat was activated")?;
-        game.enter(phase, true);
+        game.resume(Interrupt::Bureaucracy, true)?;
         game.turn.target_of_bureaucracy = None;
         Ok(())
     }

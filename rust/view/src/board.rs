@@ -263,7 +263,7 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
         aggressor_plan: None,
         defender_plan: None,
     };
-    if game.turn.current_main_phase != MainPhase::Battle || game.turn.current_phase == Phase::BattleReport {
+    if game.turn.current_main_phase != MainPhase::Battle || game.phase() == Phase::BattleReport {
         return Some(view);
     }
 
@@ -280,7 +280,7 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
         game.battle.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.turn.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
     };
     let traitor = |a: &Option<TraitorCall>| a.as_ref().is_some_and(|t| t.succeeded(game));
-    let facedanced = |f: Option<Faction>| game.turn.current_phase == Phase::Facedancing && game.battle.battle_winner == Some(f);
+    let facedanced = |f: Option<Faction>| game.phase() == Phase::Facedancing && game.battle.battle_winner == Some(f);
 
     let side = |plan: &Option<BattlePlan>, opponent_plan: &Option<BattlePlan>, is_aggressor: bool, traitor_called: bool| {
         let plan = plan.as_ref()?;
@@ -332,7 +332,7 @@ fn plan_view(
                 let mut used = None;
                 let bonus = Battle::determine_skill_bonus(game, plan, &mut used);
                 let penalty = match opponent_plan {
-                    Some(op) if game.turn.current_phase > Phase::BattlePhase && game.turn.current_phase < Phase::BattleConclusion => {
+                    Some(op) if game.phase() > Phase::BattlePhase && game.phase() < Phase::BattleConclusion => {
                         let amount = Battle::determine_skill_penalty(game, op, plan.player(), &mut used);
                         (amount != 0).then(|| SkillPenalty { amount, skill: name_or_absent(used) })
                     }
@@ -409,7 +409,7 @@ pub fn to_bid(game: &Game) -> Vec<SequenceEntry> {
     if game.turn.current_main_phase != MainPhase::Bidding {
         return vec![];
     }
-    let seq = if game.turn.current_phase == Phase::BlackMarketAnnouncement || game.turn.current_phase == Phase::BlackMarketBidding {
+    let seq = if game.phase() == Phase::BlackMarketAnnouncement || game.phase() == Phase::BlackMarketBidding {
         BlackMarketBid::players_to_bid(game)
     } else {
         Bid::players_to_bid(game)

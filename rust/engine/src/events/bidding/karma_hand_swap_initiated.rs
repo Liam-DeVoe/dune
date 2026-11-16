@@ -12,8 +12,7 @@ impl EventRules for KarmaHandSwapInitiated {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.bidding.karma_hand_swap_paused_phase = Some(game.turn.current_phase);
-        game.enter(Phase::PerformingKarmaHandSwap, true);
+        game.interrupt(Interrupt::KarmaHandSwap);
         let victim = game.get_player(self.target);
         let me = by.player();
         let karama = Karma::valid_karma_cards(game, me).into_iter().next();

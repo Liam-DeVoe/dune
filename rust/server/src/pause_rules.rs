@@ -67,7 +67,7 @@ pub fn determine(g: &Game) -> Option<PauseRequirements> {
     let amal = amal_in_play(g);
     let nexus = g.applicable(Rule::NexusCards);
 
-    Some(match g.turn.current_phase {
+    Some(match g.phase() {
         Phase::SelectingFactions => wait(tag(players(g, |g, p| g.player(p).faction == None), R::ChooseFaction)),
         Phase::TradingFactions => wait(tag(g.player_indices().collect(), R::TradeFactions)),
 
@@ -156,7 +156,7 @@ pub fn determine(g: &Game) -> Option<PauseRequirements> {
 
 /// A revival counts as its player being done with the revival pause.
 pub fn finishes_pause(g: &Game, e: &Event) -> bool {
-    g.turn.current_phase == Phase::Resurrection && matches!(e, Event::Revival(_))
+    g.phase() == Phase::Resurrection && matches!(e, Event::Revival(_))
 }
 
 fn players(g: &Game, can_act: impl Fn(&Game, PlayerId) -> bool) -> Vec<PlayerId> {

@@ -346,7 +346,7 @@ impl Game {
             self.battle.battle_triggered_bureaucracy = None;
         }
 
-        if self.turn.current_phase != Phase::Retreating {
+        if self.phase() != Phase::Retreating {
             self.determine_how_to_proceed_after_revealing_battle_plans()?;
         }
         Ok(())
@@ -1784,4 +1784,308 @@ impl LossToTake {
         LossToTake { faction: None, location: None, amount: 0 }
     }
 
+}
+
+impl GameStatus {
+    /// The status in the battle phase, or `None` in another phase.
+    pub(crate) fn battle_status(game: &Game, me_: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::BeginningOfBattle => Self::host_status("You may proceed to the first battle when ready.", "Waiting for the host to proceed to the first battle...", None),
+
+            Phase::ClaimingBattle => {
+                let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory);
+                let battle = g.battle.battle_about_to_start.clone().expect("battle about to start");
+                let f: Option<Option<Faction>> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction) } else { Some(Some(Faction::Ecaz)) };
+                let w = express!(f, " are deciding who will fight in ", battle.territory, "...");
+                let p = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz) } else { g.get_player(Some(Faction::Ecaz)) };
+                Self::player_status(a, w, p, None)
+            }
+
+            Phase::Thought => {
+                let a = express!(g.battle.current_thought.as_ref().expect("current thought").initiator(), " asked you a question and are waiting for your answer.");
+                let battle = g.battle.current_battle.clone().expect("current battle");
+                let thought_initiator = g.battle.current_thought.as_ref().expect("current thought").initiator();
+                let w = express!("Waiting for ", battle.opponent_of_faction(g, thought_initiator).map(|p| g.player(p).faction), " to answer a question...");
+                let battle = g.battle.current_battle.clone().expect("current battle");
+                let p = battle.opponent_of_faction(g, g.battle.current_thought.as_ref().expect("current thought").initiator());
+                Self::player_status(a, w, p, None)
+            }
+
+            Phase::BattlePhase => Self::determine_battle_status(game, me_),
+
+            Phase::MeltingRock => {
+                let a = express!("Please decide how to use your ", TreacheryCardType::Rockmelter, ".");
+                let w = express!("Waiting for a decision on how they wish to use their ", TreacheryCardType::Rockmelter, "...");
+                let p = if g.battle.aggressor_plan.as_ref().expect("aggressor plan").has_rock_melter() {
+                    Some(g.battle.current_battle.as_ref().expect("current battle").player())
+                } else {
+                    g.battle.current_battle.as_ref().expect("current battle").defending_player(g)
+                };
+                Self::player_status(a, w, p, None)
+            }
+
+            Phase::CallTraitorOrPass => {
+                let players = Self::players_that_need_to_call_traitor(game);
+                Self::players_status("You may now call TREACHERY if the enemy leader is a traitor under your command.", "Waiting for a faction to call TREACHERY...", players, None)
+            }
+
+            Phase::CancellingTraitor => Self::host_status("You may proceed when done waiting for players to cancel a traitor call.", "Players may now try to cancel a traitor call...", None),
+
+            Phase::Retreating => {
+                let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
+                let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
+                Self::faction_status(g, a, w, g.battle.battle_loser.flatten(), None)
+            }
+
+            Phase::AvoidingAudit => {
+                let a = express!("Please decide if you wish to avoid being audited.");
+                let w = express!(g.player(g.auditee().expect("auditee")).faction, " are thinking about avoiding a scheduled audit...");
+                let p = g.auditee();
+                Self::player_status(a, w, p, None)
+            }
+
+            Phase::CaptureDecision => {
+                let a = express!("Please decide if you wish to capture a leader.");
+                let w = express!(Faction::Harkonnen, " are deciding about capturing a leader...");
+                Self::faction_status(game, a, w, Some(Faction::Harkonnen), None)
+            }
+
+            Phase::Auditing => {
+                let a = express!("Please conclude the audit when done inspecting your opponent's cards.");
+                let w = express!(Faction::Choam, " are performing their audit...");
+                Self::faction_status(game, a, w, Some(Faction::Choam), None)
+            }
+
+            Phase::BattleConclusion => {
+                let a = express!("You won!");
+                let w = express!(game.battle.battle_winner, " are celebrating their victory in battle...");
+                let f = game.battle.battle_winner;
+                Self::faction_status(game, a, w, f.flatten(), None)
+            }
+
+            Phase::RevealingFacedancer => {
+                let a = express!("You may reveal a leader to be one of your face dancers.");
+                let w = express!("Waiting for ", Faction::Tleilaxu, " to reveal a face dancer...");
+                Self::faction_status(game, a, w, Some(Faction::Tleilaxu), None)
+            }
+
+            Phase::Facedancing => {
+                let a = express!("You may now replace opponent forces with your own.");
+                let w = express!("Waiting for ", Faction::Tleilaxu, " to replace forces...");
+                Self::faction_status(game, a, w, Some(Faction::Tleilaxu), None)
+            }
+
+            Phase::BattleReport if game.next_player_to_battle().is_some() => {
+                Self::status(express!("Factions may now review the battle report before the next battle begins..."), None)
+            }
+
+            Phase::BattleReport if game.next_player_to_battle().is_none() => Self::status(express!(game.turn.current_main_phase, " phase ended."), None),
+
+            Phase::ReplacingFaceDancer => Self::faction_status(
+                game,
+                "You may replace an unrevealed Face Dancer with a new one from the Traitor Deck.",
+                "Waiting for a Face Dancer to be replaced...",
+                Some(Faction::Tleilaxu),
+                None,
+            ),
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the battle phase (see `add_player_actions`).
+    pub(crate) fn add_battle_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::BattlePhase => {
+                if self.battle.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
+                    result.push(EventType::BattleInitiated);
+                }
+
+                if self.battle.current_battle.is_some() && SwitchedSkilledLeader::can_be_played(self, player) {
+                    result.push(EventType::SwitchedSkilledLeader);
+                }
+
+                if HMSAdvantageChosen::can_be_played(self, player) {
+                    result.push(EventType::HMSAdvantageChosen);
+                }
+
+                if Voice::may_use_voice(self, player) {
+                    result.push(EventType::Voice);
+                }
+
+                if VoiceDeclined::may_decline(self, player) {
+                    result.push(EventType::VoiceDeclined);
+                }
+
+                if Thought::may_be_used(self, player) {
+                    result.push(EventType::Thought);
+                }
+
+                if Prescience::may_use_prescience(self, player) {
+                    result.push(EventType::Prescience);
+                }
+
+                if let Some(cb) = self.battle.current_battle.clone() {
+                    if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_none() {
+                        result.push(EventType::Battle);
+                    } else if faction == cb.defender(self) && self.battle.defender_plan.is_none() {
+                        result.push(EventType::Battle);
+                    }
+
+                    if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_some() {
+                        result.push(EventType::BattleRevision);
+                    } else if faction == cb.defender(self) && self.battle.defender_plan.is_some() {
+                        result.push(EventType::BattleRevision);
+                    }
+
+                    if ResidualPlayed::may_play(self, player) {
+                        result.push(EventType::ResidualPlayed);
+                    }
+                }
+
+            }
+
+            Phase::ClaimingBattle => {
+                if self.has_low_threshold(Faction::Ecaz) {
+                    let opponent = match &self.battle.battle_about_to_start {
+                        Some(b) => b.opponent_of_faction(self, Faction::Ecaz),
+                        None => None,
+                    };
+                    if opponent.is_some_and(|o| self.player(o).is(faction)) {
+                        result.push(EventType::BattleClaimed);
+                    }
+                } else if faction == Some(Faction::Ecaz) {
+                    result.push(EventType::BattleClaimed);
+                }
+            }
+
+            Phase::CallTraitorOrPass => {
+                if let (Some(cb), Some(ap), Some(dp)) = (&self.battle.current_battle, &self.battle.aggressor_plan, &self.battle.defender_plan) {
+                    let traitors = &self.player(player).traitors;
+                    let ally_of = |f: Faction| self.get_player(Some(f)).map(|p| self.player(p).ally);
+                    if (self.battle.aggressor_traitor_action.is_none() && faction == cb.aggressor(self))
+                        || (self.battle.aggressor_traitor_action.is_none()
+                            && faction == Some(Faction::Harkonnen)
+                            && ally_of(ap.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
+                            && dp.hero.is_some()
+                            && traitors.contains(&dp.hero.expect("hero")))
+                        || (self.battle.defender_traitor_action.is_none() && faction == cb.defender(self))
+                        || (self.battle.defender_traitor_action.is_none()
+                            && faction == Some(Faction::Harkonnen)
+                            && ally_of(dp.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
+                            && ap.hero.is_some()
+                            && traitors.contains(&ap.hero.expect("hero")))
+                    {
+                        result.push(EventType::TreacheryCalled);
+                    }
+                }
+
+                if let Some(ap) = &self.battle.aggressor_plan {
+                    if faction == ap.initiator()
+                        && ap.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
+                        && !self.battle.poison_tooth_cancelled
+                    {
+                        result.push(EventType::PoisonToothCancelled);
+                    }
+                }
+
+                if let Some(dp) = &self.battle.defender_plan {
+                    if faction == dp.initiator()
+                        && dp.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
+                        && !self.battle.poison_tooth_cancelled
+                    {
+                        result.push(EventType::PoisonToothCancelled);
+                    }
+                }
+
+                if PortableAntidoteUsed::can_be_played(self, player) {
+                    result.push(EventType::PortableAntidoteUsed);
+                }
+
+                if Diplomacy::can_be_played(self, player) {
+                    result.push(EventType::Diplomacy);
+                }
+            }
+
+            Phase::Retreating => {
+                if Some(faction) == self.battle.battle_loser {
+                    result.push(EventType::Retreat);
+                }
+            }
+
+            Phase::MeltingRock => {
+                if RockWasMelted::can_be_played(self, player) {
+                    result.push(EventType::RockWasMelted);
+                }
+            }
+
+            Phase::CaptureDecision => {
+                if faction == Some(Faction::Harkonnen) {
+                    result.push(EventType::Captured);
+                }
+            }
+
+            Phase::BattleConclusion => {
+                if Some(faction) == self.battle.battle_winner && !self.battle.battle_was_concluded_by_winner {
+                    result.push(EventType::BattleConcluded);
+                }
+                if LoserConcluded::is_applicable(self, Some(player)) {
+                    result.push(EventType::LoserConcluded);
+                }
+            }
+
+            Phase::AvoidingAudit => {
+                if Some(player) == self.auditee() {
+                    result.push(EventType::AuditCancelled);
+                }
+            }
+
+            Phase::Auditing => {
+                if faction == Some(Faction::Choam) {
+                    result.push(EventType::Audited);
+                }
+            }
+
+            Phase::RevealingFacedancer => {
+                if faction == Some(Faction::Tleilaxu) {
+                    result.push(EventType::FaceDancerRevealed);
+                }
+            }
+
+            Phase::Facedancing => {
+                if faction == Some(Faction::Tleilaxu) {
+                    result.push(EventType::FaceDanced);
+                }
+            }
+
+            Phase::BattleReport => {
+                // NextPlayerToBattle mutates BattleSequence; only read when the
+                // preceding conditions hold.
+            }
+
+            Phase::ReplacingFaceDancer => {
+                if faction == Some(Faction::Tleilaxu) {
+                    result.push(EventType::FaceDancerReplaced);
+                }
+            }
+
+            Phase::Thought => {
+                // `CurrentBattle?.OpponentOf(CurrentThought!.Initiator)`: the argument (and its
+                // NullReferenceException) is only evaluated when CurrentBattle is not null.
+                let opponent = match &self.battle.current_battle {
+                    Some(cb) => cb.opponent_of_faction(self, self.battle.current_thought.as_ref().expect("current thought").initiator()),
+                    None => None,
+                };
+                if Some(player) == opponent {
+                    result.push(EventType::ThoughtAnswered);
+                }
+            }
+
+            _ => {}
+        }
+    }
 }

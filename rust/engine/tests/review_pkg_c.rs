@@ -52,7 +52,7 @@ fn static_helpers_and_getters() {
 
     let g = run(&[establish()]);
     p("factions".into(), join(g.players.iter().map(|p| treachery_engine::enum_type::name_or_absent(p.faction))));
-    p("phase".into(), g.turn.current_phase.to_string());
+    p("phase".into(), g.phase().to_string());
 
     for i in 0..g.players.len() {
         let pi = g.player_at(i);

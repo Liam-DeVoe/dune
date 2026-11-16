@@ -100,7 +100,7 @@ impl Karma {
         if faction != Some(Faction::Guild) && g.is_playing(Faction::Guild) {
             if Karma::in_(g, MainPhase::ShipmentAndMove) {
                 let guild_determine_shipment_may_still_be_prevented =
-                    !g.turn.has_acted_or_passed.contains(&Faction::Guild) && g.turn.current_phase != Phase::GuildShip;
+                    !g.turn.has_acted_or_passed.contains(&Faction::Guild) && g.phase() != Phase::GuildShip;
                 if g.applicable(Rule::GuildDetermineShipment) && guild_determine_shipment_may_still_be_prevented {
                     result.push(Some(FactionAdvantage::GuildDetermineMoveMoment));
                 }
@@ -322,14 +322,14 @@ impl EventRules for Karma {
 
         let me = by.player();
         if game.player(me).is(Faction::Ixian)
-            && game.turn.current_phase == Phase::IxianSwappingCard
+            && game.phase() == Phase::IxianSwappingCard
             && game.player(me).treachery_cards.len() == 0
         {
             game.continue_after_ixian_card_swap_decision();
         }
 
         if self.prevented == Some(FactionAdvantage::FremenRidesMonster)
-            && matches!(game.turn.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
+            && matches!(game.phase(), Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
         {
             game.determine_next_shipment_and_move_sub_phase()?;
         }

@@ -30,7 +30,7 @@ impl SkillAssigned {
 
     /// Returns `Option` elements because `p.MostRecentlyRevivedLeader` can be null.
     pub fn valid_leaders(g: &Game, p: PlayerId) -> Vec<Option<Leader>> {
-        if g.turn.current_phase == Phase::AssigningInitialSkills {
+        if g.phase() == Phase::AssigningInitialSkills {
             return g.player(p).leaders.iter().copied().filter(|l| l.hero_type() != HeroType::Auditor).map(Some).collect();
         }
         vec![g.player(p).most_recently_revived_leader]
@@ -39,7 +39,7 @@ impl SkillAssigned {
 
 impl EventRules for SkillAssigned {
     fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
-        if self.passed && game.turn.current_phase == Phase::AssigningInitialSkills {
+        if self.passed && game.phase() == Phase::AssigningInitialSkills {
             return Err(Rejection(express!("You must assign a leader skill")));
         }
 
@@ -70,9 +70,8 @@ impl EventRules for SkillAssigned {
 
         if !Self::players_must_choose_leader_skills(game) {
             game.decks.skill_deck.as_mut().required("skill deck")?.shuffle(&mut game.rng);
-            if game.turn.current_phase != Phase::AssigningInitialSkills {
-                let phase = game.setup.phase_before_skill_assignment.required("phase before skill assignment")?;
-                game.enter(phase, true);
+            if game.phase() != Phase::AssigningInitialSkills {
+                game.resume(Interrupt::SkillAssignment, true)?;
             } else {
                 let c2 = game.treachery_cards_before_traitors();
                 game.enter_first(&[(c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces))?;

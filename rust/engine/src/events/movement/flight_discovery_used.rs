@@ -6,7 +6,7 @@ pub struct FlightDiscoveryUsed {}
 
 impl FlightDiscoveryUsed {
     pub fn is_available(g: &Game, p: PlayerId) -> bool {
-        g.collection.owner_of_flight_discovery == Some(g.player(p).faction)
+        g.board.owner_of_flight_discovery == Some(g.player(p).faction)
     }
 }
 
@@ -18,7 +18,7 @@ impl EventRules for FlightDiscoveryUsed {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.collection.owner_of_flight_discovery = Some(None);
+        game.board.owner_of_flight_discovery = Some(None);
         game.ship_move.current_flight_discovery_used = Some(by);
         Ok(())
     }

@@ -26,7 +26,7 @@ impl ClassicBot {
             game.has_bidding_prescience(me) || (self.ally(game) != None && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))
         };
 
-        if game.turn.current_phase == Phase::ClaimingCharity
+        if game.phase() == Phase::ClaimingCharity
             && game.player(me).tech_tokens.iter().any(|&tt| tt == TechToken::Resources)
             && self.resources(game) <= 3
             && !we_have_prescience()
@@ -36,7 +36,7 @@ impl ClassicBot {
             }
         }
 
-        if game.turn.current_phase != Phase::Bidding || we_have_prescience() {
+        if game.phase() != Phase::Bidding || we_have_prescience() {
             return None;
         }
 
@@ -45,7 +45,7 @@ impl ClassicBot {
             if self.faction(game) == Faction::Fremen
                 && game.turn.current_turn == Turn::FIRST
                 && game.applicable(Rule::TechTokens)
-                && game.turn.current_phase <= Phase::ClaimingCharity
+                && game.phase() <= Phase::ClaimingCharity
             {
                 return Some(d.acceptance());
             }

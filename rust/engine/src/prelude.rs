@@ -18,7 +18,7 @@ pub use crate::identity::Identifiable;
 pub use crate::heroes::leader_manager::LeaderManager;
 pub use crate::random::{RandomPick, SharedRandom};
 pub use crate::map::Map;
-pub use crate::messages::message::{Audience, BattleFact, BattleFactKind, BattlePlans, LogDetail, Message, MessagePart, PlanSummary, Route};
+pub use crate::messages::message::{Audience, BattleFact, BattleFactKind, BattlePlans, LogDetail, Message, MessagePart, PlanSummary, Rejection, Route};
 pub use crate::messages::payment::Payment;
 pub use crate::map::point::PointD;
 pub use crate::messages::report::Report;

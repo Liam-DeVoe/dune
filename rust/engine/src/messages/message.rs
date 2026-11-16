@@ -308,3 +308,15 @@ const _: fn() = || {
     fn plain_data<T: Clone + PartialEq + Send + Sync + 'static>() {}
     plain_data::<Message>();
 };
+
+/// Why an event was refused: the message the player sees. Events don't return it yet; their
+/// `validate` still returns `Option<Message>` until wave 3a changes it to
+/// `Result<(), Rejection>` (rewrite-plan.md).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Rejection(pub Message);
+
+impl From<Message> for Rejection {
+    fn from(m: Message) -> Rejection {
+        Rejection(m)
+    }
+}

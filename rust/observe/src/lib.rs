@@ -7,6 +7,9 @@ pub mod memory;
 pub mod rng;
 pub mod session;
 pub mod trace;
+pub mod view_hash;
+#[cfg(target_arch = "aarch64")]
+pub mod sha256_arm;
 pub mod fuzz;
 pub mod record;
 pub mod watch;

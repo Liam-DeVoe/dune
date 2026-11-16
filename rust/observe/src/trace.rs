@@ -6,6 +6,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::view_hash::ViewHash;
+
 /// Bumped when a change makes old traces unreadable. The replayer refuses other formats.
 pub const FORMAT: u32 = 1;
 
@@ -83,6 +85,9 @@ pub struct Header {
     /// Whether lines carry the full views (`--full-views`), not just their hashes.
     #[serde(default)]
     pub full_views: bool,
+    /// How the `views` hashes are made. Traces without it use SHA-256.
+    #[serde(default)]
+    pub view_hash: ViewHash,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]

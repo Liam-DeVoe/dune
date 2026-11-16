@@ -21,6 +21,7 @@ use crate::actions::QueryError;
 use crate::build::{self, ResolvedViewer, Seating, Viewer};
 use crate::describe::{default_describer, Describer};
 use crate::schema::{DraftResult, GameView, ReportLines, RichText};
+use crate::skin_texts::FactionSheetCache;
 
 pub struct ViewReplica {
     pub game: Game,
@@ -29,7 +30,10 @@ pub struct ViewReplica {
     actions: BTreeMap<i64, Vec<EventType>>,
     /// The game's skin, for the text of log lines and prompts: `DefaultSkin.Default` until the
     /// server replaces it with the host's skin (`RequestSetSkin`).
-    pub describer: Box<dyn Describer>,
+    /// Private, so that only [`ViewReplica::set_skin`] changes it, which clears `sheets`.
+    describer: Box<dyn Describer>,
+    /// The faction sheets of the last view, for the next views while they stay the same.
+    sheets: FactionSheetCache,
     /// The bidding time limit in seconds, or -1, which the host sets with `SetTimer`. Server
     /// state, carried into `timing.timer`.
     pub timer: i32,
@@ -49,13 +53,13 @@ impl ViewReplica {
                 return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().render(&error.message())));
             }
         }
-        Ok(ViewReplica { game, actions: BTreeMap::new(), describer: default_describer(), timer: -1, seating: Seating::default() })
+        Ok(ViewReplica { game, actions: BTreeMap::new(), describer: default_describer(), sheets: FactionSheetCache::default(), timer: -1, seating: Seating::default() })
     }
 
     /// A replica of a game with no events yet, that bots play. Events follow with
     /// [`ViewReplica::apply`].
     pub fn new(version: i32) -> ViewReplica {
-        ViewReplica { game: Game::of_version(version), actions: BTreeMap::new(), describer: default_describer(), timer: -1, seating: Seating::default() }
+        ViewReplica { game: Game::of_version(version), actions: BTreeMap::new(), describer: default_describer(), sheets: FactionSheetCache::default(), timer: -1, seating: Seating::default() }
     }
 
     /// The game of the web client's `/scene` route: a savegame replayed with one user, id 1 and
@@ -83,7 +87,8 @@ impl ViewReplica {
 
     /// Builds the view of `viewer` and remembers their applicable actions for queries.
     pub fn view(&mut self, viewer: Viewer) -> GameView {
-        let view = build::build_view(&mut self.game, viewer, &self.seating, self.describer.as_ref(), self.timer);
+        let v = viewer.resolve(&self.game);
+        let view = build::build_view_cached(&mut self.game, &v, &self.seating, self.describer.as_ref(), self.timer, &mut self.sheets);
         let types = view.actions.iter().filter_map(|a| EventType::ALL.iter().copied().find(|t| t.name() == a.event_type)).collect();
         self.actions.insert(viewer.user_id, types);
         view
@@ -92,7 +97,7 @@ impl ViewReplica {
     /// Builds the view of a viewer resolved by the caller, for games whose participation seats
     /// no users (the bot-game traces). The server uses [`ViewReplica::view`].
     pub fn view_as(&mut self, v: &ResolvedViewer) -> GameView {
-        build::build_view_resolved(&mut self.game, v, &self.seating, self.describer.as_ref(), self.timer)
+        build::build_view_cached(&mut self.game, v, &self.seating, self.describer.as_ref(), self.timer, &mut self.sheets)
     }
 
     /// A draft query for `viewer`. Refused unless the draft's type was among the actions of the
@@ -168,6 +173,7 @@ impl ViewReplica {
     pub fn set_skin(&mut self, skin_json: &str) -> Result<(), String> {
         let skin = treachery_skin::Skin::load(skin_json, treachery_skin::default_skin()).map_err(|e| e.to_string())?;
         self.describer = Box::new(skin);
+        self.sheets.clear();
         Ok(())
     }
 

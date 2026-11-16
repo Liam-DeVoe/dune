@@ -12,6 +12,7 @@ use treachery_engine::prelude::*;
 use crate::actions;
 use crate::board;
 use crate::shield;
+use crate::skin_texts::FactionSheetCache;
 use crate::describe::Describer;
 use crate::expr::{self, message};
 pub use crate::log::report_lines;
@@ -88,6 +89,12 @@ pub fn build_view(game: &mut Game, viewer: Viewer, s: &Seating, d: &dyn Describe
 /// [`build_view`] for a viewer already resolved against the game. Tests use it to look at games
 /// without seated users (the bot-game corpus).
 pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
+    build_view_cached(game, v, s, d, timer, &mut FactionSheetCache::default())
+}
+
+/// [`build_view_resolved`] with the faction sheets taken from `sheets` when they haven't changed.
+/// The view replica keeps the cache.
+pub(crate) fn build_view_cached(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32, sheets: &mut FactionSheetCache) -> GameView {
     // Both calls can write battle-sequence state, so keep this order: status, then actions.
     let status = GameStatus::determine_status(game, v.player, !v.is_observer);
     let action_types = game.get_applicable_events(v.player, v.is_host);
@@ -128,7 +135,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
         tracker: crate::side::tracker(game, v),
         mentat: crate::side::mentat(game),
         ending: crate::ending::ending(game, s, d),
-        faction_sheets: crate::skin_texts::faction_sheets(game, d),
+        faction_sheets: sheets.get(game, d),
         rule_labels: crate::skin_texts::rule_labels(game, d),
         recent_milestones: crate::skin_texts::recent_milestones(game),
     }

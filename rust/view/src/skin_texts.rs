@@ -70,6 +70,58 @@ pub fn faction_sheets(game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
     game.player_indices().filter_map(|p| game.player(p).faction.and_then(|f| faction_sheet(skin, game, f))).collect()
 }
 
+/// The faction sheets of the last view built, reused while what they're made from stays the
+/// same. A [`crate::replica::ViewReplica`] keeps one, so its views don't build the sheets again
+/// for every viewer after every event (they are about half of a view's JSON).
+///
+/// The sheets read the skin, the game's rules (`Game::applicable`, which reads the active rules
+/// and the rules for bots), which factions play and in what order, and fixed locations of the
+/// map. The key holds all but the skin and the map: whoever owns the cache clears it when the
+/// skin changes, and the map's named locations don't change.
+#[derive(Default)]
+pub struct FactionSheetCache {
+    cached: Option<(SheetKey, Vec<FactionSheetView>)>,
+}
+
+#[derive(PartialEq)]
+struct SheetKey {
+    version: i32,
+    active: Vec<Rule>,
+    rules_for_bots: Vec<Rule>,
+    factions: Vec<Option<Faction>>,
+}
+
+impl SheetKey {
+    fn of(game: &Game) -> SheetKey {
+        SheetKey {
+            version: game.rules.version,
+            active: game.rules.active.clone(),
+            rules_for_bots: game.rules.rules_for_bots.clone(),
+            factions: game.players.iter().map(|p| p.faction).collect(),
+        }
+    }
+}
+
+impl FactionSheetCache {
+    /// [`faction_sheets`], from the cache when its key matches. `d` must have the skin the
+    /// cache was filled with: call [`FactionSheetCache::clear`] when it changes.
+    pub fn get(&mut self, game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
+        let key = SheetKey::of(game);
+        match &self.cached {
+            Some((k, sheets)) if *k == key => sheets.clone(),
+            _ => {
+                let sheets = faction_sheets(game, d);
+                self.cached = Some((key, sheets.clone()));
+                sheets
+            }
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.cached = None;
+    }
+}
+
 fn faction_sheet(skin: &Skin, game: &Game, f: Faction) -> Option<FactionSheetView> {
     let sheet = skin.get_faction_sheet(game, f)?;
     let text = format!("{}. Start with {} {{16}}.", sheet.at_start, sheet.resources);

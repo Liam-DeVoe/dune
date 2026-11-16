@@ -7,13 +7,14 @@ use observe::allow::Allow;
 use observe::compare_refs::compare_traces;
 use observe::record::{record_game, RecordOptions};
 use observe::replay::Outcome;
+use observe::view_hash::ViewHash;
 use observe::watch::Budgets;
 use serde_json::Value;
 
 fn record(mode: &str, index: u64) -> Vec<Value> {
     let mut out = Vec::new();
     let budgets = Budgets { hang: Duration::from_secs(60), memory: 2048 << 20 };
-    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views: false, budgets, reach: false };
+    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views: false, budgets, full_views_lines: None, reach: false, view_hash: ViewHash::LATEST };
     record_game(&o, &mut out).unwrap();
     String::from_utf8(out).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }

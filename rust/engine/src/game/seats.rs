@@ -7,11 +7,11 @@ impl Game {
         self.players.iter().any(|p| p.faction == faction)
     }
 
-    pub fn get_player(&self, f: Option<Faction>) -> Option<PlayerIndex> {
+    pub fn get_player(&self, f: Option<Faction>) -> Option<PlayerId> {
         self.players.iter().position(|p| p.faction == f).map(|i| self.player_at(i))
     }
 
-    pub fn get_player_in_seat(&self, seat: i32) -> Option<PlayerIndex> {
+    pub fn get_player_in_seat(&self, seat: i32) -> Option<PlayerId> {
         self.players.iter().position(|p| p.seat == seat).map(|i| self.player_at(i))
     }
 
@@ -24,16 +24,16 @@ impl Game {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn players_other_than(&self, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn players_other_than(&self, p: PlayerId) -> impl Iterator<Item = Faction> {
         self.players.iter().filter(move |x| x.faction != self.player(p).faction).filter_map(move |x| x.faction)
     }
 
-    pub fn get_player_by_seat(&self, seat_nr: i32) -> Option<PlayerIndex> {
+    pub fn get_player_by_seat(&self, seat_nr: i32) -> Option<PlayerId> {
         self.players.iter().position(|p| p.seat == seat_nr).map(|i| self.player_at(i))
     }
 
     /// Whether a bot plays this player: whether no user sits in its seat (`human_seats`).
-    pub fn is_bot(&self, p: PlayerIndex) -> bool {
+    pub fn is_bot(&self, p: PlayerId) -> bool {
         !self.human_seats.contains(&self.player(p).seat)
     }
 

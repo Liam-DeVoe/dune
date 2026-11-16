@@ -245,7 +245,7 @@ impl Game {
         }
     }
 
-    pub fn setup_player_homeworld(&mut self, p: PlayerIndex) {
+    pub fn setup_player_homeworld(&mut self, p: PlayerId) {
         let faction = self.player(p).faction;
         let normal_force_world = self
             .board.map
@@ -292,7 +292,7 @@ impl Game {
         }
     }
 
-    pub fn setup_player_spice_and_forces_on_planet(&mut self, p: PlayerIndex) {
+    pub fn setup_player_spice_and_forces_on_planet(&mut self, p: PlayerId) {
         match self.player(p).faction {
             Some(Faction::Fremen) => {
                 self.player_mut(p).resources = 3;
@@ -361,7 +361,7 @@ impl Game {
         }
     }
 
-    pub fn assign_initial_ambassadors(&mut self, p: PlayerIndex) {
+    pub fn assign_initial_ambassadors(&mut self, p: PlayerId) {
         self.player_mut(p).ambassadors.push(Ambassador::Ecaz);
         let items = &mut self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items;
         if let Some(i) = items.iter().position(|a| *a == Ambassador::Ecaz) {
@@ -372,7 +372,7 @@ impl Game {
         self.assign_random_ambassadors(p);
     }
 
-    pub fn assign_random_ambassadors(&mut self, p: PlayerIndex) {
+    pub fn assign_random_ambassadors(&mut self, p: PlayerId) {
         let set_aside = self.decks.ambassadors_set_aside.clone();
         for item in set_aside {
             self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").items.push(item);

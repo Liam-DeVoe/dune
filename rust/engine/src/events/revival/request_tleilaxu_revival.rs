@@ -32,7 +32,7 @@ impl RequestTleilaxuRevival {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Hero> {
         use either::Either;
         use std::iter::empty;
         let tleilaxu = g.get_player(Some(Faction::Tleilaxu));

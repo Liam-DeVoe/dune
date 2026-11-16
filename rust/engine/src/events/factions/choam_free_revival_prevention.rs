@@ -27,14 +27,14 @@ impl ChoamFreeRevivalPrevention {
         None
     }
 
-    pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played_by(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         pl.faction == Some(Faction::Choam)
             && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && Self::card_to_use(g, p).is_some())
                 || (NexusPlayed::can_use_cunning(g, p) && !pl.treachery_cards.is_empty()))
     }
 
-    pub fn card_to_use(game: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
+    pub fn card_to_use(game: &Game, p: PlayerId) -> Option<TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_LALALA)
     }
 

@@ -41,12 +41,12 @@ impl ThoughtAnswered {
         None
     }
 
-    pub fn valid_cards(g: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn valid_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         Self::valid_cards_opt(g, Some(p))
     }
 
     /// `ValidCards` with a possibly null `p`: `g.CurrentThought.Card` is read before `p.Has`.
-    fn valid_cards_opt(g: &Game, p: Option<PlayerIndex>) -> Vec<TreacheryCard> {
+    fn valid_cards_opt(g: &Game, p: Option<PlayerId>) -> Vec<TreacheryCard> {
         let card = g.battle.current_thought.as_ref().expect("current thought").card;
         let p = p.expect("player");
         if g.player(p).has(card) {

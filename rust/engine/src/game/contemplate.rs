@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct ContemplateState {
     pub extortion_to_be_returned: bool,
     pub moritani_has_performed_terror: bool,
-    pub winners: Vec<PlayerIndex>,
+    pub winners: Vec<PlayerId>,
     pub win_method: Option<WinMethod>,
 }
 
@@ -136,7 +136,7 @@ impl Game {
     }
 
     pub fn gain_extortions(&mut self) {
-        let players: Vec<PlayerIndex> =
+        let players: Vec<PlayerId> =
             self.player_indices().filter(|p| self.player(*p).extortion > 0).collect();
         for p in players {
             let extortion = self.player(p).extortion;
@@ -323,7 +323,7 @@ impl Game {
         }
     }
 
-    pub fn log_normal_win(&mut self, player: PlayerIndex, ally: Option<PlayerIndex>) {
+    pub fn log_normal_win(&mut self, player: PlayerId, ally: Option<PlayerId>) {
         let faction = self.player(player).faction;
         let player_ally = self.player(player).ally;
         let others_meet_condition = self.player_indices().any(|p| {
@@ -361,17 +361,17 @@ impl Game {
         self.log(vec![Message::express(expression).with_log(WinReason::new(method)).into()]);
     }
 
-    pub fn meets_normal_victory_condition(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> bool {
+    pub fn meets_normal_victory_condition(&self, p: PlayerId, contested_strongholds_count_as_occupied: bool) -> bool {
         self.meets_ecaz_victory_condition(p, contested_strongholds_count_as_occupied)
             || self.meets_high_threshold_ecaz_victory_condition(p, contested_strongholds_count_as_occupied)
             || self.number_of_victory_points(p, contested_strongholds_count_as_occupied) >= self.threshold_for_win(p)
     }
 
-    pub fn count_challenged_victory_points(&self, p: PlayerIndex) -> i32 {
+    pub fn count_challenged_victory_points(&self, p: PlayerId) -> i32 {
         self.number_of_victory_points(p, true) - self.number_of_victory_points(p, false)
     }
 
-    pub fn threshold_for_win(&self, p: PlayerIndex) -> i32 {
+    pub fn threshold_for_win(&self, p: PlayerId) -> i32 {
         if self.player(p).ally != None {
             return 4;
         }
@@ -383,7 +383,7 @@ impl Game {
         self.board.map.territories(false).filter(move |t| t.is_stronghold() || self.is_special_stronghold(*t))
     }
 
-    pub fn meets_ecaz_victory_condition(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> bool {
+    pub fn meets_ecaz_victory_condition(&self, p: PlayerId, contested_strongholds_count_as_occupied: bool) -> bool {
         let pl = self.player(p);
         ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Some(Faction::Ecaz))
             && self
@@ -398,7 +398,7 @@ impl Game {
                 >= 3
     }
 
-    pub fn meets_high_threshold_ecaz_victory_condition(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> bool {
+    pub fn meets_high_threshold_ecaz_victory_condition(&self, p: PlayerId, contested_strongholds_count_as_occupied: bool) -> bool {
         let pl = self.player(p);
         self.has_high_threshold(Faction::Ecaz)
             && ((pl.is(Faction::Ecaz) && pl.has_ally()) || pl.ally == Some(Faction::Ecaz))
@@ -411,7 +411,7 @@ impl Game {
             && self.board.homeworld_occupation.values().filter(|f| Some(**f) == pl.faction || Some(**f) == pl.ally).count() >= 2
     }
 
-    pub fn number_of_victory_points(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> i32 {
+    pub fn number_of_victory_points(&self, p: PlayerId, contested_strongholds_count_as_occupied: bool) -> i32 {
         let pl = self.player(p);
         if let Some(allied) = pl.allied_player(self) {
             let allied = self.player(allied);
@@ -432,7 +432,7 @@ impl Game {
         }
     }
 
-    pub fn number_of_occupied_strongholds(&self, p: PlayerIndex, contested_strongholds_count_as_occupied: bool) -> i32 {
+    pub fn number_of_occupied_strongholds(&self, p: PlayerId, contested_strongholds_count_as_occupied: bool) -> i32 {
         let pl = self.player(p);
         self.board.map
             .territories(false)
@@ -513,7 +513,7 @@ impl Game {
     }
 
     pub fn check_other_win_conditions(&mut self) {
-        let mut with_most_points: Option<PlayerIndex> = None;
+        let mut with_most_points: Option<PlayerId> = None;
         let mut highest_number_of_points = -1;
         let mut check_win_sequence = PlayerSequence::starting_with_first_player(self);
 

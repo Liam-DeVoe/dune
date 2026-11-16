@@ -113,7 +113,7 @@ impl BeneGesseritAccompanies {
         g.applicable(Rule::BeneGesseritAccompaniesToShipmentLocation) || g.applicable(Rule::BeneGesseritAdvisors)
     }
 
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> Vec<Location> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> Vec<Location> {
         let last_to = g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g));
         let Some(last_to) = last_to else {
             panic!("LastShipmentOrMovement is null");
@@ -136,7 +136,7 @@ impl BeneGesseritAccompanies {
         result
     }
 
-    pub fn ally_prevents_accompanying_to_shipment_location(g: &Game, p: PlayerIndex) -> bool {
+    pub fn ally_prevents_accompanying_to_shipment_location(g: &Game, p: PlayerId) -> bool {
         let ally = g.get_player(g.player(p).ally);
 
         !g.applicable(Rule::AdvisorsDontConflictWithAlly)
@@ -146,7 +146,7 @@ impl BeneGesseritAccompanies {
             })
     }
 
-    pub fn may_send_extra_advisor(g: &Game, p: PlayerIndex, l: Location) -> bool {
+    pub fn may_send_extra_advisor(g: &Game, p: PlayerId, l: Location) -> bool {
         let pl = g.player(p);
         pl.has_any_high_threshold(g) && l == g.board.map.polar_sink() && pl.forces_in_reserve() >= 2
     }

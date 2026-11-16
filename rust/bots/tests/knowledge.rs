@@ -42,9 +42,9 @@ impl Fmt for Faction {
         format!("F{}", *self as i32)
     }
 }
-impl Fmt for PlayerIndex {
+impl Fmt for PlayerId {
     fn fmt(&self) -> String {
-        format!("P{}", self.index)
+        format!("P{}", self.index())
     }
 }
 impl Fmt for Location {
@@ -136,10 +136,10 @@ impl Args<'_> {
     fn is_null(&self, i: usize) -> bool {
         self.a[i] == "N"
     }
-    fn p(&self, i: usize) -> PlayerIndex {
+    fn p(&self, i: usize) -> PlayerId {
         self.game.player_at(self.n(i) as usize)
     }
-    fn opt_p(&self, i: usize) -> Option<PlayerIndex> {
+    fn opt_p(&self, i: usize) -> Option<PlayerId> {
         if self.is_null(i) { None } else { Some(self.p(i)) }
     }
     fn f(&self, i: usize) -> Faction {

@@ -83,7 +83,7 @@ impl FaceDanced {
         None
     }
 
-    pub fn maximum_number_of_forces(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn maximum_number_of_forces(g: &Game, p: PlayerId) -> i32 {
         let ally = g.player(p).allied_player(g);
         let territory = || g.battle.current_battle.as_ref().expect("current battle").territory;
         let condition = match ally {
@@ -107,13 +107,13 @@ impl FaceDanced {
         0
     }
 
-    pub fn may_call_face_dancer(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_call_face_dancer(g: &Game, p: PlayerId) -> bool {
         Self::may_call_face_dancer_opt(g, Some(p))
     }
 
     /// `MayCallFaceDancer` with a possibly null `p` (`Validate` passes `Player`):
     /// `p` is only dereferenced where it is needed, so a null `p` throws only there.
-    pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
+    pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerId>) -> bool {
         // `BattleWinner == Faction.None` is false while BattleWinner is null.
         if g.battle.battle_winner == Some(None) {
             return false;
@@ -140,7 +140,7 @@ impl FaceDanced {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_source_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_source_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.locations_with_any_forces_not_in_storm(p).into_iter().filter(move |l| !l.is_homeworld())
     }
 

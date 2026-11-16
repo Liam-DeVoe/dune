@@ -504,7 +504,7 @@ impl Game {
         self.enter(Phase::NexusCards, true);
     }
 
-    pub fn discard_nexus_card(&mut self, p: PlayerIndex) {
+    pub fn discard_nexus_card(&mut self, p: PlayerId) {
         let nexus = self.player(p).nexus;
         if nexus != None {
             let faction = self.player(p).faction;
@@ -597,7 +597,7 @@ impl Game {
         }
     }
 
-    pub fn protected_from_monster(&self, p: PlayerIndex) -> bool {
+    pub fn protected_from_monster(&self, p: PlayerId) -> bool {
         if let Some(ally) = &self.turn.current_fremen_secret_ally {
             if ally.player_opt() == Some(p) {
                 return true;

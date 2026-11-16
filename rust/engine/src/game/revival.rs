@@ -40,7 +40,7 @@ impl RevivalState {
 }
 
 impl Game {
-    pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerIndex, leader: Option<Leader>) {
+    pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerId, leader: Option<Leader>) {
         if self.turn.current_phase != Phase::AssigningSkill && leader.is_some() {
             self.setup.phase_before_skill_assignment = Some(self.turn.current_phase);
         }
@@ -55,7 +55,7 @@ impl Game {
         self.enter(Phase::AssigningSkill, true);
     }
 
-    pub fn free_revivals(&self, player: PlayerIndex, uses_emperor_secret_ally: bool) -> i32 {
+    pub fn free_revivals(&self, player: PlayerId, uses_emperor_secret_ally: bool) -> i32 {
         let p = self.player(player);
         if self.free_revival_prevented(p.faction.expect("faction")) {
             return 0;
@@ -104,7 +104,7 @@ impl Game {
         )
     }
 
-    pub fn gets_extra_charity_and_free_revival_due_to_low_threshold(&self, player: PlayerIndex) -> bool {
+    pub fn gets_extra_charity_and_free_revival_due_to_low_threshold(&self, player: PlayerId) -> bool {
         let p = self.player(player);
         (!(p.is(Faction::Emperor) || p.is(Faction::Choam)) && p.has_any_low_threshold(self))
             || (p.is(Faction::Emperor) && p.has_low_threshold(self, World::Emperor))
@@ -112,7 +112,7 @@ impl Game {
     }
 
     /// Reads `g` for some values and `self` for others (kept deliberately); every caller passes the same game.
-    pub fn get_max_revivals(&self, g: &Game, p: PlayerIndex, emperor_secret_ally_used: bool) -> i32 {
+    pub fn get_max_revivals(&self, g: &Game, p: PlayerId, emperor_secret_ally_used: bool) -> i32 {
         let pl = g.player(p);
         if pl.is(Faction::Tleilaxu) || (pl.is(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamRevival)) {
             return i32::MAX;
@@ -148,7 +148,7 @@ impl Game {
         self.board.ambassadors_on_planet.get(&t).copied()
     }
 
-    pub fn claim_free_revival(&mut self, player: PlayerIndex) {
+    pub fn claim_free_revival(&mut self, player: PlayerId) {
         let max_free_revivals = self.free_revivals(player, false);
 
         if max_free_revivals <= 0 {

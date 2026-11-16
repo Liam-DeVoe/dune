@@ -19,11 +19,11 @@ fn load(name: &str) -> Game {
     Game::load(&state, &Default::default(), false, false).unwrap_or_else(|_| panic!("{name} loads"))
 }
 
-fn bot(game: &Game, player: PlayerIndex) -> ClassicBot {
+fn bot(game: &Game, player: PlayerId) -> ClassicBot {
     ClassicBot::new(player, BotParameters::for_faction(game.player(player).faction), SharedRandom::from_seed(1))
 }
 
-fn player_of(game: &Game, faction: Faction) -> PlayerIndex {
+fn player_of(game: &Game, faction: Faction) -> PlayerId {
     game.get_player(Some(faction)).unwrap()
 }
 

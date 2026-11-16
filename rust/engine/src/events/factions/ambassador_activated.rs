@@ -231,7 +231,7 @@ impl AmbassadorActivated {
         }
     }
 
-    pub fn get_victim_player(g: &Game) -> Option<PlayerIndex> {
+    pub fn get_victim_player(g: &Game) -> Option<PlayerId> {
         let victim = AmbassadorActivated::get_victim(g);
         if victim != None { g.get_player(victim) } else { None }
     }
@@ -245,16 +245,16 @@ impl AmbassadorActivated {
         }
     }
 
-    pub fn alliance_can_be_offered(g: &Game, p: PlayerIndex) -> bool {
+    pub fn alliance_can_be_offered(g: &Game, p: PlayerId) -> bool {
         let victim_player = AmbassadorActivated::get_victim_player(g);
         !g.player(p).has_ally() && victim_player.map(|v| !g.player(v).has_ally()) == Some(true)
     }
 
-    pub fn vidal_can_be_offered_to_new_ally(g: &Game, _p: PlayerIndex) -> bool {
+    pub fn vidal_can_be_offered_to_new_ally(g: &Game, _p: PlayerId) -> bool {
         g.vidal_is_alive()
     }
 
-    pub fn vidal_can_be_taken(g: &Game, p: PlayerIndex) -> bool {
+    pub fn vidal_can_be_taken(g: &Game, p: PlayerId) -> bool {
         (g.vidal().is_some() && !g.player(p).has_leader(g.vidal().expect("vidal")))
             && g.vidal_is_alive()
             && !g.vidal_is_captured_or_ghola()
@@ -265,27 +265,27 @@ impl AmbassadorActivated {
         g.decks.unassigned_ambassadors.as_ref().expect("unassigned ambassadors").items.clone()
     }
 
-    pub fn get_valid_choam_cards(game: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn get_valid_choam_cards(game: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         game.player(p).treachery_cards.clone()
     }
 
-    pub fn get_valid_ixian_cards(game: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn get_valid_ixian_cards(game: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         game.player(p).treachery_cards.clone()
     }
 
-    pub fn valid_fremen_sources(g: &Game, p: PlayerIndex) -> Vec<Territory> {
+    pub fn valid_fremen_sources(g: &Game, p: PlayerId) -> Vec<Territory> {
         PlacementEvent::valid_movement_sources(g, p)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_fremen_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_fremen_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.board.map
             .locations(false)
             .filter(move |l| l.visible(&g.board.map) && l.sector(&g.board.map) != g.board.sector_in_storm && g.is_not_full(p, *l))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_guild_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_guild_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         let hms = g.board.map.hidden_mobile_stronghold().location();
         g.board.map
             .locations(g.applicable(Rule::Homeworlds))
@@ -299,19 +299,19 @@ impl AmbassadorActivated {
             })
     }
 
-    pub fn valid_guild_max_forces(game: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_guild_max_forces(game: &Game, p: PlayerId) -> i32 {
         std::cmp::min(game.player(p).forces_in_reserve(), 4)
     }
 
-    pub fn valid_tleilaxu_max_amount(game: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_tleilaxu_max_amount(game: &Game, p: PlayerId) -> i32 {
         std::cmp::min(game.player(p).forces_killed, 4)
     }
 
-    pub fn valid_tleilaxu_heroes(game: &Game, player: PlayerIndex) -> Vec<Hero> {
+    pub fn valid_tleilaxu_heroes(game: &Game, player: PlayerId) -> Vec<Hero> {
         game.killed_heroes(player)
     }
 
-    pub fn may_pass(game: &Game, p: PlayerIndex) -> bool {
+    pub fn may_pass(game: &Game, p: PlayerId) -> bool {
         game.player(p).faction == Some(Faction::Ecaz)
     }
 

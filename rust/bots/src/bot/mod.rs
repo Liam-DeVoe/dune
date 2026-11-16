@@ -20,7 +20,7 @@ use treachery_engine::random::Rng;
 /// The bot of one player. One bot per faction lives for the whole game, and its fields carry
 /// plans from one decision to the next. The game itself is passed to every method.
 pub struct ClassicBot {
-    pub player: PlayerIndex,
+    pub player: PlayerId,
     pub param: BotParameters,
     pub random: SharedRandom,
     /// The Voice the bot used in the current battle, for its battle plan.
@@ -234,7 +234,7 @@ macro_rules! first_decision {
 
 impl ClassicBot {
     /// A bot for `player`, drawing from `random`.
-    pub fn new(player: PlayerIndex, param: BotParameters, random: SharedRandom) -> Self {
+    pub fn new(player: PlayerId, param: BotParameters, random: SharedRandom) -> Self {
         ClassicBot {
             player,
             param,
@@ -249,7 +249,7 @@ impl ClassicBot {
     }
 
     /// Points the bot at another player, for when seats change.
-    pub fn set_player(&mut self, player: PlayerIndex) {
+    pub fn set_player(&mut self, player: PlayerId) {
         self.player = player;
     }
 
@@ -262,7 +262,7 @@ impl ClassicBot {
         game.player(self.player).ally
     }
 
-    pub fn allied_player(&self, game: &Game) -> Option<PlayerIndex> {
+    pub fn allied_player(&self, game: &Game) -> Option<PlayerId> {
         game.player(self.player).allied_player(game)
     }
 

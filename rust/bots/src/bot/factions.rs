@@ -4,22 +4,22 @@ use std::cell::OnceCell;
 /// A location or a whole territory, where a player's forces can be counted.
 trait ForcesIn: Copy {
     /// How many forces `player` has here, special forces and advisors included.
-    fn forces_of(self, game: &Game, player: PlayerIndex) -> i32;
+    fn forces_of(self, game: &Game, player: PlayerId) -> i32;
 
     /// The forces of all of `players` here.
-    fn forces_of_all(self, game: &Game, players: &[PlayerIndex]) -> i32 {
+    fn forces_of_all(self, game: &Game, players: &[PlayerId]) -> i32 {
         players.iter().map(|p| self.forces_of(game, *p)).sum()
     }
 }
 
 impl ForcesIn for Location {
-    fn forces_of(self, game: &Game, player: PlayerIndex) -> i32 {
+    fn forces_of(self, game: &Game, player: PlayerId) -> i32 {
         game.player(player).any_forces_in(Some(self))
     }
 }
 
 impl ForcesIn for Territory {
-    fn forces_of(self, game: &Game, player: PlayerIndex) -> i32 {
+    fn forces_of(self, game: &Game, player: PlayerId) -> i32 {
         game.player(player).any_forces_in_territory(Some(self))
     }
 }
@@ -61,7 +61,7 @@ struct OpponentCards {
 }
 
 impl OpponentCards {
-    fn new(game: &Game, player: PlayerIndex, opponent: PlayerIndex) -> Self {
+    fn new(game: &Game, player: PlayerId, opponent: PlayerId) -> Self {
         OpponentCards {
             known_defenses: ClassicBot::known_opponent_defenses(game, player, opponent),
             known_weapons: ClassicBot::known_opponent_weapons(game, player, opponent),
@@ -538,7 +538,7 @@ impl ClassicBot {
 
     /// Whether `x` is an opponent (not me or my ally) who meets the normal victory condition and
     /// has fewer than 2 challenged victory points. Players are checked in order up to `x`.
-    fn potential_winning_opponents_contains(&self, game: &Game, x: Option<PlayerIndex>) -> bool {
+    fn potential_winning_opponents_contains(&self, game: &Game, x: Option<PlayerId>) -> bool {
         let allied = self.allied_player(game);
         game.player_indices()
             .filter(|p| {
@@ -705,7 +705,7 @@ impl ClassicBot {
     /// The voice `p` should use against `opponent`, with the weapon and defense it is meant to
     /// support. `battle` is kept by reference: it is later compared with the current battle by
     /// identity.
-    pub fn best_voice(&self, game: &Game, battle: Option<Rc<BattleInitiated>>, p: PlayerIndex, opponent: PlayerIndex) -> VoicePlan {
+    pub fn best_voice(&self, game: &Game, battle: Option<Rc<BattleInitiated>>, p: PlayerId, opponent: PlayerId) -> VoicePlan {
         use TreacheryCardType as T;
 
         // C# parity: when I predicted this opponent's win, a voice forcing a lasgun was built here
@@ -815,7 +815,7 @@ impl ClassicBot {
     }
 
     /// Which aspect of `opponent`'s battle plan `p` should ask for, other than `earlier_prescience`.
-    pub fn best_prescience(&self, game: &Game, p: PlayerIndex, opponent: PlayerIndex, max_force_strength_in_battle: f32, earlier_prescience: Option<PrescienceAspect>, territory: Territory) -> Option<PrescienceAspect> {
+    pub fn best_prescience(&self, game: &Game, p: PlayerId, opponent: PlayerId, max_force_strength_in_battle: f32, earlier_prescience: Option<PrescienceAspect>, territory: Territory) -> Option<PrescienceAspect> {
         use TreacheryCardType as T;
         let known_cards = game.known_cards(p);
         let my_defenses: Vec<TreacheryCard> =
@@ -1373,7 +1373,7 @@ impl ClassicBot {
             }
 
             Some(Ambassador::Guild) => {
-                let dangerous_opponents: Vec<PlayerIndex> =
+                let dangerous_opponents: Vec<PlayerId> =
                     self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
                 // Each target goes through every step below, including the draws in

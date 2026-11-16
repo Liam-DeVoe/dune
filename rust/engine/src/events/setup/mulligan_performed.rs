@@ -32,7 +32,7 @@ impl MulliganPerformed {
         None
     }
 
-    pub fn may_mulligan(game: &Game, p: PlayerIndex) -> bool {
+    pub fn may_mulligan(game: &Game, p: PlayerId) -> bool {
         let faction = game.player(p).faction;
         game.player(p).traitors.iter().filter(|l| l.is(faction)).count() >= 2
     }

@@ -501,7 +501,7 @@ impl Game {
         }
     }
 
-    pub fn is_automated(&self, rule: AutomationRuleType, p: PlayerIndex) -> bool {
+    pub fn is_automated(&self, rule: AutomationRuleType, p: PlayerId) -> bool {
                 let faction = self.player(p).faction;
         self.rules.automation_rules.iter().any(|x| x.initiator() == faction && x.rule_type == rule)
     }

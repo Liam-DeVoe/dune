@@ -223,7 +223,7 @@ impl Game {
         }
     }
 
-    pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Option<Faction>, free: bool) {
+    pub fn log_bid(&mut self, initiator: PlayerId, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Option<Faction>, free: bool) {
         let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
         // A Black Market card has no number.
         let card_number: Vec<Part> = if self.bidding.current_auction_type == Some(AuctionType::Normal) {
@@ -283,7 +283,7 @@ impl Game {
     }
 
     /// Draws from `self.bidding.cards_on_auction`; callers check that it is not null first.
-    pub fn win_by_highest_bid(&mut self, winner: PlayerIndex, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, uses_emperor_secret_ally: bool) -> GameResult<TreacheryCard> {
+    pub fn win_by_highest_bid(&mut self, winner: PlayerId, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, uses_emperor_secret_ally: bool) -> GameResult<TreacheryCard> {
         let mut receiver_income_message = express_part!();
 
         if !uses_emperor_secret_ally {
@@ -305,7 +305,7 @@ impl Game {
     }
 
     pub fn register_won_card_as_known(&mut self, card: TreacheryCard) {
-        let players: Vec<PlayerIndex> = self.player_indices().filter(|p| self.has_bidding_prescience(*p)).collect();
+        let players: Vec<PlayerId> = self.player_indices().filter(|p| self.has_bidding_prescience(*p)).collect();
         for p in players {
             Game::register_known_by_player(self, p, Some(card));
         }
@@ -324,7 +324,7 @@ impl Game {
         }
     }
 
-    pub fn pay_for_card(&mut self, initiator: PlayerIndex, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Option<Faction>> {
+    pub fn pay_for_card(&mut self, initiator: PlayerId, bid: &GameEvent, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, payment_receiver: Faction, message: &mut MessagePart) -> GameResult<Option<Faction>> {
         let mut paid_to = None;
         {
             let p = self.player_mut(initiator);
@@ -430,10 +430,10 @@ impl Game {
         Ok(paid_to)
     }
 
-    pub fn give_player_extra_card_if_applicable(&mut self, winner: PlayerIndex) {
+    pub fn give_player_extra_card_if_applicable(&mut self, winner: PlayerId) {
         if self.player(winner).is(Faction::Harkonnen) {
             let mut extra_card_must_be_decided_about = false;
-            let mut receiver: Option<PlayerIndex> = None;
+            let mut receiver: Option<PlayerId> = None;
 
             let occupier_of_harkonnen_homeworld = self.occupier_of(World::Harkonnen);
             if let Some(occupier) = occupier_of_harkonnen_homeworld {
@@ -516,7 +516,7 @@ impl Game {
         }
     }
 
-    pub fn finish_bid(&mut self, winner: Option<PlayerIndex>, winning_bid: Option<&GameEvent>, card: TreacheryCard, might_replace: bool) {
+    pub fn finish_bid(&mut self, winner: Option<PlayerId>, winning_bid: Option<&GameEvent>, card: TreacheryCard, might_replace: bool) {
         self.bidding.card_just_won = Some(card);
         self.bidding.winning_bid = winning_bid.cloned();
         self.bidding.card_sold_on_black_market = None;
@@ -623,7 +623,7 @@ impl Game {
         }
     }
 
-    pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: Option<AuctionType>, richese_player: Option<PlayerIndex>, direction: i32) {
+    pub fn start_bid_sequence_and_auction_type(&mut self, auction_type: Option<AuctionType>, richese_player: Option<PlayerId>, direction: i32) {
         match auction_type {
             Some(AuctionType::BlackMarketNormal) => {
                 self.bidding.black_market_auction_type = Some(AuctionType::BlackMarketNormal);
@@ -694,16 +694,16 @@ impl Game {
         (self.bidding.card_number + (self.bidding.cards_on_auction.as_ref().expect("cards on auction").items.len() as i32)) - 1
     }
 
-    pub fn players_that_can_bid(&self) -> Vec<PlayerIndex> {
+    pub fn players_that_can_bid(&self) -> Vec<PlayerId> {
         self.player_indices().filter(|p| self.player(*p).has_room_for_cards(self)).collect()
     }
 
-    pub fn nexus_allows_replacing_bought_cards(&self, p: PlayerIndex) -> bool {
+    pub fn nexus_allows_replacing_bought_cards(&self, p: PlayerId) -> bool {
         let nexus = self.player(p).nexus;
         nexus == Some(Faction::Ixian) && NexusPlayed::can_use_secret_ally(self, p)
     }
 
-    pub fn has_bid_to_pay(&self, p: PlayerIndex) -> bool {
+    pub fn has_bid_to_pay(&self, p: PlayerId) -> bool {
         match &self.bidding.current_bid {
             Some(current_bid) if self.turn.current_phase == Phase::Bidding => {
                 Some(current_bid.bid_initiator()) == self.player(p).faction
@@ -720,7 +720,7 @@ impl Game {
             && !self.bidding.ixian_swapped_card_on_bid
     }
 
-    pub fn cards_owned_by(&self, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn cards_owned_by(&self, p: PlayerId) -> Vec<TreacheryCard> {
         let card_set_aside = self.get_card_set_aside_for_bid(p);
         match card_set_aside {
             None => self.player(p).treachery_cards.clone(),
@@ -732,7 +732,7 @@ impl Game {
         }
     }
 
-    pub fn get_card_set_aside_for_bid(&self, p: PlayerIndex) -> Option<TreacheryCard> {
+    pub fn get_card_set_aside_for_bid(&self, p: PlayerId) -> Option<TreacheryCard> {
         match &self.bidding.current_bid {
             Some(current_bid) if current_bid.bid_player() == Some(p) && current_bid.bid_using_karma_to_remove_bid_limit() => current_bid.bid_karma_card(),
             _ => None,

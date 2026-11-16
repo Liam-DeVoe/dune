@@ -152,7 +152,7 @@ impl BlackMarketBid {
         Ok(())
     }
 
-    pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerIndex, winning_bid: &GameEvent, card: TreacheryCard) {
+    pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerId, winning_bid: &GameEvent, card: TreacheryCard) {
         game.bidding.card_just_won = Some(card);
         game.bidding.winning_bid = Some(winning_bid.clone());
         game.bidding.card_sold_on_black_market = Some(card);
@@ -234,11 +234,11 @@ impl BlackMarketBid {
         None
     }
 
-    pub fn valid_max_amount(game: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_max_amount(game: &Game, p: PlayerId) -> i32 {
         game.player(p).resources
     }
 
-    pub fn valid_max_ally_amount(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_max_ally_amount(g: &Game, p: PlayerId) -> i32 {
         g.resources_your_ally_can_pay(p)
     }
 
@@ -260,7 +260,7 @@ impl BlackMarketBid {
         }
     }
 
-    pub fn may_be_played(game: &Game, player: PlayerIndex) -> bool {
+    pub fn may_be_played(game: &Game, player: PlayerId) -> bool {
         (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && !game.bidding.bids.contains_key_opt(game.player(player).faction) && game.player(player).has_room_for_cards(game))
             || (game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
@@ -325,7 +325,7 @@ impl crate::events::bid_trait::BidEvent for BlackMarketBid {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn player(&self) -> Option<PlayerIndex> {
+    fn player(&self) -> Option<PlayerId> {
         GameEventMethods::player_opt(self)
     }
 

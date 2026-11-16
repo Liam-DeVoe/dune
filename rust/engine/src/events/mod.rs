@@ -1957,11 +1957,11 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::time(&**e))
     }
 
-    pub fn player(&self) -> PlayerIndex {
+    pub fn player(&self) -> PlayerId {
         dispatch!(self, e => GameEventMethods::player(&**e))
     }
 
-    pub fn player_opt(&self) -> Option<PlayerIndex> {
+    pub fn player_opt(&self) -> Option<PlayerId> {
         dispatch!(self, e => GameEventMethods::player_opt(&**e))
     }
 
@@ -2010,7 +2010,7 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::by_ally_of(&**e, game, f))
     }
 
-    pub fn by_player(&self, game: &Game, p: PlayerIndex) -> bool {
+    pub fn by_player(&self, game: &Game, p: PlayerId) -> bool {
         dispatch!(self, e => GameEventMethods::by_player(&**e, game, p))
     }
 
@@ -2034,7 +2034,7 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::log_to(&**e, game, faction, expression))
     }
 
-    pub fn get_player(&self, game: &Game, f: Option<Faction>) -> Option<PlayerIndex> {
+    pub fn get_player(&self, game: &Game, f: Option<Faction>) -> Option<PlayerId> {
         dispatch!(self, e => GameEventMethods::get_player(&**e, game, f))
     }
 
@@ -2089,7 +2089,7 @@ impl GameEvent {
     }
 
     /// `((BidEvent)this).Player`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_player(&self) -> Option<PlayerIndex> {
+    pub fn bid_player(&self) -> Option<PlayerId> {
         match self {
             GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::player(&**e),
             GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::player(&**e),

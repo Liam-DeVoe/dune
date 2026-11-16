@@ -45,7 +45,7 @@ impl Thought {
             .filter(move |c| c.is_weapon() && c.type_() != TreacheryCardType::Chemistry)
     }
 
-    pub fn may_be_used(game: &Game, player: PlayerIndex) -> bool {
+    pub fn may_be_used(game: &Game, player: PlayerId) -> bool {
         game.has_skill_in_front_of_shield(player, LeaderSkill::Thinker)
             && game.battle.current_battle.is_some()
             && game.battle.current_thought.is_none()

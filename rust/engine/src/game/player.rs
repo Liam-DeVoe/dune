@@ -112,7 +112,7 @@ impl Player {
         self.forces_in_locations.entry(location).or_insert_with(|| Battalion::new(faction.expect("faction"), 0, 0, location))
     }
 
-    pub fn change_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
+    pub fn change_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
         let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
         result.change_forces(nr_of_forces);
@@ -121,7 +121,7 @@ impl Player {
         }
     }
 
-    pub fn change_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
+    pub fn change_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
         let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
         result.change_special_forces(nr_of_forces);
@@ -131,7 +131,7 @@ impl Player {
         Player::check_if_emperor_star_threshold_was_passed(game, me);
     }
 
-    pub fn add_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32, from_reserves: bool) {
+    pub fn add_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) {
         if from_reserves {
             let p = game.player(me);
             let source_world = p.home_worlds.iter().copied().find(|w| p.forces_in(Some(w.location())) >= nr_of_forces);
@@ -143,7 +143,7 @@ impl Player {
         }
     }
 
-    pub fn add_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32, from_reserves: bool) {
+    pub fn add_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) {
         if from_reserves {
             let p = game.player(me);
             let source_world = p.home_worlds.iter().copied().find(|w| p.special_forces_in(Some(w.location())) >= nr_of_forces);
@@ -155,14 +155,14 @@ impl Player {
         }
     }
 
-    pub fn add_forces_to_reserves(game: &mut Game, me: PlayerIndex, nr_of_forces: i32) {
+    pub fn add_forces_to_reserves(game: &mut Game, me: PlayerId, nr_of_forces: i32) {
         let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_normal_forces());
         if let Some(source_world) = source_world {
             Player::change_forces(game, me, source_world.location(), nr_of_forces);
         }
     }
 
-    pub fn check_if_emperor_star_threshold_was_passed(game: &mut Game, me: PlayerIndex) {
+    pub fn check_if_emperor_star_threshold_was_passed(game: &mut Game, me: PlayerId) {
         let p = game.player(me);
         if p.faction == Some(Faction::Emperor) && game.applicable(Rule::EmperorSpecialForces) {
             let home_world = p.home_worlds.iter().copied().find(|hw| hw.world() == World::SalusaSecundus);
@@ -181,18 +181,18 @@ impl Player {
         }
     }
 
-    pub fn add_special_forces_to_reserves(game: &mut Game, me: PlayerIndex, nr_of_forces: i32) {
+    pub fn add_special_forces_to_reserves(game: &mut Game, me: PlayerId, nr_of_forces: i32) {
         let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_special_forces());
         if let Some(source_world) = source_world {
             Player::change_special_forces(game, me, source_world.location(), nr_of_forces);
         }
     }
 
-    pub fn remove_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
+    pub fn remove_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
         Player::change_forces(game, me, location, -nr_of_forces);
     }
 
-    pub fn remove_special_forces(game: &mut Game, me: PlayerIndex, location: Location, nr_of_forces: i32) {
+    pub fn remove_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
         Player::change_special_forces(game, me, location, -nr_of_forces);
     }
 
@@ -254,7 +254,7 @@ impl Player {
         }
     }
 
-    pub fn forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location) {
+    pub fn forces_to_reserves(game: &mut Game, me: PlayerId, location: Location) {
         let amount_of_forces = game.player(me).forces_in_locations[&location].amount_of_forces;
 
         Player::add_forces_to_reserves(game, me, amount_of_forces);
@@ -273,12 +273,12 @@ impl Player {
         Player::check_if_emperor_star_threshold_was_passed(game, me);
     }
 
-    pub fn some_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
+    pub fn some_forces_to_reserves(game: &mut Game, me: PlayerId, location: Location, amount: i32) {
         Player::add_forces_to_reserves(game, me, amount);
         Player::change_forces(game, me, location, -amount);
     }
 
-    pub fn special_forces_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, amount: i32) {
+    pub fn special_forces_to_reserves(game: &mut Game, me: PlayerId, location: Location, amount: i32) {
         let faction = game.player(me).faction;
         if faction == Some(Faction::BeneGesserit) {
             Player::add_forces_to_reserves(game, me, amount);
@@ -292,7 +292,7 @@ impl Player {
     /// Special forces shipped from `location` back to the reserves on `homeworld`. Bene Gesserit
     /// advisors return as fighters, as in [`Player::special_forces_to_reserves`]. Richese's
     /// special force is its No-Field token: it leaves the planet unrevealed.
-    pub fn special_forces_back_to_reserves(game: &mut Game, me: PlayerIndex, location: Location, homeworld: Homeworld, amount: i32) {
+    pub fn special_forces_back_to_reserves(game: &mut Game, me: PlayerId, location: Location, homeworld: Homeworld, amount: i32) {
         if amount <= 0 {
             return;
         }
@@ -309,7 +309,7 @@ impl Player {
         }
     }
 
-    pub fn some_forces_in_territory_to_reserves(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool) {
+    pub fn some_forces_in_territory_to_reserves(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool) {
         if amount > 0 {
             let mut to_remove_in_total = amount;
             let mut locations: Vec<Location> = t.locations().to_vec();
@@ -346,7 +346,7 @@ impl Player {
         }
     }
 
-    pub fn forces_in_territory_to_reserves(game: &mut Game, me: PlayerIndex, t: Territory) {
+    pub fn forces_in_territory_to_reserves(game: &mut Game, me: PlayerId, t: Territory) {
         // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
@@ -355,7 +355,7 @@ impl Player {
         }
     }
 
-    pub fn kill_all_forces(game: &mut Game, me: PlayerIndex, location: Location, in_battle: bool) -> i32 {
+    pub fn kill_all_forces(game: &mut Game, me: PlayerId, location: Location, in_battle: bool) -> i32 {
         let p = game.player(me);
         if let Some(battalion) = p.forces_in_locations.get(&location) {
             let kill_count = battalion.amount_of_forces;
@@ -385,7 +385,7 @@ impl Player {
         0
     }
 
-    pub fn kill_all_forces_in_territory(game: &mut Game, me: PlayerIndex, t: Territory, in_battle: bool) {
+    pub fn kill_all_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, in_battle: bool) {
         // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
@@ -394,7 +394,7 @@ impl Player {
         }
     }
 
-    pub fn kill_forces(game: &mut Game, me: PlayerIndex, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> i32 {
+    pub fn kill_forces(game: &mut Game, me: PlayerId, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> i32 {
         Player::change_forces(game, me, location, -amount_of_forces);
         Player::change_special_forces(game, me, location, -amount_of_special_forces);
 
@@ -414,7 +414,7 @@ impl Player {
         amount_of_forces + amount_of_special_forces
     }
 
-    pub fn kill_forces_in_territory(game: &mut Game, me: PlayerIndex, t: Territory, amount: i32, special: bool, in_battle: bool) {
+    pub fn kill_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool, in_battle: bool) {
         let mut to_kill = amount;
         let mut locations: Vec<Location> = t.locations().to_vec();
         locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
@@ -437,27 +437,27 @@ impl Player {
         }
     }
 
-    pub fn revive_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
+    pub fn revive_forces(game: &mut Game, me: PlayerId, amount: i32) {
         let p = game.player_mut(me);
         p.forces_killed -= amount;
         Player::add_forces_to_reserves(game, me, amount);
     }
 
-    pub fn revive_special_forces(game: &mut Game, me: PlayerIndex, amount: i32) {
+    pub fn revive_special_forces(game: &mut Game, me: PlayerId, amount: i32) {
         let p = game.player_mut(me);
         p.special_forces_killed -= amount;
         Player::add_special_forces_to_reserves(game, me, amount);
     }
 
-    pub fn ship_forces(game: &mut Game, me: PlayerIndex, to: Location, amount: i32) {
+    pub fn ship_forces(game: &mut Game, me: PlayerId, to: Location, amount: i32) {
         Player::add_forces(game, me, to, amount, true);
     }
 
-    pub fn ship_forces_from_homeworld(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
+    pub fn ship_forces_from_homeworld(game: &mut Game, me: PlayerId, to: Location, from: Homeworld, amount: i32) {
         Player::move_forces(game, me, from.location(), to, amount);
     }
 
-    pub fn ship_special_forces(game: &mut Game, me: PlayerIndex, to: Location, amount: i32) {
+    pub fn ship_special_forces(game: &mut Game, me: PlayerId, to: Location, amount: i32) {
         if game.player(me).faction == Some(Faction::Richese) {
             Player::change_special_forces(game, me, to, amount);
         } else {
@@ -465,7 +465,7 @@ impl Player {
         }
     }
 
-    pub fn ship_special_forces_from_homeworld(game: &mut Game, me: PlayerIndex, to: Location, from: Homeworld, amount: i32) {
+    pub fn ship_special_forces_from_homeworld(game: &mut Game, me: PlayerId, to: Location, from: Homeworld, amount: i32) {
         if game.player(me).faction == Some(Faction::Richese) {
             Player::change_special_forces(game, me, to, amount);
         } else {
@@ -473,22 +473,22 @@ impl Player {
         }
     }
 
-    pub fn ship_advisors(game: &mut Game, me: PlayerIndex, l: Location, amount: i32) {
+    pub fn ship_advisors(game: &mut Game, me: PlayerId, l: Location, amount: i32) {
         Player::add_forces_to_reserves(game, me, -amount);
         Player::change_special_forces(game, me, l, amount);
     }
 
-    pub fn move_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
+    pub fn move_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) {
         Player::change_forces(game, me, from, -amount);
         Player::change_forces(game, me, to, amount);
     }
 
-    pub fn move_special_forces(game: &mut Game, me: PlayerIndex, from: Location, to: Location, amount: i32) {
+    pub fn move_special_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) {
         Player::change_special_forces(game, me, from, -amount);
         Player::change_special_forces(game, me, to, amount);
     }
 
-    pub fn flip_forces(game: &mut Game, me: PlayerIndex, l: Location, as_advisors: bool) {
+    pub fn flip_forces(game: &mut Game, me: PlayerId, l: Location, as_advisors: bool) {
         if game.player(me).faction == Some(Faction::BeneGesserit) {
             if as_advisors {
                 let number_of_forces = game.player(me).forces_in(Some(l));
@@ -502,7 +502,7 @@ impl Player {
         }
     }
 
-    pub fn flip_forces_in_territory(game: &mut Game, me: PlayerIndex, t: Territory, as_advisors: bool) {
+    pub fn flip_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, as_advisors: bool) {
         // `t.Locations` are objects of t's map: after an undo, t can come from an event of
         // the other game, and a battalion created for such a location keeps it as its key.
         for l in t.locations().iter().copied() {
@@ -600,7 +600,7 @@ impl Player {
             || self.is(Faction::Ixian)
     }
 
-    pub fn allied_player(&self, game: &Game) -> Option<PlayerIndex> {
+    pub fn allied_player(&self, game: &Game) -> Option<PlayerId> {
         game.get_player(self.ally)
     }
 
@@ -703,7 +703,7 @@ impl Player {
         if self.battalion_in(location, &mut result) { result } else { Some(Battalion::new(self.faction.expect("faction"), 0, 0, location)) }
     }
 
-    pub fn assign_leaders(g: &mut Game, me: PlayerIndex) {
+    pub fn assign_leaders(g: &mut Game, me: PlayerId) {
         let faction = g.player(me).faction;
         let leaders: Vec<Leader> = match faction {
             Some(Faction::Choam) => LeaderManager::get_leaders(Faction::Choam)
@@ -755,7 +755,7 @@ impl Player {
         crate::events::Karma::valid_karma_cards(g, g.index_of(self).expect("a player of this game")).next().is_some()
     }
 
-    pub fn initialize_homeworld(game: &mut Game, me: PlayerIndex, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) {
+    pub fn initialize_homeworld(game: &mut Game, me: PlayerId, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) {
         if initial_normal_forces > 0 {
             Player::add_forces(game, me, world.location(), initial_normal_forces, false);
         }
@@ -831,7 +831,7 @@ impl Player {
         self.home_worlds.iter().any(|h| h.location() == hw.location())
     }
 
-    pub fn have_forces_on_each_others_home_worlds(&self, game: &Game, other: PlayerIndex) -> bool {
+    pub fn have_forces_on_each_others_home_worlds(&self, game: &Game, other: PlayerId) -> bool {
         // HomeWorlds.Contains(l) with a Location argument: Enumerable.Contains, Location.Equals (by Id).
         let other = game.player(other);
         self.forces_in_locations.keys().any(|l| other.home_worlds.iter().any(|hw| hw.location() == *l))
@@ -861,7 +861,16 @@ impl Player {
 /// A player of a game: its index in `Game.players`. Players are only ever appended,
 /// so the index is stable. `Game::player` resolves it; `Game::player_at(i)` makes one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct PlayerIndex {
-    pub index: usize,
+pub struct PlayerId(u8);
+
+impl PlayerId {
+    /// The player's position in `Game.players`.
+    pub fn index(self) -> usize {
+        self.0 as usize
+    }
+
+    pub(crate) fn from_index(index: usize) -> PlayerId {
+        PlayerId(u8::try_from(index).expect("a game has at most 255 players"))
+    }
 }
 

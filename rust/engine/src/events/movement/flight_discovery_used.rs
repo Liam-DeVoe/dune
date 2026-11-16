@@ -25,7 +25,7 @@ impl FlightDiscoveryUsed {
         None
     }
 
-    pub fn is_available(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_available(g: &Game, p: PlayerId) -> bool {
         g.collection.owner_of_flight_discovery == Some(g.player(p).faction)
     }
 

@@ -30,7 +30,7 @@ fn is_richese_bidding(game: &Game) -> bool {
 /// `BiddingPanel.OnParametersSetAsync`. Outside silent auctions the form proposes the lowest bid
 /// that beats the current one, paid by the ally as far as the ally permits. In silent auctions
 /// the fields keep their initializers (0).
-fn starting_amounts(game: &Game, p: PlayerIndex) -> (i32, i32) {
+fn starting_amounts(game: &Game, p: PlayerId) -> (i32, i32) {
     if is_silent(game) {
         return (0, 0);
     }
@@ -47,7 +47,7 @@ fn starting_amounts(game: &Game, p: PlayerIndex) -> (i32, i32) {
 /// picker clamps `Amount` into [0, MaxBidAmount]; the ally's picker, shown only when the player
 /// has an ally and `MaxAllyBidAmount > 0`, clamps `AllyContributionAmount`, which is 0 without
 /// it. Emperor's contribution starts at 0, inside its picker's range.
-fn clamped(game: &Game, p: PlayerIndex, (amount, ally): (i32, i32), max_amount: i32, max_ally: i32) -> (i32, i32) {
+fn clamped(game: &Game, p: PlayerId, (amount, ally): (i32, i32), max_amount: i32, max_ally: i32) -> (i32, i32) {
     let amount = picker(amount, 0, max_amount);
     let ally = if game.player(p).ally != None && max_ally > 0 { picker(ally, 0, max_ally) } else { 0 };
     (amount, ally)

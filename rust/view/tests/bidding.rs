@@ -17,7 +17,7 @@ use treachery_view::build::ResolvedViewer;
 use treachery_view::describe::default_describer;
 use treachery_view::schema::*;
 
-fn resolved(game: &Game, p: Option<PlayerIndex>) -> ResolvedViewer {
+fn resolved(game: &Game, p: Option<PlayerId>) -> ResolvedViewer {
     ResolvedViewer { player: p, faction: p.map(|p| game.player(p).faction).flatten(), is_host: false, is_observer: p.is_none() }
 }
 
@@ -27,7 +27,7 @@ fn silent(game: &Game) -> bool {
 
 /// The panel's starting amounts, then the pickers' clamps, written out independently of
 /// `actions/bidding.rs`.
-fn expected_defaults(game: &Game, p: PlayerIndex, max_amount: i32, max_ally: i32) -> (i32, i32) {
+fn expected_defaults(game: &Game, p: PlayerId, max_amount: i32, max_ally: i32) -> (i32, i32) {
     let pl = game.player(p);
     let (mut amount, mut ally) = (0, 0);
     if !silent(game) {
@@ -63,7 +63,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
     if game.turn.current_main_phase != MainPhase::Bidding {
         return;
     }
-    let players: Vec<PlayerIndex> = game.player_indices().collect();
+    let players: Vec<PlayerId> = game.player_indices().collect();
     for &p in &players {
         let types = game.get_applicable_events(Some(p), false);
         let v = resolved(game, Some(p));

@@ -96,7 +96,7 @@ impl Game {
         false
     }
 
-    pub fn occupier_of(&self, w: World) -> Option<PlayerIndex> {
+    pub fn occupier_of(&self, w: World) -> Option<PlayerId> {
         let hw_occupation = self.board.homeworld_occupation.keys().find(|hw| hw.world() == w).copied();
         match hw_occupation {
             Some(hw) => self.get_player(self.board.homeworld_occupation.get(&hw).copied()),
@@ -104,7 +104,7 @@ impl Game {
         }
     }
 
-    pub fn owner_of_location(&self, stronghold: Location) -> Option<PlayerIndex> {
+    pub fn owner_of_location(&self, stronghold: Location) -> Option<PlayerId> {
         match self.board.stronghold_ownership.get(&stronghold) {
             Some(value) => self.get_player(Some(*value)),
             None => None,

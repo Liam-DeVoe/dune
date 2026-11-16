@@ -8,7 +8,7 @@ pub struct GameStatus {
     pub waiting_in_sequence: Vec<SequenceElement>,
     /// `Option` elements: `PlayersThatNeedToMakeABattlePlan`/`PlayersThatNeedToCallTraitor` add
     /// `AggressivePlayer!`/`DefendingPlayer!`, which can be null (the `!` does not throw).
-    pub waiting_for_players: Vec<Option<PlayerIndex>>,
+    pub waiting_for_players: Vec<Option<PlayerId>>,
     pub flash_info: Vec<FlashInfo>,
     pub timed_event: Option<GameEvent>,
     pub waiting_for_host: bool,
@@ -17,12 +17,12 @@ pub struct GameStatus {
 }
 
 impl GameStatus {
-    pub fn for_player(message_when_awaited: Message, message_when_waiting: Message, waiting_for_player: Option<PlayerIndex>, timed_event: Option<GameEvent>) -> Self {
+    pub fn for_player(message_when_awaited: Message, message_when_waiting: Message, waiting_for_player: Option<PlayerId>, timed_event: Option<GameEvent>) -> Self {
         let list = if waiting_for_player.is_some() { vec![waiting_for_player] } else { vec![] };
         Self::for_players(message_when_awaited, message_when_waiting, list, timed_event)
     }
 
-    pub fn for_players(message_when_awaited: Message, message_when_waiting: Message, waiting_for_players: Vec<Option<PlayerIndex>>, timed_event: Option<GameEvent>) -> Self {
+    pub fn for_players(message_when_awaited: Message, message_when_waiting: Message, waiting_for_players: Vec<Option<PlayerId>>, timed_event: Option<GameEvent>) -> Self {
         GameStatus {
             highlighted_territories: vec![],
             waiting_in_sequence: vec![],
@@ -61,24 +61,24 @@ impl GameStatus {
         }
     }
 
-    pub fn waiting_for_me(&self, player: PlayerIndex, is_host: bool) -> bool {
+    pub fn waiting_for_me(&self, player: PlayerId, is_host: bool) -> bool {
         (self.waiting_for_host && is_host)
             || self.waiting_for_players.contains(&Some(player))
             || self.waiting_in_sequence.iter().any(|se| se.player == Some(player) && se.has_turn)
     }
 
-    pub fn waiting_for_others(&self, player: PlayerIndex, is_host: bool) -> bool {
+    pub fn waiting_for_others(&self, player: PlayerId, is_host: bool) -> bool {
         !self.waiting_for_me(player, is_host)
     }
 
-    pub fn get_message(&self, player: PlayerIndex, is_host: bool) -> Message {
+    pub fn get_message(&self, player: PlayerId, is_host: bool) -> Message {
         if self.waiting_for_me(player, is_host) { self.description_when_awaited.clone() } else { self.description_when_waiting.clone() }
     }
 
     /// `&mut Game` because `Game.NextPlayerToBattle` advances `BattleSequence` when read.
     /// The arms below are checked in order; each guard is evaluated
     /// only when its pattern matches, and again for each later arm with the same phase.
-    pub fn determine_status(game: &mut Game, me_: Option<PlayerIndex>, is_player: bool) -> GameStatus {
+    pub fn determine_status(game: &mut Game, me_: Option<PlayerId>, is_player: bool) -> GameStatus {
         let phase = game.turn.current_phase;
         let result = match phase {
             /* Phase Beginnings */
@@ -139,7 +139,7 @@ impl GameStatus {
 
             Phase::AssigningInitialSkills | Phase::AssigningSkill => {
                 let g: &Game = game;
-                let players: Vec<Option<PlayerIndex>> = (0..g.players.len()).filter(|i| g.players[*i].skills_to_choose_from.len() > 0).map(|i| Some(g.player_at(i))).collect();
+                let players: Vec<Option<PlayerId>> = (0..g.players.len()).filter(|i| g.players[*i].skills_to_choose_from.len() > 0).map(|i| Some(g.player_at(i))).collect();
                 Self::players_status("You may now assign a skill to a leader.", "Waiting for factions to assign leader skills...", players, None)
             }
 
@@ -269,7 +269,7 @@ impl GameStatus {
 
             Phase::NexusCards => {
                 let g: &Game = game;
-                let players: Vec<Option<PlayerIndex>> = g.player_indices().filter(|p| NexusCardDrawn::applicable(g, *p)).map(Some).collect();
+                let players: Vec<Option<PlayerId>> = g.player_indices().filter(|p| NexusCardDrawn::applicable(g, *p)).map(Some).collect();
                 Self::players_status("Do you wish to draw a Nexus card in case you have none or have your own faction?", "Factions are thinking about drawing Nexus cards...", players, None)
             }
 
@@ -645,7 +645,7 @@ impl GameStatus {
     }
 
     /// Shared by two bidding arms.
-    fn players_with_room_and_no_bid(g: &Game) -> Vec<Option<PlayerIndex>> {
+    fn players_with_room_and_no_bid(g: &Game) -> Vec<Option<PlayerId>> {
         (0..g.players.len())
             .map(|i| g.player_at(i))
             .filter(|p| g.player(*p).has_room_for_cards(g) && !g.bidding.bids.contains_key_opt(g.player(*p).faction))
@@ -661,7 +661,7 @@ impl GameStatus {
         Some(f)
     }
 
-    pub fn player_and_ally(g: &Game, f: Faction) -> Vec<Option<PlayerIndex>> {
+    pub fn player_and_ally(g: &Game, f: Faction) -> Vec<Option<PlayerId>> {
         let Some(player) = g.get_player(Some(f)) else { return vec![] };
 
         let mut result = vec![Some(player)];
@@ -737,7 +737,7 @@ impl GameStatus {
         }
     }
 
-    pub fn determine_battle_status(game: &mut Game, me_: Option<PlayerIndex>) -> GameStatus {
+    pub fn determine_battle_status(game: &mut Game, me_: Option<PlayerId>) -> GameStatus {
         if game.battle.current_battle.is_none() {
             let a = express!("Please choose whom and where to battle.");
             let next = game.next_player_to_battle().expect("next player to battle");
@@ -772,7 +772,7 @@ impl GameStatus {
         Self::players_status(message.clone(), message, to_make_plan, latest_battle_event)
     }
 
-    pub fn players_that_have_not_acted_or_passed(game: &Game) -> Vec<Option<PlayerIndex>> {
+    pub fn players_that_have_not_acted_or_passed(game: &Game) -> Vec<Option<PlayerId>> {
         (0..game.players.len())
             .map(|i| game.player_at(i))
             .filter(|p| !game.turn.has_acted_or_passed.contains_opt(game.player(*p).faction))
@@ -780,7 +780,7 @@ impl GameStatus {
             .collect()
     }
 
-    pub fn players_that_need_to_make_a_battle_plan(game: &Game) -> Vec<Option<PlayerIndex>> {
+    pub fn players_that_need_to_make_a_battle_plan(game: &Game) -> Vec<Option<PlayerId>> {
         let mut result = vec![];
         // `AggressivePlayer!` does not throw: a null player becomes a null element.
         if game.battle.aggressor_plan.is_none() {
@@ -792,7 +792,7 @@ impl GameStatus {
         result
     }
 
-    pub fn players_that_need_to_call_traitor(game: &Game) -> Vec<Option<PlayerIndex>> {
+    pub fn players_that_need_to_call_traitor(game: &Game) -> Vec<Option<PlayerId>> {
         let mut result = vec![];
         if game.battle.aggressor_traitor_action.is_none() {
             result.push(game.battle.current_battle.as_ref().expect("current battle").aggressive_player(game));
@@ -815,7 +815,7 @@ impl GameStatus {
         Self::for_host(a, w, timed_event)
     }
 
-    pub fn players_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_players: Vec<Option<PlayerIndex>>, timed_event: Option<GameEvent>) -> GameStatus {
+    pub fn players_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_players: Vec<Option<PlayerId>>, timed_event: Option<GameEvent>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         Self::for_players(a, w, waiting_for_players, timed_event)
@@ -829,11 +829,11 @@ impl GameStatus {
     pub fn factions_status(game: &Game, message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_factions: &[Faction], timed_event: Option<GameEvent>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
-        let players: Vec<Option<PlayerIndex>> = waiting_for_factions.iter().filter_map(|f| game.get_player(Some(*f))).map(Some).collect();
+        let players: Vec<Option<PlayerId>> = waiting_for_factions.iter().filter_map(|f| game.get_player(Some(*f))).map(Some).collect();
         Self::for_players(a, w, players, timed_event)
     }
 
-    pub fn player_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_player: Option<PlayerIndex>, timed_event: Option<GameEvent>) -> GameStatus {
+    pub fn player_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_player: Option<PlayerId>, timed_event: Option<GameEvent>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         Self::for_player(a, w, waiting_for_player, timed_event)

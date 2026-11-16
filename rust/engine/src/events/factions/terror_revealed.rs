@@ -141,12 +141,12 @@ impl TerrorRevealed {
         }
     }
 
-    pub fn max_amount_of_forces_in_sneak_attack(game: &Game, p: PlayerIndex) -> i32 {
+    pub fn max_amount_of_forces_in_sneak_attack(game: &Game, p: PlayerId) -> i32 {
         std::cmp::min(5, game.player(p).forces_in_reserve())
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_sneak_attack_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_sneak_attack_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         TerrorRevealed::get_territory(g)
             .expect("territory")
             .locations()
@@ -155,7 +155,7 @@ impl TerrorRevealed {
             .filter(move |l| TerrorRevealed::open_despite_ally_and_storm_and_occupancy(g, p, *l))
     }
 
-    pub fn open_despite_ally_and_storm_and_occupancy(g: &Game, p: PlayerIndex, l: Location) -> bool {
+    pub fn open_despite_ally_and_storm_and_occupancy(g: &Game, p: PlayerId, l: Location) -> bool {
         let pl = g.player(p);
         g.is_not_full(p, l)
             && l.sector(&g.board.map) != g.board.sector_in_storm

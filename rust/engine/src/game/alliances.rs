@@ -83,7 +83,7 @@ impl Game {
 
     pub fn break_all_alliances(&mut self) {
         // ToList: snapshot, then re-check HasAlly per player.
-        let players: Vec<PlayerIndex> =
+        let players: Vec<PlayerId> =
             self.player_indices().filter(|p| self.player(*p).has_ally()).collect();
         for p in players {
             if self.player(p).has_ally() {
@@ -157,7 +157,7 @@ impl Game {
         }
     }
 
-    pub fn resources_your_ally_can_pay(&self, p: PlayerIndex) -> i32 {
+    pub fn resources_your_ally_can_pay(&self, p: PlayerId) -> i32 {
         let Some(value) = self.alliances.permitted_use_of_ally_spice.get_opt(self.player(p).faction).copied() else { return 0 };
         let ally = self.get_player(self.player(p).ally);
         match ally {

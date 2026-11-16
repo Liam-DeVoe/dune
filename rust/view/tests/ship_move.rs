@@ -64,11 +64,11 @@ fn names<T: ToString>(v: impl IntoIterator<Item = T>) -> Vec<String> {
     v.into_iter().map(|x| x.to_string()).collect()
 }
 
-fn opts(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
+fn opts(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
     options(game, p, draft, d).expect("a ship-and-move type").expect("the builder does not throw")
 }
 
-fn forces_at(game: &Game, p: PlayerIndex, l: Location) -> ForcesAt {
+fn forces_at(game: &Game, p: PlayerId, l: Location) -> ForcesAt {
     ForcesAt { location: l.id(), forces: game.player(p).forces_in(Some(l)), special_forces: game.player(p).special_forces_in(Some(l)) }
 }
 
@@ -83,7 +83,7 @@ impl Seen {
 }
 
 /// Checks the form of `t` for player `p` in this state: default draft and dependent drafts.
-fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen: &mut Seen) {
+fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, seen: &mut Seen) {
     let f = game.player(p).faction;
     let draft = default_draft(game, p, f, t).unwrap_or_else(|| panic!("{} has a default draft", t.name()));
     let o = opts(game, p, &draft, d);
@@ -244,7 +244,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
 }
 
 /// The maximum forces and special forces a draft may ship.
-fn shipment_max(game: &Game, p: PlayerIndex, s: &Shipment, special: bool) -> i32 {
+fn shipment_max(game: &Game, p: PlayerId, s: &Shipment, special: bool) -> i32 {
     match s.shipment_type {
         ShipmentType::ShipmentNormal => Shipment::valid_max_normal_shipment_forces(game, p, special, s.no_field_value()),
         ShipmentType::ShipmentRicheseSecretAlly => Shipment::valid_max_secret_ally_shipment_forces(game, p, special),
@@ -254,7 +254,7 @@ fn shipment_max(game: &Game, p: PlayerIndex, s: &Shipment, special: bool) -> i32
     }
 }
 
-fn check_shipment_draft(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentOptions) {
+fn check_shipment_draft(game: &Game, p: PlayerId, s: &Shipment, o: &ShipmentOptions) {
     let pl = game.player(p);
     let cross = Shipment::may_ship_cross_planet(game, p);
     assert_eq!(o.may_ship_cross_planet, cross);
@@ -297,7 +297,7 @@ fn shipment_draft(game: &Game, f: Faction, ty: ShipmentType, from: Option<Locati
     s
 }
 
-fn check_shipment(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentOptions, d: &dyn Describer) {
+fn check_shipment(game: &Game, p: PlayerId, s: &Shipment, o: &ShipmentOptions, d: &dyn Describer) {
     let pl = game.player(p);
     let f = pl.faction;
     let cross = Shipment::may_ship_cross_planet(game, p);
@@ -360,7 +360,7 @@ fn check_shipment(game: &Game, p: PlayerIndex, s: &Shipment, o: &ShipmentOptions
 }
 
 /// The placement forms: sources, then each source with all its forces selected.
-fn check_placement(game: &Game, p: PlayerIndex, o: &PlacementOptions, t: GameEventType) {
+fn check_placement(game: &Game, p: PlayerId, o: &PlacementOptions, t: GameEventType) {
     let pl = game.player(p);
     let f = pl.faction;
     let sources: Vec<Location> = PlacementEvent::valid_movement_sources(game, p)
@@ -430,7 +430,7 @@ fn placement_draft(game: &Game, f: Faction, t: GameEventType, forces: &IndexMap<
     }
 }
 
-fn check_ride(game: &Game, p: PlayerIndex, o: &PlacementOptions, d: &dyn Describer) {
+fn check_ride(game: &Game, p: PlayerId, o: &PlacementOptions, d: &dyn Describer) {
     let pl = game.player(p);
     let to_ride = FremenRidesMonster::to_ride(game);
     let sources: Vec<Location> = if to_ride.is_some() { FremenRidesMonster::valid_sources(game).collect() } else { vec![] };
@@ -460,7 +460,7 @@ fn fixtures() {
     for name in fixtures {
         // Fixtures before the lowest version the scene page takes don't replay here either.
         let Ok(mut r) = std::panic::catch_unwind(|| load(&name)) else { continue };
-        let players: Vec<PlayerIndex> = r.game.player_indices().collect();
+        let players: Vec<PlayerId> = r.game.player_indices().collect();
         for p in players {
             for t in r.game.get_applicable_events(Some(p), true) {
                 if TYPES.contains(&t) {
@@ -483,7 +483,7 @@ fn bot_games() {
         let mut r = ViewReplica::new(trace.version);
         for e in &trace.events {
             r.apply(e).unwrap();
-            let players: Vec<PlayerIndex> = r.game.player_indices().collect();
+            let players: Vec<PlayerId> = r.game.player_indices().collect();
             for p in players {
                 for t in r.game.get_applicable_events(Some(p), false) {
                     if TYPES.contains(&t) {
@@ -542,7 +542,7 @@ fn view_and_draft_query() {
 
 /// The draft the options carry for `draft`, read back as an event, after checking that the
 /// validation next to the options is that draft's.
-fn adjusted(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> GameEvent {
+fn adjusted(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> GameEvent {
     let (o, validation) = options_and_validation(game, p, draft, d).expect("a ship-and-move type");
     let o = o.expect("the builder does not throw");
     let value = serde_json::to_value(&o).unwrap();
@@ -554,7 +554,7 @@ fn adjusted(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -
 }
 
 /// Sends drafts whose inputs the form would change, and checks the adjusted drafts.
-fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) {
+fn check_adjustments(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) {
     let pl = game.player(p);
     let f = pl.faction;
     match draft {
@@ -804,7 +804,7 @@ fn as_advisors_of(e: &GameEvent) -> bool {
 
 /// The shipment's pinned panel: a draft with every optional input set comes back with the
 /// inputs the panel would not offer dropped.
-fn check_shipment_adjustments(game: &Game, p: PlayerIndex, d: &dyn Describer) {
+fn check_shipment_adjustments(game: &Game, p: PlayerId, d: &dyn Describer) {
     let pl = game.player(p);
     let f = pl.faction;
     let cross = Shipment::may_ship_cross_planet(game, p);

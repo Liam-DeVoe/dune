@@ -375,7 +375,7 @@ impl Shipment {
         None
     }
 
-    pub fn homeworlds_to_ship_from(game: &Game, p: PlayerIndex, special: bool) -> Vec<Homeworld> {
+    pub fn homeworlds_to_ship_from(game: &Game, p: PlayerId, special: bool) -> Vec<Homeworld> {
         let pl = game.player(p);
         if special {
             pl.home_worlds.iter().copied().filter(|hw| pl.special_forces_in(Some(hw.location())) > 0).collect()
@@ -384,7 +384,7 @@ impl Shipment {
         }
     }
 
-    pub fn fremen_spawn_locations(g: &Game, p: PlayerIndex) -> Vec<Location> {
+    pub fn fremen_spawn_locations(g: &Game, p: PlayerId) -> Vec<Location> {
         let m = &g.board.map;
         g.board.map
             .locations(g.applicable(Rule::Homeworlds))
@@ -417,7 +417,7 @@ impl Shipment {
             .collect()
     }
 
-    pub fn determine_cost(g: &Game, p: PlayerIndex, s: &Shipment) -> i32 {
+    pub fn determine_cost(g: &Game, p: PlayerId, s: &Shipment) -> i32 {
         match s.to {
             None => 0,
             Some(to) => {
@@ -447,7 +447,7 @@ impl Shipment {
         (self.initiator() != Some(Faction::Richese) && self.is_no_field()) || self.use_richese_secret_ally
     }
 
-    pub fn determine_cost_of_forces(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32, to: Location, karama_shipment: bool, back_to_reserves: bool, site_to_site: bool, no_field_by_richese: bool, no_field_by_non_richese: bool) -> i32 {
+    pub fn determine_cost_of_forces(g: &Game, p: PlayerId, forces: i32, special_forces: i32, to: Location, karama_shipment: bool, back_to_reserves: bool, site_to_site: bool, no_field_by_richese: bool, no_field_by_non_richese: bool) -> i32 {
         let mut total_forces = forces + special_forces;
         let no_field_or_secret_ally = no_field_by_richese || no_field_by_non_richese;
 
@@ -481,7 +481,7 @@ impl Shipment {
         cost_of_shipment.ceil() as i32
     }
 
-    pub fn valid_max_normal_shipment_forces(game: &Game, p: PlayerIndex, special_forces: bool, used_no_field: i32) -> i32 {
+    pub fn valid_max_normal_shipment_forces(game: &Game, p: PlayerId, special_forces: bool, used_no_field: i32) -> i32 {
         let pl = game.player(p);
         let no_field_max = if used_no_field < 0 || pl.faction == Some(Faction::Richese) { i32::MAX } else { used_no_field };
         if special_forces {
@@ -495,7 +495,7 @@ impl Shipment {
         if faction == Faction::Richese && no_field_value >= 0 { 1 } else { 0 }
     }
 
-    pub fn valid_max_secret_ally_shipment_forces(game: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
+    pub fn valid_max_secret_ally_shipment_forces(game: &Game, p: PlayerId, special_forces: bool) -> i32 {
         let pl = game.player(p);
         if special_forces {
             std::cmp::min(pl.special_forces_in_reserve(), 5)
@@ -504,7 +504,7 @@ impl Shipment {
         }
     }
 
-    pub fn valid_max_shipment_back_forces(game: &Game, p: PlayerIndex, special_forces: bool, source: Option<Location>) -> i32 {
+    pub fn valid_max_shipment_back_forces(game: &Game, p: PlayerId, special_forces: bool, source: Option<Location>) -> i32 {
         if source.is_none() {
             return 0;
         }
@@ -512,7 +512,7 @@ impl Shipment {
         if special_forces { pl.special_forces_in(source) } else { pl.forces_in(source) }
     }
 
-    pub fn valid_max_shipment_site_to_site_forces(game: &Game, p: PlayerIndex, special_forces: bool, source: Option<Location>) -> i32 {
+    pub fn valid_max_shipment_site_to_site_forces(game: &Game, p: PlayerId, special_forces: bool, source: Option<Location>) -> i32 {
         if source.is_none() {
             return 0;
         }
@@ -522,7 +522,7 @@ impl Shipment {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_shipment_locations(g: &Game, p: PlayerIndex, cross_planet: bool, richese_secret_ally: bool) -> impl Iterator<Item = Location> {
+    pub fn valid_shipment_locations(g: &Game, p: PlayerId, cross_planet: bool, richese_secret_ally: bool) -> impl Iterator<Item = Location> {
         use either::Either;
         if !g.player(p).is(Faction::Fremen) || richese_secret_ally {
             return Either::Left(Shipment::regular_shipment_locations(g, p, cross_planet));
@@ -541,7 +541,7 @@ impl Shipment {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn regular_shipment_locations(g: &Game, p: PlayerIndex, cross_planet: bool) -> impl Iterator<Item = Location> {
+    pub fn regular_shipment_locations(g: &Game, p: PlayerId, cross_planet: bool) -> impl Iterator<Item = Location> {
         g.board.map
             .locations(g.applicable(Rule::Homeworlds))
             .filter(move |l| {
@@ -555,7 +555,7 @@ impl Shipment {
             })
     }
 
-    pub fn is_either_valid_homeworld_or_no_homeworld(g: &Game, p: PlayerIndex, l: Location, from_planet: bool) -> bool {
+    pub fn is_either_valid_homeworld_or_no_homeworld(g: &Game, p: PlayerId, l: Location, from_planet: bool) -> bool {
         let Some(hw) = l.as_homeworld() else { return true };
         let pl = g.player(p);
 
@@ -585,7 +585,7 @@ impl Shipment {
         }
     }
 
-    pub fn valid_no_field_values(g: &Game, p: PlayerIndex) -> Vec<i32> {
+    pub fn valid_no_field_values(g: &Game, p: PlayerId) -> Vec<i32> {
         let pl = g.player(p);
         if (pl.faction != Some(Faction::Richese) || g.prevented(FactionAdvantage::RicheseNofield)) && (pl.ally != Some(Faction::Richese) || !g.alliances.richese_allows_use_of_no_field) {
             return vec![];
@@ -604,7 +604,7 @@ impl Shipment {
         result
     }
 
-    pub fn valid_cunning_no_field_values(g: &Game, p: PlayerIndex, value_of_normal_no_field: i32) -> Vec<i32> {
+    pub fn valid_cunning_no_field_values(g: &Game, p: PlayerId, value_of_normal_no_field: i32) -> Vec<i32> {
         let pl = g.player(p);
         if (pl.faction != Some(Faction::Richese) || g.prevented(FactionAdvantage::RicheseNofield)) && (pl.ally != Some(Faction::Richese) || !g.alliances.richese_allows_use_of_no_field) {
             return vec![];
@@ -623,7 +623,7 @@ impl Shipment {
         result
     }
 
-    pub fn valid_karma_cards(g: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn valid_karma_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         let mut result = Shipment::valid_own_karma_cards(g, p);
 
         let ally_card = Shipment::valid_ally_karma_card(g, p);
@@ -634,19 +634,19 @@ impl Shipment {
         result
     }
 
-    pub fn valid_own_karma_cards(g: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn valid_own_karma_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         Karma::valid_karma_cards(g, p).collect()
     }
 
-    pub fn valid_ally_karma_card(g: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
+    pub fn valid_ally_karma_card(g: &Game, p: PlayerId) -> Option<TreacheryCard> {
         g.get_permitted_use_of_ally_karma(g.player(p).faction.expect("faction"))
     }
 
-    pub fn can_karma(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_karma(g: &Game, p: PlayerId) -> bool {
         !Shipment::valid_karma_cards(g, p).is_empty()
     }
 
-    pub fn may_smuggle(g: &Game, p: PlayerIndex, l: Option<Location>) -> bool {
+    pub fn may_smuggle(g: &Game, p: PlayerId, l: Option<Location>) -> bool {
         match l {
             None => false,
             Some(l) => {
@@ -657,25 +657,25 @@ impl Shipment {
         }
     }
 
-    pub fn may_use_no_field(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_use_no_field(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         (pl.faction == Some(Faction::Richese) && !g.prevented(FactionAdvantage::RicheseNofield)) || (pl.ally == Some(Faction::Richese) && g.alliances.richese_allows_use_of_no_field)
     }
 
-    pub fn may_use_cunning_no_field(game: &Game, p: PlayerIndex) -> bool {
+    pub fn may_use_cunning_no_field(game: &Game, p: PlayerId) -> bool {
         game.player(p).faction == Some(Faction::Richese) && NexusPlayed::can_use_cunning(game, p)
     }
 
-    pub fn may_use_richese_secret_ally(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_use_richese_secret_ally(g: &Game, p: PlayerId) -> bool {
         g.player(p).nexus == Some(Faction::Richese) && NexusPlayed::can_use_secret_ally(g, p)
     }
 
-    fn initiated_current_guild_secret_ally(g: &Game, p: PlayerIndex) -> bool {
+    fn initiated_current_guild_secret_ally(g: &Game, p: PlayerId) -> bool {
         let e = g.turn.current_guild_secret_ally.clone().map(|e| e.into_event());
         g.player(p).initiated(e.as_ref())
     }
 
-    pub fn may_ship_cross_planet(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_ship_cross_planet(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildSpecialShipments))
             || (pl.ally == Some(Faction::Guild) && g.alliances.guild_allows_shipping_discount)
@@ -683,14 +683,14 @@ impl Shipment {
             || g.has_shipment_permission(p, ShipmentPermission::CROSS)
     }
 
-    pub fn may_ship_to_reserves(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_ship_to_reserves(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildSpecialShipments))
             || Shipment::initiated_current_guild_secret_ally(g, p)
             || g.has_shipment_permission(p, ShipmentPermission::TO_HOMEWORLD)
     }
 
-    pub fn may_ship_with_discount(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_ship_with_discount(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildShipmentsDiscount))
             || (pl.ally == Some(Faction::Guild) && g.alliances.guild_allows_shipping_discount && !g.prevented(FactionAdvantage::GuildShipmentsDiscountAlly))
@@ -698,7 +698,7 @@ impl Shipment {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_source_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_source_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.locations_with_any_forces_not_in_storm(p)
             .into_iter()
             .filter(move |x| !x.is_homeworld() || Shipment::may_ship_cross_planet(g, p) || g.has_shipment_permission(p, ShipmentPermission::CROSS))
@@ -894,7 +894,7 @@ impl Shipment {
         Player::move_special_forces(game, self.player(), from, to, self.special_force_amount);
     }
 
-    pub fn perform_normal_shipment(&self, game: &mut Game, initiator: PlayerIndex, to: Location, force_amount: i32, special_force_amount: i32) {
+    pub fn perform_normal_shipment(&self, game: &mut Game, initiator: PlayerId, to: Location, force_amount: i32, special_force_amount: i32) {
         let initiator_faction = game.player(initiator).faction;
         game.ship_move.bene_gesserit_may_accompany =
             (force_amount > 0 || special_force_amount > 0) && initiator_faction != Some(Faction::Fremen) && initiator_faction != Some(Faction::BeneGesserit);
@@ -991,7 +991,7 @@ impl Shipment {
         vec![]
     }
 
-    pub fn get_verbose_message(&self, game: &Game, cost: i32, guild_income: &MessagePart, owner_of_karma: Option<PlayerIndex>) -> Message {
+    pub fn get_verbose_message(&self, game: &Game, cost: i32, guild_income: &MessagePart, owner_of_karma: Option<PlayerId>) -> Message {
         if self.passed {
             return express!(self.initiator(), " pass shipment");
         }
@@ -1103,7 +1103,7 @@ impl Shipment {
         )
     }
 
-    pub fn karama_message(&self, _game: &Game, owner_of_karma: Option<PlayerIndex>) -> MessagePart {
+    pub fn karama_message(&self, _game: &Game, owner_of_karma: Option<PlayerId>) -> MessagePart {
         let karma_card = self.karma_card;
         express_part_if!(
             karma_card.is_some();

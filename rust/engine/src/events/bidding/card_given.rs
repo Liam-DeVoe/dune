@@ -28,7 +28,7 @@ impl CardGiven {
         None
     }
 
-    pub fn is_applicable(game: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(game: &Game, p: PlayerId) -> bool {
         game.player(p).has(game.bidding.card_that_must_be_kept_or_given_to_ally)
     }
 

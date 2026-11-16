@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 
 impl Game {
-    pub fn reveal_current_no_field(&mut self, player: PlayerIndex, in_location: Option<Location>) {
+    pub fn reveal_current_no_field(&mut self, player: PlayerId, in_location: Option<Location>) {
         if self.player(player).faction != Some(Faction::Richese) {
             return;
         }
@@ -46,7 +46,7 @@ impl Game {
         self.ship_move.current_no_field_value = -1;
     }
 
-    pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerIndex, in_territory: Territory) {
+    pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerId, in_territory: Territory) {
         if !self.player(player).is(Faction::Richese) {
             return;
         }
@@ -55,7 +55,7 @@ impl Game {
         }
     }
 
-    pub fn exchange_resources_in_bribe(&mut self, from: PlayerIndex, target: PlayerIndex, amount: i32) {
+    pub fn exchange_resources_in_bribe(&mut self, from: PlayerId, target: PlayerId, amount: i32) {
         {
             let p = self.player_mut(from);
             p.resources -= amount;
@@ -126,7 +126,7 @@ impl Game {
         }
     }
 
-    pub fn activate_banker(&mut self, player_who_paid: PlayerIndex) {
+    pub fn activate_banker(&mut self, player_who_paid: PlayerId) {
         if !self.turn.banker_was_used_this_phase {
             let banker = self.player_skilled_as(LeaderSkill::Banker);
             if let Some(banker) = banker {
@@ -149,7 +149,7 @@ impl Game {
         }
     }
 
-    pub fn play_nexus_card(&mut self, initiator: PlayerIndex, message_elements: Vec<Part>) {
+    pub fn play_nexus_card(&mut self, initiator: PlayerId, message_elements: Vec<Part>) {
         self.stone(Milestone::NexusPlayed);
 
         let type_of_nexus = if NexusPlayed::can_use_cunning(self, initiator) {

@@ -41,12 +41,12 @@ impl DiscoveryRevealed {
         None
     }
 
-    pub fn applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_main_phase == MainPhase::Collection && !Self::get_locations(g, p).next().is_none()
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn get_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn get_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.board.discoveries_on_planet
             .iter()
             .filter(move |(k, v)| g.collection.pending_discoveries.contains(&v.token) && g.player(p).occupies_territory(g, Some(k.territory())))

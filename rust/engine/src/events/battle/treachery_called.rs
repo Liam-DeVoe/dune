@@ -39,7 +39,7 @@ impl TreacheryCalled {
         None
     }
 
-    pub fn may_call_treachery(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_call_treachery(g: &Game, p: PlayerId) -> bool {
         if let (Some(aggressor_plan), Some(defender_plan)) = (&g.battle.aggressor_plan, &g.battle.defender_plan) {
             let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
             let pl = g.player(p);
@@ -73,7 +73,7 @@ impl TreacheryCalled {
 
     /// `h` is the opponent's hero, which can be null. Every `IsTraitor` implementation
     /// returns false for null.
-    pub fn has_traitor(g: &Game, p: PlayerIndex, h: Option<Hero>) -> bool {
+    pub fn has_traitor(g: &Game, p: PlayerId, h: Option<Hero>) -> bool {
         let pl = g.player(p);
         pl.traitors.iter().any(|t| h.is_some_and(|h| t.is_traitor(h)))
             || (h.is_some() && g.applicable(Rule::CapturedLeadersAreTraitorsToOwnFaction) && Some(h.expect("hero").faction()) == Some(pl.faction))

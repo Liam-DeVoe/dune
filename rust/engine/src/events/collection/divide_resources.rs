@@ -50,7 +50,7 @@ impl DivideResources {
         g.collection.collected_resources_to_be_divided.first().cloned()
     }
 
-    pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_phase == Phase::DividingCollectedResources
             && Some(Self::get_resources_to_be_divided(g).expect("resources to be divided").first_faction) == g.player(p).faction
     }

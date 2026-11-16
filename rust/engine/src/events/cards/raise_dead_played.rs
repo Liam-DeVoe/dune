@@ -105,11 +105,11 @@ impl RaiseDeadPlayed {
         None
     }
 
-    pub fn valid_heroes(game: &Game, player: PlayerIndex) -> Vec<Hero> {
+    pub fn valid_heroes(game: &Game, player: PlayerId) -> Vec<Hero> {
         game.killed_heroes(player)
     }
 
-    pub fn may_select_location_for_revived_forces(game: &Game, player: PlayerIndex, special_forces: i32) -> bool {
+    pub fn may_select_location_for_revived_forces(game: &Game, player: PlayerId, special_forces: i32) -> bool {
         let pl = game.player(player);
         pl.is(Faction::Fremen)
             && special_forces >= 1
@@ -212,7 +212,7 @@ impl RaiseDeadPlayed {
         self.try_get_message(game).expect("the message of an applicable RaiseDeadPlayed event")
     }
 
-    pub fn valid_max_amount(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
+    pub fn valid_max_amount(g: &Game, p: PlayerId, special_forces: bool) -> i32 {
         let pl = g.player(p);
         if special_forces {
             if pl.faction == Some(Faction::Emperor) || pl.faction == Some(Faction::Fremen) {

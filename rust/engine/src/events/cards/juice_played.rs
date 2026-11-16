@@ -27,7 +27,7 @@ impl JuicePlayed {
         None
     }
 
-    pub fn valid_types(g: &Game, p: PlayerIndex) -> Vec<JuiceType> {
+    pub fn valid_types(g: &Game, p: PlayerId) -> Vec<JuiceType> {
         let mut result = Vec::new();
 
         // `BattleWinner == Faction.None` is false while BattleWinner is null.
@@ -50,7 +50,7 @@ impl JuicePlayed {
         result
     }
 
-    pub fn can_be_played_by(g: &Game, player: PlayerIndex) -> bool {
+    pub fn can_be_played_by(g: &Game, player: PlayerId) -> bool {
         let applicable_phase = g.turn.current_main_phase == MainPhase::Bidding
             || g.turn.current_phase == Phase::BeginningOfShipAndMove
             || g.turn.current_phase == Phase::GuildShip

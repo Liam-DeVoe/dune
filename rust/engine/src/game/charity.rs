@@ -48,7 +48,7 @@ impl Game {
         1
     }
 
-    pub fn claim_charity(&mut self, player: PlayerIndex) {
+    pub fn claim_charity(&mut self, player: PlayerId) {
         let faction = self.player(player).faction;
         self.turn.has_acted_or_passed.push(faction.expect("faction"));
 
@@ -62,7 +62,7 @@ impl Game {
         self.stone(Milestone::CharityClaimed);
     }
 
-    pub fn give_charity(&mut self, to: PlayerIndex, basic_amount: i32) {
+    pub fn give_charity(&mut self, to: PlayerId, basic_amount: i32) {
         let mut homeworld_bonus = 0;
         if self.gets_extra_charity_and_free_revival_due_to_low_threshold(to) {
             homeworld_bonus = 1;

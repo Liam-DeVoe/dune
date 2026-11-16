@@ -67,11 +67,11 @@ impl LoserConcluded {
         None
     }
 
-    pub fn can_assassinate(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_assassinate(g: &Game, p: PlayerId) -> bool {
         g.battle.loser_may_try_to_assassinate && LoserConcluded::target_of_assassination(g, p).is_some()
     }
 
-    pub fn target_of_assassination(g: &Game, p: PlayerIndex) -> Option<Leader> {
+    pub fn target_of_assassination(g: &Game, p: PlayerId) -> Option<Leader> {
         let pl = g.player(p);
         pl.traitors
             .iter()
@@ -86,7 +86,7 @@ impl LoserConcluded {
     }
 
     /// `winner` can be null; it is only dereferenced when `target` is alive.
-    pub fn assassination_reward(game: &Game, winner: Option<PlayerIndex>, target: Leader) -> Option<i32> {
+    pub fn assassination_reward(game: &Game, winner: Option<PlayerId>, target: Leader) -> Option<i32> {
         if !game.is_alive(Hero::Leader(target)) || !game.player(winner.expect("winner")).leaders.contains(&target) {
             return None;
         }
@@ -101,13 +101,13 @@ impl LoserConcluded {
         g.battle.cards_to_be_discarded_by_loser_after_battle.clone()
     }
 
-    pub fn is_applicable(g: &Game, p: Option<PlayerIndex>) -> bool {
+    pub fn is_applicable(g: &Game, p: Option<PlayerId>) -> bool {
         let Some(p) = p else { return false };
         Some(g.player(p).faction) == g.battle.battle_loser
             && (!g.battle.cards_to_be_discarded_by_loser_after_battle.is_empty() || g.battle.loser_may_try_to_assassinate)
     }
 
-    pub fn may_use_karma_to_force_kept_cards(game: &Game, player: PlayerIndex) -> bool {
+    pub fn may_use_karma_to_force_kept_cards(game: &Game, player: PlayerId) -> bool {
         let pl = game.player(player);
         pl.faction == Some(Faction::Moritani)
             && !game.karma_prevented(pl.faction)

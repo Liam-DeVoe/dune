@@ -83,7 +83,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) ->
 
 /// The draft after one round of the form's adjustments, repeated until it is stable
 /// (each step can only lower an amount or clear a choice, so this ends quickly).
-pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
+pub fn normalize(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     let mut current = draft.clone();
     for _ in 0..8 {
         let next = normalize_once(game, p, &current);
@@ -95,7 +95,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     current
 }
 
-fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
+fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
     match draft {
         GameEvent::Revival(e) => {
@@ -194,7 +194,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
 }
 
 /// For the `Revival` form: how many revived forces and special forces may go to the planet.
-fn revival_on_planet(game: &Game, p: PlayerIndex, e: &Revival) -> (i32, i32) {
+fn revival_on_planet(game: &Game, p: PlayerId, e: &Revival) -> (i32, i32) {
     if Revival::valid_revived_force_locations(game, p).next().is_none() {
         return (0, 0);
     }
@@ -205,7 +205,7 @@ fn revival_on_planet(game: &Game, p: PlayerIndex, e: &Revival) -> (i32, i32) {
 }
 
 /// For the `RaiseDeadPlayed` form: how many revived special forces may go to the planet.
-fn raise_dead_on_planet(game: &Game, p: PlayerIndex, e: &RaiseDeadPlayed) -> i32 {
+fn raise_dead_on_planet(game: &Game, p: PlayerId, e: &RaiseDeadPlayed) -> i32 {
     if Revival::valid_revived_force_locations(game, p).next().is_none() {
         return 0;
     }
@@ -228,7 +228,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
     Some((Some(options), validate(game, draft, d)))
 }
 
-fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
+fn options(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
     let pl = game.player(p);
     let json = draft_json(draft);
     match draft {

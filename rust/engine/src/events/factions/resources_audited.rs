@@ -32,7 +32,7 @@ impl ResourcesAudited {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_factions(game: &Game, player: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_factions(game: &Game, player: PlayerId) -> impl Iterator<Item = Faction> {
         (0..game.players.len())
             .map(move |i| game.player_at(i))
             .filter(move |opp| {

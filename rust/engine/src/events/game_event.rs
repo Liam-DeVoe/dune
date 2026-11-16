@@ -10,7 +10,7 @@ pub struct GameEventBase {
     /// Interior mutability: the server sets this member after `Execute`, when the event is already in
     pub time: Cell<DateTimeOffset>,
     /// Interior mutability: written after the event is stored in game state.
-    pub player: Cell<Option<PlayerIndex>>,
+    pub player: Cell<Option<PlayerId>>,
 }
 
 impl Default for GameEventBase {
@@ -43,12 +43,12 @@ pub trait GameEventMethods {
     }
 
     /// `Player`, dereferenced: NullReferenceException when it was never set.
-    fn player(&self) -> PlayerIndex {
+    fn player(&self) -> PlayerId {
         self.base().player.get().expect("the event has a player")
     }
 
     /// `Player`, possibly null.
-    fn player_opt(&self) -> Option<PlayerIndex> {
+    fn player_opt(&self) -> Option<PlayerId> {
         self.base().player.get()
     }
 
@@ -143,7 +143,7 @@ pub trait GameEventMethods {
         game.player(self.player()).ally == Some(f)
     }
 
-    fn by_player(&self, _game: &Game, p: PlayerIndex) -> bool {
+    fn by_player(&self, _game: &Game, p: PlayerId) -> bool {
         // Player == p (reference equality; a null Player is never equal)
         self.player_opt() == Some(p)
     }
@@ -173,7 +173,7 @@ pub trait GameEventMethods {
         game.log_to(faction, expression);
     }
 
-    fn get_player(&self, game: &Game, f: Option<Faction>) -> Option<PlayerIndex> {
+    fn get_player(&self, game: &Game, f: Option<Faction>) -> Option<PlayerId> {
         game.get_player(f)
     }
 

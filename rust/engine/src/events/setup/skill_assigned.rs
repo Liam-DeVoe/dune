@@ -40,12 +40,12 @@ impl SkillAssigned {
         g.players.iter().any(|p| !p.skills_to_choose_from.is_empty())
     }
 
-    pub fn valid_skills(game: &Game, p: PlayerIndex) -> Vec<LeaderSkill> {
+    pub fn valid_skills(game: &Game, p: PlayerId) -> Vec<LeaderSkill> {
         game.player(p).skills_to_choose_from.clone()
     }
 
     /// Returns `Option` elements because `p.MostRecentlyRevivedLeader` can be null.
-    pub fn valid_leaders(g: &Game, p: PlayerIndex) -> Vec<Option<Leader>> {
+    pub fn valid_leaders(g: &Game, p: PlayerId) -> Vec<Option<Leader>> {
         if g.turn.current_phase == Phase::AssigningInitialSkills {
             return g.player(p).leaders.iter().copied().filter(|l| l.hero_type() != HeroType::Auditor).map(Some).collect();
         }

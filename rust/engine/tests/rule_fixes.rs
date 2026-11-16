@@ -26,7 +26,7 @@ fn submit(g: &mut Game, make: impl FnOnce(&Game) -> GameEvent) -> Option<String>
     e.execute(g, true, false).map(|m| m.plain_text())
 }
 
-fn idx(g: &Game, f: Faction) -> PlayerIndex {
+fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).expect("faction in game")
 }
 
@@ -332,9 +332,9 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
 }
 
 /// A revival fixture and a faction other than the Tleilaxu that may revive, given 30 spice.
-fn revival_fixture(name: &str) -> (Game, PlayerIndex) {
+fn revival_fixture(name: &str) -> (Game, PlayerId) {
     let mut g = fixture(name);
-    let candidates: Vec<PlayerIndex> = g.player_indices().filter(|p| g.player(*p).faction != Some(Faction::Tleilaxu)).collect();
+    let candidates: Vec<PlayerId> = g.player_indices().filter(|p| g.player(*p).faction != Some(Faction::Tleilaxu)).collect();
     let p = candidates
         .into_iter()
         .find(|p| {

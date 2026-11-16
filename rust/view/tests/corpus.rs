@@ -38,7 +38,7 @@ fn corpus() -> Vec<common::Trace> {
 fn viewers(game: &Game) -> Vec<ResolvedViewer> {
     let mut out: Vec<ResolvedViewer> = game
         .player_indices()
-        .map(|p| ResolvedViewer { player: Some(p), faction: game.player(p).faction, is_host: p.index == 0, is_observer: false })
+        .map(|p| ResolvedViewer { player: Some(p), faction: game.player(p).faction, is_host: p.index() == 0, is_observer: false })
         .collect();
     out.push(ResolvedViewer { player: None, faction: None, is_host: false, is_observer: true });
     out

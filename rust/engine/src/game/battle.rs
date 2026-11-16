@@ -139,7 +139,7 @@ impl Game {
         self.current_report_mut().territory = territory;
     }
 
-    pub fn assign_battle_wheels(&mut self, player1: Option<PlayerIndex>, player2: Option<PlayerIndex>) {
+    pub fn assign_battle_wheels(&mut self, player1: Option<PlayerId>, player2: Option<PlayerId>) {
         self.storm.has_battle_wheel.clear();
         if let Some(player1) = player1 {
             let f = self.player(player1).faction;
@@ -151,7 +151,7 @@ impl Game {
         }
     }
 
-    pub fn announce_hero_availability(&mut self, p: Option<PlayerIndex>) {
+    pub fn announce_hero_availability(&mut self, p: Option<PlayerId>) {
         let Some(p) = p else { return };
         if Battle::valid_battle_heroes(self, p).is_empty() {
             let f = self.player(p).faction;
@@ -416,7 +416,7 @@ impl Game {
         }
     }
 
-    pub fn activate_smuggler_if_applicable(&mut self, player: PlayerIndex, hero: Option<Hero>, opponent_hero: Option<Hero>, territory: Territory) {
+    pub fn activate_smuggler_if_applicable(&mut self, player: PlayerId, hero: Option<Hero>, opponent_hero: Option<Hero>, territory: Territory) {
         let Some(hero) = hero else { return };
 
         if self.skilled_as(hero, LeaderSkill::Smuggler) {
@@ -477,7 +477,7 @@ impl Game {
         }
     }
 
-    pub fn collect_tueks_sietch_bonus(&mut self, player: PlayerIndex, card: Option<TreacheryCard>) {
+    pub fn collect_tueks_sietch_bonus(&mut self, player: PlayerId, card: Option<TreacheryCard>) {
         if let Some(card) = card.filter(|c| c.type_() == TreacheryCardType::Useless) {
             let f = self.player(player).faction;
             let tueks = self.board.map.tueks_sietch();
@@ -625,7 +625,7 @@ impl Game {
         }
     }
 
-    pub fn return_captured_leader(&mut self, current_owner: PlayerIndex, to_return: Leader) {
+    pub fn return_captured_leader(&mut self, current_owner: PlayerId, to_return: Leader) {
         if let Some(value) = self.leaders.captured_leaders.get(&to_return).copied() {
             let original_player = self.get_player(Some(value)).expect("player");
             self.player_mut(original_player).leaders.push(to_return);
@@ -819,7 +819,7 @@ impl Game {
             && plan.defense().is_some_and(|d| d.is_defense())
     }
 
-    pub fn process_loser_losses(&mut self, territory: Territory, loser: PlayerIndex, loser_gambit: &Battle) -> GameResult {
+    pub fn process_loser_losses(&mut self, territory: Territory, loser: PlayerId, loser_gambit: &Battle) -> GameResult {
         let had_messiah_before_losses = self.player(loser).messiah_available(self);
         let force_supplier = Battle::determine_force_supplier(self, loser);
         self.process_ecaz_occupation_loser_losses(territory, loser);
@@ -836,7 +836,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn process_ecaz_occupation_winner_losses(&mut self, territory: Territory, winner: PlayerIndex) {
+    pub fn process_ecaz_occupation_winner_losses(&mut self, territory: Territory, winner: PlayerId) {
         if self.battle.current_ecaz_battle_contribution > 0 && self.player(winner).or_ally_is(Faction::Ecaz) {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return };
@@ -848,7 +848,7 @@ impl Game {
         }
     }
 
-    pub fn process_ecaz_occupation_loser_losses(&mut self, territory: Territory, loser: PlayerIndex) {
+    pub fn process_ecaz_occupation_loser_losses(&mut self, territory: Territory, loser: PlayerId) {
         if self.battle.current_ecaz_battle_contribution > 0 && self.player(loser).or_ally_is(Faction::Ecaz) {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return };
@@ -857,16 +857,16 @@ impl Game {
         }
     }
 
-    pub fn may_keep_cards_after_losing_battle(&self, p: PlayerIndex) -> bool {
+    pub fn may_keep_cards_after_losing_battle(&self, p: PlayerId) -> bool {
         (self.player(p).ally == Some(Faction::Moritani) && self.alliances.moritani_allows_keeping_cards)
             || (self.player(p).nexus == Some(Faction::Moritani) && NexusPlayed::can_use_secret_ally(self, p))
     }
 
-    pub fn dialled_resources_are_refunded(&self, p: PlayerIndex) -> bool {
+    pub fn dialled_resources_are_refunded(&self, p: PlayerId) -> bool {
         self.applicable(Rule::FremenAllyGetsDialedResourcesRefunded) && self.player(p).ally == Some(Faction::Fremen) && self.alliances.fremen_refunds_battle_dial
     }
 
-    pub fn pay_dialed_spice(&mut self, p: PlayerIndex, plan: &Battle, traitor_was_revealed: bool) {
+    pub fn pay_dialed_spice(&mut self, p: PlayerId, plan: &Battle, traitor_was_revealed: bool) {
         let mut paid_by_arrakeen: i32 = 0;
         let cost = plan.cost_with_arrakeen_share(self, &mut paid_by_arrakeen);
         let cost_to_choam = if self.player(p).ally == Some(Faction::Choam) { plan.ally_contribution_amount } else { 0 };
@@ -919,7 +919,7 @@ impl Game {
         }
     }
 
-    pub fn handle_choam_income(&mut self, paid_by: PlayerIndex, costs_excluding_payment_by_choam_ally: i32, traitor_was_revealed: bool) -> i32 {
+    pub fn handle_choam_income(&mut self, paid_by: PlayerId, costs_excluding_payment_by_choam_ally: i32, traitor_was_revealed: bool) -> i32 {
         let mut result = 0;
 
         let choam = self.get_player(Some(Faction::Choam));
@@ -951,12 +951,12 @@ impl Game {
         result
     }
 
-    pub fn process_winner_losses(&mut self, territory: Territory, winner: PlayerIndex, plan: &Battle, traitor_was_revealed: bool) {
+    pub fn process_winner_losses(&mut self, territory: Territory, winner: PlayerId, plan: &Battle, traitor_was_revealed: bool) {
         self.pay_dialed_spice(winner, plan, traitor_was_revealed);
         self.process_winner_force_losses(territory, winner, plan);
     }
 
-    pub fn process_winner_force_losses(&mut self, territory: Territory, winner: PlayerIndex, plan: &Battle) {
+    pub fn process_winner_force_losses(&mut self, territory: Territory, winner: PlayerId, plan: &Battle) {
         let force_supplier = Battle::determine_force_supplier(self, winner);
         self.process_ecaz_occupation_winner_losses(territory, winner);
 
@@ -1033,11 +1033,11 @@ impl Game {
         }
     }
 
-    pub fn may_substitute_force_losses(&self, p: PlayerIndex) -> bool {
+    pub fn may_substitute_force_losses(&self, p: PlayerId) -> bool {
         self.player(p).faction == Some(Faction::Ixian) && !self.prevented(FactionAdvantage::IxianReplacingSpecialForces)
     }
 
-    pub fn handle_force_losses(&mut self, territory: Territory, player: PlayerIndex, forces_lost: i32, special_forces_lost: i32) {
+    pub fn handle_force_losses(&mut self, territory: Territory, player: PlayerId, forces_lost: i32, special_forces_lost: i32) {
         let had_messiah_before_losses = self.player(player).messiah_available(self);
 
         Player::kill_forces_in_territory(self, player, territory, forces_lost, false, true);
@@ -1050,7 +1050,7 @@ impl Game {
         }
     }
 
-    pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: Option<TreacheryCardType>, winner: PlayerIndex, hero_value: i32) {
+    pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: Option<TreacheryCardType>, winner: PlayerId, hero_value: i32) {
         let winner_faction = self.player(winner).faction;
         let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction.expect("faction"));
         fact.hero = Some(killed_hero);
@@ -1065,7 +1065,7 @@ impl Game {
         pl.resources += hero_value;
     }
 
-    pub fn log_all_forces_lost(&mut self, player: PlayerIndex, territory: Territory) {
+    pub fn log_all_forces_lost(&mut self, player: PlayerId, territory: Territory) {
         let forces = self.player(player).forces_in_territory(Some(territory));
         let special_forces = self.player(player).special_forces_in_territory(Some(territory));
         let faction = self.player(player).faction;
@@ -1092,7 +1092,7 @@ impl Game {
         self.log(le![message]);
     }
 
-    pub fn log_losses(&mut self, player: PlayerIndex, forces_lost: i32, special_forces_lost: i32) {
+    pub fn log_losses(&mut self, player: PlayerId, forces_lost: i32, special_forces_lost: i32) {
         if forces_lost > 0 || special_forces_lost > 0 {
             let faction = self.player(player).faction;
             let force = self.player(player).force();
@@ -1145,7 +1145,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn one_traitor_called(&mut self, territory: Territory, winner: PlayerIndex, loser: PlayerIndex, loser_plan: &Battle, winner_plan: &Battle) -> GameResult {
+    pub fn one_traitor_called(&mut self, territory: Territory, winner: PlayerId, loser: PlayerId, loser_plan: &Battle, winner_plan: &Battle) -> GameResult {
         let Some(traitor) = loser_plan.hero else {
             game_error!("Traitor cannot be null in OneTraitorCalled");
         };
@@ -1211,7 +1211,7 @@ impl Game {
     }
 
     /// C# parity: never sets BattleWinner or BattleLoser.
-    pub fn two_traitors_called(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerIndex, defender: PlayerIndex, territory: Territory, agg_leader: Hero, def_leader: Hero) -> GameResult {
+    pub fn two_traitors_called(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Hero, def_leader: Hero) -> GameResult {
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
         self.log(le!["Treachery kills both ", def_leader, " and ", agg_leader]);
@@ -1250,7 +1250,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn lasgun_shield_explosion(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerIndex, defender: PlayerIndex, territory: Territory, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
+    pub fn lasgun_shield_explosion(&mut self, agg: &Battle, def: &Battle, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
         self.log(le!["A ", TreacheryCardType::Laser, "/", TreacheryCardType::Shield, " explosion occurs!"]);
@@ -1541,7 +1541,7 @@ impl Game {
     }
 
     /// Mutates `BattleSequence` when read.
-    pub fn next_player_to_battle(&mut self) -> Option<PlayerIndex> {
+    pub fn next_player_to_battle(&mut self) -> Option<PlayerId> {
         if self.battle.battle_sequence.is_none() {
             return None;
         }
@@ -1563,7 +1563,7 @@ impl Game {
         None
     }
 
-    pub fn auditee(&self) -> Option<PlayerIndex> {
+    pub fn auditee(&self) -> Option<PlayerId> {
         if self.applicable(Rule::ChoamAuditor) && !self.prevented(FactionAdvantage::ChoamAudit) {
             if self.battle.aggressor_plan.as_ref().is_some_and(|p| p.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor)) {
                 if let Some(defender_plan) = &self.battle.defender_plan {

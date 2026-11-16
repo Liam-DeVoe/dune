@@ -449,7 +449,7 @@ impl ClassicBot {
     /// have a Useless card to get rid of) whose occupant is a safe opponent for that.
     pub fn plan_dummy_attack(&self, game: &Game, min_resources_to_keep: i32) -> Option<PlannedShipment> {
         let me = self.player;
-        let target_where = |suitable_opponent: &dyn Fn(Option<PlayerIndex>) -> bool| {
+        let target_where = |suitable_opponent: &dyn Fn(Option<PlayerId>) -> bool| {
             self.valid_shipment_locations(game, false, false).find(|&l| {
                 game.player(me).any_forces_in_territory(Some(l.territory())) == 0
                     && self.ally_doesnt_block(game, l.territory())
@@ -628,7 +628,7 @@ impl ClassicBot {
 
     /// Attack the stronghold I can take most cheaply, preferring those of almost-winning opponents.
     pub fn plan_attack_weak_stronghold(&self, game: &Game, extra_forces: i32, min_resources_to_keep: i32, max_unsupported_forces: i32) -> Option<PlannedShipment> {
-        let dangerous_opponents: Vec<PlayerIndex> =
+        let dangerous_opponents: Vec<PlayerId> =
             self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
         let me = self.player;
@@ -671,7 +671,7 @@ impl ClassicBot {
     }
 
     /// `shipment_size` with everything in my reserves available.
-    pub fn shipment_size_from_reserves(&self, game: &Game, dial_needed: f32, dialling_for_battle: bool, location: Location, opponent_to_check: Option<PlayerIndex>, min_resources_to_keep: i32, max_unsupported_forces: i32, prefer_special_forces: bool) -> ShipmentSize {
+    pub fn shipment_size_from_reserves(&self, game: &Game, dial_needed: f32, dialling_for_battle: bool, location: Location, opponent_to_check: Option<PlayerId>, min_resources_to_keep: i32, max_unsupported_forces: i32, prefer_special_forces: bool) -> ShipmentSize {
         let p = game.player(self.player);
         self.shipment_size(
             game,
@@ -690,7 +690,7 @@ impl ClassicBot {
     /// How many forces to ship to `location`, and which No-Field to use, to bring `dial_needed`
     /// worth of strength there with the spice I can spend. The result's `shortage` is the dial
     /// still missing.
-    pub fn shipment_size(&self, game: &Game, dial_needed: f32, dialling_for_battle: bool, location: Location, opponent_to_check: Option<PlayerIndex>, forces_available: i32, special_forces_available: i32, min_resources_to_keep: i32, max_unsupported_forces: i32, prefer_special_forces: bool) -> ShipmentSize {
+    pub fn shipment_size(&self, game: &Game, dial_needed: f32, dialling_for_battle: bool, location: Location, opponent_to_check: Option<PlayerId>, forces_available: i32, special_forces_available: i32, min_resources_to_keep: i32, max_unsupported_forces: i32, prefer_special_forces: bool) -> ShipmentSize {
         let me = self.player;
         let opponent = opponent_to_check
             .or_else(|| self.opponents(game).into_iter().find(|o| game.player(*o).any_forces_in_territory(Some(location.territory())) > 0));
@@ -979,7 +979,7 @@ impl ClassicBot {
         max_dial_of_opponents + max_reinforced_dial - Self::max_dial(game, me, s.territory(), opponents.first().copied(), false)
     }
 
-    pub fn emperor_versus_fremen(&self, game: &Game, opponent: PlayerIndex) -> bool {
+    pub fn emperor_versus_fremen(&self, game: &Game, opponent: PlayerId) -> bool {
         self.faction(game) == Faction::Emperor && game.player(opponent).faction == Some(Faction::Fremen)
     }
 
@@ -993,7 +993,7 @@ impl ClassicBot {
     }
 
     /// The extra cost the bot assigns to attacking a bot that has no human ally.
-    pub fn determine_penalty(game: &Game, opponent: Option<PlayerIndex>) -> f32 {
+    pub fn determine_penalty(game: &Game, opponent: Option<PlayerId>) -> f32 {
         match opponent {
             Some(o)
                 if game.player(o).is_bot(game)
@@ -1023,7 +1023,7 @@ impl ClassicBot {
 
     /// An opponent with a living leader who is my traitor or face dancer, and no weapon I know of
     /// (unless I hold a Mercenary).
-    pub fn opponent_is_suitable_for_traitor_lure(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
+    pub fn opponent_is_suitable_for_traitor_lure(&self, game: &Game, opponent: Option<PlayerId>) -> bool {
         let Some(opponent) = opponent else { return false };
 
         let me = game.player(self.player);
@@ -1034,7 +1034,7 @@ impl ClassicBot {
     }
 
     /// An opponent I can lose a battle to without losing a leader, so I can discard a Useless card.
-    pub fn opponent_is_suitable_for_useless_card_dump_attack(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
+    pub fn opponent_is_suitable_for_useless_card_dump_attack(&self, game: &Game, opponent: Option<PlayerId>) -> bool {
         let Some(opponent) = opponent else { return false };
 
         !(game.applicable(Rule::HarkonnenCapturesOrKillsLeaders) && game.player(opponent).faction == Some(Faction::Harkonnen))
@@ -1098,7 +1098,7 @@ enum Funding {
 /// The inputs that stay fixed while `shipment_size` adds forces one by one.
 struct ForceSizing<'a> {
     game: &'a Game,
-    me: PlayerIndex,
+    me: PlayerId,
     location: Location,
     dial_needed: f32,
     max_unsupported_forces: i32,
@@ -1162,7 +1162,7 @@ impl ForceSizing<'_> {
 /// A planned shipment into a location an opponent occupies, sized to beat them.
 pub struct Attack {
     pub location: Location,
-    pub opponent: Option<PlayerIndex>,
+    pub opponent: Option<PlayerId>,
     pub dial_needed: f32,
     pub forces_to_ship: i32,
     pub special_forces_to_ship: i32,

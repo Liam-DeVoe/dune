@@ -30,7 +30,7 @@ pub struct Viewer {
 /// The viewer resolved against one game.
 #[derive(Clone, Copy, Debug)]
 pub struct ResolvedViewer {
-    pub player: Option<PlayerIndex>,
+    pub player: Option<PlayerId>,
     pub faction: Option<Faction>,
     pub is_host: bool,
     pub is_observer: bool,
@@ -63,7 +63,7 @@ impl Default for Seating {
 
 impl Seating {
     /// "Bot" for a bot, else the name of the user in the player's seat ("?" if it has none).
-    pub fn player_name(&self, game: &Game, p: PlayerIndex) -> String {
+    pub fn player_name(&self, game: &Game, p: PlayerId) -> String {
         if game.is_bot(p) {
             "Bot".to_string()
         } else {
@@ -133,7 +133,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
     }
 }
 
-fn public_player(game: &Game, s: &Seating, p: PlayerIndex) -> PublicPlayer {
+fn public_player(game: &Game, s: &Seating, p: PlayerId) -> PublicPlayer {
     let pl = game.player(p);
     let mut out = PublicPlayer {
         faction: name_or_absent(pl.faction),

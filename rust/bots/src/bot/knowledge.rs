@@ -62,18 +62,18 @@ impl ClassicBot {
     }
 
     /// Every player but me.
-    pub fn others(&self, game: &Game) -> Vec<PlayerIndex> {
+    pub fn others(&self, game: &Game) -> Vec<PlayerId> {
         let faction = self.faction(game);
         game.player_indices().filter(|p| game.player(*p).faction != Some(faction)).collect()
     }
 
     /// Every player but me and my ally.
-    pub fn opponents(&self, game: &Game) -> Vec<PlayerIndex> {
+    pub fn opponents(&self, game: &Game) -> Vec<PlayerId> {
         let (faction, ally) = (self.faction(game), self.ally(game));
         game.player_indices().filter(|p| game.player(*p).faction != Some(faction) && game.player(*p).faction != ally).collect()
     }
 
-    pub fn me_and_my_ally(&self, game: &Game) -> Vec<PlayerIndex> {
+    pub fn me_and_my_ally(&self, game: &Game) -> Vec<PlayerId> {
         let (faction, ally) = (self.faction(game), self.ally(game));
         game.player_indices().filter(|p| game.player(*p).faction == Some(faction) || game.player(*p).faction == ally).collect()
     }
@@ -94,7 +94,7 @@ impl ClassicBot {
         game.turn.current_turn >= game.maximum_turns() - 1
     }
 
-    pub fn opponents_to_ship_and_move(&self, game: &Game) -> Vec<PlayerIndex> {
+    pub fn opponents_to_ship_and_move(&self, game: &Game) -> Vec<PlayerId> {
         self.opponents(game)
             .into_iter()
             .filter(|p| !game.turn.has_acted_or_passed.contains_opt(game.player(*p).faction))
@@ -114,7 +114,7 @@ impl ClassicBot {
         self.opponents(game).into_iter().any(|o| game.meets_normal_victory_condition(o, true))
     }
 
-    pub fn is_winning(&self, game: &Game, p: PlayerIndex) -> bool {
+    pub fn is_winning(&self, game: &Game, p: PlayerId) -> bool {
         game.meets_normal_victory_condition(p, true)
     }
 
@@ -128,17 +128,17 @@ impl ClassicBot {
         game.battle.current_prescience.clone().filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
     }
 
-    pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerIndex) -> Option<ClairVoyanceQandA> {
+    pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerId) -> Option<ClairVoyanceQandA> {
         Self::clairvoyance_in_current_battle(game, player, Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle))
     }
 
-    pub fn player_clairvoyance_about_enemy_weapon_in_current_battle(game: &Game, player: PlayerIndex) -> Option<ClairVoyanceQandA> {
+    pub fn player_clairvoyance_about_enemy_weapon_in_current_battle(game: &Game, player: PlayerId) -> Option<ClairVoyanceQandA> {
         Self::clairvoyance_in_current_battle(game, player, Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle))
     }
 
     /// The answer to a clairvoyance about the current battle that `player` or their ally asked:
     /// `question`, or the question that covers both weapon and defense.
-    fn clairvoyance_in_current_battle(game: &Game, player: PlayerIndex, question: Option<ClairvoyanceQuestion>) -> Option<ClairVoyanceQandA> {
+    fn clairvoyance_in_current_battle(game: &Game, player: PlayerId, question: Option<ClairvoyanceQuestion>) -> Option<ClairVoyanceQandA> {
         let (Some(cv), Some(qna)) = (&game.turn.latest_clairvoyance, &game.turn.latest_clairvoyance_qn_a) else {
             return None;
         };
@@ -159,23 +159,23 @@ impl ClassicBot {
         self.faction(game) == Faction::BeneGesserit && game.applicable(Rule::BeneGesseritWorthlessAsKarma)
     }
 
-    pub fn cards_unknown_to_player(game: &Game, player: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn cards_unknown_to_player(game: &Game, player: PlayerId) -> Vec<TreacheryCard> {
         let known = game.known_cards(player);
         TreacheryCardManager::get_cards_in_play(game).filter(|c| !known.contains(c)).collect()
     }
 
-    pub fn opponent_cards_unknown_to_player(game: &Game, player: PlayerIndex, opponent: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn opponent_cards_unknown_to_player(game: &Game, player: PlayerId, opponent: PlayerId) -> Vec<TreacheryCard> {
         let known = game.known_cards(player);
         game.player(opponent).treachery_cards.iter().copied().filter(|c| !known.contains(c)).collect()
     }
 
-    pub fn is_known_to(game: &Game, player: PlayerIndex, card: TreacheryCard) -> bool {
+    pub fn is_known_to(game: &Game, player: PlayerId, card: TreacheryCard) -> bool {
         game.known_cards(player).contains(&card)
     }
 
     /// The cards of `player` that everyone knows of, and if they hold unknown cards, every card
     /// whose whereabouts `player` doesn't know.
-    pub fn cards_player_has_or_might_have(game: &Game, player: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn cards_player_has_or_might_have(game: &Game, player: PlayerId) -> Vec<TreacheryCard> {
         let known = game.known_cards(player);
         let hand = &game.player(player).treachery_cards;
         let mut result: Vec<TreacheryCard> = hand.iter().copied().filter(|c| known.contains(c)).collect();
@@ -185,12 +185,12 @@ impl ClassicBot {
         result
     }
 
-    pub fn known_cards_held_by_other_player(game: &Game, player: PlayerIndex, other_player: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn known_cards_held_by_other_player(game: &Game, player: PlayerId, other_player: PlayerId) -> Vec<TreacheryCard> {
         Self::known_opponent_cards(game, player, other_player)
     }
 
     /// How much I (or `for_whom`, as far as I know their hand) want `card`, from 0 to 5.
-    pub fn card_quality(&self, game: &Game, card: TreacheryCard, for_whom: Option<PlayerIndex>) -> i32 {
+    pub fn card_quality(&self, game: &Game, card: TreacheryCard, for_whom: Option<PlayerId>) -> i32 {
         use TreacheryCardType as T;
         let me = game.player(self.player);
         let mut other_cards: Vec<TreacheryCard> = match for_whom {
@@ -312,7 +312,7 @@ impl ClassicBot {
     }
 
     /// The first opponent that occupies `place`.
-    pub fn get_opponent_that_occupies(&self, game: &Game, place: impl Place) -> Option<PlayerIndex> {
+    pub fn get_opponent_that_occupies(&self, game: &Game, place: impl Place) -> Option<PlayerId> {
         let t = place.territory();
         self.opponents(game).into_iter().find(|o| game.player(*o).occupies_territory(game, Some(t)))
     }
@@ -376,13 +376,13 @@ impl ClassicBot {
     }
 
     /// Of the opponents of `player` that occupy `t`, the one with the highest dial.
-    pub fn occupying_opponent_in(&self, game: &Game, player: PlayerIndex, t: Territory) -> Option<PlayerIndex> {
+    pub fn occupying_opponent_in(&self, game: &Game, player: PlayerId, t: Territory) -> Option<PlayerId> {
         Self::occupying_opponents_in(game, player, t)
             .into_iter()
             .random_highest(&self.random, |p| Self::max_dial(game, *p, t, Some(player), false))
     }
 
-    pub fn occupying_opponents_in(game: &Game, player: PlayerIndex, place: impl Place) -> Vec<PlayerIndex> {
+    pub fn occupying_opponents_in(game: &Game, player: PlayerId, place: impl Place) -> Vec<PlayerId> {
         let t = place.territory();
         let me = game.player(player);
         game.player_indices()
@@ -527,7 +527,7 @@ impl ClassicBot {
     pub fn is_safe_and_nearby(&self, game: &Game, source: Location, destination: Location, b: &Battalion, may_fight: bool) -> bool {
         let t = destination.territory();
         let opponent = self.get_opponent_that_occupies(game, t);
-        let can_beat = |opponent: PlayerIndex| {
+        let can_beat = |opponent: PlayerId| {
             may_fight
                 && self.dial_needed_against(game, t, Some(opponent), false)
                     < Self::max_dial_of_battalion(game, self.resources(game), b, game.player(opponent).faction.expect("faction"))
@@ -594,7 +594,7 @@ impl ClassicBot {
         game: &Game,
         from: Location,
         battalion: &Battalion,
-        opponents: impl Fn() -> Vec<PlayerIndex>,
+        opponents: impl Fn() -> Vec<PlayerId>,
     ) -> Option<Location> {
         self.valid_movement_locations(game, from, battalion)
             .into_iter()
@@ -606,7 +606,7 @@ impl ClassicBot {
             .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
     }
 
-    pub fn is_winning_opponent(&self, game: &Game, p: PlayerIndex) -> bool {
+    pub fn is_winning_opponent(&self, game: &Game, p: PlayerId) -> bool {
         p != self.player && game.player(p).faction != self.ally(game) && game.meets_normal_victory_condition(p, true)
     }
 
@@ -616,7 +616,7 @@ impl ClassicBot {
 
     /// An opponent one victory point short of winning, who can still ship forces or holds two
     /// tech tokens.
-    pub fn is_almost_winning_opponent(&self, game: &Game, opponent: PlayerIndex) -> bool {
+    pub fn is_almost_winning_opponent(&self, game: &Game, opponent: PlayerId) -> bool {
         let o = game.player(opponent);
         opponent != self.player
             && Some(opponent) != self.allied_player(game)
@@ -626,11 +626,11 @@ impl ClassicBot {
                 || o.tech_tokens.len() >= 2)
     }
 
-    pub fn winning_opponents_i_wish_to_attack(&self, game: &Game, maximum_challenged_strongholds: i32, include_bots: bool) -> Vec<PlayerIndex> {
+    pub fn winning_opponents_i_wish_to_attack(&self, game: &Game, maximum_challenged_strongholds: i32, include_bots: bool) -> Vec<PlayerId> {
         self.opponents_i_wish_to_attack(game, maximum_challenged_strongholds, include_bots, |p| self.is_winning_opponent(game, p))
     }
 
-    pub fn almost_winning_opponents_i_wish_to_attack(&self, game: &Game, maximum_challenged_strongholds: i32, include_bots: bool) -> Vec<PlayerIndex> {
+    pub fn almost_winning_opponents_i_wish_to_attack(&self, game: &Game, maximum_challenged_strongholds: i32, include_bots: bool) -> Vec<PlayerId> {
         self.opponents_i_wish_to_attack(game, maximum_challenged_strongholds, include_bots, |p| self.is_almost_winning_opponent(game, p))
     }
 
@@ -639,8 +639,8 @@ impl ClassicBot {
         game: &Game,
         maximum_challenged_strongholds: i32,
         include_bots: bool,
-        threatening: impl Fn(PlayerIndex) -> bool,
-    ) -> Vec<PlayerIndex> {
+        threatening: impl Fn(PlayerId) -> bool,
+    ) -> Vec<PlayerId> {
         game.player_indices()
             .filter(|p| {
                 let pl = game.player(*p);
@@ -699,7 +699,7 @@ impl ClassicBot {
     }
 
     /// The strength `player` can put into a battle in `t` against `opponent` (Harkonnen if none).
-    pub fn max_dial(game: &Game, player: PlayerIndex, t: Territory, opponent: Option<PlayerIndex>, ignore_spice_dialing: bool) -> f32 {
+    pub fn max_dial(game: &Game, player: PlayerId, t: Territory, opponent: Option<PlayerId>, ignore_spice_dialing: bool) -> f32 {
         let p = game.player(player);
         let mut count_forces_for_richese = 0;
         if p.faction == Some(Faction::Richese) && p.special_forces_in_territory(Some(t)) > 0 {
@@ -736,7 +736,7 @@ impl ClassicBot {
 
     /// The strength of `forces` and `special_forces` of `p`, paying for as many as `resources`
     /// allow (special forces first); unpaid forces count half.
-    pub fn max_dial_of_forces(game: &Game, resources: i32, forces: i32, special_forces: i32, p: PlayerIndex, opponent_faction: Faction) -> f32 {
+    pub fn max_dial_of_forces(game: &Game, resources: i32, forces: i32, special_forces: i32, p: PlayerId, opponent_faction: Faction) -> f32 {
         let mut spice = if Battle::must_pay_for_any_forces_in_battle(game, p) { resources } else { 99 };
 
         let special_forces_at_full_strength = special_forces.min(spice);
@@ -758,12 +758,12 @@ impl ClassicBot {
     }
 
     /// Whether I come before `opponent` in this turn's player order.
-    pub fn i_will_be_aggressor_against(&self, game: &Game, opponent: Option<PlayerIndex>) -> bool {
+    pub fn i_will_be_aggressor_against(&self, game: &Game, opponent: Option<PlayerId>) -> bool {
         Self::will_be_aggressor(game, self.player, opponent)
     }
 
     /// Whether `player` comes before `opponent` in this turn's player order.
-    pub fn will_be_aggressor(game: &Game, player: PlayerIndex, opponent: Option<PlayerIndex>) -> bool {
+    pub fn will_be_aggressor(game: &Game, player: PlayerId, opponent: Option<PlayerId>) -> bool {
         let Some(opponent) = opponent else {
             return false;
         };
@@ -781,7 +781,7 @@ impl ClassicBot {
     }
 
     /// Whether `player` still has to ship this turn.
-    pub fn can_ship(game: &Game, player: PlayerIndex) -> bool {
+    pub fn can_ship(game: &Game, player: PlayerId) -> bool {
         game.turn.current_main_phase < MainPhase::ShipmentAndMove
             || (game.turn.current_main_phase == MainPhase::ShipmentAndMove && !game.turn.has_acted_or_passed.contains_opt(game.player(player).faction))
     }
@@ -791,7 +791,7 @@ impl ClassicBot {
     }
 
     /// The strength `opponent` can still ship into `to` with the spice they and their ally have.
-    pub fn max_reinforced_dial_to(game: &Game, player: PlayerIndex, opponent: PlayerIndex, to: Territory) -> f32 {
+    pub fn max_reinforced_dial_to(game: &Game, player: PlayerId, opponent: PlayerId, to: Territory) -> f32 {
         if !Self::can_ship(game, opponent) {
             return 0.0;
         }
@@ -848,43 +848,43 @@ impl ClassicBot {
         distinct(leaders)
     }
 
-    pub fn known_opponent_weapons(game: &Game, player: PlayerIndex, opponent: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn known_opponent_weapons(game: &Game, player: PlayerId, opponent: PlayerId) -> Vec<TreacheryCard> {
         Self::known_opponent_cards(game, player, opponent).into_iter().filter(|c| c.is_weapon()).collect()
     }
 
     /// The cards of `opponent` that `player` knows of.
-    pub fn known_opponent_cards(game: &Game, player: PlayerIndex, opponent: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn known_opponent_cards(game: &Game, player: PlayerId, opponent: PlayerId) -> Vec<TreacheryCard> {
         let known = game.known_cards(player);
         game.player(opponent).treachery_cards.iter().copied().filter(|c| known.contains(c)).collect()
     }
 
-    pub fn known_opponent_defenses(game: &Game, player: PlayerIndex, opponent: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn known_opponent_defenses(game: &Game, player: PlayerId, opponent: PlayerId) -> Vec<TreacheryCard> {
         Self::known_opponent_cards(game, player, opponent).into_iter().filter(|c| c.is_defense()).collect()
     }
 
-    pub fn defenses(game: &Game, player: PlayerIndex, using_this_weapon: Option<TreacheryCard>, territory: Option<Territory>) -> Vec<TreacheryCard> {
+    pub fn defenses(game: &Game, player: PlayerId, using_this_weapon: Option<TreacheryCard>, territory: Option<Territory>) -> Vec<TreacheryCard> {
         Battle::valid_defenses(game, player, using_this_weapon, territory, false).into_iter().flatten().collect()
     }
 
-    pub fn weapons(game: &Game, player: PlayerIndex, using_this_defense: Option<TreacheryCard>, using_this_hero: Option<Hero>, territory: Option<Territory>) -> Vec<TreacheryCard> {
+    pub fn weapons(game: &Game, player: PlayerId, using_this_defense: Option<TreacheryCard>, using_this_hero: Option<Hero>, territory: Option<Territory>) -> Vec<TreacheryCard> {
         Battle::valid_weapons(game, player, using_this_defense, using_this_hero, territory, false).into_iter().flatten().collect()
     }
 
     /// The first useless card `player` can play as a weapon.
-    pub fn useless_as_weapon(game: &Game, player: PlayerIndex, using_this_defense: Option<TreacheryCard>) -> Option<TreacheryCard> {
+    pub fn useless_as_weapon(game: &Game, player: PlayerId, using_this_defense: Option<TreacheryCard>) -> Option<TreacheryCard> {
         Self::weapons(game, player, using_this_defense, None, None).into_iter().find(|c| c.type_() == TreacheryCardType::Useless)
     }
 
     /// The last useless card `player` can play as a defense.
-    pub fn useless_as_defense(game: &Game, player: PlayerIndex, using_this_weapon: Option<TreacheryCard>) -> Option<TreacheryCard> {
+    pub fn useless_as_defense(game: &Game, player: PlayerId, using_this_weapon: Option<TreacheryCard>) -> Option<TreacheryCard> {
         Self::defenses(game, player, using_this_weapon, None).into_iter().rev().find(|c| c.type_() == TreacheryCardType::Useless)
     }
 
-    pub fn may_play_no_weapon(game: &Game, player: PlayerIndex, using_this_defense: Option<TreacheryCard>) -> bool {
+    pub fn may_play_no_weapon(game: &Game, player: PlayerId, using_this_defense: Option<TreacheryCard>) -> bool {
         Battle::valid_weapons(game, player, using_this_defense, None, None, true).iter().any(|c| c.is_none())
     }
 
-    pub fn may_play_no_defense(game: &Game, player: PlayerIndex, using_this_weapon: Option<TreacheryCard>) -> bool {
+    pub fn may_play_no_defense(game: &Game, player: PlayerId, using_this_weapon: Option<TreacheryCard>) -> bool {
         Battle::valid_defenses(game, player, using_this_weapon, None, true).iter().any(|c| c.is_none())
     }
 

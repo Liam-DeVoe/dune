@@ -303,7 +303,7 @@ impl Battle {
         )
     }
 
-    pub fn dial_of_forces(g: &Game, p: PlayerIndex, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
+    pub fn dial_of_forces(g: &Game, p: PlayerId, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
         let pl = g.player(p);
         let ecaz_battle_contribution = if !g.prevented(FactionAdvantage::EcazOccupation) && (pl.faction == Some(Faction::Ecaz) || pl.ally == Some(Faction::Ecaz)) {
             g.battle.current_ecaz_battle_contribution
@@ -639,7 +639,7 @@ impl Battle {
         None
     }
 
-    pub fn determine_force_supplier(g: &Game, player_that_fights: PlayerIndex) -> PlayerIndex {
+    pub fn determine_force_supplier(g: &Game, player_that_fights: PlayerId) -> PlayerId {
         let p = g.player(player_that_fights);
         if p.is(Faction::Ecaz) && g.battle.current_ecaz_or_ally_fighter != Some(None) && !g.prevented(FactionAdvantage::EcazOccupation) {
             return p.allied_player(g).unwrap_or(player_that_fights);
@@ -678,7 +678,7 @@ impl Battle {
     /// The elements of this player's plan that the other side's prescience lets them see. Eager: the only
     /// caller (`BattleRevision`) enumerates once, and its loop body writes only `PrescienceSeenPlans`, which
     /// this query does not read. Nothing in here throws once `CurrentBattle` is set.
-    pub fn aspects_seen_by_opponent(g: &Game, p: PlayerIndex) -> Vec<Option<PrescienceAspect>> {
+    pub fn aspects_seen_by_opponent(g: &Game, p: PlayerId) -> Vec<Option<PrescienceAspect>> {
         let battle = g.battle.current_battle.as_ref().expect("current battle");
         let mut result = Vec::new();
         if let Some(prescience) = g.battle.current_prescience.as_ref() {
@@ -754,7 +754,7 @@ impl Battle {
         0.5
     }
 
-    pub fn must_pay_for_any_forces_in_battle(g: &Game, p: PlayerIndex) -> bool {
+    pub fn must_pay_for_any_forces_in_battle(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         let does_not_need_to_support_forces = !g.prevented(FactionAdvantage::FremenNotPayingForBattles)
             && (pl.faction == Some(Faction::Fremen) || (pl.faction == Some(Faction::Ecaz) && pl.ally == Some(Faction::Fremen)));
@@ -762,29 +762,29 @@ impl Battle {
         g.applicable(Rule::AdvancedCombat) && !does_not_need_to_support_forces
     }
 
-    pub fn must_pay_for_special_forces_in_battle(g: &Game, p: PlayerIndex) -> bool {
+    pub fn must_pay_for_special_forces_in_battle(g: &Game, p: PlayerId) -> bool {
         Battle::must_pay_for_any_forces_in_battle(g, p)
             && !(g.player(p).is(Faction::Emperor) && g.has_high_threshold_in(Faction::Emperor, World::SalusaSecundus))
     }
 
-    pub fn messiah_may_be_used_in_battle(g: &Game, p: PlayerIndex) -> bool {
+    pub fn messiah_may_be_used_in_battle(g: &Game, p: PlayerId) -> bool {
         Battle::messiah_available_for_battle(g, p)
     }
 
-    pub fn cost_of_forces(g: &Game, p: PlayerIndex, amount_of_forces_at_full_strength: i32, amount_of_special_forces_at_full_strength: i32, paid_by_arrakeen: &mut i32) -> i32 {
+    pub fn cost_of_forces(g: &Game, p: PlayerId, amount_of_forces_at_full_strength: i32, amount_of_special_forces_at_full_strength: i32, paid_by_arrakeen: &mut i32) -> i32 {
         let cost = (amount_of_forces_at_full_strength * Battle::normal_force_cost(g, p)) + (amount_of_special_forces_at_full_strength * Battle::special_force_cost(g, p));
         *paid_by_arrakeen = Battle::cost_reduction(g, p).min(cost);
         cost - (*paid_by_arrakeen)
     }
 
-    pub fn cost_reduction(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn cost_reduction(g: &Game, p: PlayerId) -> i32 {
         match g.battle.current_battle.as_ref().and_then(|b| b.territory) {
             Some(t) if g.has_stronghold_advantage(g.player(p).faction, StrongholdAdvantage::FreeResourcesForBattles, t) => 2,
             _ => 0,
         }
     }
 
-    pub fn normal_force_cost(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn normal_force_cost(g: &Game, p: PlayerId) -> i32 {
         if Battle::must_pay_for_any_forces_in_battle(g, p) {
             if g.player(p).faction == Some(Faction::Ixian) {
                 return 0;
@@ -795,7 +795,7 @@ impl Battle {
         0
     }
 
-    pub fn special_force_cost(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn special_force_cost(g: &Game, p: PlayerId) -> i32 {
         if g.player(p).is(Faction::Emperor) && g.player(p).has_high_threshold(g, World::SalusaSecundus) {
             return 0;
         }
@@ -807,15 +807,15 @@ impl Battle {
         0
     }
 
-    pub fn max_resources(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32) -> i32 {
+    pub fn max_resources(g: &Game, p: PlayerId, forces: i32, special_forces: i32) -> i32 {
         g.player(p).resources.min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
-    pub fn max_ally_resources(g: &Game, p: PlayerIndex, forces: i32, special_forces: i32) -> i32 {
+    pub fn max_ally_resources(g: &Game, p: PlayerId, forces: i32, special_forces: i32) -> i32 {
         g.resources_your_ally_can_pay(p).min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
-    pub fn max_forces(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
+    pub fn max_forces(g: &Game, p: PlayerId, special_forces: bool) -> i32 {
         let force_supplier = Battle::determine_force_supplier(g, p);
 
         let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory) else {
@@ -836,7 +836,7 @@ impl Battle {
         0
     }
 
-    pub fn battles_to_be_fought(g: &Game, player: PlayerIndex, return_only_one_battle: bool) -> Vec<Fight> {
+    pub fn battles_to_be_fought(g: &Game, player: PlayerId, return_only_one_battle: bool) -> Vec<Fight> {
         let mut result: Vec<Fight> = Vec::new();
 
         let may_battle_under_storm = g.applicable(Rule::BattlesUnderStorm);
@@ -881,7 +881,7 @@ impl Battle {
         result
     }
 
-    pub fn affected_by_voice(g: &Game, p: PlayerIndex, voice: Option<&Rc<Voice>>) -> bool {
+    pub fn affected_by_voice(g: &Game, p: PlayerId, voice: Option<&Rc<Voice>>) -> bool {
         let Some(voice) = voice else {
             return false;
         };
@@ -892,7 +892,7 @@ impl Battle {
         }
     }
 
-    pub fn valid_battle_heroes(g: &Game, p: PlayerIndex) -> Vec<Hero> {
+    pub fn valid_battle_heroes(g: &Game, p: PlayerId) -> Vec<Hero> {
         let affected_by_voice = Battle::affected_by_voice(g, p, g.battle.current_voice.as_ref());
         let must_use_cheap_hero =
             affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.must && v.type_ == Some(TreacheryCardType::Mercenary));
@@ -920,7 +920,7 @@ impl Battle {
         result
     }
 
-    pub fn valid_weapons(g: &Game, p: PlayerIndex, selected_defense: Option<TreacheryCard>, selected_hero: Option<Hero>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
+    pub fn valid_weapons(g: &Game, p: PlayerId, selected_defense: Option<TreacheryCard>, selected_hero: Option<Hero>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
         let mut result: Vec<Option<TreacheryCard>> = Vec::new();
 
         if Battle::valid_battle_heroes(g, p).is_empty() {
@@ -969,7 +969,7 @@ impl Battle {
         result
     }
 
-    pub fn valid_defenses(g: &Game, p: PlayerIndex, selected_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
+    pub fn valid_defenses(g: &Game, p: PlayerId, selected_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>, including_none: bool) -> Vec<Option<TreacheryCard>> {
         let mut result: Vec<Option<TreacheryCard>> = Vec::new();
 
         if Battle::valid_battle_heroes(g, p).is_empty() {
@@ -1018,11 +1018,11 @@ impl Battle {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn cheap_heroes(game: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn cheap_heroes(game: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.type_() == TreacheryCardType::Mercenary)
     }
 
-    pub fn cards_playable_as_weapon(g: &Game, p: PlayerIndex, with_defense: Option<TreacheryCard>, territory_of_battle: Option<Territory>, with_planetologist: bool) -> Vec<TreacheryCard> {
+    pub fn cards_playable_as_weapon(g: &Game, p: PlayerId, with_defense: Option<TreacheryCard>, territory_of_battle: Option<Territory>, with_planetologist: bool) -> Vec<TreacheryCard> {
         let pl = g.player(p);
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
@@ -1048,7 +1048,7 @@ impl Battle {
             .collect()
     }
 
-    pub fn max_banker_boost(g: &Game, p: PlayerIndex, hero: Option<Hero>) -> i32 {
+    pub fn max_banker_boost(g: &Game, p: PlayerId, hero: Option<Hero>) -> i32 {
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Banker)) {
             g.player(p).resources.min(3)
         } else {
@@ -1056,7 +1056,7 @@ impl Battle {
         }
     }
 
-    pub fn cards_playable_as_defense(g: &Game, p: PlayerIndex, with_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>) -> Vec<TreacheryCard> {
+    pub fn cards_playable_as_defense(g: &Game, p: PlayerId, with_weapon: Option<TreacheryCard>, territory_of_battle: Option<Territory>) -> Vec<TreacheryCard> {
         let pl = g.player(p);
         let fighting_on_own_homeworld = territory_of_battle.is_some_and(|t| pl.is_native(t));
         let forces_to_reveal_under_no_field =
@@ -1081,7 +1081,7 @@ impl Battle {
             .collect()
     }
 
-    pub fn messiah_available_for_battle(g: &Game, p: PlayerIndex) -> bool {
+    pub fn messiah_available_for_battle(g: &Game, p: PlayerId) -> bool {
         g.player(p).messiah_available(g)
             && g.can_join_current_battle(LeaderManager::messiah())
             && !g.prevented(FactionAdvantage::AtreidesUseMessiah)
@@ -1100,7 +1100,7 @@ impl Battle {
         )
     }
 
-    pub fn determine_skill_bonus_of_parts(g: &Game, player: PlayerIndex, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut Option<LeaderSkill>) -> i32 {
+    pub fn determine_skill_bonus_of_parts(g: &Game, player: PlayerId, hero: Option<Hero>, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, banker_bonus: i32, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         let hero_skilled = |skill: LeaderSkill| hero.is_some_and(|h| g.skilled_as(h, skill));
 
         if hero_skilled(LeaderSkill::Thinker) {
@@ -1186,11 +1186,11 @@ impl Battle {
         0
     }
 
-    pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerIndex, activated_skill: &mut Option<LeaderSkill>) -> i32 {
+    pub fn determine_skill_penalty(g: &Game, plan: &Battle, opponent: PlayerId, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         Battle::determine_skill_penalty_of_hero(g, plan.hero, opponent, activated_skill)
     }
 
-    pub fn determine_skill_penalty_of_hero(g: &Game, hero: Option<Hero>, opponent: PlayerIndex, activated_skill: &mut Option<LeaderSkill>) -> i32 {
+    pub fn determine_skill_penalty_of_hero(g: &Game, hero: Option<Hero>, opponent: PlayerId, activated_skill: &mut Option<LeaderSkill>) -> i32 {
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Bureaucrat)) {
             *activated_skill = Some(LeaderSkill::Bureaucrat);
             let o = g.player(opponent);

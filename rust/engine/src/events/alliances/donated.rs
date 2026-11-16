@@ -76,7 +76,7 @@ impl Donated {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         // `p` is dereferenced inside the predicate, per element.
         g.players
             .iter()
@@ -84,7 +84,7 @@ impl Donated {
             .filter_map(move |x| x.faction)
     }
 
-    pub fn may_donate(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_donate(g: &Game, p: PlayerId) -> bool {
         if g.has_bid_to_pay(p) {
             return false;
         }
@@ -92,14 +92,14 @@ impl Donated {
         true
     }
 
-    pub fn min_amount(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn min_amount(g: &Game, p: PlayerId) -> i32 {
         if !g.applicable(Rule::CardsCanBeTraded) {
             return g.player(p).resources.min(1);
         }
         0
     }
 
-    pub fn max_amount(game: &Game, p: PlayerIndex) -> i32 {
+    pub fn max_amount(game: &Game, p: PlayerId) -> i32 {
         game.player(p).resources
     }
 

@@ -14,7 +14,7 @@ fn game_with(factions: &[Faction]) -> Game {
     g
 }
 
-fn idx(g: &Game, f: Faction) -> PlayerIndex {
+fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).unwrap()
 }
 
@@ -77,9 +77,9 @@ fn may_mulligan_needs_two_own_leaders() {
     let me = idx(&g, Faction::Harkonnen);
     let own: Vec<Hero> = LeaderManager::get_leaders(Faction::Harkonnen).take(2).map(Hero::Leader).collect();
     let other = Hero::Leader(LeaderManager::get_leaders(Faction::Emperor).next().unwrap());
-    g.players[me.index].traitors = vec![own[0], other];
+    g.players[me.index()].traitors = vec![own[0], other];
     assert!(!MulliganPerformed::may_mulligan(&g, me));
-    g.players[me.index].traitors.push(own[1]);
+    g.players[me.index()].traitors.push(own[1]);
     assert!(MulliganPerformed::may_mulligan(&g, me));
 }
 

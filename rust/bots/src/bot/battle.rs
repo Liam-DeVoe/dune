@@ -311,7 +311,7 @@ impl ClassicBot {
 
     /// A weapon worth playing when my leader will probably die anyway: a Rock Melter, else an
     /// Artillery Strike, else a Poison Tooth if the enemy can't defend against it.
-    fn destructive_weapon(game: &Game, player: PlayerIndex, defense: Option<TreacheryCard>, enemy_can_defend_poison_tooth: bool) -> Option<TreacheryCard> {
+    fn destructive_weapon(game: &Game, player: PlayerId, defense: Option<TreacheryCard>, enemy_can_defend_poison_tooth: bool) -> Option<TreacheryCard> {
         let weapons = Self::weapons(game, player, defense, None, None);
         let of_type = |t: TreacheryCardType| weapons.iter().copied().find(|c| c.type_() == t);
         of_type(TreacheryCardType::Rockmelter)
@@ -319,7 +319,7 @@ impl ClassicBot {
             .or_else(|| if enemy_can_defend_poison_tooth { None } else { of_type(TreacheryCardType::PoisonTooth) })
     }
 
-    pub fn construct_lost_battle_minimizing_losses(&self, game: &Game, opponent: PlayerIndex, territory: Territory) -> Rc<Battle> {
+    pub fn construct_lost_battle_minimizing_losses(&self, game: &Game, opponent: PlayerId, territory: Territory) -> Rc<Battle> {
         // A hero card if I have one, else my least valuable leader.
         let hero = Battle::valid_battle_heroes(game, self.player)
             .into_iter()
@@ -548,7 +548,7 @@ impl ClassicBot {
 
     /// The defenses `player` would consider next to `chosen_weapon`: not the weapon itself, no
     /// shield next to a lasgun, no Weirding Way without a weapon, and nothing useless.
-    fn usable_defenses(game: &Game, player: PlayerIndex, chosen_weapon: Option<TreacheryCard>, territory: Option<Territory>) -> Vec<TreacheryCard> {
+    fn usable_defenses(game: &Game, player: PlayerId, chosen_weapon: Option<TreacheryCard>, territory: Option<Territory>) -> Vec<TreacheryCard> {
         Self::defenses(game, player, chosen_weapon, territory)
             .into_iter()
             .filter(|def| {
@@ -561,7 +561,7 @@ impl ClassicBot {
     }
 
     /// The chance that my leader survives, and the defense that gives that chance.
-    fn chance_of_my_leader_surviving(&self, game: &Game, player: PlayerIndex, opponent: PlayerIndex, voice_plan: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, chosen_weapon: Option<TreacheryCard>) -> (f32, Option<TreacheryCard>) {
+    fn chance_of_my_leader_surviving(&self, game: &Game, player: PlayerId, opponent: PlayerId, voice_plan: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, chosen_weapon: Option<TreacheryCard>) -> (f32, Option<TreacheryCard>) {
         if Self::heroes_for_battle(game, opponent, true).is_empty() {
             return (1.0, None);
         }
@@ -635,7 +635,7 @@ impl ClassicBot {
         (chance, defense)
     }
 
-    pub fn nr_of_unknown_opponent_cards(game: &Game, player: PlayerIndex, opponent: PlayerIndex) -> i32 {
+    pub fn nr_of_unknown_opponent_cards(game: &Game, player: PlayerId, opponent: PlayerId) -> i32 {
         let cards = &game.player(opponent).treachery_cards;
         if cards.is_empty() {
             return 0;
@@ -646,7 +646,7 @@ impl ClassicBot {
 
     /// Picks into `most_effective_defense` the defense that counters the most known and unknown
     /// enemy weapons, and returns the chance that my leader survives with it.
-    pub fn determine_best_defense(&self, game: &Game, player: PlayerIndex, opponent: PlayerIndex, chosen_weapon: Option<TreacheryCard>, most_effective_defense: &mut Option<TreacheryCard>) -> f32 {
+    pub fn determine_best_defense(&self, game: &Game, player: PlayerId, opponent: PlayerId, chosen_weapon: Option<TreacheryCard>, most_effective_defense: &mut Option<TreacheryCard>) -> f32 {
         let known_enemy_weapons = Self::known_opponent_weapons(game, player, opponent);
         let available_defenses = Self::usable_defenses(game, player, chosen_weapon, None);
 
@@ -685,7 +685,7 @@ impl ClassicBot {
         1.0 - self.chance_of_an_unknown_opponent_card_killing_my_leader(game, player, &unknown_cards, *most_effective_defense, opponent, chosen_weapon)
     }
 
-    fn chance_of_an_unknown_opponent_card_killing_my_leader(&self, game: &Game, player: PlayerIndex, unknown_cards: &[TreacheryCard], used_defense: Option<TreacheryCard>, opponent: PlayerIndex, chosen_weapon: Option<TreacheryCard>) -> f32 {
+    fn chance_of_an_unknown_opponent_card_killing_my_leader(&self, game: &Game, player: PlayerId, unknown_cards: &[TreacheryCard], used_defense: Option<TreacheryCard>, opponent: PlayerId, chosen_weapon: Option<TreacheryCard>) -> f32 {
         if unknown_cards.is_empty() {
             return 0.0;
         }
@@ -693,7 +693,7 @@ impl ClassicBot {
         Self::chance_opponent_holds_one_of(game, player, opponent, unknown_cards, killers)
     }
 
-    fn chance_of_an_unknown_opponent_card_saving_his_leader(&self, game: &Game, player: PlayerIndex, unknown_cards: &[TreacheryCard], used_weapon: Option<TreacheryCard>, opponent: PlayerIndex) -> f32 {
+    fn chance_of_an_unknown_opponent_card_saving_his_leader(&self, game: &Game, player: PlayerId, unknown_cards: &[TreacheryCard], used_weapon: Option<TreacheryCard>, opponent: PlayerId) -> f32 {
         if unknown_cards.is_empty() {
             return 0.0;
         }
@@ -703,7 +703,7 @@ impl ClassicBot {
 
     /// The chance that the opponent's cards unknown to `player`, taken from `unknown_cards`,
     /// include at least one of `matching` of those cards.
-    fn chance_opponent_holds_one_of(game: &Game, player: PlayerIndex, opponent: PlayerIndex, unknown_cards: &[TreacheryCard], matching: i32) -> f32 {
+    fn chance_opponent_holds_one_of(game: &Game, player: PlayerId, opponent: PlayerId, unknown_cards: &[TreacheryCard], matching: i32) -> f32 {
         let nr_of_unknown_opponent_cards = Self::nr_of_unknown_opponent_cards(game, player, opponent);
         let count = unknown_cards.len() as i32;
         1.0 - Self::cumulative_chance((count - matching) as f64, count as f64, nr_of_unknown_opponent_cards) as f32
@@ -754,7 +754,7 @@ impl ClassicBot {
     }
 
     /// The weapon to use against the enemy leader and the chance that it kills them.
-    fn chance_of_enemy_leader_dying(&self, game: &Game, player: PlayerIndex, opponent: PlayerIndex, voice: Option<&VoicePlan>, prescience: Option<PrescienceAspect>) -> WeaponChoice {
+    fn chance_of_enemy_leader_dying(&self, game: &Game, player: PlayerId, opponent: PlayerId, voice: Option<&VoicePlan>, prescience: Option<PrescienceAspect>) -> WeaponChoice {
         let choice = |kill_chance: f32, weapon: Option<TreacheryCard>, enemy_can_defend_poison_tooth: bool| WeaponChoice {
             weapon,
             kill_chance,
@@ -910,7 +910,7 @@ impl ClassicBot {
         }
     }
 
-    pub fn heroes_for_battle(game: &Game, player: PlayerIndex, include_in_front_of_shield: bool) -> Vec<Hero> {
+    pub fn heroes_for_battle(game: &Game, player: PlayerId, include_in_front_of_shield: bool) -> Vec<Hero> {
         if include_in_front_of_shield {
             Battle::valid_battle_heroes(game, player)
         } else {
@@ -920,7 +920,7 @@ impl ClassicBot {
 
     /// Picks a leader for battle: a safe one (not a possible traitor) unless an unsafe one is much
     /// stronger, the strongest if `highest` and a weak one otherwise.
-    fn select_hero_for_battle(&self, game: &Game, player: PlayerIndex, opponent: PlayerIndex, highest: bool, forfeit: bool, messiah_used: bool, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, include_in_front_of_shield: bool) -> HeroChoice {
+    fn select_hero_for_battle(&self, game: &Game, player: PlayerId, opponent: PlayerId, highest: bool, forfeit: bool, messiah_used: bool, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>, include_in_front_of_shield: bool) -> HeroChoice {
         let p = game.player(player);
         let o = game.player(opponent);
 
@@ -1027,7 +1027,7 @@ impl ClassicBot {
         HeroChoice { hero, value, is_traitor }
     }
 
-    pub fn get_dial_needed(&self, game: &Game, p: PlayerIndex, territory: Territory, opponent: PlayerIndex, take_reinforcements_into_account: bool) -> f32 {
+    pub fn get_dial_needed(&self, game: &Game, p: PlayerId, territory: Territory, opponent: PlayerId, take_reinforcements_into_account: bool) -> f32 {
         let voice_plan = if Voice::may_use_voice(game, p) { Some(self.best_voice(game, None, p, opponent)) } else { None };
         let strength_of_opponent = Self::max_dial(game, opponent, territory, Some(p), false);
         let prescience = if Prescience::may_use_prescience(game, p) {
@@ -1050,7 +1050,7 @@ impl ClassicBot {
         .dial_needed
     }
 
-    pub fn dial_needed_against(&self, game: &Game, territory: Territory, opponent: Option<PlayerIndex>, take_reinforcements_into_account: bool) -> f32 {
+    pub fn dial_needed_against(&self, game: &Game, territory: Territory, opponent: Option<PlayerId>, take_reinforcements_into_account: bool) -> f32 {
         let Some(opponent) = opponent else {
             return 0.0;
         };
@@ -1058,7 +1058,7 @@ impl ClassicBot {
     }
 
     /// The dial `player` needs to beat `opponent` in `territory`, with the leader and cards they'd use.
-    fn get_dial_needed_for_battle(&self, game: &Game, player: PlayerIndex, i_am_aggressor: bool, opponent: PlayerIndex, territory: Territory, voice: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, take_reinforcements_into_account: bool, include_in_front_of_shield: bool) -> DialEstimate {
+    fn get_dial_needed_for_battle(&self, game: &Game, player: PlayerId, i_am_aggressor: bool, opponent: PlayerId, territory: Territory, voice: Option<&VoicePlan>, prescience: Option<PrescienceAspect>, take_reinforcements_into_account: bool, include_in_front_of_shield: bool) -> DialEstimate {
         let param = &self.param;
         let enemy = self.chance_of_enemy_leader_dying(game, player, opponent, voice, prescience);
         let mut weapon = enemy.weapon;
@@ -1204,7 +1204,7 @@ impl ClassicBot {
         estimate(result, weapon, defense, banker_boost)
     }
 
-    pub fn can_only_use_traitors_or_facedancers(game: &Game, p: PlayerIndex) -> bool {
+    pub fn can_only_use_traitors_or_facedancers(game: &Game, p: PlayerId) -> bool {
         let pl = game.player(p);
         pl.leaders.iter().all(|l| {
             let l = Hero::Leader(*l);

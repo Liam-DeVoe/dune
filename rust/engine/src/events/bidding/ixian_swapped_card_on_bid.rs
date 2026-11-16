@@ -40,7 +40,7 @@ impl IxianSwappedCardOnBid {
             game.player_mut(me).treachery_cards.push(drawn);
 
             // The lazy Where re-runs HasBiddingPrescience per player; UnregisterKnown does not change it.
-            let players: Vec<PlayerIndex> = game.player_indices().filter(|p| !game.has_bidding_prescience(*p)).collect();
+            let players: Vec<PlayerId> = game.player_indices().filter(|p| !game.has_bidding_prescience(*p)).collect();
             for p in players {
                 let my_cards = game.player(me).treachery_cards.clone();
                 Game::unregister_all_known_by_player(game, p, &my_cards);

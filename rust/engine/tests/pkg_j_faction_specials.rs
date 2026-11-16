@@ -21,7 +21,7 @@ fn game_with(factions: &[Faction]) -> Game {
     g
 }
 
-fn idx(g: &Game, f: Faction) -> PlayerIndex {
+fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).unwrap()
 }
 

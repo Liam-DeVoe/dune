@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 use serde_json::{json, Map, Value};
 use treachery_engine::enumerations::Phase;
-use treachery_engine::game::{Game, PlayerIndex};
+use treachery_engine::game::{Game, PlayerId};
 use treachery_engine::prelude::{IndexMap, IndexSet};
 use treachery_protocol::ParticipationInfo;
 use treachery_view::build::{Seating, Viewer};
@@ -103,7 +103,7 @@ impl Participation {
     }
 
     /// The player in the user's seat.
-    pub fn player_of(&self, game: &Game, user: i32) -> Option<PlayerIndex> {
+    pub fn player_of(&self, game: &Game, user: i32) -> Option<PlayerId> {
         game.get_player_by_seat(self.seat_of(user))
     }
 
@@ -132,7 +132,7 @@ impl Participation {
     }
 
     /// The name views and mails give a player: "Bot", the user's name, or "?".
-    pub fn player_name(&self, game: &Game, p: PlayerIndex) -> String {
+    pub fn player_name(&self, game: &Game, p: PlayerId) -> String {
         self.seating().player_name(game, p)
     }
 

@@ -15,7 +15,7 @@ pub trait BidEvent {
 
     fn initiator(&self) -> Faction;
 
-    fn player(&self) -> Option<PlayerIndex>;
+    fn player(&self) -> Option<PlayerId>;
 
     fn passed(&self) -> bool;
 

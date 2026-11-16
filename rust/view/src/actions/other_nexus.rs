@@ -51,7 +51,7 @@ enum Case {
     MoritaniBetrayal,
 }
 
-fn case(game: &Game, p: PlayerIndex) -> Option<Case> {
+fn case(game: &Game, p: PlayerId) -> Option<Case> {
     use Case::*;
     let cunning = NexusPlayed::can_use_cunning(game, p);
     let secret_ally = NexusPlayed::can_use_secret_ally(game, p);
@@ -105,7 +105,7 @@ enum MapChoice {
     MoritaniTerritory,
 }
 
-fn map_choice(game: &Game, p: PlayerIndex, e: &NexusPlayed) -> MapChoice {
+fn map_choice(game: &Game, p: PlayerId, e: &NexusPlayed) -> MapChoice {
     match game.player(p).nexus {
         Some(Faction::Tleilaxu) if NexusPlayed::can_use_secret_ally(game, p) && e.tleilaxu_number_of_special_forces_in_location > 0 => MapChoice::TleilaxuLocation,
         Some(Faction::Ecaz) if NexusPlayed::can_use_betrayal(game, p) => MapChoice::EcazTerritory,
@@ -114,7 +114,7 @@ fn map_choice(game: &Game, p: PlayerIndex, e: &NexusPlayed) -> MapChoice {
     }
 }
 
-fn max_special_on_planet(game: &Game, p: PlayerIndex, special: i32) -> i32 {
+fn max_special_on_planet(game: &Game, p: PlayerId, special: i32) -> i32 {
     if Revival::valid_revived_force_locations(game, p).next().is_some() {
         Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, special)
     } else {
@@ -132,7 +132,7 @@ pub(super) fn default_draft(game: &Game, faction: Option<Faction>) -> GameEvent 
 
 /// The draft as the form holds it: the inputs of the case shown adjusted, the map pick dropped
 /// unless it is enabled and a target.
-pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
+pub(super) fn normalize(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     let GameEvent::NexusPlayed(e) = draft else { return draft.clone() };
     let mut m = (**e).clone();
     m.faction = game.player(p).nexus;
@@ -180,7 +180,7 @@ pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameE
     event(m)
 }
 
-pub(super) fn options(game: &Game, p: PlayerIndex, e: &NexusPlayed, d: &dyn Describer, draft: serde_json::Value) -> NexusPlayedOptions {
+pub(super) fn options(game: &Game, p: PlayerId, e: &NexusPlayed, d: &dyn Describer, draft: serde_json::Value) -> NexusPlayedOptions {
     use Case::*;
     let pl = game.player(p);
     let nexus = pl.nexus;

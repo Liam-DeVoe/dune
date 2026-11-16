@@ -58,7 +58,7 @@ impl KarmaFreeRevival {
         None
     }
 
-    pub fn valid_max_amount(game: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
+    pub fn valid_max_amount(game: &Game, p: PlayerId, special_forces: bool) -> i32 {
         if special_forces {
             return std::cmp::min(1, game.player(p).special_forces_killed);
         }

@@ -25,7 +25,7 @@ impl SwitchedSkilledLeader {
         None
     }
 
-    pub fn switchable_leader(game: &Game, player: PlayerIndex) -> Option<Leader> {
+    pub fn switchable_leader(game: &Game, player: PlayerId) -> Option<Leader> {
         let faction = game.player(player).faction;
         game.player(player).leaders.iter().copied().find(|l| {
             game.is_skilled(Some(Hero::Leader(*l)))
@@ -34,7 +34,7 @@ impl SwitchedSkilledLeader {
         })
     }
 
-    pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
+    pub fn can_be_played(game: &Game, player: PlayerId) -> bool {
         if game.turn.current_phase != Phase::BattlePhase {
             return false;
         }

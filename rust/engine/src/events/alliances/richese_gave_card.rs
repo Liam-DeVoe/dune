@@ -28,7 +28,7 @@ impl RicheseGaveCard {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_cards(game: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_cards(game: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.rules().contains(&Rule::RicheseTreacheryCards))
     }
 
@@ -42,7 +42,7 @@ impl RicheseGaveCard {
         let target = target.required("target")?;
         game.player_mut(target).treachery_cards.push(card.required("card")?);
 
-        let others: Vec<PlayerIndex> = game.player_indices().filter(|p| *p != me && *p != target).collect();
+        let others: Vec<PlayerId> = game.player_indices().filter(|p| *p != me && *p != target).collect();
         for p in others {
             let my_cards = game.player(me).treachery_cards.clone();
             Game::unregister_all_known_by_player(game, p, &my_cards);

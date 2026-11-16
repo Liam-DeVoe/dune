@@ -33,7 +33,7 @@ impl AllianceOffered {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         (0..g.players.len())
             .map(move |i| g.player_at(i))
             .filter(move |other| {
@@ -42,7 +42,7 @@ impl AllianceOffered {
             .filter_map(move |other| g.player(other).faction)
     }
 
-    fn has_passed_in_alliance_phase(g: &Game, p: PlayerIndex) -> bool {
+    fn has_passed_in_alliance_phase(g: &Game, p: PlayerId) -> bool {
         matches!(g.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains_opt(g.player(p).faction)
     }
 

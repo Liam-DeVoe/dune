@@ -38,7 +38,7 @@ impl AmbassadorPlaced {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_strongholds(g: &Game, _p: PlayerIndex) -> impl Iterator<Item = Territory> {
+    pub fn valid_strongholds(g: &Game, _p: PlayerId) -> impl Iterator<Item = Territory> {
         g.board.map
             .territories(false)
             .filter(move |t| {
@@ -46,11 +46,11 @@ impl AmbassadorPlaced {
             })
     }
 
-    pub fn valid_ambassadors(game: &Game, p: PlayerIndex) -> Vec<Ambassador> {
+    pub fn valid_ambassadors(game: &Game, p: PlayerId) -> Vec<Ambassador> {
         game.player(p).ambassadors.clone()
     }
 
-    pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         g.player(p).resources > g.revival.ambassadors_placed_this_turn
             && g.turn.current_phase == Phase::ResurrectionReport
             && !g.prevented(FactionAdvantage::EcazAmbassadors)

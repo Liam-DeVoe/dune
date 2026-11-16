@@ -31,7 +31,7 @@ impl FlightUsed {
         None
     }
 
-    pub fn is_available(game: &Game, p: PlayerIndex) -> bool {
+    pub fn is_available(game: &Game, p: PlayerId) -> bool {
         game.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Flight)
     }
 

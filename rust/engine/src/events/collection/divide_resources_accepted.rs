@@ -28,7 +28,7 @@ impl DivideResourcesAccepted {
         None
     }
 
-    pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_phase == Phase::AcceptingResourceDivision
             && Self::get_resources_to_be_divided(g).map(|t| t.other_faction) == g.player(p).faction
     }

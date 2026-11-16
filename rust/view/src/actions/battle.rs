@@ -325,7 +325,7 @@ fn format1(d: &dyn Describer, before: &str, x: P, after: &str) -> String {
     format!("{before}{}{after}", d.describe(&x))
 }
 
-fn loser(game: &Game) -> Option<PlayerIndex> {
+fn loser(game: &Game) -> Option<PlayerId> {
     game.get_player(game.battle.battle_loser.flatten())
 }
 
@@ -353,7 +353,7 @@ fn ordinal(a: &str, b: &str) -> std::cmp::Ordering {
 
 /// The retreat form's starting inputs: everything that may retreat, trimmed to the total
 /// allowed, special forces first.
-fn retreat_defaults(game: &Game, p: PlayerIndex) -> (i32, i32) {
+fn retreat_defaults(game: &Game, p: PlayerId) -> (i32, i32) {
     let mut forces = Retreat::max_forces(game, p);
     let mut special = Retreat::max_special_forces(game, p);
     let max = Retreat::max_total_forces(game, p);
@@ -367,7 +367,7 @@ fn retreat_defaults(game: &Game, p: PlayerIndex) -> (i32, i32) {
     (forces, special)
 }
 
-fn face_danced_options(game: &Game, p: PlayerIndex, draft: serde_json::Value) -> FaceDancedOptions {
+fn face_danced_options(game: &Game, p: PlayerId, draft: serde_json::Value) -> FaceDancedOptions {
     let pl = game.player(p);
     let at = |l: Location| FaceDancedSource { location: l.id(), forces: pl.forces_in(Some(l)), special_forces: pl.special_forces_in(Some(l)) };
     FaceDancedOptions {
@@ -380,7 +380,7 @@ fn face_danced_options(game: &Game, p: PlayerIndex, draft: serde_json::Value) ->
     }
 }
 
-fn loser_concluded_options(game: &Game, p: PlayerIndex, draft: serde_json::Value) -> LoserConcludedOptions {
+fn loser_concluded_options(game: &Game, p: PlayerId, draft: serde_json::Value) -> LoserConcludedOptions {
     let may_use_karma = LoserConcluded::may_use_karma_to_force_kept_cards(game, p);
     LoserConcludedOptions {
         cards_to_keep: LoserConcluded::cards_loser_may_keep(game).iter().map(|c| c.id()).collect(),
@@ -409,7 +409,7 @@ fn my_plan(game: &Game, faction: Faction) -> Option<Rc<Battle>> {
     }
 }
 
-fn battle_concluded_options(game: &Game, p: PlayerIndex, d: &dyn Describer, draft: serde_json::Value) -> BattleConcludedOptions {
+fn battle_concluded_options(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_json::Value) -> BattleConcludedOptions {
     let pl = game.player(p);
     let faction = pl.faction;
     let winner = game.battle.battle_winner == Some(faction);
@@ -491,7 +491,7 @@ fn clairvoyance_defaults(game: &Game, q: Option<ClairvoyanceQuestion>, d: Option
     }
 }
 
-fn clairvoyance_options(game: &Game, p: PlayerIndex, target: Option<Faction>, d: &dyn Describer, draft: serde_json::Value) -> ClairVoyancePlayedOptions {
+fn clairvoyance_options(game: &Game, p: PlayerId, target: Option<Faction>, d: &dyn Describer, draft: serde_json::Value) -> ClairVoyancePlayedOptions {
     let (card_types, leaders, factions, turns, territories) = clairvoyance_lists(game, d);
     ClairVoyancePlayedOptions {
         targets: ClairVoyancePlayed::valid_targets(game, p).map(|f| enum_choice(f, d)).collect(),
@@ -516,7 +516,7 @@ fn clairvoyance_options(game: &Game, p: PlayerIndex, target: Option<Faction>, d:
 
 /// The battle plan form's starting inputs: the previous plan when one is valid and no plan is in
 /// yet, the token rows trimmed to the forces there, the first leader when one is required.
-fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
+fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> GameEvent {
     // ConfirmedResult sets every member; a fresh event's ids are 0, which are real objects.
     let mut e = Battle::new(game, faction);
     e.hero = None;
@@ -553,7 +553,7 @@ fn battle_default(game: &Game, p: PlayerIndex, faction: Faction) -> GameEvent {
 }
 
 /// The adjustments the battle plan form makes to its inputs, in order.
-fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
+fn normalize_battle(game: &Game, p: PlayerId, e: &mut Battle) {
     let pl = game.player(p);
     let territory = game.battle.current_battle.as_ref().and_then(|b| b.territory);
     // The spice the ally pays, between what the player can't pay and what the ally can.
@@ -587,12 +587,12 @@ fn normalize_battle(game: &Game, p: PlayerIndex, e: &mut Battle) {
     e.banker_bonus = if max_banker <= 0 { 0 } else { e.banker_bonus.clamp(0, max_banker) };
 }
 
-fn messiah_available(game: &Game, p: PlayerIndex) -> bool {
+fn messiah_available(game: &Game, p: PlayerId) -> bool {
     game.player(p).messiah_available(game) && !game.prevented(FactionAdvantage::AtreidesUseMessiah)
 }
 
 /// How much the ally may pay: only a CHOAM ally helps pay.
-fn ally_cap(game: &Game, p: PlayerIndex) -> i32 {
+fn ally_cap(game: &Game, p: PlayerId) -> i32 {
     if game.player(p).ally == Some(Faction::Choam) {
         game.resources_your_ally_can_pay(p)
     } else {
@@ -602,7 +602,7 @@ fn ally_cap(game: &Game, p: PlayerIndex) -> i32 {
 
 /// Whether forces may be committed at half strength, which only applies when they must be paid
 /// for.
-fn half_allowed(game: &Game, p: PlayerIndex, special: bool) -> bool {
+fn half_allowed(game: &Game, p: PlayerId, special: bool) -> bool {
     if special {
         Battle::must_pay_for_special_forces_in_battle(game, p) && Battle::special_force_cost(game, p) > 0
     } else {
@@ -611,7 +611,7 @@ fn half_allowed(game: &Game, p: PlayerIndex, special: bool) -> bool {
 }
 
 /// Every affordable way to commit the tokens.
-fn mixes(game: &Game, p: PlayerIndex, opponent: Faction, normal: i32, special: i32) -> Vec<(i32, i32, i32, i32, f32, i32)> {
+fn mixes(game: &Game, p: PlayerId, opponent: Faction, normal: i32, special: i32) -> Vec<(i32, i32, i32, i32, f32, i32)> {
     let half_s = half_allowed(game, p, true);
     let half_n = half_allowed(game, p, false);
     let available = game.player(p).resources + ally_cap(game, p);
@@ -633,7 +633,7 @@ fn mixes(game: &Game, p: PlayerIndex, opponent: Faction, normal: i32, special: i
     result
 }
 
-fn force_group(game: &Game, p: PlayerIndex, territory: Option<Territory>, is_opponent: bool) -> BattleForceGroup {
+fn force_group(game: &Game, p: PlayerId, territory: Option<Territory>, is_opponent: bool) -> BattleForceGroup {
     let pl = game.player(p);
     BattleForceGroup {
         faction: name_or_absent(pl.faction),
@@ -643,7 +643,7 @@ fn force_group(game: &Game, p: PlayerIndex, territory: Option<Territory>, is_opp
     }
 }
 
-fn side(game: &Game, p: PlayerIndex, aggressor: Faction, groups: Vec<BattleForceGroup>) -> BattleSide {
+fn side(game: &Game, p: PlayerId, aggressor: Faction, groups: Vec<BattleForceGroup>) -> BattleSide {
     let pl = game.player(p);
     BattleSide {
         faction: name_or_absent(pl.faction),
@@ -672,7 +672,7 @@ fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, pl
     }
 }
 
-fn battle_notes(game: &Game, p: PlayerIndex, opponent: PlayerIndex, d: &dyn Describer) -> Vec<BattleNote> {
+fn battle_notes(game: &Game, p: PlayerId, opponent: PlayerId, d: &dyn Describer) -> Vec<BattleNote> {
     let pl = game.player(p);
     let faction = pl.faction;
     let battle = game.battle.current_battle.as_ref().expect("a battle plan needs a battle");
@@ -736,7 +736,7 @@ fn by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i32> {
     named.into_iter().map(|(_, id)| id).collect()
 }
 
-fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer) -> (BattleOptions, Battle) {
+fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -> (BattleOptions, Battle) {
     let pl = game.player(p);
     let faction = pl.faction;
     let battle = game.battle.current_battle.as_ref().expect("a battle plan needs a battle");

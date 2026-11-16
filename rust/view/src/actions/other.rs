@@ -271,7 +271,7 @@ fn current_permissions(game: &Game, faction: Faction, e: &mut AllyPermission) {
 
 /// The opponents other than the ally: who Emperor may support in bidding, and who a deal may be
 /// offered to.
-fn opponents_but_ally(game: &Game, p: PlayerIndex) -> Vec<Faction> {
+fn opponents_but_ally(game: &Game, p: PlayerId) -> Vec<Faction> {
     let ally = game.player(p).ally;
     game.players_other_than(p).filter(|f| Some(*f) != ally).collect()
 }
@@ -290,7 +290,7 @@ fn deal_end_phases(t: DealType) -> Vec<Option<Phase>> {
 // Adjusting a draft as the form does.
 
 /// The draft as the form holds it after adjusting these inputs.
-pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, draft: &GameEvent) -> GameEvent {
+pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
     let hand: Vec<TreacheryCard> = pl.treachery_cards.clone();
     macro_rules! adjust {
@@ -505,7 +505,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
 }
 
 /// Who may receive a donation, and its minimum and maximum amount.
-fn donation_range(game: &Game, p: PlayerIndex, from_bank: bool) -> (Vec<Faction>, i32, i32) {
+fn donation_range(game: &Game, p: PlayerId, from_bank: bool) -> (Vec<Faction>, i32, i32) {
     if from_bank {
         (game.players.iter().filter_map(|pl| pl.faction).collect(), -99, 99)
     } else {
@@ -531,7 +531,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draf
     Some((options, validate(game, draft, d)))
 }
 
-fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<ActionOptions> {
+fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &GameEvent, d: &dyn Describer) -> Option<ActionOptions> {
     let t = draft.event_type();
     if SIMPLE.contains(&t) {
         return simple_options(game, p, t, d);
@@ -717,7 +717,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
     })
 }
 
-fn ally_permission(game: &Game, p: PlayerIndex, d: &dyn Describer, draft: serde_json::Value) -> AllyPermissionOptions {
+fn ally_permission(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_json::Value) -> AllyPermissionOptions {
     let pl = game.player(p);
     let ally = pl.ally;
     let bot_claims = pl.allied_player(game).filter(|a| game.is_bot(*a)).map(|a| {
@@ -771,7 +771,7 @@ fn use_card(d: &dyn Describer, verb: &str, t: TreacheryCardType) -> String {
     render(d, &parts![format!("{verb} "), t])
 }
 
-fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer) -> Option<ActionOptions> {
+fn simple_options(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer) -> Option<ActionOptions> {
     use TreacheryCardType as C;
     let pl = game.player(p);
     let m = |e: Message| message(&e, d);
@@ -844,7 +844,7 @@ fn yes_no(title: RichText, alert: bool, draft: &GameEvent) -> ActionOptions {
     ActionOptions::YesNo(YesNoOptions { title, alert, draft: draft_json(draft) })
 }
 
-fn yes_no_options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> Option<ActionOptions> {
+fn yes_no_options(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Option<ActionOptions> {
     let m = |e: Message| message(&e, d);
     Some(match draft.event_type() {
         GameEventType::NexusVoted => yes_no(text("Should a Nexus occur?"), true, draft),

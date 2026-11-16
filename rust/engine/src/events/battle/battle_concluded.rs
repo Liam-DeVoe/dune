@@ -319,7 +319,7 @@ impl BattleConcluded {
         }
     }
 
-    pub fn capture_or_assassinate_leader(&self, game: &mut Game, harkonnen: PlayerIndex, target: PlayerIndex) {
+    pub fn capture_or_assassinate_leader(&self, game: &mut Game, harkonnen: PlayerId, target: PlayerId) {
         if self.decision_to_capture() == CaptureDecision::Capture {
             self.log_objects(game, vec![Faction::Harkonnen.into(), " capture a leader!".into()]);
             let Some(victim) = game.battle.harkonnen_victim else { return };
@@ -347,7 +347,7 @@ impl BattleConcluded {
         express!(self.initiator(), " conclude the battle")
     }
 
-    pub fn valid_replacement_force_amounts(g: &Game, p: PlayerIndex) -> Vec<i32> {
+    pub fn valid_replacement_force_amounts(g: &Game, p: PlayerId) -> Vec<i32> {
         if g.battle.ixian_special_force_losses_to_take == 0 {
             return vec![0];
         }
@@ -374,7 +374,7 @@ impl BattleConcluded {
         (0..count).collect()
     }
 
-    pub fn valid_max_replacement_force_amount(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_max_replacement_force_amount(g: &Game, p: PlayerId) -> i32 {
         if g.battle.ixian_special_force_losses_to_take == 0 {
             return 0;
         }
@@ -396,7 +396,7 @@ impl BattleConcluded {
         std::cmp::min(replacement_forces_left, g.battle.ixian_special_force_losses_to_take)
     }
 
-    pub fn may_capture_or_kill(g: &Game, p: Option<PlayerIndex>) -> bool {
+    pub fn may_capture_or_kill(g: &Game, p: Option<PlayerId>) -> bool {
         let Some(p) = p else { return false };
         g.player(p).faction == Some(Faction::Harkonnen)
             && g.battle.battle_winner == Some(Some(Faction::Harkonnen))
@@ -410,7 +410,7 @@ impl BattleConcluded {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_traitors_to_replace(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
+    pub fn valid_traitors_to_replace(game: &Game, p: PlayerId) -> impl Iterator<Item = Hero> {
         use either::Either;
         let pl = game.player(p);
         if pl.faction == Some(Faction::Tleilaxu) {
@@ -423,7 +423,7 @@ impl BattleConcluded {
         g.battle.battle_winner_may_choose_to_discard
     }
 
-    pub fn may_add_extra_force(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_add_extra_force(g: &Game, p: PlayerId) -> bool {
         let Some(territory) = g.battle.current_battle.as_ref().and_then(|b| b.territory) else {
             return false;
         };

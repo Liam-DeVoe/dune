@@ -45,12 +45,12 @@ impl SetShipmentPermission {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         // `p.Faction` is read inside the predicate, per element.
         g.players.iter().filter(move |x| x.faction != g.player(p).faction).filter_map(|x| x.faction)
     }
 
-    pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_any_high_threshold(g)
     }
 

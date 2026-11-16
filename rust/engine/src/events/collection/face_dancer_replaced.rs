@@ -70,7 +70,7 @@ impl FaceDancerReplaced {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_face_dancers(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
+    pub fn valid_face_dancers(game: &Game, p: PlayerId) -> impl Iterator<Item = Hero> {
         game.player(p).unrevealed_face_dancers()
     }
 }

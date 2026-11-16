@@ -41,7 +41,7 @@ impl KarmaHandSwap {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let victim = self.get_player(game, game.bidding.karma_hand_swap_target);
         let me = self.player_opt();
-        let others: Vec<PlayerIndex> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
+        let others: Vec<PlayerId> = game.player_indices().filter(|p| Some(*p) != me && Some(*p) != victim).collect();
         for p in others {
             let my_cards = game.player(me.required("me")?).treachery_cards.clone();
             Game::unregister_all_known_by_player(game, p, &my_cards);

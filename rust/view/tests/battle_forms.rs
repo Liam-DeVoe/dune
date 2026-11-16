@@ -20,8 +20,8 @@ use treachery_view::describe::{default_describer, Describer, InGame};
 use treachery_view::replica::ViewReplica;
 use treachery_view::schema::*;
 
-fn viewer(game: &Game, p: PlayerIndex) -> ResolvedViewer {
-    ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction.expect("faction")), is_host: p.index == 0, is_observer: false }
+fn viewer(game: &Game, p: PlayerId) -> ResolvedViewer {
+    ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction.expect("faction")), is_host: p.index() == 0, is_observer: false }
 }
 
 fn ordinal(a: &str, b: &str) -> std::cmp::Ordering {
@@ -78,7 +78,7 @@ impl Stats {
 }
 
 /// Checks one applicable battle form of player `p`.
-fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats: &mut Stats, at: &str) {
+fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
     let view = actions::action_view(game, &v, &Default::default(), t, d);
     let options = view.options.clone().unwrap_or_else(|| panic!("{at}: no options for {}", t.name()));
@@ -209,7 +209,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, stats
 }
 
 /// The battle plan: heroes, cards per draft, the mixes, the token rows and the steppers' data.
-fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, d: &dyn Describer, stats: &mut Stats, at: &str) {
+fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
     let battle = game.battle.current_battle.as_ref().unwrap();
     let territory = battle.territory;
@@ -286,8 +286,8 @@ fn check_battle(game: &Game, p: PlayerIndex, o: &BattleOptions, draft: &Battle, 
     }
 }
 
-fn applicable_mine(game: &mut Game, p: PlayerIndex) -> Vec<GameEventType> {
-    game.get_applicable_events(Some(p), p.index == 0).into_iter().filter(|t| battle::TYPES.contains(t)).collect()
+fn applicable_mine(game: &mut Game, p: PlayerId) -> Vec<GameEventType> {
+    game.get_applicable_events(Some(p), p.index() == 0).into_iter().filter(|t| battle::TYPES.contains(t)).collect()
 }
 
 fn check_all_players(game: &mut Game, d: &dyn Describer, stats: &mut Stats, at: &str) {

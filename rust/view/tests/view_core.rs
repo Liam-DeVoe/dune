@@ -23,7 +23,7 @@ fn factions(r: &ViewReplica) -> Vec<Faction> {
     r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
-fn player(r: &ViewReplica, f: Faction) -> PlayerIndex {
+fn player(r: &ViewReplica, f: Faction) -> PlayerId {
     r.game.get_player(Some(f)).unwrap()
 }
 

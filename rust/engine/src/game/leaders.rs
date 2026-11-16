@@ -6,7 +6,7 @@ pub struct Leaders {
     pub captured_leaders: IndexMap<Leader, Faction>,
     pub assassinated: Vec<Leader>,
     pub ecaz_loyal_leader: Option<Leader>,
-    pub player_to_set_aside_vidal: Option<PlayerIndex>,
+    pub player_to_set_aside_vidal: Option<PlayerId>,
     pub when_to_set_aside_vidal: Option<VidalMoment>,
 }
 
@@ -61,7 +61,7 @@ impl Game {
         }
     }
 
-    pub fn revive(&mut self, initiator: PlayerIndex, h: Hero) {
+    pub fn revive(&mut self, initiator: PlayerId, h: Hero) {
         self.leaders.leader_state[&h].revive();
         self.leaders.leader_state[&h].current_territory = None;
 
@@ -114,7 +114,7 @@ impl Game {
         self.skill(Some(leader)) == Some(skill)
     }
 
-    pub fn has_skill_in_front_of_shield(&self, p: PlayerIndex, skill: LeaderSkill) -> bool {
+    pub fn has_skill_in_front_of_shield(&self, p: PlayerId, skill: LeaderSkill) -> bool {
         self.player(p)
             .leaders
             .iter()
@@ -125,16 +125,16 @@ impl Game {
         l.is_some() && self.skill(l) != None
     }
 
-    pub fn player_skilled_as(&self, skill: LeaderSkill) -> Option<PlayerIndex> {
+    pub fn player_skilled_as(&self, skill: LeaderSkill) -> Option<PlayerId> {
         self.player_indices().find(|p| self.has_skill_in_front_of_shield(*p, skill))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn get_skilled_leaders(&self, player: PlayerIndex) -> impl Iterator<Item = Leader> {
+    pub fn get_skilled_leaders(&self, player: PlayerId) -> impl Iterator<Item = Leader> {
         self.player(player).leaders.iter().copied().filter(move |l| self.is_skilled(Some(Hero::Leader(*l))))
     }
 
-    pub fn get_skill(&self, p: PlayerIndex) -> Option<LeaderSkill> {
+    pub fn get_skill(&self, p: PlayerId) -> Option<LeaderSkill> {
         let hero = self
             .player(p)
             .leaders
@@ -173,7 +173,7 @@ impl Game {
         self.is_alive(LeaderManager::messiah())
     }
 
-    pub fn has_something_to_revive(&self, player: PlayerIndex) -> bool {
+    pub fn has_something_to_revive(&self, player: PlayerId) -> bool {
         let mut player = player;
         loop {
             let p = self.player(player);
@@ -189,7 +189,7 @@ impl Game {
         }
     }
 
-    pub fn killed_heroes(&self, p: PlayerIndex) -> Vec<Hero> {
+    pub fn killed_heroes(&self, p: PlayerId) -> Vec<Hero> {
         let mut result: Vec<Hero> = Vec::new();
         result.extend(self.player(p).leaders.iter().filter(|l| !self.is_alive(Hero::Leader(**l))).map(|l| Hero::Leader(*l)));
 
@@ -273,7 +273,7 @@ impl Game {
         self.leaders.leader_state.insert_new(LeaderManager::messiah(), LeaderState { death_counter: 0, current_territory: None, ..Default::default() });
     }
 
-    pub fn check_if_occupier_takes_vidal(&mut self, previous_occupier_of_ecaz_homeworld: Option<PlayerIndex>) {
+    pub fn check_if_occupier_takes_vidal(&mut self, previous_occupier_of_ecaz_homeworld: Option<PlayerId>) {
         if self.vidal().is_none() {
             return;
         }

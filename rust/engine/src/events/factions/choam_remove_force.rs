@@ -55,7 +55,7 @@ impl ChoamRemoveForce {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_factions(g: &Game, p: Option<PlayerIndex>, l: Option<Location>) -> impl Iterator<Item = Faction> {
+    pub fn valid_factions(g: &Game, p: Option<PlayerId>, l: Option<Location>) -> impl Iterator<Item = Faction> {
         use either::Either;
         if let Some(l) = l {
             return Either::Left(g.players.iter().filter(move |x| x.any_forces_in(Some(l)) > 0).filter_map(|x| x.faction));
@@ -87,14 +87,14 @@ impl ChoamRemoveForce {
         result
     }
 
-    pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played_by(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         pl.faction == Some(Faction::Choam)
             && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && ChoamRemoveForce::card_to_use(g, p).is_some())
                 || (NexusPlayed::can_use_cunning(g, p) && !pl.treachery_cards.is_empty()))
     }
 
-    pub fn card_to_use(game: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
+    pub fn card_to_use(game: &Game, p: PlayerId) -> Option<TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_TRIP_TO_GAMONT)
     }
 

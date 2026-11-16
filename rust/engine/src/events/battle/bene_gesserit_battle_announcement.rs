@@ -44,7 +44,7 @@ impl BeneGesseritBattleAnnouncement {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_territories(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
+    pub fn valid_territories(g: &Game, p: PlayerId) -> impl Iterator<Item = Territory> {
         let player = g.player(p);
         g.board.map
             .territories(g.applicable(Rule::Homeworlds))

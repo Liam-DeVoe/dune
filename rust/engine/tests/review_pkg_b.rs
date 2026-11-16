@@ -83,7 +83,7 @@ fn join<T: ToString>(it: impl Iterator<Item = T>) -> String {
     it.map(|x| x.to_string()).collect::<Vec<_>>().join(",")
 }
 
-fn state(g: &Game, me: PlayerIndex) -> String {
+fn state(g: &Game, me: PlayerId) -> String {
     let p = g.player(me);
     let mut s = format!("{} [", treachery_engine::enum_type::name_or_absent(p.faction));
     s += &join(p.forces_in_locations.iter().map(|(k, v)| format!("{}:{}/{}", k.id(), v.amount_of_forces, v.amount_of_special_forces)));
@@ -231,7 +231,7 @@ fn determine_first_player() {
     compare(|l| l.starts_with("first "));
 }
 
-fn seat(g: &Game, p: Option<PlayerIndex>) -> String {
+fn seat(g: &Game, p: Option<PlayerId>) -> String {
     match p {
         Some(p) => g.player(p).seat.to_string(),
         None => "null".to_string(),

@@ -33,7 +33,7 @@ impl KarmaRevivalPrevention {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn get_valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn get_valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         g.players_other_than(p)
     }
 

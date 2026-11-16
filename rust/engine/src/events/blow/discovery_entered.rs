@@ -42,7 +42,7 @@ impl DiscoveryEntered {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = DiscoveredLocation> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = DiscoveredLocation> {
         g.collection.just_revealed_discovery_strongholds
             .iter()
             .copied()
@@ -50,7 +50,7 @@ impl DiscoveryEntered {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_sources(game: &Game, p: PlayerIndex, ds: DiscoveredLocation) -> impl Iterator<Item = Location> {
+    pub fn valid_sources(game: &Game, p: PlayerId, ds: DiscoveredLocation) -> impl Iterator<Item = Location> {
         ds.attached_to_location(&game.board.map)
             .expect("attached to location")
             .territory()

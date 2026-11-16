@@ -111,7 +111,7 @@ impl Game {
         guild_has_to_act && !(guild_is_on_auto_delay && guild_may_delay)
     }
 
-    pub fn perform_move_from_locations(&mut self, initiator: PlayerIndex, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
+    pub fn perform_move_from_locations(&mut self, initiator: PlayerId, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
         let Some(to) = evt.to_location(self) else { return };
 
         self.ship_move.last_shipment_or_movement = Some(evt.clone());
@@ -162,7 +162,7 @@ impl Game {
         self.flip_bene_gesserit_advisors_when_alone();
     }
 
-    pub fn check_sandmaster(&mut self, initiator: PlayerIndex, to: Location, dist: i32, fl: (Location, Battalion)) {
+    pub fn check_sandmaster(&mut self, initiator: PlayerId, to: Location, dist: i32, fl: (Location, Battalion)) {
         if self.has_skill_in_front_of_shield(initiator, LeaderSkill::Sandmaster) {
             let faction = self.player(initiator).faction;
             let ignore_storm = faction == Some(Faction::Fremen) && self.applicable(Rule::FremenMayMoveIntoStorm);
@@ -194,7 +194,7 @@ impl Game {
         }
     }
 
-    pub fn perform_move_from_location(&mut self, initiator: PlayerIndex, from: Location, battalion: &Battalion, to: Location, total_number_of_forces: &mut i32, total_number_of_special_forces: &mut i32, ignore_storm: bool) {
+    pub fn perform_move_from_location(&mut self, initiator: PlayerId, from: Location, battalion: &Battalion, to: Location, total_number_of_forces: &mut i32, total_number_of_special_forces: &mut i32, ignore_storm: bool) {
         let must_move_through_storm = self.must_move_through_storm(initiator, from, to, battalion);
         if !ignore_storm && (self.is_in_storm(to) || must_move_through_storm) {
             let kill_count;
@@ -224,7 +224,7 @@ impl Game {
         *total_number_of_special_forces += battalion.amount_of_special_forces;
     }
 
-    pub fn must_move_through_storm(&self, initiator: PlayerIndex, from: Location, to: Location, moved: &Battalion) -> bool {
+    pub fn must_move_through_storm(&self, initiator: PlayerId, from: Location, to: Location, moved: &Battalion) -> bool {
         let max = self.determine_maximum_move_distance(initiator, std::slice::from_ref(moved));
         let faction = self.player(initiator).faction;
         let targets_avoiding_storm = self.board.map.find_neighbours(from, max, false, faction.expect("faction"), self, true);
@@ -232,7 +232,7 @@ impl Game {
         !targets_avoiding_storm.contains(&to) && targets_ignoring_storm.contains(&to)
     }
 
-    pub fn log_move(&mut self, initiator: PlayerIndex, from: Territory, from_locations: &[Location], to: Location, force_amount: i32, special_force_amount: i32, as_advisors: bool, by_caravan: bool, move_number: Option<i32>) {
+    pub fn log_move(&mut self, initiator: PlayerId, from: Territory, from_locations: &[Location], to: Location, force_amount: i32, special_force_amount: i32, as_advisors: bool, by_caravan: bool, move_number: Option<i32>) {
         let bene_gesserit_as = self.player(initiator).is(Faction::BeneGesserit) && self.applicable(Rule::BeneGesseritAdvisors);
         let pl = self.player(initiator);
         let faction = pl.faction;
@@ -264,7 +264,7 @@ impl Game {
         express_part_if!(by_caravan; "By ", TreacheryCardType::Caravan, ", ")
     }
 
-    pub fn take_vidal(&mut self, p: PlayerIndex, when_to_set_aside: VidalMoment) {
+    pub fn take_vidal(&mut self, p: PlayerId, when_to_set_aside: VidalMoment) {
         let Some(vidal) = self.vidal() else { return };
 
         let current_owner = self.owner_of(Hero::from(vidal));
@@ -603,7 +603,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerIndex) {
+    pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerId) {
         let (p_ally, p_faction) = (self.player(p).ally, self.player(p).faction);
         if p_ally != None && p_faction != Some(Faction::Ecaz) && p_ally != Some(Faction::Ecaz) {
             let special_forces_are_allowed = self.player(p).is(Faction::BeneGesserit) && self.applicable(Rule::AdvisorsDontConflictWithAlly);
@@ -658,7 +658,7 @@ impl Game {
         }
     }
 
-    pub fn threatened_by_ally_presence(&self, p: PlayerIndex, t: Territory) -> bool {
+    pub fn threatened_by_ally_presence(&self, p: PlayerId, t: Territory) -> bool {
         if t == self.board.map.polar_sink().territory() {
             return false;
         }
@@ -858,7 +858,7 @@ impl Game {
         }
     }
 
-    pub fn has_shipment_permission(&self, p: PlayerIndex, permission: ShipmentPermission) -> bool {
+    pub fn has_shipment_permission(&self, p: PlayerId, permission: ShipmentPermission) -> bool {
         match self.ship_move.shipment_permissions.get_opt(self.player(p).faction) {
             Some(permissions) => permissions.contains(permission),
             None => false,
@@ -886,7 +886,7 @@ impl Game {
         }
     }
 
-    pub fn occupies_arrakeen_or_carthag(&self, p: PlayerIndex) -> bool {
+    pub fn occupies_arrakeen_or_carthag(&self, p: PlayerId) -> bool {
         self.player(p).occupies(self, Some(self.board.map.arrakeen())) || self.player(p).occupies(self, Some(self.board.map.carthag()))
     }
 

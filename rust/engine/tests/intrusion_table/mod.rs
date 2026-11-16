@@ -133,7 +133,7 @@ pub fn host_ends_phase(g: &mut Game) {
     assert_eq!(e.execute(g, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.turn.current_phase);
 }
 
-pub fn idx(g: &Game, f: Faction) -> PlayerIndex {
+pub fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).expect("faction in game")
 }
 
@@ -159,7 +159,7 @@ pub fn phase(g: &Game) -> Phase {
 
 /// Who may submit an event of this type now.
 pub fn asked(g: &mut Game, t: GameEventType) -> Vec<Faction> {
-    let players: Vec<PlayerIndex> = g.player_indices().collect();
+    let players: Vec<PlayerId> = g.player_indices().collect();
     let mut result = Vec::new();
     for p in players {
         if g.get_applicable_events(Some(p), false).contains(&t) {

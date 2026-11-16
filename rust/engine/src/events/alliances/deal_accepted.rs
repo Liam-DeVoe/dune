@@ -70,7 +70,7 @@ impl DealAccepted {
         None
     }
 
-    pub fn may_deal(g: &Game, p: Option<PlayerIndex>, price: i32) -> bool {
+    pub fn may_deal(g: &Game, p: Option<PlayerId>, price: i32) -> bool {
         g.turn.current_phase != Phase::Bidding
             || price <= 0
             || g.bidding.current_bid.is_none()
@@ -84,7 +84,7 @@ impl DealAccepted {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn acceptable_deals(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = Rc<DealOffered>> {
+    pub fn acceptable_deals(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = Rc<DealOffered>> {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
@@ -92,7 +92,7 @@ impl DealAccepted {
     }
 
     /// The `AcceptableDeals` filter for one offer (Rust-only helper, see `acceptable_deals`).
-    pub fn is_acceptable_deal(g: &Game, p: PlayerIndex, offer: &Rc<DealOffered>) -> bool {
+    pub fn is_acceptable_deal(g: &Game, p: PlayerId, offer: &Rc<DealOffered>) -> bool {
         let pl = g.player(p);
         offer.initiator() != pl.faction
             && offer.initiator() != pl.ally
@@ -105,7 +105,7 @@ impl DealAccepted {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn cancellable_deals(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = Rc<DealOffered>> {
+    pub fn cancellable_deals(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = Rc<DealOffered>> {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };

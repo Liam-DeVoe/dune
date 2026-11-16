@@ -13,11 +13,11 @@ fn game_with(factions: &[Faction]) -> Game {
     g
 }
 
-fn idx(g: &Game, f: Faction) -> PlayerIndex {
+fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).unwrap()
 }
 
-fn cost(g: &Game, p: PlayerIndex, forces: i32, specials: i32, to: Location, karma: bool, back: bool, s2s: bool, nf_richese: bool, nf_other: bool) -> i32 {
+fn cost(g: &Game, p: PlayerId, forces: i32, specials: i32, to: Location, karma: bool, back: bool, s2s: bool, nf_richese: bool, nf_other: bool) -> i32 {
     Shipment::determine_cost_of_forces(
         g, p, forces, specials, to, karma, back, s2s, nf_richese, nf_other,
     )

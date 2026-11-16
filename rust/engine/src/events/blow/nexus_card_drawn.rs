@@ -37,11 +37,11 @@ impl NexusCardDrawn {
         None
     }
 
-    pub fn may_draw(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_draw(g: &Game, p: PlayerId) -> bool {
         !g.blow.factions_that_drew_nexus_card.contains_opt(g.player(p).faction) || g.player(p).faction == g.player(p).nexus
     }
 
-    pub fn applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn applicable(g: &Game, p: PlayerId) -> bool {
         g.blow.factions_that_may_draw_nexus_card.contains_opt(g.player(p).faction)
     }
 

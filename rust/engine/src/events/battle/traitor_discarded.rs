@@ -33,7 +33,7 @@ impl TraitorDiscarded {
         None
     }
 
-    pub fn valid_traitors(game: &Game, p: PlayerIndex) -> Vec<Hero> {
+    pub fn valid_traitors(game: &Game, p: PlayerId) -> Vec<Hero> {
         game.player(p).traitors.clone()
     }
 

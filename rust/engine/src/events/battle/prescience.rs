@@ -27,7 +27,7 @@ impl Prescience {
         None
     }
 
-    pub fn valid_aspects(g: &Game, p: PlayerIndex) -> Vec<PrescienceAspect> {
+    pub fn valid_aspects(g: &Game, p: PlayerId) -> Vec<PrescienceAspect> {
         let battle = g.battle.current_battle.as_ref().expect("current battle");
         let opponent = battle.opponent_of(g, p).expect("opponent of");
         // HasNoFieldIn(Territory) with a null territory: SpecialForcesIn(null) is 0, so false.
@@ -42,13 +42,13 @@ impl Prescience {
         vec![PrescienceAspect::Dial, PrescienceAspect::Leader, PrescienceAspect::Weapon, PrescienceAspect::Defense]
     }
 
-    pub fn may_use_prescience(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_use_prescience(g: &Game, p: PlayerId) -> bool {
         Self::may_use_prescience_opt(g, Some(p))
     }
 
     /// [`may_use_prescience`](Self::may_use_prescience) for a player that may be missing. A
     /// missing player panics where the answer depends on it, after the checks that don't.
-    pub fn may_use_prescience_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
+    pub fn may_use_prescience_opt(g: &Game, p: Option<PlayerId>) -> bool {
         if let Some(battle) = g.battle.current_battle.as_ref() {
             if g.battle.current_prescience.is_none() && !g.prevented(FactionAdvantage::AtreidesBattlePlanPrescience) {
                 let p = p.expect("player");

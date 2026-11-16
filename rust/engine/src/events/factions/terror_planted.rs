@@ -53,7 +53,7 @@ impl TerrorPlanted {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_strongholds(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
+    pub fn valid_strongholds(g: &Game, p: PlayerId) -> impl Iterator<Item = Territory> {
         use either::Either;
         use std::iter::empty;
         if g.turn.current_main_phase != MainPhase::Contemplate {
@@ -70,13 +70,13 @@ impl TerrorPlanted {
         }))
     }
 
-    pub fn may_remove_tokens(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_remove_tokens(g: &Game, p: PlayerId) -> bool {
         g.turn.current_main_phase == MainPhase::Collection
             && g.player(p).has_high_threshold(g, World::Moritani)
             && !g.board.terror_on_planet.is_empty()
     }
 
-    pub fn may_place_at_existing_token(game: &Game, p: PlayerIndex) -> bool {
+    pub fn may_place_at_existing_token(game: &Game, p: PlayerId) -> bool {
         game.player(p).has_high_threshold(game, World::Moritani)
             || (game.player(p).nexus == Some(Faction::Moritani) && NexusPlayed::can_use_cunning(game, p))
     }
@@ -92,7 +92,7 @@ impl TerrorPlanted {
         Either::Right(crate::iter::unique(g.board.unplaced_terror_tokens.iter().copied().chain(g.board.terror_on_planet.keys().copied())))
     }
 
-    pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         TerrorPlanted::may_remove_tokens(g, p)
             || (g.turn.current_phase == Phase::Contemplate
                 && !TerrorPlanted::valid_terror_types(g, false).next().is_none()

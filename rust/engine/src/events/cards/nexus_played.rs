@@ -174,22 +174,22 @@ impl NexusPlayed {
         None
     }
 
-    pub fn can_use_cunning(game: &Game, p: PlayerIndex) -> bool {
+    pub fn can_use_cunning(game: &Game, p: PlayerId) -> bool {
         let p = game.player(p);
         p.nexus.is_some() && p.nexus == p.faction
     }
 
-    pub fn can_use_secret_ally(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_use_secret_ally(g: &Game, p: PlayerId) -> bool {
         let p = g.player(p);
         p.nexus != None && !g.is_playing(p.nexus)
     }
 
-    pub fn can_use_betrayal(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_use_betrayal(g: &Game, p: PlayerId) -> bool {
         let p = g.player(p);
         p.nexus.is_some() && p.nexus != p.faction && g.is_playing(p.nexus)
     }
 
-    pub fn is_applicable(g: &Game, p: PlayerIndex) -> bool {
+    pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         if g.turn.current_phase == Phase::NexusCards || g.current_phase_cannot_be_interrupted() {
             return false;
         }
@@ -270,7 +270,7 @@ impl NexusPlayed {
         }
     }
 
-    pub fn valid_tleilaxu_max_amount(g: &Game, p: PlayerIndex, special_forces: bool) -> i32 {
+    pub fn valid_tleilaxu_max_amount(g: &Game, p: PlayerId, special_forces: bool) -> i32 {
         let p = g.player(p);
         if special_forces {
             if p.faction == Some(Faction::Emperor) || p.faction == Some(Faction::Fremen) {
@@ -286,12 +286,12 @@ impl NexusPlayed {
         std::cmp::min(p.forces_killed, 5)
     }
 
-    pub fn valid_tleilaxu_heroes(game: &Game, player: PlayerIndex) -> Vec<Hero> {
+    pub fn valid_tleilaxu_heroes(game: &Game, player: PlayerId) -> Vec<Hero> {
         RaiseDeadPlayed::valid_heroes(game, player)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_choam_cards(game: &Game, player: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_choam_cards(game: &Game, player: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         game.player(player).treachery_cards.iter().copied().filter(move |c| c.type_() == TreacheryCardType::Useless)
     }
 
@@ -326,7 +326,7 @@ impl NexusPlayed {
         crate::iter::unique(g.board.terror_on_planet.values().copied())
     }
 
-    pub fn may_select_location_for_revived_forces(game: &Game, player: PlayerIndex, special_forces: i32) -> bool {
+    pub fn may_select_location_for_revived_forces(game: &Game, player: PlayerId, special_forces: i32) -> bool {
         game.player(player).is(Faction::Fremen)
             && special_forces >= 1
             && game.player(player).has_any_high_threshold(game)

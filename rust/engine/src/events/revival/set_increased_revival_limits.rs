@@ -41,7 +41,7 @@ impl SetIncreasedRevivalLimits {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         g.players.iter().filter(move |x| x.faction != g.player(p).faction).filter_map(move |x| x.faction)
     }
 

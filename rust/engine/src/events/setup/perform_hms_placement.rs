@@ -33,7 +33,7 @@ impl PerformHmsPlacement {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         use either::Either;
         if g.player(p).faction != Some(Faction::Ixian) {
             return Either::Left(g.board.map.locations(false).filter(|l| !l.territory().is_stronghold()));

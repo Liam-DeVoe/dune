@@ -29,13 +29,13 @@ impl MetheorPlayed {
         None
     }
 
-    pub fn may_play_metheor(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_play_metheor(g: &Game, p: PlayerId) -> bool {
         g.turn.current_turn > 1
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
             && MetheorPlayed::has_forces_at_or_near_shield_wall(g, p)
     }
 
-    pub fn has_forces_at_or_near_shield_wall(g: &Game, p: PlayerIndex) -> bool {
+    pub fn has_forces_at_or_near_shield_wall(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         if pl.occupies_territory(g, Some(g.board.map.shield_wall())) {
             return true;

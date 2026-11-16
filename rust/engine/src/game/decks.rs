@@ -47,7 +47,7 @@ impl Decks {
 impl Game {
     /// Discards the first card of `card_type` in the player's hand (for Bene Gesserit, a Useless
     /// card can stand in for Karma). Fails if they have none.
-    pub fn discard(&mut self, player: PlayerIndex, card_type: TreacheryCardType) -> GameResult {
+    pub fn discard(&mut self, player: PlayerId, card_type: TreacheryCardType) -> GameResult {
         let bene_gesserit_karma = card_type == TreacheryCardType::Karma && self.player(player).is(Faction::BeneGesserit);
         let card = self
             .player(player)
@@ -76,7 +76,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn discard_card_of(&mut self, player: Option<PlayerIndex>, card: Option<TreacheryCard>, log: bool) {
+    pub fn discard_card_of(&mut self, player: Option<PlayerId>, card: Option<TreacheryCard>, log: bool) {
         if let (Some(player), Some(card)) = (player, card) {
             let faction = self.player(player).faction;
             if log {

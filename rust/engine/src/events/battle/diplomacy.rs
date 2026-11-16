@@ -32,7 +32,7 @@ impl Diplomacy {
         None
     }
 
-    pub fn valid_cards(g: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn valid_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         let mut result = Vec::new();
         let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p)).expect("plan of");
         if let Some(weapon) = plan.weapon() {
@@ -48,7 +48,7 @@ impl Diplomacy {
         result
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         if g.has_skill_in_front_of_shield(p, LeaderSkill::Diplomat) && g.battle.current_diplomacy.is_none() {
             let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
             let plan_of_opponent = g.battle.current_battle.as_ref().expect("current battle").plan_of_opponent(g, Some(p));

@@ -136,7 +136,7 @@ impl DealOffered {
             }
     }
 
-    pub fn get_standard_deal_types(g: &Game, p: PlayerIndex) -> Vec<DealType> {
+    pub fn get_standard_deal_types(g: &Game, p: PlayerId) -> Vec<DealType> {
         let mut result = vec![DealType::None, DealType::ForfeitBattle, DealType::TellDiscardedTraitors];
 
         match g.player(p).faction {

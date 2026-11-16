@@ -33,7 +33,7 @@ impl ChoamDiscarded {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_cards(game: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_cards(game: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         let pl = game.player(p);
         pl.treachery_cards
             .iter()

@@ -159,7 +159,7 @@ impl ClairVoyancePlayed {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         g.players_other_than(p)
     }
 
@@ -177,7 +177,7 @@ impl ClairVoyancePlayed {
         Either::Right(all_values.into_iter().filter(move |v| ClairVoyancePlayed::applies_to_bot(*v, g, target_player)))
     }
 
-    pub fn applies_to_bot(q: Option<ClairvoyanceQuestion>, g: &Game, p: PlayerIndex) -> bool {
+    pub fn applies_to_bot(q: Option<ClairvoyanceQuestion>, g: &Game, p: PlayerId) -> bool {
         match q {
             Some(
                 ClairvoyanceQuestion::CardTypeInBattle

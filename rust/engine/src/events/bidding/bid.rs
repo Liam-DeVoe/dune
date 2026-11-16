@@ -117,14 +117,14 @@ impl Bid {
         None
     }
 
-    pub fn valid_max_amount(game: &Game, p: PlayerIndex, using_karma: bool) -> i32 {
+    pub fn valid_max_amount(game: &Game, p: PlayerId, using_karma: bool) -> i32 {
         if using_karma {
             return 100;
         }
         game.player(p).resources
     }
 
-    pub fn valid_max_ally_amount(g: &Game, p: Option<PlayerIndex>) -> i32 {
+    pub fn valid_max_ally_amount(g: &Game, p: Option<PlayerId>) -> i32 {
         match p {
             None => 0,
             Some(p) => g.resources_your_ally_can_pay(p),
@@ -149,7 +149,7 @@ impl Bid {
         }
     }
 
-    pub fn valid_karma_cards(g: &Game, p: Option<PlayerIndex>) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_karma_cards(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = TreacheryCard> {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
@@ -159,24 +159,24 @@ impl Bid {
         Either::Left(empty())
     }
 
-    pub fn can_karma(g: &Game, p: Option<PlayerIndex>) -> bool {
+    pub fn can_karma(g: &Game, p: Option<PlayerId>) -> bool {
         // Any() stops at the first match.
         Bid::valid_karma_cards(g, p).next().is_some()
     }
 
-    pub fn may_be_played(game: &Game, player: Option<PlayerIndex>) -> bool {
+    pub fn may_be_played(game: &Game, player: Option<PlayerId>) -> bool {
         let Some(player) = player else { return false };
         (game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) && !game.bidding.bids.contains_key_opt(game.player(player).faction) && game.player(player).has_room_for_cards(game))
             || (game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
 
-    pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerIndex) -> bool {
+    pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerId) -> bool {
         game.bidding.current_auction_type == Some(AuctionType::Normal) && game.player(player).nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, player)
     }
 
     /// `MayUseEmperorSecretAlly` with a possibly null player: the NullReferenceException
     /// happens only after the auction type check.
-    pub(crate) fn may_use_emperor_secret_ally_opt(game: &Game, player: Option<PlayerIndex>) -> bool {
+    pub(crate) fn may_use_emperor_secret_ally_opt(game: &Game, player: Option<PlayerId>) -> bool {
         game.bidding.current_auction_type == Some(AuctionType::Normal) && game.player(player.expect("player")).nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, player.expect("player"))
     }
 
@@ -188,7 +188,7 @@ impl Bid {
         // means the auction went around without reaching the high bidder. That happened when
         // the high bidder's hand filled up during the auction, so the sequence skipped them
         // forever (fuzz seed 1 game 176, rust/docs/escapes.md). C# has no such limit.
-        let mut auto_passed: Vec<PlayerIndex> = Vec::new();
+        let mut auto_passed: Vec<PlayerId> = Vec::new();
         let mut player_to_bid_with_pass_normal_bid = Bid::first_auto_passing_player(game);
         while let Some(p) = player_to_bid_with_pass_normal_bid.filter(|p| !auto_passed.contains(p)) {
             auto_passed.push(p);
@@ -207,7 +207,7 @@ impl Bid {
     /// stays true after bidding ends. When everyone passed on a card while the next bidder's rule
     /// was active, every automatic pass ended the bidding phase again, so the loop never
     /// stopped (fuzz seed 1 game 2, rust/docs/escapes.md).
-    fn first_auto_passing_player(game: &Game) -> Option<PlayerIndex> {
+    fn first_auto_passing_player(game: &Game) -> Option<PlayerId> {
         if game.turn.current_phase != Phase::Bidding {
             return None;
         }
@@ -494,7 +494,7 @@ impl crate::events::bid_trait::BidEvent for Bid {
         GameEventMethods::initiator(self).expect("faction")
     }
 
-    fn player(&self) -> Option<PlayerIndex> {
+    fn player(&self) -> Option<PlayerId> {
         GameEventMethods::player_opt(self)
     }
 

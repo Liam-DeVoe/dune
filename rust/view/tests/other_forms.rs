@@ -53,7 +53,7 @@ fn option_names(o: &[EnumOption]) -> Vec<String> {
 }
 
 /// The options must hold what the engine helpers return for this state.
-fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at: &str) {
+fn check(game: &Game, p: PlayerId, v: &ResolvedViewer, o: &ActionOptions, at: &str) {
     let pl = game.player(p);
     let hand = ids(pl.treachery_cards.iter().copied());
     match o {
@@ -193,9 +193,9 @@ impl Seen {
 
 /// Checks every applicable form of this package for every player of `game`.
 fn check_state(game: &mut Game, d: &dyn Describer, at: &str, seen: &mut Seen) {
-    let players: Vec<PlayerIndex> = game.player_indices().collect();
+    let players: Vec<PlayerId> = game.player_indices().collect();
     for p in players {
-        let v = ResolvedViewer { player: Some(p), faction: game.player(p).faction, is_host: p.index == 0, is_observer: false };
+        let v = ResolvedViewer { player: Some(p), faction: game.player(p).faction, is_host: p.index() == 0, is_observer: false };
         let types = game.get_applicable_events(Some(p), v.is_host);
         let game: &Game = game;
         let in_game = InGame::new(d, game);

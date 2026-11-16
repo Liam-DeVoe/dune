@@ -110,7 +110,7 @@ impl FremenRidesMonster {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn locations_with_forces_that_can_ride<'a>(g: &'a Game, fremen: PlayerIndex, territory: Territory) -> Box<dyn Iterator<Item = Location> + 'a> {
+    pub fn locations_with_forces_that_can_ride<'a>(g: &'a Game, fremen: PlayerId, territory: Territory) -> Box<dyn Iterator<Item = Location> + 'a> {
         let may_ride_from_storm = g.applicable(Rule::FremenMayMoveIntoStorm);
 
         if NexusPlayed::can_use_cunning(g, fremen) && g.player(fremen).any_forces_in_territory(Some(territory)) == 0 {
@@ -147,7 +147,7 @@ impl FremenRidesMonster {
         Box::new(std::iter::empty())
     }
 
-    pub fn max_forces_from_reserves(g: &Game, p: PlayerIndex, special: bool) -> i32 {
+    pub fn max_forces_from_reserves(g: &Game, p: PlayerId, special: bool) -> i32 {
         let ride_from = Self::to_ride(g);
         if ride_from.is_some() && Self::to_ride(g).expect("to ride").is_great_monster {
             return if special { g.player(p).special_forces_in_reserve() } else { g.player(p).forces_in_reserve() };
@@ -157,7 +157,7 @@ impl FremenRidesMonster {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         let may_move_into_storm = g.player(p).faction == Some(Faction::Fremen)
             && g.applicable(Rule::FremenMayMoveIntoStorm)
             && g.applicable(Rule::FremenStormLosses);

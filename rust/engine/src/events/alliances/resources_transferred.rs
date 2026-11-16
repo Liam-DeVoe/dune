@@ -34,15 +34,15 @@ impl ResourcesTransferred {
         None
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.player(p).has_ally() && ResourcesTransferred::max_amount(g, p) > 0 && ResourcesTransferred::may_transfer(g, p)
     }
 
-    pub fn may_transfer(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_transfer(g: &Game, p: PlayerId) -> bool {
         !(g.has_bid_to_pay(p) || g.current_phase_cannot_be_interrupted())
     }
 
-    pub fn max_amount(game: &Game, p: PlayerIndex) -> i32 {
+    pub fn max_amount(game: &Game, p: PlayerId) -> i32 {
         let pl = game.player(p);
         pl.transferable_resources.min(pl.resources)
     }

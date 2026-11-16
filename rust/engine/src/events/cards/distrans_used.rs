@@ -36,12 +36,12 @@ impl DistransUsed {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_cards(game: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_cards(game: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.type_() != TreacheryCardType::Distrans)
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Faction> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         g.players
             .iter()
             .enumerate()
@@ -49,7 +49,7 @@ impl DistransUsed {
             .filter_map(move |(_, target)| target.faction)
     }
 
-    pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
+    pub fn can_be_played(game: &Game, player: PlayerId) -> bool {
         game.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Distrans)
             && !DistransUsed::valid_cards(game, player).next().is_none()
             && !DistransUsed::valid_targets(game, player).next().is_none()
@@ -68,7 +68,7 @@ impl DistransUsed {
 
         if !game.player(me).treachery_cards.is_empty() {
             let initiator = self.initiator();
-            let others: Vec<PlayerIndex> = game.player_indices().filter(|p| !game.player(*p).is(initiator) && *p != target).collect();
+            let others: Vec<PlayerId> = game.player_indices().filter(|p| !game.player(*p).is(initiator) && *p != target).collect();
             for p in others {
                 let my_cards = game.player(me).treachery_cards.clone();
                 Game::unregister_all_known_by_player(game, p, &my_cards);
@@ -82,7 +82,7 @@ impl DistransUsed {
         Ok(())
     }
 
-    pub fn check_if_bidding_for_player_should_be_skipped(&self, game: &mut Game, player: PlayerIndex, had_room_for_cards: bool) {
+    pub fn check_if_bidding_for_player_should_be_skipped(&self, game: &mut Game, player: PlayerId, had_room_for_cards: bool) {
         // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
         // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
         if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {

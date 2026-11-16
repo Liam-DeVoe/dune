@@ -2,21 +2,21 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PlayerSequence {
-    pub players: Vec<PlayerIndex>,
+    pub players: Vec<PlayerId>,
     /// Elements are `Option` because a null `CurrentPlayer` can be added (see `players_in_order`).
-    pub played: Vec<Option<PlayerIndex>>,
+    pub played: Vec<Option<PlayerId>>,
     pub skip_players_that_cant_bid_on_cards: bool,
     pub round: i32,
     pub fully_circled: i32,
     /// `Option` because the constructor can be handed a null `toStartWith`
     /// (`richesePlayer` in `Game.StartBidSequenceAndAuctionType`).
-    pub first_player: Option<PlayerIndex>,
+    pub first_player: Option<PlayerId>,
 }
 
 impl PlayerSequence {
-    pub fn new(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32, to_start_with: Option<PlayerIndex>, begin_next_to_that_player: bool) -> Self {
+    pub fn new(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32, to_start_with: Option<PlayerId>, begin_next_to_that_player: bool) -> Self {
         // Players = [.. _game.Players.OrderBy(p => direction * p.Seat)]  (stable)
-        let mut players: Vec<PlayerIndex> = game.player_indices().collect();
+        let mut players: Vec<PlayerId> = game.player_indices().collect();
         players.sort_by_cached_key(|p| direction * game.player(*p).seat);
 
         let mut result = PlayerSequence {
@@ -62,17 +62,17 @@ impl PlayerSequence {
             .count() as i32
     }
 
-    pub fn may_get_turn(&self, game: &Game, p: PlayerIndex) -> bool {
+    pub fn may_get_turn(&self, game: &Game, p: PlayerId) -> bool {
         !self.skip_players_that_cant_bid_on_cards || game.player(p).has_room_for_cards(game)
     }
 
     /// `may_get_turn` for a player that may be missing: panics for a missing player when it matters.
-    fn may_get_turn_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
+    fn may_get_turn_opt(&self, game: &Game, p: Option<PlayerId>) -> bool {
         !self.skip_players_that_cant_bid_on_cards || game.player(p.expect("player")).has_room_for_cards(game)
     }
 
     /// `JuiceForcesLast(p)` where `p` may be null.
-    fn juice_forces_last_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
+    fn juice_forces_last_opt(&self, game: &Game, p: Option<PlayerId>) -> bool {
         match &game.turn.current_juice {
             Some(juice) if juice.type_ == Some(JuiceType::GoLast) => juice.player_opt() == p,
             _ => false,
@@ -86,10 +86,10 @@ impl PlayerSequence {
     }
 
     /// `current_player` may be null; it then matches no player.
-    pub fn player_after(&self, game: &Game, current_player: Option<PlayerIndex>, include_players_that_cant_bid: bool) -> PlayerIndex {
+    pub fn player_after(&self, game: &Game, current_player: Option<PlayerId>, include_players_that_cant_bid: bool) -> PlayerId {
         let mut current_player_found = false;
 
-        let mut first_found: Option<PlayerIndex> = None;
+        let mut first_found: Option<PlayerId> = None;
         for &p in &self.players {
             if current_player_found {
                 if include_players_that_cant_bid || self.may_get_turn(game, p) {
@@ -118,11 +118,11 @@ impl PlayerSequence {
     }
 
     /// Can be null only when `PlayersInOrder` contains a null (see `players_in_order`).
-    pub fn current_player(&self, game: &Game) -> Option<PlayerIndex> {
+    pub fn current_player(&self, game: &Game) -> Option<PlayerId> {
         self.determine_current_player(game)
     }
 
-    pub fn determine_current_player(&self, game: &Game) -> Option<PlayerIndex> {
+    pub fn determine_current_player(&self, game: &Game) -> Option<PlayerId> {
         if !self.played.is_empty() {
             let mut found = false;
             for p in self.players_in_order(game) {
@@ -181,8 +181,8 @@ impl PlayerSequence {
     }
 
     /// Elements are `Option` because a null `FirstPlayer` can be added to the list.
-    pub fn players_in_order(&self, game: &Game) -> Vec<Option<PlayerIndex>> {
-        let mut result: Vec<Option<PlayerIndex>> = Vec::new();
+    pub fn players_in_order(&self, game: &Game) -> Vec<Option<PlayerId>> {
+        let mut result: Vec<Option<PlayerId>> = Vec::new();
         let player_with_juice = match &game.turn.current_juice {
             Some(j) if j.type_ == Some(JuiceType::GoFirst) || j.type_ == Some(JuiceType::GoLast) => j.player_opt(),
             _ => None,
@@ -219,10 +219,10 @@ impl PlayerSequence {
             .map(move |p| SequenceElement { player: p, has_turn: self.current_player(game) == p })
     }
 
-    pub fn determine_first_player(g: &Game) -> PlayerIndex {
+    pub fn determine_first_player(g: &Game) -> PlayerId {
         let start_looking_in_sector = (((g.board.sector_in_storm as f32 * g.maximum_players() as f32 / Map::NUMBER_OF_SECTORS as f32) as f64).ceil() as i32) % g.maximum_players();
 
-        let mut result: Option<PlayerIndex> = None;
+        let mut result: Option<PlayerId> = None;
 
         let mut position = (g.maximum_players() + start_looking_in_sector) % g.maximum_players();
         let mut i = 0;
@@ -245,7 +245,7 @@ impl PlayerSequence {
         x.rem_euclid(m)
     }
 
-    pub fn is_after(g: &Game, a: PlayerIndex, b: PlayerIndex) -> bool {
+    pub fn is_after(g: &Game, a: PlayerId, b: PlayerId) -> bool {
         let first_player = PlayerSequence::determine_first_player(g);
 
         let mut i = 0;
@@ -268,6 +268,6 @@ impl PlayerSequence {
 #[derive(Clone, Debug)]
 pub struct SequenceElement {
     /// Can be null (see `PlayerSequence::players_in_order`).
-    pub player: Option<PlayerIndex>,
+    pub player: Option<PlayerId>,
     pub has_turn: bool,
 }

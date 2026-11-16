@@ -80,7 +80,7 @@ impl Game {
         }
     }
 
-    pub fn modify_income_because_of_low_threshold_or_occupation(&mut self, from: PlayerIndex, received_amount: &mut i32) {
+    pub fn modify_income_because_of_low_threshold_or_occupation(&mut self, from: PlayerId, received_amount: &mut i32) {
         if *received_amount > 1 && self.applicable(Rule::Homeworlds) {
             let homeworld = self.player(from).primary_homeworld();
             let occupier = self.occupier_of(homeworld.world());
@@ -126,7 +126,7 @@ impl Game {
         }
     }
 
-    pub fn collect_resources_from_stronghold(&mut self, stronghold: Location, player: PlayerIndex, amount: i32) {
+    pub fn collect_resources_from_stronghold(&mut self, stronghold: Location, player: PlayerId, amount: i32) {
         let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
         let p = self.player(player);
         if p.controls(self, stronghold, contested)
@@ -149,7 +149,7 @@ impl Game {
         for (key, value) in snapshot {
             let mut thief = find_thief(self);
 
-            let players_to_collect: Vec<PlayerIndex> =
+            let players_to_collect: Vec<PlayerId> =
                 self.player_indices().filter(|y| self.player(*y).occupies(self, Some(key))).collect();
             let mut total_collected_amount = 0i32;
             let mut spice_left = value;
@@ -251,7 +251,7 @@ impl Game {
         self.enter(Phase::CollectionReport, true);
     }
 
-    pub fn resource_collection_rate(&self, p: PlayerIndex) -> i32 {
+    pub fn resource_collection_rate(&self, p: PlayerId) -> i32 {
         let pl = self.player(p);
         if pl.controls(self, self.board.map.arrakeen(), self.applicable(Rule::ContestedStongholdsCountAsOccupied))
             || pl.controls(self, self.board.map.carthag(), self.applicable(Rule::ContestedStongholdsCountAsOccupied))

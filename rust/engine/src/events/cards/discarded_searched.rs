@@ -37,7 +37,7 @@ impl DiscardedSearched {
         g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone()
     }
 
-    pub fn can_be_played(game: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(game: &Game, p: PlayerId) -> bool {
         game.player(p).has_treachery_card_type(TreacheryCardType::SearchDiscarded)
     }
 

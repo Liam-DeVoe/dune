@@ -6,7 +6,7 @@ use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::enumerations::{MainPhase, Phase};
 use treachery_engine::events::GameEvent;
 use treachery_engine::random::{self, SharedRandom, SliceRandom};
-use treachery_engine::game::PlayerIndex;
+use treachery_engine::game::PlayerId;
 
 use super::{Answer, CallError, RunningGame, Server};
 use crate::protocol::ErrorCode;
@@ -26,7 +26,7 @@ pub fn bot_delay(phase: MainPhase, latest: Option<&GameEvent>) -> u64 {
 
 /// The index in `g.bots` of the bot of the player's faction, created the first time that
 /// faction's bot acts.
-fn bot_for(g: &mut RunningGame, player: PlayerIndex) -> usize {
+fn bot_for(g: &mut RunningGame, player: PlayerId) -> usize {
     let faction = g.game.player(player).faction;
     let index = match g.bots.iter().position(|(f, _)| *f == faction) {
         Some(i) => {
@@ -75,7 +75,7 @@ impl Server {
             return Ok(());
         }
         let bots_act_as_hosts = no_host && g.participation.number_of_observers() > 0;
-        let mut bots: Vec<PlayerIndex> = g.game.player_indices().filter(|&p| g.game.is_bot(p)).collect();
+        let mut bots: Vec<PlayerId> = g.game.player_indices().filter(|&p| g.game.is_bot(p)).collect();
         bots.shuffle(&mut random::new_rng(ids::new_seed()));
         let options: Vec<_> = bots.iter().map(|&p| g.game.get_applicable_events(Some(p), bots_act_as_hosts)).collect();
 

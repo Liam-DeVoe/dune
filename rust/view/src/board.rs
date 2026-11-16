@@ -132,7 +132,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
 }
 
 /// What the ring shows of each player beyond `build::public_player`.
-pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
+pub fn ring_extras(game: &Game, p: PlayerId, out: &mut PublicPlayer) {
     let pl = game.player(p);
     out.has_special_forces = pl.has_special_forces(game);
     out.has_room_for_cards = pl.has_room_for_cards(game);

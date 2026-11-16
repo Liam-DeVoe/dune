@@ -114,7 +114,7 @@ enum Setup {
     Clairvoyance(Option<Rc<ClairVoyancePlayed>>),
 }
 
-fn setup(game: &mut Game, me: PlayerIndex, m: &str, a: &[String]) -> Setup {
+fn setup(game: &mut Game, me: PlayerId, m: &str, a: &[String]) -> Setup {
     match m {
         "DetermineNexusPlayed_Betrayal" | "DetermineNexusPlayed_Cunning" | "DetermineNexusPlayed_SecretAlly" => {
             let saved = game.player(me).nexus;
@@ -136,7 +136,7 @@ fn setup(game: &mut Game, me: PlayerIndex, m: &str, a: &[String]) -> Setup {
     }
 }
 
-fn undo(game: &mut Game, me: PlayerIndex, s: Setup) {
+fn undo(game: &mut Game, me: PlayerId, s: Setup) {
     match s {
         Setup::None => {}
         Setup::Nexus(f) => game.player_mut(me).nexus = f,

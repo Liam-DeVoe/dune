@@ -16,8 +16,8 @@ pub struct BattleOutcome {
     pub def_homeworld_contribution: i32,
     pub agg_reinforcements_contribution: i32,
     pub def_reinforcements_contribution: i32,
-    pub winner: Option<PlayerIndex>,
-    pub loser: Option<PlayerIndex>,
+    pub winner: Option<PlayerId>,
+    pub loser: Option<PlayerId>,
     pub winner_battle_plan: Option<Rc<Battle>>,
     pub loser_battle_plan: Option<Rc<Battle>>,
     pub agg_hero_killed: bool,
@@ -32,13 +32,13 @@ pub struct BattleOutcome {
     pub def_total: f32,
     pub agg_saved_by_carthag: bool,
     pub def_saved_by_carthag: bool,
-    pub aggressor: PlayerIndex,
-    pub defender: PlayerIndex,
+    pub aggressor: PlayerId,
+    pub defender: PlayerId,
 }
 
 impl BattleOutcome {
     /// An outcome with only `aggressor` and `defender` set; every other member has its default.
-    pub fn new(aggressor: PlayerIndex, defender: PlayerIndex) -> Self {
+    pub fn new(aggressor: PlayerId, defender: PlayerId) -> Self {
         BattleOutcome {
             agg_hero_skill_bonus: 0,
             agg_activated_bonus_skill: Default::default(),

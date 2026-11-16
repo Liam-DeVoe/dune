@@ -83,7 +83,7 @@ impl AutomationConfigured {
         }
     }
 
-    pub fn get_available_rule_types(g: &Game, p: PlayerIndex) -> Vec<AutomationRuleType> {
+    pub fn get_available_rule_types(g: &Game, p: PlayerId) -> Vec<AutomationRuleType> {
         let atreides_is_playing = g.is_playing(Faction::Atreides);
         AutomationRuleType::ALL
             .iter()
@@ -100,7 +100,7 @@ impl AutomationConfigured {
             .collect()
     }
 
-    pub fn get_valid_bidding_factions(g: &Game, p: PlayerIndex) -> Vec<Faction> {
+    pub fn get_valid_bidding_factions(g: &Game, p: PlayerId) -> Vec<Faction> {
         let faction = g.player(p).faction;
         g.players.iter().filter(|x| x.faction != faction).filter_map(|x| x.faction).collect()
     }

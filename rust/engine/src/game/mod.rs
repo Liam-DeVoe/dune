@@ -200,7 +200,7 @@ impl Game {
         self.history.moments.push(Moment::new(self.turn.current_turn, self.turn.current_main_phase));
     }
 
-    pub fn known_cards(&self, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn known_cards(&self, p: PlayerId) -> Vec<TreacheryCard> {
         let player = self.player(p);
         let mut result: Vec<TreacheryCard> = player.treachery_cards.clone();
         result.extend(player.known_cards.iter().copied());
@@ -220,7 +220,7 @@ impl Game {
         }
     }
 
-    pub fn register_known_by_player(game: &mut Game, p: PlayerIndex, c: Option<TreacheryCard>) {
+    pub fn register_known_by_player(game: &mut Game, p: PlayerId, c: Option<TreacheryCard>) {
         if let Some(c) = c {
             game.player_mut(p).known_cards.insert(c);
         }
@@ -239,11 +239,11 @@ impl Game {
         }
     }
 
-    pub fn unregister_known_by_player(game: &mut Game, p: PlayerIndex, c: TreacheryCard) {
+    pub fn unregister_known_by_player(game: &mut Game, p: PlayerId, c: TreacheryCard) {
         game.player_mut(p).known_cards.shift_remove(&c);
     }
 
-    pub fn unregister_all_known_by_player(game: &mut Game, p: PlayerIndex, cards: &[TreacheryCard]) {
+    pub fn unregister_all_known_by_player(game: &mut Game, p: PlayerId, cards: &[TreacheryCard]) {
         for c in cards {
             Game::unregister_known_by_player(game, p, *c);
         }
@@ -390,7 +390,7 @@ impl Game {
     /// Discards the card a player plays as Karama and logs the play as one aside:
     /// "X play [Karama]: <effect>". A card played as Karama that isn't one says
     /// so: "X play [Baliset] as a Karama card: <effect>".
-    pub fn play_karma(&mut self, player: PlayerIndex, card: Option<TreacheryCard>, effect: Vec<Part>) {
+    pub fn play_karma(&mut self, player: PlayerId, card: Option<TreacheryCard>, effect: Vec<Part>) {
         self.discard_card_of(Some(player), card, false);
         let faction = self.player(player).faction;
         let m = Game::karma_played(faction.expect("faction"), card, effect);
@@ -443,7 +443,7 @@ impl Game {
         self.occupier_of(world).is_some()
     }
 
-    pub fn is_occupied_by_player_or_their_ally(&self, world: World, p: PlayerIndex) -> bool {
+    pub fn is_occupied_by_player_or_their_ally(&self, world: World, p: PlayerId) -> bool {
         let occupier = self.occupier_of(world);
         match occupier {
             Some(o) => o == p || self.player(o).ally == self.player(p).faction,
@@ -459,7 +459,7 @@ impl Game {
         }
     }
 
-    pub fn contains_conflicting_ally(&self, initiator: PlayerIndex, to: Location) -> bool {
+    pub fn contains_conflicting_ally(&self, initiator: PlayerId, to: Location) -> bool {
         let ini = self.player(initiator);
         if !ini.has_ally() || self.board.map.polar_sink() == to || ini.faction == Some(Faction::Ecaz) || ini.ally == Some(Faction::Ecaz) {
             return false;
@@ -474,16 +474,16 @@ impl Game {
         self.player(ally.expect("ally")).any_forces_in_territory(Some(to.territory())) > 0
     }
 
-    pub fn owner_of(&self, hero: Hero) -> Option<PlayerIndex> {
+    pub fn owner_of(&self, hero: Hero) -> Option<PlayerId> {
         // Enumerable.Contains<IHero> over a List<Leader>: Equals on each leader
         self.players.iter().position(|p| p.leaders.iter().any(|l| Hero::Leader(*l) == hero)).map(|i| self.player_at(i))
     }
 
-    pub fn owner_of_treachery_card(&self, card: TreacheryCard) -> Option<PlayerIndex> {
+    pub fn owner_of_treachery_card(&self, card: TreacheryCard) -> Option<PlayerId> {
         self.players.iter().position(|p| p.has(Some(card))).map(|i| self.player_at(i))
     }
 
-    pub fn owner_of_treachery_card_type(&self, card_type: TreacheryCardType) -> Option<PlayerIndex> {
+    pub fn owner_of_treachery_card_type(&self, card_type: TreacheryCardType) -> Option<PlayerId> {
         self.players.iter().position(|p| p.treachery_cards.iter().any(|c| c.type_() == card_type)).map(|i| self.player_at(i))
     }
 
@@ -523,7 +523,7 @@ impl Game {
         result
     }
 
-    pub fn has_ornithopters(&self, p: PlayerIndex) -> bool {
+    pub fn has_ornithopters(&self, p: PlayerId) -> bool {
         (if self.applicable(Rule::MovementBonusRequiresOccupationBeforeMovement) {
             self.ship_move.factions_with_ornithopters_at_start_of_movement.contains_opt(self.player(p).faction)
         } else {
@@ -533,7 +533,7 @@ impl Game {
             || (self.ship_move.current_flight_discovery_used.is_some() && self.ship_move.current_flight_discovery_used.as_ref().expect("current flight discovery used").player_opt() == Some(p))
     }
 
-    pub fn determine_maximum_move_distance(&self, p: PlayerIndex, moved: &[Battalion]) -> i32 {
+    pub fn determine_maximum_move_distance(&self, p: PlayerId, moved: &[Battalion]) -> i32 {
         let player = self.player(p);
         let choam_extra_move_bonus = if player.faction == Some(Faction::Choam) && self.ship_move.choam_has_extra_move { 1 } else { 0 };
 
@@ -562,14 +562,14 @@ impl Game {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn locations_with_any_forces_not_in_storm(&self, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn locations_with_any_forces_not_in_storm(&self, p: PlayerId) -> impl Iterator<Item = Location> {
         // `p` is dereferenced inside the predicate, per element.
         self.board.map
             .locations(true)
             .filter(move |l| l.sector(&self.board.map) != self.board.sector_in_storm && self.player(p).any_forces_in(Some(*l)) > 0)
     }
 
-    pub fn is_not_full(&self, p: PlayerIndex, l: Location) -> bool {
+    pub fn is_not_full(&self, p: PlayerId, l: Location) -> bool {
         // C# dereferences `p` only after the first clause, so a null player passes for
         // locations outside strongholds and homeworlds (boundary.rs lazy cases).
         if !(l.territory().is_stronghold() || l.territory().is_homeworld()) {
@@ -588,7 +588,7 @@ impl Game {
             || self.nr_of_occupants_excluding_faction(l, player.faction) < 2
     }
 
-    pub fn assisted_note_keeping_enabled(&self, p: Option<PlayerIndex>) -> bool {
+    pub fn assisted_note_keeping_enabled(&self, p: Option<PlayerId>) -> bool {
         match p {
             Some(p) => {
                 self.applicable(Rule::AssistedNotekeeping)
@@ -598,7 +598,7 @@ impl Game {
         }
     }
 
-    pub fn has_storm_prescience(&self, p: Option<PlayerIndex>) -> bool {
+    pub fn has_storm_prescience(&self, p: Option<PlayerId>) -> bool {
         let Some(p) = p else { return false };
         let player = self.player(p);
         self.applicable(Rule::FremenDeterminesStorm)
@@ -623,7 +623,7 @@ impl Game {
         player.map_or(false, |p| self.player(p).has_any_low_threshold(self))
     }
 
-    pub fn has_resource_deck_prescience(&self, p: Option<PlayerIndex>) -> bool {
+    pub fn has_resource_deck_prescience(&self, p: Option<PlayerId>) -> bool {
         let Some(p) = p else { return false };
         let player = self.player(p);
         !self.prevented(FactionAdvantage::AtreidesSpiceBlowPrescience)
@@ -633,7 +633,7 @@ impl Game {
                 || self.has_deal(player.faction, DealType::ShareResourceDeckPrescience))
     }
 
-    pub fn has_bidding_prescience(&self, p: PlayerIndex) -> bool {
+    pub fn has_bidding_prescience(&self, p: PlayerId) -> bool {
         let is_publicly_known =
             self.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || self.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
         let player = self.player(p);
@@ -678,28 +678,28 @@ impl Game {
 
 impl Game {
     /// The player at position `index` of `Players`.
-    pub fn player_at(&self, index: usize) -> PlayerIndex {
-        PlayerIndex { index }
+    pub fn player_at(&self, index: usize) -> PlayerId {
+        PlayerId::from_index(index)
     }
 
     /// Every player of `Players`, in order.
-    pub fn player_indices(&self) -> impl Iterator<Item = PlayerIndex> + Clone + 'static {
-        (0..self.players.len()).map(|index| PlayerIndex { index })
+    pub fn player_indices(&self) -> impl Iterator<Item = PlayerId> + Clone + 'static {
+        (0..self.players.len()).map(|index| PlayerId::from_index(index))
     }
 
     /// The player `p` refers to.
-    pub fn player(&self, p: PlayerIndex) -> &Player {
-        &self.players[p.index]
+    pub fn player(&self, p: PlayerId) -> &Player {
+        &self.players[p.index()]
     }
 
     /// `p`, for mutation.
-    pub fn player_mut(&mut self, p: PlayerIndex) -> &mut Player {
-        &mut self.players[p.index]
+    pub fn player_mut(&mut self, p: PlayerId) -> &mut Player {
+        &mut self.players[p.index()]
     }
 
     /// The index of a player object of this game (`this` inside a `Player` method).
-    pub fn index_of(&self, p: &Player) -> Option<PlayerIndex> {
-        self.players.iter().position(|x| std::ptr::eq(x, p)).map(|index| PlayerIndex { index })
+    pub fn index_of(&self, p: &Player) -> Option<PlayerId> {
+        self.players.iter().position(|x| std::ptr::eq(x, p)).map(|index| PlayerId::from_index(index))
     }
 }
 

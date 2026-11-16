@@ -165,7 +165,7 @@ impl ClassicBot {
     }
 
     /// How strong `p` is: cards, spice, strongholds, forces and living leaders.
-    pub fn player_standing(&self, game: &Game, p: PlayerIndex) -> i32 {
+    pub fn player_standing(&self, game: &Game, p: PlayerId) -> i32 {
         let p = game.player(p);
         2 * p.treachery_cards.len() as i32
             + p.resources

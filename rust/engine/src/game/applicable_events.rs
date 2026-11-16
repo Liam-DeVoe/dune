@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 impl Game {
-    pub fn get_applicable_events(&mut self, player: Option<PlayerIndex>, is_host: bool) -> Vec<GameEventType> {
+    pub fn get_applicable_events(&mut self, player: Option<PlayerId>, is_host: bool) -> Vec<GameEventType> {
         let mut result: Vec<GameEventType> = Vec::new();
 
         if self.turn.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == None) {
@@ -62,7 +62,7 @@ impl Game {
         }
     }
 
-    pub fn add_player_actions(&mut self, player: PlayerIndex, is_host: bool, result: &mut Vec<GameEventType>) {
+    pub fn add_player_actions(&mut self, player: PlayerId, is_host: bool, result: &mut Vec<GameEventType>) {
         let faction = self.player(player).faction;
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
 
@@ -937,7 +937,7 @@ impl Game {
     }
 
     /// Whether `player` is the current player of `ShipmentAndMoveSequence` (false if there is none).
-    fn is_current_shipment_and_move_player(&self, player: PlayerIndex) -> bool {
+    fn is_current_shipment_and_move_player(&self, player: PlayerId) -> bool {
         match &self.ship_move.shipment_and_move_sequence {
             Some(seq) => seq.current_player(self) == Some(player),
             None => false,
@@ -945,7 +945,7 @@ impl Game {
     }
 
     /// The actions shared by the `GuildMove` and `NonGuildMove` cases.
-    fn add_move_actions(&self, player: PlayerIndex, result: &mut Vec<GameEventType>) {
+    fn add_move_actions(&self, player: PlayerId, result: &mut Vec<GameEventType>) {
         if self.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan) {
             result.push(GameEventType::Caravan);
         }

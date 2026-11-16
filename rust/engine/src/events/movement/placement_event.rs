@@ -156,7 +156,7 @@ impl PlacementEvent {
         result
     }
 
-    pub fn may_move_as_advisors(g: &Game, p: PlayerIndex, to: Territory, are_advisors: bool) -> bool {
+    pub fn may_move_as_advisors(g: &Game, p: PlayerId, to: Territory, are_advisors: bool) -> bool {
         let player = g.player(p);
         player.is(Faction::BeneGesserit)
             && g.applicable(Rule::BeneGesseritAdvisors)
@@ -164,19 +164,19 @@ impl PlacementEvent {
                 || (are_advisors && player.forces_in_territory(Some(to)) == 0 && g.any_forces_in(to)))
     }
 
-    pub fn may_move_as_bene_gesserit_fighters(game: &Game, p: PlayerIndex, to: Territory) -> bool {
+    pub fn may_move_as_bene_gesserit_fighters(game: &Game, p: PlayerId, to: Territory) -> bool {
         let player = game.player(p);
         player.is(Faction::BeneGesserit) && player.special_forces_in_territory(Some(to)) == 0
     }
 
-    pub fn valid_targets(g: &Game, p: PlayerIndex, location: Location, battalion: &Battalion) -> Vec<Location> {
+    pub fn valid_targets(g: &Game, p: PlayerId, location: Location, battalion: &Battalion) -> Vec<Location> {
         let mut dict: IndexMap<Location, Battalion> = IndexMap::new();
         dict.insert_new(location, battalion.clone());
 
         PlacementEvent::valid_targets_for_forces(g, p, &dict)
     }
 
-    pub fn valid_targets_for_forces(g: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>) -> Vec<Location> {
+    pub fn valid_targets_for_forces(g: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>) -> Vec<Location> {
         let mut result: Option<Vec<Location>> = None;
 
         // The targets are computed in the loop; the Intersect chain is lazy, but it
@@ -197,7 +197,7 @@ impl PlacementEvent {
         }
     }
 
-    pub fn valid_move_to_targets(g: &Game, p: PlayerIndex, from: Location, moved: &[Battalion]) -> Vec<Location> {
+    pub fn valid_move_to_targets(g: &Game, p: PlayerId, from: Location, moved: &[Battalion]) -> Vec<Location> {
         let player = g.player(p);
         if player.is(Faction::Emperor) && from.as_homeworld().is_some() && g.applicable(Rule::EmperorSpecialForces) {
             let hw = from.as_homeworld().expect("as homeworld");
@@ -224,7 +224,7 @@ impl PlacementEvent {
         Vec::new()
     }
 
-    pub fn valid_movement_sources(g: &Game, p: PlayerIndex) -> Vec<Territory> {
+    pub fn valid_movement_sources(g: &Game, p: PlayerId) -> Vec<Territory> {
         let player = g.player(p);
         let mut res: Vec<Territory> = g
             .board.map

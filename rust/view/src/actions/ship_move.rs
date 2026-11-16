@@ -38,20 +38,20 @@ fn sectors_of(ts: impl IntoIterator<Item = Territory>) -> Vec<i32> {
     ts.into_iter().flat_map(|t| t.locations().iter().map(|l| l.id())).collect()
 }
 
-fn forces_at(game: &Game, p: PlayerIndex, l: Location) -> ForcesAt {
+fn forces_at(game: &Game, p: PlayerId, l: Location) -> ForcesAt {
     let pl = game.player(p);
     ForcesAt { location: l.id(), forces: pl.forces_in(Some(l)), special_forces: pl.special_forces_in(Some(l)) }
 }
 
 /// The draft a form sends before the player touches it: its starting inputs, after its widgets
 /// adjusted them (a required image choice picks the first value).
-pub fn default_draft(game: &Game, p: PlayerIndex, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     let draft = initial_draft(game, p, faction, t)?;
     Some(normalized(game, p, &draft))
 }
 
 /// The form's starting inputs, before any adjustment.
-fn initial_draft(game: &Game, p: PlayerIndex, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
     Some(match t {
         GameEventType::Shipment => {
             let mut e = Shipment::new(game, faction);
@@ -208,13 +208,13 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Option<Faction>, t: GameE
 
 /// The options of the form for `draft`, or `None` when the draft is not one of this module's
 /// event types. A helper that panics for the draft leaves the form without options.
-pub fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> Option<Option<ActionOptions>> {
+pub fn options(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Option<Option<ActionOptions>> {
     options_and_validation(game, p, draft, d).map(|(o, _)| o)
 }
 
 /// The options of the form for `draft` after [`normalize`], carrying the adjusted draft, and the
 /// validation of the adjusted draft. `None` when the draft is not one of this module's types.
-pub fn options_and_validation(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     if !handles(draft.event_type()) {
         return None;
     }
@@ -254,13 +254,13 @@ fn set_draft(o: &mut ActionOptions, draft: Value) {
 
 /// [`normalize`], or the draft itself when a helper it calls panics on the draft (the options
 /// builder then reports the failure).
-fn normalized(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
+fn normalized(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     crate::build::draft_check(|| normalize(game, p, draft)).unwrap_or_else(|| draft.clone())
 }
 
 /// The draft after one round of the form's adjustments, repeated until it stops changing (each
 /// step only clears an input or picks a valid value, so this ends at once).
-pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
+pub fn normalize(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     let mut current = draft.clone();
     for _ in 0..8 {
         let next = normalize_once(game, p, &current);
@@ -272,7 +272,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
     current
 }
 
-fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
+fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
     let pl = game.player(p);
     let faction = pl.faction;
     match draft {
@@ -472,7 +472,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
 
 /// The placement form's pinned panel: Bene Gesserit move as advisors where they can't choose and
 /// may; everyone else never does.
-fn as_advisors(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Location, current: bool) -> bool {
+fn as_advisors(game: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>, to: Location, current: bool) -> bool {
     if game.player(p).faction != Some(Faction::BeneGesserit) {
         return false;
     }
@@ -514,7 +514,7 @@ fn handles(t: GameEventType) -> bool {
     )
 }
 
-fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
+fn build(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Describer) -> ActionOptions {
     use ActionOptions as O;
     match draft {
         GameEvent::Shipment(s) => O::Shipment(shipment(game, p, s, d)),
@@ -646,7 +646,7 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
     }
 }
 
-fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> ShipmentOptions {
+fn shipment(game: &Game, p: PlayerId, s: &Shipment, d: &dyn Describer) -> ShipmentOptions {
     let pl = game.player(p);
     let faction = pl.faction;
     let cross = Shipment::may_ship_cross_planet(game, p);
@@ -730,7 +730,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
 
 /// The placement form for a regular move or a Caravan: sources are the sectors of
 /// `valid_movement_sources` that hold forces and are out of the storm.
-fn placement(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Option<Location>, valid_sources: Vec<Territory>) -> PlacementOptions {
+fn placement(game: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>, to: Option<Location>, valid_sources: Vec<Territory>) -> PlacementOptions {
     let pl = game.player(p);
     let sources = valid_sources
         .iter()
@@ -759,7 +759,7 @@ fn placement(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>
 }
 
 /// The pinned panel's inputs for the pinned destination.
-fn destination_options(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, Battalion>, to: Option<Location>, o: &mut PlacementOptions) {
+fn destination_options(game: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>, to: Option<Location>, o: &mut PlacementOptions) {
     let Some(to) = to else { return };
     if game.player(p).faction == Some(Faction::BeneGesserit) {
         let advisors = forces.values().any(|b| b.amount_of_special_forces > 0);
@@ -772,7 +772,7 @@ fn destination_options(game: &Game, p: PlayerIndex, forces: &IndexMap<Location, 
     o.conflicting_ally = game.contains_conflicting_ally(p, to);
 }
 
-fn fremen_ride(game: &Game, p: PlayerIndex, e: &FremenRidesMonster, d: &dyn Describer) -> PlacementOptions {
+fn fremen_ride(game: &Game, p: PlayerId, e: &FremenRidesMonster, d: &dyn Describer) -> PlacementOptions {
     let to_ride = FremenRidesMonster::to_ride(game);
     let ride_sources: Vec<Location> = if to_ride.is_some() { FremenRidesMonster::valid_sources(game).collect() } else { vec![] };
     let max_from_reserves = FremenRidesMonster::max_forces_from_reserves(game, p, false);
@@ -805,7 +805,7 @@ fn fremen_ride(game: &Game, p: PlayerIndex, e: &FremenRidesMonster, d: &dyn Desc
     o
 }
 
-fn ambassador_activated(game: &Game, p: PlayerIndex, e: &AmbassadorActivated) -> AmbassadorActivatedOptions {
+fn ambassador_activated(game: &Game, p: PlayerId, e: &AmbassadorActivated) -> AmbassadorActivatedOptions {
     let pl = game.player(p);
     AmbassadorActivatedOptions { draft: Value::Null,
         ambassador: name_or_absent(AmbassadorActivated::get_ambassador(game)),

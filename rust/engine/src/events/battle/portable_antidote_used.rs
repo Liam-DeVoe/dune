@@ -25,7 +25,7 @@ impl PortableAntidoteUsed {
         None
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let card = g.player(p).card(TreacheryCardType::PortableAntidote);
         if let Some(card) = card {
             let plan = g.battle.current_battle.as_ref().and_then(|b| b.plan_of(g, Some(p)));

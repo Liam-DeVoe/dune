@@ -34,14 +34,14 @@ impl DiscardedTaken {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_cards(g: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         g.decks.recently_discarded
             .iter()
             .filter(move |(k, v)| Some(**v) != g.player(p).faction && g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.contains(*k))
             .map(move |(k, _)| *k)
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         !g.current_phase_cannot_be_interrupted()
             && g.player(p).has_treachery_card_type(TreacheryCardType::TakeDiscarded)
             && DiscardedTaken::valid_cards(g, p).next().is_some()

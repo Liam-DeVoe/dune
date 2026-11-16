@@ -47,7 +47,7 @@ impl Retreat {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_targets(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
         let battalions = g.player(p).battalions_in(territory);
         PlacementEvent::valid_targets_for_forces(g, p, &battalions)
@@ -55,7 +55,7 @@ impl Retreat {
             .filter(move |t| !g.any_forces_in(t.territory()) && !t.is_stronghold())
     }
 
-    pub fn max_total_forces(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn max_total_forces(g: &Game, p: PlayerId) -> i32 {
         let current_battle = g.battle.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let opponent_plan = current_battle.plan_of_opponent(g, Some(p));
@@ -66,7 +66,7 @@ impl Retreat {
         hero.expect("hero").value_in_combat_against(opponent_hero)
     }
 
-    pub fn max_forces(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn max_forces(g: &Game, p: PlayerId) -> i32 {
         let current_battle = g.battle.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let forces_in = g.player(p).forces_in_territory(current_battle.territory);
@@ -74,7 +74,7 @@ impl Retreat {
         (forces_in - plan.forces) - plan.forces_at_half_strength
     }
 
-    pub fn max_special_forces(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn max_special_forces(g: &Game, p: PlayerId) -> i32 {
         let current_battle = g.battle.current_battle.as_ref().expect("current battle");
         let plan = current_battle.plan_of(g, Some(p));
         let special_forces_in = g.player(p).special_forces_in_territory(current_battle.territory);

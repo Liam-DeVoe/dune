@@ -32,11 +32,11 @@ impl ChoamMovePrevention {
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn valid_territories(game: &Game, p: PlayerIndex) -> impl Iterator<Item = Territory> {
+    pub fn valid_territories(game: &Game, p: PlayerId) -> impl Iterator<Item = Territory> {
         game.player(p).territories_with_forces(game)
     }
 
-    pub fn can_be_played_by(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played_by(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         pl.faction == Some(Faction::Choam)
             && !ChoamMovePrevention::valid_territories(g, p).next().is_none()
@@ -44,7 +44,7 @@ impl ChoamMovePrevention {
                 || (NexusPlayed::can_use_cunning(g, p) && !pl.treachery_cards.is_empty()))
     }
 
-    pub fn card_to_use(game: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
+    pub fn card_to_use(game: &Game, p: PlayerId) -> Option<TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_BALISET)
     }
 

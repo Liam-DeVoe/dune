@@ -19,7 +19,7 @@ use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::messages::message::Message;
 use treachery_engine::prelude::*;
-use treachery_engine::game::PlayerIndex;
+use treachery_engine::game::PlayerId;
 use treachery_view::build::{ResolvedViewer, Seating};
 use treachery_view::replica::ViewReplica;
 
@@ -103,7 +103,7 @@ impl Session {
         self.game.players.len()
     }
 
-    fn player(&self, i: usize) -> PlayerIndex {
+    fn player(&self, i: usize) -> PlayerId {
         self.game.player_at(i)
     }
 
@@ -291,7 +291,7 @@ impl Session {
             .player_indices()
             .map(|p| {
                 let f = self.game.player(p).faction;
-                (format!("player {} ({})", p.index, faction_name(f)), ResolvedViewer { player: Some(p), faction: f, is_host: false, is_observer: false })
+                (format!("player {} ({})", p.index(), faction_name(f)), ResolvedViewer { player: Some(p), faction: f, is_host: false, is_observer: false })
             })
             .collect();
         v.push(("host".into(), ResolvedViewer { player: None, faction: None, is_host: true, is_observer: true }));
@@ -306,7 +306,7 @@ impl Session {
         let mut full = Vec::new();
         for (_, rv) in &viewers {
             // The replica's players are the game's players, by index.
-            let rv = ResolvedViewer { player: rv.player.map(|p| replica.game.player_at(p.index)), ..*rv };
+            let rv = ResolvedViewer { player: rv.player.map(|p| replica.game.player_at(p.index())), ..*rv };
             match guarded(|| serde_json::to_vec(&replica.view_as(&rv)).expect("views serialize"))? {
                 Ok(bytes) => {
                     hashes.push(short_hash(&bytes));

@@ -280,8 +280,8 @@ impl From<ResourceCard> for Part {
     }
 }
 /// A `Player` object (only the Nexus card play logs one) prints as its C# type name.
-impl From<crate::game::PlayerIndex> for Part {
-    fn from(_: crate::game::PlayerIndex) -> Self {
+impl From<crate::game::PlayerId> for Part {
+    fn from(_: crate::game::PlayerId) -> Self {
         Part::Text(Cow::Borrowed("Treachery.Shared.Player"))
     }
 }

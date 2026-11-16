@@ -37,7 +37,7 @@ impl TestingStationUsed {
         None
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.turn.current_phase == Phase::MetheorAndStormSpell
             && g.player(p).occupies(g, Some(g.board.map.testing_station().location()))
             && !g.storm.current_testing_station_used

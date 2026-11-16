@@ -31,7 +31,7 @@ impl Planetology {
         None
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.has_skill_in_front_of_shield(p, LeaderSkill::Planetologist) && g.turn.current_planetology.is_none()
     }
 

@@ -34,7 +34,7 @@ impl Karma {
         None
     }
 
-    pub fn valid_faction_advantages(g: &Game, p: PlayerIndex) -> Vec<Option<FactionAdvantage>> {
+    pub fn valid_faction_advantages(g: &Game, p: PlayerId) -> Vec<Option<FactionAdvantage>> {
         let mut result = vec![None];
         let faction = g.player(p).faction;
 
@@ -262,7 +262,7 @@ impl Karma {
     }
 
     /// Lazy: callers stop at the first match.
-    pub fn valid_karma_cards(g: &Game, p: PlayerIndex) -> impl Iterator<Item = TreacheryCard> {
+    pub fn valid_karma_cards(g: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         let pl = g.player(p);
         pl.treachery_cards
             .iter()
@@ -274,7 +274,7 @@ impl Karma {
             })
     }
 
-    pub fn can_karma(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_karma(g: &Game, p: PlayerId) -> bool {
         // Any() stops at the first match.
         Karma::valid_karma_cards(g, p).next().is_some()
     }

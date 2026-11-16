@@ -3,7 +3,7 @@
 pub use treachery_engine::prelude::*;
 pub use treachery_engine::events::GameEventType;
 pub use treachery_engine::game::Game;
-pub use treachery_engine::game::{Player, PlayerIndex};
+pub use treachery_engine::game::{Player, PlayerId};
 pub use treachery_engine::game::ObjectCounter;
 pub use treachery_engine::random::RandomPick;
 

@@ -164,14 +164,14 @@ impl Revival {
         None
     }
 
-    pub fn determine_cost_of_forces_for_emperor(g: &Game, emperor: PlayerIndex, ally: Faction, forces: i32, special_forces: i32) -> i32 {
+    pub fn determine_cost_of_forces_for_emperor(g: &Game, emperor: PlayerId, ally: Faction, forces: i32, special_forces: i32) -> i32 {
         // float arithmetic, then Math.Ceiling widens to double.
         let sum: f32 = forces as f32 * Self::get_price_per_force(g, emperor)
             + special_forces as f32 * Self::get_price_per_special_force(g, emperor, ally);
         (sum as f64).ceil() as i32
     }
 
-    pub fn determine_cost(g: &Game, initiator: PlayerIndex, hero: Option<Hero>, amount_of_forces: i32, amount_of_special_forces: i32, extra_forces_paid_by_emperor: i32, extra_special_forces_paid_by_emperor: i32, uses_emperor_secret_ally: bool) -> RevivalCost {
+    pub fn determine_cost(g: &Game, initiator: PlayerId, hero: Option<Hero>, amount_of_forces: i32, amount_of_special_forces: i32, extra_forces_paid_by_emperor: i32, extra_special_forces_paid_by_emperor: i32, uses_emperor_secret_ally: bool) -> RevivalCost {
         let mut result = RevivalCost::new();
         let ip = g.player(initiator);
 
@@ -206,7 +206,7 @@ impl Revival {
         result
     }
 
-    pub fn get_price_of_force_revival(g: &Game, initiator: PlayerIndex, amount_of_forces: i32, amount_of_special_forces: i32, uses_emperor_secret_ally: bool, nr_of_paid_special_forces: &mut i32, number_of_forces_revived_for_free: &mut i32) -> i32 {
+    pub fn get_price_of_force_revival(g: &Game, initiator: PlayerId, amount_of_forces: i32, amount_of_special_forces: i32, uses_emperor_secret_ally: bool, nr_of_paid_special_forces: &mut i32, number_of_forces_revived_for_free: &mut i32) -> i32 {
         let ip = g.player(initiator);
         let nr_of_free_revivals = g.free_revivals(initiator, uses_emperor_secret_ally);
         *nr_of_paid_special_forces = if ip.is(Faction::Emperor) && ip.has_low_threshold(g, World::SalusaSecundus) {
@@ -251,7 +251,7 @@ impl Revival {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     /// Only the early-revival branch is lazy; the others are computed in full.
-    pub fn valid_revival_heroes(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Hero> {
+    pub fn valid_revival_heroes(g: &Game, p: PlayerId) -> impl Iterator<Item = Hero> {
         use either::Either;
         use std::iter::empty;
         let mut result: Vec<Hero> = Vec::new();
@@ -315,7 +315,7 @@ impl Revival {
         g.revival.early_revivals_offers.get(&h).is_some_and(|value| *value < i32::MAX)
     }
 
-    pub fn normally_revivable_heroes(g: &Game, p: PlayerIndex) -> Vec<Hero> {
+    pub fn normally_revivable_heroes(g: &Game, p: PlayerId) -> Vec<Hero> {
         let mut result: Vec<Hero> = Vec::new();
         let pl = g.player(p);
 
@@ -362,15 +362,15 @@ impl Revival {
         result
     }
 
-    pub fn at_least_five_leaders_have_died_once(g: &Game, p: PlayerIndex) -> bool {
+    pub fn at_least_five_leaders_have_died_once(g: &Game, p: PlayerId) -> bool {
         g.player(p).leaders.iter().filter(|l| g.death_count(Hero::Leader(**l)) > 0).count() >= 5
     }
 
-    pub fn all_available_leaders_have_died_once(g: &Game, p: PlayerIndex) -> bool {
+    pub fn all_available_leaders_have_died_once(g: &Game, p: PlayerId) -> bool {
         g.player(p).leaders.iter().all(|l| g.death_count(Hero::Leader(*l)) > 0)
     }
 
-    pub fn unrestricted_revivable_heroes(g: &Game, p: PlayerIndex) -> Vec<Hero> {
+    pub fn unrestricted_revivable_heroes(g: &Game, p: PlayerId) -> Vec<Hero> {
         let mut result: Vec<Hero> = Vec::new();
         let pl = g.player(p);
 
@@ -388,7 +388,7 @@ impl Revival {
         result
     }
 
-    pub fn valid_max_revivals(g: &Game, p: PlayerIndex, special_forces: bool, using_emperor_secret_ally: bool) -> i32 {
+    pub fn valid_max_revivals(g: &Game, p: PlayerId, special_forces: bool, using_emperor_secret_ally: bool) -> i32 {
         let normal_force_revival_limit = g.get_max_revivals(g, p, using_emperor_secret_ally);
         let pl = g.player(p);
 
@@ -408,7 +408,7 @@ impl Revival {
         )
     }
 
-    pub fn may_assign_skill(g: &Game, p: PlayerIndex, h: Option<Hero>) -> bool {
+    pub fn may_assign_skill(g: &Game, p: PlayerId, h: Option<Hero>) -> bool {
         let Some(h) = h else { return false };
 
         let harkonnen = g.get_player(Some(Faction::Harkonnen));
@@ -429,7 +429,7 @@ impl Revival {
             && !captured_leaders_to_consider.iter().any(|l| g.is_skilled(Some(Hero::Leader(*l))))
     }
 
-    pub fn may_revive_with_discount(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_revive_with_discount(g: &Game, p: PlayerId) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Tleilaxu) && !g.prevented(FactionAdvantage::TleilaxuRevivalDiscount))
             || (pl.ally == Some(Faction::Tleilaxu)
@@ -437,7 +437,7 @@ impl Revival {
                 && !g.prevented(FactionAdvantage::TleilaxuRevivalDiscountAlly))
     }
 
-    pub fn get_price_of_hero_revival(g: &Game, initiator: PlayerIndex, hero: Option<Hero>) -> i32 {
+    pub fn get_price_of_hero_revival(g: &Game, initiator: PlayerId, hero: Option<Hero>) -> i32 {
         let tleilaxu_discount_prevented = g.prevented(FactionAdvantage::TleilaxuRevivalDiscount);
 
         let Some(hero) = hero else { return 0 };
@@ -462,18 +462,18 @@ impl Revival {
         price
     }
 
-    pub fn get_price_per_force(g: &Game, reviving_player: PlayerIndex) -> f32 {
+    pub fn get_price_per_force(g: &Game, reviving_player: PlayerId) -> f32 {
         let rp = g.player(reviving_player);
         (if Self::may_revive_with_discount(g, reviving_player) { 0.5f32 } else { 1.0 })
             * (if rp.is(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamRevival) { 1 } else { 2 }) as f32
     }
 
-    pub fn get_price_per_special_force(g: &Game, reviving_player: PlayerIndex, of_revived_forces: Faction) -> f32 {
+    pub fn get_price_per_special_force(g: &Game, reviving_player: PlayerId, of_revived_forces: Faction) -> f32 {
         (if Self::may_revive_with_discount(g, reviving_player) { 0.5f32 } else { 1.0 })
             * (if of_revived_forces == Faction::Ixian { 3 } else { 2 }) as f32
     }
 
-    pub fn valid_max_revivals_by_emperor(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_max_revivals_by_emperor(g: &Game, p: PlayerId) -> i32 {
         let pl = g.player(p);
         if pl.ally != Some(Faction::Emperor) {
             return 0;
@@ -510,11 +510,11 @@ impl Revival {
         special_forces_paid_by_emperor + forces_paid_by_emperor
     }
 
-    pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerIndex) -> bool {
+    pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerId) -> bool {
         game.player(player).nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, player)
     }
 
-    pub fn number_of_forces_that_may_be_placed_on_planet(game: &Game, player: PlayerIndex, uses_emperor_secret_ally: bool, nr_of_forces_to_revive: i32) -> i32 {
+    pub fn number_of_forces_that_may_be_placed_on_planet(game: &Game, player: PlayerId, uses_emperor_secret_ally: bool, nr_of_forces_to_revive: i32) -> i32 {
         let pl = game.player(player);
         if pl.is(Faction::Tleilaxu) && pl.has_any_high_threshold(game) {
             std::cmp::min(nr_of_forces_to_revive, game.free_revivals(player, uses_emperor_secret_ally))
@@ -523,7 +523,7 @@ impl Revival {
         }
     }
 
-    pub fn number_of_special_forces_that_may_be_placed_on_planet(game: &Game, player: PlayerIndex, nr_of_special_forces_to_revive: i32) -> i32 {
+    pub fn number_of_special_forces_that_may_be_placed_on_planet(game: &Game, player: PlayerId, nr_of_special_forces_to_revive: i32) -> i32 {
         let pl = game.player(player);
         if pl.is(Faction::Fremen) && pl.has_any_high_threshold(game) {
             std::cmp::min(nr_of_special_forces_to_revive, 1)
@@ -534,7 +534,7 @@ impl Revival {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     /// The predicate can throw (`AlliedPlayer` null), and callers stop enumerating at the first match.
-    pub fn valid_revived_force_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
+    pub fn valid_revived_force_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.board.map.locations(false).filter(move |l| {
             let pl = g.player(p);
             (pl.faction == Some(Faction::Fremen) || l.sector(&g.board.map) != g.board.sector_in_storm)

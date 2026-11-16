@@ -30,7 +30,7 @@ impl CharityClaimed {
         None
     }
 
-    pub fn can_be_played(game: &Game, player: PlayerIndex) -> bool {
+    pub fn can_be_played(game: &Game, player: PlayerId) -> bool {
         game.player(player).resources <= 1
             && !game.turn.has_acted_or_passed.contains_opt(game.player(player).faction)
             && !game.charity_is_cancelled()

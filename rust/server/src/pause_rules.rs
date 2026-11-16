@@ -18,7 +18,7 @@ use treachery_engine::prelude::*;
 #[derive(Clone, Debug)]
 pub struct PauseRequirements {
     /// Players who may act here, each of whom must act or pass.
-    pub wait_for: Vec<PlayerIndex>,
+    pub wait_for: Vec<PlayerId>,
     /// Whether the pause runs a countdown that any player can hold.
     pub countdown: bool,
 }
@@ -29,11 +29,11 @@ fn nothing() -> PauseRequirements {
     PauseRequirements { wait_for: vec![], countdown: false }
 }
 
-fn wait(players: Vec<PlayerIndex>) -> PauseRequirements {
+fn wait(players: Vec<PlayerId>) -> PauseRequirements {
     PauseRequirements { wait_for: players, countdown: false }
 }
 
-fn with(players: Vec<PlayerIndex>, countdown: bool) -> PauseRequirements {
+fn with(players: Vec<PlayerId>, countdown: bool) -> PauseRequirements {
     PauseRequirements { wait_for: players, countdown }
 }
 
@@ -133,15 +133,15 @@ pub fn finishes_pause(g: &Game, e: &GameEvent) -> bool {
     g.turn.current_phase == Phase::Resurrection && matches!(e, GameEvent::Revival(_))
 }
 
-fn players(g: &Game, can_act: impl Fn(&Game, PlayerIndex) -> bool) -> Vec<PlayerIndex> {
+fn players(g: &Game, can_act: impl Fn(&Game, PlayerId) -> bool) -> Vec<PlayerId> {
     g.player_indices().filter(|&p| can_act(g, p)).collect()
 }
 
-fn present(players: &[Option<PlayerIndex>]) -> Vec<PlayerIndex> {
+fn present(players: &[Option<PlayerId>]) -> Vec<PlayerId> {
     players.iter().flatten().copied().collect()
 }
 
-fn merge(mut r: PauseRequirements, others: Vec<PlayerIndex>) -> PauseRequirements {
+fn merge(mut r: PauseRequirements, others: Vec<PlayerId>) -> PauseRequirements {
     for p in others {
         if !r.wait_for.contains(&p) {
             r.wait_for.push(p);
@@ -152,7 +152,7 @@ fn merge(mut r: PauseRequirements, others: Vec<PlayerIndex>) -> PauseRequirement
 
 /// An end-of-phase pause: CHOAM may discard and CHOAM may trade a card with its ally, plus
 /// whoever else may act there.
-fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
+fn end_of_phase(g: &mut Game, others: Vec<PlayerId>) -> PauseRequirements {
     let mut result = vec![];
 
     if let Some(choam) = g.get_player(Some(Faction::Choam)) {
@@ -162,7 +162,7 @@ fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
     }
 
     // The trade's conditions are all public. Either side may start it.
-    let candidates: Vec<PlayerIndex> = g
+    let candidates: Vec<PlayerId> = g
         .player_indices()
         .filter(|&p| {
             let pl = g.player(p);
@@ -180,7 +180,7 @@ fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
 
 /// Players who may revive, ask Tleilaxu for a revival or answer such a request, or (for
 /// Tleilaxu) still set revival limits.
-fn revivers(g: &mut Game) -> Vec<PlayerIndex> {
+fn revivers(g: &mut Game) -> Vec<PlayerId> {
     let revival_actions = [GameEventType::Revival, GameEventType::RequestTleilaxuRevival, GameEventType::AcceptOrCancelTleilaxuRevival];
     let limits = tleilaxu_limits(g);
 
@@ -206,24 +206,24 @@ fn secret_ally(g: &Game, nexus: bool, f: Faction) -> bool {
     nexus && !g.is_playing(f)
 }
 
-fn special_karma(g: &Game, f: Faction) -> Option<PlayerIndex> {
+fn special_karma(g: &Game, f: Faction) -> Option<PlayerId> {
     let p = g.get_player(Some(f))?;
     (g.applicable(Rule::AdvancedKarama) && !g.player(p).special_karma_power_used && !g.karma_prevented(f)).then_some(p)
 }
 
 /// Fremen's once-per-game Karma sandworm. Only during Spice Blow, from turn 2.
-fn fremen_sandworm(g: &Game) -> Vec<PlayerIndex> {
+fn fremen_sandworm(g: &Game) -> Vec<PlayerId> {
     present(&[if g.turn.current_turn > 1 { special_karma(g, Faction::Fremen) } else { None }])
 }
 
 /// Tleilaxu's once-per-game Karma, which stops a faction reviving.
-fn tleilaxu_karma(g: &Game) -> Option<PlayerIndex> {
+fn tleilaxu_karma(g: &Game) -> Option<PlayerId> {
     special_karma(g, Faction::Tleilaxu)
 }
 
 /// Tleilaxu may raise revival limits at the end of Bidding or the start of Revival. The limits
 /// are reset when Ship & Move starts, so any set limits were set this turn.
-fn tleilaxu_limits(g: &Game) -> Option<PlayerIndex> {
+fn tleilaxu_limits(g: &Game) -> Option<PlayerId> {
     let p = g.get_player(Some(Faction::Tleilaxu))?;
     (g.players.len() > 1
         && !g.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
@@ -233,12 +233,12 @@ fn tleilaxu_limits(g: &Game) -> Option<PlayerIndex> {
 
 /// The Emperor may pay 2 to discard a card at high threshold. Spice is secret, so it is not
 /// checked.
-fn emperor_discard(g: &Game) -> Option<PlayerIndex> {
+fn emperor_discard(g: &Game) -> Option<PlayerId> {
     let p = g.get_player(Some(Faction::Emperor))?;
     g.player(p).has_any_high_threshold(g).then_some(p)
 }
 
-fn atreides(g: &Game) -> Option<PlayerIndex> {
+fn atreides(g: &Game) -> Option<PlayerId> {
     if g.prevented(FactionAdvantage::AtreidesBiddingPrescience) {
         None
     } else {
@@ -247,7 +247,7 @@ fn atreides(g: &Game) -> Option<PlayerIndex> {
 }
 
 /// Ecaz places ambassadors at the end of Revival. Its spice is secret, so it is not checked.
-fn ecaz(g: &Game) -> Option<PlayerIndex> {
+fn ecaz(g: &Game) -> Option<PlayerId> {
     if g.prevented(FactionAdvantage::EcazAmbassadors) {
         None
     } else {
@@ -255,14 +255,14 @@ fn ecaz(g: &Game) -> Option<PlayerIndex> {
     }
 }
 
-fn moritani_removing_tokens(g: &Game) -> Option<PlayerIndex> {
+fn moritani_removing_tokens(g: &Game) -> Option<PlayerId> {
     let p = g.get_player(Some(Faction::Moritani))?;
     TerrorPlanted::may_remove_tokens(g, p).then_some(p)
 }
 
 /// Moritani plants a terror token once per turn. Its unplaced tokens are secret, so they are not
 /// checked.
-fn moritani_planting(g: &Game) -> Option<PlayerIndex> {
+fn moritani_planting(g: &Game) -> Option<PlayerId> {
     if !g.contemplate.moritani_has_performed_terror && !g.prevented(FactionAdvantage::MoritaniPlantingTerror) {
         g.get_player(Some(Faction::Moritani))
     } else {
@@ -271,7 +271,7 @@ fn moritani_planting(g: &Game) -> Option<PlayerIndex> {
 }
 
 /// In the Mentat phase CHOAM may play Inflation or, with cards, Trip to Gamont.
-fn choam_in_mentat(g: &Game) -> Option<PlayerIndex> {
+fn choam_in_mentat(g: &Game) -> Option<PlayerId> {
     let p = g.get_player(Some(Faction::Choam))?;
     let inflation = g.charity.economics_status == None && !g.prevented(FactionAdvantage::ChoamEconomics);
     (inflation || !g.player(p).treachery_cards.is_empty()).then_some(p)

@@ -27,7 +27,7 @@ impl HMSAdvantageChosen {
         None
     }
 
-    pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let hms = g.board.map.hidden_mobile_stronghold();
         g.battle.chosen_hms_advantage == Some(None)
             && g.battle.current_battle.is_some()
@@ -37,7 +37,7 @@ impl HMSAdvantageChosen {
             && !HMSAdvantageChosen::valid_advantages(g, p).is_empty()
     }
 
-    pub fn valid_advantages(g: &Game, p: PlayerIndex) -> Vec<StrongholdAdvantage> {
+    pub fn valid_advantages(g: &Game, p: PlayerId) -> Vec<StrongholdAdvantage> {
         let mut result = Vec::new();
         if g.owner_of_location(g.board.map.arrakeen()) == Some(p) {
             result.push(StrongholdAdvantage::FreeResourcesForBattles);

@@ -57,15 +57,15 @@ impl TakeLosses {
         LossToTake::new()
     }
 
-    pub fn valid_max_force_amount(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_max_force_amount(g: &Game, p: PlayerId) -> i32 {
         g.player(p).forces_in(TakeLosses::losses_to_take(g).location)
     }
 
-    pub fn valid_max_special_force_amount(g: &Game, p: PlayerIndex) -> i32 {
+    pub fn valid_max_special_force_amount(g: &Game, p: PlayerId) -> i32 {
         g.player(p).special_forces_in(TakeLosses::losses_to_take(g).location)
     }
 
-    pub fn valid_useless_card_to_prevent_losses(g: &Game, p: PlayerIndex) -> Option<TreacheryCard> {
+    pub fn valid_useless_card_to_prevent_losses(g: &Game, p: PlayerId) -> Option<TreacheryCard> {
         let pl = g.player(p);
         if pl.faction == Some(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamDiscarding) {
             return pl.treachery_cards.iter().copied().find(|c| c.id() == TreacheryCardManager::CARD_JUBBA_CLOAK);
@@ -74,7 +74,7 @@ impl TakeLosses {
         None
     }
 
-    pub fn can_prevent_losses(g: &Game, p: PlayerIndex) -> bool {
+    pub fn can_prevent_losses(g: &Game, p: PlayerId) -> bool {
         g.player(p).is(Faction::Choam)
             && ((!g.prevented(FactionAdvantage::ChoamDiscarding) && TakeLosses::valid_useless_card_to_prevent_losses(g, p).is_some())
                 || (NexusPlayed::can_use_cunning(g, p) && !g.player(p).treachery_cards.is_empty()))

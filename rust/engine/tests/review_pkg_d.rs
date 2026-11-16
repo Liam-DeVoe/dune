@@ -13,7 +13,7 @@ fn game_with(factions: &[Faction]) -> Game {
 }
 
 /// A Fremen player whose `Ally` names a faction with no player, storm in sector 5.
-fn fremen_with_dangling_ally() -> (Game, PlayerIndex) {
+fn fremen_with_dangling_ally() -> (Game, PlayerId) {
     let mut g = game_with(&[Faction::Fremen]);
     let y = g.get_player(Some(Faction::Fremen)).unwrap();
     g.player_mut(y).ally = Some(Faction::Atreides);

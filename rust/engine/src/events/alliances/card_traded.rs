@@ -61,7 +61,7 @@ impl CardTraded {
         None
     }
 
-    pub fn valid_cards(game: &Game, p: PlayerIndex) -> Vec<TreacheryCard> {
+    pub fn valid_cards(game: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         game.player(p).treachery_cards.clone()
     }
 

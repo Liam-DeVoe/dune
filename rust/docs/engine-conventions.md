@@ -145,14 +145,14 @@ The lists of ids written as one string (`_cardIds`, `_forceLocations`) still go 
 
 ### Absent values
 
-A handle (`TreacheryCard`, `Leader`, `Hero`, `Location`, `Territory`, `ResourceCard`, `PlayerIndex`) always names a real object. Where a value can be absent, the type is `Option<Handle>`; collections never hold an absent value. (Until native-plan.md step 3c every handle had a null value that imitated a C# null reference.)
+A handle (`TreacheryCard`, `Leader`, `Hero`, `Location`, `Territory`, `ResourceCard`, `PlayerId`) always names a real object. Where a value can be absent, the type is `Option<Handle>`; collections never hold an absent value. (Until native-plan.md step 3c every handle had a null value that imitated a C# null reference.)
 
 What to do when a value is missing:
 
 - Absence is part of the rules (no ally, no current battle, an event field the client left out): keep the `Option` and handle `None`.
 - An executed event needs the value (it passed validation, so it should be there): `.required("what")?`, which fails the event with a Game Error before it changes anything more.
 - Anywhere else a valid game always has the value: `.expect("what")`. Reaching it is a bug, and the panic says what was missing.
-- A C# method that took a possibly null argument and threw only on some paths keeps that shape where callers rely on it: `Voice::may_use_voice_opt` and `Prescience::may_use_prescience_opt` take an `Option<PlayerIndex>` and panic only where the answer depends on the player.
+- A C# method that took a possibly null argument and threw only on some paths keeps that shape where callers rely on it: `Voice::may_use_voice_opt` and `Prescience::may_use_prescience_opt` take an `Option<PlayerId>` and panic only where the answer depends on the player.
 
 ```rust
 // Player.TreacheryCards.Add(Card)
@@ -199,18 +199,18 @@ game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sect
 - Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
 - Events stored in game state are `Rc<Event>`, shared with `History` (see [Events](#events)). The few event fields that C# writes after the event is stored are `Cell`s.
 - Where C# keeps two references to one mutable object, the game keeps its own copy if nothing mutates the object afterwards: `EstablishPlayers` copies its settings into `rules.settings`, and the allowed factions into `rules.factions_in_play`. The same goes for `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions`.
-- When C# uses an object as an identity token, key by a stable handle: `PlayerIndex` for players, `shared::RcKey<Event>` for events (`deals.responses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
+- When C# uses an object as an identity token, key by a stable handle: `PlayerId` for players, `shared::RcKey<Event>` for events (`deals.responses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
 - The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`, the last use of `Shared<T>` (an `Rc<RefCell<T>>` whose `==` is reference equality).
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
 ## Players
 
-A C# `Player` is a reference into some game's `Players`. In Rust a player is addressed by `PlayerIndex { index }`, its position in the game's `players`. Players are only ever appended, so the index never changes, and `==` on `PlayerIndex` is C# reference equality. Every `Player` in a C# signature or field is a `PlayerIndex` in Rust, except `Game.players: Vec<Player>` itself.
+A C# `Player` is a reference into some game's `Players`. In Rust a player is addressed by `PlayerId { index }`, its position in the game's `players`. Players are only ever appended, so the index never changes, and `==` on `PlayerId` is C# reference equality. Every `Player` in a C# signature or field is a `PlayerId` in Rust, except `Game.players: Vec<Player>` itself.
 
 Make one with `game.player_at(i)`, or iterate with `game.player_indices()`.
 
 ```rust
-let p: PlayerIndex = game.get_player(Some(Faction::Emperor)).expect("Emperor");
+let p: PlayerId = game.get_player(Some(Faction::Emperor)).expect("Emperor");
 game.player(p).resources                                      // p.Resources
 game.player_mut(p).resources -= 3;                            // p.Resources -= 3
 ```
@@ -230,8 +230,8 @@ game.stone(Milestone::Payment);
 |---|---|---|
 | reads only the player | `fn has_ally(&self) -> bool` | `game.player(p).has_ally()` |
 | changes only the player | `fn f(&mut self, ...)` | `game.player_mut(p).f(...)` |
-| reads the game | `fn allied_player(&self, game: &Game) -> Option<PlayerIndex>` | `game.player(p).allied_player(game)` |
-| changes the game, or changes itself and reads the game | `fn revive_forces(game: &mut Game, me: PlayerIndex, amount: i32)` | `Player::revive_forces(game, p, 3)` |
+| reads the game | `fn allied_player(&self, game: &Game) -> Option<PlayerId>` | `game.player(p).allied_player(game)` |
+| changes the game, or changes itself and reads the game | `fn revive_forces(game: &mut Game, me: PlayerId, amount: i32)` | `Player::revive_forces(game, p, 3)` |
 
 Inside a `&self` method that needs its own index (C# `this` passed to the game, as in `Game.GetPlayerName(this)`), use `game.index_of(self)`, which compares addresses like C# `ReferenceEquals`.
 
@@ -249,7 +249,7 @@ game.battle.battle_sequence = Some(seq);
 
 `game.undo(n)` replays the first `n` events of the history into a new game and puts it in `game`'s place. The events after them become `history.recently_undone_events`, and the game it replaced is kept, unchanged, in `history.previous_game_state`. `restore_recently_undone()` puts that game back. Without one (a game loaded with undone events), it replays the history and the undone events into a new game. `dismiss_recently_undone()` replays the history into a new game with neither. A negative `n` throws and leaves the game as it was.
 
-The event objects are shared between the games (`Rc`), and each replay initializes them again against the new game. An event keeps no game of its own, and a `PlayerIndex` is only a position in `players`, so nothing in one game refers to another.
+The event objects are shared between the games (`Rc`), and each replay initializes them again against the new game. An event keeps no game of its own, and a `PlayerId` is only a position in `players`, so nothing in one game refers to another.
 
 C# undo differs here. Its new game shares the event objects with the old one, and each event remembers the game it was last initialized against. After a restore, events that the restored game holds (`CurrentBattle`, `AggressorPlan`, deal offers) belong to the game made by the undo, and their members read that game. The Rust port imitated this until native-plan.md step 3. Snapshots drop it: a restore returns to the state before the undo, with nothing read from the discarded game.
 

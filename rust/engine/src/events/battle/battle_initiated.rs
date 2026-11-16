@@ -47,7 +47,7 @@ impl BattleInitiated {
         }
     }
 
-    pub fn defending_player(&self, game: &Game) -> Option<PlayerIndex> {
+    pub fn defending_player(&self, game: &Game) -> Option<PlayerId> {
         game.get_player(self.defender(game))
     }
 
@@ -70,7 +70,7 @@ impl BattleInitiated {
         self.actual_initiator(game)
     }
 
-    pub fn aggressive_player(&self, game: &Game) -> Option<PlayerIndex> {
+    pub fn aggressive_player(&self, game: &Game) -> Option<PlayerId> {
         game.get_player(self.aggressor(game))
     }
 
@@ -79,7 +79,7 @@ impl BattleInitiated {
     }
 
     /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
-    fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
+    fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
         g.turn.current_juice.as_ref().is_some_and(|j| {
             j.type_ == Some(JuiceType::GoFirst)
                 && j.player_opt() == initiator
@@ -90,7 +90,7 @@ impl BattleInitiated {
     /// `IsTargetByJuice` with a possibly null `initiator`.
     ///
     /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
-    fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
+    fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
         g.turn.current_juice.as_ref().is_some_and(|j| {
             j.type_ == Some(JuiceType::GoLast)
                 && j.player_opt() == initiator
@@ -98,7 +98,7 @@ impl BattleInitiated {
         })
     }
 
-    pub fn is_involved(&self, game: &Game, p: PlayerIndex) -> bool {
+    pub fn is_involved(&self, game: &Game, p: PlayerId) -> bool {
         let pl = game.player(p);
         self.initiator() == pl.faction || self.target == pl.faction || self.initiator() == pl.ally || self.target == pl.ally
     }
@@ -110,7 +110,7 @@ impl BattleInitiated {
             || game.get_ally(self.target) == Some(f)
     }
 
-    pub fn is_aggressor_or_defender(&self, game: &Game, p: PlayerIndex) -> bool {
+    pub fn is_aggressor_or_defender(&self, game: &Game, p: PlayerId) -> bool {
         let f = game.player(p).faction;
         self.aggressor(game) == f || self.defender(game) == f
     }
@@ -119,7 +119,7 @@ impl BattleInitiated {
         self.aggressor(game) == Some(f) || self.defender(game) == Some(f)
     }
 
-    pub fn opponent_of(&self, game: &Game, p: PlayerIndex) -> Option<PlayerIndex> {
+    pub fn opponent_of(&self, game: &Game, p: PlayerId) -> Option<PlayerId> {
         let pl = game.player(p);
         if pl.faction == self.initiator() || pl.ally == self.initiator() {
             return game.get_player(self.actual_target(game));
@@ -132,7 +132,7 @@ impl BattleInitiated {
         None
     }
 
-    pub fn opponent_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<PlayerIndex> {
+    pub fn opponent_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<PlayerId> {
         let f: Option<Faction> = f.into();
         let player = game.get_player(f);
         match player {
@@ -141,7 +141,7 @@ impl BattleInitiated {
         }
     }
 
-    pub fn plan_of(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<Battle>> {
+    pub fn plan_of(&self, game: &Game, p: Option<PlayerId>) -> Option<Rc<Battle>> {
         let Some(p) = p else { return None };
         let f = game.player(p).faction;
 
@@ -151,7 +151,7 @@ impl BattleInitiated {
         if f == self.defender(game) { game.battle.defender_plan.clone() } else { None }
     }
 
-    pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<Battle>> {
+    pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerId>) -> Option<Rc<Battle>> {
         match p {
             None => None,
             Some(p) => self.plan_of(game, self.opponent_of(game, p)),
@@ -179,11 +179,11 @@ impl BattleInitiated {
         if Some(f) == self.defender(game) { game.battle.previous_defender_plan.clone() } else { None }
     }
 
-    pub fn treachery_of_opponent(&self, game: &Game, p: PlayerIndex) -> Option<Rc<TreacheryCalled>> {
+    pub fn treachery_of_opponent(&self, game: &Game, p: PlayerId) -> Option<Rc<TreacheryCalled>> {
         self.treachery_of(game, self.opponent_of(game, p))
     }
 
-    pub fn treachery_of(&self, game: &Game, p: Option<PlayerIndex>) -> Option<Rc<TreacheryCalled>> {
+    pub fn treachery_of(&self, game: &Game, p: Option<PlayerId>) -> Option<Rc<TreacheryCalled>> {
         let Some(p) = p else { return None };
         let pl = game.player(p);
 

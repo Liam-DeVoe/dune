@@ -56,7 +56,7 @@ fn hero_of(v: &serde_json::Value) -> Option<Hero> {
 /// Checks one form against the engine: the options are the helpers' results for the form's
 /// draft, the draft is within the ranges the component allows, and the validation is the
 /// engine's for that draft.
-fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Option<RichText>, d: &dyn Describer, at: &str) {
+fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<RichText>, d: &dyn Describer, at: &str) {
     let pl = game.player(p);
     let draft = draft_of(options);
     let e = event_of(draft, game);
@@ -148,7 +148,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
     }
 }
 
-fn resolved(game: &Game, p: PlayerIndex) -> ResolvedViewer {
+fn resolved(game: &Game, p: PlayerId) -> ResolvedViewer {
     ResolvedViewer { player: Some(p), faction: Some(game.player(p).faction.expect("faction")), is_host: false, is_observer: false }
 }
 
@@ -225,7 +225,7 @@ fn variations(default: &serde_json::Value, options: &ActionOptions) -> Vec<serde
 
 /// Checks every applicable revival form of player `p` in the current state, its default and
 /// the drafts in [`variations`]. Returns the event types checked.
-fn check_state(game: &Game, p: PlayerIndex, types: &[GameEventType], d: &dyn Describer, at: &str) -> Vec<GameEventType> {
+fn check_state(game: &Game, p: PlayerId, types: &[GameEventType], d: &dyn Describer, at: &str) -> Vec<GameEventType> {
     let v = resolved(game, p);
     let mut checked = vec![];
     for t in types.iter().filter(|t| revival::TYPES.contains(t)) {

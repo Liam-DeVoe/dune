@@ -557,10 +557,10 @@ impl ClassicBot {
             return None;
         }
 
-        let known_cards_with = |o: PlayerIndex, good: bool| {
+        let known_cards_with = |o: PlayerId, good: bool| {
             Self::known_cards_held_by_other_player(game, me, o).iter().filter(|c| (self.card_quality(game, **c, Some(me)) >= 3) == good).count() as i32
         };
-        let swap_with = |o: PlayerIndex| {
+        let swap_with = |o: PlayerId| {
             let mut e = KarmaHandSwapInitiated::new(game, self.faction(game));
             e.target = game.player(o).faction;
             Some(Rc::new(e))
@@ -1094,7 +1094,7 @@ impl ClassicBot {
     }
 
     /// How many (forces, special forces) the Emperor, as `p`'s ally, should pay to revive for `p`.
-    pub fn determine_optimal_use_of_emperor_revivals(g: &Game, p: PlayerIndex, use_cunning: bool) -> (i32, i32) {
+    pub fn determine_optimal_use_of_emperor_revivals(g: &Game, p: PlayerId, use_cunning: bool) -> (i32, i32) {
         let pl = g.player(p);
         if pl.ally != Some(Faction::Emperor) {
             return (0, 0);

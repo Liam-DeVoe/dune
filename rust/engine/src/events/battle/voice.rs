@@ -82,14 +82,14 @@ impl Voice {
         result
     }
 
-    pub fn may_use_voice(g: &Game, p: PlayerIndex) -> bool {
+    pub fn may_use_voice(g: &Game, p: PlayerId) -> bool {
         Self::may_use_voice_opt(g, Some(p))
     }
 
     /// [`may_use_voice`](Self::may_use_voice) for a player that may be missing (a bot asks about
     /// its opponent in a battle it may not fight). A missing player panics where the answer
     /// depends on it, after the checks that don't.
-    pub fn may_use_voice_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
+    pub fn may_use_voice_opt(g: &Game, p: Option<PlayerId>) -> bool {
         if g.battle.current_voice.is_none() {
             if let Some(battle) = g.battle.current_battle.as_ref() {
                 let p = p.expect("player");

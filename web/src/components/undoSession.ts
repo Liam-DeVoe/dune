@@ -1,17 +1,17 @@
 // UndoSession.cs: the host choosing a moment to undo to. A moment is a gap between two events:
-// gap n sits just before event n, so undoing to it is RequestUndo(n), which keeps events 0 to
+// gap n sits just before event n, so undoing to it is undo(n), which keeps events 0 to
 // n-1. The undo panel (UndoComponent) opens and closes the session; the timeline under the map
 // (UndoTimeline) moves the gap.
 //
 // While a moment other than now is chosen, the game screen shows the preview: the host's view at
-// that gap, without actions (RequestUndoPreview), as C# showed UndoSession.Preview. The previous
+// that gap, without actions (undoPreview), as C# showed UndoSession.Preview. The previous
 // preview stays shown until the next one arrives.
 import { useSyncExternalStore } from "react";
 import type { GameView } from "../generated/GameView";
 import type { UndoEntry } from "../state/source";
 
 export interface UndoState {
-  // The undo list (RequestUndoList), or null while it loads.
+  // The undo list (undoList), or null while it loads.
   entries: UndoEntry[] | null;
   // Null while the chosen moment is now.
   gap: number | null;

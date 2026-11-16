@@ -5,7 +5,7 @@
 // The panels the toolbar opens show at the top of the side column (MenuPanels) or in a popover
 // above the bar (TradePopover). Styles in _menu.scss and _toolbar.scss.
 //
-// Differences from C#: Save game asks the server for the live game (RequestSaveGame), where C#
+// Differences from C#: Save game asks the server for the live game (saveGame), where C#
 // saved its own copy.
 import { useContext, useEffect, useState } from "react";
 import { PhaseValue } from "../generated/enums";
@@ -41,7 +41,7 @@ export function MenuComponent() {
   const hostTools = started(view) && view.viewer.isHost && !view.viewer.isObserver;
   // CanSave: hosts, and the server's admin (known from the lobby, when there is one).
   const lobby = useContext(LobbyContext)?.getState();
-  const isAdmin = lobby?.serverInfo != null && lobby.loginInfo?.UserName === lobby.serverInfo.AdminName;
+  const isAdmin = lobby?.serverInfo != null && lobby.account?.userName === lobby.serverInfo.adminName;
   const canSave = started(view) && (view.viewer.isHost || isAdmin);
   const numberOfBots = view.players.filter((p) => p.isBot).length;
   const botsPaused = hostTools && numberOfBots > 0 && view.botsSpeed === 0;
@@ -97,7 +97,7 @@ export function MenuComponent() {
     }
   };
   // LoadGame and LoadSkin: the file's text to the server, refused when it is too big.
-  const loadFile = (method: string, max: number, what: string, args: (data: string) => unknown[]) =>
+  const loadFile = (max: number, what: string, send: (data: string) => Promise<string | null> | undefined) =>
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       closeMenus();
       const input = e.currentTarget;
@@ -111,16 +111,16 @@ export function MenuComponent() {
           menu.setLoadError(`${what} file is too big...`);
           return;
         }
-        const error = await source.gameCall?.(method, ...args(data));
+        const error = await send(data);
         if (error) menu.setLoadError(`Error loading ${what === "Saved Game" ? "game" : "skin"} (${error})`);
       } catch (err) {
         menu.setLoadError(`Error loading ${what === "Saved Game" ? "game" : "skin"} (${String(err)})`);
       }
     };
-  const loadGame = loadFile("RequestLoadGame", 4194304, "Saved Game", (data) => [data, null]);
-  const loadSkin = loadFile("RequestSetSkin", 262144, "Skin", (data) => [data]);
+  const loadGame = loadFile(4194304, "Saved Game", (savegame) => source.gameCall?.("loadGame", { savegame, skin: null }));
+  const loadSkin = loadFile(262144, "Skin", (skin) => source.gameCall?.("setSkin", { skin }));
   const openUndo = () => { closeMenus(); menu.open("Undo"); };
-  const setBotSpeed = (speed: number) => { void source.gameCall?.("RequestSetBotSpeed", speed); };
+  const setBotSpeed = (speed: number) => { void source.gameCall?.("setBotSpeed", { speed }); };
 
   return (
     <>

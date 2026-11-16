@@ -8,6 +8,7 @@ The server holds each game and runs the engine. After every change it sends each
 |---|---|---|
 | View crate | `rust/view` (`treachery-view`) | Builds views and answers draft queries. `src/schema.rs` and `src/schema/` are the wire types |
 | TypeScript types | `web/src/generated/` | Generated from the schema by `rust/view/tests/ts_bindings.rs` (ts-rs) and checked in. The test fails when they are stale; `UPDATE_TS_BINDINGS=1` rewrites them |
+| Protocol types | `web/src/protocol/` | The calls, replies, notifications and lobby objects, generated from `rust/protocol` by `rust/protocol/tests/ts_bindings.rs` in the same way. They import the view's types from `src/generated/` |
 | Static data | `web/public/static/data.json` | Locations, territories, leaders, cards, homeworlds, force types, rule groups. Written by `rust/view/examples/static_data.rs` from `src/static_data.rs`; `tests/static_data.rs` keeps it current |
 | Skin | `rust/skin`, `web/public/skin/default.json` | Text is rendered on the server with the game's skin; the client uses the same skin as JSON for images, colours, map geometry and popover texts |
 | Web client | `web/` | React, TypeScript, Vite |
@@ -51,13 +52,14 @@ web/
   public/static/      the static data
   public/views/       saved views for /scene without a server (rust/view/examples/scene_views.rs)
   src/generated/      the view's TypeScript types (generated, do not edit)
+  src/protocol/       the protocol's TypeScript types (generated, do not edit)
   src/state/          view sources (WebSocket, or saved views) and the game context
   src/lobby/          login, lobby, seating and the lobby protocol client
   src/components/     the game screen: board/, log/, battle/, shipmove/, revival/, other/, lobby/
   tools/              check-rich-text.ts, check-flash.ts
 ```
 
-- **Session.** The server knows the user per WebSocket (protocol.md, Sessions). `Connection` (`src/state/connection.ts`) logs each new socket in with the session token before any other call, and the lobby client keeps the token in `sessionStorage`, and in `localStorage` when the user asks to stay signed in. Tokens never go in URLs. When the server ends the session (`SessionEnded`, or a call refused with `UserTokenNotFound`), the client forgets it and shows the login. The server sets every event's `Initiator`; the client leaves it out.
+- **Session.** The server knows the user per WebSocket (protocol.md, Sessions). `Connection` (`src/state/connection.ts`) authenticates each new socket with the session token (`authenticate`) before any other call, and the lobby client keeps the token in `sessionStorage`, and in `localStorage` when the user asks to stay signed in. Tokens never go in URLs. When the server ends the session (`sessionEnded`, or a call refused with `notLoggedIn`), the client forgets it and shows the login. `Connection.call` takes a call's name and arguments and resolves with its reply, both typed from `src/protocol/`. The server sets every event's `Initiator`; the client leaves it out.
 - **State.** One connection per tab. The latest `GameView` replaces the previous one whole; components derive what they draw from it and the skin, and keep only UI state (a form's draft, the log phase shown, collapsed panels, the map selection). A form's draft lives in the form and is dropped when its event type leaves `actions`. Draft query answers older than the form's latest query are dropped. Preferences (sound volumes, auto-pass, collapse states, the Atreides tracker's notes) are in local storage.
 - **Map interaction.** `components/board/mapInteraction.ts` holds the page's one map interaction. One form owns it at a time; the owner sets what is selectable, selected and targeted, and the board's layers only read it. Every location click goes to listeners, and a form acts on clicks only while it owns the map. Valid locations come from the action's options.
 - **Routes.** `/` (login, then the lobby), `/game/:gameId` (reconnect to a game), `/link/:linkToken` (the single-use login link of an async-play mail, which then shows `/game/:gameId`), `/scene/:fixture/:faction` (a fixture from `scripts/fixtures` seen by one faction: played on a server started with `TREACHERY_DEV_SCENE`, or drawn from the saved views without one), `/admin`. Inside a game, the screens follow the game's phase. `TREACHERY_BASE=/prefix/ npx vite build` serves the app under a path prefix; every absolute URL goes through `withBase` (`src/base.ts`).

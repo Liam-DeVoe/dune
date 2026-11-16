@@ -18,7 +18,7 @@ function AdminScreen() {
   const [messages, setMessages] = useState<string[]>([]);
   const log = (m: string) => setMessages((ms) => [...ms, m]);
   // DateTimePicker: DateTimeOffset.MinValue (no maintenance planned) shows the current time.
-  const planned = state.serverInfo ? new Date(state.serverInfo.ScheduledMaintenance) : null;
+  const planned = state.serverInfo ? new Date(state.serverInfo.scheduledMaintenance) : null;
   const maintenanceDate = maintenance ?? (planned && planned.getFullYear() > 1 ? planned : new Date());
 
   if (!state.connected) {
@@ -28,7 +28,7 @@ function AdminScreen() {
       </div>
     );
   }
-  if (!state.loginInfo) {
+  if (!state.account) {
     return (
       <div className="row d-flex align-items-center" style={START_SCREEN_STYLE}>
         <div className="col-sm-12 col-lg-3"></div>
@@ -41,11 +41,11 @@ function AdminScreen() {
   const from = timeFrom ? new Date(timeFrom).getTime() : null;
   const to = timeTo ? new Date(timeTo).getTime() : null;
   const filtered = state.activeGames
-    .filter((g) => usernameFilter.trim() === "" || g.CreatorUsername.toLowerCase().includes(usernameFilter.toLowerCase()))
-    .filter((g) => from == null || Date.parse(g.CreationDate) >= from)
-    .filter((g) => to == null || Date.parse(g.CreationDate) <= to)
-    .sort((a, b) => Date.parse(b.LastActivity ?? "") - Date.parse(a.LastActivity ?? ""));
-  const scheduled = [...state.scheduledGames].sort((a, b) => Date.parse(b.DateTime) - Date.parse(a.DateTime));
+    .filter((g) => usernameFilter.trim() === "" || g.creatorUserName.toLowerCase().includes(usernameFilter.toLowerCase()))
+    .filter((g) => from == null || Date.parse(g.created) >= from)
+    .filter((g) => to == null || Date.parse(g.created) <= to)
+    .sort((a, b) => Date.parse(b.lastActivity ?? "") - Date.parse(a.lastActivity ?? ""));
+  const scheduled = [...state.scheduledGames].sort((a, b) => Date.parse(b.starts) - Date.parse(a.starts));
   const admin = state.adminInfo;
 
   return (
@@ -70,10 +70,10 @@ function AdminScreen() {
           <div className="card mb-2">
             <div className="card-header">Info</div>
             <div className="card-body">
-              <p><strong>Users by User Token: </strong>{admin.UsersByUserTokenCount}</p>
-              <p><strong>Games by Game Id: </strong>{admin.GamesByGameIdCount}</p>
-              <p><strong>Total Users: </strong>{admin.Users.length}</p>
-              <p><strong>ConnectionInfo by UserId: </strong>{admin.ConnectionInfoByUserIdCount}</p>
+              <p><strong>Users by User Token: </strong>{admin.sessions}</p>
+              <p><strong>Games by Game Id: </strong>{admin.runningGames}</p>
+              <p><strong>Total Users: </strong>{admin.users.length}</p>
+              <p><strong>ConnectionInfo by UserId: </strong>{admin.usersInGames}</p>
               <table className="table table-sm">
                 <thead>
                   <tr className="small table-dark">
@@ -81,14 +81,14 @@ function AdminScreen() {
                   </tr>
                 </thead>
                 <tbody>
-                  {admin.Users.map((u) => (
-                    <tr key={u.Id} className="small table-dark">
-                      <td>{u.Id}</td>
-                      <td>{u.Username}</td>
-                      <td>{u.PlayerName}</td>
-                      <td>{u.Email}</td>
-                      <td>{u.LastLogin && !u.LastLogin.startsWith("0001-01-01") ? longDate(u.LastLogin) : ""}</td>
-                      <td><button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminDeleteUser(u.Id))}>Delete</button></td>
+                  {admin.users.map((u) => (
+                    <tr key={u.userId} className="small table-dark">
+                      <td>{u.userId}</td>
+                      <td>{u.userName}</td>
+                      <td>{u.playerName}</td>
+                      <td>{u.email}</td>
+                      <td>{u.lastLogin && !u.lastLogin.startsWith("0001-01-01") ? longDate(u.lastLogin) : ""}</td>
+                      <td><button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminDeleteUser(u.userId))}>Delete</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -123,16 +123,16 @@ function AdminScreen() {
                 {filtered.map((g: GameInfo) => {
                   const style = activityColor(g, 20);
                   return (
-                    <tr key={g.GameId} className="small table-dark">
-                      <td style={style}>{longDate(g.CreationDate)}</td>
-                      <td style={style}>{g.CreatorUsername}</td>
-                      <td style={style}>{g.LastActivity ? longDate(g.LastActivity, true) : ""}</td>
-                      <td style={style}>{g.Name}</td>
+                    <tr key={g.gameId} className="small table-dark">
+                      <td style={style}>{longDate(g.created)}</td>
+                      <td style={style}>{g.creatorUserName}</td>
+                      <td style={style}>{g.lastActivity ? longDate(g.lastActivity, true) : ""}</td>
+                      <td style={style}>{g.name}</td>
                       <td>
-                        <button className="btn btn-primary btn-sm me-1" title="Download savegame" aria-label="Download savegame" onClick={async () => log(await client.adminDownloadGame(g.GameId))}>
+                        <button className="btn btn-primary btn-sm me-1" title="Download savegame" aria-label="Download savegame" onClick={async () => log(await client.adminDownloadGame(g.gameId))}>
                           <span className="oi oi-data-transfer-download" aria-hidden="true"></span>
                         </button>{" "}
-                        <button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminCloseGame(g.GameId))}>Close</button>
+                        <button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminCloseGame(g.gameId))}>Close</button>
                       </td>
                     </tr>
                   );
@@ -147,10 +147,10 @@ function AdminScreen() {
             <table className="table table-sm">
               <tbody>
                 {scheduled.map((g: ScheduledGameInfo) => (
-                  <tr key={g.ScheduledGameId} className="small table-dark">
-                    <td className="w-25">{longDate(g.DateTime, true)}</td>
-                    <td className="w-25">{g.CreatorName}</td>
-                    <td className="w-25"><button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminCancelGame(g.ScheduledGameId))}>Cancel</button></td>
+                  <tr key={g.scheduledGameId} className="small table-dark">
+                    <td className="w-25">{longDate(g.starts, true)}</td>
+                    <td className="w-25">{g.creatorName}</td>
+                    <td className="w-25"><button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminCancelGame(g.scheduledGameId))}>Cancel</button></td>
                   </tr>
                 ))}
               </tbody>

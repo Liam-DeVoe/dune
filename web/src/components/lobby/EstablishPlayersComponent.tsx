@@ -1,5 +1,5 @@
 // GameEventComponents/EstablishPlayersComponent.razor: the host's game settings while players
-// join, sent to the server every 3.6 s (RequestUpdateSettings) so joiners see them, and the
+// join, sent to the server every 3.6 s (updateSettings) so joiners see them, and the
 // EstablishPlayers event that starts the game.
 //
 // Bots: seats that no user takes become bots when the game starts (version 170 and later), as on

@@ -1,5 +1,5 @@
-//! Game views: what each player and observer sees of a game, sent as `GameView` notifications,
-//! and the view calls (`QueryDraft`, `RequestReport`, `RequestUndoList`, `RequestUndoPreview`).
+//! Game views: what each player and observer sees of a game, sent as `gameView` notifications,
+//! and the view calls (`queryDraft`, `report`, `undoList`, `undoPreview`).
 //!
 //! Views are built from a replica of each followed game (`treachery_view::replica`), never
 //! from the running game itself: building a view asks the engine questions that can change a
@@ -12,14 +12,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::panic::AssertUnwindSafe;
 
-use serde_json::Value;
-use treachery_engine::enumerations::ErrorType;
 use treachery_engine::json;
-use treachery_view::replica::ViewReplica;
+use treachery_view::replica::{UndoEntry, ViewReplica};
+use treachery_view::schema::{DraftResult, GameView, ReportLines};
 
 use super::connections::{ConnectionId, Connections, PendingViews};
-use super::protocol;
-use super::server::{panic_text, refuse, CallError, Reply, RunningGame};
+use super::protocol::{self, ErrorCode, Notification};
+use super::server::{panic_text, refuse, Answer, CallError, RunningGame};
 
 struct Entry {
     generation: u64,
@@ -99,7 +98,7 @@ impl GameViews {
                     .map(|(connection, user_id)| {
                         let text = by_user
                             .entry(user_id)
-                            .or_insert_with(|| protocol::notify("GameView", vec![serde_json::to_value(replica.view(g.participation.viewer(user_id))).expect("views serialize")]))
+                            .or_insert_with(|| protocol::notify(Notification::GameView(Box::new(replica.view(g.participation.viewer(user_id))))))
                             .clone();
                         (connection, text)
                     })
@@ -122,26 +121,26 @@ impl GameViews {
         self.entries.retain(|id, _| followed.contains(id));
     }
 
-    fn with_replica(&mut self, g: &RunningGame, f: impl FnOnce(&mut ViewReplica) -> Result<String, CallError>) -> Reply {
+    fn with_replica<T>(&mut self, g: &RunningGame, f: impl FnOnce(&mut ViewReplica) -> Answer<T>) -> Answer<T> {
         let entry = self.entry(g);
-        let answer = caught(|| entry.sync(g).map_err(|e| CallError::Refused(ErrorType::InvalidGameEvent, e)).and_then(f));
+        let answer = caught(|| entry.sync(g).map_err(|e| CallError::Refused(ErrorCode::InvalidGameEvent, e)).and_then(f));
         match answer {
-            Ok(Ok(json)) => Ok(serde_json::from_str::<Value>(&json).expect("the view layer writes JSON")),
+            Ok(Ok(answer)) => Ok(answer),
             Ok(Err(e)) => {
-                if matches!(e, CallError::Refused(ErrorType::InvalidGameEvent, _)) {
+                if matches!(e, CallError::Refused(ErrorCode::InvalidGameEvent, _)) {
                     entry.replica = None;
                 }
                 Err(e)
             }
             Err(e) => {
                 entry.replica = None;
-                Err(CallError::Refused(ErrorType::InvalidGameEvent, e))
+                Err(CallError::Refused(ErrorCode::InvalidGameEvent, e))
             }
         }
     }
 
     /// The options and validation of a draft of one of the user's actions.
-    pub fn query_draft(&mut self, g: &RunningGame, user_id: i32, draft: &str) -> Reply {
+    pub fn query_draft(&mut self, g: &RunningGame, user_id: i32, draft: &str) -> Answer<DraftResult> {
         let viewer = g.participation.viewer(user_id);
         self.with_replica(g, |replica| {
             if !replica.has_view_for(viewer) {
@@ -150,36 +149,36 @@ impl GameViews {
                 replica.view(viewer);
             }
             match replica.query(viewer, draft) {
-                Ok(r) => Ok(serde_json::to_string(&r).expect("draft results serialize")),
-                Err(e) => Err(CallError::Refused(ErrorType::InvalidGameEvent, format!("{e:?}"))),
+                Ok(r) => Ok(r),
+                Err(e) => Err(CallError::Refused(ErrorCode::InvalidGameEvent, format!("{e:?}"))),
             }
         })
     }
 
     /// The lines of a report, as the user may see them.
-    pub fn report(&mut self, g: &RunningGame, user_id: i32, index: i32) -> Reply {
+    pub fn report(&mut self, g: &RunningGame, user_id: i32, index: i32) -> Answer<ReportLines> {
         self.with_replica(g, |replica| match usize::try_from(index).ok().and_then(|i| replica.report(g.participation.viewer(user_id), i)) {
-            Some(lines) => Ok(serde_json::to_string(&lines).expect("reports serialize")),
-            None => Err(CallError::Refused(ErrorType::InvalidGameEvent, format!("There is no report {index}"))),
+            Some(lines) => Ok(lines),
+            None => Err(CallError::Refused(ErrorCode::InvalidGameEvent, format!("There is no report {index}"))),
         })
     }
 
     /// The events a host can undo to.
-    pub fn undo_list(&mut self, g: &RunningGame, user_id: i32) -> Reply {
+    pub fn undo_list(&mut self, g: &RunningGame, user_id: i32) -> Answer<Vec<UndoEntry>> {
         if !g.participation.is_host(user_id) {
-            return Err(refuse(ErrorType::NoHost));
+            return Err(refuse(ErrorCode::NoHost));
         }
-        self.with_replica(g, |replica| Ok(serde_json::to_string(&replica.undo_list()).expect("undo lists serialize")))
+        self.with_replica(g, |replica| Ok(replica.undo_list()))
     }
 
     /// The host's view just before event `gap`, without actions.
-    pub fn undo_preview(&mut self, g: &RunningGame, user_id: i32, gap: i32) -> Reply {
+    pub fn undo_preview(&mut self, g: &RunningGame, user_id: i32, gap: i32) -> Answer<GameView> {
         if !g.participation.is_host(user_id) {
-            return Err(refuse(ErrorType::NoHost));
+            return Err(refuse(ErrorCode::NoHost));
         }
         self.with_replica(g, |replica| match replica.preview(g.participation.viewer(user_id), gap) {
-            Ok(view) => Ok(serde_json::to_string(&view).expect("views serialize")),
-            Err(e) => Err(CallError::Refused(ErrorType::InvalidGameEvent, e)),
+            Ok(view) => Ok(view),
+            Err(e) => Err(CallError::Refused(ErrorCode::InvalidGameEvent, e)),
         })
     }
 }

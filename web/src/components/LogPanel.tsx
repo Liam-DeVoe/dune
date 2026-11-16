@@ -4,7 +4,7 @@
 // stays put until they return to the latest phase.
 //
 // The view carries every report's header and the lines of the latest phase (log.latest). The
-// lines of an earlier phase come from the source (RequestReport) and are cached per source; a
+// lines of an earlier phase come from the source (report) and are cached per source; a
 // cached report is asked again when a newer view arrives, and shown as cached meanwhile.
 import { Fragment, type ReactNode, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { BattleFact } from "../generated/BattleFact";
@@ -52,7 +52,7 @@ function steps(reports: ReportHeader[]): Step[] {
   return result;
 }
 
-// The lines of earlier reports, per source: what RequestReport answered, and for which view.
+// The lines of earlier reports, per source: what report answered, and for which view.
 interface Cached { eventNumber: number; lines: LogLine[] }
 
 class ReportCache {

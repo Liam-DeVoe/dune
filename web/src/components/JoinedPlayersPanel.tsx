@@ -11,7 +11,7 @@ export function JoinedPlayersPanel() {
   const { view, source } = useGame();
   const [result, setResult] = useState("");
   const players = [...view.players].sort((a, b) => a.seat - b.seat);
-  const leave = async () => setResult((await source.gameCall?.("RequestLeaveGame")) ?? "");
+  const leave = async () => setResult((await source.gameCall?.("leaveGame", {})) ?? "");
   return (
     <div className="mt-2 p-1 border">
       {players.map((p, i) => (

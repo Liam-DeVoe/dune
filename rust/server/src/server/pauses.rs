@@ -10,14 +10,14 @@ use std::collections::BTreeSet;
 use std::rc::Rc;
 use std::time::Duration;
 
-use treachery_engine::enumerations::{ErrorType, Faction, Phase};
+use treachery_engine::enumerations::{Faction, Phase};
 use treachery_engine::events::EndPhase;
 use treachery_engine::events::GameEvent;
 
-use super::{done, CallError, Reply, Server};
-use crate::connections::Notification;
+use super::{Answer, CallError, Server};
+use crate::protocol::{ErrorCode, Notification};
 use crate::timers::Timer;
-use crate::wire::PhaseControlInfo;
+use treachery_protocol::PhaseControlInfo;
 use crate::pause_rules;
 
 #[derive(Clone, Debug, Default)]
@@ -45,7 +45,7 @@ pub struct Pause {
 pub type PauseChange = Box<dyn FnOnce(&mut Pause)>;
 
 impl Server {
-    pub(super) async fn phase_done(&mut self, user: i32, game: &str) -> Reply {
+    pub(super) async fn phase_done(&mut self, user: i32, game: &str) -> Answer<()> {
         self.change_pause(user, game, |pause, seat| {
             pause.done.insert(seat);
             pause.holding.remove(&seat);
@@ -54,7 +54,7 @@ impl Server {
     }
 
     /// Holds the running countdown; does nothing when none is running.
-    pub(super) async fn phase_hold(&mut self, user: i32, game: &str) -> Reply {
+    pub(super) async fn phase_hold(&mut self, user: i32, game: &str) -> Answer<()> {
         self.change_pause(user, game, |pause, seat| {
             if pause.countdown_ends.is_some() && !pause.countdown_expired {
                 pause.holding.insert(seat);
@@ -64,7 +64,7 @@ impl Server {
         .await
     }
 
-    pub(super) async fn phase_release(&mut self, user: i32, game: &str) -> Reply {
+    pub(super) async fn phase_release(&mut self, user: i32, game: &str) -> Answer<()> {
         self.change_pause(user, game, |pause, seat| {
             pause.holding.remove(&seat);
         })
@@ -73,7 +73,7 @@ impl Server {
 
     /// The host's Continue: ends the pause the host saw, at `event_number` events. If the game
     /// has moved on since, it does nothing.
-    pub(super) async fn phase_continue(&mut self, user: i32, game: &str, event_number: i32) -> Reply {
+    pub(super) async fn phase_continue(&mut self, user: i32, game: &str, event_number: i32) -> Answer<()> {
         let game = self.host_of(user, game)?;
         let event = {
             let running = &self.games[&game];
@@ -81,20 +81,20 @@ impl Server {
             let faction = running.participation.player_of(g, user).map_or(Faction::None, |p| g.player(p).faction);
             GameEvent::EndPhase(Rc::new(EndPhase::new(g, faction)))
         };
-        let Ok(expected) = usize::try_from(event_number) else { return done() };
+        let Ok(expected) = usize::try_from(event_number) else { return Ok(()) };
         self.execute(&game, event, true, Some(expected), false).await?;
-        done()
+        Ok(())
     }
 
-    async fn change_pause(&mut self, user: i32, game: &str, change: impl FnOnce(&mut Pause, i32) + 'static) -> Reply {
+    async fn change_pause(&mut self, user: i32, game: &str, change: impl FnOnce(&mut Pause, i32) + 'static) -> Answer<()> {
         let game = self.player_of(user, game)?;
         let running = &self.games[&game];
         let g = &running.game;
         let Some(seat) = running.participation.player_of(g, user).map(|p| g.player(p).seat) else {
-            return Err(CallError::Refused(ErrorType::InvalidGameEvent, "Only players with a faction can do this".into()));
+            return Err(CallError::Refused(ErrorCode::InvalidGameEvent, "Only players with a faction can do this".into()));
         };
         self.update_pause(&game, None, Some(Box::new(move |pause: &mut Pause| change(pause, seat)))).await?;
-        done()
+        Ok(())
     }
 
     /// After an undo or a load: the current pause waits for the host.

@@ -6,7 +6,7 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
 0. Before any other client connects, the scene route (/scene/alliance/Emperor) opens a game on
    the server through POST /dev/scene. The scene user must be seated as the Emperor (their
    player panel, named Emperor, and the alliance form), and passing must replace the
-   view. The first client's Connect on a fresh server restores the running games from the
+   view. The first client's serverInfo call on a fresh server restores the running games from the
    database, so this is the case where a seat that was never saved got lost.
 1. Alice and Bob log in (accounts are created on first use) in two browser contexts.
 2. Alice creates a game from the alliance fixture, takes the Emperor's seat and opens the
@@ -131,24 +131,24 @@ SETUP_HOST = """async ([savegame]) => {
   const conn = new Connection();
   const me = await login(conn, "alice", "alice-password", { email: null, playerName: "Alice" });
   let view = null;
-  conn.on("GameView", (v) => { view = v; });
-  const info = await conn.invoke("RequestCreateGame", "E2E", "", savegame, "");
+  conn.on("gameView", (v) => { view = v; });
+  const info = await conn.invoke("createGame", { name: "E2E", passwordHash: null, savegame, skin: null });
   const seat = (faction) => view.players.find((p) => p.faction === faction).seat;
   const seats = { emperor: seat("Emperor"), atreides: seat("Atreides"), factions: view.players.map((p) => p.faction) };
-  await conn.invoke("RequestAssignSeats", info.GameId, [[me.UserId, seats.emperor]]);
-  await conn.invoke("RequestOpenOrCloseSeat", info.GameId, seats.atreides);
+  await conn.invoke("assignSeats", { game: info.gameId, seats: [[me.account.userId, seats.emperor]] });
+  await conn.invoke("openOrCloseSeat", { game: info.gameId, seat: seats.atreides });
   conn.close();
-  storeSession(me.Token, false);
-  return { gameId: info.GameId, ...seats };
+  storeSession(me.token, false);
+  return { gameId: info.gameId, ...seats };
 }"""
 
 SETUP_GUEST = """async ([gameId, seat]) => {
   const { Connection, login, storeSession } = window.treacheryClient;
   const conn = new Connection();
   const me = await login(conn, "bobby", "bob-password", { email: null, playerName: "Bobby" });
-  await conn.invoke("RequestJoinGame", gameId, "", seat);
+  await conn.invoke("joinGame", { game: gameId, passwordHash: null, seat });
   conn.close();
-  storeSession(me.Token, false);
+  storeSession(me.token, false);
   return { joined: true };
 }"""
 

@@ -1,21 +1,21 @@
-//! Accounts and sessions: creating users, logging in, resuming a session on a new connection,
-//! login links, logging out, password reset by mail, changing details.
+//! Accounts and sessions: creating users, logging in, authenticating a new connection with a
+//! session, login links, logging out, password reset by mail, changing details.
 //!
 //! A session belongs to the connections that logged in with it (`Connections::log_in`). Its
-//! token goes to the client once, in the `LoginInfo` of the call that started it, and the
+//! token goes to the client once, in the `NewSession` of the call that started it, and the
 //! server keeps only its digest. Logging out, a new password and deleting the account end
 //! sessions, which logs out their connections.
 
-use treachery_engine::enumerations::{ErrorType, GameListScope, UserStatus};
 use treachery_engine::game::Game;
 
-use super::{contents, done, refuse, CallError, Presence, Reply, Server, Session, LOGIN_LINK_HOURS, MAX_SESSIONS_PER_USER};
+use super::{refuse, Answer, CallError, Presence, Server, Session, LOGIN_LINK_HOURS, MAX_SESSIONS_PER_USER};
 use crate::connections::ConnectionId;
 use crate::db::{LoginLinkRow, SessionRow, UserRow};
 use crate::ids;
 use crate::mail::{is_valid_address, Mail};
 use crate::passwords;
-use crate::wire::{LinkLoginInfo, LoginInfo};
+use crate::protocol::ErrorCode;
+use treachery_protocol::{Account, GameListScope, LinkLoginInfo, Lobby, NewSession, UserStatus};
 
 /// User and player names must be longer than this.
 const MIN_NAME: usize = 4;
@@ -30,9 +30,12 @@ fn normalize(name: &str) -> String {
     name.trim().to_lowercase()
 }
 
-/// `token` is the session's token when the call started the session, and `None` otherwise.
-fn login_info(user: &UserRow, token: Option<String>) -> LoginInfo {
-    LoginInfo { user_id: user.id, token, player_name: user.player_name.clone(), user_name: user.name.clone(), email: user.email.clone() }
+fn account(user: &UserRow) -> Account {
+    Account { user_id: user.id, user_name: user.name.clone(), player_name: user.player_name.clone(), email: user.email.clone() }
+}
+
+fn new_session(user: &UserRow, token: String) -> NewSession {
+    NewSession { token, account: account(user) }
 }
 
 impl Server {
@@ -118,24 +121,24 @@ impl Server {
         self.services.mailer.send(Mail { from: from.into(), to: to.trim().into(), subject: subject.into(), body, attachments: vec![], low_priority: false });
     }
 
-    pub(super) async fn create_user(&mut self, connection: ConnectionId, name: &str, password_hash: &str, email: Option<&str>, player_name: &str) -> Reply {
+    pub(super) async fn create_user(&mut self, connection: ConnectionId, name: &str, password_hash: &str, email: Option<&str>, player_name: &str) -> Answer<NewSession> {
         let name = normalize(name);
         let player_name = player_name.trim().to_string();
         let email = email.unwrap_or_default().trim().to_string();
         if name.chars().count() < MIN_NAME {
-            return Err(refuse(ErrorType::UserNameTooShort));
+            return Err(refuse(ErrorCode::UserNameTooShort));
         }
         if name.chars().count() > MAX_NAME {
-            return Err(refuse(ErrorType::UserNameTooLong));
+            return Err(refuse(ErrorCode::UserNameTooLong));
         }
         if player_name.chars().count() < MIN_NAME {
-            return Err(refuse(ErrorType::PlayerNameTooShort));
+            return Err(refuse(ErrorCode::PlayerNameTooShort));
         }
         if player_name.chars().count() > MAX_NAME {
-            return Err(refuse(ErrorType::PlayerNameTooLong));
+            return Err(refuse(ErrorCode::PlayerNameTooLong));
         }
         if self.find_user(&name).is_some() {
-            return Err(refuse(ErrorType::UserNameExists));
+            return Err(refuse(ErrorCode::UserNameExists));
         }
 
         let mut user = UserRow {
@@ -165,26 +168,26 @@ impl Server {
                 ),
             );
         }
-        contents(&login_info(&user, Some(token)))
+        Ok(new_session(&user, token))
     }
 
-    pub(super) async fn login(&mut self, connection: ConnectionId, version: i32, name: &str, password_hash: &str) -> Reply {
+    pub(super) async fn login(&mut self, connection: ConnectionId, version: i32, name: &str, password_hash: &str) -> Answer<NewSession> {
         if version != Game::LATEST_VERSION {
-            return Err(refuse(ErrorType::InvalidGameVersion));
+            return Err(refuse(ErrorCode::InvalidGameVersion));
         }
         let Some(user) = self.find_user(name).filter(|u| passwords::verify(password_hash, &u.password_hash)) else {
-            return Err(refuse(ErrorType::InvalidUserNameOrPassword));
+            return Err(refuse(ErrorCode::InvalidUserNameOrPassword));
         };
         let mut user = user.clone();
         user.last_login = self.now();
         self.services.db.update_user(&user).await?;
         self.users.insert(user.id, user.clone());
         let token = self.start_session(connection, user.id).await?;
-        contents(&login_info(&user, Some(token)))
+        Ok(new_session(&user, token))
     }
 
-    /// A new connection logs in with the token of a session it started earlier.
-    pub(super) async fn resume_session(&mut self, connection: ConnectionId, token: &str) -> Reply {
+    /// A new connection authenticates with the token of a session started earlier.
+    pub(super) async fn authenticate(&mut self, connection: ConnectionId, token: &str) -> Answer<Account> {
         let digest = ids::digest(token);
         let now = self.now();
         let session = match self.sessions.get_mut(&digest) {
@@ -194,51 +197,51 @@ impl Server {
             }
             Some(_) => {
                 self.end_session(&digest).await?;
-                return Err(refuse(ErrorType::UserTokenNotFound));
+                return Err(refuse(ErrorCode::NotLoggedIn));
             }
-            None => return Err(refuse(ErrorType::UserTokenNotFound)),
+            None => return Err(refuse(ErrorCode::NotLoggedIn)),
         };
         self.services.db.save_session(&SessionRow { token_digest: digest.clone(), user_id: session.user, created: session.created, last_used: now }).await?;
         self.connections.log_in(connection, &digest, session.user);
-        contents(&login_info(&self.users[&session.user], None))
+        Ok(account(&self.users[&session.user]))
     }
 
     /// The link of an async-play mail: works once, and starts a new session.
-    pub(super) async fn link_login(&mut self, connection: ConnectionId, token: &str) -> Reply {
+    pub(super) async fn link_login(&mut self, connection: ConnectionId, token: &str) -> Answer<LinkLoginInfo> {
         let digest = ids::digest(token);
         let Some(link) = self.login_links.remove(&digest) else {
-            return Err(refuse(ErrorType::UserTokenNotFound));
+            return Err(refuse(ErrorCode::NotLoggedIn));
         };
         self.services.db.delete_login_link(&digest).await?;
         if link_expired(&link, self.now()) || !self.users.contains_key(&link.user_id) {
-            return Err(refuse(ErrorType::UserTokenNotFound));
+            return Err(refuse(ErrorCode::NotLoggedIn));
         }
         let token = self.start_session(connection, link.user_id).await?;
         let game = self.games.get(&link.game_id).filter(|g| g.participation.is_participant(link.user_id)).map(|g| g.id.clone());
-        contents(&LinkLoginInfo { login_info: login_info(&self.users[&link.user_id], Some(token)), game_id: game })
+        Ok(LinkLoginInfo { session: new_session(&self.users[&link.user_id], token), game_id: game })
     }
 
     /// Ends the connection's session, which logs out every connection that uses it.
-    pub(super) async fn logout(&mut self, connection: ConnectionId) -> Reply {
+    pub(super) async fn logout(&mut self, connection: ConnectionId) -> Answer<()> {
         if let Some((digest, _)) = self.connections.login(connection).map(|(d, u)| (d.to_string(), u)) {
             self.end_session(&digest).await?;
         }
-        done()
+        Ok(())
     }
 
-    pub(super) async fn password_reset(&mut self, name_or_email: &str) -> Reply {
+    pub(super) async fn password_reset(&mut self, name_or_email: &str) -> Answer<()> {
         let wanted = normalize(name_or_email);
         let users: Vec<UserRow> = self.users.values().filter(|u| normalize(&u.email) == wanted || normalize(&u.name) == wanted).cloned().collect();
         let Some(first) = users.first() else {
-            return Err(refuse(ErrorType::UnknownUsernameOrEmailAddress));
+            return Err(refuse(ErrorCode::UnknownUsernameOrEmailAddress));
         };
         let address = first.email.clone();
         if address.trim().is_empty() {
-            return Err(refuse(ErrorType::NoEmailAddressForUser));
+            return Err(refuse(ErrorCode::NoEmailAddressForUser));
         }
         let now = self.now();
         if users.iter().any(|u| u.reset_token_created.is_some_and(|t| now - t < chrono::Duration::minutes(RESET_INTERVAL_MINUTES))) {
-            return Err(refuse(ErrorType::ResetRequestTooSoon));
+            return Err(refuse(ErrorCode::ResetRequestTooSoon));
         }
 
         let token = ids::new_reset_token();
@@ -262,20 +265,20 @@ impl Server {
                  <p>You can use this token to reset your password: <strong>{token}</strong>.</p>"
             ),
         );
-        done()
+        Ok(())
     }
 
     /// A new password with a mailed reset token. Every earlier session of the user ends.
-    pub(super) async fn set_password(&mut self, connection: ConnectionId, name: &str, reset_token: &str, password_hash: &str) -> Reply {
+    pub(super) async fn set_password(&mut self, connection: ConnectionId, name: &str, reset_token: &str, password_hash: &str) -> Answer<NewSession> {
         let Some(user) = self.find_user(name) else {
-            return Err(refuse(ErrorType::UnknownUserName));
+            return Err(refuse(ErrorCode::UnknownUserName));
         };
         let mut user = user.clone();
         if !user.reset_token_digest.as_deref().is_some_and(|d| *d == ids::digest(reset_token.trim())) {
-            return Err(refuse(ErrorType::InvalidResetToken));
+            return Err(refuse(ErrorCode::InvalidResetToken));
         }
         if user.reset_token_created.is_none_or(|t| self.now() - t > chrono::Duration::minutes(RESET_TOKEN_MINUTES)) {
-            return Err(refuse(ErrorType::ResetTokenExpired));
+            return Err(refuse(ErrorCode::ResetTokenExpired));
         }
         user.password_hash = passwords::hash(password_hash);
         user.reset_token_digest = None;
@@ -284,11 +287,11 @@ impl Server {
         self.users.insert(user.id, user.clone());
         self.end_sessions_of(user.id, None).await?;
         let token = self.start_session(connection, user.id).await?;
-        contents(&login_info(&user, Some(token)))
+        Ok(new_session(&user, token))
     }
 
     /// An empty password keeps the old one. A new one ends the user's other sessions.
-    pub(super) async fn update_user_info(&mut self, connection: ConnectionId, id: i32, password_hash: Option<&str>, player_name: &str, email: Option<&str>) -> Reply {
+    pub(super) async fn update_user_info(&mut self, connection: ConnectionId, id: i32, password_hash: Option<&str>, player_name: &str, email: Option<&str>) -> Answer<Account> {
         let mut user = self.users[&id].clone();
         user.player_name = player_name.trim().to_string();
         user.email = email.unwrap_or_default().trim().to_string();
@@ -302,12 +305,12 @@ impl Server {
             let current = self.connections.login(connection).map(|(d, _)| d.to_string());
             self.end_sessions_of(id, current.as_deref()).await?;
         }
-        contents(&login_info(&user, None))
+        Ok(account(&user))
     }
 
-    pub(super) fn set_user_status(&mut self, user: i32, status: UserStatus) -> Reply {
+    pub(super) fn set_user_status(&mut self, user: i32, status: UserStatus) -> Lobby {
         self.presence.entry(user).or_insert(Presence { status, last_seen: None }).status = status;
-        contents(&self.lobby_status(GameListScope::Active, user))
+        self.lobby_status(GameListScope::Active, user)
     }
 }
 

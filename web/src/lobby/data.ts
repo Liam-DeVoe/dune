@@ -1,14 +1,14 @@
 // The lobby data (web/public/static/lobby.json, written by rust/view/src/lobby.rs): every enum
-// the lobby protocol carries as a number, with its member names and DefaultSkin descriptions, and
-// the static tables of the C# lobby screens (EstablishPlayers.AvailableFactions, rulesets, rule
-// groups, ...).
+// the lobby screens show, with its member names, numbers (which game settings in the savegame
+// format use) and DefaultSkin descriptions, and the static tables of the C# lobby screens
+// (EstablishPlayers.AvailableFactions, rulesets, rule groups, ...).
 import type { LobbyData } from "../generated/LobbyData";
 import type { EnumMember } from "../generated/EnumMember";
 import { withBase } from "../base";
 
 export type { LobbyData };
 
-export type LobbyEnum = "Faction" | "Ruleset" | "Rule" | "RuleGroup" | "MainPhase" | "Phase" | "ErrorType" | "UserStatus" | "SubscriptionType";
+export type LobbyEnum = "Faction" | "Ruleset" | "Rule" | "RuleGroup" | "MainPhase" | "Phase" | "UserStatus" | "SubscriptionType";
 
 export class Lobby {
   private readonly byValue = new Map<string, Map<number, EnumMember>>();
@@ -28,7 +28,8 @@ export class Lobby {
   }
 
   /** `Skin.Describe` of an enum value given as its name. */
-  labelOf(type: LobbyEnum, name: string): string {
+  labelOf(type: LobbyEnum, name: string | null | undefined): string {
+    if (name == null) return "";
     return this.byName.get(type)?.get(name)?.label ?? name;
   }
 
@@ -47,11 +48,6 @@ export class Lobby {
   /** Every member, in `Enum.GetValues` order. */
   members(type: LobbyEnum): EnumMember[] {
     return this.data.enums[type] ?? [];
-  }
-
-  /** `Skin.Describe(ErrorType)`, as the C# client shows a failed call. */
-  describeError(error: number): string {
-    return this.label("ErrorType", error);
   }
 }
 

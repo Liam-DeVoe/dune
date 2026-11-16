@@ -4,34 +4,26 @@
 // WebSocketSource (state/source.ts); this store only says which screen of Main.razor to show and
 // holds what those screens read beside the view.
 //
-// Every Request* method returns what the C# method returns: an error text for the screen, or
-// empty/null on success. Texts come from Skin.Describe(ErrorType) (the lobby data).
+// Every request* method returns what the C# method returns: an error text for the screen, or
+// empty/null on success. The texts are the server's (`err.message`).
 import {
-  clearStoredSession, Connection, ErrorType as CallError, sessionIsRemembered, storedSession, storeSession, type CallResult, type GameInitInfo,
-  type LoginInfo,
+  type CallArgs, type CallName, clearStoredSession, Connection, failed, type Reply, sessionIsRemembered, storedSession, storeSession,
 } from "../state/connection";
 import { WebSocketSource, type GameEventDraft } from "../state/source";
 import type { GameView } from "../generated/GameView";
-import { PhaseValue, type Phase } from "../generated/enums";
+import { PhaseValue, type Faction, type Phase, type Ruleset } from "../generated/enums";
+import type { NewSession } from "../protocol/NewSession";
 import { loadSkin, type Skin } from "../skin";
 import { withBase } from "../base";
 import { loadLobby, type Lobby } from "./data";
 import { Participation } from "./participation";
 import {
-  type AdminInfo, canBeJoined, defaultSettings, type GameInfo, GameListScope, type GameSettings, type IntDict, type LoggedInUserInfo,
-  type ParticipationJson, type PhaseControlInfo, type ScheduledGameInfo, type ServerInfo, type ServerStatus,
+  type Account, type AdminInfo, canBeJoined, defaultSettings, type GameInfo, type GameInitInfo, type GameListScope, type GameSettings, type IntDict,
+  type LobbyStatus, type PhaseControlInfo, type ScheduledGameInfo, type SeenUser, type ServerInfo, type SubscriptionType, type UserStatus,
 } from "./types";
 
 /** `IGameService.HeartbeatDelay`. */
 export const HEARTBEAT_DELAY = 6000;
-
-const ErrorType = { InvalidGameEvent: 23 } as const;
-
-/** `RequestLinkLogin`'s reply. */
-interface LinkLoginInfo {
-  LoginInfo: LoginInfo;
-  GameId: string | null;
-}
 
 /** How the page was opened: the lobby, a game to rejoin (`/game/:gameId`), or the login link
  * of an async-play mail (`/link/:linkToken`). */
@@ -56,13 +48,14 @@ export interface CurrentGame {
 export interface LobbyState {
   connected: boolean;
   serverInfo: ServerInfo | null;
-  loginInfo: LoginInfo | null;
+  /** The user's account; null until they log in. */
+  account: Account | null;
   ownGames: GameInfo[];
   activeGames: GameInfo[];
   activeGamesWithOpenSeats: GameInfo[];
   activeGamesWithoutOpenSeats: GameInfo[];
   scheduledGames: ScheduledGameInfo[];
-  recentlySeenUsers: Map<number, LoggedInUserInfo>;
+  recentlySeenUsers: Map<number, SeenUser>;
   game: CurrentGame | null;
   reseatRequested: boolean;
   adminInfo: AdminInfo | null;
@@ -76,7 +69,7 @@ function phaseOf(view: GameView | null): Phase {
 
 export class LobbyClient {
   private state: LobbyState = {
-    connected: false, serverInfo: null, loginInfo: null, ownGames: [], activeGames: [], activeGamesWithOpenSeats: [],
+    connected: false, serverInfo: null, account: null, ownGames: [], activeGames: [], activeGamesWithOpenSeats: [],
     activeGamesWithoutOpenSeats: [], scheduledGames: [], recentlySeenUsers: new Map(), game: null, reseatRequested: false,
     adminInfo: null, version: 0,
   };
@@ -91,16 +84,17 @@ export class LobbyClient {
 
   constructor(readonly lobby: Lobby, readonly skin: Skin, conn?: Connection) {
     this.conn = conn ?? new Connection();
-    this.conn.on("JoinGame", (userId, userName, seat) => this.inGame((g) => g.participation.addPlayer(userId as number, userName as string, seat as number)));
-    this.conn.on("ObserveGame", (userId, userName) => this.inGame((g) => g.participation.addObserver(userId as number, userName as string)));
-    this.conn.on("SetOrUnsetHost", (userId) => this.inGame((g) => g.participation.setOrUnsetHost(userId as number)));
-    this.conn.on("OpenOrCloseSeats", (seats) => this.inGame((g) => (seats as number[]).forEach((s) => g.participation.openOrCloseSeat(s))));
-    this.conn.on("AssignSeats", (assignment) => this.inGame((g) => g.participation.assignSeats(assignment as IntDict<number>)));
-    this.conn.on("BotSpeed", (speed) => this.inGame((g) => { g.participation.botsSpeed = speed as number; }));
-    this.conn.on("UpdateSettings", (settings) => this.inGame((g) => { g.settings = settings as GameSettings; }));
-    this.conn.on("PhaseControl", (info) => this.inGame((g) => { g.phaseControl = info as PhaseControlInfo; }));
-    this.conn.on("RemoveUser", (userId, kick) => { void this.handleRemoveUser(userId as number, kick as boolean); });
-    this.conn.on("LoadGame", (info) => { void this.loadGame(info as GameInitInfo); });
+    this.conn.on("joinGame", ({ user, name, seat }) => this.inGame((g) => g.participation.addPlayer(user, name, seat)));
+    this.conn.on("observeGame", ({ user, name }) => this.inGame((g) => g.participation.addObserver(user, name)));
+    this.conn.on("setOrUnsetHost", ({ user }) => this.inGame((g) => g.participation.setOrUnsetHost(user)));
+    this.conn.on("openOrCloseSeats", ({ seats }) => this.inGame((g) => seats.forEach((s) => g.participation.openOrCloseSeat(s))));
+    this.conn.on("assignSeats", ({ seats }) => this.inGame((g) => g.participation.assignSeats(seats)));
+    this.conn.on("botSpeed", ({ speed }) => this.inGame((g) => { g.participation.botsSpeed = speed; }));
+    // Settings stay in the savegame format until the event format changes.
+    this.conn.on("updateSettings", ({ settings }) => this.inGame((g) => { g.settings = settings as GameSettings; }));
+    this.conn.on("phaseControl", (info) => this.inGame((g) => { g.phaseControl = info; }));
+    this.conn.on("removeUser", ({ user, kick }) => { void this.handleRemoveUser(user, kick); });
+    this.conn.on("loadGame", (info) => { void this.loadGame(info); });
     this.conn.onOpen(() => { this.set({ connected: true }); });
     this.conn.onSessionEnded(() => { void this.sessionEnded(); });
     // Where earlier versions kept the token of a session that no longer exists.
@@ -136,15 +130,15 @@ export class LobbyClient {
 
   // Derived members of Client.cs.
 
-  get loggedIn(): boolean { return this.state.loginInfo != null; }
-  get userId(): number { return this.state.loginInfo?.UserId ?? -1; }
+  get loggedIn(): boolean { return this.state.account != null; }
+  get userId(): number { return this.state.account?.userId ?? -1; }
   get inGameNow(): boolean { return this.state.game != null; }
   get isHost(): boolean { return this.state.game?.participation.isHost(this.userId) ?? false; }
   get isObserver(): boolean { return this.state.game?.participation.isObserver(this.userId) ?? false; }
 
-  /** `Client.UserStatus`. */
-  userStatus(): number {
-    return this.state.recentlySeenUsers.get(this.userId)?.Status ?? 0;
+  /** `Client.UserStatus`: null until the lobby lists the user. */
+  userStatus(): UserStatus | null {
+    return this.state.recentlySeenUsers.get(this.userId)?.status ?? null;
   }
 
   /** `Client.PlayersNeedSeating`. */
@@ -159,7 +153,7 @@ export class LobbyClient {
   inScheduledMaintenance(): boolean {
     const info = this.state.serverInfo;
     if (!info) return false;
-    const start = Date.parse(info.ScheduledMaintenance);
+    const start = Date.parse(info.scheduledMaintenance);
     const now = Date.now();
     const hoursUntil = (start - now) / 3_600_000;
     const g = this.state.game;
@@ -176,10 +170,10 @@ export class LobbyClient {
     if (linkToken) {
       // A link works once: take it out of the address bar, then trade it for a session.
       window.history.replaceState(null, "", withBase(""));
-      const r = await this.conn.call<LinkLoginInfo>("RequestLinkLogin", linkToken);
-      if (r.Success && r.Contents) {
-        this.loggedInWith(r.Contents.LoginInfo);
-        gameId = r.Contents.GameId ?? undefined;
+      const r = await this.conn.call("linkLogin", { token: linkToken });
+      if (!failed(r)) {
+        this.loggedInWith(r.ok.session);
+        gameId = r.ok.gameId ?? undefined;
         if (gameId) window.history.replaceState(null, "", withBase(`game/${gameId}`));
       }
     }
@@ -190,8 +184,8 @@ export class LobbyClient {
   }
 
   private async connect(): Promise<void> {
-    const r = await this.conn.call<ServerInfo>("Connect");
-    if (r.Success) this.set({ serverInfo: r.Contents });
+    const r = await this.conn.call("serverInfo");
+    if (!failed(r)) this.set({ serverInfo: r.ok });
   }
 
   private scheduleHeartbeat(): void {
@@ -207,46 +201,47 @@ export class LobbyClient {
   }
 
   /** `Client.Invoke`. A call refused because the connection's session is over logs the user out. */
-  private async invoke<T>(method: string, ...args: unknown[]): Promise<CallResult<T>> {
-    const r = await this.conn.call<T>(method, ...args);
-    if (!r.Success && r.Error === CallError.UserTokenNotFound && this.loggedIn) await this.sessionEnded();
+  private async invoke<C extends CallName>(name: C, ...args: CallArgs<C>): Promise<Reply<C>> {
+    const r = await this.conn.call(name, ...args);
+    if (failed(r) && r.err.code === "notLoggedIn" && this.loggedIn) await this.sessionEnded();
     return r;
   }
 
-  private describe(r: CallResult): string {
-    return this.lobby.describeError(r.Error);
+  /** The error text of a reply, empty for a success. */
+  private describe<C extends CallName>(r: Reply<C>): string {
+    return failed(r) ? r.err.message : "";
   }
 
   // Authentication.
 
-  /** A call that started a session logged the connection in: keep its token for this tab (and
-   * later visits, if the user wants), so a reload or a new socket logs in again. */
-  private loggedInWith(info: LoginInfo | null): void {
-    if (info?.Token) {
-      this.conn.setSession(info.Token);
-      storeSession(info.Token, this.remember);
-    }
-    this.set({ loginInfo: info });
+  /** A call that started a session authenticated the connection: keep its token for this tab
+   * (and later visits, if the user wants), so a reload or a new socket authenticates again. */
+  private loggedInWith(session: NewSession): void {
+    this.conn.setSession(session.token);
+    storeSession(session.token, this.remember);
+    this.set({ account: session.account });
   }
 
-  async requestCreateUser(userName: string, hashedPassword: string, email: string | null, playerName: string): Promise<CallResult<LoginInfo>> {
-    const r = await this.conn.call<LoginInfo>("RequestCreateUser", userName, hashedPassword, email, playerName);
-    if (r.Success) this.loggedInWith(r.Contents);
-    return r;
+  /** Resolves with the error text, or null once logged in. */
+  async requestCreateUser(userName: string, passwordHash: string, email: string | null, playerName: string): Promise<string | null> {
+    const r = await this.conn.call("createUser", { userName, passwordHash, email, playerName });
+    if (failed(r)) return r.err.message;
+    this.loggedInWith(r.ok);
+    return null;
   }
 
-  async requestLogin(userName: string, hashedPassword: string): Promise<CallResult<LoginInfo>> {
-    const r = await this.conn.call<LoginInfo>("RequestLogin", this.lobby.data.latestVersion, userName, hashedPassword);
-    if (r.Success) {
-      this.loggedInWith(r.Contents);
-      await this.sendHeartbeatAndGetServerStatus();
-    }
-    return r;
+  /** Resolves with the error text, or null once logged in. */
+  async requestLogin(userName: string, passwordHash: string): Promise<string | null> {
+    const r = await this.conn.call("login", { version: this.lobby.data.latestVersion, userName, passwordHash });
+    if (failed(r)) return r.err.message;
+    this.loggedInWith(r.ok);
+    await this.sendHeartbeatAndGetServerStatus();
+    return null;
   }
 
   /** Ends the session on the server, for every tab that uses it. */
   async logout(): Promise<void> {
-    if (this.conn.hasSession) await this.conn.call("RequestLogout").catch(() => {});
+    if (this.conn.hasSession) await this.conn.call("logout").catch(() => {});
     await this.sessionEnded();
   }
 
@@ -258,7 +253,7 @@ export class LobbyClient {
       this.leaveSource();
       this.set({ game: null, reseatRequested: false });
     }
-    this.set({ loginInfo: null });
+    this.set({ account: null });
   }
 
   /** Whether a reload or a later visit logs in again without credentials. */
@@ -271,118 +266,120 @@ export class LobbyClient {
   private async tryResumeSavedLogin(): Promise<boolean> {
     const saved = storedSession();
     if (!saved) return false;
-    const info = await this.conn.resumeSession(saved);
-    if (!info) {
+    const account = await this.conn.authenticate(saved);
+    if (!account) {
       clearStoredSession();
       return false;
     }
-    this.set({ loginInfo: info });
+    this.set({ account });
     return true;
   }
 
-  requestPasswordReset(usernameOrEmail: string): Promise<CallResult> {
-    return this.conn.call("RequestPasswordReset", usernameOrEmail);
+  /** Resolves with the error text, or null once the token is mailed. */
+  async requestPasswordReset(userNameOrEmail: string): Promise<string | null> {
+    const r = await this.conn.call("requestPasswordReset", { userNameOrEmail });
+    return failed(r) ? r.err.message : null;
   }
 
-  async requestSetPassword(userName: string, token: string, newHashedPassword: string): Promise<CallResult<LoginInfo>> {
-    const r = await this.conn.call<LoginInfo>("RequestSetPassword", userName, token, newHashedPassword);
-    if (r.Success) {
-      this.loggedInWith(r.Contents);
-      await this.sendHeartbeatAndGetServerStatus();
-    }
-    return r;
-  }
-
-  async requestUpdateUserInfo(hashedPassword: string, email: string, playerName: string): Promise<string | null> {
-    if (!this.loggedIn) return "Not logged in";
-    const r = await this.invoke<LoginInfo>("RequestUpdateUserInfo", hashedPassword, playerName, email);
-    if (!r.Success) return this.describe(r);
-    this.set({ loginInfo: r.Contents });
+  /** Resolves with the error text, or null once logged in. */
+  async requestSetPassword(userName: string, resetToken: string, passwordHash: string): Promise<string | null> {
+    const r = await this.conn.call("setPassword", { userName, resetToken, passwordHash });
+    if (failed(r)) return r.err.message;
+    this.loggedInWith(r.ok);
+    await this.sendHeartbeatAndGetServerStatus();
     return null;
   }
 
-  async requestSetUserStatus(status: number): Promise<string> {
+  /** An empty `passwordHash` keeps the password. */
+  async requestUpdateUserInfo(passwordHash: string, email: string, playerName: string): Promise<string | null> {
     if (!this.loggedIn) return "Not logged in";
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestSetUserStatus", status));
+    const r = await this.invoke("updateUserInfo", { passwordHash, playerName, email });
+    if (failed(r)) return r.err.message;
+    this.set({ account: r.ok });
+    return null;
+  }
+
+  async requestSetUserStatus(status: UserStatus): Promise<string> {
+    if (!this.loggedIn) return "Not logged in";
+    return this.updateServerStatusOnSuccess(await this.invoke("setUserStatus", { status }));
   }
 
   // Game management.
 
-  async requestCreateGame(name: string, password: string, stateData: string | null = null, skinData: string | null = null): Promise<string | null> {
+  async requestCreateGame(name: string, password: string, savegame: string | null = null, skin: string | null = null): Promise<string | null> {
     if (!this.loggedIn) return "Not logged in";
-    const r = await this.invoke<GameInitInfo>("RequestCreateGame", name, password, stateData ?? "", skinData ?? "");
-    if (r.Success && r.Contents) {
-      const message = await this.loadGame(r.Contents);
-      if (message != null) return message;
-    }
-    return r.Success ? null : r.Error === ErrorType.InvalidGameEvent ? r.ErrorDetails : this.describe(r);
+    const r = await this.invoke("createGame", { name, passwordHash: password, savegame, skin });
+    if (failed(r)) return r.err.message;
+    return this.loadGame(r.ok);
   }
 
-  async requestScheduleGame(dateTime: string, ruleset: number | null, numberOfPlayers: number, maximumTurns: number, allowedFactions: number[], asyncPlay: boolean): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestScheduleGame", dateTime, ruleset, numberOfPlayers, maximumTurns, allowedFactions, asyncPlay));
+  async requestScheduleGame(starts: string, ruleset: Ruleset | null, players: number, maxTurns: number, factions: Faction[], asyncPlay: boolean): Promise<string> {
+    return this.updateServerStatusOnSuccess(await this.invoke("scheduleGame", { starts, ruleset, players, maxTurns, factions, asyncPlay }));
   }
 
-  async requestCancelGame(scheduledGameId: string): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestCancelGame", scheduledGameId));
+  async requestCancelGame(scheduledGame: string): Promise<string> {
+    return this.updateServerStatusOnSuccess(await this.invoke("cancelScheduledGame", { scheduledGame }));
   }
 
-  async requestCloseGame(gameId: string): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestCloseGame", gameId));
+  async requestCloseGame(game: string): Promise<string> {
+    return this.updateServerStatusOnSuccess(await this.invoke("closeGame", { game }));
   }
 
-  private updateServerStatusOnSuccess(r: CallResult<ServerStatus>): string {
-    if (!r.Success || !r.Contents) return this.describe(r);
-    this.handleUpdatedServerStatus(r.Contents);
+  private updateServerStatusOnSuccess(r: Reply<"heartbeat">): string {
+    if (failed(r)) return r.err.message;
+    this.handleUpdatedServerStatus(r.ok);
     return "";
   }
 
-  async requestUpdateSettings(gameId: string, settings: GameSettings): Promise<string> {
-    const r = await this.invoke("RequestUpdateSettings", gameId, settings);
-    return r.Success ? "" : this.describe(r);
+  async requestUpdateSettings(game: string, settings: GameSettings): Promise<string> {
+    return this.describe(await this.invoke("updateSettings", { game, settings }));
   }
 
-  async requestJoinGame(gameId: string, password: string, seat: number): Promise<string | null> {
-    const r = await this.invoke<GameInitInfo>("RequestJoinGame", gameId, password, seat);
-    if (!r.Success || !r.Contents) return this.describe(r);
-    return this.loadGame(r.Contents);
+  /** `seat` -1 joins without a particular seat. */
+  async requestJoinGame(game: string, password: string, seat: number): Promise<string | null> {
+    const r = await this.invoke("joinGame", { game, passwordHash: password, seat: seat < 0 ? null : seat });
+    if (failed(r)) return r.err.message;
+    return this.loadGame(r.ok);
   }
 
-  async requestSubscribeGame(scheduledGameId: string, subscription: number): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestSubscribeGame", scheduledGameId, subscription));
+  async requestSubscribeGame(scheduledGame: string, subscription: SubscriptionType): Promise<string> {
+    return this.updateServerStatusOnSuccess(await this.invoke("subscribe", { scheduledGame, subscription }));
   }
 
-  async requestObserveGame(gameId: string, password: string): Promise<string | null> {
-    const r = await this.invoke<GameInitInfo>("RequestObserveGame", gameId, password);
-    if (!r.Success || !r.Contents) return this.describe(r);
-    return this.loadGame(r.Contents);
+  async requestObserveGame(game: string, password: string): Promise<string | null> {
+    const r = await this.invoke("observeGame", { game, passwordHash: password });
+    if (failed(r)) return r.err.message;
+    return this.loadGame(r.ok);
   }
 
-  /** The C# methods that answer `Describe(Error)` even on success, which is the empty text. */
-  private async gameCall(method: string, ...args: unknown[]): Promise<string> {
+  /** A host's call about the current game: the error text, empty on success. */
+  private async gameCall(call: (game: string) => Promise<Reply<CallName>>): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
     const g = this.state.game;
     if (!g) return "Not in game";
-    return this.describe(await this.invoke(method, g.gameId, ...args));
+    return this.describe(await call(g.gameId));
   }
 
-  requestSetOrUnsetHost(userId: number): Promise<string> { return this.gameCall("RequestSetOrUnsetHost", userId); }
-  requestOpenOrCloseSeat(seat: number): Promise<string> { return this.gameCall("RequestOpenOrCloseSeat", seat); }
-  requestKick(userId: number): Promise<string> { return this.gameCall("RequestKick", userId); }
-  requestSetBotSpeed(speed: number): Promise<string> { return this.gameCall("RequestSetBotSpeed", speed); }
+  requestSetOrUnsetHost(user: number): Promise<string> { return this.gameCall((game) => this.invoke("setOrUnsetHost", { game, user })); }
+  requestOpenOrCloseSeat(seat: number): Promise<string> { return this.gameCall((game) => this.invoke("openOrCloseSeat", { game, seat })); }
+  requestKick(user: number): Promise<string> { return this.gameCall((game) => this.invoke("kick", { game, user })); }
+  requestSetBotSpeed(speed: number): Promise<string> { return this.gameCall((game) => this.invoke("setBotSpeed", { game, speed })); }
 
   requestReseat(): void {
     this.set({ reseatRequested: true });
   }
 
   async requestLeaveGame(): Promise<string> {
-    return this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestLeaveGame", this.state.game?.gameId ?? null));
+    const g = this.state.game;
+    if (!g) return "Not in game";
+    return this.updateServerStatusOnSuccess(await this.invoke("leaveGame", { game: g.gameId }));
   }
 
-  async requestAssignSeats(assignment: IntDict<number>): Promise<string> {
+  async requestAssignSeats(seats: IntDict<number>): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
     if (!this.state.game) return "Not in game";
     this.set({ reseatRequested: false });
-    return this.gameCall("RequestAssignSeats", assignment);
+    return this.gameCall((game) => this.invoke("assignSeats", { game, seats }));
   }
 
   /**
@@ -404,32 +401,33 @@ export class LobbyClient {
 
   // Admin (Client.Admin*).
 
-  private async adminCall(method: string, ...args: unknown[]): Promise<string> {
-    const r = await this.invoke<string>(method, ...args);
-    return r.Success && r.Contents != null ? r.Contents : this.describe(r);
+  /** An admin call's text: the server's answer, or the error. */
+  private async adminCall<C extends CallName>(name: C, ...args: CallArgs<C>): Promise<string> {
+    const r = await this.invoke(name, ...args);
+    return failed(r) ? r.err.message : String(r.ok);
   }
 
-  async adminUpdateMaintenance(date: string): Promise<string> {
+  async adminUpdateMaintenance(starts: string): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
-    return this.adminCall("AdminUpdateMaintenance", date);
+    return this.adminCall("adminSetMaintenance", { starts });
   }
 
   async adminPersistState(): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
     // As Client.AdminPersistState, which refuses outside a game (the admin page is never in one).
     if (!this.state.game) return "Not in game";
-    return this.adminCall("AdminPersistState");
+    return this.adminCall("adminSaveAll");
   }
 
-  adminRestoreState(): Promise<string> { return this.adminCall("AdminRestoreState"); }
-  adminCloseGame(gameId: string): Promise<string> { return this.adminCall("AdminCloseGame", gameId); }
-  adminCancelGame(scheduledGameId: string): Promise<string> { return this.adminCall("AdminCancelGame", scheduledGameId); }
-  adminDeleteUser(userId: number): Promise<string> { return this.adminCall("DeleteUser", userId); }
+  adminRestoreState(): Promise<string> { return this.adminCall("adminReloadAll"); }
+  adminCloseGame(game: string): Promise<string> { return this.adminCall("adminCloseGame", { game }); }
+  adminCancelGame(scheduledGame: string): Promise<string> { return this.adminCall("adminCancelScheduledGame", { scheduledGame }); }
+  adminDeleteUser(user: number): Promise<string> { return this.adminCall("deleteUser", { user }); }
 
   async adminDownloadGame(gameId: string): Promise<string> {
-    const r = await this.invoke<string>("AdminDownloadGame", gameId);
-    if (!r.Success || r.Contents == null) return this.describe(r);
-    const url = URL.createObjectURL(new Blob([r.Contents], { type: "application/json" }));
+    const r = await this.invoke("adminDownloadGame", { game: gameId });
+    if (failed(r)) return r.err.message;
+    const url = URL.createObjectURL(new Blob([r.ok], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url;
     a.download = `savegame-${gameId}.json`;
@@ -439,31 +437,28 @@ export class LobbyClient {
   }
 
   async getAdminInfo(): Promise<string> {
-    const r = await this.invoke<AdminInfo>("GetAdminInfo");
-    if (r.Success && r.Contents) {
-      this.set({ adminInfo: r.Contents });
-      return "AdminInfo retrieved";
-    }
-    return this.describe(r);
+    const r = await this.invoke("adminInfo");
+    if (failed(r)) return r.err.message;
+    this.set({ adminInfo: r.ok });
+    return "AdminInfo retrieved";
   }
 
   // Server status.
 
   async sendHeartbeatAndGetServerStatus(): Promise<void> {
-    const scope = this.state.game ? GameListScope.None : this.isAdmin ? GameListScope.All : GameListScope.Active;
-    this.updateServerStatusOnSuccess(await this.invoke<ServerStatus>("RequestHeartbeat", scope));
+    const scope: GameListScope = this.state.game ? "None" : this.isAdmin ? "All" : "Active";
+    this.updateServerStatusOnSuccess(await this.invoke("heartbeat", { scope }));
   }
 
-  private handleUpdatedServerStatus(status: ServerStatus): void {
-    const awaiting = this.lobby.value("Phase", "AwaitingPlayers");
-    const active = status.RunningGames;
+  private handleUpdatedServerStatus(status: LobbyStatus): void {
+    const active = status.runningGames;
     this.set({
-      ownGames: status.OwnGames,
+      ownGames: status.ownGames,
       activeGames: active,
-      activeGamesWithOpenSeats: active.filter((g) => canBeJoined(g, g.Phase === awaiting)),
-      activeGamesWithoutOpenSeats: active.filter((g) => !canBeJoined(g, g.Phase === awaiting)),
-      scheduledGames: status.ScheduledGames,
-      recentlySeenUsers: new Map(status.RecentlySeenUsers.map((u) => [u.Id, u])),
+      activeGamesWithOpenSeats: active.filter((g) => canBeJoined(g)),
+      activeGamesWithoutOpenSeats: active.filter((g) => !canBeJoined(g)),
+      scheduledGames: status.scheduledGames,
+      recentlySeenUsers: new Map(status.recentlySeenUsers.map((u) => [u.userId, u])),
     });
   }
 
@@ -472,11 +467,11 @@ export class LobbyClient {
   /** `Client.LoadGame`: takes the game's participation and starts following its views. */
   private async loadGame(info: GameInitInfo): Promise<string | null> {
     const current = this.state.game;
-    if (current && current.gameId === info.GameId) {
-      this.set({ game: { ...current, gameName: info.GameName ?? current.gameName, participation: new Participation(info.Participation as ParticipationJson), phaseControl: (info.PhaseControl as PhaseControlInfo | null) ?? null } });
+    if (current && current.gameId === info.gameId) {
+      this.set({ game: { ...current, gameName: info.gameName, participation: new Participation(info.participation), phaseControl: info.phaseControl } });
       return null;
     }
-    return this.enterGame(info.GameId, info);
+    return this.enterGame(info.gameId, info);
   }
 
   private async enterGame(gameId: string, info: GameInitInfo | null): Promise<string | null> {
@@ -484,10 +479,10 @@ export class LobbyClient {
     const source = new WebSocketSource(this.conn, gameId);
     const game: CurrentGame = {
       gameId,
-      gameName: info?.GameName ?? null,
-      participation: new Participation(info?.Participation as ParticipationJson | undefined),
+      gameName: info?.gameName ?? null,
+      participation: new Participation(info?.participation),
       settings: defaultSettings(),
-      phaseControl: (info?.PhaseControl as PhaseControlInfo | null) ?? null,
+      phaseControl: info?.phaseControl ?? null,
       view: null,
       source,
     };
@@ -498,7 +493,7 @@ export class LobbyClient {
     });
     // After a dropped connection, take the participation from the rejoin: joins, leaves, kicks
     // and seat changes made while the socket was down sent this tab no notification. A user
-    // who was kicked or left meanwhile goes back to the lobby, as with a RemoveUser.
+    // who was kicked or left meanwhile goes back to the lobby, as with a removeUser.
     source.onRejoin((rejoined) => {
       if (this.state.game?.source !== source) return;
       void (rejoined ? this.loadGame(rejoined) : this.exitGame());
@@ -509,10 +504,10 @@ export class LobbyClient {
       if (g && g.source === source && g.view == null) this.set({ game: { ...g, view } });
       if (!info) {
         // A reconnect by URL: the participation comes from the game state.
-        const r = await this.conn.call<GameInitInfo>("RequestGameState", gameId);
+        const r = await this.conn.call("gameState", { game: gameId });
         const g2 = this.state.game;
-        if (r.Success && r.Contents && g2 && g2.source === source) {
-          this.set({ game: { ...g2, gameName: r.Contents.GameName, participation: new Participation(r.Contents.Participation as ParticipationJson), phaseControl: (r.Contents.PhaseControl as PhaseControlInfo | null) ?? null } });
+        if (!failed(r) && g2 && g2.source === source) {
+          this.set({ game: { ...g2, gameName: r.ok.gameName, participation: new Participation(r.ok.participation), phaseControl: r.ok.phaseControl } });
         }
       }
       return null;

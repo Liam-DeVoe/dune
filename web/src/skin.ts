@@ -4,7 +4,7 @@
 // copy, so a name changed here must be changed there too.
 // A port of the parts of Shared/Model/Skin.cs that turn ids and enum values into text and URLs.
 // The view never carries names or URLs; everything visual comes from here, so a custom skin
-// (RequestSetSkin) is a different JSON file and nothing else.
+// (setSkin) is a different JSON file and nothing else.
 import type { Faction, TreacheryCardType } from "./generated/enums";
 import type { StaticData } from "./generated/StaticData";
 import { BASE, withBase } from "./base";

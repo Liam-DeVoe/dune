@@ -28,14 +28,14 @@ use futures::FutureExt;
 use serde_json::Value;
 use tokio::sync::mpsc;
 use treachery_bots::ClassicBot;
-use treachery_engine::enumerations::{ErrorType, Faction, UserStatus};
+use treachery_engine::enumerations::Faction;
 use treachery_engine::game::Game;
 
 use super::connections::{ConnectionId, Connections};
 use super::db::{Db, LoginLinkRow, ScheduledGameRow, UserRow};
 use super::mail::Mailer;
 use super::participation::Participation;
-use super::protocol::{self, Message, Request};
+use super::protocol::{self, replies, Call, Decoded, ErrorCode};
 use super::settings::Settings;
 use super::time::{Clock, Time};
 use super::timers::{Timer, Timers};
@@ -76,9 +76,10 @@ pub struct Services {
 /// Why a call did not succeed.
 #[derive(Debug)]
 pub enum CallError {
-    /// Refused, with the error a client shows (protocol.md, Result).
-    Refused(ErrorType, String),
-    /// The call itself failed (a database error, a bug): an `error` reply.
+    /// Refused, with the code and a text for the user (protocol.md, Replies). An empty text
+    /// gives the code's usual one.
+    Refused(ErrorCode, String),
+    /// The call itself failed (a database error, a bug): a `serverError`.
     Failed(String),
 }
 
@@ -97,20 +98,20 @@ impl From<sqlx::Error> for CallError {
     }
 }
 
-pub fn refuse(error: ErrorType) -> CallError {
+pub fn refuse(error: ErrorCode) -> CallError {
     CallError::Refused(error, String::new())
 }
 
-/// A call's result: the `Contents` of a success.
-pub type Reply = Result<Value, CallError>;
+/// A call's outcome, with the reply type of the call (`protocol::replies`).
+pub type Answer<T> = Result<T, CallError>;
 
-/// The empty contents of a call that returns nothing.
-pub fn done() -> Reply {
-    Ok(Value::Object(Default::default()))
-}
+/// A call's reply, encoded.
+pub type Reply = Answer<Value>;
 
-pub fn contents<T: serde::Serialize>(value: &T) -> Reply {
-    Ok(serde_json::to_value(value).expect("payloads serialize"))
+/// Encodes an answer. The type parameter names the call's reply type, so every reply is of
+/// the type the protocol declares for its call: `reply::<replies::JoinGame>(...)`.
+fn reply<T: serde::Serialize>(answer: Answer<T>) -> Reply {
+    answer.map(|v| protocol::to_value(&v))
 }
 
 /// A session, kept by the digest of its token (`ids::digest`).
@@ -130,7 +131,7 @@ impl Session {
 /// What the lobby shows about a user who is around.
 #[derive(Clone, Debug)]
 pub struct Presence {
-    pub status: UserStatus,
+    pub status: treachery_protocol::UserStatus,
     pub last_seen: Option<Time>,
 }
 
@@ -270,22 +271,22 @@ impl Server {
     /// then the views it caused, then its reply. A malformed frame closes the connection.
     pub async fn receive(&mut self, connection: ConnectionId, text: &str) {
         let reply = match protocol::decode(text) {
-            Ok(Message::Ping) => return,
-            Ok(Message::BadCall { id, error }) => protocol::reply_error(id, &error),
-            Ok(Message::Call { id, request }) => {
-                let outcome = AssertUnwindSafe(self.handle(connection, request)).catch_unwind().await;
+            Ok(Decoded::BadCall { id, error }) => protocol::err(id, ErrorCode::BadCall, &error),
+            Ok(Decoded::Call { id, call }) => {
+                let name = call.name();
+                let outcome = AssertUnwindSafe(self.handle(connection, call)).catch_unwind().await;
                 self.send_views();
                 match outcome {
-                    Ok(Ok(contents)) => protocol::reply(id, &protocol::success(contents)),
-                    Ok(Err(CallError::Refused(error, details))) => protocol::reply(id, &protocol::refusal(error, &details)),
+                    Ok(Ok(value)) => protocol::ok(id, value),
+                    Ok(Err(CallError::Refused(code, message))) => protocol::err(id, code, &message),
                     Ok(Err(CallError::Failed(e))) => {
-                        println!("call {id} failed: {e}");
-                        protocol::reply_error(id, &e)
+                        println!("call {id} ({name}) failed: {e}");
+                        protocol::err(id, ErrorCode::ServerError, &e)
                     }
                     Err(panic) => {
                         let e = panic_text(panic.as_ref());
-                        println!("call {id} failed: {e}");
-                        protocol::reply_error(id, &e)
+                        println!("call {id} ({name}) failed: {e}");
+                        protocol::err(id, ErrorCode::ServerError, &e)
                     }
                 }
             }
@@ -338,99 +339,106 @@ impl Server {
         self.views.send(pending, &self.games, &self.connections);
     }
 
-    async fn handle(&mut self, connection: ConnectionId, request: Request) -> Reply {
-        use Request::*;
+    async fn handle(&mut self, connection: ConnectionId, call: Call) -> Reply {
+        use replies as r;
+        use Call::*;
         // The calls that work without a session.
-        let request = match request {
-            Connect => return self.server_info(),
-            CreateUser { name, password_hash, email, player_name } => {
-                return self.create_user(connection, &name, &password_hash, email.as_deref(), &player_name).await
+        let call = match call {
+            GetServerInfo => return reply::<r::GetServerInfo>(Ok(self.server_info())),
+            CreateUser { user_name, password_hash, email, player_name } => {
+                return reply::<r::CreateUser>(self.create_user(connection, &user_name, &password_hash, email.as_deref(), &player_name).await)
             }
-            Login { version, name, password_hash } => return self.login(connection, version, &name, &password_hash).await,
-            ResumeSession { token } => return self.resume_session(connection, &token).await,
-            LinkLogin { token } => return self.link_login(connection, &token).await,
-            PasswordReset { name_or_email } => return self.password_reset(&name_or_email).await,
-            SetPassword { name, reset_token, password_hash } => return self.set_password(connection, &name, &reset_token, &password_hash).await,
-            request => request,
+            Login { version, user_name, password_hash } => return reply::<r::Login>(self.login(connection, version, &user_name, &password_hash).await),
+            Authenticate { token } => return reply::<r::Authenticate>(self.authenticate(connection, &token).await),
+            LinkLogin { token } => return reply::<r::LinkLogin>(self.link_login(connection, &token).await),
+            RequestPasswordReset { user_name_or_email } => return reply::<r::RequestPasswordReset>(self.password_reset(&user_name_or_email).await),
+            SetPassword { user_name, reset_token, password_hash } => {
+                return reply::<r::SetPassword>(self.set_password(connection, &user_name, &reset_token, &password_hash).await)
+            }
+            call => call,
         };
         let user = self.caller(connection).await?;
-        match request {
-            Connect | CreateUser { .. } | Login { .. } | ResumeSession { .. } | LinkLogin { .. } | PasswordReset { .. } | SetPassword { .. } => {
+        match call {
+            GetServerInfo | CreateUser { .. } | Login { .. } | Authenticate { .. } | LinkLogin { .. } | RequestPasswordReset { .. } | SetPassword { .. } => {
                 unreachable!("handled above")
             }
-            Logout => self.logout(connection).await,
+            Logout => reply::<r::Logout>(self.logout(connection).await),
             UpdateUserInfo { password_hash, player_name, email } => {
-                self.update_user_info(connection, user, password_hash.as_deref(), &player_name, email.as_deref()).await
+                reply::<r::UpdateUserInfo>(self.update_user_info(connection, user, password_hash.as_deref(), &player_name, email.as_deref()).await)
             }
-            SetUserStatus { status } => self.set_user_status(user, status),
-            Heartbeat { scope } => self.heartbeat(user, scope),
+            SetUserStatus { status } => reply::<r::SetUserStatus>(Ok(self.set_user_status(user, status))),
+            Heartbeat { scope } => reply::<r::Heartbeat>(Ok(self.heartbeat(user, scope))),
 
-            CreateGame { name, password_hash, savegame, skin } => {
-                self.create_game(connection, user, name.as_deref(), password_hash.as_deref(), savegame.as_deref(), skin.as_deref()).await
-            }
-            LoadGame { game, savegame, skin } => self.load_game(user, &game, &savegame, skin.as_deref()).await,
-            UpdateSettings { game, settings } => self.update_settings(user, &game, settings),
-            CloseGame { game } => self.close_game(user, &game).await,
-            GameState { game } => self.game_state(connection, user, &game),
+            CreateGame { name, password_hash, savegame, skin } => reply::<r::CreateGame>(
+                self.create_game(connection, user, name.as_deref(), password_hash.as_deref(), savegame.as_deref(), skin.as_deref()).await,
+            ),
+            LoadGame { game, savegame, skin } => reply::<r::LoadGame>(self.load_game(user, &game, &savegame, skin.as_deref()).await),
+            UpdateSettings { game, settings } => reply::<r::UpdateSettings>(self.update_settings(user, &game, &settings)),
+            CloseGame { game } => reply::<r::CloseGame>(self.close_game(user, &game).await),
+            GameState { game } => reply::<r::GameState>(self.game_state(connection, user, &game)),
             ScheduleGame { starts, ruleset, players, max_turns, factions, async_play } => {
-                self.schedule_game(user, starts, ruleset, players, max_turns, factions, async_play).await
+                reply::<r::ScheduleGame>(self.schedule_game(user, starts, ruleset.as_deref(), players, max_turns, &factions, async_play).await)
             }
-            CancelScheduledGame { scheduled_game } => self.cancel_scheduled_game(user, &scheduled_game).await,
-            Subscribe { scheduled_game, subscription } => self.subscribe(user, scheduled_game.as_deref(), subscription).await,
+            CancelScheduledGame { scheduled_game } => reply::<r::CancelScheduledGame>(self.cancel_scheduled_game(user, &scheduled_game).await),
+            Subscribe { scheduled_game, subscription } => reply::<r::Subscribe>(self.subscribe(user, &scheduled_game, subscription).await),
 
-            JoinGame { game, password_hash, seat } => self.join_game(connection, user, &game, password_hash.as_deref(), seat),
-            ObserveGame { game, password_hash } => self.observe_game(connection, user, &game, password_hash.as_deref()),
-            ReconnectGame { game } => self.reconnect_game(connection, user, &game),
-            LeaveGame { game } => self.leave_game(user, &game),
-            SetOrUnsetHost { game, user: target } => self.set_or_unset_host(user, &game, target),
-            OpenOrCloseSeat { game, seat } => self.open_or_close_seat(user, &game, seat),
-            Kick { game, user: target } => self.kick(user, &game, target),
-            AssignSeats { game, seats } => self.assign_seats(user, &game, seats),
-            SetBotSpeed { game, speed } => self.set_bot_speed(user, &game, speed),
-            NudgeBots { game } => self.nudge_bots(user, &game).await,
+            JoinGame { game, password_hash, seat } => {
+                reply::<r::JoinGame>(self.join_game(connection, user, &game, password_hash.as_deref(), seat.unwrap_or(-1)))
+            }
+            ObserveGame { game, password_hash } => reply::<r::ObserveGame>(self.observe_game(connection, user, &game, password_hash.as_deref())),
+            ReconnectGame { game } => reply::<r::ReconnectGame>(self.reconnect_game(connection, user, &game)),
+            LeaveGame { game } => reply::<r::LeaveGame>(self.leave_game(user, &game)),
+            SetOrUnsetHost { game, user: target } => reply::<r::SetOrUnsetHost>(self.set_or_unset_host(user, &game, target)),
+            OpenOrCloseSeat { game, seat } => reply::<r::OpenOrCloseSeat>(self.open_or_close_seat(user, &game, seat)),
+            Kick { game, user: target } => reply::<r::Kick>(self.kick(user, &game, target)),
+            AssignSeats { game, seats } => reply::<r::AssignSeats>(self.assign_seats(user, &game, seats)),
+            SetBotSpeed { game, speed } => reply::<r::SetBotSpeed>(self.set_bot_speed(user, &game, speed)),
+            NudgeBots { game } => reply::<r::NudgeBots>(self.nudge_bots(user, &game).await),
 
-            SubmitEvent { game, event } => self.submit_event(user, &game, event).await,
-            Undo { game, until } => self.undo(user, &game, until).await,
-            RestoreUndone { game } => self.restore_undone(user, &game).await,
-            DismissUndone { game } => self.dismiss_undone(user, &game).await,
-            SetTimer { game, value } => self.set_timer(user, &game, value),
-            SetSkin { game, skin } => self.set_skin(user, &game, skin),
-            PhaseDone { game } => self.phase_done(user, &game).await,
-            PhaseHold { game } => self.phase_hold(user, &game).await,
-            PhaseRelease { game } => self.phase_release(user, &game).await,
-            PhaseContinue { game, event_number } => self.phase_continue(user, &game, event_number).await,
+            SubmitEvent { game, event } => reply::<r::SubmitEvent>(self.submit_event(user, &game, event).await),
+            Undo { game, until } => reply::<r::Undo>(self.undo(user, &game, until).await),
+            RestoreUndone { game } => reply::<r::RestoreUndone>(self.restore_undone(user, &game).await),
+            DismissUndone { game } => reply::<r::DismissUndone>(self.dismiss_undone(user, &game).await),
+            SetTimer { game, value } => reply::<r::SetTimer>(self.set_timer(user, &game, value)),
+            SetSkin { game, skin } => reply::<r::SetSkin>(self.set_skin(user, &game, skin)),
+            PhaseDone { game } => reply::<r::PhaseDone>(self.phase_done(user, &game).await),
+            PhaseHold { game } => reply::<r::PhaseHold>(self.phase_hold(user, &game).await),
+            PhaseRelease { game } => reply::<r::PhaseRelease>(self.phase_release(user, &game).await),
+            PhaseContinue { game, event_number } => reply::<r::PhaseContinue>(self.phase_continue(user, &game, event_number).await),
 
-            Chat { game, message } => self.chat(user, &game, message),
-            GlobalChat { message } => self.global_chat(user, message),
+            Chat { game, to, body } => reply::<r::Chat>(self.chat(user, &game, to, body)),
+            GlobalChat { body } => reply::<r::GlobalChat>(Ok(self.global_chat(user, body))),
 
-            SetMaintenance { starts } => self.set_maintenance(user, starts),
-            SaveAll => self.save_all(user).await,
-            ReloadAll => self.reload_all(user).await,
-            AdminCloseGame { game } => self.admin_close_game(user, &game).await,
-            DownloadGame { game } => self.download_game(user, &game),
-            AdminCancelScheduledGame { scheduled_game } => self.admin_cancel_scheduled_game(user, &scheduled_game).await,
-            DeleteUser { user: target } => self.delete_user(user, target).await,
-            AdminInfo => self.admin_info(user),
+            AdminSetMaintenance { starts } => reply::<r::AdminSetMaintenance>(self.set_maintenance(user, starts)),
+            AdminSaveAll => reply::<r::AdminSaveAll>(self.save_all(user).await),
+            AdminReloadAll => reply::<r::AdminReloadAll>(self.reload_all(user).await),
+            AdminCloseGame { game } => reply::<r::AdminCloseGame>(self.admin_close_game(user, &game).await),
+            AdminDownloadGame { game } => reply::<r::AdminDownloadGame>(self.download_game(user, &game)),
+            AdminCancelScheduledGame { scheduled_game } => {
+                reply::<r::AdminCancelScheduledGame>(self.admin_cancel_scheduled_game(user, &scheduled_game).await)
+            }
+            DeleteUser { user: target } => reply::<r::DeleteUser>(self.delete_user(user, target).await),
+            GetAdminInfo => reply::<r::GetAdminInfo>(self.admin_info(user)),
 
             QueryDraft { game, event_number: _, draft } => {
                 let game = self.player_of(user, &game)?;
-                self.views.query_draft(&self.games[&game], user, &draft)
+                reply::<r::QueryDraft>(self.views.query_draft(&self.games[&game], user, &Value::Object(draft).to_string()))
             }
             Report { game, index } => {
                 let game = self.participant_of(user, &game)?;
-                self.views.report(&self.games[&game], user, index)
+                reply::<r::Report>(self.views.report(&self.games[&game], user, index))
             }
             UndoList { game } => {
                 let game = self.host_of(user, &game)?;
-                self.views.undo_list(&self.games[&game], user)
+                reply::<r::UndoList>(self.views.undo_list(&self.games[&game], user))
             }
             UndoPreview { game, gap } => {
                 let game = self.host_of(user, &game)?;
-                self.views.undo_preview(&self.games[&game], user, gap)
+                reply::<r::UndoPreview>(self.views.undo_preview(&self.games[&game], user, gap))
             }
             SaveGame { game } => {
                 let game = if self.is_admin(user) { self.running(&game)? } else { self.host_of(user, &game)? };
-                Ok(Value::String(storage::savegame(&self.games[&game].game)))
+                reply::<r::SaveGame>(Ok(storage::savegame(&self.games[&game].game)))
             }
         }
     }
@@ -438,13 +446,13 @@ impl Server {
     /// The user the connection is logged in as. A session that expired since ends here.
     async fn caller(&mut self, connection: ConnectionId) -> Result<i32, CallError> {
         let Some((digest, user)) = self.connections.login(connection).map(|(d, u)| (d.to_string(), u)) else {
-            return Err(refuse(ErrorType::UserTokenNotFound));
+            return Err(refuse(ErrorCode::NotLoggedIn));
         };
         match self.sessions.get(&digest) {
             Some(s) if !s.expired(self.now()) => Ok(user),
             _ => {
                 self.end_session(&digest).await?;
-                Err(refuse(ErrorType::UserTokenNotFound))
+                Err(refuse(ErrorCode::NotLoggedIn))
             }
         }
     }
@@ -452,7 +460,7 @@ impl Server {
     /// A running game's id.
     fn running(&self, game: &str) -> Result<String, CallError> {
         if !self.games.contains_key(game) {
-            return Err(refuse(ErrorType::GameNotFound));
+            return Err(refuse(ErrorCode::GameNotFound));
         }
         Ok(game.to_string())
     }
@@ -461,7 +469,7 @@ impl Server {
     fn participant_of(&self, user: i32, game: &str) -> Result<String, CallError> {
         let game = self.running(game)?;
         if !self.games[&game].participation.is_participant(user) {
-            return Err(refuse(ErrorType::UserNotInGame));
+            return Err(refuse(ErrorCode::UserNotInGame));
         }
         Ok(game)
     }
@@ -470,7 +478,7 @@ impl Server {
     fn player_of(&self, user: i32, game: &str) -> Result<String, CallError> {
         let game = self.participant_of(user, game)?;
         if !self.games[&game].participation.is_player(user) {
-            return Err(CallError::Refused(ErrorType::UserNotInGame, "Observers can't do this".into()));
+            return Err(CallError::Refused(ErrorCode::UserNotInGame, "Observers can't do this".into()));
         }
         Ok(game)
     }
@@ -479,7 +487,7 @@ impl Server {
     fn host_of(&self, user: i32, game: &str) -> Result<String, CallError> {
         let game = self.running(game)?;
         if !self.games[&game].participation.is_host(user) {
-            return Err(refuse(ErrorType::NoHost));
+            return Err(refuse(ErrorCode::NoHost));
         }
         Ok(game)
     }

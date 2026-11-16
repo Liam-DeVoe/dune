@@ -8,7 +8,7 @@ pub struct RockWasMelted {
 
 impl RockWasMelted {
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
-        let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
+        let plan = g.current_battle().expect("current battle").plan_of(g, Some(p));
         match plan {
             Some(plan) => match plan.weapon() {
                 Some(weapon) => weapon.is_rock_melter(),
@@ -27,8 +27,8 @@ impl EventRules for RockWasMelted {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.battle.current_rock_was_melted = Some(RockMelted { submitter: by, kill: self.kill });
-        game.enter(Phase::CallTraitorOrPass, true);
+        game.fight_mut().rock_was_melted = Some(RockMelted { submitter: by, kill: self.kill });
+        game.enter_battle(BattleStep::CallingTraitor);
         Ok(())
     }
 

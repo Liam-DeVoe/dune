@@ -45,13 +45,13 @@ impl EventRules for SetShipmentPermission {
 
         let factions = self.factions.as_ref().required("factions")?;
         for f in factions {
-            game.ship_move.shipment_permissions.shift_remove(f);
+            game.alliances.shipment_permissions.shift_remove(f);
         }
 
         if self.permission != ShipmentPermission::NONE {
             for f in factions {
                 // Dictionary.Add: ArgumentException on a faction listed twice.
-                game.ship_move.shipment_permissions.insert_new(*f, self.permission);
+                game.alliances.shipment_permissions.insert_new(*f, self.permission);
             }
         }
         Ok(())

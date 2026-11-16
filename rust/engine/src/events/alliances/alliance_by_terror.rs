@@ -13,8 +13,10 @@ impl EventRules for AllianceByTerror {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        let paused = game.ship_move.paused_terror_phase.required("paused terror phase")?;
-        game.enter(paused, true);
+        let Some(offer @ Interrupt::AllianceByTerror { .. }) = game.interrupts.last().cloned() else {
+            game_error!("No alliance offered by terror");
+        };
+        game.resume(offer, true)?;
 
         if !self.passed {
             if game.player(by.player()).has_ally() {
@@ -46,7 +48,6 @@ impl EventRules for AllianceByTerror {
                 game.board.unplaced_terror_tokens.push(t);
             }
 
-            game.ship_move.alliance_by_terror_was_offered = false;
             game.dequeue_intrusion(IntrusionType::Terror)?;
             game.determine_next_shipment_and_move_sub_phase()?;
         } else {

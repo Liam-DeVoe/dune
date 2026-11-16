@@ -25,7 +25,7 @@ impl EventRules for VoiceDeclined {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.battle.voice_declined = true;
+        game.fight_mut().voice_declined = true;
         let m = self.describe(game, by);
         game.log_event(m);
         Ok(())

@@ -48,15 +48,15 @@ impl EventRules for RicheseAnnouncesBlackMarket {
         game.log_event(m);
 
         if !self.passed {
-            game.enter(Phase::BlackMarketBidding, true);
+            game.enter_bidding(BiddingStep::BlackMarketBidding);
             let me = by.player();
             let card = self.card;
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let card = card.required("card")?;
-            game.bidding.cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
+            game.in_bidding_mut().cards_on_auction.as_mut().required("cards on auction")?.put_on_top(card);
             game.register_known_by_faction(by.required_faction()?, card);
-            game.bidding.bids.clear();
-            game.bidding.current_bid = None;
+            game.in_bidding_mut().bids.clear();
+            game.in_bidding_mut().current_bid = None;
             game.start_bid_sequence_and_auction_type(self.auction_type, by.player, self.direction);
         } else {
             game.enter_richese_bidding();

@@ -24,7 +24,7 @@ impl EventRules for Captured {
             }
         }
 
-        game.enter(Phase::BattleConclusion, true);
+        game.enter_battle(BattleStep::Conclusion);
         Ok(())
     }
 

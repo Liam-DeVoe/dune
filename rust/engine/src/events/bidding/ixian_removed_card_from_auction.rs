@@ -20,7 +20,7 @@ impl EventRules for IxianRemovedCardFromAuction {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let card = self.card;
-        crate::game::remove_card(&mut game.bidding.cards_on_auction.as_mut().required("cards on auction")?.items, card);
+        crate::game::remove_card(&mut game.in_bidding_mut().cards_on_auction.as_mut().required("cards on auction")?.items, card);
         let card = card.required("card")?;
 
         if self.put_on_top {
@@ -30,14 +30,14 @@ impl EventRules for IxianRemovedCardFromAuction {
         }
 
         game.register_known_by_faction(Faction::Ixian, card);
-        game.bidding.cards_on_auction.as_mut().required("cards on auction")?.shuffle(&mut game.rng);
+        game.shuffle_cards_on_auction();
         game.stone(Milestone::Shuffled);
         let m = self.describe(game, by);
         game.log_event(m);
 
         if game.ixian_may_swap_card_on_bid() {
             if !game.prevented(FactionAdvantage::IxianSwappingCard) {
-                game.enter(Phase::IxianSwappingCard, true);
+                game.enter_bidding(BiddingStep::IxianSwappingCard);
             } else {
                 game.log_prevention_by_karma(FactionAdvantage::IxianSwappingCard);
                 if !game.applicable(Rule::FullPhaseKarma) {

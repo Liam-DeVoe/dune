@@ -9,7 +9,7 @@ pub struct CardGiven {
 
 impl CardGiven {
     pub fn is_applicable(game: &Game, p: PlayerId) -> bool {
-        game.player(p).has(game.bidding.card_that_must_be_kept_or_given_to_ally)
+        game.player(p).has(game.bidding().and_then(|b| b.card_that_must_be_kept_or_given_to_ally))
     }
 }
 
@@ -22,15 +22,15 @@ impl EventRules for CardGiven {
         let m = self.describe(game, by);
         game.log_event(m);
 
-        if !self.passed && game.bidding.card_that_must_be_kept_or_given_to_ally.is_some() && game.player(by.player()).allied_player(game).is_some() {
-            let card = game.bidding.card_that_must_be_kept_or_given_to_ally;
+        if !self.passed && game.in_bidding().card_that_must_be_kept_or_given_to_ally.is_some() && game.player(by.player()).allied_player(game).is_some() {
+            let card = game.in_bidding().card_that_must_be_kept_or_given_to_ally;
             let me = by.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let ally = game.player(me).allied_player(game).required("allied player")?;
             game.player_mut(ally).treachery_cards.push(card.required("card")?);
         }
 
-        game.bidding.card_that_must_be_kept_or_given_to_ally = None;
+        game.in_bidding_mut().card_that_must_be_kept_or_given_to_ally = None;
         Ok(())
     }
 

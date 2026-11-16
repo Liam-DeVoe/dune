@@ -7,7 +7,7 @@ pub struct EndPhase {
 
 impl EndPhase {
     pub fn continue_to_revivals(&self, game: &mut Game) -> GameResult {
-        game.enter(Phase::Resurrection, true);
+        game.enter_revival(RevivalStep::Reviving);
 
         // foreach over a lazy Where: the filter runs right before each body
         for i in 0..game.players.len() {
@@ -43,11 +43,10 @@ impl EndPhase {
         game.main_phase_start(MainPhase::Charity, true);
         game.turn.has_acted_or_passed.clear();
         game.blow.monsters.clear();
-        game.charity.resource_tech_token_income = false;
         game.allow(FactionAdvantage::FremenControlsMonster);
         game.allow(FactionAdvantage::FremenProtectedFromMonster);
 
-        game.enter(Phase::BeginningOfCharity, true);
+        game.begin_charity();
     }
 
     pub fn start_claiming_charity(&self, game: &mut Game) {
@@ -92,126 +91,89 @@ impl EndPhase {
         }
 
         game.main_phase_middle();
-        game.enter(Phase::ClaimingCharity, true);
+        game.enter_charity(CharityStep::Claiming);
     }
 
     pub fn end_charity_phase(&self, game: &mut Game) {
-        if game.charity.resource_tech_token_income {
+        if game.charity().expect("in the charity phase").resource_tech_token_income {
             game.receive_tech_income(TechToken::Resources);
         }
 
         game.main_phase_end();
-        game.enter(Phase::CharityReport, true);
+        game.enter_charity(CharityStep::Report);
     }
 
     pub fn enter_revival_phase(&self, game: &mut Game) {
-        game.bidding.card_just_won = None;
+        game.leave_bidding();
         game.main_phase_start(MainPhase::Resurrection, true);
         game.allow(FactionAdvantage::HarkonnenFreeCard);
         game.allow(FactionAdvantage::EmperorReceiveBid);
         game.allow(FactionAdvantage::IxianAllyDiscardingCard);
-        game.revival.revival_tech_token_income = false;
-        game.revival.ambassadors_placed_this_turn = 0;
-        game.revival.free_revivals_this_turn.clear();
-        game.revival.total_revivals_this_turn.clear();
-        game.revival.leader_revivals_this_turn.clear();
+        game.turn.revivals.ambassadors_placed_this_turn = 0;
+        game.turn.revivals.free_revivals_this_turn.clear();
+        game.turn.revivals.total_revivals_this_turn.clear();
+        game.turn.revivals.leader_revivals_this_turn.clear();
         //Game.HasActedOrPassed.Clear();
-        game.revival.tleilaxu_started_revival_with_low_threshold = game.has_low_threshold(Faction::Tleilaxu);
 
-        game.enter(Phase::BeginningOfResurrection, true);
+        game.begin_revival();
     }
 
     pub fn end_resurrection_phase(&self, game: &mut Game) {
         game.allow(FactionAdvantage::TleilaxuReviveGhola);
-        if game.revival.revival_tech_token_income {
+        if game.revival().expect("in the revival phase").revival_tech_token_income {
             game.receive_tech_income(TechToken::Graveyard);
         }
-        game.revival.current_karma_revival_prevention = None;
+        game.turn.revivals.current_karma_revival_prevention = None;
         game.turn.current_fremen_secret_ally = None;
-        game.revival.current_recruits_played = false;
+        game.revival_mut().expect("in the revival phase").current_recruits_played = false;
 
         game.main_phase_end();
-        game.enter(Phase::ResurrectionReport, true);
+        game.enter_revival(RevivalStep::Report);
     }
 
     pub fn enter_shipment_and_move_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::ShipmentAndMove, true);
-        game.ship_move.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
+        game.turn.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
             .map(|i| game.player_at(i))
             .filter(|p| game.occupies_arrakeen_or_carthag(*p))
             .filter_map(|p| game.player(p).faction)
             .collect();
-        game.ship_move.recent_moves.clear();
-        game.ship_move.beginning_of_shipment_and_move_phase = true;
-        game.revival.factions_with_increased_revival_limits = Some(Vec::new());
-        game.revival.early_revivals_offers.clear();
+        game.turn.recent_moves.clear();
+        game.turn.revivals.factions_with_increased_revival_limits = Some(Vec::new());
 
-        game.ship_move.ships_tech_token_income = false;
-        game.revival.current_free_revival_prevention = None;
         game.allow(FactionAdvantage::BeneGesseritAnnouncesBattle);
         game.allow(FactionAdvantage::EmperorLetAllyReviveExtraForces);
         game.allow(FactionAdvantage::TleilaxuReceiveRevive);
         game.allow(FactionAdvantage::ChoamRevival);
 
         game.turn.has_acted_or_passed.clear();
-        game.ship_move.last_shipment_or_movement = None;
+        game.turn.last_shipment_or_movement = None;
 
-        game.ship_move.shipment_and_move_sequence = Some(PlayerSequence::starting_with_first_player(game));
-
-        game.enter(Phase::BeginningOfShipAndMove, true);
+        game.begin_ship_move();
     }
 
     pub fn enter_battle_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Battle, true);
-        game.battle.nr_of_battles_fought = 0;
-        game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
         game.turn.current_guild_cunning = None;
         game.turn.current_guild_secret_ally = None;
         if game.storm.karma_hms_moves_left != 2 {
             game.storm.karma_hms_moves_left = 0;
         }
         self.reset_battle(game);
-        if game.advance_battle_sequence().is_none() {
+        if !game.begin_battle() {
             enter_spice_collection_phase(game);
-        } else {
-            game.enter(Phase::BeginningOfBattle, true);
         }
     }
 
+    /// Resets the turn's state that lasts one battle. The battle's own state is dropped with it
+    /// (`BattlePhase::current`).
     pub fn reset_battle(&self, game: &mut Game) {
         game.turn.facedancer_was_cancelled = false;
-        game.battle.current_battle = None;
-        game.battle.current_prescience = None;
-        game.battle.prescience_seen_plans.clear();
-        game.battle.current_thought = None;
-        game.battle.current_voice = None;
-        game.battle.voice_declined = false;
         game.turn.current_nexus_prescience = None;
         game.turn.current_bene_gesserit_cunning = None;
         game.turn.current_emperor_cunning = None;
         game.turn.current_ixian_cunning = None;
-        game.battle.harkonnen_victim = None;
-        game.battle.aggressor_plan = None;
-        game.battle.defender_plan = None;
-        game.battle.previous_aggressor_plan = None;
-        game.battle.previous_defender_plan = None;
-        game.battle.aggressor_traitor_action = None;
-        game.battle.defender_traitor_action = None;
-        game.battle.poison_tooth_cancelled = false;
-        game.battle.ixian_special_force_losses_to_take = 0;
-        game.battle.battle_winner = Some(None);
-        game.battle.battle_loser = Some(None);
         game.turn.has_acted_or_passed.clear();
-        game.battle.battle_triggered_bureaucracy = None;
-        game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
-        game.battle.battle_was_concluded_by_winner = false;
-        game.battle.loser_may_try_to_assassinate = false;
-        game.battle.battle_winner_may_choose_to_discard = true;
-        game.battle.battle_about_to_start = None;
-        game.battle.current_ecaz_or_ally_fighter = Some(None);
-        game.battle.current_ecaz_battle_contribution = 0;
-        game.battle.atreides_karma = false;
-        game.battle.ecaz_karma_bonus = 0;
     }
 
     pub fn enter_spice_collection_phase(&self, game: &mut Game) {
@@ -263,7 +225,8 @@ impl EventRules for EndPhase {
             Phase::BeginningOfBidding => game.start_bidding_phase(),
 
             Phase::ReplacingCardJustWon => {
-                if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
+                let b = game.bidding().expect("in the bidding phase");
+                if b.card_just_won == b.card_sold_on_black_market {
                     game.enter_richese_bidding();
                 } else {
                     game.determine_next_step_after_card_was_sold();
@@ -284,17 +247,20 @@ impl EventRules for EndPhase {
 
             Phase::ShipmentAndMoveConcluded => self.enter_battle_phase(game),
 
-            Phase::BeginningOfBattle => game.enter(Phase::BattlePhase, true),
+            Phase::BeginningOfBattle => game.enter_battle(BattleStep::Planning),
 
             Phase::CancellingTraitor => {
-                game.enter(Phase::CallTraitorOrPass, true);
+                game.enter_battle(BattleStep::CallingTraitor);
                 game.handle_revealed_battle_plans()?;
             }
 
             Phase::BattleReport => {
                 self.reset_battle(game);
-                let condition = game.advance_battle_sequence().is_some();
-                game.enter_or_else(condition, Phase::BattlePhase, enter_spice_collection_phase);
+                if game.next_battle_or_end() {
+                    game.enter_battle(BattleStep::Planning);
+                } else {
+                    enter_spice_collection_phase(game);
+                }
             }
 
             Phase::BeginningOfCollection => game.start_collection(),

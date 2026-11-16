@@ -21,7 +21,7 @@ fn resolved(game: &Game, p: Option<PlayerId>) -> ResolvedViewer {
 }
 
 fn silent(game: &Game) -> bool {
-    matches!(game.bidding.current_auction_type, Some(AuctionType::BlackMarketSilent) | Some(AuctionType::RicheseSilent))
+    matches!(game.current_auction_type(), Some(AuctionType::BlackMarketSilent) | Some(AuctionType::RicheseSilent))
 }
 
 /// The panel's starting amounts, then the pickers' clamps, written out independently of
@@ -31,7 +31,7 @@ fn expected_defaults(game: &Game, p: PlayerId, max_amount: i32, max_ally: i32) -
     let (mut amount, mut ally) = (0, 0);
     if !silent(game) {
         let ally_resources = if pl.ally == None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction.expect("faction")) };
-        let bid_to_do = match &game.bidding.current_bid {
+        let bid_to_do = match game.current_bid() {
             Some(b) => b.bid_total_amount() + 1,
             None => 1,
         };
@@ -114,7 +114,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             // Outside silent auctions the starting bid is the lowest that beats the current one,
             // so it is valid whenever the player and ally can pay for it.
             if !silent(game) {
-                let to_beat = game.bidding.current_bid.as_ref().map_or(0, |b| b.bid_total_amount());
+                let to_beat = game.current_bid().map_or(0, |b| b.bid_total_amount());
                 let (amount, ally) = match &default_event {
                     Event::Bid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
                     Event::BlackMarketBid(b) => (i32::from(b.amount), i32::from(b.ally_contribution_amount)),
@@ -130,13 +130,13 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             if emperor > 0 {
                 seen.emperor_pays += 1;
             }
-            *seen.bidders.entry(format!("{t:?} {}", name_or_absent(game.bidding.current_auction_type))).or_default() += 1;
+            *seen.bidders.entry(format!("{t:?} {}", name_or_absent(game.current_auction_type()))).or_default() += 1;
         }
     }
 
     // The lot, for every player and an observer.
     let in_panel = matches!(game.phase(), Phase::Bidding | Phase::BlackMarketBidding);
-    let top = game.bidding.cards_on_auction.as_ref().and_then(|d| d.top());
+    let top = game.cards_on_auction().and_then(|d| d.top());
     for viewer in players.iter().map(|p| Some(*p)).chain([None]) {
         let v = resolved(game, viewer);
         let panel = actions::bidding::panel(game, &v);
@@ -144,7 +144,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
         assert_eq!(panel.is_some(), in_panel, "{at}");
         let Some(panel) = panel else { continue };
         assert_eq!(panel.black_market, game.phase() == Phase::BlackMarketBidding);
-        let richese = matches!(game.bidding.current_auction_type, Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent));
+        let richese = matches!(game.current_auction_type(), Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent));
         // An observer has no prescience but sees the card in Richese's auctions, as everyone does.
         let prescience = viewer.is_some_and(|p| game.has_bidding_prescience(p));
         let expected_card = (prescience || richese).then_some(top).flatten().map(|c| c.id());
@@ -160,13 +160,13 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             }
         }
         assert_eq!(panel.silent, silent(game));
-        let expected_bid = if silent(game) { None } else { game.bidding.current_bid.as_ref().map(|b| (b.bid_initiator().to_string(), b.bid_total_amount())) };
+        let expected_bid = if silent(game) { None } else { game.current_bid().map(|b| (b.bid_initiator().to_string(), b.bid_total_amount())) };
         assert_eq!(panel.current_bid.map(|b| (b.faction, b.amount)), expected_bid, "{at}");
-        if panel.black_market || game.bidding.current_auction_type != Some(AuctionType::Normal) {
+        if panel.black_market || game.current_auction_type() != Some(AuctionType::Normal) {
             assert_eq!(panel.card_of, None);
         } else {
             let c = panel.card_of.expect("normal auction");
-            assert_eq!((c.number, c.of), (game.bidding.card_number, game.number_of_cards_on_regular_auction()));
+            assert_eq!((c.number, c.of), (game.bidding().map_or(0, |b| b.card_number), game.number_of_cards_on_regular_auction()));
             assert!(c.number >= 1 && c.number <= c.of, "{at}: card {} of {}", c.number, c.of);
         }
     }
@@ -236,7 +236,7 @@ fn bid_fixture_view() {
     assert_eq!(panel.card, None);
     assert!(!panel.black_market);
     let c = panel.card_of.expect("normal auction");
-    assert_eq!((c.number, c.of), (r.game.bidding.card_number, r.game.number_of_cards_on_regular_auction()));
+    assert_eq!((c.number, c.of), (r.game.bidding().map_or(0, |b| b.card_number), r.game.number_of_cards_on_regular_auction()));
     assert!(view.actions.iter().all(|a| a.event_type != "Bid" && a.event_type != "BlackMarketBid"));
 }
 
@@ -247,10 +247,10 @@ fn bid_fixture_view() {
 fn karma_card_lifts_the_limit_in_a_draft_query() {
     let mut r = first_bot_state("a bidder who may use Karma", |g| {
         g.phase() == Phase::Bidding
-            && g.bidding.current_auction_type == Some(AuctionType::Normal)
-            && g.bidding.bid_sequence.as_ref().and_then(|s| s.current_player(g)).is_some_and(|p| Bid::can_karma(g, Some(p)))
+            && g.current_auction_type() == Some(AuctionType::Normal)
+            && g.bidding().and_then(|b| b.bid_sequence.as_ref()).and_then(|s| s.current_player(g)).is_some_and(|p| Bid::can_karma(g, Some(p)))
     });
-    let p = r.game.bidding.bid_sequence.as_ref().unwrap().current_player(&r.game).unwrap();
+    let p = r.game.bidding().unwrap().bid_sequence.as_ref().unwrap().current_player(&r.game).unwrap();
     let f = r.game.player(p).faction;
     let viewer = viewer_of(&r, f.expect("faction"));
     let view = r.view(viewer);
@@ -266,7 +266,7 @@ fn karma_card_lifts_the_limit_in_a_draft_query() {
     assert!(matches!(with.options, Some(ActionOptions::Bid { max_amount: 100, .. })));
     let without = r.query(viewer, &common::draft(&draft(-1))).unwrap();
     assert!(without.validation.is_some(), "bidding more than one has needs Karma");
-    if over > r.game.bidding.current_bid.as_ref().map_or(0, |b| b.bid_total_amount()) {
+    if over > r.game.current_bid().map_or(0, |b| b.bid_total_amount()) {
         assert_eq!(with.validation, None);
     }
 }

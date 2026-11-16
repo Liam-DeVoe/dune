@@ -23,7 +23,7 @@ impl EventRules for KarmaShipmentPrevention {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.ship_move.current_karma_shipment_prevention = Some(ShipmentPrevention { target: self.target });
+        game.ship_move_mut().required("the shipment and move phase")?.karma_shipment_prevention = Some(ShipmentPrevention { target: self.target });
         let me = by.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent shipment by ".into(), self.target.into()]);

@@ -162,7 +162,7 @@ impl ClairVoyancePlayed {
                 | ClairvoyanceQuestion::LeaderInBattle
                 | ClairvoyanceQuestion::DialOfMoreThanXInBattle,
             ) => {
-                g.battle.current_battle.as_ref().map(|b| b.is_aggressor_or_defender(g, p)) == Some(true)
+                g.current_battle().map(|b| b.is_aggressor_or_defender(g, p)) == Some(true)
             }
             _ => true,
         }
@@ -284,7 +284,7 @@ impl EventRules for ClairVoyancePlayed {
                 question_parameter2: self.question_parameter2.clone(),
             });
             game.turn.latest_clairvoyance_qn_a = None;
-            game.turn.latest_clairvoyance_battle = game.battle.current_battle.clone();
+            game.turn.latest_clairvoyance_battle = game.current_battle().cloned();
             game.interrupt(Interrupt::Clairvoyance);
         }
         Ok(())

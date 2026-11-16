@@ -19,6 +19,11 @@ pub enum PhaseState {
     /// A phase that has no variant of its own yet: only its name. Its state is still in the
     /// per-phase struct on `Game`.
     Legacy(Phase),
+    Battle(BattlePhase),
+    Charity(CharityState),
+    Bidding(BiddingState),
+    Revival(RevivalState),
+    ShipMove(ShipMoveState),
     Collection(CollectionState),
     Contemplate(ContemplateState),
     /// The game is over (`Phase::GameEnded`).
@@ -30,6 +35,11 @@ impl PhaseState {
     pub fn phase(&self) -> Phase {
         match self {
             PhaseState::Legacy(phase) => *phase,
+            PhaseState::Battle(b) => b.step.phase(),
+            PhaseState::Charity(c) => c.step.phase(),
+            PhaseState::Bidding(b) => b.step.phase(),
+            PhaseState::Revival(r) => r.step.phase(),
+            PhaseState::ShipMove(s) => s.step.phase(),
             PhaseState::Collection(c) => c.step.phase(),
             PhaseState::Contemplate(c) => c.step.phase(),
             PhaseState::Ended(_) => Phase::GameEnded,
@@ -40,7 +50,12 @@ impl PhaseState {
     /// by its own functions (`Game::enter_collection`), never by name with [`Game::enter`],
     /// because entering it by name can't build its state.
     pub fn is_converted(phase: Phase) -> bool {
-        CollectionStep::of(phase).is_some()
+        BattleStep::of(phase).is_some()
+            || CharityStep::of(phase).is_some()
+            || BiddingStep::of(phase).is_some()
+            || RevivalStep::of(phase).is_some()
+            || ShipMoveStep::of(phase).is_some()
+            || CollectionStep::of(phase).is_some()
             || ContemplateStep::of(phase).is_some()
             || phase == Phase::GameEnded
     }
@@ -61,15 +76,23 @@ pub enum Interrupt {
     Clairvoyance,
     /// The ally answers a card trade offer.
     CardTrade { offer: CardTradeOffer },
-    /// The Karama hand swap: the player returns cards.
-    KarmaHandSwap,
+    /// The Karama hand swap: Harkonnen return `number_of_cards` cards to `target`.
+    KarmaHandSwap { number_of_cards: i32, target: Option<Faction> },
     /// The Bureaucrat decides whether `target`, who just received a payment, loses 2 spice.
     Bureaucracy { target: Option<Faction> },
     /// A player chooses the skill of a revived leader.
     SkillAssignment,
-    /// A suspension not converted yet, by the phase it shows: an intrusion (Bene Gesserit,
-    /// terror or ambassador), an alliance offered through terror or an ambassador, or storm
-    /// losses. The ship and move agent of wave 5 gives these their own variants.
+    /// Forces entered a territory and the Bene Gesserit, a terror token or an ambassador there
+    /// may react (`turn.intrusions` holds the ones waiting). Build it with
+    /// [`Interrupt::intrusion`].
+    Intrusion { kind: IntrusionType, cause: IntrusionCause },
+    /// Moritani offered an alliance instead of terror, and `offered_to` decides.
+    AllianceByTerror { offered_to: Option<Faction> },
+    /// An Ecaz ambassador offered an alliance, and `offered_to` decides. `offered_by` activated
+    /// the ambassador (Ecaz, or their ally), and the two flags are its Vidal options.
+    AllianceByAmbassador { offered_to: Faction, offered_by: By, give_vidal_to_ally: bool, take_vidal: bool },
+    /// A suspension not converted yet, by the phase it shows: storm losses taken during a
+    /// shipment or move.
     Legacy(Phase),
 }
 
@@ -82,53 +105,27 @@ impl Interrupt {
             Interrupt::SearchingDiscarded => Phase::SearchingDiscarded,
             Interrupt::Clairvoyance => Phase::Clairvoyance,
             Interrupt::CardTrade { .. } => Phase::TradingCards,
-            Interrupt::KarmaHandSwap => Phase::PerformingKarmaHandSwap,
+            Interrupt::KarmaHandSwap { .. } => Phase::PerformingKarmaHandSwap,
             Interrupt::Bureaucracy { .. } => Phase::Bureaucracy,
             Interrupt::SkillAssignment => Phase::AssigningSkill,
+            Interrupt::Intrusion { kind, cause } => cause.intrusion_phase(*kind),
+            Interrupt::AllianceByTerror { .. } => Phase::AllianceByTerror,
+            Interrupt::AllianceByAmbassador { .. } => Phase::AllianceByAmbassador,
             Interrupt::Legacy(phase) => *phase,
         }
     }
 
     /// The interrupt that a phase of that name is, if it is one that holds no data. The others
-    /// (`Discarding`, `DiscardingTraitor`, `CardTrade`, `Bureaucracy`) are pushed by the code
-    /// that knows their data, never by name.
+    /// are pushed by the code that knows their data, never by name: an intrusion or an alliance
+    /// offer by its owner ([`Interrupt::intrusion`]), `PerformingKarmaHandSwap` by
+    /// `KarmaHandSwapInitiated`, and `Discarding`, `DiscardingTraitor`, `TradingCards` and
+    /// `Bureaucracy` where they start.
     pub fn of(phase: Phase) -> Option<Interrupt> {
         let i = match phase {
             Phase::SearchingDiscarded => Interrupt::SearchingDiscarded,
             Phase::Clairvoyance => Interrupt::Clairvoyance,
-            Phase::PerformingKarmaHandSwap => Interrupt::KarmaHandSwap,
             Phase::AssigningSkill => Interrupt::SkillAssignment,
-            Phase::BeneGesseritIntrudedByNonGuildShip
-            | Phase::BeneGesseritIntrudedByGuildShip
-            | Phase::BeneGesseritIntrudedByNonGuildMove
-            | Phase::BeneGesseritIntrudedByGuildMove
-            | Phase::BeneGesseritIntrudedByCaravan
-            | Phase::BeneGesseritIntrudedByRevival
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
-            | Phase::TerrorTriggeredByNonGuildShip
-            | Phase::TerrorTriggeredByGuildShip
-            | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip
-            | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip
-            | Phase::TerrorTriggeredByNonGuildMove
-            | Phase::TerrorTriggeredByGuildMove
-            | Phase::TerrorTriggeredByCaravan
-            | Phase::TerrorTriggeredByRevival
-            | Phase::TerrorTriggeredByFremenRidingMonsterA
-            | Phase::TerrorTriggeredByFremenRidingMonsterB
-            | Phase::AmbassadorTriggeredByNonGuildShip
-            | Phase::AmbassadorTriggeredByGuildShip
-            | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip
-            | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip
-            | Phase::AmbassadorTriggeredByNonGuildMove
-            | Phase::AmbassadorTriggeredByGuildMove
-            | Phase::AmbassadorTriggeredByCaravan
-            | Phase::AmbassadorTriggeredByRevival
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterA
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterB
-            | Phase::AllianceByTerror
-            | Phase::AllianceByAmbassador
-            | Phase::StormLosses => Interrupt::Legacy(phase),
+            Phase::StormLosses => Interrupt::Legacy(phase),
             _ => return None,
         };
         Some(i)
@@ -335,8 +332,9 @@ impl GameStatus {
             }
 
             Phase::PerformingKarmaHandSwap => {
-                let a = express!("Please decide which ", game.bidding.karma_hand_swap_number_of_cards, " cards to return to ", game.bidding.karma_hand_swap_target, ".");
-                let w = express!(Faction::Harkonnen, " are deciding which ", game.bidding.karma_hand_swap_number_of_cards, " cards to return to ", game.bidding.karma_hand_swap_target, "...");
+                let (number_of_cards, target) = game.karma_hand_swap().expect("a Karama hand swap");
+                let a = express!("Please decide which ", number_of_cards, " cards to return to ", target, ".");
+                let w = express!(Faction::Harkonnen, " are deciding which ", number_of_cards, " cards to return to ", target, "...");
                 Self::faction_status(game, a, w, Some(Faction::Harkonnen), None)
             }
 

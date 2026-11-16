@@ -25,6 +25,13 @@ pub struct Board {
     pub owner_of_flight_discovery: Option<Option<Faction>>,
     /// Strongholds revealed as discoveries that forces may still enter, until the next storm.
     pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
+    /// The CHOAM economics token, once CHOAM has played it (`ChoamEconomics`). The mentat pause
+    /// flips it; charity, deals and donations read it.
+    pub choam_economics_status: Option<ChoamEconomicsStatus>,
+    /// The value of the Richese No-Field token on the planet, -1 if none is.
+    pub current_no_field_value: i32,
+    /// The value of the No-Field token revealed last, -1 before any is.
+    pub latest_revealed_no_field_value: i32,
 }
 
 impl Board {
@@ -45,6 +52,9 @@ impl Board {
             pending_discoveries: Vec::new(),
             owner_of_flight_discovery: None,
             just_revealed_discovery_strongholds: Vec::new(),
+            choam_economics_status: None,
+            current_no_field_value: -1,
+            latest_revealed_no_field_value: -1,
         }
     }
 }

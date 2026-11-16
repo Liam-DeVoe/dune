@@ -19,7 +19,7 @@ impl EventRules for FlightDiscoveryUsed {
         let m = self.describe(game, by);
         game.log_event(m);
         game.board.owner_of_flight_discovery = Some(None);
-        game.ship_move.current_flight_discovery_used = Some(by);
+        game.turn.current_flight_discovery_used = Some(by);
         Ok(())
     }
 

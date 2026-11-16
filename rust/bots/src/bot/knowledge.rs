@@ -125,7 +125,7 @@ impl ClassicBot {
 
     /// The prescience in the current battle, if I or my ally used it.
     pub fn my_prescience(&self, game: &Game) -> Option<PrescienceUsed> {
-        game.battle.current_prescience.clone().filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
+        game.fight().and_then(|c| c.prescience.clone()).filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
     }
 
     pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerId) -> Option<ClairVoyanceQandA> {
@@ -152,7 +152,7 @@ impl ClassicBot {
     /// The Voice in the current battle, if I or my ally are Bene Gesserit.
     pub fn my_voice(&self, game: &Game) -> Option<VoiceUsed> {
         let bene_gesserit = self.faction(game) == Faction::BeneGesserit || self.ally(game) == Some(Faction::BeneGesserit);
-        game.battle.current_voice.clone().filter(|_| bene_gesserit)
+        game.fight().and_then(|c| c.voice.clone()).filter(|_| bene_gesserit)
     }
 
     pub fn may_use_useless_as_karma(&self, game: &Game) -> bool {
@@ -705,8 +705,8 @@ impl ClassicBot {
         if p.faction == Some(Faction::Richese) && p.special_forces_in_territory(Some(t)) > 0 {
             // C# parity: the condition is always true here, so the else branch is dead.
             count_forces_for_richese = if p.faction == Some(Faction::Richese) || p.ally == Some(Faction::Richese) {
-                game.ship_move.current_no_field_value
-            } else if game.ship_move.latest_revealed_no_field_value == 5 {
+                game.board.current_no_field_value
+            } else if game.board.latest_revealed_no_field_value == 5 {
                 3
             } else {
                 5

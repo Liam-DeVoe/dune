@@ -1,104 +1,284 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-/// State of the battle phase: the battle sequence, the current battle with its plans, traitor
-/// calls, voice and prescience, and what the winner and loser still have to do.
-pub struct BattleState {
-    pub battle_sequence: Option<PlayerSequence>,
-    pub battle_about_to_start: Option<InitiatedBattle>,
-    pub current_battle: Option<InitiatedBattle>,
+/// The battle phase (`PhaseState::Battle`): the order in which players initiate battles, how
+/// many were fought, the battle being fought and the step. It is dropped when the phase ends.
+#[derive(Clone, Debug)]
+pub struct BattlePhase {
+    /// Whose turn it is to initiate a battle ([`Game::advance_battle_sequence`]).
+    pub order: PlayerSequence,
+    pub fought: u8,
+    /// The battle from its `BattleInitiated` to the end of its report.
+    pub current: Option<CurrentBattle>,
+    pub step: BattleStep,
+}
+
+/// Where the battle phase is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BattleStep {
+    /// Before the first battle, while the host may still wait for players.
+    Beginning,
+    /// A player chooses a battle, then both make their plans (`Phase::BattlePhase`).
+    Planning,
+    /// Ecaz or their ally decide who fights the battle just initiated.
+    Claiming,
+    /// The opponent of a Thinker answers their question.
+    Thought,
+    /// The owner of a Rock Melter decides how to use it.
+    MeltingRock,
+    CallingTraitor,
+    CancellingTraitor,
+    Retreating,
+    AvoidingAudit,
+    Auditing,
+    CaptureDecision,
+    Conclusion,
+    RevealingFacedancer,
+    Facedancing,
+    Report,
+}
+
+impl BattleStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            BattleStep::Beginning => Phase::BeginningOfBattle,
+            BattleStep::Planning => Phase::BattlePhase,
+            BattleStep::Claiming => Phase::ClaimingBattle,
+            BattleStep::Thought => Phase::Thought,
+            BattleStep::MeltingRock => Phase::MeltingRock,
+            BattleStep::CallingTraitor => Phase::CallTraitorOrPass,
+            BattleStep::CancellingTraitor => Phase::CancellingTraitor,
+            BattleStep::Retreating => Phase::Retreating,
+            BattleStep::AvoidingAudit => Phase::AvoidingAudit,
+            BattleStep::Auditing => Phase::Auditing,
+            BattleStep::CaptureDecision => Phase::CaptureDecision,
+            BattleStep::Conclusion => Phase::BattleConclusion,
+            BattleStep::RevealingFacedancer => Phase::RevealingFacedancer,
+            BattleStep::Facedancing => Phase::Facedancing,
+            BattleStep::Report => Phase::BattleReport,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<BattleStep> {
+        Some(match phase {
+            Phase::BeginningOfBattle => BattleStep::Beginning,
+            Phase::BattlePhase => BattleStep::Planning,
+            Phase::ClaimingBattle => BattleStep::Claiming,
+            Phase::Thought => BattleStep::Thought,
+            Phase::MeltingRock => BattleStep::MeltingRock,
+            Phase::CallTraitorOrPass => BattleStep::CallingTraitor,
+            Phase::CancellingTraitor => BattleStep::CancellingTraitor,
+            Phase::Retreating => BattleStep::Retreating,
+            Phase::AvoidingAudit => BattleStep::AvoidingAudit,
+            Phase::Auditing => BattleStep::Auditing,
+            Phase::CaptureDecision => BattleStep::CaptureDecision,
+            Phase::BattleConclusion => BattleStep::Conclusion,
+            Phase::RevealingFacedancer => BattleStep::RevealingFacedancer,
+            Phase::Facedancing => BattleStep::Facedancing,
+            Phase::BattleReport => BattleStep::Report,
+            _ => return None,
+        })
+    }
+}
+
+/// The battle being fought: from its `BattleInitiated` (while Ecaz may still claim it) to the end
+/// of its report. Its plans, traitor calls, Voice, Prescience, outcome and flags are dropped with
+/// it.
+#[derive(Clone, Debug)]
+pub struct CurrentBattle {
+    pub battle: InitiatedBattle,
     pub aggressor_plan: Option<BattlePlan>,
     pub previous_aggressor_plan: Option<BattlePlan>,
     pub aggressor_traitor_action: Option<TraitorCall>,
     pub defender_plan: Option<BattlePlan>,
     pub previous_defender_plan: Option<BattlePlan>,
     pub defender_traitor_action: Option<TraitorCall>,
-    pub battle_outcome: Option<BattleOutcome>,
-    /// `Some(None)`: decided, and nobody.
-    pub battle_winner: Option<Option<Faction>>,
-    /// `Some(None)`: decided, and nobody.
-    pub battle_loser: Option<Option<Faction>>,
-    pub nr_of_battles_fought: i32,
-    /// `Some(None)`: decided, and nobody.
-    pub current_ecaz_or_ally_fighter: Option<Option<Faction>>,
-    pub current_ecaz_battle_contribution: i32,
-    pub current_voice: Option<VoiceUsed>,
+    pub outcome: Option<BattleOutcome>,
+    /// `None` until decided, and when nobody won.
+    pub winner: Option<Faction>,
+    pub loser: Option<Faction>,
+    /// Who of Ecaz and their ally fights, once claimed (`BattleClaimed`).
+    pub ecaz_or_ally_fighter: Option<Faction>,
+    pub ecaz_battle_contribution: i32,
+    pub voice: Option<VoiceUsed>,
     /// Someone who may use Voice declined it this battle (`VoiceDeclined`), so it is closed.
     pub voice_declined: bool,
-    pub current_prescience: Option<PrescienceUsed>,
+    pub prescience: Option<PrescienceUsed>,
     /// The plans as they were when a revision withdrew them.
     pub prescience_seen_plans: IndexMap<Option<PrescienceAspect>, BattlePlan>,
-    pub current_thought: Option<ThoughtAsked>,
-    // C#: `StrongholdAdvantage?`. Outside a battle it is `None`; in one, `Some(None)` until the
-    // advantage is chosen.
-    pub chosen_hms_advantage: Option<Option<StrongholdAdvantage>>,
-    pub current_portable_antidote_used: Option<AntidoteEquipped>,
+    pub thought: Option<ThoughtAsked>,
+    pub chosen_hms_advantage: Option<StrongholdAdvantage>,
+    pub portable_antidote_used: Option<AntidoteEquipped>,
     pub poison_tooth_cancelled: bool,
-    pub current_rock_was_melted: Option<RockMelted>,
+    pub rock_was_melted: Option<RockMelted>,
     pub traitors_decipherer_can_look_at: Vec<Hero>,
-    pub decipherer_may_replace_traitor: bool,
     pub loser_may_try_to_assassinate: bool,
-    pub battle_winner_may_choose_to_discard: bool,
-    pub secret_ally_allows_keeping_cards_after_losing_battle: bool,
-    pub cards_to_be_discarded_by_loser_after_battle: Vec<TreacheryCard>,
-    pub current_diplomacy: Option<DiplomacyUsed>,
+    pub winner_may_choose_to_discard: bool,
+    pub cards_to_be_discarded_by_loser: Vec<TreacheryCard>,
+    pub diplomacy: Option<DiplomacyUsed>,
     pub audited_cards: Vec<TreacheryCard>,
     pub harkonnen_victim: Option<Leader>,
     pub ixian_special_force_losses_to_take: i32,
-    pub battle_triggered_bureaucracy: Option<TriggeredBureaucracy>,
+    pub triggered_bureaucracy: Option<TriggeredBureaucracy>,
     pub card_used_by_diplomat: Option<TreacheryCard>,
-    pub auditor_survived_battle: bool,
+    pub auditor_survived: bool,
     pub harkonnen_do_not_have_to_return_used_captured_leader: bool,
-    pub battle_was_concluded_by_winner: bool,
+    pub concluded_by_winner: bool,
     pub atreides_karma: bool,
     pub ecaz_karma_bonus: i32,
 }
 
-impl BattleState {
-    pub fn new() -> Self {
-        BattleState {
-            battle_sequence: None,
-            battle_about_to_start: None,
-            current_battle: None,
+impl CurrentBattle {
+    pub fn new(battle: InitiatedBattle) -> Self {
+        CurrentBattle {
+            battle,
             aggressor_plan: None,
             previous_aggressor_plan: None,
             aggressor_traitor_action: None,
             defender_plan: None,
             previous_defender_plan: None,
             defender_traitor_action: None,
-            battle_outcome: None,
-            battle_winner: None,
-            battle_loser: None,
-            nr_of_battles_fought: Default::default(),
-            current_ecaz_or_ally_fighter: None,
-            current_ecaz_battle_contribution: Default::default(),
-            current_voice: None,
+            outcome: None,
+            winner: None,
+            loser: None,
+            ecaz_or_ally_fighter: None,
+            ecaz_battle_contribution: 0,
+            voice: None,
             voice_declined: false,
-            current_prescience: None,
+            prescience: None,
             prescience_seen_plans: IndexMap::new(),
-            current_thought: None,
+            thought: None,
             chosen_hms_advantage: None,
-            current_portable_antidote_used: None,
-            poison_tooth_cancelled: Default::default(),
-            current_rock_was_melted: None,
+            portable_antidote_used: None,
+            poison_tooth_cancelled: false,
+            rock_was_melted: None,
             traitors_decipherer_can_look_at: Vec::new(),
-            decipherer_may_replace_traitor: Default::default(),
-            loser_may_try_to_assassinate: Default::default(),
-            battle_winner_may_choose_to_discard: true,
-            secret_ally_allows_keeping_cards_after_losing_battle: Default::default(),
-            cards_to_be_discarded_by_loser_after_battle: Vec::new(),
-            current_diplomacy: None,
+            loser_may_try_to_assassinate: false,
+            winner_may_choose_to_discard: true,
+            cards_to_be_discarded_by_loser: Vec::new(),
+            diplomacy: None,
             audited_cards: Vec::new(),
             harkonnen_victim: None,
-            ixian_special_force_losses_to_take: Default::default(),
-            battle_triggered_bureaucracy: None,
+            ixian_special_force_losses_to_take: 0,
+            triggered_bureaucracy: None,
             card_used_by_diplomat: None,
-            auditor_survived_battle: Default::default(),
-            harkonnen_do_not_have_to_return_used_captured_leader: Default::default(),
-            battle_was_concluded_by_winner: Default::default(),
-            atreides_karma: Default::default(),
-            ecaz_karma_bonus: Default::default(),
+            auditor_survived: false,
+            harkonnen_do_not_have_to_return_used_captured_leader: false,
+            concluded_by_winner: false,
+            atreides_karma: false,
+            ecaz_karma_bonus: 0,
         }
+    }
+}
+
+/// Two battle flags that were never reset, so they outlive the battle that set them and apply
+/// to later battles (known-issues.md, "Two battle flags outlive their battle"). They belong in
+/// [`CurrentBattle`]; moving them there changes behavior.
+#[derive(Clone, Debug, Default)]
+pub struct BattleLeftovers {
+    pub decipherer_may_replace_traitor: bool,
+    pub secret_ally_allows_keeping_cards_after_losing_battle: bool,
+}
+
+impl Game {
+    /// The battle phase's state, while the game is in it (an interrupt may suspend it).
+    pub fn battle(&self) -> Option<&BattlePhase> {
+        match &self.phase {
+            PhaseState::Battle(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    pub fn battle_mut(&mut self) -> Option<&mut BattlePhase> {
+        match &mut self.phase {
+            PhaseState::Battle(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    /// The battle being fought, from its `BattleInitiated` to the end of its report.
+    pub fn fight(&self) -> Option<&CurrentBattle> {
+        self.battle()?.current.as_ref()
+    }
+
+    /// The battle being fought, for code that only runs while one is.
+    #[track_caller]
+    pub fn fight_mut(&mut self) -> &mut CurrentBattle {
+        self.battle_mut().and_then(|b| b.current.as_mut()).expect("a battle is being fought")
+    }
+
+    /// The battle that was initiated, also while Ecaz still decide who fights it.
+    pub fn battle_about_to_start(&self) -> Option<&InitiatedBattle> {
+        self.fight().map(|c| &c.battle)
+    }
+
+    /// The battle being fought, once it is decided who fights it.
+    pub fn current_battle(&self) -> Option<&InitiatedBattle> {
+        let b = self.battle()?;
+        if b.step == BattleStep::Claiming {
+            return None;
+        }
+        b.current.as_ref().map(|c| &c.battle)
+    }
+
+    pub fn aggressor_plan(&self) -> Option<&BattlePlan> {
+        self.fight()?.aggressor_plan.as_ref()
+    }
+
+    pub fn defender_plan(&self) -> Option<&BattlePlan> {
+        self.fight()?.defender_plan.as_ref()
+    }
+
+    /// The winner of the battle being fought, once decided. `None` also when nobody won.
+    pub fn battle_winner(&self) -> Option<Faction> {
+        self.fight()?.winner
+    }
+
+    pub fn battle_loser(&self) -> Option<Faction> {
+        self.fight()?.loser
+    }
+
+    /// Starts the battle phase with its battle order, if anyone has a battle to fight
+    /// (`enter_battle_phase` in end_phase.rs does the rest). Returns whether anyone has.
+    pub fn begin_battle(&mut self) -> bool {
+        let mut order = PlayerSequence::starting_with_first_player(self);
+        if self.skip_players_without_battles(&mut order).is_none() {
+            return false;
+        }
+        self.enter_state(PhaseState::Battle(BattlePhase { order, fought: 0, current: None, step: BattleStep::Beginning }));
+        true
+    }
+
+    /// Moves the battle phase to `step`, dropping any interrupt, as entering a phase did.
+    #[track_caller]
+    pub fn enter_battle(&mut self, step: BattleStep) {
+        let b = self.battle_mut().expect("in the battle phase");
+        b.step = step;
+        self.interrupts.clear();
+        self.remove_ended_deals(step.phase());
+    }
+
+    /// Puts the game in the battle phase at `step`, fighting `battle` if given. For tests that
+    /// build a battle by hand, so the battle order is the players in turn and needs no seats.
+    pub fn enter_battle_state(&mut self, step: BattleStep, battle: Option<InitiatedBattle>) {
+        let order = PlayerSequence {
+            players: self.player_indices().collect(),
+            played: Vec::new(),
+            skip_players_that_cant_bid_on_cards: false,
+            round: 1,
+            fully_circled: 0,
+            first_player: None,
+        };
+        let current = battle.map(CurrentBattle::new);
+        self.enter_state(PhaseState::Battle(BattlePhase { order, fought: 0, current, step }));
+    }
+
+    /// Ends the battle just reported: the next battle, or spice collection when nobody has one.
+    pub fn next_battle_or_end(&mut self) -> bool {
+        if let Some(b) = self.battle_mut() {
+            b.current = None;
+        }
+        self.advance_battle_sequence().is_some()
     }
 }
 
@@ -230,15 +410,13 @@ macro_rules! le {
 
 impl Game {
     pub fn initiate_battle(&mut self) {
-        let Some(current_battle) = self.battle.battle_about_to_start.clone() else {
+        let Some(current_battle) = self.battle_about_to_start().cloned() else {
             panic!("Cannot initiate battle when BattleAboutToStart is null");
         };
-        self.battle.current_battle = Some(current_battle.clone());
         self.update_battle_report_participants(&current_battle);
 
-        self.battle.chosen_hms_advantage = Some(None);
-        self.battle.battle_outcome = None;
-        self.battle.nr_of_battles_fought += 1;
+        let b = self.battle_mut().expect("in the battle phase");
+        b.fought += 1;
 
         let aggressive_player = current_battle.aggressive_player(self);
         self.announce_hero_availability(aggressive_player);
@@ -283,11 +461,11 @@ impl Game {
 
     pub fn handle_revealed_battle_plans(&mut self) -> GameResult {
         let (Some(current_battle), Some(mut aggressor_plan), Some(mut defender_plan), Some(aggressor_traitor_action), Some(defender_traitor_action)) = (
-            self.battle.current_battle.clone(),
-            self.battle.aggressor_plan.clone(),
-            self.battle.defender_plan.clone(),
-            self.battle.aggressor_traitor_action.clone(),
-            self.battle.defender_traitor_action.clone(),
+            self.current_battle().cloned(),
+            self.aggressor_plan().cloned(),
+            self.defender_plan().cloned(),
+            self.fight().and_then(|c| c.aggressor_traitor_action.clone()),
+            self.fight().and_then(|c| c.defender_traitor_action.clone()),
         ) else {
             return Ok(());
         };
@@ -300,38 +478,38 @@ impl Game {
         self.resolve_battle(&current_battle, &mut aggressor_plan, &mut defender_plan, &aggressor_traitor_action, &defender_traitor_action)?;
         self.record_battle_outcome_in_report();
 
-        if self.battle.card_used_by_diplomat.is_some() {
-            let card = self.battle.card_used_by_diplomat;
+        if self.fight().is_some_and(|c| c.card_used_by_diplomat.is_some()) {
+            let card = self.fight().and_then(|c| c.card_used_by_diplomat);
             self.discard_card(card, true)?;
-            self.battle.card_used_by_diplomat = None;
+            self.fight_mut().card_used_by_diplomat = None;
         }
 
-        if Some(aggressor_plan.initiator()) == self.battle.battle_winner {
+        if aggressor_plan.initiator() == self.battle_winner() {
             self.activate_decipherer_if_applicable(&aggressor_plan);
         }
-        if Some(defender_plan.initiator()) == self.battle.battle_winner {
+        if defender_plan.initiator() == self.battle_winner() {
             self.activate_decipherer_if_applicable(&defender_plan);
         }
 
-        if Some(aggressor_plan.initiator()) == self.battle.battle_winner {
+        if aggressor_plan.initiator() == self.battle_winner() {
             self.activate_sandmaster_if_applicable(&aggressor_plan);
         }
-        if Some(defender_plan.initiator()) == self.battle.battle_winner {
+        if defender_plan.initiator() == self.battle_winner() {
             self.activate_sandmaster_if_applicable(&defender_plan);
         }
 
-        if Some(aggressor_plan.initiator()) == self.battle.battle_winner {
+        if aggressor_plan.initiator() == self.battle_winner() {
             self.resolve_effect_of_owned_sietch_tabr(&aggressor_plan, &defender_plan);
         }
-        if Some(defender_plan.initiator()) == self.battle.battle_winner {
+        if defender_plan.initiator() == self.battle_winner() {
             self.resolve_effect_of_owned_sietch_tabr(&defender_plan, &aggressor_plan);
         }
 
-        if let Some(outcome) = self.battle.battle_outcome.clone() {
-            if Some(aggressor_plan.initiator()) == self.battle.battle_winner {
+        if let Some(outcome) = self.fight().and_then(|c| c.outcome.clone()) {
+            if aggressor_plan.initiator() == self.battle_winner() {
                 self.resolve_effect_of_occupied_jacurutu(&aggressor_plan, outcome.def_undialed_forces);
             }
-            if Some(defender_plan.initiator()) == self.battle.battle_winner {
+            if defender_plan.initiator() == self.battle_winner() {
                 self.resolve_effect_of_occupied_jacurutu(&defender_plan, outcome.agg_undialed_forces);
             }
         }
@@ -341,9 +519,9 @@ impl Game {
             self.determine_occupation(territory);
         }
 
-        if let Some(bureaucracy) = self.battle.battle_triggered_bureaucracy.clone() {
+        if let Some(bureaucracy) = self.fight().and_then(|c| c.triggered_bureaucracy.clone()) {
             self.apply_bureaucracy(bureaucracy.payment_from, bureaucracy.payment_to);
-            self.battle.battle_triggered_bureaucracy = None;
+            self.fight_mut().triggered_bureaucracy = None;
         }
 
         if self.phase() != Phase::Retreating {
@@ -353,7 +531,7 @@ impl Game {
     }
 
     pub fn discard_one_time_cards_used_in_battle(&mut self, aggressor_call: &TraitorCall, defender_call: &TraitorCall) -> GameResult {
-        let (Some(aggressor_plan), Some(defender_plan)) = (self.battle.aggressor_plan.clone(), self.battle.defender_plan.clone()) else {
+        let (Some(aggressor_plan), Some(defender_plan)) = (self.aggressor_plan().cloned(), self.defender_plan().cloned()) else {
             return Ok(());
         };
 
@@ -375,10 +553,10 @@ impl Game {
     pub fn resolve_battle(&mut self, b: &InitiatedBattle, agg: &mut BattlePlan, def: &mut BattlePlan, aggressor_treachery: &TraitorCall, defender_treachery: &TraitorCall) -> GameResult {
         let territory = b.territory.required("territory")?;
         let outcome = Battle::determine_battle_outcome(agg, def, territory, self);
-        self.battle.aggressor_plan = Some(agg.clone());
-        self.battle.defender_plan = Some(def.clone());
+        self.fight_mut().aggressor_plan = Some(agg.clone());
+        self.fight_mut().defender_plan = Some(def.clone());
         let (agg, def) = (&*agg, &*def);
-        self.battle.battle_outcome = Some(outcome.clone());
+        self.fight_mut().outcome = Some(outcome.clone());
 
         let lasgun_shield = !aggressor_treachery.succeeded(self)
             && !defender_treachery.succeeded(self)
@@ -405,7 +583,7 @@ impl Game {
         }
 
         self.determine_if_captured_leaders_must_be_released();
-        self.battle.auditor_survived_battle = (agg.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor) && self.is_alive(agg.hero.required("hero")?))
+        self.fight_mut().auditor_survived = (agg.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor) && self.is_alive(agg.hero.required("hero")?))
             || (def.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor) && self.is_alive(def.hero.required("hero")?));
         Ok(())
     }
@@ -415,18 +593,19 @@ impl Game {
             return;
         }
         self.current_report_mut().battle_decided = true;
-        let winner = self.battle.battle_winner.unwrap_or(None);
+        let winner = self.battle_winner();
         self.current_report_mut().battle_winner = winner;
     }
 
     pub fn harkonnen_must_decide_to_capture(&self) -> bool {
-        self.battle.battle_winner == Some(Some(Faction::Harkonnen))
+        self.battle_winner() == Some(Faction::Harkonnen)
             && self.applicable(Rule::HarkonnenCapturesOrKillsLeaders)
             && !self.prevented(FactionAdvantage::HarkonnenCaptureLeader)
     }
 
     pub fn capture_leader(&mut self) {
-        let (Some(battle_winner), Some(aggressor_plan), Some(defender_plan)) = (self.battle.battle_winner, self.battle.aggressor_plan.clone(), self.battle.defender_plan.clone()) else {
+        let battle_winner = self.battle_winner();
+        let (Some(aggressor_plan), Some(defender_plan)) = (self.aggressor_plan().cloned(), self.defender_plan().cloned()) else {
             return;
         };
         let victim = if aggressor_plan.by(battle_winner) { defender_plan } else { aggressor_plan };
@@ -458,7 +637,7 @@ impl Game {
     }
 
     pub fn activate_smuggler(&mut self, aggressor_treachery: &TraitorCall, defender_treachery: &TraitorCall, outcome: &BattleOutcome, lasgun_shield: bool) {
-        let (Some(aggressor_plan), Some(defender_plan), Some(current_battle)) = (self.battle.aggressor_plan.clone(), self.battle.defender_plan.clone(), self.battle.current_battle.clone()) else {
+        let (Some(aggressor_plan), Some(defender_plan), Some(current_battle)) = (self.aggressor_plan().cloned(), self.defender_plan().cloned(), self.current_battle().cloned()) else {
             return;
         };
 
@@ -485,11 +664,11 @@ impl Game {
             if weapon.is_artillery()
                 || weapon.is_mirror_weapon()
                 || weapon.is_rock_melter()
-                || (weapon.is_poison_tooth() && !self.battle.poison_tooth_cancelled)
+                || (weapon.is_poison_tooth() && !self.fight().is_some_and(|c| c.poison_tooth_cancelled))
                 || !(weapon.is_weapon() || weapon.is_defense() || weapon.is_useless())
                 || self
-                    .battle.current_diplomacy
-                    .as_ref()
+                    .fight()
+                    .and_then(|c| c.diplomacy.as_ref())
                     .is_some_and(|d| plan.initiator() == d.initiator() && Some(weapon) == d.card)
             {
                 self.discard_card(plan.weapon(), true)?;
@@ -502,7 +681,7 @@ impl Game {
             }
         }
 
-        if let Some(used) = self.battle.current_portable_antidote_used.clone() {
+        if let Some(used) = self.fight().and_then(|c| c.portable_antidote_used.clone()) {
             if used.player() == plan.player() {
                 let portable_antidote = self.player(used.player()).card(TreacheryCardType::PortableAntidote);
                 if portable_antidote.is_some() {
@@ -511,7 +690,7 @@ impl Game {
             }
         }
 
-        if let Some(melted) = self.battle.current_rock_was_melted.clone() {
+        if let Some(melted) = self.fight().and_then(|c| c.rock_was_melted.clone()) {
             if melted.player() == plan.player() {
                 let melted_card = self.player(melted.player()).card(TreacheryCardType::Rockmelter);
                 if melted_card.is_some() {
@@ -523,7 +702,7 @@ impl Game {
     }
 
     pub fn activate_sandmaster_if_applicable(&mut self, plan: &BattlePlan) {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return;
         };
 
@@ -567,32 +746,32 @@ impl Game {
         if player_is_skilled || leader_is_skilled {
             let p = plan.player();
             let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
-            self.battle.traitors_decipherer_can_look_at.push(traitor);
+            self.fight_mut().traitors_decipherer_can_look_at.push(traitor);
             self.player_mut(p).known_non_traitors.insert(traitor);
 
             let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
-            self.battle.traitors_decipherer_can_look_at.push(traitor);
+            self.fight_mut().traitors_decipherer_can_look_at.push(traitor);
             self.player_mut(p).known_non_traitors.insert(traitor);
 
-            self.battle.decipherer_may_replace_traitor = leader_is_skilled && !BattleConcluded::valid_traitors_to_replace(self, p).next().is_none();
+            self.battle_leftovers.decipherer_may_replace_traitor = leader_is_skilled && !BattleConcluded::valid_traitors_to_replace(self, p).next().is_none();
         }
     }
 
     pub fn finish_decipherer_if_applicable(&mut self) {
-        if self.battle.traitors_decipherer_can_look_at.len() > 0 {
-            let items = self.battle.traitors_decipherer_can_look_at.clone();
+        if self.fight().map_or(0, |c| c.traitors_decipherer_can_look_at.len()) > 0 {
+            let items = self.fight_mut().traitors_decipherer_can_look_at.clone();
             for item in items {
                 self.decks.traitor_deck.as_mut().expect("traitor deck").put_on_top(item);
             }
 
             self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle(&mut self.rng);
             self.stone(Milestone::Shuffled);
-            self.battle.traitors_decipherer_can_look_at.clear();
+            self.fight_mut().traitors_decipherer_can_look_at.clear();
         }
     }
 
     pub fn resolve_effect_of_owned_tueks_sietch(&mut self, player_plan: &BattlePlan) {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return;
         };
 
@@ -613,7 +792,7 @@ impl Game {
     }
 
     pub fn resolve_effect_of_owned_sietch_tabr(&mut self, winner_plan: &BattlePlan, opponent_plan: &BattlePlan) {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return;
         };
 
@@ -634,7 +813,7 @@ impl Game {
     }
 
     pub fn resolve_effect_of_occupied_jacurutu(&mut self, winner_plan: &BattlePlan, opponent_undialed_forces: i32) {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return;
         };
 
@@ -654,10 +833,10 @@ impl Game {
         } else {
             let harkonnen_must_decide = self.harkonnen_must_decide_to_capture();
             // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
-            if self.battle.battle_winner == Some(None) {
+            if self.battle_winner().is_none() {
                 self.finish_battle()?;
             } else {
-                self.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+                self.enter_battle(if harkonnen_must_decide { BattleStep::CaptureDecision } else { BattleStep::Conclusion });
             }
             self.let_factions_discard_surplus_cards();
         }
@@ -673,25 +852,25 @@ impl Game {
 
         if auditable_cards.items.len() > 0 {
             let nr_of_audited_cards = AuditCancelled::get_number_of_cards_that_may_be_audited(self);
-            self.battle.audited_cards.clear();
+            self.fight_mut().audited_cards.clear();
             auditable_cards.shuffle(&mut self.rng);
             let mut i = 0;
             while i < nr_of_audited_cards {
                 let card = auditable_cards.try_draw()?;
-                self.battle.audited_cards.push(card);
+                self.fight_mut().audited_cards.push(card);
                 i += 1;
             }
 
-            self.enter(Phase::AvoidingAudit, true);
+            self.enter_battle(BattleStep::AvoidingAudit);
         } else {
             let f = self.player(auditee).faction;
             self.log(le![f, " don't have cards to audit"]);
             let harkonnen_must_decide = self.harkonnen_must_decide_to_capture();
             // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
-            if self.battle.battle_winner == Some(None) {
+            if self.battle_winner().is_none() {
                 self.finish_battle()?;
             } else {
-                self.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+                self.enter_battle(if harkonnen_must_decide { BattleStep::CaptureDecision } else { BattleStep::Conclusion });
             }
         }
 
@@ -700,7 +879,7 @@ impl Game {
     }
 
     pub fn determine_if_captured_leaders_must_be_released(&mut self) {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return;
         };
 
@@ -723,7 +902,7 @@ impl Game {
         }
 
         //DetermineIfLeaderUsedInBattleMustBeReleased
-        if !self.battle.harkonnen_do_not_have_to_return_used_captured_leader {
+        if !self.fight().is_some_and(|c| c.harkonnen_do_not_have_to_return_used_captured_leader) {
             let used_leader_in_battle = current_battle.plan_of(self, Some(harkonnen)).and_then(|p| p.hero);
             if let Some(leader) = used_leader_in_battle.and_then(|h| h.as_leader()) {
                 if self.leaders.captured_leaders.contains_key(&leader) {
@@ -772,7 +951,7 @@ impl Game {
     pub fn choam_leader_was_revealed_as_traitor(&self) -> bool {
         let choam = self.get_player(Some(Faction::Choam));
         let Some(choam) = choam else { return false };
-        match &self.battle.current_battle {
+        match self.current_battle() {
             Some(current_battle) => {
                 current_battle.is_aggressor_or_defender(self, choam)
                     && current_battle.treachery_of_opponent(self, choam).is_some_and(|t| t.succeeded(self))
@@ -782,7 +961,7 @@ impl Game {
     }
 
     pub fn handle_battle_outcome(&mut self, agg: &BattlePlan, def: &BattlePlan, territory: Territory) -> GameResult {
-        let Some(outcome) = self.battle.battle_outcome.clone() else {
+        let Some(outcome) = self.fight().and_then(|c| c.outcome.clone()) else {
             game_error!("A required value is missing");
         };
 
@@ -820,8 +999,10 @@ impl Game {
         // The Kwisatz Haderach bonus shows on the leader in the revealed plans.
 
         let winner_faction = self.player(winner).faction;
-        self.battle.battle_winner = Some(winner_faction);
-        self.battle.battle_loser = Some(self.player(loser).faction);
+        let loser_faction = self.player(loser).faction;
+        let c = self.fight_mut();
+        c.winner = winner_faction;
+        c.loser = loser_faction;
 
         if outcome.agg_hero_killed && agg.hero.is_some() {
             self.kill_leader_in_battle(agg.hero.required("hero")?, outcome.agg_hero_cause_of_death, winner, outcome.agg_hero_effective_strength);
@@ -852,9 +1033,9 @@ impl Game {
             self.log_strength(def.initiator().required("faction")?, outcome.def_total);
         }
 
-        self.battle.loser_may_try_to_assassinate = self.battle.battle_loser == Some(Some(Faction::Moritani))
+        self.fight_mut().loser_may_try_to_assassinate = self.battle_loser() == Some(Faction::Moritani)
             && self.applicable(Rule::MoritaniAssassinate)
-            && self.leaders.assassinated.iter().all(|l| Some(l.faction()) != self.battle.battle_winner.flatten())
+            && self.leaders.assassinated.iter().all(|l| Some(l.faction()) != self.battle_winner())
             && winner_battle_plan.hero.is_some_and(|h| h.as_leader().is_some())
             && self.is_alive(winner_battle_plan.hero.required("hero")?);
 
@@ -872,7 +1053,7 @@ impl Game {
             && !Retreat::valid_targets(self, loser).next().is_none();
 
         if loser_may_retreat {
-            self.enter(Phase::Retreating, true);
+            self.enter_battle(BattleStep::Retreating);
         } else {
             self.handle_losses()?;
         }
@@ -880,7 +1061,7 @@ impl Game {
     }
 
     pub fn handle_harass_and_withdraw(&mut self, plan: &BattlePlan, territory: Territory) -> GameResult {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return Ok(());
         };
         if !plan.weapon().is_some_and(|w| w.type_() == TreacheryCardType::HarassAndWithdraw)
@@ -917,7 +1098,7 @@ impl Game {
     }
 
     pub fn handle_losses(&mut self) -> GameResult {
-        let (Some(current_battle), Some(outcome)) = (self.battle.current_battle.clone(), self.battle.battle_outcome.clone()) else {
+        let (Some(current_battle), Some(outcome)) = (self.current_battle().cloned(), self.fight().and_then(|c| c.outcome.clone())) else {
             return Ok(());
         };
 
@@ -959,20 +1140,20 @@ impl Game {
     }
 
     pub fn process_ecaz_occupation_winner_losses(&mut self, territory: Territory, winner: PlayerId) -> GameResult {
-        if self.battle.current_ecaz_battle_contribution > 0 && self.player(winner).or_ally_is(Faction::Ecaz) {
+        if self.fight().map_or(0, |c| c.ecaz_battle_contribution) > 0 && self.player(winner).or_ally_is(Faction::Ecaz) {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return Ok(()) };
-            let amount = self.battle.current_ecaz_battle_contribution;
+            let amount = self.fight().map_or(0, |c| c.ecaz_battle_contribution);
             Player::kill_forces_in_territory(self, ecaz, territory, amount, false, true)?;
             let force = self.player(ecaz).force();
-            let amount = self.battle.current_ecaz_battle_contribution;
+            let amount = self.fight().map_or(0, |c| c.ecaz_battle_contribution);
             self.log(le![Faction::Ecaz, " lose ", amount, force]);
         }
         Ok(())
     }
 
     pub fn process_ecaz_occupation_loser_losses(&mut self, territory: Territory, loser: PlayerId) -> GameResult {
-        if self.battle.current_ecaz_battle_contribution > 0 && self.player(loser).or_ally_is(Faction::Ecaz) {
+        if self.fight().map_or(0, |c| c.ecaz_battle_contribution) > 0 && self.player(loser).or_ally_is(Faction::Ecaz) {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             let Some(ecaz) = ecaz else { return Ok(()) };
             self.log_all_forces_lost(ecaz, territory);
@@ -1059,7 +1240,7 @@ impl Game {
                         self.log(le![Faction::Choam, " get ", Payment::of(result), " from supported forces"]);
 
                         if result >= 5 {
-                            self.battle.battle_triggered_bureaucracy = Some(TriggeredBureaucracy {
+                            self.fight_mut().triggered_bureaucracy = Some(TriggeredBureaucracy {
                                 payment_from: self.player(paid_by).faction,
                                 payment_to: Some(Faction::Choam),
                                 ..Default::default()
@@ -1154,7 +1335,7 @@ impl Game {
             let winner_special_forces_lost = special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory;
             self.handle_force_losses(territory, force_supplier, winner_forces_lost, winner_special_forces_lost)?;
         } else {
-            self.battle.ixian_special_force_losses_to_take = special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory;
+            self.fight_mut().ixian_special_force_losses_to_take = special_forces_to_lose - special_forces_to_save_to_reserves - special_forces_to_save_in_territory;
         }
         Ok(())
     }
@@ -1249,7 +1430,7 @@ impl Game {
     }
 
     pub fn traitor_called(&mut self, b: &InitiatedBattle, agg: &BattlePlan, def: &BattlePlan, defender_treachery: &TraitorCall, agg_leader: Option<Hero>, def_leader: Option<Hero>) -> GameResult {
-        let aggressor_traitor_action = self.battle.aggressor_traitor_action.clone();
+        let aggressor_traitor_action = self.fight().and_then(|c| c.aggressor_traitor_action.clone());
         if aggressor_traitor_action.as_ref().is_some_and(|a| a.succeeded(self)) && defender_treachery.succeeded(self) {
             let (Some(agg_leader), Some(def_leader)) = (agg_leader, def_leader) else {
                 game_error!("A required value is missing");
@@ -1264,7 +1445,7 @@ impl Game {
             let loser_gambit = if aggressor_traitor_action.succeeded(self) { def } else { agg };
             let winner_gambit = if aggressor_traitor_action.succeeded(self) { agg } else { def };
             if self.player(winner).is(Faction::Harkonnen) {
-                self.battle.harkonnen_do_not_have_to_return_used_captured_leader = true;
+                self.fight_mut().harkonnen_do_not_have_to_return_used_captured_leader = true;
             }
             let territory = b.territory.required("territory")?;
             self.one_traitor_called(territory, winner, loser, loser_gambit, winner_gambit)?;
@@ -1287,7 +1468,7 @@ impl Game {
 
         // The traitor decides the battle, but the strengths were worked out
         // already, and the log shows them.
-        if let (Some(current_battle), Some(outcome)) = (self.battle.current_battle.clone(), self.battle.battle_outcome.clone()) {
+        if let (Some(current_battle), Some(outcome)) = (self.current_battle().cloned(), self.fight().and_then(|c| c.outcome.clone())) {
             let aggressor = current_battle.aggressor(self);
             self.log_strength(aggressor.required("faction")?, outcome.agg_total);
             let defender = current_battle.defender(self);
@@ -1313,8 +1494,10 @@ impl Game {
             crate::game::amounts::gain(&mut pl.resources, traitor_value, "spice")?;
         }
 
-        self.battle.battle_winner = Some(self.player(winner).faction);
-        self.battle.battle_loser = Some(self.player(loser).faction);
+        let (winner_faction, loser_faction) = (self.player(winner).faction, self.player(loser).faction);
+        let c = self.fight_mut();
+        c.winner = winner_faction;
+        c.loser = loser_faction;
 
         let force_supplier_of_loser = Battle::determine_force_supplier(self, loser);
 
@@ -1484,28 +1667,28 @@ impl Game {
 
         if !available_leaders.is_empty() {
             available_leaders.shuffle(&mut self.rng);
-            self.battle.harkonnen_victim = Some(available_leaders.draw());
+            self.fight_mut().harkonnen_victim = Some(available_leaders.draw());
         } else {
-            self.battle.harkonnen_victim = None;
+            self.fight_mut().harkonnen_victim = None;
             let f = self.player(victim).faction;
             self.log(le![f, " don't have any leaders for ", Faction::Harkonnen, " to capture or kill"]);
         }
     }
 
     pub fn finish_battle(&mut self) -> GameResult {
-        let Some(aggressor_plan) = self.battle.aggressor_plan.clone() else {
+        let Some(aggressor_plan) = self.aggressor_plan().cloned() else {
             game_error!("Aggressor plan is null");
         };
-        let Some(defender_plan) = self.battle.defender_plan.clone() else {
+        let Some(defender_plan) = self.defender_plan().cloned() else {
             game_error!("Defender plan is null");
         };
-        let Some(aggressor_traitor_action) = self.battle.aggressor_traitor_action.clone() else {
+        let Some(aggressor_traitor_action) = self.fight().and_then(|c| c.aggressor_traitor_action.clone()) else {
             game_error!("Aggressor traitor action is null");
         };
-        let Some(defender_traitor_action) = self.battle.defender_traitor_action.clone() else {
+        let Some(defender_traitor_action) = self.fight().and_then(|c| c.defender_traitor_action.clone()) else {
             game_error!("Defender traitor action is null");
         };
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             game_error!("Current battle is null");
         };
 
@@ -1535,15 +1718,16 @@ impl Game {
         if self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor)) {
             self.turn.current_juice = None;
         }
-        self.battle.current_diplomacy = None;
-        self.battle.current_rock_was_melted = None;
-        self.battle.current_portable_antidote_used = None;
-        self.battle.harkonnen_do_not_have_to_return_used_captured_leader = false;
+        let c = self.fight_mut();
+        c.diplomacy = None;
+        c.rock_was_melted = None;
+        c.portable_antidote_used = None;
+        c.harkonnen_do_not_have_to_return_used_captured_leader = false;
         self.finish_decipherer_if_applicable();
         if self.advance_battle_sequence().is_none() {
             self.main_phase_end();
         }
-        self.enter(Phase::BattleReport, true);
+        self.enter_battle(BattleStep::Report);
         Ok(())
     }
 
@@ -1590,7 +1774,7 @@ impl Game {
     }
 
     pub fn return_skilled_leaders_in_front_of_shield_after_battle(&mut self) {
-        let Some(current_battle) = self.battle.current_battle.clone() else {
+        let Some(current_battle) = self.current_battle().cloned() else {
             return;
         };
 
@@ -1643,18 +1827,18 @@ impl Game {
             && self.player(p).nexus == Some(Faction::Moritani)
             && NexusPlayed::can_use_secret_ally(self, p)
         {
-            self.battle.secret_ally_allows_keeping_cards_after_losing_battle = true;
+            self.battle_leftovers.secret_ally_allows_keeping_cards_after_losing_battle = true;
         }
 
         if may_choose_to_keep_one {
             if let Some(weapon) = plan.weapon() {
                 if self.player(p).has(Some(weapon)) {
-                    self.battle.cards_to_be_discarded_by_loser_after_battle.push(weapon);
+                    self.fight_mut().cards_to_be_discarded_by_loser.push(weapon);
                 }
             }
             if let Some(defense) = plan.defense() {
                 if self.player(p).has(Some(defense)) {
-                    self.battle.cards_to_be_discarded_by_loser_after_battle.push(defense);
+                    self.fight_mut().cards_to_be_discarded_by_loser.push(defense);
                 }
             }
         } else {
@@ -1672,7 +1856,7 @@ impl Game {
     /// sequence, or the first after them who has a battle to fight. `None` when nobody has one.
     /// Reads the sequence without changing it; [`Game::advance_battle_sequence`] moves it on.
     pub fn next_player_to_battle(&self) -> Option<PlayerId> {
-        let mut seq = self.battle.battle_sequence.clone()?;
+        let mut seq = self.battle()?.order.clone();
         self.skip_players_without_battles(&mut seq)
     }
 
@@ -1681,9 +1865,9 @@ impl Game {
     /// each battle, and after each event while a player is to initiate a battle or the battle
     /// report is shown (`Game::play`), so a player passed over stays passed over.
     pub fn advance_battle_sequence(&mut self) -> Option<PlayerId> {
-        let mut seq = self.battle.battle_sequence.take()?;
+        let mut seq = self.battle()?.order.clone();
         let next = self.skip_players_without_battles(&mut seq);
-        self.battle.battle_sequence = Some(seq);
+        self.battle_mut()?.order = seq;
         next
     }
 
@@ -1703,14 +1887,14 @@ impl Game {
 
     pub fn auditee(&self) -> Option<PlayerId> {
         if self.applicable(Rule::ChoamAuditor) && !self.prevented(FactionAdvantage::ChoamAudit) {
-            if self.battle.aggressor_plan.as_ref().is_some_and(|p| p.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor)) {
-                if let Some(defender_plan) = &self.battle.defender_plan {
+            if self.aggressor_plan().is_some_and(|p| p.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor)) {
+                if let Some(defender_plan) = self.defender_plan() {
                     return Some(defender_plan.player());
                 }
             }
 
-            if self.battle.defender_plan.as_ref().is_some_and(|p| p.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor)) {
-                if let Some(aggressor_plan) = &self.battle.aggressor_plan {
+            if self.defender_plan().is_some_and(|p| p.hero.is_some_and(|h| h.hero_type() == HeroType::Auditor)) {
+                if let Some(aggressor_plan) = self.aggressor_plan() {
                     return Some(aggressor_plan.player());
                 }
             }
@@ -1721,11 +1905,11 @@ impl Game {
 
     pub fn winner_hero(&self) -> Option<Hero> {
         // `Faction? != Faction.None`: true when BattleWinner is null.
-        if self.battle.battle_winner != Some(None) {
-            let winner_gambit = if self.battle.battle_winner == self.battle.aggressor_plan.as_ref().map(|p| p.initiator()) {
-                self.battle.aggressor_plan.as_ref()
+        if self.battle_winner().is_some() {
+            let winner_gambit = if self.aggressor_plan().is_some_and(|p| p.initiator() == self.battle_winner()) {
+                self.aggressor_plan()
             } else {
-                self.battle.defender_plan.as_ref()
+                self.defender_plan()
             };
             return winner_gambit.and_then(|p| p.hero);
         }
@@ -1734,13 +1918,13 @@ impl Game {
     }
 
     pub fn winner_battle_action(&self) -> Option<BattlePlan> {
-        if let Some(aggressor_plan) = &self.battle.aggressor_plan {
-            if Some(aggressor_plan.initiator()) == self.battle.battle_winner {
+        if let Some(aggressor_plan) = self.aggressor_plan() {
+            if aggressor_plan.initiator() == self.battle_winner() {
                 return Some(aggressor_plan.clone());
             }
         }
-        if let Some(defender_plan) = &self.battle.defender_plan {
-            if Some(defender_plan.initiator()) == self.battle.battle_winner {
+        if let Some(defender_plan) = self.defender_plan() {
+            if defender_plan.initiator() == self.battle_winner() {
                 return Some(defender_plan.clone());
             }
         }
@@ -1750,7 +1934,7 @@ impl Game {
 
     pub fn can_join_current_battle(&self, hero: Hero) -> bool {
         let current_territory = self.leaders.leader_state[&hero].current_territory;
-        current_territory.is_none() || current_territory == self.battle.current_battle.as_ref().and_then(|b| b.territory)
+        current_territory.is_none() || current_territory == self.current_battle().and_then(|b| b.territory)
     }
 }
 
@@ -1794,8 +1978,8 @@ impl GameStatus {
             Phase::BeginningOfBattle => Self::host_status("You may proceed to the first battle when ready.", "Waiting for the host to proceed to the first battle...", None),
 
             Phase::ClaimingBattle => {
-                let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory);
-                let battle = g.battle.battle_about_to_start.clone().expect("battle about to start");
+                let a = express!("You may now decide who will fight in ", g.battle_about_to_start().expect("battle about to start").territory);
+                let battle = g.battle_about_to_start().cloned().expect("battle about to start");
                 let f: Option<Option<Faction>> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction) } else { Some(Some(Faction::Ecaz)) };
                 let w = express!(f, " are deciding who will fight in ", battle.territory, "...");
                 let p = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz) } else { g.get_player(Some(Faction::Ecaz)) };
@@ -1803,12 +1987,12 @@ impl GameStatus {
             }
 
             Phase::Thought => {
-                let a = express!(g.battle.current_thought.as_ref().expect("current thought").initiator(), " asked you a question and are waiting for your answer.");
-                let battle = g.battle.current_battle.clone().expect("current battle");
-                let thought_initiator = g.battle.current_thought.as_ref().expect("current thought").initiator();
+                let a = express!(g.fight().and_then(|c| c.thought.as_ref()).expect("current thought").initiator(), " asked you a question and are waiting for your answer.");
+                let battle = g.current_battle().cloned().expect("current battle");
+                let thought_initiator = g.fight().and_then(|c| c.thought.as_ref()).expect("current thought").initiator();
                 let w = express!("Waiting for ", battle.opponent_of_faction(g, thought_initiator).map(|p| g.player(p).faction), " to answer a question...");
-                let battle = g.battle.current_battle.clone().expect("current battle");
-                let p = battle.opponent_of_faction(g, g.battle.current_thought.as_ref().expect("current thought").initiator());
+                let battle = g.current_battle().cloned().expect("current battle");
+                let p = battle.opponent_of_faction(g, g.fight().and_then(|c| c.thought.as_ref()).expect("current thought").initiator());
                 Self::player_status(a, w, p, None)
             }
 
@@ -1817,10 +2001,10 @@ impl GameStatus {
             Phase::MeltingRock => {
                 let a = express!("Please decide how to use your ", TreacheryCardType::Rockmelter, ".");
                 let w = express!("Waiting for a decision on how they wish to use their ", TreacheryCardType::Rockmelter, "...");
-                let p = if g.battle.aggressor_plan.as_ref().expect("aggressor plan").has_rock_melter() {
-                    Some(g.battle.current_battle.as_ref().expect("current battle").player())
+                let p = if g.aggressor_plan().expect("aggressor plan").has_rock_melter() {
+                    Some(g.current_battle().expect("current battle").player())
                 } else {
-                    g.battle.current_battle.as_ref().expect("current battle").defending_player(g)
+                    g.current_battle().expect("current battle").defending_player(g)
                 };
                 Self::player_status(a, w, p, None)
             }
@@ -1833,9 +2017,9 @@ impl GameStatus {
             Phase::CancellingTraitor => Self::host_status("You may proceed when done waiting for players to cancel a traitor call.", "Players may now try to cancel a traitor call...", None),
 
             Phase::Retreating => {
-                let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
-                let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory, ".");
-                Self::faction_status(g, a, w, g.battle.battle_loser.flatten(), None)
+                let a = express!("Please decide about retreating forces from ", g.current_battle().expect("current battle").territory, ".");
+                let w = express!(g.battle_loser(), " are thinking about retreating forces from ", g.current_battle().expect("current battle").territory, ".");
+                Self::faction_status(g, a, w, g.battle_loser(), None)
             }
 
             Phase::AvoidingAudit => {
@@ -1859,9 +2043,9 @@ impl GameStatus {
 
             Phase::BattleConclusion => {
                 let a = express!("You won!");
-                let w = express!(game.battle.battle_winner, " are celebrating their victory in battle...");
-                let f = game.battle.battle_winner;
-                Self::faction_status(game, a, w, f.flatten(), None)
+                let w = express!(game.battle_winner(), " are celebrating their victory in battle...");
+                let f = game.battle_winner();
+                Self::faction_status(game, a, w, f, None)
             }
 
             Phase::RevealingFacedancer => {
@@ -1899,138 +2083,41 @@ impl Game {
     /// What `player` may do in the battle phase (see `add_player_actions`).
     pub(crate) fn add_battle_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
         let faction = self.player(player).faction;
-        match self.phase() {
-            Phase::BattlePhase => {
-                if self.battle.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
-                    result.push(EventType::BattleInitiated);
-                }
-
-                if self.battle.current_battle.is_some() && SwitchedSkilledLeader::can_be_played(self, player) {
-                    result.push(EventType::SwitchedSkilledLeader);
-                }
-
-                if HMSAdvantageChosen::can_be_played(self, player) {
-                    result.push(EventType::HMSAdvantageChosen);
-                }
-
-                if Voice::may_use_voice(self, player) {
-                    result.push(EventType::Voice);
-                }
-
-                if VoiceDeclined::may_decline(self, player) {
-                    result.push(EventType::VoiceDeclined);
-                }
-
-                if Thought::may_be_used(self, player) {
-                    result.push(EventType::Thought);
-                }
-
-                if Prescience::may_use_prescience(self, player) {
-                    result.push(EventType::Prescience);
-                }
-
-                if let Some(cb) = self.battle.current_battle.clone() {
-                    if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_none() {
-                        result.push(EventType::Battle);
-                    } else if faction == cb.defender(self) && self.battle.defender_plan.is_none() {
-                        result.push(EventType::Battle);
-                    }
-
-                    if faction == cb.aggressor(self) && self.battle.aggressor_plan.is_some() {
-                        result.push(EventType::BattleRevision);
-                    } else if faction == cb.defender(self) && self.battle.defender_plan.is_some() {
-                        result.push(EventType::BattleRevision);
-                    }
-
-                    if ResidualPlayed::may_play(self, player) {
-                        result.push(EventType::ResidualPlayed);
-                    }
-                }
-
+        // Replacing a Face Dancer happens at the end of the turn; its status is with the battle's.
+        if self.phase() == Phase::ReplacingFaceDancer {
+            if faction == Some(Faction::Tleilaxu) {
+                result.push(EventType::FaceDancerReplaced);
             }
+            return;
+        }
 
-            Phase::ClaimingBattle => {
-                if self.has_low_threshold(Faction::Ecaz) {
-                    let opponent = match &self.battle.battle_about_to_start {
-                        Some(b) => b.opponent_of_faction(self, Faction::Ecaz),
-                        None => None,
-                    };
-                    if opponent.is_some_and(|o| self.player(o).is(faction)) {
-                        result.push(EventType::BattleClaimed);
-                    }
-                } else if faction == Some(Faction::Ecaz) {
-                    result.push(EventType::BattleClaimed);
-                }
-            }
-
-            Phase::CallTraitorOrPass => {
-                if let (Some(cb), Some(ap), Some(dp)) = (&self.battle.current_battle, &self.battle.aggressor_plan, &self.battle.defender_plan) {
-                    let traitors = &self.player(player).traitors;
-                    let ally_of = |f: Faction| self.get_player(Some(f)).map(|p| self.player(p).ally);
-                    if (self.battle.aggressor_traitor_action.is_none() && faction == cb.aggressor(self))
-                        || (self.battle.aggressor_traitor_action.is_none()
-                            && faction == Some(Faction::Harkonnen)
-                            && ally_of(ap.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
-                            && dp.hero.is_some()
-                            && traitors.contains(&dp.hero.expect("hero")))
-                        || (self.battle.defender_traitor_action.is_none() && faction == cb.defender(self))
-                        || (self.battle.defender_traitor_action.is_none()
-                            && faction == Some(Faction::Harkonnen)
-                            && ally_of(dp.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
-                            && ap.hero.is_some()
-                            && traitors.contains(&ap.hero.expect("hero")))
-                    {
-                        result.push(EventType::TreacheryCalled);
-                    }
-                }
-
-                if let Some(ap) = &self.battle.aggressor_plan {
-                    if faction == ap.initiator()
-                        && ap.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
-                        && !self.battle.poison_tooth_cancelled
-                    {
-                        result.push(EventType::PoisonToothCancelled);
-                    }
-                }
-
-                if let Some(dp) = &self.battle.defender_plan {
-                    if faction == dp.initiator()
-                        && dp.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
-                        && !self.battle.poison_tooth_cancelled
-                    {
-                        result.push(EventType::PoisonToothCancelled);
-                    }
-                }
-
-                if PortableAntidoteUsed::can_be_played(self, player) {
-                    result.push(EventType::PortableAntidoteUsed);
-                }
-
-                if Diplomacy::can_be_played(self, player) {
-                    result.push(EventType::Diplomacy);
-                }
-            }
-
-            Phase::Retreating => {
-                if Some(faction) == self.battle.battle_loser {
+        // Only while the battle step is on top (no interrupt suspends it).
+        let Some(step) = BattleStep::of(self.phase()) else { return };
+        match step {
+            BattleStep::Planning => self.add_planning_actions(player, result),
+            BattleStep::Claiming => self.add_claiming_actions(player, result),
+            BattleStep::Thought => self.add_thought_actions(player, result),
+            BattleStep::CallingTraitor => self.add_calling_traitor_actions(player, result),
+            BattleStep::Retreating => {
+                if faction == self.battle_loser() {
                     result.push(EventType::Retreat);
                 }
             }
 
-            Phase::MeltingRock => {
+            BattleStep::MeltingRock => {
                 if RockWasMelted::can_be_played(self, player) {
                     result.push(EventType::RockWasMelted);
                 }
             }
 
-            Phase::CaptureDecision => {
+            BattleStep::CaptureDecision => {
                 if faction == Some(Faction::Harkonnen) {
                     result.push(EventType::Captured);
                 }
             }
 
-            Phase::BattleConclusion => {
-                if Some(faction) == self.battle.battle_winner && !self.battle.battle_was_concluded_by_winner {
+            BattleStep::Conclusion => {
+                if faction == self.battle_winner() && !self.fight().is_some_and(|c| c.concluded_by_winner) {
                     result.push(EventType::BattleConcluded);
                 }
                 if LoserConcluded::is_applicable(self, Some(player)) {
@@ -2038,54 +2125,161 @@ impl Game {
                 }
             }
 
-            Phase::AvoidingAudit => {
+            BattleStep::AvoidingAudit => {
                 if Some(player) == self.auditee() {
                     result.push(EventType::AuditCancelled);
                 }
             }
 
-            Phase::Auditing => {
+            BattleStep::Auditing => {
                 if faction == Some(Faction::Choam) {
                     result.push(EventType::Audited);
                 }
             }
 
-            Phase::RevealingFacedancer => {
+            BattleStep::RevealingFacedancer => {
                 if faction == Some(Faction::Tleilaxu) {
                     result.push(EventType::FaceDancerRevealed);
                 }
             }
 
-            Phase::Facedancing => {
+            BattleStep::Facedancing => {
                 if faction == Some(Faction::Tleilaxu) {
                     result.push(EventType::FaceDanced);
                 }
             }
 
-            Phase::BattleReport => {
-                // NextPlayerToBattle mutates BattleSequence; only read when the
-                // preceding conditions hold.
+            // The host ends these steps.
+            BattleStep::Beginning | BattleStep::CancellingTraitor | BattleStep::Report => {}
+        }
+    }
+
+    /// Choosing a battle, then the plans and what may be played before they are revealed.
+    fn add_planning_actions(&self, player: PlayerId, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        if self.current_battle().is_none() && Some(player) == self.next_player_to_battle() {
+            result.push(EventType::BattleInitiated);
+        }
+
+        if self.current_battle().is_some() && SwitchedSkilledLeader::can_be_played(self, player) {
+            result.push(EventType::SwitchedSkilledLeader);
+        }
+
+        if HMSAdvantageChosen::can_be_played(self, player) {
+            result.push(EventType::HMSAdvantageChosen);
+        }
+
+        if Voice::may_use_voice(self, player) {
+            result.push(EventType::Voice);
+        }
+
+        if VoiceDeclined::may_decline(self, player) {
+            result.push(EventType::VoiceDeclined);
+        }
+
+        if Thought::may_be_used(self, player) {
+            result.push(EventType::Thought);
+        }
+
+        if Prescience::may_use_prescience(self, player) {
+            result.push(EventType::Prescience);
+        }
+
+        if let Some(cb) = self.current_battle().cloned() {
+            if faction == cb.aggressor(self) && self.aggressor_plan().is_none() {
+                result.push(EventType::Battle);
+            } else if faction == cb.defender(self) && self.defender_plan().is_none() {
+                result.push(EventType::Battle);
             }
 
-            Phase::ReplacingFaceDancer => {
-                if faction == Some(Faction::Tleilaxu) {
-                    result.push(EventType::FaceDancerReplaced);
-                }
+            if faction == cb.aggressor(self) && self.aggressor_plan().is_some() {
+                result.push(EventType::BattleRevision);
+            } else if faction == cb.defender(self) && self.defender_plan().is_some() {
+                result.push(EventType::BattleRevision);
             }
 
-            Phase::Thought => {
-                // `CurrentBattle?.OpponentOf(CurrentThought!.Initiator)`: the argument (and its
-                // NullReferenceException) is only evaluated when CurrentBattle is not null.
-                let opponent = match &self.battle.current_battle {
-                    Some(cb) => cb.opponent_of_faction(self, self.battle.current_thought.as_ref().expect("current thought").initiator()),
-                    None => None,
-                };
-                if Some(player) == opponent {
-                    result.push(EventType::ThoughtAnswered);
-                }
+            if ResidualPlayed::may_play(self, player) {
+                result.push(EventType::ResidualPlayed);
             }
+        }
+    }
 
-            _ => {}
+    /// Ecaz, or at low threshold their opponent, decide who fights.
+    fn add_claiming_actions(&self, player: PlayerId, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        if self.has_low_threshold(Faction::Ecaz) {
+            let opponent = match self.battle_about_to_start() {
+                Some(b) => b.opponent_of_faction(self, Faction::Ecaz),
+                None => None,
+            };
+            if opponent.is_some_and(|o| self.player(o).is(faction)) {
+                result.push(EventType::BattleClaimed);
+            }
+        } else if faction == Some(Faction::Ecaz) {
+            result.push(EventType::BattleClaimed);
+        }
+    }
+
+    /// The opponent of a Thinker answers their question.
+    fn add_thought_actions(&self, player: PlayerId, result: &mut Vec<EventType>) {
+        // `CurrentBattle?.OpponentOf(CurrentThought!.Initiator)`: the argument (and its
+        // NullReferenceException) is only evaluated when CurrentBattle is not null.
+        let opponent = match self.current_battle() {
+            Some(cb) => cb.opponent_of_faction(self, self.fight().and_then(|c| c.thought.as_ref()).expect("current thought").initiator()),
+            None => None,
+        };
+        if Some(player) == opponent {
+            result.push(EventType::ThoughtAnswered);
+        }
+    }
+
+    /// Calling treachery, and the cards and skills used before the battle is resolved.
+    fn add_calling_traitor_actions(&self, player: PlayerId, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        if let (Some(cb), Some(ap), Some(dp)) = (self.current_battle(), self.aggressor_plan(), self.defender_plan()) {
+            let traitors = &self.player(player).traitors;
+            let ally_of = |f: Faction| self.get_player(Some(f)).map(|p| self.player(p).ally);
+            if (self.fight().map_or(true, |c| c.aggressor_traitor_action.is_none()) && faction == cb.aggressor(self))
+                || (self.fight().map_or(true, |c| c.aggressor_traitor_action.is_none())
+                    && faction == Some(Faction::Harkonnen)
+                    && ally_of(ap.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
+                    && dp.hero.is_some()
+                    && traitors.contains(&dp.hero.expect("hero")))
+                || (self.fight().map_or(true, |c| c.defender_traitor_action.is_none()) && faction == cb.defender(self))
+                || (self.fight().map_or(true, |c| c.defender_traitor_action.is_none())
+                    && faction == Some(Faction::Harkonnen)
+                    && ally_of(dp.initiator().expect("faction")) == Some(Some(Faction::Harkonnen))
+                    && ap.hero.is_some()
+                    && traitors.contains(&ap.hero.expect("hero")))
+            {
+                result.push(EventType::TreacheryCalled);
+            }
+        }
+
+        if let Some(ap) = self.aggressor_plan() {
+            if faction == ap.initiator()
+                && ap.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
+                && !self.fight().is_some_and(|c| c.poison_tooth_cancelled)
+            {
+                result.push(EventType::PoisonToothCancelled);
+            }
+        }
+
+        if let Some(dp) = self.defender_plan() {
+            if faction == dp.initiator()
+                && dp.weapon().is_some_and(|w| w.type_() == TreacheryCardType::PoisonTooth)
+                && !self.fight().is_some_and(|c| c.poison_tooth_cancelled)
+            {
+                result.push(EventType::PoisonToothCancelled);
+            }
+        }
+
+        if PortableAntidoteUsed::can_be_played(self, player) {
+            result.push(EventType::PortableAntidoteUsed);
+        }
+
+        if Diplomacy::can_be_played(self, player) {
+            result.push(EventType::Diplomacy);
         }
     }
 }

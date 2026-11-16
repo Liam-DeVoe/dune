@@ -13,28 +13,28 @@ impl EventRules for AllianceByAmbassador {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        let paused = game.ship_move.paused_ambassador_phase.required("paused ambassador phase")?;
-        game.enter(paused, true);
+        let Some(offer @ Interrupt::AllianceByAmbassador { offered_by, give_vidal_to_ally, take_vidal, .. }) = game.interrupts.last().cloned() else {
+            game_error!("No alliance offered by an ambassador");
+        };
+        game.resume(offer, true)?;
 
         if !self.passed {
-            let activated = game.ship_move.current_ambassador_activated.clone().required("current ambassador activated")?;
-            game.make_alliance(by.faction.required("initiator")?, activated.initiator().required("ambassador owner")?);
+            game.make_alliance(by.faction.required("initiator")?, offered_by.faction.required("ambassador owner")?);
 
-            if activated.ecaz_give_vidal_to_ally {
+            if give_vidal_to_ally {
                 game.take_vidal(by.player(), VidalMoment::EndOfTurn);
             }
 
             if game.turn.has_acted_or_passed.contains_opt(by.faction)
-                && game.turn.has_acted_or_passed.contains_opt(activated.initiator())
+                && game.turn.has_acted_or_passed.contains_opt(offered_by.faction)
             {
                 game.check_if_forces_should_be_destroyed_by_ally_presence(by.player())?;
             }
             game.flip_bene_gesserit_advisors_when_alone()?;
         } else {
-            let activated = game.ship_move.current_ambassador_activated.clone().required("current ambassador activated")?;
-            game.log(parts![by.faction, " don't ally with ", activated.initiator()]);
-            if activated.ecaz_take_vidal {
-                game.take_vidal(activated.player(), VidalMoment::AfterUsedInBattle);
+            game.log(parts![by.faction, " don't ally with ", offered_by.faction]);
+            if take_vidal {
+                game.take_vidal(offered_by.player(), VidalMoment::AfterUsedInBattle);
             }
         }
 

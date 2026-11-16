@@ -21,6 +21,9 @@ pub struct Alliances {
     pub richese_allows_use_of_no_field: bool,
     pub moritani_allows_keeping_cards: bool,
     pub ecaz_shares_ambassadors: bool,
+    /// The shipment permissions the Guild granted, in the order granted. They last until the
+    /// Guild lose their high threshold.
+    pub shipment_permissions: IndexMap<Faction, ShipmentPermission>,
 }
 
 /// An open alliance offer (`AllianceOffered`).
@@ -78,6 +81,7 @@ impl Alliances {
             richese_allows_use_of_no_field: Default::default(),
             moritani_allows_keeping_cards: Default::default(),
             ecaz_shares_ambassadors: Default::default(),
+            shipment_permissions: Default::default(),
         }
     }
 }

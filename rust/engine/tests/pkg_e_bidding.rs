@@ -14,6 +14,14 @@ fn game_with(factions: &[Faction]) -> Game {
     g
 }
 
+/// The bidding phase's state, entering the phase (at `Bidding`) first if the game isn't in it.
+fn bidding(g: &mut Game) -> &mut BiddingState {
+    if g.bidding().is_none() {
+        g.enter_bidding(BiddingStep::Bidding);
+    }
+    g.bidding_mut().unwrap()
+}
+
 fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).unwrap()
 }
@@ -35,13 +43,13 @@ fn text(m: Result<(), Rejection>) -> Option<String> {
 #[test]
 fn silent_bids_cannot_be_passed() {
     let mut g = game_with(&[Faction::Atreides, Faction::Richese]);
-    g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
+    bidding(&mut g).current_auction_type = Some(AuctionType::RicheseSilent);
     let mut bid = Bid::default();
     bid.passed = true;
     let by = By::new(&g, Faction::Atreides);
     assert!(bid.validate(&g, by).is_err());
 
-    g.bidding.current_auction_type = Some(AuctionType::BlackMarketSilent);
+    bidding(&mut g).current_auction_type = Some(AuctionType::BlackMarketSilent);
     assert!(bid.validate(&g, by).is_err());
 
     // A BlackMarketBid pass is always valid, even in a silent auction.
@@ -59,7 +67,7 @@ fn bid_total_amount_doesnt_wrap() {
     assert_eq!(bid.total_amount(), 65_536);
 
     let mut g = game_with(&[Faction::Atreides]);
-    g.bidding.current_auction_type = Some(AuctionType::Normal);
+    bidding(&mut g).current_auction_type = Some(AuctionType::Normal);
     // More than Atreides has.
     assert!(bid.validate(&g, By::new(&g, Faction::Atreides)).is_err());
 }
@@ -71,23 +79,24 @@ fn bid_must_beat_current_bid_except_in_silent_auctions() {
     g.player_mut(idx(&g, Faction::Harkonnen)).resources = 10;
     let mut current = Bid::default();
     current.amount = 5;
-    g.bidding.current_bid = Some(placed(&current, &mut g, Faction::Harkonnen));
+    let current = placed(&current, &mut g, Faction::Harkonnen);
+    bidding(&mut g).current_bid = Some(current);
 
     let mut bid = Bid::default();
     bid.amount = 5;
     let by = By::new(&g, Faction::Atreides);
 
-    g.bidding.current_auction_type = Some(AuctionType::Normal);
+    bidding(&mut g).current_auction_type = Some(AuctionType::Normal);
     assert!(bid.validate(&g, by).is_err());
 
-    g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
+    bidding(&mut g).current_auction_type = Some(AuctionType::RicheseSilent);
     assert!(bid.validate(&g, by).is_ok());
 }
 
 #[test]
 fn silent_bid_above_resources_is_rejected() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
+    bidding(&mut g).current_auction_type = Some(AuctionType::RicheseSilent);
     g.player_mut(idx(&g, Faction::Atreides)).resources = 3;
     g.player_mut(idx(&g, Faction::Emperor)).resources = 5;
     // Amount within resources, but Emperor's contribution pushes the total above them.
@@ -100,7 +109,7 @@ fn silent_bid_above_resources_is_rejected() {
 #[test]
 fn black_market_bid_validation_dereferences_null_player() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.bidding.current_auction_type = Some(AuctionType::BlackMarketNormal);
+    bidding(&mut g).current_auction_type = Some(AuctionType::BlackMarketNormal);
     let mut bmb = BlackMarketBid::default();
     bmb.amount = 1;
     // Initiator not in the game: Player is null.
@@ -112,7 +121,7 @@ fn black_market_bid_validation_dereferences_null_player() {
 #[test]
 fn bid_with_null_player_and_karma_card_is_invalid_not_a_crash() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.bidding.current_auction_type = Some(AuctionType::Normal);
+    bidding(&mut g).current_auction_type = Some(AuctionType::Normal);
     let mut bid = Bid::default();
     bid.amount = 1;
     let karma = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma).unwrap();
@@ -186,14 +195,13 @@ fn automatic_passes_stop_when_bidding_ends() {
             g.rules.automation_rules.push(rule.rule(-1, By::new(&g, f)));
         }
         g.turn.current_main_phase = MainPhase::Bidding;
-        g.enter(Phase::Bidding, false);
-        g.bidding.cards_on_auction = Some(Deck::empty());
+        g.enter_bidding(BiddingStep::Bidding);
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
-        let mut seq = g.bidding.bid_sequence.take().unwrap();
+        let mut seq = bidding(&mut g).bid_sequence.take().unwrap();
         g.skip_players_that_cant_bid(&mut seq);
-        g.bidding.bid_sequence = Some(seq);
+        bidding(&mut g).bid_sequence = Some(seq);
 
-        let first = g.bidding.bid_sequence.as_ref().unwrap().current_player(&g).unwrap();
+        let first = g.bidding().unwrap().bid_sequence.as_ref().unwrap().current_player(&g).unwrap();
         assert_ne!(first, atreides);
         let mut pass = Bid::default();
         pass.passed = true;
@@ -231,20 +239,20 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
             g.rules.automation_rules.push(rule.rule(-1, By::new(&g, f)));
         }
         g.turn.current_main_phase = MainPhase::Bidding;
-        g.enter(Phase::Bidding, false);
-        g.bidding.cards_on_auction = Some(Deck::empty());
+        g.enter_bidding(BiddingStep::Bidding);
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
         let mut high = Bid::default();
         high.amount = 15;
-        g.bidding.current_bid = Some(placed(&high, &mut g, Faction::Richese));
+        let high = placed(&high, &mut g, Faction::Richese);
+        bidding(&mut g).current_bid = Some(high);
         // Richese's hand filled up after the bid, so the sequence skips Richese from now on.
         let richese = idx(&g, Faction::Richese);
         g.player_mut(richese).treachery_cards = TreacheryCardManager::items().iter().copied().take(5).collect();
-        let mut seq = g.bidding.bid_sequence.take().unwrap();
+        let mut seq = bidding(&mut g).bid_sequence.take().unwrap();
         g.skip_players_that_cant_bid(&mut seq);
-        g.bidding.bid_sequence = Some(seq);
+        bidding(&mut g).bid_sequence = Some(seq);
 
-        let first = g.bidding.bid_sequence.as_ref().unwrap().current_player(&g).unwrap();
+        let first = g.bidding().unwrap().bid_sequence.as_ref().unwrap().current_player(&g).unwrap();
         assert_ne!(first, richese);
         let mut pass = Bid::default();
         pass.passed = true;

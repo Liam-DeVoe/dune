@@ -84,6 +84,31 @@ pub struct TurnState {
     pub current_ixian_cunning: Option<NexusCardPlayed>,
     pub harkonnen_traitor_was_cancelled: bool,
     pub facedancer_was_cancelled: bool,
+    /// What revivals leave for the rest of the turn and later (revival.rs).
+    pub revivals: Revivals,
+    /// What the last bidding phase left behind (bidding.rs).
+    pub last_bidding: BiddingLeftovers,
+    /// The intrusions waiting for an answer, the next first. The one being answered is also
+    /// shown by an `Interrupt::Intrusion`.
+    pub intrusions: Vec<Intrusion>,
+    /// Where the last shipment, move, revival or worm ride took forces, for the Bene Gesserit's
+    /// reaction to it. Cleared when the shipment and move phase starts.
+    pub last_shipment_or_movement: Option<ShipmentOrMovement>,
+    /// The moves of the latest shipment and move phase, for the arrows on the board.
+    pub recent_moves: Vec<RecentMove>,
+    /// Who occupied Arrakeen or Carthag when the shipment and move phase began, so may move
+    /// three territories.
+    pub factions_with_ornithopters_at_start_of_movement: Vec<Faction>,
+    /// Where the current shipper or mover took forces to a territory their ally is in.
+    pub chosen_destinations_with_allies: Vec<Territory>,
+    /// Bene Gesserit may accompany the latest shipment.
+    pub bene_gesserit_may_accompany: bool,
+    /// A Flight card played for the next move.
+    pub current_flight_used: Option<FlightUse>,
+    /// Who used the Flight discovery token for their next move.
+    pub current_flight_discovery_used: Option<By>,
+    /// The territories CHOAM closed to moves (`ChoamMovePrevention`), until the next shipment.
+    pub current_blocked_territories: Vec<Territory>,
 }
 
 impl TurnState {
@@ -116,6 +141,17 @@ impl TurnState {
             current_ixian_cunning: None,
             harkonnen_traitor_was_cancelled: Default::default(),
             facedancer_was_cancelled: Default::default(),
+            revivals: Revivals::new(),
+            last_bidding: BiddingLeftovers::default(),
+            intrusions: Vec::new(),
+            last_shipment_or_movement: None,
+            recent_moves: Vec::new(),
+            factions_with_ornithopters_at_start_of_movement: Vec::new(),
+            chosen_destinations_with_allies: Vec::new(),
+            bene_gesserit_may_accompany: false,
+            current_flight_used: None,
+            current_flight_discovery_used: None,
+            current_blocked_territories: Vec::new(),
         }
     }
 }
@@ -171,7 +207,7 @@ impl Game {
         // An intrusion is answered right after the shipment or move that caused it. One still
         // queued when a new phase starts can no longer be answered, and would take the place of
         // the next real one (escapes.md, "A Bene Gesserit intrusion left over from another phase").
-        self.ship_move.intrusions.clear();
+        self.turn.intrusions.clear();
     }
 
     pub fn main_phase_middle(&mut self) {

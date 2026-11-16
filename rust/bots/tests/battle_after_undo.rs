@@ -30,17 +30,17 @@ const INITIATE: &str = r#"{"$type":"BattleInitiated","Target":50,"_territoryId":
 fn a_battle_initiated_again_after_an_undo_is_a_new_battle() {
     let mut game = savegame();
     assert_eq!(game.history.entries.len(), 535);
-    let first = game.battle.current_battle.clone().unwrap();
+    let first = game.current_battle().cloned().unwrap();
 
     // Undoing a later event keeps the battle.
     submit(&mut game, r#"{"$type":"VoiceDeclined","Initiator":50,"Time":"2024-01-08T09:00:23+00:00"}"#);
     game.undo(535);
-    assert_eq!(game.battle.current_battle.as_ref(), Some(&first));
+    assert_eq!(game.current_battle(), Some(&first));
 
     // Undoing the battle and initiating it again makes a new one.
     game.undo(534);
     submit(&mut game, INITIATE);
-    let again = game.battle.current_battle.clone().unwrap();
+    let again = game.current_battle().cloned().unwrap();
     assert_eq!((again.initiator(), again.target, again.territory), (first.initiator(), first.target, first.territory));
     assert_ne!(again, first);
 }

@@ -12,7 +12,7 @@ impl EventRules for ChoamEconomics {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.charity.economics_status = self.status;
+        game.board.choam_economics_status = self.status;
         game.stone(Milestone::Economics);
         let m = self.describe(game, by);
         game.log_event(m);

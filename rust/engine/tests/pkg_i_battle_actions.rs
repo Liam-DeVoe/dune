@@ -93,7 +93,7 @@ fn voice_validate_with_null_player() {
     let r = outcome(|| v.validate(&g, by).err().map(|m| m.0.plain_text()));
     assert_eq!(r, Ok(Some("You cannot use Voice".to_string())));
     // With a battle, IsInvolved(p) dereferences the null player.
-    g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
+    g.enter_battle_state(BattleStep::Planning, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
     let r = outcome(|| v.validate(&g, by).err().map(|m| m.0.plain_text()));
     assert!(r.is_err());
 }
@@ -104,17 +104,16 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
     let tleilaxu = idx(&g, Faction::Tleilaxu);
     // No battle.
     assert!(!FaceDanced::may_call_face_dancer(&g, tleilaxu));
-    g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
-    // BattleWinner == Faction.None
-    g.battle.battle_winner = Some(None);
+    g.enter_battle_state(BattleStep::Planning, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
+    // No winner yet.
     assert!(!FaceDanced::may_call_face_dancer(&g, tleilaxu));
 
     // Emperor wins with a leader that is one of Tleilaxu's face dancers.
     let emperor_leader = LeaderManager::get_leaders(Faction::Emperor).next().unwrap();
     let mut p = plan(&g, Faction::Emperor, None, None);
     p.hero = Some(Hero::Leader(emperor_leader));
-    g.battle.aggressor_plan = Some(p);
-    g.battle.battle_winner = Some(Some(Faction::Emperor));
+    g.fight_mut().aggressor_plan = Some(p);
+    g.fight_mut().winner = Some(Faction::Emperor);
     g.player_mut(tleilaxu).face_dancers.push(Hero::Leader(emperor_leader));
     assert!(FaceDanced::may_call_face_dancer(&g, tleilaxu));
     // A revealed face dancer can't be called again.
@@ -144,11 +143,11 @@ fn face_danced_source_locations_message() {
 #[test]
 fn diplomacy_valid_cards() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
+    g.enter_battle_state(BattleStep::Planning, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
     let emperor = idx(&g, Faction::Emperor);
     let useless1 = card_of(TreacheryCardType::Useless, 0);
     let useless2 = card_of(TreacheryCardType::Useless, 1);
-    g.battle.aggressor_plan = Some(plan(&g, Faction::Emperor, Some(useless1), Some(useless2)));
+    g.fight_mut().aggressor_plan = Some(plan(&g, Faction::Emperor, Some(useless1), Some(useless2)));
     assert_eq!(Diplomacy::valid_cards(&g, emperor), vec![useless2]);
     // No plan: plan! throws.
     let atreides = idx(&g, Faction::Atreides);
@@ -157,16 +156,15 @@ fn diplomacy_valid_cards() {
 }
 
 #[test]
-fn juice_valid_types_with_null_battle_winner() {
+fn juice_valid_types_before_and_after_the_battle_is_decided() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let emperor = idx(&g, Faction::Emperor);
     g.turn.current_main_phase = MainPhase::Battle;
-    g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
-    g.battle.battle_winner = None;
-    assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::GoLast]);
-    g.battle.battle_winner = Some(None);
+    g.enter_battle_state(BattleStep::Planning, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
     assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::Aggressor, JuiceType::GoLast]);
-    g.battle.current_battle = None;
+    g.fight_mut().winner = Some(Faction::Emperor);
+    assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::GoLast]);
+    g.battle_mut().unwrap().current = None;
     assert_eq!(JuicePlayed::valid_types(&g, emperor), vec![JuiceType::GoFirst, JuiceType::GoLast]);
 }
 
@@ -177,7 +175,7 @@ fn traitor_discarded_appends_without_shuffling() {
     let leaders: Vec<Hero> = LeaderManager::get_leaders(Faction::Emperor).take(3).map(Hero::Leader).collect();
     g.decks.traitor_deck = Some(Deck::new(vec![leaders[0]]));
     g.player_mut(harkonnen).traitors = vec![leaders[1], leaders[2]];
-    g.enter(Phase::BattlePhase, false);
+    g.enter_battle_state(BattleStep::Planning, None);
     g.interrupt(Interrupt::DiscardingTraitor { faction: Some(Faction::Harkonnen), remaining: 1 });
 
     let by = By::new(&g, Faction::Harkonnen);
@@ -202,15 +200,16 @@ fn thought_answered_shows_only_the_asked_card_when_held() {
     let laser = card_of(TreacheryCardType::Laser, 0);
     let shield = card_of(TreacheryCardType::Shield, 0);
     g.player_mut(atreides).treachery_cards = vec![shield, laser];
-    g.battle.current_thought = Some(ThoughtAsked { submitter: By::new(&g, Faction::Emperor), card: Some(laser) });
+    g.enter_battle_state(BattleStep::Thought, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
+    g.fight_mut().thought = Some(ThoughtAsked { submitter: By::new(&g, Faction::Emperor), card: Some(laser) });
     assert_eq!(ThoughtAnswered::valid_cards(&g, atreides), vec![laser]);
 
     g.player_mut(atreides).treachery_cards = vec![shield];
-    g.battle.current_thought = Some(ThoughtAsked { submitter: By::new(&g, Faction::Emperor), card: Some(card_of(TreacheryCardType::Laser, 0)) });
+    g.fight_mut().thought = Some(ThoughtAsked { submitter: By::new(&g, Faction::Emperor), card: Some(card_of(TreacheryCardType::Laser, 0)) });
     assert_eq!(ThoughtAnswered::valid_cards(&g, atreides), vec![shield]);
 
     // No thought: CurrentThought.Card throws.
-    g.battle.current_thought = None;
+    g.fight_mut().thought = None;
     let r = outcome(|| ThoughtAnswered::valid_cards(&g, atreides));
     assert!(r.is_err());
 }

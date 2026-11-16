@@ -36,18 +36,15 @@ fn card(game: &Game, type_: TreacheryCardType) -> TreacheryCard {
 }
 
 /// What a bot could change in a game, one item per line: the saved history, every log message,
-/// the random draws made, phase and moment, every player's whole state, the battle in progress
-/// (plans, battle, outcome, the Diplomat's card), leaders, spice on the planet and the decks.
+/// the random draws made, phase and moment, every player's whole state, the battle phase (with
+/// the battle in progress: plans, outcome, the Diplomat's card, ...), leaders, spice on the planet and the decks.
 fn fingerprint(game: &Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(game)),
         format!("stream position: {:?}", game.rng.get_word_pos()),
         format!("phase: {} {} {} turn {} milestones {:?}", game.phase(), game.turn.current_main_phase, name_or_absent(game.turn.current_moment), game.turn.current_turn, game.turn.recent_milestones),
-        format!("battle: {:?}", game.battle.current_battle),
-        format!("aggressor plan: {:?}", game.battle.aggressor_plan),
-        format!("defender plan: {:?}", game.battle.defender_plan),
-        format!("outcome: {:?}", game.battle.battle_outcome),
-        format!("card used by diplomat: {:?}", game.battle.card_used_by_diplomat),
+        format!("battle phase: {:?}", game.battle()),
+        format!("battle leftovers: {:?}", game.battle_leftovers),
         format!("leaders: {:?}", game.leaders.leader_state),
         format!("spice on planet: {:?}", game.board.resources_on_planet),
         format!("treachery deck: {:?}", game.decks.treachery_deck),
@@ -97,21 +94,21 @@ fn deciding_never_changes_the_game() {
 #[test]
 fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
     let mut game = load("mc-treachery");
-    let (mut agg, mut def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
+    let (mut agg, mut def) = (game.aggressor_plan().cloned().unwrap(), game.defender_plan().cloned().unwrap());
     assert!(agg.hero.is_some() && def.hero.is_some());
     agg.set_weapon(Some(card(&game, T::MirrorWeapon)));
     def.set_weapon(Some(card(&game, T::Laser)));
-    game.battle.aggressor_plan = Some(agg.clone());
-    game.battle.defender_plan = Some(def.clone());
+    game.fight_mut().aggressor_plan = Some(agg.clone());
+    game.fight_mut().defender_plan = Some(def.clone());
 
     let messages = game.current_report().messages.len();
     let before = fingerprint(&game);
     let decision = bot(&game, def.player()).determine_rock_was_melted(&game);
     assert!(fingerprint(&game) == before, "deciding changed the game");
-    assert_eq!(game.battle.aggressor_plan.as_ref().unwrap().weapon().map(|c| c.type_()), Some(T::MirrorWeapon), "the live plan keeps its Mirror Weapon");
+    assert_eq!(game.aggressor_plan().unwrap().weapon().map(|c| c.type_()), Some(T::MirrorWeapon), "the live plan keeps its Mirror Weapon");
 
     // The same outcome, worked out for real, logs the Mirror Weapon and picks the same winner.
-    let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
+    let territory = game.current_battle().unwrap().territory.unwrap();
     let outcome = Battle::determine_battle_outcome(&mut agg, &mut def, territory, &mut game);
     assert_eq!(game.current_report().messages.len(), messages + 1);
     assert_eq!(decision.kill, outcome.winner == Some(def.player()));
@@ -123,13 +120,13 @@ fn rock_melter_decision_with_a_mirror_weapon_leaves_the_game_alone() {
 #[test]
 fn the_fingerprint_sees_what_the_impure_rock_melter_decision_changed() {
     let mut game = load("mc-treachery");
-    let (mut agg, mut def) = (game.battle.aggressor_plan.clone().unwrap(), game.battle.defender_plan.clone().unwrap());
+    let (mut agg, mut def) = (game.aggressor_plan().cloned().unwrap(), game.defender_plan().cloned().unwrap());
     agg.set_weapon(Some(card(&game, T::MirrorWeapon)));
     def.set_weapon(Some(card(&game, T::Laser)));
-    game.battle.aggressor_plan = Some(agg.clone());
-    game.battle.defender_plan = Some(def.clone());
+    game.fight_mut().aggressor_plan = Some(agg.clone());
+    game.fight_mut().defender_plan = Some(def.clone());
     let before = fingerprint(&game);
-    let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
+    let territory = game.current_battle().unwrap().territory.unwrap();
     let _ = Battle::determine_battle_outcome(&mut agg, &mut def, territory, &mut game);
     assert!(fingerprint(&game) != before);
 }
@@ -180,7 +177,7 @@ fn worthless_cards_count_as_karama_for_bene_gesserit() {
 #[test]
 fn karama_shipment_prevention_blocks_a_winning_opponent_without_ally() {
     let mut game = load("ship");
-    let shipper = game.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&game).unwrap();
+    let shipper = game.current_shipment_and_move_player().unwrap();
     assert_eq!(game.player(shipper).ally, None);
     assert_ne!(game.player(shipper).faction, Some(Faction::Fremen));
     let strongholds = [game.board.map.arrakeen(), game.board.map.carthag(), game.board.map.sietch_tabr(), game.board.map.habbanya_sietch()];
@@ -235,9 +232,9 @@ fn bene_gesserit_voices_a_useless_defense_against_poison() {
 #[test]
 fn dial_needed_for_another_player_is_theirs() {
     let game = load("battle");
-    let territory = game.battle.current_battle.as_ref().unwrap().territory.unwrap();
-    let aggressor = player_of(&game, game.battle.current_battle.as_ref().unwrap().aggressor(&game).expect("faction"));
-    let defender = player_of(&game, game.battle.current_battle.as_ref().unwrap().defender(&game).expect("faction"));
+    let territory = game.current_battle().unwrap().territory.unwrap();
+    let aggressor = player_of(&game, game.current_battle().unwrap().aggressor(&game).expect("faction"));
+    let defender = player_of(&game, game.current_battle().unwrap().defender(&game).expect("faction"));
     let estimator = game.player_indices().find(|p| *p != aggressor && *p != defender && game.player(*p).faction != Some(Faction::BeneGesserit)).unwrap();
 
     let by_aggressor = bot(&game, aggressor).get_dial_needed(&game, aggressor, territory, defender, false);
@@ -253,7 +250,7 @@ fn dial_needed_for_another_player_is_theirs() {
 #[test]
 fn traitors_told_by_the_opponent_count_as_known_traitors() {
     let mut game = load("battle");
-    let battle = game.battle.current_battle.clone().unwrap();
+    let battle = game.current_battle().cloned().unwrap();
     let territory = battle.territory.unwrap();
     let (mut me, mut opponent) = (player_of(&game, battle.aggressor(&game).expect("faction")), player_of(&game, battle.defender(&game).expect("faction")));
     if game.player(me).faction == Some(Faction::Atreides) {

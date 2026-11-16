@@ -10,10 +10,9 @@ impl EventRules for GuildDelay {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.ship_move.beginning_of_shipment_and_move_phase = false;
         let m = self.describe(game, by).with_log(GuildDelayed::default());
         game.log(parts![m]);
-        game.enter(Phase::NonGuildShip, true);
+        game.enter_ship_move(ShipMoveStep::NonGuildShip);
         Ok(())
     }
 

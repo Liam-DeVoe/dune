@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 impl ClassicBot {
     pub fn determine_move(&mut self, game: &Game) -> Option<Move> {
-        let moved = if game.ship_move.in_guild_cunning_shipment { None } else { self.determine_moved_battalion(game, true) };
+        let moved = if game.in_guild_cunning_shipment() { None } else { self.determine_moved_battalion(game, true) };
 
         let Some(moved) = moved else {
             let mut m = Move::default();

@@ -12,22 +12,26 @@ impl EventRules for RicheseAnnouncesAuction {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.bidding.richese_occupier_specified_card = false;
+        game.in_bidding_mut().richese_occupier_specified_card = false;
         let m = self.describe(game, by);
         game.log_event(m);
 
-        game.bidding.number_of_cards_on_auction -= 1;
+        game.in_bidding_mut().number_of_cards_on_auction -= 1;
 
-        if !self.first && game.bidding.number_of_cards_on_auction > 0 {
-            game.bidding.richese_auction_should_still_happen = true;
+        if !self.first && game.in_bidding().number_of_cards_on_auction > 0 {
+            game.in_bidding_mut().richese_auction_should_still_happen = true;
         }
 
-        if game.bidding.number_of_cards_on_auction == 0 {
-            game.bidding.regular_bidding_is_done = true;
+        if game.in_bidding().number_of_cards_on_auction == 0 {
+            game.in_bidding_mut().regular_bidding_is_done = true;
         }
 
-        let condition = self.first || game.bidding.number_of_cards_on_auction == 0;
-        game.enter_or_else(condition, Phase::RicheseSpecifyingAuction, Game::start_regular_bidding);
+        let condition = self.first || game.in_bidding().number_of_cards_on_auction == 0;
+        if condition {
+            game.enter_bidding(BiddingStep::RicheseSpecifyingAuction);
+        } else {
+            game.start_regular_bidding();
+        }
         Ok(())
     }
 

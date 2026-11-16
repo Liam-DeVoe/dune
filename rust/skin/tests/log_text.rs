@@ -88,6 +88,8 @@ fn nexus_card_plays_name_the_card_type_once() {
     let mut g = game();
     let voice = Voice { type_: Some(TreacheryCardType::Laser), ..Default::default() };
     let by = treachery_engine::events::By::new(&g, Faction::Atreides);
+    let battle = treachery_engine::events::BattleInitiated::default().battle(by, treachery_engine::prelude::EntryId::default());
+    g.enter_battle_state(treachery_engine::game::BattleStep::Planning, Some(battle));
     treachery_engine::events::EventRules::apply(&voice, &mut g, by).unwrap();
     let log = log(&g);
     assert!(log.iter().any(|m| m == "Atreides play Harkonnen Nexus Secret Ally to use Voice"), "{log:?}");

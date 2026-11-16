@@ -90,10 +90,10 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut 
         (ActionOptions::AuditCancelled(o), _) => {
             assert_eq!((o.cost, o.cards), (AuditCancelled::cost_of_cancelling(game), AuditCancelled::get_number_of_cards_that_may_be_audited(game)), "{at}");
         }
-        (ActionOptions::Audited(o), _) => assert_eq!(o.cards, ids(game.battle.audited_cards.iter().copied()), "{at}"),
+        (ActionOptions::Audited(o), _) => assert_eq!(o.cards, ids(game.fight().into_iter().flat_map(|c| c.audited_cards.iter().copied())), "{at}"),
         (ActionOptions::Battle(o), Event::Battle(b)) => check_battle(game, p, o, b, d, stats, at),
         (ActionOptions::BattleConcluded(o), _) => {
-            let winner = game.battle.battle_winner == Some(me.faction);
+            let winner = game.battle_winner() == me.faction;
             assert_eq!(o.winner, winner, "{at}");
             if winner {
                 let supplier = Battle::determine_force_supplier(game, p);
@@ -103,9 +103,9 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut 
                     assert_eq!(c.decisions.iter().map(|x| x.value).collect::<Vec<_>>(), values(BattleConcluded::valid_capture_decisions(game)), "{at}");
                     stats.add("BattleConcluded capture");
                 }
-                let loser = game.get_player(game.battle.battle_loser.flatten()).unwrap();
+                let loser = game.get_player(game.battle_loser()).unwrap();
                 assert_eq!(o.tech_tokens.iter().map(|x| x.value).collect::<Vec<_>>(), values(game.player(loser).tech_tokens.iter().copied()), "{at}");
-                assert_eq!(o.decipherer_traitors.iter().map(|h| h.id).collect::<Vec<_>>(), ids(game.battle.traitors_decipherer_can_look_at.iter().copied()), "{at}");
+                assert_eq!(o.decipherer_traitors.iter().map(|h| h.id).collect::<Vec<_>>(), ids(game.fight().into_iter().flat_map(|c| c.traitors_decipherer_can_look_at.iter().copied())), "{at}");
                 assert_eq!(o.add_extra_force_in.is_some(), BattleConcluded::may_add_extra_force(game, p), "{at}");
                 if !BattleConcluded::may_choose_to_discard_cards(game) {
                     assert!(o.discardable_weapon.is_none() && o.discardable_defense.is_none() && o.discardable_mercenary.is_none(), "{at}");
@@ -208,7 +208,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut 
 /// The battle plan: heroes, cards per draft, the mixes, the token rows and the steppers' data.
 fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
-    let battle = game.battle.current_battle.as_ref().unwrap();
+    let battle = game.current_battle().unwrap();
     let territory = battle.territory;
     let supplier = Battle::determine_force_supplier(game, p);
     let heroes = Battle::valid_battle_heroes(game, p);
@@ -432,9 +432,8 @@ fn hms_battle_state() -> ViewedGame {
     g.board.stronghold_ownership.insert(hms.location(), fa.expect("faction"));
     g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa.expect("faction"));
     let battle = BattleInitiated { target: fb, territory: Some(hms.location().territory()) };
-    g.battle.current_battle = Some(battle.battle(By::new(g, fa), EntryId::default()));
-    g.enter(Phase::BattlePhase, false);
-    g.battle.chosen_hms_advantage = Some(None);
+    let battle = battle.battle(By::new(g, fa), EntryId::default());
+    g.enter_battle_state(BattleStep::Planning, Some(battle));
     r
 }
 
@@ -453,5 +452,5 @@ fn hms_advantage_form_in_a_built_state() {
     let e = Event::from(HMSAdvantageChosen { advantage: Some(advantage) });
     assert!(e.validate_for(&r.game, faction).is_ok(), "{:?}", e.validate_for(&r.game, faction).err().map(|r| r.0.plain_text()));
     assert!(r.game.play_for_message(HistoryEntry::new(faction, e), true, true).is_none());
-    assert_eq!(r.game.battle.chosen_hms_advantage, Some(Some(advantage)));
+    assert_eq!(r.game.fight().unwrap().chosen_hms_advantage, Some(advantage));
 }

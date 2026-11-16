@@ -139,21 +139,21 @@ impl Game {
     }
 
     pub fn handle_economics(&mut self) {
-        match self.charity.economics_status {
+        match self.board.choam_economics_status {
             Some(ChoamEconomicsStatus::Double) => {
-                self.charity.economics_status = Some(ChoamEconomicsStatus::CancelFlipped);
+                self.board.choam_economics_status = Some(ChoamEconomicsStatus::CancelFlipped);
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Cancel.".into()]);
                 self.stone(Milestone::Economics);
             }
 
             Some(ChoamEconomicsStatus::Cancel) => {
-                self.charity.economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
+                self.board.choam_economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Double.".into()]);
                 self.stone(Milestone::Economics);
             }
 
             Some(ChoamEconomicsStatus::DoubleFlipped) | Some(ChoamEconomicsStatus::CancelFlipped) => {
-                self.charity.economics_status = Some(ChoamEconomicsStatus::RemovedFromGame);
+                self.board.choam_economics_status = Some(ChoamEconomicsStatus::RemovedFromGame);
                 self.log(vec![Faction::Choam.into(), " The Economics Token has been removed from the game.".into()]);
                 self.stone(Milestone::Economics);
             }
@@ -646,7 +646,7 @@ impl Game {
     pub fn has_stronghold_advantage(&self, f: impl Into<Option<Faction>>, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
         let f: Option<Faction> = f.into();
         let hms = self.board.map.hidden_mobile_stronghold().location();
-        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(Some(advantage)) {
+        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.fight().is_some_and(|c| c.chosen_hms_advantage == Some(advantage)) {
             return true;
         }
 
@@ -704,7 +704,7 @@ impl Game {
             Phase::Contemplate => {
                 if faction == Some(Faction::Choam)
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
-                    && self.charity.economics_status == None
+                    && self.board.choam_economics_status == None
                 {
                     result.push(EventType::ChoamEconomics);
                 }

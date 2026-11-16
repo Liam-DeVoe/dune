@@ -123,7 +123,7 @@ fn max_special_on_planet(game: &Game, p: PlayerId, special: i32) -> i32 {
 }
 
 pub(super) fn default_draft(game: &Game, faction: Option<Faction>) -> Event {
-    let mut e = NexusPlayed::new(game, faction);
+    let mut e = NexusPlayed::default();
     if let Some(p) = game.get_player(faction) {
         e.faction = game.player(p).nexus;
     }
@@ -134,7 +134,7 @@ pub(super) fn default_draft(game: &Game, faction: Option<Faction>) -> Event {
 /// unless it is enabled and a target.
 pub(super) fn normalize(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let Event::NexusPlayed(e) = draft else { return draft.clone() };
-    let mut m = (**e).clone();
+    let mut m = e.clone();
     m.faction = game.player(p).nexus;
     match case(game, p) {
         Some(Case::AtreidesPrescience) => {

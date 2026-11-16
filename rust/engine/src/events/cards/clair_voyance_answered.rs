@@ -1,38 +1,17 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ClairVoyanceAnswered {
     pub answer: Option<ClairVoyanceAnswer>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for ClairVoyanceAnswered {
-    fn default() -> Self {
-        ClairVoyanceAnswered {
-            answer: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl ClairVoyanceAnswered {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn is_no(&self) -> bool {
         self.answer == Some(ClairVoyanceAnswer::No)
     }
 
     pub fn is_yes(&self) -> bool {
         self.answer == Some(ClairVoyanceAnswer::Yes)
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
     }
 
     pub fn is_questioned_by(as_weapon: bool, card_type: TreacheryCardType, asked: TreacheryCardType) -> bool {
@@ -62,19 +41,28 @@ impl ClairVoyanceAnswered {
 
         false
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for ClairVoyanceAnswered {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // `Game.LatestClairvoyance!` does not throw; the NRE comes at the first member access below.
         let latest = game.turn.latest_clairvoyance.clone();
-        game.turn.latest_clairvoyance_qn_a = Some(ClairVoyanceQandA::new(latest.clone(), self));
-        let m = self.get_message(game).with_log(AsideLog::answer());
-        self.log_objects(game, vec![m.into()]);
+        game.turn.latest_clairvoyance_qn_a = Some(ClairVoyanceQandA {
+            question: latest.clone(),
+            answer: ClairvoyanceAnswerGiven { submitter: by, answer: self.answer },
+        });
+        let m = self.describe(game, by).with_log(AsideLog::answer());
+        game.log(vec![m.into()]);
         let latest = latest.required("latest")?;
 
         if latest.question == Some(ClairvoyanceQuestion::WillAttackX) && self.is_no() {
             let mut deal = Deal::default();
             deal.type_ = DealType::DontShipOrMoveTo;
-            deal.bound_faction = self.initiator();
+            deal.bound_faction = by.faction;
             deal.consuming_faction = latest.initiator();
             deal.deal_parameter1 = latest.question_parameter1.clone();
             deal.end = Some(Phase::ShipmentAndMoveConcluded);
@@ -82,17 +70,17 @@ impl ClairVoyanceAnswered {
         } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsTraitor) {
             if let Some(hero) = latest.parameter1(game).hero() {
                 if self.is_yes() {
-                    game.player_mut(self.player()).told_traitors.insert(hero);
+                    game.player_mut(by.player()).told_traitors.insert(hero);
                 } else if self.is_no() {
-                    game.player_mut(self.player()).told_non_traitors.insert(hero);
+                    game.player_mut(by.player()).told_non_traitors.insert(hero);
                 }
             }
         } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsFacedancer) {
             if let Some(hero) = latest.parameter1(game).hero() {
                 if self.is_yes() {
-                    game.player_mut(self.player()).told_face_dancers.insert(hero);
+                    game.player_mut(by.player()).told_face_dancers.insert(hero);
                 } else if self.is_no() {
-                    game.player_mut(self.player()).told_non_face_dancers.insert(hero);
+                    game.player_mut(by.player()).told_non_face_dancers.insert(hero);
                 }
             }
         }
@@ -102,34 +90,7 @@ impl ClairVoyanceAnswered {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " answer: ", self.answer)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " answer: ", self.answer)
     }
-}
-
-impl GameEventMethods for ClairVoyanceAnswered {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ClairVoyanceAnswered
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ClairVoyanceAnswered(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ClairVoyanceAnswered::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ClairVoyanceAnswered::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ClairVoyanceAnswered::get_message(self, game)
-    }
-
 }

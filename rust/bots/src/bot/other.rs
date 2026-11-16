@@ -137,13 +137,13 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_discarded(&self, game: &Game) -> Rc<Discarded> {
+    pub fn determine_discarded(&self, game: &Game) -> Discarded {
         let Some(worst_card) = game.player(self.player).treachery_cards.iter().copied().min_by_key(|c| self.card_quality(game, *c, None)) else {
             panic!("Sequence contains no elements")
         };
-        let mut e = Discarded::new(game, self.faction(game));
+        let mut e = Discarded::default();
         e.card = Some(worst_card);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_traitor_discarded(&self, game: &Game) -> TraitorDiscarded {
@@ -174,8 +174,8 @@ impl ClassicBot {
             .or_else(|| traitors().filter(|t| t.as_leader().is_some()).random_lowest(&self.random, |t| t.value()))
     }
 
-    pub fn determine_nexus_played(&mut self, game: &Game) -> Option<Rc<NexusPlayed>> {
-        let mut result = NexusPlayed::new(game, self.faction(game));
+    pub fn determine_nexus_played(&mut self, game: &Game) -> Option<NexusPlayed> {
+        let mut result = NexusPlayed::default();
         result.faction = game.player(self.player).nexus;
 
         if NexusPlayed::can_use_cunning(game, self.player) {
@@ -188,7 +188,7 @@ impl ClassicBot {
     }
 
     /// Plays the nexus card held (`result.faction`) to betray that faction.
-    pub fn determine_nexus_played_betrayal(&mut self, game: &Game, mut result: NexusPlayed) -> Option<Rc<NexusPlayed>> {
+    pub fn determine_nexus_played_betrayal(&mut self, game: &Game, mut result: NexusPlayed) -> Option<NexusPlayed> {
         if self.ally(game) == result.faction {
             return None;
         }
@@ -279,7 +279,7 @@ impl ClassicBot {
             _ => false,
         };
 
-        play.then(|| Rc::new(result))
+        play.then(|| result)
     }
 
     /// The stronghold to remove Ecaz forces from with the Ecaz nexus card.
@@ -336,7 +336,7 @@ impl ClassicBot {
     }
 
     /// Plays the nexus card of my own faction for its cunning effect.
-    pub fn determine_nexus_played_cunning(&mut self, game: &Game, mut result: NexusPlayed) -> Option<Rc<NexusPlayed>> {
+    pub fn determine_nexus_played_cunning(&mut self, game: &Game, mut result: NexusPlayed) -> Option<NexusPlayed> {
         let play = match game.player(self.player).nexus {
             Some(Faction::Atreides) => game.battle.current_prescience.as_ref().is_some_and(|prescience| {
                 result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, prescience.aspect);
@@ -377,11 +377,11 @@ impl ClassicBot {
             _ => false,
         };
 
-        play.then(|| Rc::new(result))
+        play.then(|| result)
     }
 
     /// Plays the nexus card of my own faction for its secret ally effect.
-    pub fn determine_nexus_played_secret_ally(&mut self, game: &Game, mut result: NexusPlayed) -> Option<Rc<NexusPlayed>> {
+    pub fn determine_nexus_played_secret_ally(&mut self, game: &Game, mut result: NexusPlayed) -> Option<NexusPlayed> {
         let play = match game.player(self.player).nexus {
             Some(Faction::Atreides) => {
                 result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, None);
@@ -439,7 +439,7 @@ impl ClassicBot {
             _ => false,
         };
 
-        play.then(|| Rc::new(result))
+        play.then(|| result)
     }
 
     /// Fills in the free revival of the Tleilaxu secret ally nexus card. Returns whether it is worth playing:
@@ -606,7 +606,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_clairvoyance(&self, game: &Game) -> Option<Rc<ClairVoyancePlayed>> {
+    pub fn determine_clairvoyance(&self, game: &Game) -> Option<ClairVoyancePlayed> {
         if let Some(battle) = self.battle_im_fighting(game) {
             let opponent = battle.opponent_of(game, self.player);
             let wait_for_prescience_or_voice = battle.plan_of(game, opponent).is_none()
@@ -640,11 +640,11 @@ impl ClassicBot {
                 });
 
             if let (Some(leader), Some(p)) = (best_leader_to_ask_about, best_player_to_ask) {
-                let mut e = ClairVoyancePlayed::new(game, self.faction(game));
+                let mut e = ClairVoyancePlayed::default();
                 e.target = game.player(p).faction;
                 e.question = Some(ClairvoyanceQuestion::LeaderAsTraitor);
                 e.set_parameter1(Part::Number(leader.id()));
-                return Some(Rc::new(e));
+                return Some(e);
             }
         }
 
@@ -653,18 +653,18 @@ impl ClassicBot {
 
     /// Asks my opponent in `battle` whether they will defend against my weapons, or use a weapon my
     /// defenses can't both stop.
-    fn clairvoyance_about_battle_plan(&self, game: &Game, battle: &InitiatedBattle) -> Option<Rc<ClairVoyancePlayed>> {
+    fn clairvoyance_about_battle_plan(&self, game: &Game, battle: &InitiatedBattle) -> Option<ClairVoyancePlayed> {
         let opponent = battle.opponent_of(game, self.player).expect("opponent of");
         if Self::nr_of_unknown_opponent_cards(game, self.player, opponent) <= 0 {
             return None;
         }
 
         let ask = |question: ClairvoyanceQuestion, card_type: TreacheryCardType| {
-            let mut e = ClairVoyancePlayed::new(game, self.faction(game));
+            let mut e = ClairVoyancePlayed::default();
             e.target = game.player(opponent).faction;
             e.question = Some(question);
             e.question_parameter1 = Some(card_type.to_string());
-            Some(Rc::new(e))
+            Some(e)
         };
 
         let territory = battle.territory;
@@ -717,7 +717,7 @@ impl ClassicBot {
         voice.is_some_and(|v| v.may_not() && Voice::is_voiced_by(game, as_weapon, false, type_, v.type_))
     }
 
-    pub fn determine_clair_voyance_answered(&self, game: &Game) -> Rc<ClairVoyanceAnswered> {
+    pub fn determine_clair_voyance_answered(&self, game: &Game) -> ClairVoyanceAnswered {
         // Not caught below: without a question the whole decision fails.
         let clairvoyance = game.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance");
         let question = clairvoyance.question;
@@ -774,9 +774,9 @@ impl ClassicBot {
         })
         .unwrap_or(ClairVoyanceAnswer::Unknown);
 
-        let mut e = ClairVoyanceAnswered::new(game, self.faction(game));
+        let mut e = ClairVoyanceAnswered::default();
         e.answer = Some(answer);
-        Rc::new(e)
+        e
     }
 
     /// The most valuable leader among `candidates` that `acceptable` allows, preferring leaders I know
@@ -797,7 +797,7 @@ impl ClassicBot {
             .or_else(|| candidates().into_iter().filter(|l| acceptable(*l)).random_highest(&self.random, score))
     }
 
-    pub fn determine_raise_dead_played(&self, game: &Game) -> Option<Rc<RaiseDeadPlayed>> {
+    pub fn determine_raise_dead_played(&self, game: &Game) -> Option<RaiseDeadPlayed> {
         let me = game.player(self.player);
         if !((game.turn.current_main_phase == MainPhase::Bidding && !me.has_room_for_cards(game)) || game.turn.current_main_phase == MainPhase::ShipmentAndMove) {
             return None;
@@ -813,14 +813,14 @@ impl ClassicBot {
                 Revival::number_of_special_forces_that_may_be_placed_on_planet(game, self.player, special_forces_that_can_be_revived);
             let (target_of_forces, special_forces_to_planet) = self.revival_target(game, special_forces_to_planet);
 
-            let mut e = RaiseDeadPlayed::new(game, self.faction(game));
+            let mut e = RaiseDeadPlayed::default();
             e.hero = None;
             e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces);
             e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_that_can_be_revived);
             e.assign_skill = false;
             e.location = target_of_forces;
             e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(special_forces_to_planet);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         let minimum_value = if self.faction(game) == Faction::Tleilaxu && nr_of_living_leaders > 2 { 4 } else { 0 };
@@ -831,15 +831,15 @@ impl ClassicBot {
             |l| l.faction() != ally && l.value() >= minimum_value,
         )?;
 
-        let mut e = RaiseDeadPlayed::new(game, self.faction(game));
+        let mut e = RaiseDeadPlayed::default();
         e.hero = Some(leader_to_revive);
         e.amount_of_forces = 0;
         e.amount_of_special_forces = 0;
         e.assign_skill = Revival::may_assign_skill(game, self.player, Some(leader_to_revive));
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_amal_played(&self, game: &Game) -> Option<Rc<AmalPlayed>> {
+    pub fn determine_amal_played(&self, game: &Game) -> Option<AmalPlayed> {
         let opponents_resources = || self.opponents(game).into_iter().map(|p| i32::from(game.player(p).resources)).sum::<i32>();
         let ally_resources = if self.ally(game) != None { game.player(self.player).allied_resources(game) } else { 0 };
         let our_resources = self.resources(game) + ally_resources;
@@ -853,14 +853,14 @@ impl ClassicBot {
                 && opponents_resources() > (self.opponents(game).len() as i32 + 1) * our_resources
         };
 
-        play.then(|| Rc::new(AmalPlayed::new(game, self.faction(game))))
+        play.then(|| AmalPlayed::default())
     }
 
-    pub fn determine_recruits_played(&self, game: &Game) -> Option<Rc<RecruitsPlayed>> {
+    pub fn determine_recruits_played(&self, game: &Game) -> Option<RecruitsPlayed> {
         let me = game.player(self.player);
         let killed = i32::from(me.forces_killed) + i32::from(me.special_forces_killed);
         if (killed >= 6 && self.resources(game) >= 14) || (killed >= 4 && game.free_revivals(self.player, false) >= 2) {
-            return Some(Rc::new(RecruitsPlayed::new(game, self.faction(game))));
+            return Some(RecruitsPlayed::default());
         }
 
         None
@@ -938,7 +938,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_distrans_used(&self, game: &Game) -> Option<Rc<DistransUsed>> {
+    pub fn determine_distrans_used(&self, game: &Game) -> Option<DistransUsed> {
         if game.turn.current_phase != Phase::WaitingForNextBiddingRound {
             return None;
         }
@@ -954,10 +954,10 @@ impl ClassicBot {
             .map(|f| game.get_player(Some(f)).expect("player"))
             .random_highest(&self.random, |p| game.number_of_victory_points(*p, true))?;
 
-        let mut e = DistransUsed::new(game, self.faction(game));
+        let mut e = DistransUsed::default();
         e.card = Some(worst_card);
         e.target = game.player(target).faction;
-        Some(Rc::new(e))
+        Some(e)
     }
 
     /// How much less I want to revive `h`, on top of its value.
@@ -1135,37 +1135,37 @@ impl ClassicBot {
         (forces, special_forces)
     }
 
-    pub fn determine_discarded_searched_announced(&self, game: &Game) -> Option<Rc<DiscardedSearchedAnnounced>> {
+    pub fn determine_discarded_searched_announced(&self, game: &Game) -> Option<DiscardedSearchedAnnounced> {
         if game.turn.current_main_phase != MainPhase::Contemplate {
             return None;
         }
 
         let card_to_search =
             DiscardedSearched::valid_cards(game).into_iter().random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
-        (self.card_quality(game, card_to_search, Some(self.player)) >= 4).then(|| Rc::new(DiscardedSearchedAnnounced::new(game, self.faction(game))))
+        (self.card_quality(game, card_to_search, Some(self.player)) >= 4).then(|| DiscardedSearchedAnnounced::default())
     }
 
-    pub fn determine_discarded_searched(&self, game: &Game) -> Rc<DiscardedSearched> {
+    pub fn determine_discarded_searched(&self, game: &Game) -> DiscardedSearched {
         let card_to_search =
             DiscardedSearched::valid_cards(game).into_iter().random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)));
-        let mut e = DiscardedSearched::new(game, self.faction(game));
+        let mut e = DiscardedSearched::default();
         e.card = card_to_search;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_discarded_taken(&self, game: &Game) -> Option<Rc<DiscardedTaken>> {
+    pub fn determine_discarded_taken(&self, game: &Game) -> Option<DiscardedTaken> {
         let card_to_take =
             DiscardedTaken::valid_cards(game, self.player).random_highest(&self.random, |c| self.card_quality(game, *c, Some(self.player)))?;
         if self.card_quality(game, card_to_take, Some(self.player)) < 4 {
             return None;
         }
 
-        let mut e = DiscardedTaken::new(game, self.faction(game));
+        let mut e = DiscardedTaken::default();
         e.card = Some(card_to_take);
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_juice_played(&self, game: &Game) -> Option<Rc<JuicePlayed>> {
+    pub fn determine_juice_played(&self, game: &Game) -> Option<JuicePlayed> {
         let go_last_in_shipment = game.turn.current_main_phase == MainPhase::ShipmentAndMove
             && game.turn.current_moment == Some(MainPhaseMoment::Start)
             && self.faction(game) != Faction::Guild
@@ -1177,9 +1177,9 @@ impl ClassicBot {
         };
 
         if go_last_in_shipment || go_last_in_battle() {
-            let mut e = JuicePlayed::new(game, self.faction(game));
+            let mut e = JuicePlayed::default();
             e.type_ = Some(JuiceType::GoLast);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None

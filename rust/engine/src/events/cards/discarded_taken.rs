@@ -1,38 +1,19 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DiscardedTaken {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for DiscardedTaken {
     fn default() -> Self {
         DiscardedTaken {
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
 impl DiscardedTaken {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // ValidCards(Game, Player) is lazy: a null Player and a null discard pile are
-        // dereferenced inside the predicate, per element, up to the first match.
-        if !DiscardedTaken::valid_cards(game, self.player()).any(|v| Some(v) == self.card) {
-            return Some(express!("Invalid card"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_cards(g: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         g.decks.recently_discarded
@@ -46,9 +27,22 @@ impl DiscardedTaken {
             && g.player(p).has_treachery_card_type(TreacheryCardType::TakeDiscarded)
             && DiscardedTaken::valid_cards(g, p).next().is_some()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for DiscardedTaken {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        // ValidCards(Game, Player) is lazy: a null Player and a null discard pile are
+        // dereferenced inside the predicate, per element, up to the first match.
+        if !DiscardedTaken::valid_cards(game, by.player()).any(|v| Some(v) == self.card) {
+            return Err(Rejection(express!("Invalid card")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
         // Dictionary.Remove(null) throws.
         let Some(card) = self.card else {
             game_error!("Value cannot be null. (Parameter 'key')")
@@ -60,42 +54,14 @@ impl DiscardedTaken {
                 items.remove(i);
             }
         }
-        let me = self.player();
+        let me = by.player();
         game.player_mut(me).treachery_cards.push(card);
         game.discard(me, TreacheryCardType::TakeDiscarded)?;
         game.stone(Milestone::CardWonSwapped);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::TakeDiscarded, " to acquire the discarded ", self.card)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", TreacheryCardType::TakeDiscarded, " to acquire the discarded ", self.card)
     }
-
-}
-
-impl GameEventMethods for DiscardedTaken {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DiscardedTaken
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DiscardedTaken(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DiscardedTaken::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DiscardedTaken::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DiscardedTaken::get_message(self, game)
-    }
-
 }

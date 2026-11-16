@@ -1,41 +1,27 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct DiscardedSearchedAnnounced {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for DiscardedSearchedAnnounced {
-    fn default() -> Self {
-        DiscardedSearchedAnnounced {
-            base: Default::default(),
-        }
-    }
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DiscardedSearchedAnnounced {}
 
 impl DiscardedSearchedAnnounced {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         !g.current_phase_cannot_be_interrupted()
             && i32::from(g.player(p).resources) >= 2
             && g.player(p).has_treachery_card_type(TreacheryCardType::SearchDiscarded)
             && DiscardedSearched::valid_cards(g).len() > 0
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for DiscardedSearchedAnnounced {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.turn.phase_before_searching_discarded = Some(game.turn.current_phase);
-        let me = self.player();
+        let me = by.player();
         let p = game.player_mut(me);
         p.resources -= 2;
         game.enter(Phase::SearchingDiscarded, true);
@@ -43,9 +29,9 @@ impl DiscardedSearchedAnnounced {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         express!(
-            self.initiator(),
+            by.faction,
             " use ",
             TreacheryCardType::SearchDiscarded,
             " and pay ",
@@ -53,32 +39,4 @@ impl DiscardedSearchedAnnounced {
             " to search a card in the Treachery Discard Pile"
         )
     }
-
-}
-
-impl GameEventMethods for DiscardedSearchedAnnounced {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DiscardedSearchedAnnounced
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DiscardedSearchedAnnounced(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DiscardedSearchedAnnounced::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DiscardedSearchedAnnounced::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DiscardedSearchedAnnounced::get_message(self, game)
-    }
-
 }

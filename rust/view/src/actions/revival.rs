@@ -48,7 +48,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
             event(e)
         }
         EventType::RaiseDeadPlayed => {
-            let mut e = RaiseDeadPlayed::new(game, faction);
+            let mut e = RaiseDeadPlayed::default();
             e.hero = None;
             event(e)
         }
@@ -130,7 +130,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::RaiseDeadPlayed(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_forces), RaiseDeadPlayed::valid_max_amount(game, p, false)));
             e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_special_forces), RaiseDeadPlayed::valid_max_amount(game, p, true)));
             let special_on_planet = raise_dead_on_planet(game, p, &e);

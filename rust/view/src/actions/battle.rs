@@ -108,12 +108,12 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::ClairVoyanceAnswered => {
-            let mut e = ClairVoyanceAnswered::new(game, faction);
+            let mut e = ClairVoyanceAnswered::default();
             e.answer = Some(ClairVoyanceAnswer::Yes);
             event(e)
         }
         EventType::ClairVoyancePlayed => {
-            let mut e = ClairVoyancePlayed::new(game, faction);
+            let mut e = ClairVoyancePlayed::default();
             e.target = ClairVoyancePlayed::valid_targets(game, p).next();
             e.question = ClairVoyancePlayed::valid_questions(game, e.target).next().flatten();
             let (a, b) = clairvoyance_defaults(game, e.question, d_none());
@@ -160,7 +160,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::JuicePlayed => {
-            let mut e = JuicePlayed::new(game, faction);
+            let mut e = JuicePlayed::default();
             e.type_ = JuicePlayed::valid_types(game, p).first().copied();
             event(e)
         }

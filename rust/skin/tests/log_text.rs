@@ -115,8 +115,7 @@ fn a_karama_card_play_has_single_spaces() {
     let g = game();
     let mut e = Karma::default();
     e.card = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma);
-    e.initialize(&g, Some(Faction::Atreides));
-    assert_eq!(text(&e.get_message(&g)), "Atreides play a Karama card");
+    assert_eq!(text(&e.describe(&g, By::new(&g, Faction::Atreides))), "Atreides play a Karama card");
 }
 
 #[test]

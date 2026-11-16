@@ -135,9 +135,7 @@ fn aggressor_by_juice_swaps_roles() {
     assert_eq!(b.aggressor(&g), Some(Faction::Emperor));
     assert_eq!(b.defender(&g), Some(Faction::Atreides));
 
-    let mut j = JuicePlayed::new(&g, Faction::Atreides);
-    j.type_ = Some(JuiceType::Aggressor);
-    g.turn.current_juice = Some(Rc::new(j));
+    g.turn.current_juice = Some(JuiceUsed { submitter: By::new(&g, Faction::Atreides), type_: Some(JuiceType::Aggressor) });
     assert_eq!(b.aggressor(&g), Some(Faction::Atreides));
     assert_eq!(b.defender(&g), Some(Faction::Emperor));
     assert!(BattleInitiated::is_aggressor_by_juice(&g, Some(Faction::Atreides)));

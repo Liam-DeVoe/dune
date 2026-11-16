@@ -1,35 +1,15 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ClairVoyancePlayed {
     pub question: Option<ClairvoyanceQuestion>,
     pub target: Option<Faction>,
     pub question_parameter1: Option<String>,
     pub question_parameter2: Option<String>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for ClairVoyancePlayed {
-    fn default() -> Self {
-        ClairVoyancePlayed {
-            question: Default::default(),
-            target: Default::default(),
-            question_parameter1: Default::default(),
-            question_parameter2: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl ClairVoyancePlayed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn is_about(&self, game: &Game, type_: TreacheryCardType) -> bool {
         match self.parameter1(game) {
             p => p.get::<TreacheryCardType>() == Some(type_),
@@ -153,10 +133,6 @@ impl ClairVoyancePlayed {
         Ok(ClairVoyancePlayed::express(self.question, self.try_parameter1(game)?, self.try_parameter2()?))
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         g.players_other_than(p)
@@ -244,29 +220,7 @@ impl ClairVoyancePlayed {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let card = self.card(game);
-        if let Some(card) = card {
-            // The question names the card, so it's not logged as a separate discard.
-            game.discard_card(Some(card), false)?;
-            // A parameter that doesn't fit the question fails the event after the discard.
-            let m = self.try_asked(game, card.into())?.with_log(AsideLog::aside());
-            self.log_objects(game, vec![m.into()]);
-            game.stone(Milestone::Clairvoyance);
-        }
-
-        if self.target != None {
-            game.turn.latest_clairvoyance = Some(self.clone());
-            game.turn.latest_clairvoyance_qn_a = None;
-            game.turn.latest_clairvoyance_battle = game.battle.current_battle.clone();
-            game.turn.phase_paused_by_clairvoyance = Some(game.turn.current_phase);
-            game.enter(Phase::Clairvoyance, true);
-        }
-        Ok(())
-    }
-
-    pub fn card(&self, game: &Game) -> Option<TreacheryCard> {
-        let me = self.player();
+    pub fn card(game: &Game, me: PlayerId) -> Option<TreacheryCard> {
         let shrine: Location = game.board.map.shrine().location();
         let mut result: Option<TreacheryCard> = None;
         if game.player(me).occupies(game, Some(shrine)) {
@@ -284,69 +238,67 @@ impl ClairVoyancePlayed {
         result
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        self.asked(game, TreacheryCardType::Clairvoyance.into())
-    }
-
-    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        self.try_asked(game, TreacheryCardType::Clairvoyance.into())
-    }
-
-    pub fn asked(&self, game: &Game, card: Part) -> Message {
+    pub fn asked(&self, game: &Game, by: By, card: Part) -> Message {
         if self.target == None {
-            return express!(self.initiator(), " perform ", card);
+            return express!(by.faction, " perform ", card);
         }
 
         if self.question == None {
-            return express!("By ", card, ", ", self.initiator(), " ask ", self.target, " a question");
+            return express!("By ", card, ", ", by.faction, " ask ", self.target, " a question");
         }
 
-        express!("By ", card, ", ", self.initiator(), " ask ", self.target, ": \"", self.get_question(game), "\"")
+        express!("By ", card, ", ", by.faction, " ask ", self.target, ": \"", self.get_question(game), "\"")
     }
 
-    pub fn try_asked(&self, game: &Game, card: Part) -> GameResult<Message> {
+    pub fn try_asked(&self, game: &Game, by: By, card: Part) -> GameResult<Message> {
         if self.target != None && self.question != None {
             self.try_get_question(game)?;
         }
-        Ok(self.asked(game, card))
-    }
-
-    pub fn get_short_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " perform ", TreacheryCardType::Clairvoyance)
+        Ok(self.asked(game, by, card))
     }
 }
 
-impl GameEventMethods for ClairVoyancePlayed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for ClairVoyancePlayed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::ClairVoyancePlayed
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let card = ClairVoyancePlayed::card(game, by.player());
+        if let Some(card) = card {
+            // The question names the card, so it's not logged as a separate discard.
+            game.discard_card(Some(card), false)?;
+            // A parameter that doesn't fit the question fails the event after the discard.
+            let m = self.try_asked(game, by, card.into())?.with_log(AsideLog::aside());
+            game.log(vec![m.into()]);
+            game.stone(Milestone::Clairvoyance);
+        }
+
+        if self.target != None {
+            game.turn.latest_clairvoyance = Some(ClairvoyanceAsked {
+                submitter: by,
+                target: self.target,
+                question: self.question,
+                question_parameter1: self.question_parameter1.clone(),
+                question_parameter2: self.question_parameter2.clone(),
+            });
+            game.turn.latest_clairvoyance_qn_a = None;
+            game.turn.latest_clairvoyance_battle = game.battle.current_battle.clone();
+            game.turn.phase_paused_by_clairvoyance = Some(game.turn.current_phase);
+            game.enter(Phase::Clairvoyance, true);
+        }
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ClairVoyancePlayed(self)
+    fn describe(&self, game: &Game, by: By) -> Message {
+        self.asked(game, by, TreacheryCardType::Clairvoyance.into())
     }
 
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ClairVoyancePlayed::validate(self, game)
+    fn try_describe(&self, game: &Game, by: By) -> GameResult<Message> {
+        self.try_asked(game, by, TreacheryCardType::Clairvoyance.into())
     }
 
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ClairVoyancePlayed::execute_concrete_event(self, game)
+    fn describe_short(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " perform ", TreacheryCardType::Clairvoyance)
     }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ClairVoyancePlayed::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        ClairVoyancePlayed::try_get_message(self, game)
-    }
-
-    fn get_short_message(&self, game: &Game) -> Message {
-        ClairVoyancePlayed::get_short_message(self, game)
-    }
-
 }

@@ -1,40 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DistransUsed {
     pub target: Option<Faction>,
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for DistransUsed {
-    fn default() -> Self {
-        DistransUsed {
-            target: Default::default(),
-            card: None,
-            base: Default::default(),
-        }
-    }
 }
 
 impl DistransUsed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !DistransUsed::valid_cards(game, self.player()).any(|c| Some(c) == self.card) {
-            return Some(express!("Invalid card"));
-        }
-        if !DistransUsed::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
-            return Some(express!("Invalid target"));
-        }
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_cards(game: &Game, p: PlayerId) -> impl Iterator<Item = TreacheryCard> {
         game.player(p).treachery_cards.iter().copied().filter(move |c| c.type_() != TreacheryCardType::Distrans)
@@ -55,11 +27,37 @@ impl DistransUsed {
             && !DistransUsed::valid_targets(game, player).next().is_none()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let target = self.get_player(game, self.target);
+    pub fn check_if_bidding_for_player_should_be_skipped(game: &mut Game, player: PlayerId, had_room_for_cards: bool) {
+        // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
+        // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
+        let pass = Bid { passed: true, ..Bid::default() };
+        if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
+            let faction = game.player(player).faction.expect("faction");
+            let _ = game.play(HistoryEntry::new(faction, pass), false, false);
+        } else if game.turn.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
+            let faction = game.player(player).faction.expect("faction");
+            let _ = game.play(HistoryEntry::new(faction, pass), false, false);
+        }
+    }
+}
+
+impl EventRules for DistransUsed {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !DistransUsed::valid_cards(game, by.player()).any(|c| Some(c) == self.card) {
+            return Err(Rejection(express!("Invalid card")));
+        }
+        if !DistransUsed::valid_targets(game, by.player()).any(|v| Some(v) == self.target) {
+            return Err(Rejection(express!("Invalid target")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let target = game.get_player(self.target);
         let target_had_room_for_cards = game.player(target.required("target")?).has_room_for_cards(game);
         let target = target.required("target")?;
-        let me = self.player();
+        let me = by.player();
         game.discard(me, TreacheryCardType::Distrans)?;
         let card = self.card;
         crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
@@ -67,7 +65,7 @@ impl DistransUsed {
         game.player_mut(target).treachery_cards.push(card.required("card")?);
 
         if !game.player(me).treachery_cards.is_empty() {
-            let initiator = self.initiator();
+            let initiator = by.faction;
             let others: Vec<PlayerId> = game.player_indices().filter(|p| !game.player(*p).is(initiator) && *p != target).collect();
             for p in others {
                 let my_cards = game.player(me).treachery_cards.clone();
@@ -77,56 +75,13 @@ impl DistransUsed {
             }
         }
 
-        self.log(game);
-        self.check_if_bidding_for_player_should_be_skipped(game, target, target_had_room_for_cards);
+        let m = self.describe(game, by);
+        game.log_event(m);
+        DistransUsed::check_if_bidding_for_player_should_be_skipped(game, target, target_had_room_for_cards);
         Ok(())
     }
 
-    pub fn check_if_bidding_for_player_should_be_skipped(&self, game: &mut Game, player: PlayerId, had_room_for_cards: bool) {
-        // C# parity: during black market bidding this also executes a regular Bid, not a BlackMarketBid.
-        // Nested Execute: pre/post-event tasks run again and the Bid is added to History.
-        if game.turn.current_phase == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
-            let faction = game.player(player).faction.expect("faction");
-            let mut bid = Bid::new(game, faction);
-            bid.passed = true;
-            let _ = game.play(HistoryEntry::new(faction, Rc::new(bid)), false, false);
-        } else if game.turn.current_phase == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
-            let faction = game.player(player).faction.expect("faction");
-            let mut bid = Bid::new(game, faction);
-            bid.passed = true;
-            let _ = game.play(HistoryEntry::new(faction, Rc::new(bid)), false, false);
-        }
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", TreacheryCardType::Distrans, " to give a card to ", self.target)
     }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::Distrans, " to give a card to ", self.target)
-    }
-
-}
-
-impl GameEventMethods for DistransUsed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DistransUsed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DistransUsed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DistransUsed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DistransUsed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DistransUsed::get_message(self, game)
-    }
-
 }

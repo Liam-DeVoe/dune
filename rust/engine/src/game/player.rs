@@ -850,11 +850,9 @@ impl Player {
         game.applicable(Rule::Homeworlds) && self.home_worlds.iter().any(|w| self.has_low_threshold(game, w.world()))
     }
 
-    pub fn initiated(&self, e: Option<&Event>) -> bool {
-                match e {
-            Some(e) => e.legacy_initiator() == self.faction,
-            None => false,
-        }
+    /// Whether this player's faction played the Nexus card `nexus`.
+    pub fn initiated(&self, nexus: Option<&NexusCardPlayed>) -> bool {
+        nexus.is_some_and(|n| n.initiator() == self.faction)
     }
 
     pub fn is_native(&self, territory: Territory) -> bool {

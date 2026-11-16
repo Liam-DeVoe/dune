@@ -659,8 +659,7 @@ impl Shipment {
     }
 
     fn initiated_current_guild_secret_ally(g: &Game, p: PlayerId) -> bool {
-        let e = g.turn.current_guild_secret_ally.clone().map(|e| e.into_event());
-        g.player(p).initiated(e.as_ref())
+        g.player(p).initiated(g.turn.current_guild_secret_ally.as_ref())
     }
 
     pub fn may_ship_cross_planet(g: &Game, p: PlayerId) -> bool {

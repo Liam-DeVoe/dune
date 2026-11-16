@@ -60,7 +60,7 @@ Ordering:
 - Times are RFC 3339 strings. The server writes UTC with microseconds, `"2026-09-18T04:14:35.622405Z"`, and reads any offset; a time without one is UTC. The time 0001-01-01 means none (`serverInfo.scheduledMaintenance`).
 - Maps keyed by user id or seat are arrays of `[key, value]` pairs in the server's order: `"seatedPlayers":[[12,3],[5,-1]]`. An object would lose that order, because `JSON.parse` sorts integer keys. A seat of -1 is a user without a seat yet.
 - A seat is a number from 0 to 255. -1 is allowed only where a user may have no seat (`seatedPlayers`, `assignSeats`, the `joinGame` notification); a call with any other number that is no seat is a `badCall`. User ids are integers, the ids of the server's database.
-- Events are the engine's `Event`, as savegames hold them (engine-conventions.md, "JSON"): tagged with `type`, camelCase fields, enums as names, and the fields of an event that can be passed in `play`, which is `null` for a pass: `{"type":"Bid","play":{"amount":3,..}}`. The client sends only the event, never a submitter or a time. Game settings are the engine's `GameSettings`. Both are typed in `web/src/generated/Event.ts`. They appear in `submitEvent`, `queryDraft`, `updateSettings` and the `updateSettings` notification.
+- Events are the engine's `Event`, as savegames hold them ([engine-conventions.md](engine-conventions.md#json)): tagged with `type`, camelCase fields, enums as names, and the fields of an event that can be passed in `play`, which is `null` for a pass: `{"type":"Bid","play":{"amount":3,..}}`. The client sends only the event, never a submitter or a time. Game settings are the engine's `GameSettings`. Both are typed in `web/src/generated/Event.ts`. They appear in `submitEvent`, `queryDraft`, `updateSettings` and the `updateSettings` notification.
 
 ## Errors
 
@@ -93,7 +93,7 @@ A game the server doesn't know gives `gameNotFound` before any of these.
 |---|---|---|
 | `serverInfo` | `ServerInfo` | Needs no login. Call once after the socket opens |
 | `createUser` | `NewSession` | Authenticates the connection with a new session |
-| `login` | `NewSession` | `version` must be the server's `Game::LATEST_VERSION`. Authenticates the connection with a new session |
+| `login` | `NewSession` | `version` must be the server's `Game::LATEST_VERSION` (191, `latestVersion` in the lobby data), or the call fails with `invalidGameVersion`. Authenticates the connection with a new session |
 | `authenticate` | `Account` | Authenticates the connection with the session of `token` |
 | `linkLogin` | `LinkLoginInfo` | The link token of an async-play mail. Authenticates the connection with a new session; the link works once |
 | `logout` | null | Ends the connection's session, which logs out every connection that uses it |
@@ -103,7 +103,7 @@ A game the server doesn't know gives `gameNotFound` before any of these.
 | `setUserStatus` | `Lobby` | |
 | `heartbeat` | `Lobby` | `scope`: `None` lists no games, `Active` games with activity in the last two hours and those the caller is seated in, `All` every game |
 
-Passwords are hashed by the client: SHA-256 of the password's UTF-8 bytes, as 64 lowercase hex digits (in the browser, `crypto.subtle.digest("SHA-256", new TextEncoder().encode(password))`), the hash the C# client used, so existing accounts keep their passwords. The server hashes that value again with Argon2id and a random salt before storing it ([server.md](server.md#accounts-and-sessions)). The client should send `heartbeat` every few seconds: the user list only shows users seen in the last minute.
+Passwords are hashed by the client: SHA-256 of the password's UTF-8 bytes, as 64 lowercase hex digits (in the browser, `crypto.subtle.digest("SHA-256", new TextEncoder().encode(password))`). That is what the previous client sent, so accounts made before the Rust server keep their passwords. The server hashes that value again with Argon2id and a random salt before storing it ([server.md](server.md#accounts-and-sessions)). The client should send `heartbeat` every few seconds: the user list only shows users seen in the last minute.
 
 #### Sessions
 
@@ -159,7 +159,7 @@ Creating, joining, observing and reconnecting to a game, and `gameState`, send t
 
 The event is an `Event` (see [Encoding](#encoding)). It is always the caller's own. The client sends no submitter, and the server makes the caller's faction (none before factions are dealt, or for a host without a seat) the submitter, so the engine accepts it only as an action of that faction, or a host action when the caller is a host. It sets `seat` and `initiatorPlayerName` of `FactionSelected` to the caller's. `EstablishPlayers` is for hosts (`noHost` otherwise), and the server draws its `seed`, which decides every deck. The server sets the time, validates and executes the event, and on success sends every participant a new view. A failed validation, or an event that doesn't decode, is `invalidGameEvent` with the reason in `message`, rendered with the default skin.
 
-Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`rust/server/src/pause_rules.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `phaseDone`, or, in the revival step, once they revive. `PhaseControlInfo.reasons` says what each waited seat may do (`PauseReason`). Every reason is public; some need a secret card or spice, and the pause waits regardless, so the client words them as possibilities to everyone but the player concerned (`web/src/components/PauseReasons.tsx`). After an undo or a loaded game the current pause waits for the host's `phaseContinue` or the next event. Games older than version 188 keep host-only control.
+Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`rust/server/src/pause_rules.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `phaseDone`, or, in the revival step, once they revive. `PhaseControlInfo.reasons` says what each waited seat may do (`PauseReason`). Every reason is public; some need a secret card or spice, and the pause waits regardless, so the client words them as possibilities to everyone but the player concerned (`web/src/components/PauseReasons.tsx`). After an undo or a loaded game the current pause waits for the host's `phaseContinue` or the next event.
 
 A valid `EstablishPlayers` event also seats the users on the players' seats, in the order they joined (`assignSeats` notification). Seats that no user takes become bots (see [Bots](#bots)).
 
@@ -216,7 +216,7 @@ The game group is every connection that created, joined, observed or reconnected
 
 The server plays every seat without a user (`rust/server/src/server/bots.rs`; the bots are the `treachery-bots` crate).
 
-- Which seats are bots: since engine version 170, `EstablishPlayers` fills the seats that no user takes with bots (`Settings.NumberOfPlayers` players in all). A seat also becomes a bot when its user leaves or is kicked, when the host reassigns the seats without it, or when a loaded savegame has it empty. A user who takes the seat (an open seat, `joinGame`) replaces the bot. `GameView.players[].isBot` and `GameInfo.bots` show them.
+- Which seats are bots: `EstablishPlayers` fills the seats that no user takes with bots (`Settings.NumberOfPlayers` players in all). A seat also becomes a bot when its user leaves or is kicked, when the host reassigns the seats without it, or when a loaded savegame has it empty. A user who takes the seat (an open seat, `joinGame`) replaces the bot. `GameView.players[].isBot` and `GameInfo.bots` show them.
 - When bots act: after every event, and after a loaded game, undo, restore or dismiss, a seat assignment, a leave or kick, a new observer, the first seated join and a bot speed change, the server schedules a bot turn, replacing one scheduled earlier, after a delay that depends on the last event and the phase, divided by the bot speed (800 ms after an `AllyPermission`, `DealOffered` or `SetShipmentPermission`, 1600 ms after a `Bid`, 2400 ms in revival and charity, 9600 ms in shipment and battle, 4800 ms otherwise). A turn does nothing while the game awaits players or the speed is 0. Otherwise each bot, in a random order, is asked for its most urgent action, then the next level, and the first action found is executed as an event of that bot. The bots end phases themselves (`EndPhase` and other host actions) only when the game has no host and at least one observer. Otherwise the phase control continues the pauses, and a turn in which no bot acts tells it the bots have passed.
 - `botsSpeed` (`ParticipationInfo.botsSpeed`, default 1) is the divisor. 0 pauses the bots. A host may set 0 to 4; the client offers 0 (pause), 1, 2 and 4. The game's group gets the `botSpeed` notification.
 - `nudgeBots` runs a bot turn at once (unless the bots are paused), for a game whose bots stopped (a refused bot event schedules no next turn). The game's players may call it.
@@ -231,7 +231,7 @@ The server sends each participant a `gameView` notification: what that user may 
 ### Encoding
 
 - Member names in camelCase.
-- Enum values by member name (`"Atreides"`, `"ShipmentAndMove"`), the keys the skin JSON uses. The TypeScript unions are in `web/src/generated/enums.ts`, with `PhaseValue`, `MainPhaseValue` and a few more holding the numbers, for ordered comparisons and for events.
+- Enum values by member name (`"Atreides"`, `"ShipmentAndMove"`), the keys the skin JSON uses. The TypeScript unions are in `web/src/generated/enums.ts`, with `PhaseValue`, `MainPhaseValue` and a few more holding the numbers, for ordered comparisons.
 - Static game objects by id: locations, territories, leaders, treachery cards, and resource cards (by skin id). Names, images and map positions come from the skin and the static data (`web/public/static/data.json`), never from the view.
 - Text the game writes (log lines, prompts, validation messages, form headings) arrives rendered to [rich text](#rich-text).
 
@@ -251,7 +251,7 @@ Events are in the format of [Encoding](#encoding), both in draft queries and in 
 Each view is complete; there are no diffs. A view of the alliance phase of a 6-player game is about 22 KB of JSON, most of it the log.
 
 ```json
-{"notify":"gameView","data":{"eventNumber":612,"version":189,"turn":6, "...": "..."}}
+{"notify":"gameView","data":{"eventNumber":612,"version":191,"turn":6, "...": "..."}}
 ```
 
 ### Calls
@@ -386,3 +386,10 @@ The view never contains the game's seed, the order of any deck, or another playe
 ### Log and history
 
 `log.reports` lists every report (`{index, turn, about, isBattle, aggressor, defender, territory, battleDecided, battleWinner}`), and `log.latest` holds the lines of the reports of the latest phase, which the report panel shows by default. When the player steps back to an earlier phase, the client calls `report` for each report of that phase and caches the answers: a report's lines never change once its phase is over, except the latest one.
+
+## Changing the protocol
+
+- A call is one line in the `calls!` list of `rust/protocol/src/lib.rs`: its wire name, its variant, its arguments and its reply type. The server handles it in `Server::handle` (`rust/server/src/server/mod.rs`), and the compiler points at every match that needs the new call.
+- A notification is a variant of `Notification` in the same file. The lobby objects are in `src/lobby.rs`, and the error codes in `src/error.rs`.
+- Then regenerate the TypeScript types with `UPDATE_TS_BINDINGS=1 cargo test --release -p treachery-protocol --test ts_bindings`, and fix what `npm run build` in `web/` reports. Doc comments on the Rust types carry over to TypeScript.
+- The server's tests (`rust/server/tests`) drive it through these messages without sockets. `scripts/ui/e2e_server.py` drives it through the web client ([client.md](client.md#checks)).

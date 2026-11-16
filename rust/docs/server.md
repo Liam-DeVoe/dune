@@ -4,7 +4,7 @@
 
 ## Threads
 
-One thread, the game thread, owns all state: accounts, sessions, running games, connections. It handles one thing at a time to completion, whether that's a call from a client, a closed socket or a timer. So handlers take `&mut self`, need no locks, and everything players see happens in one order. The engine's `Game` isn't `Send`, which is the other reason for the single thread.
+One thread, the game thread, owns all state: accounts, sessions, running games, connections. It handles one thing at a time to completion, whether that's a call from a client, a closed socket or a timer. So handlers take `&mut self`, need no locks, and everything players see happens in one order.
 
 The HTTP server (axum, on a multi-threaded tokio runtime) accepts sockets. Each socket task forwards incoming text to the game thread as a `Command` and writes back whatever the game thread queues for it. See `src/http.rs` and `src/socket.rs`.
 

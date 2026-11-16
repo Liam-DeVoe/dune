@@ -1,27 +1,33 @@
 # The web client and the view layer
 
-The server holds each game and runs the engine. After every change it sends each participant a view: what that user may see, the actions they can take now, and the valid choices for each. The client in `web/` is a React + TypeScript app with no engine. It draws views, asks the server about a form's inputs while a player fills it in (draft queries), and submits finished events. The wire format is the Game view section of [protocol.md](protocol.md#game-view).
+The server holds each game and runs the engine. After every change it sends each participant a view: what that user may see, the actions they can take now, and the valid choices for each. The client in `web/` is a React and TypeScript app with no engine. It draws views, asks the server about a form's inputs while a player fills it in (draft queries), and submits finished events. The wire format is in [protocol.md](protocol.md), whose [Game view](protocol.md#game-view) section covers the view.
 
 ## Pieces
 
 | Piece | Where | What |
 |---|---|---|
 | View crate | `rust/view` (`treachery-view`) | Builds views and answers draft queries. `src/schema.rs` and `src/schema/` are the wire types |
-| TypeScript types | `web/src/generated/` | Generated from the schema by `rust/view/tests/ts_bindings.rs` (ts-rs) and checked in. The test fails when they are stale; `UPDATE_TS_BINDINGS=1` rewrites them |
-| Protocol types | `web/src/protocol/` | The calls, replies, notifications and lobby objects, generated from `rust/protocol` by `rust/protocol/tests/ts_bindings.rs` in the same way. They import the view's types from `src/generated/` |
-| Static data | `web/public/static/data.json` | Locations, territories, leaders, cards, homeworlds, force types, rule groups. Written by `rust/view/examples/static_data.rs` from `src/static_data.rs`; `tests/static_data.rs` keeps it current |
-| Skin | `rust/skin`, `web/public/skin/default.json` | Text is rendered on the server with the game's skin; the client uses the same skin as JSON for images, colours, map geometry and popover texts |
+| View types | `web/src/generated/` | Generated from the view's schema and the engine's enums by `rust/view/tests/ts_bindings.rs` (ts-rs). Do not edit |
+| Event types | `web/src/generated/Event.ts` | Every event, `HistoryEntry` and `GameSettings`, generated from the engine by `rust/protocol/tests/ts_bindings.rs` |
+| Protocol types | `web/src/protocol/` | The calls, replies, notifications and lobby objects, generated from `rust/protocol` by the same test. They import the view's and the events' types from `src/generated/` |
+| Static data | `web/public/static/data.json` | Locations, territories, leaders, cards, homeworlds, force types, rule groups. Written by `rust/view/examples/static_data.rs`; `rust/view/tests/static_data.rs` keeps it current |
+| Lobby data | `web/public/static/lobby.json` | What the lobby and setup screens need outside a game: each lobby enum's members and texts, the rulesets, the game version. Written by `rust/view/src/lobby.rs`; `tests/lobby_data.rs` keeps it current (`UPDATE_LOBBY_DATA=1`) |
+| Skin | `rust/skin`, `web/public/skin/default.json` | Text is rendered on the server with the game's skin. The client uses the same skin as JSON for images, colours, map geometry and popover texts |
 | Web client | `web/` | React, TypeScript, Vite |
+
+Each generated file is checked in, and its test fails when it is stale. After changing a Rust type that the client sees, rewrite them with `UPDATE_TS_BINDINGS=1` ([engine-conventions.md](engine-conventions.md#json) has the commands) and let the TypeScript compiler (`npm run build`) show what the client must change.
 
 ## Views and the server's game
 
-Views are built from the server's own game. Every engine query a view or a draft query makes takes `&Game` (`GameStatus::determine_status`, `Game::get_applicable_events`, `Game::next_player_to_battle`, pathfinding), so building a view can't change the game. Until wave 4a of rewrite-plan.md, those queries wrote state (the battle sequence, a neighbour cache) and views came from a second copy of the game, the view replica.
+Views are built from the server's own game. Every engine query that a view or draft query makes takes `&Game` ([Queries](engine-conventions.md#queries)), so building a view can't change the game, and views of different viewers can be built in any order.
 
-What a game's views keep between builds is a `ViewCache` (`rust/view/src/cache.rs`): the skin and the faction sheets of the last view, which later views reuse while the factions and rules stay the same. The server keeps one per followed game and starts it over when the game is replaced (undo, restore, dismiss, load) or a view fails to build. A draft query is checked against the actions the viewer has now. Tools and tests that hold a game of their own use `ViewedGame`, a game together with its cache, seating and timer. `tests/corpus.rs` and `tests/slice.rs` still build all viewers' views in different orders and require equal views, which now checks the faction-sheet cache.
+What a game's views keep between builds is a `ViewCache` (`rust/view/src/cache.rs`): the skin and the faction sheets of the last view, which later views reuse while the factions and rules stay the same. Its methods are the view calls: `view`, `query` (a draft query, refused unless the draft's type is one of the viewer's current actions), `report`, `undo_list` and `preview` (the view at an earlier point, from a replay into a new game). The server keeps one cache per followed game and starts it over when the game is replaced (undo, restore, dismiss, load) or a view fails to build (`server/src/views.rs`). Tools and tests that hold a game of their own use `ViewedGame`, a game together with its cache, seating and timer.
+
+`rust/view/src/build.rs` builds a view from the game, a `Viewer` (the user's seat, and whether they host or observe; `resolve` finds their player and faction in the game), a `Seating` (player names and the bot speed, which the server knows and the engine doesn't) and a skin. `tests/slice.rs` builds every viewer's view in different orders and requires the same views.
 
 ## Visibility
 
-A view holds what its viewer may see and nothing the rules hide from them; [protocol.md](protocol.md#visibility) has the table. The builder takes visibility from the engine's own knowledge (`Player::known_cards`, `Game::known_cards`, revealed traitors and face dancers, the prescience predicates) and invents no rules of its own. Action options belong to the acting player, so they may hold that player's hidden data (traitor choices, Ixian's starting cards, CHOAM's audited cards). `tests/corpus.rs` checks every view of every bot-game step against the visibility rules, derived from the engine state independently of the builder.
+A view holds what its viewer may see and nothing the rules hide from them. [protocol.md](protocol.md#visibility) has the table. The builder takes visibility from the engine's own knowledge (`Player::known_cards`, `Game::known_cards`, revealed traitors and face dancers, the prescience predicates) and invents no rules of its own. Action options belong to the acting player, so they may hold that player's hidden data (traitor choices, Ixian's starting cards, CHOAM's audited cards). `tests/corpus.rs` checks every view of every step of a corpus of bot games against the visibility rules, derived from the engine state independently of the builder.
 
 ## Action forms
 
@@ -31,37 +37,40 @@ For each applicable event type, `actions::action_view` builds the form's options
 - normalizes a client's draft the same way, so the options carry the adjusted draft back and the validation is that of the draft the form shows;
 - lists the choices, computed from the draft where one input depends on another (the weapons for the chosen leader, the maximum forces from the chosen source).
 
-The tests per area (`battle_forms.rs`, `ship_move.rs`, `revival_forms.rs`, `bidding.rs`, `other_forms.rs`, `setup.rs`) check, in every state of the fixtures and bot traces where a form is applicable, that its options equal the engine's helpers and that its default draft validates as the options say.
+Validation and form building for a draft run inside `build::draft_check`, because a draft may lack values the engine expects. A panic there becomes "Validation failed" instead of reaching the server.
 
-The observable-behavior harness ([native-harness.md](native-harness.md)) compares every player's view after every event against a frozen reference build, and its fuzzer fills events from these forms' options.
+To give a new event type a form, add its options to `ActionOptions` in `schema.rs` (or use `Simple` for a confirm button), build them in the builder of its area, and draw them in the client's forms under `web/src/components/`.
+
+The tests per area (`battle_forms.rs`, `ship_move.rs`, `revival_forms.rs`, `bidding.rs`, `other_forms.rs`, `setup.rs`) check, in every state of the fixtures and bot traces where a form is applicable, that its options equal the engine's helpers and that its default draft validates as the options say. The behavior harness ([native-harness.md](native-harness.md)) compares every player's view after every event against a reference build, and its fuzzer fills events from these forms' options.
 
 ## The web app
 
 ```
 web/
   index.html          loads the compiled CSS, then src/main.tsx
-  vite.config.ts      serves the art, CSS and fonts (see below) in dev and preview
+  vite.config.ts      serves the art, CSS and fonts in dev and preview
   public/skin/        the default skin as JSON
-  public/static/      the static data
+  public/static/      the static data and the lobby data
   public/views/       saved views for /scene without a server (rust/view/examples/scene_views.rs)
-  src/generated/      the view's TypeScript types (generated, do not edit)
-  src/protocol/       the protocol's TypeScript types (generated, do not edit)
-  src/state/          view sources (WebSocket, or saved views) and the game context
-  src/lobby/          login, lobby, seating and the lobby protocol client
+  src/generated/      the view's and the events' TypeScript types (generated)
+  src/protocol/       the protocol's TypeScript types (generated)
+  src/state/          the WebSocket connection, view sources (WebSocket, or saved views) and the game context
+  src/lobby/          the lobby protocol client and the lobby data
   src/components/     the game screen: board/, log/, battle/, shipmove/, revival/, other/, lobby/
   tools/              check-rich-text.ts, check-flash.ts
 ```
 
-- **Session.** The server knows the user per WebSocket (protocol.md, Sessions). `Connection` (`src/state/connection.ts`) authenticates each new socket with the session token (`authenticate`) before any other call, and the lobby client keeps the token in `sessionStorage`, and in `localStorage` when the user asks to stay signed in. Tokens never go in URLs. When the server ends the session (`sessionEnded`, or a call refused with `notLoggedIn`), the client forgets it and shows the login. `Connection.call` takes a call's name and arguments and resolves with its reply, both typed from `src/protocol/`. The server sets every event's `Initiator`; the client leaves it out.
-- **State.** One connection per tab. The latest `GameView` replaces the previous one whole; components derive what they draw from it and the skin, and keep only UI state (a form's draft, the log phase shown, collapsed panels, the map selection). A form's draft lives in the form and is dropped when its event type leaves `actions`. Draft query answers older than the form's latest query are dropped. Preferences (sound volumes, auto-pass, collapse states, the Atreides tracker's notes) are in local storage.
-- **Map interaction.** `components/board/mapInteraction.ts` holds the page's one map interaction. One form owns it at a time; the owner sets what is selectable, selected and targeted, and the board's layers only read it. Every location click goes to listeners, and a form acts on clicks only while it owns the map. Valid locations come from the action's options.
-- **Routes.** `/` (login, then the lobby), `/game/:gameId` (reconnect to a game), `/link/:linkToken` (the single-use login link of an async-play mail, which then shows `/game/:gameId`), `/scene/:fixture/:faction` (a fixture from `scripts/fixtures` seen by one faction: played on a server started with `TREACHERY_DEV_SCENE`, or drawn from the saved views without one), `/admin`. Inside a game, the screens follow the game's phase. `TREACHERY_BASE=/prefix/ npx vite build` serves the app under a path prefix; every absolute URL goes through `withBase` (`src/base.ts`).
-- **CSS, fonts, art.** The stylesheet (SCSS in `web/styles`, compiled by `npm run build:css`), Bootstrap, fonts and art live in `web/assets`, which Vite (dev, preview) and the Rust server (production) serve under `/art`, `/css`, `/fonts`, `/js` and `/docs`. Design work follows `design/design-language.html`.
-- **Text.** Every rich-text part arrives with its `label`, rendered on the server, so the client needs no skin `Describe`. Popovers are HTML built in `src/popups.ts` from the skin JSON and shown with Bootstrap popovers (`src/popover.ts`).
+- **Types.** The client writes no wire type by hand. `Connection.call(name, args)` (`src/state/connection.ts`) takes a call's name and arguments and resolves with its reply, typed from `src/protocol/` (`Call`, `CallReplies`), and `on(name, handler)` receives notifications typed from `Notification`. Forms build events as the generated `Event` union. `src/components/formDraft.ts` keeps a form's inputs as the fields of its event type, so a misspelt field is a type error, and builds the event with `eventOf(type, fields)`: the inputs go in `play` for an event that can be passed and beside `type` otherwise. The client sends only the event. The server sets the submitter and the time.
+- **Session.** The server knows the user per WebSocket ([protocol.md](protocol.md#sessions)). `Connection` authenticates each new socket with the session token (`authenticate`) before any other call. The page keeps the token in `sessionStorage` (`storeSession`), and in `localStorage` when the user asks to stay signed in. Tokens never go in URLs. When the server ends the session (`sessionEnded`, or a call refused with `notLoggedIn`), the client forgets it and shows the login.
+- **State.** One connection per tab. The latest `GameView` replaces the previous one whole. Components derive what they draw from it and the skin, and keep only UI state: a form's draft, the log phase shown, collapsed panels, the map selection. A form keeps its draft across views and sends it back as a draft query after each one, so the server adjusts it to the new game. The draft is dropped when the form's event type leaves `actions` or the viewer's seat changes. Draft query answers older than the form's latest query are dropped. Preferences (sound volumes, auto-pass, collapse states, the Atreides tracker's notes) are in local storage.
+- **Map interaction.** `components/board/mapInteraction.ts` holds the page's one map interaction. One form owns it at a time. The owner sets what is selectable, selected and targeted, and the board's layers only read it. Every location click goes to listeners, and a form acts on clicks only while it owns the map. Valid locations come from the action's options.
+- **Routes.** `/` (login, then the lobby), `/game/:gameId` (reconnect to a game), `/link/:linkToken` (the single-use login link of an async-play mail, which then shows the game), `/scenes` and `/scene/:fixture/:faction` (a fixture from `scripts/fixtures` seen by one faction: played on a server started with `TREACHERY_DEV_SCENE`, or drawn from the saved views without one), and `/admin`. Inside a game, the screens follow the game's phase. `TREACHERY_BASE=/prefix/ npx vite build` serves the app under a path prefix, and every absolute URL goes through `withBase` (`src/base.ts`).
+- **CSS, fonts, art.** The stylesheet (SCSS in `web/styles`, compiled by `npm run build:css`), Bootstrap, fonts and art live in `web/assets`, which Vite (dev, preview) and the Rust server (production) serve under `/art`, `/css`, `/fonts`, `/js` and `/docs`. Design work follows `design/design-language.html` at the repository root, which is kept out of git.
+- **Text.** Every rich-text part arrives with its `label`, rendered on the server, so the client needs no text rules of its own. Popovers are HTML built in `src/popups.ts` from the skin JSON and shown with Bootstrap popovers (`src/popover.ts`).
 
 ## Checks
 
-- `rust/tools/check.sh` runs the view tests: forms against the engine, visibility over the bot-game corpus, build order independence, the log line snapshots (`tests/log_lines.rs`), the generated types and the static data.
+- `rust/tools/check.sh` runs the view tests: forms against the engine, visibility over the bot-game corpus, build order independence, the log line snapshots (`tests/log_lines.rs`), and whether the generated types, the static data and the lobby data are current.
 - In `web/`: `npm run build` (typecheck and bundle), `npm run check:rich-text` (the React rich text shows each snapshot line's expected text), `npm run check:flash`.
 - `scripts/ui/e2e_server.py` starts the Rust server and drives the web client in Playwright: two players form an alliance by clicking, others join from the lobby, leave, are kicked and observe, the host undoes, a connection drops and comes back, and a user logs in through the form and out again. Its docstring lists every step.
-- `observe live` (native-harness.md) compares every view after every event with the reference build.
+- `observe live` ([native-harness.md](native-harness.md)) compares every view after every event with the reference build.

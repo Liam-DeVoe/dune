@@ -487,6 +487,19 @@ pub struct SequenceEntry {
     pub has_turn: bool,
 }
 
+/// An action the viewer will get but can't take yet, drawn as a form without a button where the
+/// real one will appear. Only Prescience while it waits for Voice, for now.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct WaitingActionView {
+    /// The event type name of the action it stands for.
+    pub event_type: String,
+    /// The form's header.
+    pub title: String,
+    /// Why it isn't available yet.
+    pub reason: RichText,
+}
+
 /// One action the viewer can take now: an entry of `Game.GetApplicableEvents(Player, IsHost)`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
@@ -708,6 +721,7 @@ pub struct GameView {
     pub board: BoardView,
     pub status: StatusView,
     pub actions: Vec<ActionView>,
+    pub waiting_actions: Vec<WaitingActionView>,
     pub log: LogView,
     #[ts(type = "Ruleset")]
     pub ruleset: String,

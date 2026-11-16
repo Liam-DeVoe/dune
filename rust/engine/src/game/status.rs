@@ -746,9 +746,21 @@ impl GameStatus {
 
         let g: &Game = game;
         let latest_battle_event = g.latest_event(GameEventType::BattleInitiated);
-        let to_make_plan = Self::players_that_need_to_make_a_battle_plan(g);
+        let mut to_make_plan = Self::players_that_need_to_make_a_battle_plan(g);
         let battle = g.battle.current_battle.clone().expect("current battle");
         let my_faction = me_.map(|me| g.player(me).faction);
+
+        // Prescience waits for Voice, so whoever may use or decline it is waited for too.
+        let voice_deciders: Vec<PlayerIndex> = g.player_indices().filter(|&p| VoiceDeclined::may_decline(g, p)).collect();
+        for &p in &voice_deciders {
+            if !to_make_plan.contains(&Some(p)) {
+                to_make_plan.push(Some(p));
+            }
+        }
+        if me_.is_some_and(|me| voice_deciders.contains(&me) && !battle.is_aggressor_or_defender(g, me)) {
+            let message = express!(battle.defender(g), " are defending against ", battle.aggressor(g), " aggression in ", battle.territory(g), "...");
+            return Self::players_status(express!("Please decide whether to use Voice. Prescience waits for it."), message, to_make_plan, latest_battle_event);
+        }
 
         if Some(battle.aggressor(g)) == my_faction {
             return Self::players_status(

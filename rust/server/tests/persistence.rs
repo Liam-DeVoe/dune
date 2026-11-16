@@ -151,7 +151,7 @@ fn opens_a_database_written_by_the_csharp_server() {
                 // now (behavior-changes.md, "Random number generator"): it no longer loads.
                 (
                     r#"INSERT INTO "PersistedGames" ("CreationDate","CreatorUserId","GameId","GameName","GameParticipation","GameState","HashedPassword","LastAction","LastAsyncPlayMessageSent","ObserversRequirePassword","StatisticsSent") VALUES ('2026-11-01 10:00:00+01:00',7,'88888888-2222-3333-4444-555555555555','Game of version 188',?,?,NULL,'2026-11-08 11:00:00+00:00','0001-01-01 00:00:00+00:00',0,0)"#,
-                    vec![participation.to_string(), fixture_text("alliance").replacen(r#""Version":189"#, r#""Version":188"#, 1)],
+                    vec![participation.to_string(), fixture_text("alliance").replacen(r#""Version":190"#, r#""Version":189"#, 1)],
                 ),
                 (
                     r#"INSERT INTO "ScheduledGames" ("AllowedFactionsInPlay","AsyncPlay","CreatorPlayerName","CreatorUserId","DateTime","GameId","MaximumTurns","NumberOfPlayers","Ruleset","SubscribedUsers") VALUES ('[20,10]',0,'Alice Player',7,'2026-11-20 20:00:00+01:00','sched-1',10,6,NULL,'{"7":50,"9":30}')"#,

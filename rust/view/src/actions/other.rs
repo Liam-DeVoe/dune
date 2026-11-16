@@ -25,7 +25,7 @@ use super::other_nexus;
 use super::widgets::{picker, required, required_opt, faction_options, hero_options, card_ids, draft_json, describe};
 
 /// The event types drawn as a simple confirm form (`ActionOptions::Simple`).
-pub const SIMPLE: [GameEventType; 19] = [
+pub const SIMPLE: [GameEventType; 20] = [
     GameEventType::MetheorPlayed,
     GameEventType::CharityClaimed,
     GameEventType::GuildDelay,
@@ -45,6 +45,7 @@ pub const SIMPLE: [GameEventType; 19] = [
     GameEventType::DiscardedSearchedAnnounced,
     GameEventType::PortableAntidoteUsed,
     GameEventType::SwitchedSkilledLeader,
+    GameEventType::VoiceDeclined,
 ];
 
 /// The event types drawn as a yes/no form (`ActionOptions::YesNo`).
@@ -795,6 +796,7 @@ fn simple_options(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describ
             allow_auto_confirm: true,
         },
         GameEventType::BattleRevision => simple(text("Change your battle plan?"), "Change Plan", false),
+        GameEventType::VoiceDeclined => simple(text("Prescience waits until you use Voice or decline it. Decline Voice for this battle?"), "Don't use Voice", false),
         GameEventType::KarmaPrescience => simple(text(format(d, "Use {0} to see the entire enemy battle plan", &[C::Karma.into()])), use_card(d, "Use", C::Karma), false),
         GameEventType::KarmaEcazDial => {
             simple(text(format(d, "Use {0} to add the difference between the leader discs to your dial", &[C::Karma.into()])), use_card(d, "Use", C::Karma), false)

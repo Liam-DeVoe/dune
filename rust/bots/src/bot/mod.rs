@@ -163,7 +163,8 @@ event_kind!(
     TraitorDiscarded,
     TraitorsSelected,
     TreacheryCalled,
-    Voice
+    Voice,
+    VoiceDeclined
 );
 
 
@@ -280,7 +281,7 @@ impl ClassicBot {
                 determine_thought_answered,
                 determine_thought,
             ),
-            Priority::High => first_decision!(self, game, allowed; determine_voice),
+            Priority::High => first_decision!(self, game, allowed; determine_voice, determine_voice_declined),
             Priority::Middle => first_decision!(self, game, allowed;
                 determine_metheor_played,
                 determine_amal_played,

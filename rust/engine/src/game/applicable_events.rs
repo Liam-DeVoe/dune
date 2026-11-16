@@ -440,6 +440,10 @@ impl Game {
                     result.push(GameEventType::Voice);
                 }
 
+                if VoiceDeclined::may_decline(self, player) {
+                    result.push(GameEventType::VoiceDeclined);
+                }
+
                 if Thought::may_be_used(self, player) {
                     result.push(GameEventType::Thought);
                 }

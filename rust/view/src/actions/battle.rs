@@ -272,8 +272,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
         GameEvent::LoserConcluded(_) => ActionOptions::LoserConcluded(loser_concluded_options(game, p, dj.clone())),
         GameEvent::Planetology(_) => ActionOptions::Planetology(BattleButtonsOptions { draft: dj.clone() }),
         GameEvent::Prescience(_) => ActionOptions::Prescience(PrescienceOptions {
-            aspects: Prescience::valid_aspects(game, p).into_iter().map(|a| enum_choice(a, d)).collect(),
-            voice_note: game.battle.current_battle.as_ref().is_some_and(|b| b.is_involved_faction(game, Faction::BeneGesserit)), draft: dj.clone() }),
+            aspects: Prescience::valid_aspects(game, p).into_iter().map(|a| enum_choice(a, d)).collect(), draft: dj.clone() }),
         GameEvent::Retreat(_) => ActionOptions::Retreat(RetreatOptions {
             targets: Retreat::valid_targets(game, p).map(|l| l.id()).collect(),
             max_forces: Retreat::max_forces(game, p),
@@ -296,8 +295,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &GameEvent
         GameEvent::Thought(_) => ActionOptions::Thought(BattleCardsOptions { cards: Thought::valid_cards(game).map(|c| c.id()).collect(), draft: dj.clone() }),
         GameEvent::TreacheryCalled(_) => ActionOptions::TreacheryCalled(BattleMayCallOptions { may_call: TreacheryCalled::may_call_treachery(game, p), draft: dj.clone() }),
         GameEvent::Voice(_) => ActionOptions::Voice(VoiceOptions {
-            types: voice_types(game, &Some(d)),
-            prescience_note: game.battle.current_battle.as_ref().is_some_and(|b| b.is_involved_faction(game, Faction::Atreides)), draft: dj.clone() }),
+            types: voice_types(game, &Some(d)), draft: dj.clone() }),
         _ => return None,
     };
     Some((Some(options), validate(game, draft.clone(), d)))

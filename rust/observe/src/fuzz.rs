@@ -611,8 +611,8 @@ pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, seating: &Sea
 }
 
 /// The events played around a fight, plus plan revision and traitor calls.
-pub const BATTLE_ACTION_TYPES: [&str; 24] = [
-    "Voice", "Prescience", "Thought", "ThoughtAnswered", "Diplomacy", "PoisonToothCancelled", "PortableAntidoteUsed", "RockWasMelted",
+pub const BATTLE_ACTION_TYPES: [&str; 25] = [
+    "Voice", "VoiceDeclined", "Prescience", "Thought", "ThoughtAnswered", "Diplomacy", "PoisonToothCancelled", "PortableAntidoteUsed", "RockWasMelted",
     "AuditCancelled", "Audited", "FaceDanced", "FaceDancerReplaced", "FaceDancerRevealed", "ResidualPlayed", "Planetology", "JuicePlayed",
     "KarmaEcazDial", "KarmaPrescience", "TraitorDiscarded", "BattleRevision", "TreacheryCalled", "HMSAdvantageChosen", "SwitchedSkilledLeader",
     "BattleClaimed",

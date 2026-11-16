@@ -29,9 +29,9 @@ fn games_survive_a_restart() {
         s.advance(std::time::Duration::from_secs(1)).await;
         s.ok(carol.conn, "observeGame", json!({"game": game, "passwordHash": ""})).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": {"$type": "AllianceOffered", "Target": faction::ATREIDES, "Initiator": faction::EMPEROR}})).await;
+        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES)})).await;
         s.advance(std::time::Duration::from_secs(1)).await;
-        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": {"$type": "AllianceOffered", "Target": faction::EMPEROR, "Initiator": faction::ATREIDES}})).await;
+        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         s.advance(std::time::Duration::from_secs(1)).await;
         s.ok(alice.conn, "setBotSpeed", json!({"game": game, "speed": 2})).await;
         let before = s.latest_view(alice.conn).unwrap();
@@ -89,7 +89,7 @@ fn changes_right_before_a_restart_are_kept() {
         s.ok(bobby.conn, "joinGame", json!({"game": game, "passwordHash": "", "seat": atreides})).await;
         // Several changes within a few seconds, the last one just before the restart.
         for target in [faction::ATREIDES] {
-            s.ok(alice.conn, "submitEvent", json!({"game": game, "event": {"$type": "AllianceOffered", "Target": target, "Initiator": faction::EMPEROR}})).await;
+            s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(target)})).await;
         }
         let count = s.latest_view(alice.conn).unwrap()["eventNumber"].clone();
         let mut s = s.restart().await;

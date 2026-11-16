@@ -1,7 +1,7 @@
 //! The server decides who may do what in a game, from the user the connection is logged in as:
 //! a user who isn't in the game, an observer and a player of another faction are refused
-//! every call that changes the game or acts in it, and an event is always the caller's own,
-//! whatever its `Initiator` says.
+//! every call that changes the game or acts in it, and an event is always the caller's own:
+//! the client sends only the event, and the server sets who made it.
 
 mod common;
 
@@ -43,10 +43,6 @@ async fn table(s: &mut TestServer) -> Table {
     Table { alice, bobby, carol, dave, game }
 }
 
-fn offer(target: i64, initiator: i64) -> Value {
-    json!({"$type": "AllianceOffered", "Target": target, "Initiator": initiator})
-}
-
 /// What the host sees of the game: the savegame and the participation.
 async fn state(s: &mut TestServer, t: &Table) -> (Value, Value) {
     let saved = s.ok(t.alice.conn, "saveGame", json!({"game": t.game})).await;
@@ -62,8 +58,8 @@ fn outsiders_observers_and_other_players_are_refused() {
         let t = table(&mut s).await;
         let g = t.game.clone();
         let before = state(&mut s, &t).await;
-        let settings = establish_players(4, &[], false, 0)["Settings"].clone();
-        let emperor_offer = offer(faction::ATREIDES, faction::EMPEROR);
+        let settings = establish_players(4, &[], false, 0)["settings"].clone();
+        let emperor_offer = offer(faction::ATREIDES);
 
         // Calls only a player may make: outsiders and observers are refused.
         let player_calls: Vec<(&str, Value)> = vec![
@@ -128,28 +124,33 @@ fn an_event_is_always_the_callers_own() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
         let t = table(&mut s).await;
-        let events = |saved: &Value| saved["_events"].as_array().unwrap().len();
+        let events = |saved: &Value| saved["events"].as_array().unwrap().len();
         let (before, _) = state(&mut s, &t).await;
 
-        // Bobby offers in the Emperor's name: the server makes it the Atreides' offer, which
-        // the Atreides can't make to themselves.
-        let r = s.submit(&t.bobby, &t.game, offer(faction::ATREIDES, faction::EMPEROR)).await;
+        // Bobby's offer is the Atreides' offer: the client can't name another submitter, and the
+        // Atreides can't offer to themselves.
+        let r = s.submit(&t.bobby, &t.game, offer(faction::ATREIDES)).await;
         assert_eq!(code(&r), error::INVALID_GAME_EVENT, "{r}");
         let (after, _) = state(&mut s, &t).await;
         assert_eq!(events(&after), events(&before));
 
         // An offer that the Atreides can make is made by the Atreides, not the faction named.
-        let r = s.submit(&t.bobby, &t.game, offer(faction::EMPEROR, faction::EMPEROR)).await;
+        let r = s.submit(&t.bobby, &t.game, offer(faction::EMPEROR)).await;
         assert!(is_ok(&r), "{r}");
         let (after, _) = state(&mut s, &t).await;
-        let last = after["_events"].as_array().unwrap().last().unwrap().clone();
-        assert_eq!(last["$type"], "AllianceOffered");
-        assert_eq!(last["Initiator"], faction::ATREIDES);
-        assert_eq!(last["Target"], faction::EMPEROR);
+        let last = after["events"].as_array().unwrap().last().unwrap().clone();
+        assert_eq!(last["event"]["type"], "AllianceOffered");
+        assert_eq!(last["by"], "Atreides");
+        assert_eq!(last["event"]["target"], "Emperor");
+
+        // A submitter the client names is an unknown field.
+        let mut forged = offer(faction::EMPEROR);
+        forged["by"] = json!("Emperor");
+        assert_eq!(code(&s.submit(&t.bobby, &t.game, forged).await), error::INVALID_GAME_EVENT);
 
         // A draft is answered for the caller's faction too: the Emperor offering to the
         // Atreides is valid for Alice, but for Bobby it is an offer to himself.
-        let draft = s.ok(t.bobby.conn, "queryDraft", json!({"game": t.game, "eventNumber": 0, "draft": offer(faction::ATREIDES, faction::EMPEROR)})).await;
+        let draft = s.ok(t.bobby.conn, "queryDraft", json!({"game": t.game, "eventNumber": 0, "draft": offer(faction::ATREIDES)})).await;
         assert!(!draft["validation"].is_null(), "{draft}");
     });
 }
@@ -170,9 +171,9 @@ fn only_a_host_starts_the_game_and_the_server_draws_the_seed() {
         assert!(is_ok(&s.submit(&alice, &game, start.clone()).await));
         let saved = s.ok(alice.conn, "saveGame", json!({"game": game})).await;
         let saved: Value = serde_json::from_str(saved.as_str().unwrap()).unwrap();
-        let established = &saved["_events"][0];
-        assert_eq!(established["$type"], "EstablishPlayers");
-        assert_eq!(established["Seed"], GAME_SEED, "the server's seed, not the client's ({})", start["Seed"]);
+        let established = &saved["events"][0]["event"];
+        assert_eq!(established["type"], "EstablishPlayers");
+        assert_eq!(established["seed"], GAME_SEED, "the server's seed, not the client's ({})", start["seed"]);
     });
 }
 
@@ -186,7 +187,7 @@ fn players_choose_only_their_own_faction() {
         let game = s.new_game(&alice, "", "").await;
         s.ok(bobby.conn, "joinGame", json!({"game": game, "passwordHash": "", "seat": null})).await;
         let start = establish_players(2, &[PLAYERS_CHOOSE_FACTIONS], false, 0);
-        s.ok(alice.conn, "updateSettings", json!({"game": game, "settings": start["Settings"]})).await;
+        s.ok(alice.conn, "updateSettings", json!({"game": game, "settings": start["settings"]})).await;
         assert!(is_ok(&s.submit(&alice, &game, start).await));
         let view = s.latest_view(bobby.conn).unwrap();
         assert_eq!(view["phase"], "SelectingFactions");
@@ -199,7 +200,7 @@ fn players_choose_only_their_own_faction() {
         let alice_seat = seats.iter().find(|(u, _)| *u == alice.id).unwrap().1;
 
         // Bobby picks the Atreides for Alice's seat, in her name: the pick is his.
-        let pick = json!({"$type": "FactionSelected", "Seat": alice_seat, "InitiatorPlayerName": "Alice Player", "Faction": faction::ATREIDES, "Initiator": 0});
+        let pick = json!({"type": "FactionSelected", "seat": alice_seat, "initiatorPlayerName": "Alice Player", "faction": "Atreides"});
         assert!(is_ok(&s.submit(&bobby, &game, pick).await));
         let view = s.latest_view(bobby.conn).unwrap();
         let seat_of = |faction: &str| view["players"].as_array().unwrap().iter().find(|p| p["faction"] == faction).map(|p| p["seat"].as_i64().unwrap());
@@ -243,7 +244,7 @@ fn a_new_connection_is_nobody_until_it_authenticates() {
         let mut s = TestServer::start().await;
         let t = table(&mut s).await;
         let c = s.connect();
-        assert_eq!(s.err(c, "submitEvent", json!({"game": t.game, "event": offer(faction::ATREIDES, faction::EMPEROR)})).await, "notLoggedIn");
+        assert_eq!(s.err(c, "submitEvent", json!({"game": t.game, "event": offer(faction::ATREIDES)})).await, "notLoggedIn");
         assert_eq!(s.err(c, "undo", json!({"game": t.game, "until": 1})).await, "notLoggedIn");
         assert_eq!(s.err(c, "adminInfo", Value::Null).await, "notLoggedIn");
         // A token in a call's arguments authenticates nothing: only `authenticate` does.

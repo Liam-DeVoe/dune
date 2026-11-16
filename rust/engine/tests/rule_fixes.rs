@@ -243,7 +243,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
 /// A Karama bid that also passes, or names no Karama card of the bidder's, passed validation and
 /// then threw halfway through, after changing the game. The changes weren't in the history, so a
 /// later undo replayed another game, one with a Bene Gesserit intrusion that was never answered
-/// (observe fuzz seed 42 game 110). Both are refused now.
+/// (observe fuzz seed 42 game 110). A bid without a card is refused now, and a pass is a pass.
 #[test]
 fn a_karama_bid_needs_a_karama_card_and_no_pass() {
     let mut g = fixture("bid");
@@ -260,10 +260,17 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
         Event::Bid(b)
     };
     let history = g.history.entries.len();
-    assert_eq!(submit_by(&mut g, faction, |g| bid(true, Some(karama), g)).as_deref(), Some("You can't pass and use Karma in the same bid"));
     assert_eq!(submit_by(&mut g, faction, |g| bid(false, None, g)).as_deref(), Some("Invalid Karma card"));
     assert_eq!(g.history.entries.len(), history);
     assert!(g.player(bidder).treachery_cards.contains(&karama));
+
+    // Since version 191 a pass carries none of its other fields (`Event::normalized`), so a pass
+    // that names a Karama card is a plain pass, and the card stays.
+    let mut passing = fixture("bid");
+    passing.player_mut(bidder).treachery_cards.push(karama);
+    assert_eq!(submit_by(&mut passing, faction, |g| bid(true, Some(karama), g)), None);
+    assert_eq!(passing.history.entries.len(), history + 1);
+    assert!(passing.player(bidder).treachery_cards.contains(&karama), "a pass spends no card");
 
     assert_eq!(submit_by(&mut g, faction, |g| bid(false, Some(karama), g)), None);
     assert!(!g.player(bidder).treachery_cards.contains(&karama), "the Karama card is spent");

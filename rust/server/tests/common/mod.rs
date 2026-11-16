@@ -391,26 +391,39 @@ pub mod faction {
     pub const EMPEROR: i64 = 40;
 }
 
+/// The name of a faction number, as events write it.
+pub fn faction_name(f: i64) -> String {
+    use treachery_engine::enum_type::GameEnum;
+    treachery_engine::enumerations::Faction::from_value(f as i32).expect("a faction").to_string()
+}
+
+/// An `AllianceOffered` event to `target`.
+pub fn offer(target: i64) -> Value {
+    json!({"type": "AllianceOffered", "target": faction_name(target)})
+}
+
 /// An `EstablishPlayers` event that starts a game for `players` players with the given rules.
 pub fn establish_players(players: i64, rules: &[i64], async_play: bool, interval_minutes: i64) -> Value {
+    use treachery_engine::enum_type::GameEnum;
+    let rules: Vec<String> = rules.iter().map(|r| treachery_engine::enumerations::Rule::from_value(*r as i32).expect("a rule").to_string()).collect();
+    let factions: Vec<String> = [20, 10, 40, 30, 50, 60].iter().map(|f| faction_name(*f)).collect();
     json!({
-        "$type": "EstablishPlayers",
-        "Settings": {
-            "NumberOfPlayers": players,
-            "MaximumTurns": 3,
-            "InitialRules": rules,
-            "AllowedFactionsInPlay": [20, 10, 40, 30, 50, 60],
-            "AutoOpenEmptySeats": true,
-            "AsyncPlay": async_play,
-            "AsyncPlayMessageIntervalMinutes": interval_minutes
+        "type": "EstablishPlayers",
+        "settings": {
+            "numberOfPlayers": players,
+            "maximumTurns": 3,
+            "initialRules": rules,
+            "allowedFactionsInPlay": factions,
+            "autoOpenEmptySeats": true,
+            "asyncPlay": async_play,
+            "asyncPlayMessageIntervalMinutes": interval_minutes
         },
-        "Seed": 7,
-        "MaximumNumberOfPlayers": players,
-        "MaximumTurns": 3,
-        "ApplicableRules": [],
-        "_players": "",
-        "_factionsInPlay": "",
-        "Initiator": 0
+        "seed": 7,
+        "maximumNumberOfPlayers": players,
+        "maximumTurns": 3,
+        "applicableRules": [],
+        "players": [],
+        "factionsInPlay": []
     })
 }
 

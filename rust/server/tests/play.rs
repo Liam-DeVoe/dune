@@ -36,10 +36,6 @@ async fn alliance_game(s: &mut TestServer) -> (User, User, String) {
     (alice, bobby, game)
 }
 
-fn offer(target: i64, initiator: i64) -> Value {
-    json!({"$type": "AllianceOffered", "Target": target, "Initiator": initiator})
-}
-
 #[test]
 fn two_players_make_an_alliance() {
     rt().block_on(async {
@@ -52,20 +48,20 @@ fn two_players_make_an_alliance() {
         s.received(bobby.conn);
 
         // Drafts are checked against the caller's actions.
-        let draft = s.ok(alice.conn, "queryDraft", json!({"game": game, "eventNumber": start, "draft": offer(faction::EMPEROR, 0)})).await;
+        let draft = s.ok(alice.conn, "queryDraft", json!({"game": game, "eventNumber": start, "draft": offer(faction::EMPEROR)})).await;
         assert!(!draft["validation"].is_null(), "offering to oneself is invalid: {draft}");
-        let draft = s.ok(alice.conn, "queryDraft", json!({"game": game, "eventNumber": start, "draft": offer(faction::ATREIDES, 0)})).await;
+        let draft = s.ok(alice.conn, "queryDraft", json!({"game": game, "eventNumber": start, "draft": offer(faction::ATREIDES)})).await;
         assert!(draft["validation"].is_null(), "{draft}");
         assert_eq!(draft["eventType"], "AllianceOffered");
-        let r = s.call(alice.conn, "queryDraft", json!({"game": game, "eventNumber": start, "draft": {"$type": "StormDialled", "Amount": 1}})).await;
+        let r = s.call(alice.conn, "queryDraft", json!({"game": game, "eventNumber": start, "draft": {"type": "StormDialled", "amount": 1}})).await;
         assert_eq!(code(&r), error::INVALID_GAME_EVENT, "not an action of this view");
 
         // Each event sends every member their own view, the submitter's before its reply.
-        let (reply, before) = s.call_raw(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES, faction::EMPEROR)})).await;
+        let (reply, before) = s.call_raw(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES)})).await;
         assert!(is_ok(&reply), "{reply}");
         assert_eq!(event_number(&views(&before).pop().unwrap()), start + 1);
         assert_eq!(views(&s.received(bobby.conn)).len(), 1);
-        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await;
+        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         let bobby_view = s.latest_view(bobby.conn).unwrap();
         let alice_view = s.latest_view(alice.conn).unwrap();
         assert_eq!(ally(&bobby_view, "Atreides"), "Emperor");
@@ -74,16 +70,16 @@ fn two_players_make_an_alliance() {
         assert_eq!(bobby_view["me"]["faction"], "Atreides");
 
         // An invalid event is refused with the validation message and changes nothing.
-        let (reply, before) = s.call_raw(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await;
+        let (reply, before) = s.call_raw(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         assert_eq!(code(&reply), error::INVALID_GAME_EVENT);
         assert!(!reply["err"]["message"].as_str().unwrap().is_empty());
         assert!(views(&before).is_empty());
         assert!(views(&s.received(alice.conn)).is_empty());
 
         let anonymous = s.connect();
-        assert_eq!(s.err(anonymous, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await, error::NOT_LOGGED_IN);
-        assert_eq!(s.err(bobby.conn, "submitEvent", json!({"game": "no game", "event": offer(faction::EMPEROR, faction::ATREIDES)})).await, error::GAME_NOT_FOUND);
-        let (reply, _) = s.call_raw(bobby.conn, "submitEvent", json!({"game": game, "event": {"$type": "NoSuchEvent"}})).await;
+        assert_eq!(s.err(anonymous, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await, error::NOT_LOGGED_IN);
+        assert_eq!(s.err(bobby.conn, "submitEvent", json!({"game": "no game", "event": offer(faction::EMPEROR)})).await, error::GAME_NOT_FOUND);
+        let (reply, _) = s.call_raw(bobby.conn, "submitEvent", json!({"game": game, "event": {"type": "NoSuchEvent"}})).await;
         assert_eq!(code(&reply), error::INVALID_GAME_EVENT, "{reply}");
 
         // Reports, filtered for the caller.
@@ -96,7 +92,7 @@ fn two_players_make_an_alliance() {
         assert_eq!(s.err(bobby.conn, "saveGame", json!({"game": game})).await, error::NO_HOST);
         let saved = s.ok(alice.conn, "saveGame", json!({"game": game})).await;
         let saved: Value = serde_json::from_str(saved.as_str().unwrap()).unwrap();
-        assert_eq!(saved["_events"].as_array().unwrap().len() as i64, event_number(&alice_view));
+        assert_eq!(saved["events"].as_array().unwrap().len() as i64, event_number(&alice_view));
     });
 }
 
@@ -105,8 +101,8 @@ fn undo_restore_and_dismiss() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
         let (alice, bobby, game) = alliance_game(&mut s).await;
-        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES, faction::EMPEROR)})).await;
-        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await;
+        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES)})).await;
+        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         let count = event_number(&s.latest_view(alice.conn).unwrap());
         s.received(bobby.conn);
 
@@ -167,9 +163,9 @@ fn restore_brings_back_the_views_from_before_the_undo() {
     rt().block_on(async {
         let mut s = TestServer::start().await;
         let (alice, bobby, game) = alliance_game(&mut s).await;
-        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES, faction::EMPEROR)})).await;
+        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES)})).await;
         let after_offer = s.latest_view(bobby.conn).unwrap();
-        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await;
+        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         let allied = s.latest_view(bobby.conn).unwrap();
         let count = event_number(&allied);
         assert_eq!(ally(&allied, "Atreides"), "Emperor");
@@ -181,7 +177,7 @@ fn restore_brings_back_the_views_from_before_the_undo() {
         // Undo both offers, play a different one, then restore: the alliance is back.
         s.ok(alice.conn, "undo", json!({"game": game, "until": count - 2})).await;
         assert_eq!(event_number(&s.latest_view(bobby.conn).unwrap()), count - 2);
-        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await;
+        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         assert_eq!(event_number(&s.latest_view(bobby.conn).unwrap()), count - 1);
         s.ok(alice.conn, "restoreUndone", json!({"game": game})).await;
         assert_eq!(s.latest_view(bobby.conn).unwrap(), allied);
@@ -200,7 +196,7 @@ fn restore_brings_back_the_views_from_before_the_undo() {
         // The restored game plays on.
         s.ok(alice.conn, "undo", json!({"game": game, "until": count - 1})).await;
         s.ok(alice.conn, "dismissUndone", json!({"game": game})).await;
-        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR, faction::ATREIDES)})).await;
+        s.ok(bobby.conn, "submitEvent", json!({"game": game, "event": offer(faction::EMPEROR)})).await;
         let replayed = s.latest_view(bobby.conn).unwrap();
         assert_eq!(event_number(&replayed), count);
         assert_eq!(ally(&replayed, "Atreides"), "Emperor");
@@ -213,7 +209,7 @@ async fn started_game(s: &mut TestServer, async_play: bool, interval: i64) -> (U
     let bobby = s.user("bobby").await;
     let game = s.new_game(&alice, "Dune", "").await;
     s.ok(bobby.conn, "joinGame", json!({"game": game, "passwordHash": "", "seat": null})).await;
-    let settings = establish_players(2, &[], async_play, interval)["Settings"].clone();
+    let settings = establish_players(2, &[], async_play, interval)["settings"].clone();
     s.ok(alice.conn, "updateSettings", json!({"game": game, "settings": settings})).await;
     s.received(alice.conn);
     s.received(bobby.conn);
@@ -332,7 +328,7 @@ fn bots_take_the_empty_seats() {
         let alice = s.user("alice").await;
         let watcher = s.connect();
         let game = s.new_game(&alice, "", "").await;
-        let settings = establish_players(3, &[rule::FILL_WITH_BOTS], false, 0)["Settings"].clone();
+        let settings = establish_players(3, &[rule::FILL_WITH_BOTS], false, 0)["settings"].clone();
         s.ok(alice.conn, "updateSettings", json!({"game": game, "settings": settings})).await;
         s.ok(alice.conn, "submitEvent", json!({"game": game, "event": establish_players(3, &[rule::FILL_WITH_BOTS], false, 0)})).await;
         let view = s.latest_view(alice.conn).unwrap();

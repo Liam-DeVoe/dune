@@ -9,7 +9,7 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 - Where C# overloads one name, the Rust names say how the versions differ, not which parameter types they take: `Game::discard_card(card, log)` and `discard_card_of(player, card, log)`, `GameStatus::for_player` and `for_players`, `Player::kill_forces` and `kill_forces_in_territory`.
 - Comments describe the Rust code. A comment about the C# engine is only for a deliberate difference (`// Not in C#: ...`, listed in [behavior-changes.md](behavior-changes.md)) or a copied C# bug (`// C# parity: ...`).
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
-- Support modules have no C# counterpart. `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
+- Support modules have no C# counterpart. `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `events/wire.rs` holds the parts of the event JSON serde doesn't derive, and `prelude.rs` is the common import.
 - `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
@@ -41,9 +41,9 @@ No state lives outside `Game`: the engine has no thread-locals or statics that g
 
 ## Enums
 
-Every enum is a closed Rust `enum` with the C# values as discriminants (`enumerations.rs`), so a number that names no member doesn't decode: event JSON holding `13` for a faction is refused with "13 is not a valid Faction". Where the C# enum had a `None = 0` member meaning "no value", the Rust enum leaves it out (`absent None = 0;`) and the game uses `Option<X>`. The C# `None` member doesn't disappear from what players see:
+Every enum is a closed Rust `enum` with the C# values as discriminants (`enumerations.rs`), so a name that names no member doesn't decode: event JSON holding `"Nobody"` for a faction is refused. Where the C# enum had a `None = 0` member meaning "no value", the Rust enum leaves it out (`absent None = 0;`) and the game uses `Option<X>`. The C# `None` member doesn't disappear from what players see:
 
-- event JSON writes `None` as 0 and reads 0 as `None` (`Option<X>` has its own `ToJson`/`FromJson`, see `json::JsonNullable`);
+- event JSON writes `None` as `null` (savegames of version 190 wrote 0, which `treachery-legacy` reads as `None`);
 - a message logs `None` as the `None` member (its `Part` variant holds an `Option<X>`), so the skin names it as before. A C# nullable of such an enum is `Option<Option<X>>` and logs its `None`, the C# `null`, as nothing (`Part::Null`);
 - views, the lobby data and skin keys name it "None" (`enum_type::name_or_absent`, `value_or_absent`).
 
@@ -67,8 +67,8 @@ for w in World::ALL { /* ... */ }                           // Enum.GetValues<Wo
 - A `None` member that is a real choice stays a member: `DealType::None` is a custom deal, and the lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) keep theirs.
 - `Ord` compares values, like C#. `Option<X>` sorts `None` first, where C# sorted the 0 member.
 - `Display` is `Enum.ToString()`, the member name. Use `name_or_absent` for an `Option<X>`.
-- `ShipmentPermission`, a C# `[Flags]` enum, is a struct of three bools (`cross`, `to_homeworld`, `guild_rate`) that implements `GameEnum` by hand. Event JSON writes it as the flag number, and a number with any other bit doesn't decode.
-- serde (de)serializes a closed enum as its member name. Nothing serializes enums with serde yet; event JSON goes through `json/`.
+- `ShipmentPermission`, a C# `[Flags]` enum, is a struct of three bools (`cross`, `to_homeworld`, `guild_rate`) that implements `GameEnum` by hand. Event JSON writes the three bools (`{"cross":true,"toHomeworld":false,"guildRate":false}`); savegames of version 190 wrote the flag number.
+- serde (de)serializes a closed enum as its member name, which is how events write it (see [JSON](#json)).
 - To declare an enum outside `enumerations.rs`, use the `game_enum!` macro (`enum_type.rs`) with `closed` (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
 
 ### Factions
@@ -116,7 +116,7 @@ game.change_resources_on_planet(l, -collected)?;
 
 A change that would go below zero is a Game Error, never a negative amount, and C#'s habit of ignoring such a change silently is gone. So every `Player` function that moves, kills or revives forces returns `GameResult`. If a player can cause the error, refuse the event in `validate` instead. Where the rules take "as much as possible", take `min(amount, have)` first, as `some_forces_in_territory_to_reserves` and the collection of spice do. Don't write `+=` or `-=` on these fields: in a release build a `u16` wraps silently.
 
-Amounts in events are `u16` as well, and the JSON reader refuses one outside 0 to 65535, so validation never sees a negative amount. Reads widen the same way: `i32::from(self.amount)`. Code that computes an amount as `i32` for an event, as bots and forms do, sets it with `amounts::clamp_u16`. The force lists (`_forceLocations` and the like) are strings, and the JSON reader checks their amounts too (`json::read_force_locations`). A few event fields stay `i32` because a negative value means something, such as a shipment back to reserves (behavior-changes.md, "Turns, sectors and amounts out of range").
+Amounts in events are `u16` as well, and serde refuses one outside 0 to 65535, so validation never sees a negative amount. Reads widen the same way: `i32::from(self.amount)`. Code that computes an amount as `i32` for an event, as bots and forms do, sets it with `amounts::clamp_u16`. The force lists (`_forceLocations` and the like) are strings, and the JSON reader checks their amounts too (`json::read_force_locations`). A few event fields stay `i32` because a negative value means something, such as a shipment back to reserves (behavior-changes.md, "Turns, sectors and amounts out of range").
 
 ## Battle strength
 
@@ -176,9 +176,9 @@ game.board.map.shield_wall()                  // Map.ShieldWall (a Territory)
 
 ### Ids in events
 
-An event field that names one location, territory, leader, hero or treachery card holds the handle: `Shipment.to` is an `Option<Location>`, `Battle.hero` an `Option<Hero>`. Event JSON still writes the id, and -1 for `None` (`json_handle!` in json/mod.rs). Reading an id that names no object of the field's type fails, so a decoded event never holds an unknown id: `"_toId":500` is refused with "500 is not a valid Location".
+An event field that names one location, territory, leader, hero or treachery card holds the handle: `Shipment.to` is an `Option<Location>`, `Battle.hero` an `Option<Hero>`. Event JSON writes the id, and `null` for `None` (`handle_wire!` in events/wire.rs). Reading an id that names no object of the field's type fails, so a decoded event never holds an unknown id: `"to":500` is refused with "500 is not a valid Location".
 
-A field's default is the object with id 0 where there is one (`Location::from_id(0)`, `TreacheryCardManager::get(0)`), because C# left the id at 0 and event JSON must not change. A default `Shipment` names card 0 as its Karama card, as it did in C#. Leaders start at id 1001, so a leader field defaults to `None`.
+A field's default is the object with id 0 where there is one (`Location::from_id(0)`, `TreacheryCardManager::get(0)`), because C# left the id at 0. A default `Shipment` names card 0 as its Karama card, as it did in C#. Leaders start at id 1001, so a leader field defaults to `None`.
 
 ```rust
 e.to = Some(location);                      // was e.set_to(game, Some(location))
@@ -309,7 +309,7 @@ Events are plain data (rewrite-plan.md, wave 3a). The `events!` list in `events/
 - `Event` is an enum with one variant per event type, declared by `events!` (`events/macros.rs`), which also gives `EventType` (with `ALL`, `name()` and the JSON discriminator), `From<X> for Event` for every event struct, `Event::event_type()`, `PartialEq`, and the dispatch.
 - A played event is a `HistoryEntry { by, at, event }` (`events/rules.rs`): `by` is the submitter's faction, `None` for the host, and `at` the time. `game.history.entries` holds them. The event itself holds neither.
 - The submitter reaches the rules as a `By { faction, player }`: the faction and that faction's player when the event was submitted. `By::new(game, faction)` looks the player up the way C#'s `Initialize` did (so the host, `None`, gets the first player without a faction during setup). The player is looked up once, before validation, so it stays the submitter even when the event changes who plays which faction.
-- Event JSON reads into and writes from a `HistoryEntry`: `Initiator` is `by` and `Time` is `at`. The format is unchanged until 4b.
+- Event JSON reads into and writes from a `HistoryEntry`: `{"by","at","event"}` (see [JSON](#json)).
 
 ### Playing an event
 
@@ -491,19 +491,27 @@ Nothing counts draws any more. Tests that check how far a generator has drawn co
 
 ## JSON
 
-`json.rs` writes and reads System.Text.Json exactly as `Utilities.Serialize`/`Deserialize` do: member order, escaping, number and date formats, the `$type` rules, missing members keeping their initializers, unknown members ignored. A `$`-prefixed member other than the leading `$type` is rejected in an event (a polymorphic type) and skipped as an unknown member anywhere else (`GameSettings`, `GameState`), as .NET does. `json_members.rs` holds each event's member list, generated from `JsonSerializerOptions.GetTypeInfo`.
+Events, history entries, savegames and game settings derive serde's `Serialize` and `Deserialize`, and ts-rs's `TS`. The format is the one in rewrite-plan.md, "Wire format":
 
-```rust
-let text = json::serialize(&entry);                       // a HistoryEntry: the event, then Initiator and Time
-let entry: HistoryEntry = json::deserialize(&text)?;      // Utilities.Deserialize<GameEvent>(text)
-let state: GameState = json::deserialize(&savegame)?;     // without the legacy path, see below
+```json
+{"version":191,"events":[
+  {"by":"Atreides","at":"2026-11-13T04:14:35.622405Z",
+   "event":{"type":"Move","play":{"asAdvisors":false,"to":17,"forceLocations":[{"location":12,"forces":3,"specialForces":1}]}}},
+  {"by":"Harkonnen","at":"2026-11-13T04:15:02Z","event":{"type":"Move","play":null}}
+]}
 ```
 
-`tests/event_json.rs` checks every event type with random member values, plus malformed variants, against a snapshot recorded from the C# serializer: same accept/reject decision, byte-identical re-serialization. A new event type needs cases added to `tests/golden/events.jsonl` by hand; a deliberate format change is recorded with `UPDATE_GOLDENS=1` (see [Snapshot tests](#snapshot-tests)).
+- An event is tagged with `type`. Its fields are camelCase. A field named `type_` is written as `dealType`, `terrorType`, `juiceType` or `cardType`, because `type` is the tag.
+- An event that can be passed is marked `Name: pass` in the `events!` list. Its fields go in `play`, and a pass is `"play": null`. The struct still has its `passed` field, which serde skips.
+- `Game::play` replaces a passed event with `Event::normalized()`, which keeps only `passed`. So a pass never depends on its other fields, and a game is the same game after its savegame is read back.
+- Enums are written as member names, static objects as their id, and absence as `null`. An unknown name or id doesn't decode, and neither does an unknown field. A missing field takes its default.
+- Some fields still hold the text C# kept: force lists (`"12:3|1,14:2|0"`), card ids (`"3;17"`), player names (`"Alice>Bob"`) and factions in play. events/wire.rs writes each as a JSON list, so the text can change later without changing the format. A text that isn't a well-formed list fails to serialize.
+- `HistoryEntry.id` isn't written. A decoded entry gets a new one.
+- `GameState::load` reads a savegame and `GameState::get_state_as_string` writes one.
 
-Known gaps, all on malformed input: a duplicate `$type` is not detected, nesting is limited at 128 instead of 64, `-0.0` is read as an integer, and a date without an offset is read as UTC where .NET uses machine-local time. Error messages are not .NET's.
+`web/src/generated/Event.ts` is generated from these types by `protocol/tests/ts_bindings.rs` (`UPDATE_TS_BINDINGS=1 cargo test --release -p treachery-protocol --test ts_bindings`). The enums that events use must be in `enums.ts`, whose list is in `view/tests/ts_bindings.rs`.
 
-`Utilities::deserialize` reads only the System.Text.Json format. The Newtonsoft format of old savegames is no longer read, since those games are of versions the engine refuses anyway. `GameState::load` still replaces `Treachery.online` with `Treachery` in the text first.
+Savegames of version 190 and before are in System.Text.Json's format (`{"Version":190,"_events":[{"$type":"Move","_toId":17,"Initiator":20,"Time":..}]}`). The `treachery-legacy` crate (rust/legacy) reads and writes that format, with the hand-written reader that was `engine/src/json`. `treachery_legacy::load_any` reads a savegame of either format and turns version 190 into 191, which has the same rules. The server uses it for uploaded savegames and for the database migration, the harness for traces of a reference that records version 190, and tests for fixtures and recorded games that are still in the old format. `legacy/tests/event_json.rs` keeps the old reader's snapshot and checks that every event it accepts converts and reads back as the same event.
 
 ## Not ported
 
@@ -513,7 +521,7 @@ Known gaps, all on malformed input: a duplicate `$type` is not detected, nesting
 
 ## Snapshot tests
 
-Several engine tests compare what the engine computes with values recorded in `tests/golden/`: the static data and pathfinding (`static_data.rs`), event JSON (`event_json.rs`), message texts (`message_corpus.rs`), the generator's streams (in `static_data.rs`), and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`). The values were first recorded from the C# engine and have matched the Rust output since. A difference is a change in behavior. After a deliberate one, rewrite the snapshots and review the diff:
+Several engine tests compare what the engine computes with values recorded in `tests/golden/`: the static data and pathfinding (`static_data.rs`), the old event JSON (`legacy/tests/event_json.rs`), message texts (`message_corpus.rs`), the generator's streams (in `static_data.rs`), and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`). The values were first recorded from the C# engine and have matched the Rust output since. A difference is a change in behavior. After a deliberate one, rewrite the snapshots and review the diff:
 
 ```sh
 UPDATE_GOLDENS=1 cargo test --release -p treachery-engine
@@ -531,5 +539,5 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 ## What is left of .NET
 
 - `dotnet_compat::parse`: the parsing of the strings events carry (force locations, Clairvoyance parameters). A Clairvoyance dial is parsed by `try_halves_parse_invariant`, so the float stays in the compat crate.
-- `compat/date_time_offset.rs`: the `Time` of events in the JSON.
+- `compat/date_time_offset.rs`: the time of history entries (`at`).
 - `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.

@@ -251,11 +251,11 @@ fn settings_and_closing_belong_to_the_creator() {
         s.ok(bobby.conn, "joinGame", json!({"game": game, "passwordHash": "", "seat": null})).await;
         s.received(bobby.conn);
 
-        let settings = establish_players(4, &[], false, 0)["Settings"].clone();
+        let settings = establish_players(4, &[], false, 0)["settings"].clone();
         assert_eq!(s.err(bobby.conn, "updateSettings", json!({"game": game, "settings": settings})).await, error::NO_HOST);
         s.ok(alice.conn, "updateSettings", json!({"game": game, "settings": settings})).await;
         let update = find(&s.received(bobby.conn), "updateSettings").expect("updateSettings").clone();
-        assert_eq!(update["settings"]["NumberOfPlayers"], 4, "settings stay in the savegame format");
+        assert_eq!(update["settings"]["numberOfPlayers"], 4, "settings are the engine's GameSettings");
         let g = entry(&s.lobby(&bobby, "All").await["runningGames"], &game).unwrap().clone();
         assert_eq!(g["maxPlayers"], 4);
 

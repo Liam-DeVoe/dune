@@ -60,7 +60,7 @@ Ordering:
 - Times are RFC 3339 strings. The server writes UTC with microseconds, `"2026-09-18T04:14:35.622405Z"`, and reads any offset; a time without one is UTC. The time 0001-01-01 means none (`serverInfo.scheduledMaintenance`).
 - Maps keyed by user id or seat are arrays of `[key, value]` pairs in the server's order: `"seatedPlayers":[[12,3],[5,-1]]`. An object would lose that order, because `JSON.parse` sorts integer keys. A seat of -1 is a user without a seat yet.
 - A seat is a number from 0 to 255. -1 is allowed only where a user may have no seat (`seatedPlayers`, `assignSeats`, the `joinGame` notification); a call with any other number that is no seat is a `badCall`. User ids are integers, the ids of the server's database.
-- Events and game settings are still in the savegame format the engine reads and writes (`engine/src/json/mod.rs`): PascalCase members and enums as numbers, an event `{"$type":"Bid", ...}`. They appear in `submitEvent`, `queryDraft`, `updateSettings` and the `updateSettings` notification.
+- Events are the engine's `Event`, as savegames hold them (engine-conventions.md, "JSON"): tagged with `type`, camelCase fields, enums as names, and the fields of an event that can be passed in `play`, which is `null` for a pass: `{"type":"Bid","play":{"amount":3,..}}`. The client sends only the event, never a submitter or a time. Game settings are the engine's `GameSettings`. Both are typed in `web/src/generated/Event.ts`. They appear in `submitEvent`, `queryDraft`, `updateSettings` and the `updateSettings` notification.
 
 ## Errors
 
@@ -119,7 +119,7 @@ Passwords are hashed by the client: SHA-256 of the password's UTF-8 bytes, as 64
 |---|---|---|
 | `createGame` | `GameInitInfo` | From a savegame, or a new game when `savegame` is null or empty. An empty name names it after the creator. At most 10 running games per creator |
 | `loadGame` | null | Hosts. Replaces the game with a savegame |
-| `updateSettings` | null | Hosts. The settings for the game's start, in the savegame format |
+| `updateSettings` | null | Hosts. The settings for the game's start (`GameSettings`) |
 | `closeGame` | `Lobby` | Creator. Removes everyone and deletes the game |
 | `gameState` | `GameInitInfo` | Members. Also resends the caller's game view |
 | `scheduleGame` | `Lobby` | At most 3 scheduled games per user. An unknown faction or ruleset is a `badCall` |
@@ -157,7 +157,7 @@ Creating, joining, observing and reconnecting to a game, and `gameState`, send t
 | `phaseRelease` | null | Players. Stops holding |
 | `phaseContinue` | null | Hosts. Ends the current pause, but only while the game has `eventNumber` events, so a click that arrives after the server already continued does nothing |
 
-The event is a `GameEvent` in the savegame format, with `$type` set to the event class. The event is always the caller's own. The server sets `Initiator` to the caller's faction (none before factions are dealt, or for a host without a seat), whatever the client wrote, so the engine accepts it only as an action of that faction, or a host action when the caller is a host. It sets `Seat` and `InitiatorPlayerName` of `FactionSelected` to the caller's. `EstablishPlayers` is for hosts (`noHost` otherwise), and the server draws its `Seed`, which decides every deck. The server sets `Time`, validates and executes the event, and on success sends every participant a new view. A failed validation, or an event that doesn't decode, is `invalidGameEvent` with the reason in `message`, rendered with the default skin.
+The event is an `Event` (see [Encoding](#encoding)). It is always the caller's own. The client sends no submitter, and the server makes the caller's faction (none before factions are dealt, or for a host without a seat) the submitter, so the engine accepts it only as an action of that faction, or a host action when the caller is a host. It sets `seat` and `initiatorPlayerName` of `FactionSelected` to the caller's. `EstablishPlayers` is for hosts (`noHost` otherwise), and the server draws its `seed`, which decides every deck. The server sets the time, validates and executes the event, and on success sends every participant a new view. A failed validation, or an event that doesn't decode, is `invalidGameEvent` with the reason in `message`, rendered with the default skin.
 
 Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`rust/server/src/pause_rules.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `phaseDone`, or, in the revival step, once they revive. `PhaseControlInfo.reasons` says what each waited seat may do (`PauseReason`). Every reason is public; some need a secret card or spice, and the pause waits regardless, so the client words them as possibilities to everyone but the player concerned (`web/src/components/PauseReasons.tsx`). After an undo or a loaded game the current pause waits for the host's `phaseContinue` or the next event. Games older than version 188 keep host-only control.
 
@@ -195,7 +195,7 @@ Each notification names what happened. Changes to the game itself arrive as game
 |---|---|---|
 | `gameView` | `GameView`, see [Game view](#game-view) | each member of the game group, their own view: after events, undo, restore, dismiss, and anything else that changes the game |
 | `loadGame` | `GameInitInfo` | game group, followed by a `gameView` |
-| `updateSettings` | `{settings}` in the savegame format | game group |
+| `updateSettings` | `{settings}` (`GameSettings`) | game group |
 | `joinGame` | `{user, name, seat}` | game group |
 | `observeGame` | `{user, name}` | game group |
 | `setOrUnsetHost` | `{user}` | game group |
@@ -235,7 +235,7 @@ The server sends each participant a `gameView` notification: what that user may 
 - Static game objects by id: locations, territories, leaders, treachery cards, and resource cards (by skin id). Names, images and map positions come from the skin and the static data (`web/public/static/data.json`), never from the view.
 - Text the game writes (log lines, prompts, validation messages, form headings) arrives rendered to [rich text](#rich-text).
 
-Events stay in the savegame format of [Encoding](#encoding) (PascalCase, enums as numbers), both in draft queries and in `submitEvent`, because the engine reads and validates that format.
+Events are in the format of [Encoding](#encoding), both in draft queries and in `submitEvent`. A field the event doesn't have makes it fail to decode.
 
 ### When views are sent
 
@@ -258,7 +258,7 @@ Each view is complete; there are no diffs. A view of the alliance phase of a 6-p
 
 | Call | Reply | Notes |
 |---|---|---|
-| `queryDraft` | `DraftResult` | Players. `draft` is a `GameEvent` in savegame format; `invalidGameEvent` when it is not one of the caller's actions in their latest view (`message` says why) |
+| `queryDraft` | `DraftResult` | Players. `draft` is an `Event`; `invalidGameEvent` when it is not one of the caller's actions in their latest view (`message` says why) |
 | `report` | `ReportLines` | Members. The lines of the report at `index` in `log.reports`, filtered for the caller as in the view; `invalidGameEvent` for an index that has no report |
 | `undoList` | `UndoEntry[]` | Hosts. `{eventNumber, text: RichText, listed, turn, phase}` for every event: its short message, whether the undo panel lists it (ally permissions, battle revisions and automation settings are left out), and the turn and main phase it happened in. `eventNumber` is the event's index in the history, the `until` of `undo` |
 | `undoPreview` | `GameView` | Hosts. The caller's view at gap `gap`, the moment just before event `gap` (the game after `undo` to `gap`), with no actions and no `playableWith`. The gap is clamped to 1..number of events. Sends no notification; the live game and its views are untouched |
@@ -266,7 +266,7 @@ Each view is complete; there are no diffs. A view of the alliance phase of a 6-p
 
 A connection that isn't authenticated, or a game the server doesn't know, gives the same errors as the other calls (`notLoggedIn`, `gameNotFound`).
 
-The server sets a draft's `Initiator` to the caller's faction, so a client can't ask about another faction. A draft made from an older view is answered against the current game; the client discards answers for views it has replaced.
+A draft is answered for the caller's faction, so a client can't ask about another faction. A draft made from an older view is answered against the current game; the client discards answers for views it has replaced.
 
 ### GameView
 
@@ -335,7 +335,7 @@ A log line (`LogLine`) is `{text, private, heading, record, route, plans, fact}`
 
 `ActionView` is `{eventType, options, validation}`:
 
-- `eventType`: the event's type name, also the `$type` to submit.
+- `eventType`: the event's type name, also the `type` to submit.
 - `options`: the form's choices, `ActionOptions`, tagged by `form`.
 - `validation`: the validation message of the event the form would send with its default inputs, as `RichText`, or null. The confirm button shows it and is disabled while it is set. A validation that fails inside the engine gives "Validation failed".
 

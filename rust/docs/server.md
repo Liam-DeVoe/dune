@@ -78,7 +78,7 @@ The server was first a line-by-line port of the C# `GameHub`. These differences 
 - Each login starts its own session; logging in again no longer returns the token of an earlier session.
 - Calls carry no token: a connection logs in once and acts as that user. Session tokens are random 32-byte values stored as digests, expire after 30 idle or 90 days, and end on logout, a new password or the account's deletion. Async-play mails link with a single-use login token, not a session token.
 - Passwords are stored as Argon2id hashes of the client's SHA-256, not the SHA-256 itself.
-- The server sets an event's `Initiator`, `FactionSelected`'s seat and name, and the game's seed; only hosts start a game. Before, any user who knew a game's id could act as any faction in it.
+- The server sets who submitted an event, `FactionSelected`'s seat and name, and the game's seed; only hosts start a game. Before, any user who knew a game's id could act as any faction in it.
 - Observers and users outside a game can't submit events, query drafts, chat in it, take part in pauses or nudge its bots; outsiders can't read its reports.
 - Chat messages carry the caller as their source, and a message to one user goes only to that user and the sender.
 - Settings are for hosts, not the creator alone. Hosts can only make players hosts, kick members of the game, open real seats and seat players on real seats, and set bot speeds of 0 to 4. A user joins a particular seat only once it is open, and a kicked user can't observe.

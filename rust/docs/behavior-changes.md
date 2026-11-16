@@ -393,3 +393,10 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Area: server (rewrite-plan.md change 4a)
 - What happened: the server wrote "X now controls F", "X is now observing" and "X left/was kicked from the game" into the game's log. Players never saw them, because views came from the replica, which replayed only the history.
 - Done (4a): the server no longer writes them. Shown from the server's game, they would vanish on every undo, because they aren't in the history (`server/tests/play.rs`, `restore_brings_back_the_views_from_before_the_undo`, caught that).
+
+## A pass carries no other fields
+
+- Area: engine, wire format (rewrite-plan.md change 4b, game version 191)
+- What happened: an event that can be passed (34 types, such as `Bid`, `Shipment` and `Move`) kept every other field when it was passed, and a few rules read them. A passed `Bid` that also named a Karama card was refused with "You can't pass and use Karma in the same bid". A passed `Shipment` put a source and a Karama card into its log record, which views show. Bots pass with an event's defaults, so most passed shipments showed the Polar Sink and the Lasegun there. Clients sent whatever their form held.
+- Done (4b): the wire format writes a pass as `"play": null`, with no other fields. So that a game is the same game after its savegame is read back, `Game::play` replaces a passed event with `Event::normalized()`, which keeps nothing but the pass. A passed `Bid` that names a Karama card is now a plain pass, and a passed `Shipment`'s log record has no source and no Karama card (`engine/tests/rule_fixes.rs`, `a_karama_bid_needs_a_karama_card_and_no_pass`).
+- Harness: the 4b entry in rewrite-plan.md's Progress lists the games this changes and how they were checked.

@@ -65,7 +65,7 @@ fn admin_functions() {
 
         let saved = s.ok(admin.conn, "adminDownloadGame", json!({"game": game})).await;
         let saved: serde_json::Value = serde_json::from_str(saved.as_str().unwrap()).unwrap();
-        assert!(saved["_events"].as_array().unwrap().len() > 1);
+        assert!(saved["events"].as_array().unwrap().len() > 1);
         assert_eq!(s.err(admin.conn, "adminDownloadGame", json!({"game": "no such game"})).await, error::GAME_NOT_FOUND);
 
         assert!(s.ok(admin.conn, "adminSaveAll", Value::Null).await.is_string());
@@ -139,7 +139,7 @@ fn reloading_keeps_running_games_as_they_are() {
         let alice = s.user("alice").await;
         let game = s.fixture_game(&alice, "alliance").await;
         s.ok(alice.conn, "assignSeats", json!({"game": game, "seats": [[alice.id, alliance_seats().0]]})).await;
-        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": {"$type": "AllianceOffered", "Target": faction::ATREIDES, "Initiator": faction::EMPEROR}})).await;
+        s.ok(alice.conn, "submitEvent", json!({"game": game, "event": offer(faction::ATREIDES)})).await;
         let before = s.latest_view(alice.conn).unwrap()["eventNumber"].clone();
 
         // A move made right before the reload, not saved yet, stays.

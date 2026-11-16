@@ -535,7 +535,7 @@ fn strongholds(g: &Game) -> StoryBlock {
                 .collect(),
             owner: if owner_column { g.owner_of_location(sh).map(|p| name(g.player(p).faction)) } else { None },
             ambassador: if terror_column {
-                Some(g.ambassador_in(sh.territory())).filter(|a| *a != Ambassador::None).map(name)
+                g.ambassador_in(sh.territory()).map(name)
             } else {
                 None
             },

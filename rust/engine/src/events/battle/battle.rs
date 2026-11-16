@@ -369,7 +369,7 @@ impl Battle {
         let rock_melter_used_to_kill = game.battle.current_rock_was_melted.as_ref().is_some_and(|r| r.kill);
 
         result.agg_hero_killed = false;
-        result.agg_hero_cause_of_death = TreacheryCardType::None;
+        result.agg_hero_cause_of_death = None;
 
         let protected = game.is_protected_by_carthag_advantage(agg, territory);
         Battle::determine_cause_of_death(
@@ -386,7 +386,7 @@ impl Battle {
         );
 
         result.def_hero_killed = false;
-        result.def_hero_cause_of_death = TreacheryCardType::None;
+        result.def_hero_cause_of_death = None;
         let protected = game.is_protected_by_carthag_advantage(def, territory);
         Battle::determine_cause_of_death(
             def,
@@ -518,9 +518,9 @@ impl Battle {
         result
     }
 
-    pub fn determine_cause_of_death(player_plan: &Battle, opponent_plan: &Battle, the_hero: Option<Hero>, poison_tooth_used: bool, artillery_used: bool, rock_melter_was_used_to_kill: bool, is_protected_by_carthag_advantage: bool, hero_dies: &mut bool, cause_of_death: &mut TreacheryCardType, saved_by_carthag: &mut bool) {
+    pub fn determine_cause_of_death(player_plan: &Battle, opponent_plan: &Battle, the_hero: Option<Hero>, poison_tooth_used: bool, artillery_used: bool, rock_melter_was_used_to_kill: bool, is_protected_by_carthag_advantage: bool, hero_dies: &mut bool, cause_of_death: &mut Option<TreacheryCardType>, saved_by_carthag: &mut bool) {
         *hero_dies = false;
-        *cause_of_death = TreacheryCardType::None;
+        *cause_of_death = None;
         *saved_by_carthag = is_protected_by_carthag_advantage && opponent_plan.has_poison() && !player_plan.has_antidote();
 
         Battle::determine_death_by(the_hero, TreacheryCardType::Rockmelter, rock_melter_was_used_to_kill, hero_dies, cause_of_death);
@@ -531,10 +531,10 @@ impl Battle {
         Battle::determine_death_by(the_hero, TreacheryCardType::Projectile, opponent_plan.has_projectile() && !player_plan.has_projectile_defense(), hero_dies, cause_of_death);
     }
 
-    pub fn determine_death_by(hero: Option<Hero>, by_weapon: TreacheryCardType, weapon_has_effect: bool, hero_is_killed: &mut bool, cause_of_death: &mut TreacheryCardType) {
+    pub fn determine_death_by(hero: Option<Hero>, by_weapon: TreacheryCardType, weapon_has_effect: bool, hero_is_killed: &mut bool, cause_of_death: &mut Option<TreacheryCardType>) {
         if !*hero_is_killed && hero.is_some() && weapon_has_effect {
             *hero_is_killed = true;
-            *cause_of_death = by_weapon;
+            *cause_of_death = Some(by_weapon);
         }
     }
 
@@ -631,7 +631,7 @@ impl Battle {
         if self.hero().is_some() && Battle::affected_by_voice(game, self.player(), game.battle.current_voice.as_ref()) {
             if let Some(current_voice) = game.battle.current_voice.as_ref().filter(|v| v.must) {
                 let vt = current_voice.type_;
-                if vt != TreacheryCardType::Mercenary
+                if vt != Some(TreacheryCardType::Mercenary)
                     && pl
                         .treachery_cards
                         .iter()
@@ -903,9 +903,9 @@ impl Battle {
     pub fn valid_battle_heroes(g: &Game, p: PlayerIndex) -> Vec<Hero> {
         let affected_by_voice = Battle::affected_by_voice(g, p, g.battle.current_voice.as_ref());
         let must_use_cheap_hero =
-            affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.must && v.type_ == TreacheryCardType::Mercenary);
+            affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.must && v.type_ == Some(TreacheryCardType::Mercenary));
         let may_not_use_cheap_hero =
-            affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.may_not() && v.type_ == TreacheryCardType::Mercenary);
+            affected_by_voice && g.battle.current_voice.as_ref().is_some_and(|v| v.may_not() && v.type_ == Some(TreacheryCardType::Mercenary));
 
         let mut result: Vec<Hero> = Vec::new();
 
@@ -947,7 +947,7 @@ impl Battle {
             let voice = g.battle.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
-                if selected_defense.is_some_and(|d| d.type_() == vt) {
+                if selected_defense.is_some_and(|d| Some(d.type_()) == vt) {
                     result.extend(playable_weapons.iter().copied().map(Some));
                     if including_none {
                         result.push(None);
@@ -995,7 +995,7 @@ impl Battle {
             let voice = g.battle.current_voice.as_ref().expect("current voice");
             if voice.must {
                 let vt = voice.type_;
-                if selected_weapon.is_some_and(|w| w.type_() == vt) {
+                if selected_weapon.is_some_and(|w| Some(w.type_()) == vt) {
                     result.extend(playable_defenses.iter().copied().map(Some));
                     if including_none {
                         result.push(None);

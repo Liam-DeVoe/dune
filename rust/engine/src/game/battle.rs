@@ -1046,7 +1046,7 @@ impl Game {
         }
     }
 
-    pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: TreacheryCardType, winner: PlayerIndex, hero_value: i32) {
+    pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: Option<TreacheryCardType>, winner: PlayerIndex, hero_value: i32) {
         let winner_faction = self.player(winner).faction;
         let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction);
         fact.hero = Some(killed_hero);

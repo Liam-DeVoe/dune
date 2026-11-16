@@ -223,7 +223,7 @@ fn bene_gesserit_voices_a_useless_defense_against_poison() {
     let plan = bot(&game, bg).best_voice(&game, None, bg, opponent);
     assert_eq!(plan.weapon_to_use, Some(poison));
     assert!(plan.voice.must);
-    assert_eq!(plan.voice.type_, T::Shield);
+    assert_eq!(plan.voice.type_, Some(T::Shield));
 }
 
 /// The dial an Ecaz bot estimates for its ally (BattleClaimed) is the ally's own estimate, not the

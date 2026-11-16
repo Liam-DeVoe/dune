@@ -252,10 +252,9 @@ fn determine_approximate_ruleset() {
 
 #[test]
 fn rules_in_group_in_value_order() {
-    let house = Game::get_rules_in_group(RuleGroup::House, 3);
+    let house = Game::get_rules_in_group(Some(RuleGroup::House), 3);
     let mut sorted = house.clone();
     sorted.sort();
     assert_eq!(house, sorted);
     assert!(house.contains(&Rule::HmSwithoutIxian));
-    assert!(!Game::get_available_rulesets().contains(&Ruleset::None));
 }

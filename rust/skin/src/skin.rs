@@ -58,7 +58,7 @@ macro_rules! enum_keys {
     )*};
 }
 
-enum_keys!(MainPhase, Faction, TreacheryCardType, Ambassador);
+enum_keys!(MainPhase, Faction);
 
 /// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
 macro_rules! optional_enum_keys {
@@ -74,7 +74,7 @@ macro_rules! optional_enum_keys {
     )*};
 }
 
-optional_enum_keys!(TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType);
+optional_enum_keys!(TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, TreacheryCardType, Ambassador);
 
 /// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
 /// which is the order .NET enumerates and serializes them in.
@@ -161,7 +161,7 @@ pub struct Skin {
     pub tech_token_name_str: SkinDictionary<Option<TechToken>>,
     pub tech_token_image_url: SkinDictionary<Option<TechToken>>,
     pub sound: SkinDictionary<Option<Milestone>>,
-    pub treachery_card_type_str: SkinDictionary<TreacheryCardType>,
+    pub treachery_card_type_str: SkinDictionary<Option<TreacheryCardType>>,
     pub treachery_card_name_str: SkinDictionary<i32>,
     pub treachery_card_description_str: SkinDictionary<i32>,
     pub treachery_card_image_url: SkinDictionary<i32>,
@@ -181,9 +181,9 @@ pub struct Skin {
     pub discovery_token_image_url: SkinDictionary<Option<DiscoveryToken>>,
     pub discovery_token_type_name_str: SkinDictionary<Option<DiscoveryTokenType>>,
     pub discovery_token_type_image_url: SkinDictionary<Option<DiscoveryTokenType>>,
-    pub ambassador_image_url: SkinDictionary<Ambassador>,
-    pub ambassador_name_str: SkinDictionary<Ambassador>,
-    pub ambassador_description_str: SkinDictionary<Ambassador>,
+    pub ambassador_image_url: SkinDictionary<Option<Ambassador>>,
+    pub ambassador_name_str: SkinDictionary<Option<Ambassador>>,
+    pub ambassador_description_str: SkinDictionary<Option<Ambassador>>,
 
     pub draw_resource_icons_on_map: bool,
     pub show_verbose_toolips_on_map: bool,
@@ -403,7 +403,7 @@ impl Skin {
                     self.describe_concept(v)
                 } else if let Some(v) = e.get::<Faction>() {
                     self.describe_faction(v)
-                } else if let Some(v) = e.get::<Ambassador>() {
+                } else if let Some(v) = e.get_opt::<Ambassador>() {
                     self.describe_ambassador(v)
                 } else if let Some(v) = e.get_opt::<PrescienceAspect>() {
                     self.describe_prescience_aspect(v)
@@ -413,7 +413,7 @@ impl Skin {
                     self.describe_faction_special_force(v)
                 } else if let Some(v) = e.get_opt::<FactionAdvantage>() {
                     self.describe_faction_advantage(v)
-                } else if let Some(v) = e.get::<TreacheryCardType>() {
+                } else if let Some(v) = e.get_opt::<TreacheryCardType>() {
                     self.describe_treachery_card_type(v)
                 } else if let Some(v) = e.get_opt::<LeaderSkill>() {
                     self.describe_leader_skill(v)
@@ -423,13 +423,13 @@ impl Skin {
                     self.describe_discovery_token(v)
                 } else if let Some(v) = e.get_opt::<DiscoveryTokenType>() {
                     self.describe_discovery_token_type(v)
-                } else if let Some(v) = e.get::<Ruleset>() {
+                } else if let Some(v) = e.get_opt::<Ruleset>() {
                     describe_ruleset(v)
                 } else if let Some(v) = e.get::<AutomationRuleType>() {
                     self.describe_automation_rule_type(v)
-                } else if let Some(v) = e.get::<RuleGroup>() {
+                } else if let Some(v) = e.get_opt::<RuleGroup>() {
                     describe_rule_group(v)
-                } else if let Some(v) = e.get::<Rule>() {
+                } else if let Some(v) = e.get_opt::<Rule>() {
                     self.describe_rule(v)
                 } else if let Some(v) = e.get::<MainPhase>() {
                     self.describe_main_phase(v)
@@ -499,7 +499,7 @@ impl Skin {
         get_label(&self.concept_str, c)
     }
 
-    pub fn describe_treachery_card_type(&self, t: TreacheryCardType) -> String {
+    pub fn describe_treachery_card_type(&self, t: Option<TreacheryCardType>) -> String {
         get_label(&self.treachery_card_type_str, t)
     }
 
@@ -580,12 +580,12 @@ impl Skin {
     }
 
     pub fn get_popup_ambassador(&self, a: Ambassador) -> String {
-        let name = self.describe_ambassador(a);
+        let name = self.describe_ambassador(Some(a));
         let mut text = self.get_ambassador_description(a);
         if let Some(dash) = text.find(" - ") {
             text = text[dash + 3..].to_string();
         }
-        self.get_token_popup(Some(&self.get_image_url_ambassador(a)), &format!("{name} Ambassador"), &text)
+        self.get_token_popup(Some(&self.get_image_url_ambassador(Some(a))), &format!("{name} Ambassador"), &text)
     }
 
     pub fn get_popup_discovery_token(&self, dt: DiscoveryToken) -> String {
@@ -737,7 +737,7 @@ impl Skin {
                     self.get_image_url_faction(v)
                 } else if let Some(v) = e.get_opt::<Nexus>() {
                     self.get_image_url_nexus(v)
-                } else if let Some(v) = e.get::<Ambassador>() {
+                } else if let Some(v) = e.get_opt::<Ambassador>() {
                     self.get_image_url_ambassador(v)
                 } else if let Some(v) = e.get_opt::<FactionForce>() {
                     self.get_image_url_faction_force(v)
@@ -773,15 +773,15 @@ impl Skin {
         get_label(&self.terror_token_description_str, Some(terr))
     }
 
-    pub fn describe_ambassador(&self, ambassador: Ambassador) -> String {
+    pub fn describe_ambassador(&self, ambassador: Option<Ambassador>) -> String {
         get_label(&self.ambassador_name_str, ambassador)
     }
 
     pub fn get_ambassador_description(&self, ambassador: Ambassador) -> String {
-        get_label(&self.ambassador_description_str, ambassador)
+        get_label(&self.ambassador_description_str, Some(ambassador))
     }
 
-    pub fn get_image_url_ambassador(&self, ambassador: Ambassador) -> String {
+    pub fn get_image_url_ambassador(&self, ambassador: Option<Ambassador>) -> String {
         get_label(&self.ambassador_image_url, ambassador)
     }
 
@@ -981,7 +981,8 @@ impl Skin {
         }
     }
 
-    pub fn describe_rule(&self, r: Rule) -> String {
+    pub fn describe_rule(&self, r: Option<Rule>) -> String {
+        let Some(r) = r else { return "unknown rule".to_string() };
         use FactionSpecialForce as Fsf;
         use TreacheryCardType as Tct;
         let s = |t: &str| t.to_string();
@@ -1389,7 +1390,8 @@ pub fn get_faction_faction_special_force(f: Option<FactionSpecialForce>) -> Fact
     }
 }
 
-pub fn describe_ruleset(s: Ruleset) -> String {
+pub fn describe_ruleset(s: Option<Ruleset>) -> String {
+    let Some(s) = s else { return "unknown rule set".to_string() };
     match s {
         Ruleset::BasicGame => "Standard Dune - Basic",
         Ruleset::AdvancedGame => "Standard Dune - Advanced",
@@ -1403,13 +1405,12 @@ pub fn describe_ruleset(s: Ruleset) -> String {
         Ruleset::AllExpansionsAdvancedGame => "All Expansions - Advanced",
         Ruleset::ServerClassic => "Server Classic",
         Ruleset::Custom => "Custom",
-
-        _ => "unknown rule set",
     }
     .to_string()
 }
 
-pub fn describe_rule_group(s: RuleGroup) -> String {
+pub fn describe_rule_group(s: Option<RuleGroup>) -> String {
+    let Some(s) = s else { return "unknown rule group".to_string() };
     match s {
         RuleGroup::CoreAdvanced => "Core Game, Advanced Rules",
         RuleGroup::CoreBasicExceptions => "Core Game, Exceptions to Basic Rules",

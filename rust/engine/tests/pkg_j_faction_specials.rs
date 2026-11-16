@@ -232,12 +232,12 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
     let t = a_stronghold(&g);
 
     let mut first = AmbassadorPlaced::new(&g, Faction::Ecaz);
-    first.ambassador = Ambassador::Emperor;
+    first.ambassador = Some(Ambassador::Emperor);
     first.set_stronghold(&g, Some(t));
     Rc::new(first).execute_concrete_event(&mut g).unwrap();
 
     let mut second = AmbassadorPlaced::new(&g, Faction::Ecaz);
-    second.ambassador = Ambassador::BeneGesserit;
+    second.ambassador = Some(Ambassador::BeneGesserit);
     second.set_stronghold(&g, Some(t));
     let second = Rc::new(second);
     assert!(second.validate(&g).is_some());

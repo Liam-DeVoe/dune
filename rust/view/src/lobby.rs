@@ -111,9 +111,9 @@ pub fn lobby_data() -> LobbyData {
         available_rulesets: Game::get_available_rulesets().into_iter().map(name).collect(),
         ruleset_rules: Game::ruleset_definition().iter().map(|(rs, rules)| (name(*rs), rules.iter().map(|r| name(*r)).collect())).collect(),
         available_rule_groups: EstablishPlayers::available_rule_groups().into_iter().map(name).collect(),
-        rules_in_group: get_values::<RuleGroup>()
-            .map(|g| (name(g), Game::get_rules_in_group(g, Game::EXPANSION_LEVEL).into_iter().map(name).collect()))
+        rules_in_group: with_absent::<RuleGroup>()
+            .map(|g| (name_or_absent(g), Game::get_rules_in_group(g, Game::EXPANSION_LEVEL).into_iter().map(name).collect()))
             .collect(),
-        rule_group: get_values::<Rule>().map(|r| (name(r), name(Game::get_rule_group(r)))).collect(),
+        rule_group: with_absent::<Rule>().map(|r| (name_or_absent(r), name_or_absent(r.and_then(Game::get_rule_group)))).collect(),
     }
 }

@@ -112,7 +112,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
         status: status_view(game, &status, v, d),
         actions: action_types.iter().map(|t| actions::action_view(game, v, s, *t, d)).collect(),
         log: crate::log::log_view(game, v, d),
-        ruleset: name(game.rules.ruleset),
+        ruleset: name_or_absent(game.rules.ruleset),
         rules: game.rules.active.iter().map(|r| name(*r)).collect(),
         rules_for_bots: game.rules.rules_for_bots.iter().map(|r| name(*r)).collect(),
         economics_status: name_or_absent(game.charity.economics_status),

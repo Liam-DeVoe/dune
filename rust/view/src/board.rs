@@ -106,7 +106,6 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         ambassadors: game
             .board.ambassadors_on_planet
             .iter()
-            .filter(|(_, a)| **a != Ambassador::None)
             .map(|(t, a)| AmbassadorOnPlanet { territory: t.id(), ambassador: name(*a) })
             .collect(),
         discoveries: game

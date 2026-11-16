@@ -298,8 +298,7 @@ impl Game {
     }
 
     pub fn kill_ambassador_in(&mut self, territory: Territory) {
-        let ambassador = self.ambassador_in(territory);
-        if ambassador != Ambassador::None {
+        if let Some(ambassador) = self.ambassador_in(territory) {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             self.board.ambassadors_on_planet.shift_remove(&territory);
             self.player_mut(ecaz.expect("ecaz")).ambassadors.push(ambassador);
@@ -418,7 +417,7 @@ impl Game {
                     self.dequeue_intrusion(IntrusionType::BeneGesseritIntrusion)?;
                 } else if self.last_terror_trigger().filter(|tt| self.terror_in(tt.territory(self)).next().is_none()).is_some() {
                     self.dequeue_intrusion(IntrusionType::Terror)?;
-                } else if self.last_ambassador_trigger().filter(|at| self.ambassador_in(at.territory(self)) == Ambassador::None).is_some() {
+                } else if self.last_ambassador_trigger().filter(|at| self.ambassador_in(at.territory(self)) == None).is_some() {
                     self.dequeue_intrusion(IntrusionType::Ambassador)?;
                 } else {
                     search = false;
@@ -791,7 +790,7 @@ impl Game {
             if (initiator != Faction::BeneGesserit || e.location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
                 && initiator != self.player(ecaz).ally
-                && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Ambassador::None
+                && self.ambassador_in(e.to_location(self).expect("to location").territory()) != None
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Game::ambassador_of(initiator)
             {
                 self.queue_intrusion(e, IntrusionType::Ambassador);
@@ -888,8 +887,8 @@ impl Game {
         self.player(p).occupies(self, Some(self.board.map.arrakeen())) || self.player(p).occupies(self, Some(self.board.map.carthag()))
     }
 
-    pub fn ambassador_of(faction: Faction) -> Ambassador {
-        Ambassador(faction.0)
+    pub fn ambassador_of(faction: Faction) -> Option<Ambassador> {
+        <Ambassador as crate::enum_type::GameEnum>::from_value(faction.0)
     }
 
     pub fn guild_may_delay(&self) -> bool {

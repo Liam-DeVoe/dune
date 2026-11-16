@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct AmbassadorPlaced {
-    pub ambassador: Ambassador,
+    pub ambassador: Option<Ambassador>,
     pub stronghold_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -38,7 +38,7 @@ impl AmbassadorPlaced {
         if !AmbassadorPlaced::valid_strongholds(game, self.player()).into_iter().any(|t| Some(t) == stronghold) {
             return Some(express!("Invalid stronghold"));
         }
-        if !AmbassadorPlaced::valid_ambassadors(game, self.player()).contains(&self.ambassador) {
+        if !AmbassadorPlaced::valid_ambassadors(game, self.player()).iter().any(|a| Some(*a) == self.ambassador) {
             return Some(express!("Ambassador not available"));
         }
 
@@ -50,7 +50,7 @@ impl AmbassadorPlaced {
         g.board.map
             .territories(false)
             .filter(move |t| {
-                t.is_visible(&g.board.map) && t.is_stronghold() && !g.is_in_storm_territory(*t) && g.ambassador_in(*t) == Ambassador::None
+                t.is_visible(&g.board.map) && t.is_stronghold() && !g.is_in_storm_territory(*t) && g.ambassador_in(*t) == None
             })
     }
 
@@ -91,10 +91,11 @@ impl AmbassadorPlaced {
         if game.board.ambassadors_on_planet.contains_key(&stronghold) {
             game_error!("There already is an ambassador in {}", ExpressionElement::from(stronghold).to_cs_string());
         }
-        game.board.ambassadors_on_planet.insert_new(stronghold, self.ambassador);
+        let ambassador = self.ambassador.required("ambassador")?;
+        game.board.ambassadors_on_planet.insert_new(stronghold, ambassador);
         // List.Remove: the first equal element
         let ambassadors = &mut game.player_mut(me).ambassadors;
-        if let Some(pos) = ambassadors.iter().position(|a| *a == self.ambassador) {
+        if let Some(pos) = ambassadors.iter().position(|a| *a == ambassador) {
             ambassadors.remove(pos);
         }
         game.stone(Milestone::AmbassadorPlaced);

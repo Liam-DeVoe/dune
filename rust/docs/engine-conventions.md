@@ -41,7 +41,33 @@ No state lives outside `Game`: the engine has no thread-locals or statics that g
 
 ## Enums
 
-A C# enum is an `int` with names, and any `int` is a legal value. JSON accepts `13` for a `Faction`, and the fuzzer sends such values. So every enum is an open newtype over `i32`, with the members as associated constants that keep their C# names:
+Change 2d of [rewrite-plan.md](rewrite-plan.md) is turning the enums into closed Rust enums, and most of them are closed already (`closed` in `enumerations.rs`). A closed enum is a Rust `enum` with the C# values as discriminants, so a number that names no member doesn't decode: event JSON holding `13` for a closed enum is refused with "13 is not a valid X". Where the C# enum had a `None = 0` member meaning "no value", the Rust enum leaves it out (`absent None = 0;`) and the game uses `Option<X>`. The C# `None` member doesn't disappear from what players see:
+
+- event JSON writes `None` as 0 and reads 0 as `None` (`Option<X>` has its own `ToJson`/`FromJson`, see `json::JsonNullable`);
+- a message logs `None` as the `None` member (`From<Option<X>> for ExpressionElement`), so the skin names it as before;
+- views, the lobby data and skin keys name it "None" (`enum_type::name_or_absent`, `value_or_absent`).
+
+```rust
+use crate::enum_type::{GameEnum, name_or_absent};
+
+let skill: Option<LeaderSkill> = game.skill(Some(hero));   // C#: LeaderSkill.None when unskilled
+if skill == Some(LeaderSkill::Bureaucrat) { /* ... */ }
+match aspect {                                              // Option<PrescienceAspect>
+    Some(PrescienceAspect::Dial) => { /* ... */ }
+    None => { /* ... */ }                                   // C#'s PrescienceAspect.None
+    _ => {}
+}
+let n: i32 = LeaderSkill::Bureaucrat as i32;                // (int)x, or x.value()
+let s = LeaderSkill::from_value(n);                         // Option<LeaderSkill>: None if undefined
+name_or_absent(skill);                                      // "Bureaucrat", or "None"
+for w in World::ALL { /* ... */ }                           // Enum.GetValues<World>() without None
+```
+
+- `ALL` leaves the absent member out, so `get_values_except_default(X::None)` is `get_values::<X>()`. Where C# offered `None` as a choice, the list says so (`ClairVoyancePlayed::valid_questions` starts with `None`, "any question").
+- A `None` member that is a real choice stays a member: `DealType::None` is a custom deal.
+- The lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) stay open for now, and so do `Faction`, `Phase`, `MainPhase` and `ShipmentPermission` until 2d reaches them.
+
+The rest of this section describes the enums that are still open. Each is a newtype over `i32`, with the members as associated constants that keep their C# names:
 
 ```rust
 use crate::enumerations::*;
@@ -62,8 +88,8 @@ get_values_except_default(Faction::None); // Enumerations.GetValuesExceptDefault
 - `Ord` compares values, like C#.
 - `ALL` is in `Enum.GetValues` order, which is sorted by value. `Rule` and `Ruleset` are declared out of order, so never rebuild that list from declaration order.
 - `Display` is `Enum.ToString()`. That includes `[Flags]` combinations such as `"Cross, ToHomeworld"` for `ShipmentPermission`. Use it for exception messages and `$"{x}"` interpolation.
-- serde (de)serializes the number.
-- To declare an enum outside `enumerations.rs`, use the `game_enum!` macro (`enum_type.rs`) (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
+- serde (de)serializes an open enum as its number and a closed one as its member name. Nothing serializes enums with serde yet; event JSON goes through `json/`.
+- To declare an enum outside `enumerations.rs`, use the `game_enum!` macro (`enum_type.rs`), with `closed` (see `BattleFactKind` in `message.rs`). Give `get_values` in value order.
 
 ## Static game data: handles
 

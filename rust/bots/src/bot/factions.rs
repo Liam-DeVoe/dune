@@ -789,7 +789,7 @@ impl ClassicBot {
 
         let mut voice = Voice::new(game, game.player(p).faction);
         voice.must = command.must;
-        voice.type_ = command.type_;
+        voice.type_ = Some(command.type_);
         result.voice = Rc::new(voice);
 
         result
@@ -1249,38 +1249,38 @@ impl ClassicBot {
         let can_place = |a: Ambassador| available.contains(&a);
         let p = Some(self.player);
         let ambassador = if avoid_entering && can_place(Ambassador::Harkonnen) {
-            Ambassador::Harkonnen
+            Some(Ambassador::Harkonnen)
         } else if avoid_entering && can_place(Ambassador::Atreides) {
-            Ambassador::Atreides
+            Some(Ambassador::Atreides)
         } else if can_place(Ambassador::Tleilaxu)
             && me.leaders.iter().filter(|l| !game.is_alive(Hero::Leader(**l))).count() >= 2
             && me.forces_killed >= 4
         {
-            Ambassador::Tleilaxu
+            Some(Ambassador::Tleilaxu)
         } else if can_place(Ambassador::Guild)
             && me.treachery_cards.iter().any(|c| c.is_weapon())
             && me.treachery_cards.iter().any(|c| c.is_defense())
         {
-            Ambassador::Guild
+            Some(Ambassador::Guild)
         } else if can_place(Ambassador::Choam) && me.treachery_cards.iter().filter(|c| self.card_quality(game, **c, p) <= 1).count() >= 2 {
-            Ambassador::Choam
+            Some(Ambassador::Choam)
         } else if can_place(Ambassador::Ixian) && me.treachery_cards.iter().any(|c| self.card_quality(game, *c, p) <= 1) {
-            Ambassador::Ixian
+            Some(Ambassador::Ixian)
         } else if can_place(Ambassador::Richese) && me.has_room_for_cards(game) && me.resources > 6 {
-            Ambassador::Richese
+            Some(Ambassador::Richese)
         } else if can_place(Ambassador::Emperor) && self.resources(game) <= 4 {
-            Ambassador::Emperor
+            Some(Ambassador::Emperor)
         } else if can_place(Ambassador::Fremen) && self.determine_moved_battalion(game, false).is_some() {
-            Ambassador::Fremen
+            Some(Ambassador::Fremen)
         } else if can_place(Ambassador::Ecaz) && !me.has_ally() {
-            Ambassador::Ecaz
+            Some(Ambassador::Ecaz)
         } else if game.revival.ambassadors_placed_this_turn == 0 {
-            AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_item(&self.random).unwrap_or_default()
+            AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_item(&self.random)
         } else {
-            Ambassador::None
+            None
         };
 
-        if ambassador == Ambassador::None {
+        if ambassador == None {
             return None;
         }
         let mut e = AmbassadorPlaced::new(game, self.faction(game));
@@ -1292,14 +1292,13 @@ impl ClassicBot {
     pub fn determine_ambassador_activated(&mut self, game: &Game) -> Option<Rc<AmbassadorActivated>> {
         let victim_player = AmbassadorActivated::get_victim_player(game);
         let mut ambassador = AmbassadorActivated::get_ambassador(game);
-        let mut bene_gesserit_selected_ambassador = Ambassador::None;
+        let mut bene_gesserit_selected_ambassador = None;
 
-        if ambassador == Ambassador::BeneGesserit {
+        if ambassador == Some(Ambassador::BeneGesserit) {
             // For now this is random.
             bene_gesserit_selected_ambassador = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game)
                 .into_iter()
-                .random_item(&self.random)
-                .unwrap_or_default();
+                .random_item(&self.random);
             ambassador = bene_gesserit_selected_ambassador;
         }
 
@@ -1312,7 +1311,7 @@ impl ClassicBot {
         };
 
         match ambassador {
-            Ambassador::Choam => {
+            Some(Ambassador::Choam) => {
                 let to_discard: Vec<TreacheryCard> = AmbassadorActivated::get_valid_choam_cards(game, self.player)
                     .into_iter()
                     .filter(|c| self.card_quality(game, *c, p) < 2)
@@ -1324,7 +1323,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Ecaz => {
+            Some(Ambassador::Ecaz) => {
                 let offer_alliance = AmbassadorActivated::alliance_can_be_offered(game, self.player)
                     && self.player_standing(game, victim_player.expect("victim player")) as f64 > 0.33 * self.player_standing(game, self.player) as f64;
                 let take_vidal = !offer_alliance && AmbassadorActivated::vidal_can_be_taken(game, self.player);
@@ -1342,7 +1341,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Fremen => {
+            Some(Ambassador::Fremen) => {
                 let valid_locations: Vec<Location> = AmbassadorActivated::valid_fremen_targets(game, self.player).collect();
                 let target = self.vacant_stronghold_or_richest_spice(game, &valid_locations);
 
@@ -1361,7 +1360,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Ixian => {
+            Some(Ambassador::Ixian) => {
                 let to_replace =
                     AmbassadorActivated::get_valid_ixian_cards(game, self.player).into_iter().find(|c| self.card_quality(game, *c, p) < 2);
                 if to_replace.is_some() {
@@ -1371,13 +1370,13 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Richese => {
+            Some(Ambassador::Richese) => {
                 if self.resources(game) > 3 && game.player(self.player).has_room_for_cards(game) {
                     return Some(Rc::new(new_event()));
                 }
             }
 
-            Ambassador::Guild => {
+            Some(Ambassador::Guild) => {
                 let dangerous_opponents: Vec<PlayerIndex> =
                     self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
@@ -1411,7 +1410,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Tleilaxu => {
+            Some(Ambassador::Tleilaxu) => {
                 let most_valuable = |filter: &dyn Fn(&Hero) -> bool| {
                     AmbassadorActivated::valid_tleilaxu_heroes(game, self.player)
                         .into_iter()

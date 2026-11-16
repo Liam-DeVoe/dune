@@ -48,22 +48,22 @@ fn voice_is_voiced_by_without_special_card_rule() {
     let g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
     use TreacheryCardType as T;
     // Identity always matches.
-    assert!(Voice::is_voiced_by(&g, true, true, T::Laser, T::Laser));
+    assert!(Voice::is_voiced_by(&g, true, true, T::Laser, Some(T::Laser)));
     // Chemistry is a poison only as a weapon and only when voice is "may not".
-    assert!(Voice::is_voiced_by(&g, true, false, T::Chemistry, T::Poison));
-    assert!(!Voice::is_voiced_by(&g, true, true, T::Chemistry, T::Poison));
-    assert!(!Voice::is_voiced_by(&g, false, false, T::Chemistry, T::Poison));
+    assert!(Voice::is_voiced_by(&g, true, false, T::Chemistry, Some(T::Poison)));
+    assert!(!Voice::is_voiced_by(&g, true, true, T::Chemistry, Some(T::Poison)));
+    assert!(!Voice::is_voiced_by(&g, false, false, T::Chemistry, Some(T::Poison)));
     // Chemistry as defense is a poison defense, whatever "must" is.
-    assert!(Voice::is_voiced_by(&g, false, true, T::Chemistry, T::PoisonDefense));
+    assert!(Voice::is_voiced_by(&g, false, true, T::Chemistry, Some(T::PoisonDefense)));
     // Portable antidote counts as poison defense.
-    assert!(Voice::is_voiced_by(&g, false, true, T::PortableAntidote, T::PoisonDefense));
+    assert!(Voice::is_voiced_by(&g, false, true, T::PortableAntidote, Some(T::PoisonDefense)));
     // Weirding way: projectile as weapon, projectile defense only for "may not" and as defense.
-    assert!(Voice::is_voiced_by(&g, true, true, T::WeirdingWay, T::Projectile));
-    assert!(!Voice::is_voiced_by(&g, false, true, T::WeirdingWay, T::Projectile));
-    assert!(Voice::is_voiced_by(&g, false, false, T::WeirdingWay, T::ProjectileDefense));
-    assert!(!Voice::is_voiced_by(&g, false, true, T::WeirdingWay, T::ProjectileDefense));
+    assert!(Voice::is_voiced_by(&g, true, true, T::WeirdingWay, Some(T::Projectile)));
+    assert!(!Voice::is_voiced_by(&g, false, true, T::WeirdingWay, Some(T::Projectile)));
+    assert!(Voice::is_voiced_by(&g, false, false, T::WeirdingWay, Some(T::ProjectileDefense)));
+    assert!(!Voice::is_voiced_by(&g, false, true, T::WeirdingWay, Some(T::ProjectileDefense)));
     // Unlisted voiced types only match themselves.
-    assert!(!Voice::is_voiced_by(&g, true, true, T::Projectile, T::Laser));
+    assert!(!Voice::is_voiced_by(&g, true, true, T::Projectile, Some(T::Laser)));
 }
 
 #[test]
@@ -71,10 +71,10 @@ fn voice_is_voiced_by_with_special_card_rule() {
     let mut g = game_with(&[Faction::BeneGesserit, Faction::Emperor]);
     g.rules.active.push(Rule::BeneGesseritVoiceMustNameSpecialCards);
     use TreacheryCardType as T;
-    assert!(Voice::is_voiced_by(&g, false, true, T::Antidote, T::PoisonDefense));
-    assert!(!Voice::is_voiced_by(&g, false, true, T::ShieldAndAntidote, T::PoisonDefense));
-    assert!(Voice::is_voiced_by(&g, false, true, T::Shield, T::ProjectileDefense));
-    assert!(!Voice::is_voiced_by(&g, true, true, T::ProjectileAndPoison, T::Poison));
+    assert!(Voice::is_voiced_by(&g, false, true, T::Antidote, Some(T::PoisonDefense)));
+    assert!(!Voice::is_voiced_by(&g, false, true, T::ShieldAndAntidote, Some(T::PoisonDefense)));
+    assert!(Voice::is_voiced_by(&g, false, true, T::Shield, Some(T::ProjectileDefense)));
+    assert!(!Voice::is_voiced_by(&g, true, true, T::ProjectileAndPoison, Some(T::Poison)));
 }
 
 #[test]

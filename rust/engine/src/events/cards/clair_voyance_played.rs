@@ -58,7 +58,11 @@ impl ClairVoyancePlayed {
             | Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
             | Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
             | Some(ClairvoyanceQuestion::HasCardTypeInHand) => {
-                TreacheryCardType(try_enum_parse(Some(p1), TreacheryCardType::INFO.declared)?).into()
+                let n = try_enum_parse(Some(p1), TreacheryCardType::INFO.declared)?;
+                let Ok(card_type) = crate::enum_type::from_value_or_absent::<TreacheryCardType>(n) else {
+                    return Err(dotnet_compat::exception::CsException { type_name: "ArgumentException", message: format!("{n} is not a valid TreacheryCardType") });
+                };
+                card_type.into()
             }
             Some(ClairvoyanceQuestion::LeaderAsFacedancer)
             | Some(ClairvoyanceQuestion::LeaderAsTraitor)

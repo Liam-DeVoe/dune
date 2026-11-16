@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct Voice {
     pub must: bool,
-    pub type_: TreacheryCardType,
+    pub type_: Option<TreacheryCardType>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -37,7 +37,7 @@ impl Voice {
         if !Self::may_use_voice_opt(game, self.player_opt()) {
             return Some(express!("You cannot use Voice"));
         }
-        if !Self::valid_types(game).contains(&self.type_) {
+        if !self.type_.is_some_and(|t| Self::valid_types(game).contains(&t)) {
             return Some(express!("Invalid use of Voice"));
         }
 
@@ -124,7 +124,9 @@ impl Voice {
         false
     }
 
-    pub fn is_voiced_by(g: &Game, as_weapon: bool, must: bool, card_type: TreacheryCardType, voiced_type: TreacheryCardType) -> bool {
+    pub fn is_voiced_by(g: &Game, as_weapon: bool, must: bool, card_type: TreacheryCardType, voiced_type: Option<TreacheryCardType>) -> bool {
+        // A Voice without a type names no card.
+        let Some(voiced_type) = voiced_type else { return false };
         if card_type == voiced_type {
             return true;
         }

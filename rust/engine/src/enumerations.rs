@@ -41,8 +41,8 @@ game_enum! {
 }
 
 game_enum! {
-    Ambassador {
-        None = 0,
+    closed Ambassador {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -56,7 +56,7 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
@@ -394,8 +394,8 @@ game_enum! {
 }
 
 game_enum! {
-    Ruleset {
-        None = 0,
+    closed Ruleset {
+        absent None = 0;
         BasicGame = 10,
         AdvancedGame = 30,
         ExpansionBasicGame = 110,
@@ -409,7 +409,7 @@ game_enum! {
         AllExpansionsAdvancedGame = 200,
         Custom = 1000,
     }
-    get_values [None, BasicGame, AdvancedGame, ExpansionBasicGame, ExpansionAdvancedGame, ServerClassic, Expansion2BasicGame, Expansion2AdvancedGame, AllExpansionsBasicGame, AllExpansionsAdvancedGame, Expansion3BasicGame, Expansion3AdvancedGame, Custom]
+    get_values [BasicGame, AdvancedGame, ExpansionBasicGame, ExpansionAdvancedGame, ServerClassic, Expansion2BasicGame, Expansion2AdvancedGame, AllExpansionsBasicGame, AllExpansionsAdvancedGame, Expansion3BasicGame, Expansion3AdvancedGame, Custom]
 }
 
 game_enum! {
@@ -437,8 +437,8 @@ game_enum! {
 }
 
 game_enum! {
-    Rule {
-        None = 0,
+    closed Rule {
+        absent None = 0;
         BasicTreacheryCards = 10000,
         HasCharityPhase = 10001,
         AdvancedCombat = 10,
@@ -520,12 +520,12 @@ game_enum! {
         CapturedLeadersAreTraitorsToOwnFaction = 1014,
         DisableEndOfGameReport = 1015,
     }
-    get_values [None, AdvancedCombat, IncreasedResourceFlow, AdvancedKarama, FremenDeterminesStorm, FremenStormLosses, FremenSendingMonster, FremenSpecialForces, AtreidesMessiah, HarkonnenCapturesOrKillsLeaders, BeneGesseritFirstForceInAnyTerritory, BeneGesseritAutoCharity, BeneGesseritWorthlessAsKarma, BeneGesseritAdvisors, BeneGesseritAccompaniesToShipmentLocation, GuildDetermineShipment, EmperorSpecialForces, BribesAreImmediate, ContestedStongholdsCountAsOccupied, AdvisorsDontConflictWithAlly, GuildShipmentContributionsFlowBack, CustomInitialForcesAndResources, CustomDecks, HmSwithoutIxian, Ssw, HarkonnenMulligan, FullPhaseKarma, FremenMayMoveIntoStorm, BeneGesseritVoiceMustNameSpecialCards, BattlesUnderStorm, MovementBonusRequiresOccupationBeforeMovement, AssistedNotekeeping, ResourceBonusForStrongholds, DisableGuildSpecialVictory, DisableResourceTransfers, StormDeckWithoutFremen, AssistedNotekeepingForAtreides, FremenAllyGetsDialedResourcesRefunded, DisableNovaFlipping, BreakAlliancesOnAlliancePhase, TechTokens, ExpansionTreacheryCards, ExpansionTreacheryCardsExceptPBandSSandAmal, ExpansionTreacheryCardsPBandSs, ExpansionTreacheryCardsAmal, CheapHeroTraitor, SandTrout, IxianSwappingCardOnBid, TleilaxuGholas, LeaderSkills, StrongholdBonus, RicheseTreacheryCards, Expansion2TreacheryCards, ChoamAuditor, RicheseBlackMarket, GreatMaker, DiscoveryTokens, Homeworlds, NexusCards, Expansion3TreacheryCards, MoritaniAssassinate, EcazLoyalty, FillWithBots, ExtraKaramaCards, GuildBot, EmperorBot, HarkonnenBot, TleilaxuBot, BeneGesseritBot, AtreidesBot, FremenBot, IxianBot, BotsCannotAlly, CardsCanBeTraded, PlayersChooseFactions, EmperorSupportingNonAllyBids, BattleWithoutLeader, CapturedLeadersAreTraitorsToOwnFaction, DisableEndOfGameReport, BasicTreacheryCards, HasCharityPhase]
+    get_values [AdvancedCombat, IncreasedResourceFlow, AdvancedKarama, FremenDeterminesStorm, FremenStormLosses, FremenSendingMonster, FremenSpecialForces, AtreidesMessiah, HarkonnenCapturesOrKillsLeaders, BeneGesseritFirstForceInAnyTerritory, BeneGesseritAutoCharity, BeneGesseritWorthlessAsKarma, BeneGesseritAdvisors, BeneGesseritAccompaniesToShipmentLocation, GuildDetermineShipment, EmperorSpecialForces, BribesAreImmediate, ContestedStongholdsCountAsOccupied, AdvisorsDontConflictWithAlly, GuildShipmentContributionsFlowBack, CustomInitialForcesAndResources, CustomDecks, HmSwithoutIxian, Ssw, HarkonnenMulligan, FullPhaseKarma, FremenMayMoveIntoStorm, BeneGesseritVoiceMustNameSpecialCards, BattlesUnderStorm, MovementBonusRequiresOccupationBeforeMovement, AssistedNotekeeping, ResourceBonusForStrongholds, DisableGuildSpecialVictory, DisableResourceTransfers, StormDeckWithoutFremen, AssistedNotekeepingForAtreides, FremenAllyGetsDialedResourcesRefunded, DisableNovaFlipping, BreakAlliancesOnAlliancePhase, TechTokens, ExpansionTreacheryCards, ExpansionTreacheryCardsExceptPBandSSandAmal, ExpansionTreacheryCardsPBandSs, ExpansionTreacheryCardsAmal, CheapHeroTraitor, SandTrout, IxianSwappingCardOnBid, TleilaxuGholas, LeaderSkills, StrongholdBonus, RicheseTreacheryCards, Expansion2TreacheryCards, ChoamAuditor, RicheseBlackMarket, GreatMaker, DiscoveryTokens, Homeworlds, NexusCards, Expansion3TreacheryCards, MoritaniAssassinate, EcazLoyalty, FillWithBots, ExtraKaramaCards, GuildBot, EmperorBot, HarkonnenBot, TleilaxuBot, BeneGesseritBot, AtreidesBot, FremenBot, IxianBot, BotsCannotAlly, CardsCanBeTraded, PlayersChooseFactions, EmperorSupportingNonAllyBids, BattleWithoutLeader, CapturedLeadersAreTraitorsToOwnFaction, DisableEndOfGameReport, BasicTreacheryCards, HasCharityPhase]
 }
 
 game_enum! {
-    RuleGroup {
-        None = 0,
+    closed RuleGroup {
+        absent None = 0;
         CoreBasic = 100,
         CoreBasicExceptions = 101,
         CoreAdvanced = 110,
@@ -545,12 +545,12 @@ game_enum! {
         House = 1000,
         Bots = 2000,
     }
-    get_values [None, CoreBasic, CoreBasicExceptions, CoreAdvanced, CoreAdvancedExceptions, ExpansionIxAndBtBasic, ExpansionIxAndBtBasicExceptions, ExpansionIxAndBtAdvanced, ExpansionIxAndBtAdvancedExceptions, ExpansionChoamAndRicheseBasic, ExpansionChoamAndRicheseBasicExceptions, ExpansionChoamAndRicheseAdvanced, ExpansionChoamAndRicheseAdvancedExceptions, ExpansionEcazAndMoritaniBasic, ExpansionEcazAndMoritaniBasicExceptions, ExpansionEcazAndMoritaniAdvanced, ExpansionEcazAndMoritaniAdvancedExceptions, House, Bots]
+    get_values [CoreBasic, CoreBasicExceptions, CoreAdvanced, CoreAdvancedExceptions, ExpansionIxAndBtBasic, ExpansionIxAndBtBasicExceptions, ExpansionIxAndBtAdvanced, ExpansionIxAndBtAdvancedExceptions, ExpansionChoamAndRicheseBasic, ExpansionChoamAndRicheseBasicExceptions, ExpansionChoamAndRicheseAdvanced, ExpansionChoamAndRicheseAdvancedExceptions, ExpansionEcazAndMoritaniBasic, ExpansionEcazAndMoritaniBasicExceptions, ExpansionEcazAndMoritaniAdvanced, ExpansionEcazAndMoritaniAdvancedExceptions, House, Bots]
 }
 
 game_enum! {
-    TreacheryCardType {
-        None = 0,
+    closed TreacheryCardType {
+        absent None = 0;
         Laser = 10,
         ProjectileDefense = 19,
         Projectile = 20,
@@ -588,7 +588,7 @@ game_enum! {
         Reinforcements = 262,
         HarassAndWithdraw = 263,
     }
-    get_values [None, Laser, ProjectileDefense, Projectile, WeirdingWay, PoisonDefense, Poison, PoisonTooth, Chemistry, Shield, Antidote, ProjectileAndPoison, ShieldAndAntidote, Mercenary, Karma, Useless, StormSpell, RaiseDead, Metheor, Caravan, Clairvoyance, Amal, ArtilleryStrike, Thumper, Harvester, Distrans, Juice, MirrorWeapon, PortableAntidote, Flight, SearchDiscarded, TakeDiscarded, Residual, Rockmelter, Recruits, Reinforcements, HarassAndWithdraw]
+    get_values [Laser, ProjectileDefense, Projectile, WeirdingWay, PoisonDefense, Poison, PoisonTooth, Chemistry, Shield, Antidote, ProjectileAndPoison, ShieldAndAntidote, Mercenary, Karma, Useless, StormSpell, RaiseDead, Metheor, Caravan, Clairvoyance, Amal, ArtilleryStrike, Thumper, Harvester, Distrans, Juice, MirrorWeapon, PortableAntidote, Flight, SearchDiscarded, TakeDiscarded, Residual, Rockmelter, Recruits, Reinforcements, HarassAndWithdraw]
 }
 
 game_enum! {

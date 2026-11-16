@@ -122,7 +122,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
             }
         }
         (GameEvent::AmbassadorActivated(_), ActionOptions::AmbassadorActivated(o)) => {
-            assert_eq!(o.ambassador, AmbassadorActivated::get_ambassador(game).to_string());
+            assert_eq!(o.ambassador, name_or_absent(AmbassadorActivated::get_ambassador(game)));
             assert_eq!(o.victim, AmbassadorActivated::get_victim(game).to_string());
             assert_eq!(o.bene_gesserit_ambassadors, names(AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game)));
             assert_eq!(o.choam_cards, AmbassadorActivated::get_valid_choam_cards(game, p).iter().map(|c| c.id()).collect::<Vec<_>>());
@@ -149,7 +149,7 @@ fn check(game: &Game, p: PlayerIndex, t: GameEventType, d: &dyn Describer, seen:
         (GameEvent::AmbassadorPlaced(e), ActionOptions::AmbassadorPlaced(o)) => {
             let valid = AmbassadorPlaced::valid_ambassadors(game, p);
             assert_eq!(o.ambassadors, names(valid.clone()));
-            assert_eq!(e.ambassador, valid.first().copied().unwrap_or(Ambassador::None), "the required picker starts on the first ambassador");
+            assert_eq!(e.ambassador, valid.first().copied(), "the required picker starts on the first ambassador");
             assert_eq!(o.targets, sectors(AmbassadorPlaced::valid_strongholds(game, p)));
             assert_eq!(o.cost, game.revival.ambassadors_placed_this_turn + 1);
         }
@@ -617,9 +617,9 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
         }
         GameEvent::AmbassadorActivated(_) => {
             let ambassador = AmbassadorActivated::get_ambassador(game);
-            let actuals: Vec<Ambassador> = if ambassador == Ambassador::BeneGesserit {
-                let mut v = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game);
-                v.push(Ambassador::None);
+            let actuals: Vec<Option<Ambassador>> = if ambassador == Some(Ambassador::BeneGesserit) {
+                let mut v: Vec<Option<Ambassador>> = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).into_iter().map(Some).collect();
+                v.push(None);
                 v
             } else {
                 vec![ambassador]
@@ -640,19 +640,19 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                     let GameEvent::AmbassadorActivated(a) = adjusted(game, p, &event(e), d) else { panic!() };
                     // BeneGesserit: the required image choice; otherwise the shown one.
                     let valid_bg = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game);
-                    let expected_actual = if ambassador != Ambassador::BeneGesserit {
+                    let expected_actual = if ambassador != Some(Ambassador::BeneGesserit) {
                         ambassador
-                    } else if valid_bg.contains(&actual) {
+                    } else if actual.is_some_and(|a| valid_bg.contains(&a)) {
                         actual
                     } else {
-                        valid_bg.first().copied().unwrap_or(Ambassador::None)
+                        valid_bg.first().copied()
                     };
                     assert_eq!(a.bene_gesserit_selected_ambassador, expected_actual);
                     let (mut take, mut offer, mut give) = (true, true, true);
                     let (mut guild, mut tleilaxu, mut skill) = (3, 99, true);
                     let mut ixian = None;
                     match expected_actual {
-                        Ambassador::Ecaz => {
+                        Some(Ambassador::Ecaz) => {
                             take = AmbassadorActivated::vidal_can_be_taken(game, p);
                             if !take && AmbassadorActivated::alliance_can_be_offered(game, p) {
                                 give = AmbassadorActivated::vidal_can_be_offered_to_new_ally(game, p);
@@ -661,13 +661,13 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
                                 give = false;
                             }
                         }
-                        Ambassador::Guild => {
+                        Some(Ambassador::Guild) => {
                             if AmbassadorActivated::valid_guild_targets(game, p).next().is_none() {
                                 guild = 0;
                             }
                         }
-                        Ambassador::Ixian => ixian = AmbassadorActivated::get_valid_ixian_cards(game, p).first().copied(),
-                        Ambassador::Tleilaxu => {
+                        Some(Ambassador::Ixian) => ixian = AmbassadorActivated::get_valid_ixian_cards(game, p).first().copied(),
+                        Some(Ambassador::Tleilaxu) => {
                             tleilaxu = AmbassadorActivated::valid_tleilaxu_max_amount(game, p).max(0);
                             skill = hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h)));
                         }
@@ -683,9 +683,9 @@ fn check_adjustments(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Des
         GameEvent::AmbassadorPlaced(_) => {
             let valid = AmbassadorPlaced::valid_ambassadors(game, p);
             let mut e = AmbassadorPlaced::new(game, f);
-            e.ambassador = Ambassador::None;
+            e.ambassador = None;
             let GameEvent::AmbassadorPlaced(a) = adjusted(game, p, &event(e), d) else { panic!() };
-            let expected = if valid.contains(&Ambassador::None) { Ambassador::None } else { valid.first().copied().unwrap_or(Ambassador::None) };
+            let expected = valid.first().copied();
             assert_eq!(a.ambassador, expected);
         }
         GameEvent::BeneGesseritAccompanies(_) => {

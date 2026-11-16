@@ -22,8 +22,8 @@ fn value(game: &Game, kind: &str) -> ExpressionElement {
     let n = || v.parse::<i32>().unwrap();
     match k {
         "null" => ExpressionElement::Null,
-        "TreacheryCardType" => ExpressionElement::Enum(EnumValue::of(TreacheryCardType(n()))),
-        "Faction" => ExpressionElement::Enum(EnumValue::of(Faction(n()))),
+        "TreacheryCardType" => ExpressionElement::Enum(EnumValue { ty: &TreacheryCardType::INFO, value: n() }),
+        "Faction" => ExpressionElement::Enum(EnumValue { ty: &Faction::INFO, value: n() }),
         "int" => ExpressionElement::Int(n()),
         "float" => ExpressionElement::Float(v.parse().unwrap()),
         "double" => ExpressionElement::Double(v.parse().unwrap()),

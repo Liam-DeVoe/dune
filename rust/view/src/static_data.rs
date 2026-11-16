@@ -254,7 +254,12 @@ pub fn static_data() -> StaticData {
         })
         .collect();
 
-    let rules = Rule::INFO.declared.iter().map(|(_, v)| Rule(*v)).map(|r| RuleInfo { rule: name(r), group: name(Game::get_rule_group(r)) }).collect();
+    let rules = Rule::INFO
+        .declared
+        .iter()
+        .map(|(_, v)| treachery_engine::enum_type::from_value_or_absent::<Rule>(*v).expect("a declared Rule"))
+        .map(|r| RuleInfo { rule: name_or_absent(r), group: name_or_absent(r.and_then(Game::get_rule_group)) })
+        .collect();
 
     StaticData {
         locations,

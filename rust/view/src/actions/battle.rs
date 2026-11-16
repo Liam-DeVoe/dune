@@ -213,7 +213,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         GameEventType::Voice => {
             let mut e = Voice::new(game, faction);
             e.must = true;
-            e.type_ = voice_types(game, &d_none()).first().map(|t| TreacheryCardType(t.value)).unwrap_or_default();
+            e.type_ = voice_types(game, &d_none()).first().and_then(|t| TreacheryCardType::from_value(t.value));
             event(e)
         }
         _ => return None,

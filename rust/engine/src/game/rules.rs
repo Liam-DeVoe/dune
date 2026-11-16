@@ -3,7 +3,7 @@ use crate::prelude::*;
 /// The game's version, rules and settings, and the factions allowed to play.
 pub struct Rules {
     pub version: i32,
-    pub ruleset: Ruleset,
+    pub ruleset: Option<Ruleset>,
     pub active: Vec<Rule>,
     pub rules_for_bots: Vec<Rule>,
     /// `EstablishPlayers` can assign a null `Settings.InitialRules`, hence the `Option`.
@@ -41,15 +41,15 @@ impl Game {
             .filter(|rule| {
                 matches!(
                     Game::get_rule_group(*rule),
-                    RuleGroup::House
-                        | RuleGroup::CoreBasicExceptions
-                        | RuleGroup::CoreAdvancedExceptions
-                        | RuleGroup::ExpansionIxAndBtBasicExceptions
-                        | RuleGroup::ExpansionIxAndBtAdvancedExceptions
-                        | RuleGroup::ExpansionChoamAndRicheseBasicExceptions
-                        | RuleGroup::ExpansionChoamAndRicheseAdvancedExceptions
-                        | RuleGroup::ExpansionEcazAndMoritaniAdvancedExceptions
-                        | RuleGroup::ExpansionEcazAndMoritaniBasicExceptions
+                    Some(RuleGroup::House)
+                        | Some(RuleGroup::CoreBasicExceptions)
+                        | Some(RuleGroup::CoreAdvancedExceptions)
+                        | Some(RuleGroup::ExpansionIxAndBtBasicExceptions)
+                        | Some(RuleGroup::ExpansionIxAndBtAdvancedExceptions)
+                        | Some(RuleGroup::ExpansionChoamAndRicheseBasicExceptions)
+                        | Some(RuleGroup::ExpansionChoamAndRicheseAdvancedExceptions)
+                        | Some(RuleGroup::ExpansionEcazAndMoritaniAdvancedExceptions)
+                        | Some(RuleGroup::ExpansionEcazAndMoritaniBasicExceptions)
                 )
             })
             .collect()
@@ -351,23 +351,23 @@ impl Game {
         d
     }
 
-    pub fn get_rules_in_group(group: RuleGroup, expansion_level: i32) -> Vec<Rule> {
+    pub fn get_rules_in_group(group: Option<RuleGroup>, expansion_level: i32) -> Vec<Rule> {
                 get_values::<Rule>()
             .filter(|r| Game::get_rule_group(*r) == group && Game::get_rule_expansion(*r) <= expansion_level)
             .collect()
     }
 
     pub fn get_available_rulesets() -> Vec<Ruleset> {
-                get_values_except_default(Ruleset::None).filter(|rs| Game::get_ruleset_expansion(*rs) <= Game::EXPANSION_LEVEL).collect()
+                get_values::<Ruleset>().filter(|rs| Game::get_ruleset_expansion(Some(*rs)) <= Game::EXPANSION_LEVEL).collect()
     }
 
     pub fn applicable(&self, rule: Rule) -> bool {
                 self.rules.active.contains(&rule) || self.rules.rules_for_bots.contains(&rule)
     }
 
-    pub fn get_rule_group(rule: Rule) -> RuleGroup {
+    pub fn get_rule_group(rule: Rule) -> Option<RuleGroup> {
                 match rule {
-            Rule::HasCharityPhase | Rule::BasicTreacheryCards => RuleGroup::CoreBasic,
+            Rule::HasCharityPhase | Rule::BasicTreacheryCards => Some(RuleGroup::CoreBasic),
             Rule::AdvancedCombat
             | Rule::IncreasedResourceFlow
             | Rule::AdvancedKarama
@@ -381,15 +381,15 @@ impl Game {
             | Rule::BeneGesseritWorthlessAsKarma
             | Rule::BeneGesseritAdvisors
             | Rule::GuildDetermineShipment
-            | Rule::EmperorSpecialForces => RuleGroup::CoreAdvanced,
+            | Rule::EmperorSpecialForces => Some(RuleGroup::CoreAdvanced),
             Rule::BribesAreImmediate
             | Rule::ContestedStongholdsCountAsOccupied
             | Rule::GuildShipmentContributionsFlowBack
             | Rule::FullPhaseKarma
             | Rule::BeneGesseritVoiceMustNameSpecialCards
             | Rule::BattlesUnderStorm
-            | Rule::MovementBonusRequiresOccupationBeforeMovement => RuleGroup::CoreBasicExceptions,
-            Rule::AdvisorsDontConflictWithAlly | Rule::FremenMayMoveIntoStorm => RuleGroup::CoreAdvancedExceptions,
+            | Rule::MovementBonusRequiresOccupationBeforeMovement => Some(RuleGroup::CoreBasicExceptions),
+            Rule::AdvisorsDontConflictWithAlly | Rule::FremenMayMoveIntoStorm => Some(RuleGroup::CoreAdvancedExceptions),
             Rule::CustomInitialForcesAndResources
             | Rule::CustomDecks
             | Rule::HmSwithoutIxian
@@ -410,33 +410,32 @@ impl Game {
             | Rule::DisableResourceTransfers
             | Rule::DisableNovaFlipping
             | Rule::FremenAllyGetsDialedResourcesRefunded
-            | Rule::BreakAlliancesOnAlliancePhase => RuleGroup::House,
-            Rule::BotsCannotAlly => RuleGroup::Bots,
-            Rule::TechTokens | Rule::CheapHeroTraitor | Rule::ExpansionTreacheryCards | Rule::SandTrout => RuleGroup::ExpansionIxAndBtBasic,
-            Rule::IxianSwappingCardOnBid | Rule::TleilaxuGholas => RuleGroup::ExpansionIxAndBtAdvanced,
-            Rule::LeaderSkills | Rule::Expansion2TreacheryCards => RuleGroup::ExpansionChoamAndRicheseBasic,
-            Rule::ChoamAuditor | Rule::RicheseBlackMarket | Rule::StrongholdBonus => RuleGroup::ExpansionChoamAndRicheseAdvanced,
+            | Rule::BreakAlliancesOnAlliancePhase => Some(RuleGroup::House),
+            Rule::BotsCannotAlly => Some(RuleGroup::Bots),
+            Rule::TechTokens | Rule::CheapHeroTraitor | Rule::ExpansionTreacheryCards | Rule::SandTrout => Some(RuleGroup::ExpansionIxAndBtBasic),
+            Rule::IxianSwappingCardOnBid | Rule::TleilaxuGholas => Some(RuleGroup::ExpansionIxAndBtAdvanced),
+            Rule::LeaderSkills | Rule::Expansion2TreacheryCards => Some(RuleGroup::ExpansionChoamAndRicheseBasic),
+            Rule::ChoamAuditor | Rule::RicheseBlackMarket | Rule::StrongholdBonus => Some(RuleGroup::ExpansionChoamAndRicheseAdvanced),
             Rule::Expansion3TreacheryCards | Rule::DiscoveryTokens | Rule::Homeworlds | Rule::NexusCards | Rule::GreatMaker => {
-                RuleGroup::ExpansionEcazAndMoritaniBasic
+                Some(RuleGroup::ExpansionEcazAndMoritaniBasic)
             }
-            Rule::MoritaniAssassinate | Rule::EcazLoyalty => RuleGroup::ExpansionEcazAndMoritaniAdvanced,
-            _ => RuleGroup::None,
+            Rule::MoritaniAssassinate | Rule::EcazLoyalty => Some(RuleGroup::ExpansionEcazAndMoritaniAdvanced),
+            _ => None,
         }
     }
 
-    pub fn get_ruleset_expansion(ruleset: Ruleset) -> i32 {
+    pub fn get_ruleset_expansion(ruleset: Option<Ruleset>) -> i32 {
                 match ruleset {
-            Ruleset::None
-            | Ruleset::BasicGame
-            | Ruleset::AdvancedGame
-            | Ruleset::ServerClassic
-            | Ruleset::Custom
-            | Ruleset::AllExpansionsBasicGame
-            | Ruleset::AllExpansionsAdvancedGame => 0,
-            Ruleset::ExpansionBasicGame | Ruleset::ExpansionAdvancedGame => 1,
-            Ruleset::Expansion2BasicGame | Ruleset::Expansion2AdvancedGame => 2,
-            Ruleset::Expansion3BasicGame | Ruleset::Expansion3AdvancedGame => 3,
-            _ => i32::MAX,
+            None
+            | Some(Ruleset::BasicGame)
+            | Some(Ruleset::AdvancedGame)
+            | Some(Ruleset::ServerClassic)
+            | Some(Ruleset::Custom)
+            | Some(Ruleset::AllExpansionsBasicGame)
+            | Some(Ruleset::AllExpansionsAdvancedGame) => 0,
+            Some(Ruleset::ExpansionBasicGame) | Some(Ruleset::ExpansionAdvancedGame) => 1,
+            Some(Ruleset::Expansion2BasicGame) | Some(Ruleset::Expansion2AdvancedGame) => 2,
+            Some(Ruleset::Expansion3BasicGame) | Some(Ruleset::Expansion3AdvancedGame) => 3,
         }
     }
 

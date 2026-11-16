@@ -93,7 +93,7 @@ fn resource_deck_top_under_prescience() {
 /// own `Player.KnownCards` only), spice and victory points. Observers get none of it.
 #[test]
 fn notekeeping_shows_discard_piles_and_notes() {
-    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping.0]));
+    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping as i32]));
     assert!(r.game.applicable(Rule::AssistedNotekeeping));
     let mut known_somewhere = 0;
     let mut unknown_somewhere = 0;
@@ -683,7 +683,7 @@ fn timing() {
         assert_eq!(t.battle, g.time_spent(p.faction, MainPhase::Battle).ticks as f64 / 1e7);
     }
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
-    assert_eq!(view.ruleset, name(g.rules.ruleset));
+    assert_eq!(view.ruleset, name_or_absent(g.rules.ruleset));
     assert_eq!(view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
     assert_eq!(view.economics_status, name_or_absent(g.charity.economics_status));
 }

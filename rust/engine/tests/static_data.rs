@@ -479,8 +479,8 @@ fn cards() {
         .iter()
         .map(|&c| {
             let mut o = dump_hero(Hero::TreacheryCard(c), &opponents);
-            o["type"] = json!(c.type_().0);
-            o["rules"] = json!(c.rules().iter().map(|r| r.0).collect::<Vec<_>>());
+            o["type"] = json!(c.type_().value());
+            o["rules"] = json!(c.rules().iter().map(|r| r.value()).collect::<Vec<_>>());
             o["is_poison_weapon"] = json!(c.is_poison_weapon());
             o["is_projectile_weapon"] = json!(c.is_projectile_weapon());
             o["is_poison_defense"] = json!(c.is_poison_defense());
@@ -529,7 +529,7 @@ fn cards() {
     let mut by_rule = serde_json::Map::new();
     for r in Rule::ALL {
         by_rule.insert(
-            r.0.to_string(),
+            r.value().to_string(),
             json!(TreacheryCardManager::get_cards_in_play_by_rule(*r).map(|c| c.id()).collect::<Vec<_>>()),
         );
     }

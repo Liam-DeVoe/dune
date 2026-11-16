@@ -190,56 +190,12 @@ impl Game {
                 || drawn.is_some_and(|d| d.is_shai_hulud())
                 || drawn.is_some_and(|d| d.is_great_maker())
             {
-                if !self.blow_state().thumper_called_shai_hulud {
-                    self.stone(if drawn.is_some_and(|d| d.is_shai_hulud()) { Milestone::Monster } else { Milestone::GreatMonster });
-                }
-
-                if !self.sand_trout_occurred() {
-                    self.board.sand_trout_doubles_resources = false;
-                    self.board.number_of_monsters += 1;
-                    let t = self.previous_monster_territory();
-                    let is_great = !self.blow_state().thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
-                    self.let_monster_appear(t, is_great)?;
+                if self.monster_drawn(drawn)? {
                     // C# parity: this break skips the `ThumperCalledShaiHulud = false` below.
-                    if matches!(self.phase(), Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB) {
-                        break;
-                    }
-                } else {
-                    //Sandtrout triggers
-                    if self.board.sand_trout.is_some() {
-                        let sand_trout = self.board.sand_trout.expect("sand trout");
-                        let pile = self.current_discard_pile_mut().expect("current discard pile");
-                        if let Some(d) = drawn {
-                            if let Some(i) = pile.items.iter().position(|c| *c == d) {
-                                pile.items.remove(i);
-                            }
-                        }
-                        pile.put_on_top(sand_trout);
-                        if let Some(d) = drawn {
-                            pile.put_on_top(d);
-                        }
-                    }
-
-                    self.board.sand_trout = None;
-                    self.board.sand_trout_doubles_resources = true;
-                    self.log(elems![Concept::Monster, " is ignored due to ", Concept::BabyMonster]);
+                    break;
                 }
-            } else if drawn.is_some_and(|d| d.is_sand_trout()) {
-                let d = drawn.expect("drawn");
-                if self.turn.current_turn > Turn::FIRST {
-                    self.stone(Milestone::BabyMonster);
-                    self.log(elems![Concept::BabyMonster, " detected! All alliances are cancelled."]);
-                    self.cancel_all_alliances();
-                    let pile = self.current_discard_pile_mut().expect("current discard pile");
-                    if let Some(i) = pile.items.iter().position(|c| *c == d) {
-                        pile.items.remove(i);
-                    }
-                    self.board.sand_trout = Some(d);
-                } else {
-                    self.log(elems![Concept::BabyMonster, " on turn 1 was ignored"]);
-                    let c = self.current_discard_pile_mut().expect("current discard pile").draw();
-                    self.blow_state().ignored_sandtrout = Some(c);
-                }
+            } else if let Some(d) = drawn.filter(|d| d.is_sand_trout()) {
+                self.sand_trout_drawn(d);
             }
 
             self.blow_state().thumper_called_shai_hulud = false;
@@ -252,6 +208,61 @@ impl Game {
             }
         }
         Ok(())
+    }
+
+    /// A worm drawn, or called by a Thumper (`drawn` is then `None`): it appears, unless a
+    /// sandtrout cancels it. True if Fremen are to send it, which stops the drawing.
+    fn monster_drawn(&mut self, drawn: Option<ResourceCard>) -> GameResult<bool> {
+        if !self.blow_state().thumper_called_shai_hulud {
+            self.stone(if drawn.is_some_and(|d| d.is_shai_hulud()) { Milestone::Monster } else { Milestone::GreatMonster });
+        }
+
+        if !self.sand_trout_occurred() {
+            self.board.sand_trout_doubles_resources = false;
+            self.board.number_of_monsters += 1;
+            let t = self.previous_monster_territory();
+            let is_great = !self.blow_state().thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
+            self.let_monster_appear(t, is_great)?;
+            return Ok(matches!(self.phase(), Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB));
+        }
+
+        //Sandtrout triggers
+        if let Some(sand_trout) = self.board.sand_trout {
+            let pile = self.current_discard_pile_mut().expect("current discard pile");
+            if let Some(d) = drawn {
+                if let Some(i) = pile.items.iter().position(|c| *c == d) {
+                    pile.items.remove(i);
+                }
+            }
+            pile.put_on_top(sand_trout);
+            if let Some(d) = drawn {
+                pile.put_on_top(d);
+            }
+        }
+
+        self.board.sand_trout = None;
+        self.board.sand_trout_doubles_resources = true;
+        self.log(elems![Concept::Monster, " is ignored due to ", Concept::BabyMonster]);
+        Ok(false)
+    }
+
+    /// A sandtrout drawn: it cancels all alliances and waits for the next worm, or on the first
+    /// turn is set aside.
+    fn sand_trout_drawn(&mut self, d: ResourceCard) {
+        if self.turn.current_turn > Turn::FIRST {
+            self.stone(Milestone::BabyMonster);
+            self.log(elems![Concept::BabyMonster, " detected! All alliances are cancelled."]);
+            self.cancel_all_alliances();
+            let pile = self.current_discard_pile_mut().expect("current discard pile");
+            if let Some(i) = pile.items.iter().position(|c| *c == d) {
+                pile.items.remove(i);
+            }
+            self.board.sand_trout = Some(d);
+        } else {
+            self.log(elems![Concept::BabyMonster, " on turn 1 was ignored"]);
+            let c = self.current_discard_pile_mut().expect("current discard pile").draw();
+            self.blow_state().ignored_sandtrout = Some(c);
+        }
     }
 
     fn previous_monster_territory(&self) -> Option<Territory> {

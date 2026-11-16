@@ -51,8 +51,8 @@ fn karma_valid_advantages_depend_on_main_phase() {
     let atreides = idx(&g, Faction::Atreides);
     g.turn.current_main_phase = MainPhase::Bidding;
     let now = Karma::valid_faction_advantages(&g, atreides);
-    assert!(!now.contains(&FactionAdvantage::FremenExtraMove));
-    assert_eq!(now[0], FactionAdvantage::None);
+    assert!(!now.contains(&Some(FactionAdvantage::FremenExtraMove)));
+    assert_eq!(now[0], None);
 }
 
 #[test]
@@ -91,7 +91,7 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn moritani_betrayal_without_a_token_removes_and_returns_default_terror() {
+fn moritani_betrayal_without_a_token_returns_nothing() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     g.random = Some(SharedRandom::from_seed(5));
     let atreides = idx(&g, Faction::Atreides);
@@ -105,9 +105,11 @@ fn moritani_betrayal_without_a_token_removes_and_returns_default_terror() {
     assert!(e.is_betrayal(&g));
     // Validation rejects it, but the execution path is still defined.
     assert!(e.validate(&g).is_some());
+    let unplaced = g.board.unplaced_terror_tokens.clone();
     e.execute_concrete_event(&mut g).unwrap();
-    // C# parity: RandomOrDefault of an empty sequence is TerrorType.None, which is added (v169+).
-    assert_eq!(g.board.unplaced_terror_tokens.last().copied(), Some(TerrorType::None));
+    // C# added `TerrorType.None` to the unplaced tokens here. Since rewrite-plan.md 2d there is no
+    // such token, so nothing is added.
+    assert_eq!(g.board.unplaced_terror_tokens, unplaced);
 }
 
 #[test]
@@ -177,7 +179,7 @@ fn terror_robbery_rounds_in_float() {
     g.player_mut(atreides).resources = 16_777_217;
 
     let mut e = TerrorRevealed::new(&g, Faction::Moritani);
-    e.type_ = TerrorType::Robbery;
+    e.type_ = Some(TerrorType::Robbery);
     let e = Rc::new(e);
     assert!(e.validate(&g).is_none());
     let _ = outcome(|| e.execute_concrete_event(&mut g));
@@ -199,7 +201,7 @@ fn terror_types_follow_the_trigger_territory() {
 
     // Only Moritani may reveal.
     let mut e = TerrorRevealed::new(&g, Faction::Atreides);
-    e.type_ = TerrorType::Extortion;
+    e.type_ = Some(TerrorType::Extortion);
     assert!(e.validate(&g).is_some());
 }
 
@@ -230,12 +232,12 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
     let t = a_stronghold(&g);
 
     let mut first = AmbassadorPlaced::new(&g, Faction::Ecaz);
-    first.ambassador = Ambassador::Emperor;
+    first.ambassador = Some(Ambassador::Emperor);
     first.set_stronghold(&g, Some(t));
     Rc::new(first).execute_concrete_event(&mut g).unwrap();
 
     let mut second = AmbassadorPlaced::new(&g, Faction::Ecaz);
-    second.ambassador = Ambassador::BeneGesserit;
+    second.ambassador = Some(Ambassador::BeneGesserit);
     second.set_stronghold(&g, Some(t));
     let second = Rc::new(second);
     assert!(second.validate(&g).is_some());
@@ -295,14 +297,14 @@ fn choam_karma_prevention_uses_kull_wahad() {
 fn clairvoyance_parameters_parse_like_dotnet() {
     let g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let mut e = ClairVoyancePlayed::new(&g, Faction::Atreides);
-    e.question = ClairvoyanceQuestion::DialOfMoreThanXInBattle;
+    e.question = Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle);
     // "1,5" is 15 under the invariant culture (thousands separator).
     e.question_parameter1 = Some("1,5".to_string());
     assert_eq!(e.parameter1(&g), ExpressionElement::Float(15.0));
     e.question_parameter1 = None;
     assert_eq!(e.parameter1(&g), ExpressionElement::Null);
 
-    e.question = ClairvoyanceQuestion::HasCardTypeInHand;
+    e.question = Some(ClairvoyanceQuestion::HasCardTypeInHand);
     e.question_parameter1 = Some("Laser".to_string());
     assert!(e.is_about(&g, TreacheryCardType::Laser));
     assert!(!e.is_about(&g, TreacheryCardType::Karma));
@@ -312,7 +314,7 @@ fn clairvoyance_parameters_parse_like_dotnet() {
         "ArgumentException: Requested value 'NoSuchCard' was not found."
     );
 
-    e.question = ClairvoyanceQuestion::Prediction;
+    e.question = Some(ClairvoyanceQuestion::Prediction);
     e.question_parameter1 = Some("Emperor".to_string());
     e.question_parameter2 = Some(String::new());
     assert_eq!(e.parameter2(), ExpressionElement::Null);

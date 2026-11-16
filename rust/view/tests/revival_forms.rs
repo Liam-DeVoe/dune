@@ -115,14 +115,14 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
         ActionOptions::KarmaRevivalPrevention(o) => {
             let targets: Vec<Faction> = KarmaRevivalPrevention::get_valid_targets(game, p).collect();
             assert_eq!(o.targets, factions(targets.clone()), "{at}");
-            let t = Faction::from_value(int(draft, "Target"));
+            let t = Faction::from_value(int(draft, "Target")).unwrap();
             assert_eq!(t, targets.first().copied().filter(|_| !targets.contains(&t)).unwrap_or(t), "{at}: required choice");
         }
         ActionOptions::ChoamFreeRevivalPrevention(o) => {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
             assert_eq!(o.targets, factions(targets.clone()), "{at}");
             assert_eq!(o.card.is_some(), ChoamFreeRevivalPrevention::card_to_use(game, p).is_some(), "{at}");
-            assert!(targets.is_empty() || targets.contains(&Faction::from_value(int(draft, "Target"))), "{at}");
+            assert!(targets.is_empty() || targets.contains(&Faction::from_value(int(draft, "Target")).unwrap()), "{at}");
         }
         ActionOptions::RequestTleilaxuRevival(o) => {
             let targets: Vec<Hero> = RequestTleilaxuRevival::valid_targets(game, p).collect();

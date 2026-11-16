@@ -74,7 +74,7 @@ impl PlayerSequence {
     /// `JuiceForcesLast(p)` where `p` may be null.
     fn juice_forces_last_opt(&self, game: &Game, p: Option<PlayerIndex>) -> bool {
         match &game.turn.current_juice {
-            Some(juice) if juice.type_ == JuiceType::GoLast => juice.player_opt() == p,
+            Some(juice) if juice.type_ == Some(JuiceType::GoLast) => juice.player_opt() == p,
             _ => false,
         }
     }
@@ -184,7 +184,7 @@ impl PlayerSequence {
     pub fn players_in_order(&self, game: &Game) -> Vec<Option<PlayerIndex>> {
         let mut result: Vec<Option<PlayerIndex>> = Vec::new();
         let player_with_juice = match &game.turn.current_juice {
-            Some(j) if j.type_ == JuiceType::GoFirst || j.type_ == JuiceType::GoLast => j.player_opt(),
+            Some(j) if j.type_ == Some(JuiceType::GoFirst) || j.type_ == Some(JuiceType::GoLast) => j.player_opt(),
             _ => None,
         };
 
@@ -201,9 +201,9 @@ impl PlayerSequence {
 
         if player_with_juice.is_some() {
             let juice = game.turn.current_juice.as_ref().expect("current juice");
-            if juice.type_ == JuiceType::GoFirst {
+            if juice.type_ == Some(JuiceType::GoFirst) {
                 result.insert(0, player_with_juice);
-            } else if juice.type_ == JuiceType::GoLast {
+            } else if juice.type_ == Some(JuiceType::GoLast) {
                 result.push(player_with_juice);
             }
         }

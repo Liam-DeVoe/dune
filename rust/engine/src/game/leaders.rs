@@ -7,7 +7,7 @@ pub struct Leaders {
     pub assassinated: Vec<Leader>,
     pub ecaz_loyal_leader: Option<Leader>,
     pub player_to_set_aside_vidal: Option<PlayerIndex>,
-    pub when_to_set_aside_vidal: VidalMoment,
+    pub when_to_set_aside_vidal: Option<VidalMoment>,
 }
 
 impl Leaders {
@@ -111,18 +111,18 @@ impl Game {
     }
 
     pub fn skilled_as(&self, leader: Hero, skill: LeaderSkill) -> bool {
-        self.skill(Some(leader)) == skill
+        self.skill(Some(leader)) == Some(skill)
     }
 
     pub fn has_skill_in_front_of_shield(&self, p: PlayerIndex, skill: LeaderSkill) -> bool {
         self.player(p)
             .leaders
             .iter()
-            .any(|l| self.skill(Some(Hero::Leader(*l))) == skill && self.is_in_front_of_shield(Some(Hero::Leader(*l))))
+            .any(|l| self.skill(Some(Hero::Leader(*l))) == Some(skill) && self.is_in_front_of_shield(Some(Hero::Leader(*l))))
     }
 
     pub fn is_skilled(&self, l: Option<Hero>) -> bool {
-        l.is_some() && self.skill(l) != LeaderSkill::None
+        l.is_some() && self.skill(l) != None
     }
 
     pub fn player_skilled_as(&self, skill: LeaderSkill) -> Option<PlayerIndex> {
@@ -142,19 +142,19 @@ impl Game {
             .copied()
             .filter(|l| self.is_skilled(Some(Hero::Leader(*l))))
             .find(|l| self.is_in_front_of_shield(Some(Hero::Leader(*l))));
-        hero.map(|h| self.skill(Some(Hero::Leader(h))))
+        hero.and_then(|h| self.skill(Some(Hero::Leader(h))))
     }
 
-    pub fn skill(&self, l: Option<Hero>) -> LeaderSkill {
-        let Some(l) = l else { return LeaderSkill::None };
+    pub fn skill(&self, l: Option<Hero>) -> Option<LeaderSkill> {
+        let Some(l) = l else { return None };
 
         match self.leaders.leader_state.get(&l) {
             Some(state) => state.skill,
-            None => LeaderSkill::None,
+            None => None,
         }
     }
 
-    pub fn set_skill(&mut self, l: Leader, skill: LeaderSkill) {
+    pub fn set_skill(&mut self, l: Leader, skill: Option<LeaderSkill>) {
         self.leaders.leader_state[&Hero::Leader(l)].skill = skill;
     }
 
@@ -208,7 +208,7 @@ pub struct LeaderState {
     /// When the leader last died, from `game.counters`. Only the order means something: the
     /// view lists the leaders in the tanks by it.
     pub time_of_death: i32,
-    pub skill: LeaderSkill,
+    pub skill: Option<LeaderSkill>,
     pub in_front_of_shield: bool,
 }
 
@@ -240,9 +240,9 @@ impl LeaderState {
     /// Takes the skill deck and the counters instead of the game, because this state lives in
     /// `game.leaders` and Rust can't borrow both.
     pub fn kill(&mut self, skill_deck: &mut Option<Deck<LeaderSkill>>, counters: &mut Counters) {
-        if self.skill != LeaderSkill::None {
-            skill_deck.as_mut().expect("skill deck").put_on_top(self.skill);
-            self.skill = LeaderSkill::None;
+        if let Some(skill) = self.skill {
+            skill_deck.as_mut().expect("skill deck").put_on_top(skill);
+            self.skill = None;
             self.in_front_of_shield = false;
         }
 
@@ -267,7 +267,7 @@ impl LeaderState {
 impl Game {
     pub fn initialize_leader_state(&mut self) {
         for l in LeaderManager::leaders() {
-            self.leaders.leader_state.insert_new(Hero::Leader(*l), LeaderState { death_counter: 0, current_territory: None, skill: LeaderSkill::None, in_front_of_shield: false, ..Default::default() });
+            self.leaders.leader_state.insert_new(Hero::Leader(*l), LeaderState { death_counter: 0, current_territory: None, skill: None, in_front_of_shield: false, ..Default::default() });
         }
 
         self.leaders.leader_state.insert_new(LeaderManager::messiah(), LeaderState { death_counter: 0, current_territory: None, ..Default::default() });
@@ -317,6 +317,6 @@ impl Game {
         }
 
         self.leaders.player_to_set_aside_vidal = None;
-        self.leaders.when_to_set_aside_vidal = VidalMoment::None;
+        self.leaders.when_to_set_aside_vidal = None;
     }
 }

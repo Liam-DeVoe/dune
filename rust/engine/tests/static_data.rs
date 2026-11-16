@@ -148,7 +148,7 @@ fn enum_ordering_and_serde() {
     assert_eq!(serde_json::to_string(&Faction::Atreides).unwrap(), "20");
     assert_eq!(serde_json::from_str::<Faction>("13").unwrap(), Faction(13));
     assert_eq!(format!("{:?}", Faction::Atreides), "Faction::Atreides");
-    assert_eq!(Faction::Moritani.to_nexus(), Nexus::Moritani);
+    assert_eq!(Faction::Moritani.to_nexus(), Some(Nexus::Moritani));
     assert!(catch_panic(|| Faction(13).to_nexus()).is_err());
 }
 
@@ -164,15 +164,15 @@ fn dump_location(m: &Map, l: Location) -> Value {
         "neighbours": ids(l.neighbours(m).iter().copied()),
         "orientation": l.orientation(),
         "spice_blow_amount": l.spice_blow_amount(),
-        "discovery_token_type": l.discovery_token_type().0,
+        "discovery_token_type": treachery_engine::enum_type::value_or_absent(l.discovery_token_type()),
         "is_stronghold": l.is_stronghold(),
         "is_homeworld": l.is_homeworld(),
         "is_protected_from_storm": l.is_protected_from_storm(),
-        "advantage": l.advantage().0,
+        "advantage": treachery_engine::enum_type::value_or_absent(l.advantage()),
         "hash": l.id(),
     });
     if let Some(hw) = l.as_homeworld() {
-        o["world"] = json!(hw.world().0);
+        o["world"] = json!(hw.world().value());
         o["faction"] = json!(hw.faction().0);
         o["threshold"] = json!(hw.threshold());
         o["resource_amount"] = json!(hw.resource_amount());
@@ -185,7 +185,7 @@ fn dump_location(m: &Map, l: Location) -> Value {
         o["attached_to"] = opt_id(al.attached_to_location(m));
     }
     if let Some(dl) = l.as_discovered_location() {
-        o["discovery"] = json!(dl.discovery().0);
+        o["discovery"] = json!(dl.discovery().value());
     }
     o
 }
@@ -202,7 +202,7 @@ fn dump_territory(m: &Map, t: Territory) -> Value {
         "is_stronghold": t.is_stronghold(),
         "is_protected_from_storm": t.is_protected_from_storm(),
         "is_protected_from_worm": t.is_protected_from_worm(),
-        "advantage": t.advantage().0,
+        "advantage": treachery_engine::enum_type::value_or_absent(t.advantage()),
         "locations": ids(t.locations().iter().copied()),
         "middle_location": t.middle_location().id(),
         "resource_blow_location": opt_id(t.resource_blow_location()),
@@ -254,11 +254,11 @@ fn dump_map(m: &Map) -> Value {
 
     let mut get_home_world = serde_json::Map::new();
     for w in World::ALL {
-        get_home_world.insert(w.0.to_string(), opt_id(m.get_home_world(*w).map(|h| h.location())));
+        get_home_world.insert(w.value().to_string(), opt_id(m.get_home_world(*w).map(|h| h.location())));
     }
     let mut get_discovery_stronghold = serde_json::Map::new();
     for d in DiscoveryToken::ALL {
-        get_discovery_stronghold.insert(d.0.to_string(), try_value(|| Some(m.get_discovery_stronghold(*d).id())));
+        get_discovery_stronghold.insert(d.value().to_string(), try_value(|| Some(m.get_discovery_stronghold(*d).id())));
     }
 
     json!({
@@ -426,7 +426,7 @@ fn dump_hero(h: Hero, opponents: &[Hero]) -> Value {
         "skin_id": h.skin_id(),
         "value": h.value(),
         "faction": h.faction().0,
-        "hero_type": h.hero_type().0,
+        "hero_type": h.hero_type() as i32,
         "cost_to_revive": h.cost_to_revive(),
         "value_in_combat_against": against,
         "is_traitor": opponents.iter().map(|o| json!(h.is_traitor(*o))).collect::<Vec<_>>(),
@@ -479,8 +479,8 @@ fn cards() {
         .iter()
         .map(|&c| {
             let mut o = dump_hero(Hero::TreacheryCard(c), &opponents);
-            o["type"] = json!(c.type_().0);
-            o["rules"] = json!(c.rules().iter().map(|r| r.0).collect::<Vec<_>>());
+            o["type"] = json!(c.type_().value());
+            o["rules"] = json!(c.rules().iter().map(|r| r.value()).collect::<Vec<_>>());
             o["is_poison_weapon"] = json!(c.is_poison_weapon());
             o["is_projectile_weapon"] = json!(c.is_projectile_weapon());
             o["is_poison_defense"] = json!(c.is_poison_defense());
@@ -529,7 +529,7 @@ fn cards() {
     let mut by_rule = serde_json::Map::new();
     for r in Rule::ALL {
         by_rule.insert(
-            r.0.to_string(),
+            r.value().to_string(),
             json!(TreacheryCardManager::get_cards_in_play_by_rule(*r).map(|c| c.id()).collect::<Vec<_>>()),
         );
     }

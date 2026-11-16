@@ -618,7 +618,7 @@ impl Game {
             Phase::Contemplate => {
                 if faction == Faction::Choam
                     && !self.prevented(FactionAdvantage::ChoamEconomics)
-                    && self.charity.economics_status == ChoamEconomicsStatus::None
+                    && self.charity.economics_status == None
                 {
                     result.push(GameEventType::ChoamEconomics);
                 }
@@ -978,13 +978,13 @@ impl Game {
 
     pub fn consider_as_end_of_phase(&self) -> bool {
         // `a || b && c is X or Y` reads as `a || (b && (c is X or Y))`.
-        self.turn.current_moment == MainPhaseMoment::End
-            || (self.turn.current_moment == MainPhaseMoment::Start
+        self.turn.current_moment == Some(MainPhaseMoment::End)
+            || (self.turn.current_moment == Some(MainPhaseMoment::Start)
                 && matches!(self.turn.current_main_phase, MainPhase::Bidding | MainPhase::ShipmentAndMove))
     }
 
     pub fn consider_as_start_of_phase(&self) -> bool {
-        self.turn.current_moment == MainPhaseMoment::Start
-            || (self.turn.current_main_phase == MainPhase::Blow && self.turn.current_moment == MainPhaseMoment::End)
+        self.turn.current_moment == Some(MainPhaseMoment::Start)
+            || (self.turn.current_main_phase == MainPhase::Blow && self.turn.current_moment == Some(MainPhaseMoment::End))
     }
 }

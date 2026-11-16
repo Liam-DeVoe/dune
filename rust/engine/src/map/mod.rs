@@ -42,7 +42,7 @@ pub struct TerritoryData {
     pub is_stronghold: bool,
     pub is_protected_from_storm: bool,
     pub is_protected_from_worm: bool,
-    pub advantage: StrongholdAdvantage,
+    pub advantage: Option<StrongholdAdvantage>,
     /// `Territory.Locations` is the run `first_location..first_location+location_count` of `_locations`.
     pub first_location: u8,
     pub location_count: u8,
@@ -57,7 +57,7 @@ pub struct LocationData {
     pub orientation: &'static str,
     pub sector: i32,
     pub spice_blow_amount: i32,
-    pub discovery_token_type: DiscoveryTokenType,
+    pub discovery_token_type: Option<DiscoveryTokenType>,
     pub kind: LocationKind,
 }
 

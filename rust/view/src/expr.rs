@@ -135,7 +135,7 @@ pub fn hero_part(h: Hero, d: &dyn Describer) -> Part {
     match h {
         Hero::Leader(l) => {
             // The popover of a leader shows its skill card (`Skin.GetPopup(IHero, Game)`).
-            let skill = d.game().map(|g| g.skill(Some(h))).filter(|s| *s != LeaderSkill::None).map(|s| s.to_string());
+            let skill = d.game().and_then(|g| g.skill(Some(h))).map(|s| s.to_string());
             Part::Leader { id: l.id(), label, skill }
         }
         Hero::Messiah => Part::Messiah { label },

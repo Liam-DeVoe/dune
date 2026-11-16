@@ -102,7 +102,7 @@ impl Location {
         self.data().spice_blow_amount
     }
 
-    pub fn discovery_token_type(self) -> DiscoveryTokenType {
+    pub fn discovery_token_type(self) -> Option<DiscoveryTokenType> {
         self.data().discovery_token_type
     }
 
@@ -118,7 +118,7 @@ impl Location {
         self.territory().is_protected_from_storm()
     }
 
-    pub fn advantage(self) -> StrongholdAdvantage {
+    pub fn advantage(self) -> Option<StrongholdAdvantage> {
         self.territory().advantage()
     }
 

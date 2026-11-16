@@ -73,7 +73,7 @@ impl Territory {
         self.data().is_protected_from_worm
     }
 
-    pub fn advantage(self) -> StrongholdAdvantage {
+    pub fn advantage(self) -> Option<StrongholdAdvantage> {
         self.data().advantage
     }
 
@@ -96,7 +96,7 @@ impl Territory {
         self.locations()
             .iter()
             .copied()
-            .find(|l| l.discovery_token_type() != crate::enumerations::DiscoveryTokenType::None)
+            .find(|l| l.discovery_token_type().is_some())
     }
 }
 

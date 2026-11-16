@@ -21,9 +21,11 @@ pub struct BattleState {
     pub current_voice: Option<Rc<Voice>>,
     pub current_prescience: Option<Rc<Prescience>>,
     /// The values are the live plan events, shared with `History` and the plan fields.
-    pub prescience_seen_plans: IndexMap<PrescienceAspect, Rc<Battle>>,
+    pub prescience_seen_plans: IndexMap<Option<PrescienceAspect>, Rc<Battle>>,
     pub current_thought: Option<Rc<Thought>>,
-    pub chosen_hms_advantage: Option<StrongholdAdvantage>,
+    // C#: `StrongholdAdvantage?`. Outside a battle it is `None`; in one, `Some(None)` until the
+    // advantage is chosen.
+    pub chosen_hms_advantage: Option<Option<StrongholdAdvantage>>,
     pub current_portable_antidote_used: Option<Rc<PortableAntidoteUsed>>,
     pub poison_tooth_cancelled: bool,
     pub current_rock_was_melted: Option<Rc<RockWasMelted>>,
@@ -108,7 +110,7 @@ impl Game {
         self.battle.current_battle = Some(current_battle.clone());
         self.update_battle_report_participants(&current_battle);
 
-        self.battle.chosen_hms_advantage = Some(StrongholdAdvantage::None);
+        self.battle.chosen_hms_advantage = Some(None);
         self.battle.battle_outcome = None;
         self.battle.nr_of_battles_fought += 1;
 
@@ -1044,7 +1046,7 @@ impl Game {
         }
     }
 
-    pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: TreacheryCardType, winner: PlayerIndex, hero_value: i32) {
+    pub fn kill_leader_in_battle(&mut self, killed_hero: Hero, cause_of_death: Option<TreacheryCardType>, winner: PlayerIndex, hero_value: i32) {
         let winner_faction = self.player(winner).faction;
         let mut fact = BattleFact::new(BattleFactKind::Killed, winner_faction);
         fact.hero = Some(killed_hero);
@@ -1378,7 +1380,7 @@ impl Game {
         // `IHero? == Leader?`: true when both are null.
         let vidal = self.vidal().map(Hero::Leader);
         if aggressor_plan.hero() == vidal
-            && self.leaders.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
+            && self.leaders.when_to_set_aside_vidal == Some(VidalMoment::AfterUsedInBattle)
             && !(aggressor_traitor_action.succeeded(self) && !defender_traitor_action.succeeded(self))
         {
             self.set_aside_vidal();
@@ -1386,7 +1388,7 @@ impl Game {
 
         let vidal = self.vidal().map(Hero::Leader);
         if defender_plan.hero() == vidal
-            && self.leaders.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
+            && self.leaders.when_to_set_aside_vidal == Some(VidalMoment::AfterUsedInBattle)
             && !(defender_traitor_action.succeeded(self) && !aggressor_traitor_action.succeeded(self))
         {
             self.set_aside_vidal();
@@ -1398,7 +1400,7 @@ impl Game {
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow_prevented_battle_faction_advantages();
         }
-        if self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor) {
+        if self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor)) {
             self.turn.current_juice = None;
         }
         self.battle.current_diplomacy = None;

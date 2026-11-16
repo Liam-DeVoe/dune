@@ -186,7 +186,6 @@ impl Deal {
             DealType::ShareStormPrescience => express!("Share storm prescience"),
             DealType::ForfeitBattle => express!("Forfeit this battle (no weapons and defenses, lowest leader, zero dial)"),
             DealType::TellDiscardedTraitors => express!("Tell which traitors were discarded"),
-            _ => express!("unknown deal type"),
         }
     }
 }

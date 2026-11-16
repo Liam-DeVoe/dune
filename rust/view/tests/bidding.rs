@@ -22,7 +22,7 @@ fn resolved(game: &Game, p: Option<PlayerIndex>) -> ResolvedViewer {
 }
 
 fn silent(game: &Game) -> bool {
-    matches!(game.bidding.current_auction_type, AuctionType::BlackMarketSilent | AuctionType::RicheseSilent)
+    matches!(game.bidding.current_auction_type, Some(AuctionType::BlackMarketSilent) | Some(AuctionType::RicheseSilent))
 }
 
 /// The panel's starting amounts, then the pickers' clamps, written out independently of
@@ -131,7 +131,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
             if emperor > 0 {
                 seen.emperor_pays += 1;
             }
-            *seen.bidders.entry(format!("{t:?} {}", game.bidding.current_auction_type)).or_default() += 1;
+            *seen.bidders.entry(format!("{t:?} {}", name_or_absent(game.bidding.current_auction_type))).or_default() += 1;
         }
     }
 
@@ -145,7 +145,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
         assert_eq!(panel.is_some(), in_panel, "{at}");
         let Some(panel) = panel else { continue };
         assert_eq!(panel.black_market, game.turn.current_phase == Phase::BlackMarketBidding);
-        let richese = matches!(game.bidding.current_auction_type, AuctionType::RicheseOnceAround | AuctionType::RicheseSilent);
+        let richese = matches!(game.bidding.current_auction_type, Some(AuctionType::RicheseOnceAround) | Some(AuctionType::RicheseSilent));
         // An observer has no prescience but sees the card in Richese's auctions, as everyone does.
         let prescience = viewer.is_some_and(|p| game.has_bidding_prescience(p));
         let expected_card = (prescience || richese).then_some(top).flatten().map(|c| c.id());
@@ -163,7 +163,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
         assert_eq!(panel.silent, silent(game));
         let expected_bid = if silent(game) { None } else { game.bidding.current_bid.as_ref().map(|b| (b.bid_initiator().to_string(), b.bid_total_amount())) };
         assert_eq!(panel.current_bid.map(|b| (b.faction, b.amount)), expected_bid, "{at}");
-        if panel.black_market || game.bidding.current_auction_type != AuctionType::Normal {
+        if panel.black_market || game.bidding.current_auction_type != Some(AuctionType::Normal) {
             assert_eq!(panel.card_of, None);
         } else {
             let c = panel.card_of.expect("normal auction");
@@ -249,7 +249,7 @@ fn bid_fixture_view() {
 fn karma_card_lifts_the_limit_in_a_draft_query() {
     let mut r = first_bot_state("a bidder who may use Karma", |g| {
         g.turn.current_phase == Phase::Bidding
-            && g.bidding.current_auction_type == AuctionType::Normal
+            && g.bidding.current_auction_type == Some(AuctionType::Normal)
             && g.bidding.bid_sequence.as_ref().and_then(|s| s.current_player(g)).is_some_and(|p| Bid::can_karma(g, Some(p)))
     });
     let p = r.game.bidding.bid_sequence.as_ref().unwrap().current_player(&r.game).unwrap();

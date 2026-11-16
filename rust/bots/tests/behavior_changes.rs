@@ -42,7 +42,7 @@ fn fingerprint(game: &Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(game)),
         format!("stream position: {:?}", game.random.as_ref().map(|r| r.state().get_word_pos())),
-        format!("phase: {} {} {} turn {} milestones {:?}", game.turn.current_phase, game.turn.current_main_phase, game.turn.current_moment, game.turn.current_turn, game.turn.recent_milestones),
+        format!("phase: {} {} {} turn {} milestones {:?}", game.turn.current_phase, game.turn.current_main_phase, name_or_absent(game.turn.current_moment), game.turn.current_turn, game.turn.recent_milestones),
         format!("battle: {:?}", game.battle.current_battle),
         format!("aggressor plan: {:?}", game.battle.aggressor_plan),
         format!("defender plan: {:?}", game.battle.defender_plan),
@@ -223,7 +223,7 @@ fn bene_gesserit_voices_a_useless_defense_against_poison() {
     let plan = bot(&game, bg).best_voice(&game, None, bg, opponent);
     assert_eq!(plan.weapon_to_use, Some(poison));
     assert!(plan.voice.must);
-    assert_eq!(plan.voice.type_, T::Shield);
+    assert_eq!(plan.voice.type_, Some(T::Shield));
 }
 
 /// The dial an Ecaz bot estimates for its ally (BattleClaimed) is the ally's own estimate, not the

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct JuicePlayed {
-    pub type_: JuiceType,
+    pub type_: Option<JuiceType>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -69,7 +69,7 @@ impl JuicePlayed {
         game.discard(self.player(), TreacheryCardType::Juice)?;
 
         if let Some(battle) = game.battle.current_battle.clone() {
-            if self.type_ == JuiceType::Aggressor && battle.aggressive_player(game) != aggressor_before_juice_is_played {
+            if self.type_ == Some(JuiceType::Aggressor) && battle.aggressive_player(game) != aggressor_before_juice_is_played {
                 std::mem::swap(&mut game.battle.defender_plan, &mut game.battle.aggressor_plan);
                 std::mem::swap(&mut game.battle.defender_traitor_action, &mut game.battle.aggressor_traitor_action);
             }

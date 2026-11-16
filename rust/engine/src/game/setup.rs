@@ -199,7 +199,7 @@ impl Game {
 
     pub fn assign_leader_skills(&mut self) {
         if self.applicable(Rule::LeaderSkills) {
-            self.decks.skill_deck = Some(Deck::new(get_values_except_default(LeaderSkill::None), self.random.clone()));
+            self.decks.skill_deck = Some(Deck::new(get_values::<LeaderSkill>().collect::<Vec<_>>(), self.random.clone()));
             self.decks.skill_deck.as_mut().expect("skill deck").shuffle();
             self.stone(Milestone::Shuffled);
 

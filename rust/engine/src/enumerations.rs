@@ -22,8 +22,8 @@ game_enum! {
 }
 
 game_enum! {
-    Nexus {
-        None = 0,
+    closed Nexus {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -37,12 +37,12 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
-    Ambassador {
-        None = 0,
+    closed Ambassador {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -56,17 +56,17 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
-    TechToken {
-        None = 0,
+    closed TechToken {
+        absent None = 0;
         Graveyard = 10,
         Ships = 20,
         Resources = 30,
     }
-    get_values [None, Graveyard, Ships, Resources]
+    get_values [Graveyard, Ships, Resources]
 }
 
 game_enum! {
@@ -89,25 +89,25 @@ game_enum! {
 }
 
 game_enum! {
-    MainPhaseMoment {
-        None = 0,
+    closed MainPhaseMoment {
+        absent None = 0;
         Start = 10,
         Middle = 20,
         End = 30,
     }
-    get_values [None, Start, Middle, End]
+    get_values [Start, Middle, End]
 }
 
 game_enum! {
-    ChoamEconomicsStatus {
-        None = 0,
+    closed ChoamEconomicsStatus {
+        absent None = 0;
         Double = 10,
         DoubleFlipped = 20,
         Cancel = 30,
         CancelFlipped = 40,
         RemovedFromGame = 50,
     }
-    get_values [None, Double, DoubleFlipped, Cancel, CancelFlipped, RemovedFromGame]
+    get_values [Double, DoubleFlipped, Cancel, CancelFlipped, RemovedFromGame]
 }
 
 game_enum! {
@@ -241,8 +241,8 @@ game_enum! {
 }
 
 game_enum! {
-    Milestone {
-        None = 0,
+    closed Milestone {
+        absent None = 0;
         GameStarted = 50,
         Monster = 100,
         GreatMonster = 110,
@@ -292,12 +292,12 @@ game_enum! {
         Bureaucracy = 4000,
         Audited = 4100,
     }
-    get_values [None, GameStarted, Monster, GreatMonster, BabyMonster, Resource, MetheorUsed, AuctionWon, Shipment, LeaderKilled, Messiah, Explosion, GameWon, CharityClaimed, CardOnBidSwapped, Bid, CardWonSwapped, Shuffled, Revival, Move, TreacheryCalled, FaceDanced, Clairvoyance, Karma, Bribe, Amal, Thumper, Harvester, HmsMovement, RaiseDead, WeatherControlled, Storm, Voice, Prescience, ResourcesReceived, Economics, CardTraded, Discard, SpecialUselessPlayed, TerrorPlanted, TerrorRevealed, AmbassadorPlaced, AmbassadorActivated, NexusPlayed, DiscoveryAppeared, DiscoveryRevealed, Assassination, Bureaucracy, Audited]
+    get_values [GameStarted, Monster, GreatMonster, BabyMonster, Resource, MetheorUsed, AuctionWon, Shipment, LeaderKilled, Messiah, Explosion, GameWon, CharityClaimed, CardOnBidSwapped, Bid, CardWonSwapped, Shuffled, Revival, Move, TreacheryCalled, FaceDanced, Clairvoyance, Karma, Bribe, Amal, Thumper, Harvester, HmsMovement, RaiseDead, WeatherControlled, Storm, Voice, Prescience, ResourcesReceived, Economics, CardTraded, Discard, SpecialUselessPlayed, TerrorPlanted, TerrorRevealed, AmbassadorPlaced, AmbassadorActivated, NexusPlayed, DiscoveryAppeared, DiscoveryRevealed, Assassination, Bureaucracy, Audited]
 }
 
 game_enum! {
-    FactionAdvantage {
-        None = 0,
+    closed FactionAdvantage {
+        absent None = 0;
         AtreidesBiddingPrescience = 20,
         AtreidesSpiceBlowPrescience = 30,
         AtreidesBattlePlanPrescience = 35,
@@ -359,12 +359,12 @@ game_enum! {
         MoritaniGainingVidal = 171,
         MoritaniEnemyOfEnemy = 172,
     }
-    get_values [None, AtreidesBiddingPrescience, AtreidesSpiceBlowPrescience, AtreidesBattlePlanPrescience, AtreidesUseMessiah, HarkonnenFreeCard, HarkonnenCaptureLeader, HarkonnenCallTraitorForAlly, BeneGesseritAccompanies, BeneGesseritUsingVoice, BeneGesseritWorthlessAsKarma, BeneGesseritAnnouncesBattle, BeneGesseritIntrusion, BeneGesseritCharity, FremenControlsMonster, FremenRidesMonster, FremenNotPayingForBattles, FremenSpecialForceBonus, FremenExtraMove, FremenProtectedFromStorm, FremenProtectedFromMonster, FremenProtectedFromMonsterAlly, FremenStormPrescience, EmperorSpecialForceBonus, EmperorReceiveBid, EmperorGiveSpiceToAlly, EmperorLetAllyReviveExtraForces, GuildDetermineMoveMoment, GuildSpecialShipments, GuildShipmentsDiscount, GuildShipmentsDiscountAlly, GuildReceiveShipment, TleilaxuRevivalDiscount, TleilaxuRevivalDiscountAlly, TleilaxuReplacingFaceDancer, TleilaxuIncreasingRevivalLimits, TleilaxuReceiveRevive, TleilaxuEarlyLeaderRevive, TleilaxuReviveGhola, IxianMovingHms, IxianSpecialForceBonus, IxianSelectingCardsOnAuction, IxianCyborgExtraMove, IxianReplacingSpecialForces, IxianAllyDiscardingCard, IxianSwappingCard, ChoamControllingCharity, ChoamDiscarding, ChoamRevival, ChoamEconomics, ChoamReceiveForcePayment, ChoamAudit, RicheseAuction, RicheseNofield, RicheseBlackMarket, EcazAmbassadors, EcazOccupation, EcazCollection, MoritaniPlantingTerror, MoritaniGainingVidal, MoritaniEnemyOfEnemy]
+    get_values [AtreidesBiddingPrescience, AtreidesSpiceBlowPrescience, AtreidesBattlePlanPrescience, AtreidesUseMessiah, HarkonnenFreeCard, HarkonnenCaptureLeader, HarkonnenCallTraitorForAlly, BeneGesseritAccompanies, BeneGesseritUsingVoice, BeneGesseritWorthlessAsKarma, BeneGesseritAnnouncesBattle, BeneGesseritIntrusion, BeneGesseritCharity, FremenControlsMonster, FremenRidesMonster, FremenNotPayingForBattles, FremenSpecialForceBonus, FremenExtraMove, FremenProtectedFromStorm, FremenProtectedFromMonster, FremenProtectedFromMonsterAlly, FremenStormPrescience, EmperorSpecialForceBonus, EmperorReceiveBid, EmperorGiveSpiceToAlly, EmperorLetAllyReviveExtraForces, GuildDetermineMoveMoment, GuildSpecialShipments, GuildShipmentsDiscount, GuildShipmentsDiscountAlly, GuildReceiveShipment, TleilaxuRevivalDiscount, TleilaxuRevivalDiscountAlly, TleilaxuReplacingFaceDancer, TleilaxuIncreasingRevivalLimits, TleilaxuReceiveRevive, TleilaxuEarlyLeaderRevive, TleilaxuReviveGhola, IxianMovingHms, IxianSpecialForceBonus, IxianSelectingCardsOnAuction, IxianCyborgExtraMove, IxianReplacingSpecialForces, IxianAllyDiscardingCard, IxianSwappingCard, ChoamControllingCharity, ChoamDiscarding, ChoamRevival, ChoamEconomics, ChoamReceiveForcePayment, ChoamAudit, RicheseAuction, RicheseNofield, RicheseBlackMarket, EcazAmbassadors, EcazOccupation, EcazCollection, MoritaniPlantingTerror, MoritaniGainingVidal, MoritaniEnemyOfEnemy]
 }
 
 game_enum! {
-    FactionForce {
-        None = 0,
+    closed FactionForce {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -378,24 +378,24 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
-    FactionSpecialForce {
-        None = 0,
+    closed FactionSpecialForce {
+        absent None = 0;
         Fremen = 10,
         Emperor = 20,
         BeneGesserit = 30,
         Ixian = 40,
         Richese = 50,
     }
-    get_values [None, Fremen, Emperor, BeneGesserit, Ixian, Richese]
+    get_values [Fremen, Emperor, BeneGesserit, Ixian, Richese]
 }
 
 game_enum! {
-    Ruleset {
-        None = 0,
+    closed Ruleset {
+        absent None = 0;
         BasicGame = 10,
         AdvancedGame = 30,
         ExpansionBasicGame = 110,
@@ -409,12 +409,12 @@ game_enum! {
         AllExpansionsAdvancedGame = 200,
         Custom = 1000,
     }
-    get_values [None, BasicGame, AdvancedGame, ExpansionBasicGame, ExpansionAdvancedGame, ServerClassic, Expansion2BasicGame, Expansion2AdvancedGame, AllExpansionsBasicGame, AllExpansionsAdvancedGame, Expansion3BasicGame, Expansion3AdvancedGame, Custom]
+    get_values [BasicGame, AdvancedGame, ExpansionBasicGame, ExpansionAdvancedGame, ServerClassic, Expansion2BasicGame, Expansion2AdvancedGame, AllExpansionsBasicGame, AllExpansionsAdvancedGame, Expansion3BasicGame, Expansion3AdvancedGame, Custom]
 }
 
 game_enum! {
-    DiscoveryToken {
-        None = 0,
+    closed DiscoveryToken {
+        absent None = 0;
         Jacurutu = 10,
         Shrine = 20,
         TestingStation = 30,
@@ -424,21 +424,21 @@ game_enum! {
         ResourceStash = 70,
         Flight = 80,
     }
-    get_values [None, Jacurutu, Shrine, TestingStation, Cistern, ProcessingStation, CardStash, ResourceStash, Flight]
+    get_values [Jacurutu, Shrine, TestingStation, Cistern, ProcessingStation, CardStash, ResourceStash, Flight]
 }
 
 game_enum! {
-    DiscoveryTokenType {
-        None = 0,
+    closed DiscoveryTokenType {
+        absent None = 0;
         Fremen = 10,
         Guild = 20,
     }
-    get_values [None, Fremen, Guild]
+    get_values [Fremen, Guild]
 }
 
 game_enum! {
-    Rule {
-        None = 0,
+    closed Rule {
+        absent None = 0;
         BasicTreacheryCards = 10000,
         HasCharityPhase = 10001,
         AdvancedCombat = 10,
@@ -520,12 +520,12 @@ game_enum! {
         CapturedLeadersAreTraitorsToOwnFaction = 1014,
         DisableEndOfGameReport = 1015,
     }
-    get_values [None, AdvancedCombat, IncreasedResourceFlow, AdvancedKarama, FremenDeterminesStorm, FremenStormLosses, FremenSendingMonster, FremenSpecialForces, AtreidesMessiah, HarkonnenCapturesOrKillsLeaders, BeneGesseritFirstForceInAnyTerritory, BeneGesseritAutoCharity, BeneGesseritWorthlessAsKarma, BeneGesseritAdvisors, BeneGesseritAccompaniesToShipmentLocation, GuildDetermineShipment, EmperorSpecialForces, BribesAreImmediate, ContestedStongholdsCountAsOccupied, AdvisorsDontConflictWithAlly, GuildShipmentContributionsFlowBack, CustomInitialForcesAndResources, CustomDecks, HmSwithoutIxian, Ssw, HarkonnenMulligan, FullPhaseKarma, FremenMayMoveIntoStorm, BeneGesseritVoiceMustNameSpecialCards, BattlesUnderStorm, MovementBonusRequiresOccupationBeforeMovement, AssistedNotekeeping, ResourceBonusForStrongholds, DisableGuildSpecialVictory, DisableResourceTransfers, StormDeckWithoutFremen, AssistedNotekeepingForAtreides, FremenAllyGetsDialedResourcesRefunded, DisableNovaFlipping, BreakAlliancesOnAlliancePhase, TechTokens, ExpansionTreacheryCards, ExpansionTreacheryCardsExceptPBandSSandAmal, ExpansionTreacheryCardsPBandSs, ExpansionTreacheryCardsAmal, CheapHeroTraitor, SandTrout, IxianSwappingCardOnBid, TleilaxuGholas, LeaderSkills, StrongholdBonus, RicheseTreacheryCards, Expansion2TreacheryCards, ChoamAuditor, RicheseBlackMarket, GreatMaker, DiscoveryTokens, Homeworlds, NexusCards, Expansion3TreacheryCards, MoritaniAssassinate, EcazLoyalty, FillWithBots, ExtraKaramaCards, GuildBot, EmperorBot, HarkonnenBot, TleilaxuBot, BeneGesseritBot, AtreidesBot, FremenBot, IxianBot, BotsCannotAlly, CardsCanBeTraded, PlayersChooseFactions, EmperorSupportingNonAllyBids, BattleWithoutLeader, CapturedLeadersAreTraitorsToOwnFaction, DisableEndOfGameReport, BasicTreacheryCards, HasCharityPhase]
+    get_values [AdvancedCombat, IncreasedResourceFlow, AdvancedKarama, FremenDeterminesStorm, FremenStormLosses, FremenSendingMonster, FremenSpecialForces, AtreidesMessiah, HarkonnenCapturesOrKillsLeaders, BeneGesseritFirstForceInAnyTerritory, BeneGesseritAutoCharity, BeneGesseritWorthlessAsKarma, BeneGesseritAdvisors, BeneGesseritAccompaniesToShipmentLocation, GuildDetermineShipment, EmperorSpecialForces, BribesAreImmediate, ContestedStongholdsCountAsOccupied, AdvisorsDontConflictWithAlly, GuildShipmentContributionsFlowBack, CustomInitialForcesAndResources, CustomDecks, HmSwithoutIxian, Ssw, HarkonnenMulligan, FullPhaseKarma, FremenMayMoveIntoStorm, BeneGesseritVoiceMustNameSpecialCards, BattlesUnderStorm, MovementBonusRequiresOccupationBeforeMovement, AssistedNotekeeping, ResourceBonusForStrongholds, DisableGuildSpecialVictory, DisableResourceTransfers, StormDeckWithoutFremen, AssistedNotekeepingForAtreides, FremenAllyGetsDialedResourcesRefunded, DisableNovaFlipping, BreakAlliancesOnAlliancePhase, TechTokens, ExpansionTreacheryCards, ExpansionTreacheryCardsExceptPBandSSandAmal, ExpansionTreacheryCardsPBandSs, ExpansionTreacheryCardsAmal, CheapHeroTraitor, SandTrout, IxianSwappingCardOnBid, TleilaxuGholas, LeaderSkills, StrongholdBonus, RicheseTreacheryCards, Expansion2TreacheryCards, ChoamAuditor, RicheseBlackMarket, GreatMaker, DiscoveryTokens, Homeworlds, NexusCards, Expansion3TreacheryCards, MoritaniAssassinate, EcazLoyalty, FillWithBots, ExtraKaramaCards, GuildBot, EmperorBot, HarkonnenBot, TleilaxuBot, BeneGesseritBot, AtreidesBot, FremenBot, IxianBot, BotsCannotAlly, CardsCanBeTraded, PlayersChooseFactions, EmperorSupportingNonAllyBids, BattleWithoutLeader, CapturedLeadersAreTraitorsToOwnFaction, DisableEndOfGameReport, BasicTreacheryCards, HasCharityPhase]
 }
 
 game_enum! {
-    RuleGroup {
-        None = 0,
+    closed RuleGroup {
+        absent None = 0;
         CoreBasic = 100,
         CoreBasicExceptions = 101,
         CoreAdvanced = 110,
@@ -545,12 +545,12 @@ game_enum! {
         House = 1000,
         Bots = 2000,
     }
-    get_values [None, CoreBasic, CoreBasicExceptions, CoreAdvanced, CoreAdvancedExceptions, ExpansionIxAndBtBasic, ExpansionIxAndBtBasicExceptions, ExpansionIxAndBtAdvanced, ExpansionIxAndBtAdvancedExceptions, ExpansionChoamAndRicheseBasic, ExpansionChoamAndRicheseBasicExceptions, ExpansionChoamAndRicheseAdvanced, ExpansionChoamAndRicheseAdvancedExceptions, ExpansionEcazAndMoritaniBasic, ExpansionEcazAndMoritaniBasicExceptions, ExpansionEcazAndMoritaniAdvanced, ExpansionEcazAndMoritaniAdvancedExceptions, House, Bots]
+    get_values [CoreBasic, CoreBasicExceptions, CoreAdvanced, CoreAdvancedExceptions, ExpansionIxAndBtBasic, ExpansionIxAndBtBasicExceptions, ExpansionIxAndBtAdvanced, ExpansionIxAndBtAdvancedExceptions, ExpansionChoamAndRicheseBasic, ExpansionChoamAndRicheseBasicExceptions, ExpansionChoamAndRicheseAdvanced, ExpansionChoamAndRicheseAdvancedExceptions, ExpansionEcazAndMoritaniBasic, ExpansionEcazAndMoritaniBasicExceptions, ExpansionEcazAndMoritaniAdvanced, ExpansionEcazAndMoritaniAdvancedExceptions, House, Bots]
 }
 
 game_enum! {
-    TreacheryCardType {
-        None = 0,
+    closed TreacheryCardType {
+        absent None = 0;
         Laser = 10,
         ProjectileDefense = 19,
         Projectile = 20,
@@ -588,12 +588,12 @@ game_enum! {
         Reinforcements = 262,
         HarassAndWithdraw = 263,
     }
-    get_values [None, Laser, ProjectileDefense, Projectile, WeirdingWay, PoisonDefense, Poison, PoisonTooth, Chemistry, Shield, Antidote, ProjectileAndPoison, ShieldAndAntidote, Mercenary, Karma, Useless, StormSpell, RaiseDead, Metheor, Caravan, Clairvoyance, Amal, ArtilleryStrike, Thumper, Harvester, Distrans, Juice, MirrorWeapon, PortableAntidote, Flight, SearchDiscarded, TakeDiscarded, Residual, Rockmelter, Recruits, Reinforcements, HarassAndWithdraw]
+    get_values [Laser, ProjectileDefense, Projectile, WeirdingWay, PoisonDefense, Poison, PoisonTooth, Chemistry, Shield, Antidote, ProjectileAndPoison, ShieldAndAntidote, Mercenary, Karma, Useless, StormSpell, RaiseDead, Metheor, Caravan, Clairvoyance, Amal, ArtilleryStrike, Thumper, Harvester, Distrans, Juice, MirrorWeapon, PortableAntidote, Flight, SearchDiscarded, TakeDiscarded, Residual, Rockmelter, Recruits, Reinforcements, HarassAndWithdraw]
 }
 
 game_enum! {
-    Concept {
-        None = 0,
+    closed Concept {
+        absent None = 0;
         Messiah = 10,
         Resource = 20,
         Monster = 30,
@@ -601,12 +601,12 @@ game_enum! {
         BabyMonster = 50,
         GreatMonster = 60,
     }
-    get_values [None, Messiah, Resource, Monster, Graveyard, BabyMonster, GreatMonster]
+    get_values [Messiah, Resource, Monster, Graveyard, BabyMonster, GreatMonster]
 }
 
 game_enum! {
-    WinMethod {
-        None = 0,
+    closed WinMethod {
+        absent None = 0;
         Strongholds = 10,
         Prediction = 20,
         FremenSpecial = 30,
@@ -614,12 +614,12 @@ game_enum! {
         Forfeit = 50,
         Timeout = 60,
     }
-    get_values [None, Strongholds, Prediction, FremenSpecial, GuildSpecial, Forfeit, Timeout]
+    get_values [Strongholds, Prediction, FremenSpecial, GuildSpecial, Forfeit, Timeout]
 }
 
 game_enum! {
-    HeroType {
-        None = 0,
+    closed HeroType {
+        absent None = 0;
         Normal = 10,
         Messiah = 20,
         Mercenary = 30,
@@ -627,12 +627,12 @@ game_enum! {
         Vidal = 50,
         VariableValue = 60,
     }
-    get_values [None, Normal, Messiah, Mercenary, Auditor, Vidal, VariableValue]
+    get_values [Normal, Messiah, Mercenary, Auditor, Vidal, VariableValue]
 }
 
 game_enum! {
-    AuctionType {
-        None = 0,
+    closed AuctionType {
+        absent None = 0;
         Normal = 10,
         BlackMarketNormal = 20,
         BlackMarketOnceAround = 30,
@@ -640,22 +640,22 @@ game_enum! {
         RicheseOnceAround = 60,
         RicheseSilent = 70,
     }
-    get_values [None, Normal, BlackMarketNormal, BlackMarketOnceAround, BlackMarketSilent, RicheseOnceAround, RicheseSilent]
+    get_values [Normal, BlackMarketNormal, BlackMarketOnceAround, BlackMarketSilent, RicheseOnceAround, RicheseSilent]
 }
 
 game_enum! {
-    JuiceType {
-        None = 0,
+    closed JuiceType {
+        absent None = 0;
         GoFirst = 10,
         GoLast = 20,
         Aggressor = 30,
     }
-    get_values [None, GoFirst, GoLast, Aggressor]
+    get_values [GoFirst, GoLast, Aggressor]
 }
 
 game_enum! {
-    LeaderSkill {
-        None = 0,
+    closed LeaderSkill {
+        absent None = 0;
         Bureaucrat = 10,
         Diplomat = 20,
         Decipherer = 30,
@@ -671,12 +671,12 @@ game_enum! {
         Thinker = 130,
         Banker = 140,
     }
-    get_values [None, Bureaucrat, Diplomat, Decipherer, Smuggler, Graduate, Planetologist, Warmaster, Adept, Swordmaster, KillerMedic, MasterOfAssassins, Sandmaster, Thinker, Banker]
+    get_values [Bureaucrat, Diplomat, Decipherer, Smuggler, Graduate, Planetologist, Warmaster, Adept, Swordmaster, KillerMedic, MasterOfAssassins, Sandmaster, Thinker, Banker]
 }
 
 game_enum! {
-    StrongholdAdvantage {
-        None = 0,
+    closed StrongholdAdvantage {
+        absent None = 0;
         FreeResourcesForBattles = 10,
         CollectResourcesForUseless = 20,
         CountDefensesAsAntidote = 30,
@@ -684,12 +684,12 @@ game_enum! {
         CollectResourcesForDial = 50,
         AnyOtherAdvantage = 60,
     }
-    get_values [None, FreeResourcesForBattles, CollectResourcesForUseless, CountDefensesAsAntidote, WinTies, CollectResourcesForDial, AnyOtherAdvantage]
+    get_values [FreeResourcesForBattles, CollectResourcesForUseless, CountDefensesAsAntidote, WinTies, CollectResourcesForDial, AnyOtherAdvantage]
 }
 
 game_enum! {
-    World {
-        None = 0,
+    closed World {
+        absent None = 0;
         Fremen = 10,
         Atreides = 20,
         Harkonnen = 30,
@@ -704,21 +704,21 @@ game_enum! {
         Ecaz = 110,
         Moritani = 120,
     }
-    get_values [None, Fremen, Atreides, Harkonnen, Emperor, SalusaSecundus, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
+    get_values [Fremen, Atreides, Harkonnen, Emperor, SalusaSecundus, Guild, BeneGesserit, Ixian, Tleilaxu, Choam, Richese, Ecaz, Moritani]
 }
 
 game_enum! {
-    CaptureDecision {
-        None = 0,
+    closed CaptureDecision {
+        absent None = 0;
         DontCapture = 10,
         Capture = 20,
         Kill = 30,
     }
-    get_values [None, DontCapture, Capture, Kill]
+    get_values [DontCapture, Capture, Kill]
 }
 
 game_enum! {
-    DealType {
+    closed DealType {
         None = 0,
         DontShipOrMoveTo = 10,
         ShareBiddingPrescience = 30,
@@ -731,8 +731,8 @@ game_enum! {
 }
 
 game_enum! {
-    TerrorType {
-        None = 0,
+    closed TerrorType {
+        absent None = 0;
         Assassination = 10,
         Atomics = 30,
         Extortion = 50,
@@ -740,43 +740,43 @@ game_enum! {
         Sabotage = 70,
         SneakAttack = 80,
     }
-    get_values [None, Assassination, Atomics, Extortion, Robbery, Sabotage, SneakAttack]
+    get_values [Assassination, Atomics, Extortion, Robbery, Sabotage, SneakAttack]
 }
 
 game_enum! {
-    IntrusionType {
-        None = 0,
+    closed IntrusionType {
+        absent None = 0;
         BeneGesseritIntrusion = 10,
         Terror = 20,
         Ambassador = 30,
     }
-    get_values [None, BeneGesseritIntrusion, Terror, Ambassador]
+    get_values [BeneGesseritIntrusion, Terror, Ambassador]
 }
 
 game_enum! {
-    VidalMoment {
-        None = 0,
+    closed VidalMoment {
+        absent None = 0;
         AfterUsedInBattle = 10,
         EndOfTurn = 20,
         WhileEcazWorldIsOccupied = 30,
         Never = 40,
     }
-    get_values [None, AfterUsedInBattle, EndOfTurn, WhileEcazWorldIsOccupied, Never]
+    get_values [AfterUsedInBattle, EndOfTurn, WhileEcazWorldIsOccupied, Never]
 }
 
 game_enum! {
-    ClairVoyanceAnswer {
-        None = 0,
+    closed ClairVoyanceAnswer {
+        absent None = 0;
         Yes = 10,
         No = 20,
         Unknown = 30,
     }
-    get_values [None, Yes, No, Unknown]
+    get_values [Yes, No, Unknown]
 }
 
 game_enum! {
-    ClairvoyanceQuestion {
-        None = 0,
+    closed ClairvoyanceQuestion {
+        absent None = 0;
         Prediction = 10,
         LeaderAsTraitor = 20,
         LeaderAsFacedancer = 30,
@@ -788,18 +788,18 @@ game_enum! {
         DialOfMoreThanXInBattle = 120,
         WillAttackX = 200,
     }
-    get_values [None, Prediction, LeaderAsTraitor, LeaderAsFacedancer, HasCardTypeInHand, LeaderInBattle, CardTypeInBattle, CardTypeAsDefenseInBattle, CardTypeAsWeaponInBattle, DialOfMoreThanXInBattle, WillAttackX]
+    get_values [Prediction, LeaderAsTraitor, LeaderAsFacedancer, HasCardTypeInHand, LeaderInBattle, CardTypeInBattle, CardTypeAsDefenseInBattle, CardTypeAsWeaponInBattle, DialOfMoreThanXInBattle, WillAttackX]
 }
 
 game_enum! {
-    PrescienceAspect {
-        None = 0,
+    closed PrescienceAspect {
+        absent None = 0;
         Dial = 10,
         Leader = 20,
         Weapon = 30,
         Defense = 40,
     }
-    get_values [None, Dial, Leader, Weapon, Defense]
+    get_values [Dial, Leader, Weapon, Defense]
 }
 
 game_enum! {
@@ -846,7 +846,7 @@ game_enum! {
 }
 
 game_enum! {
-    ShipmentType {
+    closed ShipmentType {
         Unknown = 0,
         ShipmentNormal = 1,
         ShipmentSiteToSite = 2,
@@ -857,7 +857,7 @@ game_enum! {
 }
 
 game_enum! {
-    AutomationRuleType {
+    closed AutomationRuleType {
         Unknown = 0,
         CharityAutoClaim = 201,
         BiddingPassWhenAtreidesOrAtreidesAllyPassed = 301,
@@ -870,7 +870,7 @@ game_enum! {
 }
 
 game_enum! {
-    ItemAction {
+    closed ItemAction {
         Create = 0,
         Update = 1,
         Delete = 2,
@@ -879,7 +879,7 @@ game_enum! {
 }
 
 game_enum! {
-    AsideKind {
+    closed AsideKind {
         Aside = 0,
         Answer = 1,
         After = 2,
@@ -888,7 +888,7 @@ game_enum! {
 }
 
 game_enum! {
-    NexusAllianceChange {
+    closed NexusAllianceChange {
         Offered = 0,
         Made = 1,
         Ended = 2,
@@ -897,7 +897,7 @@ game_enum! {
 }
 
 game_enum! {
-    ShipKind {
+    closed ShipKind {
         Passed = 0,
         Normal = 1,
         SiteToSite = 2,
@@ -907,7 +907,7 @@ game_enum! {
 }
 
 game_enum! {
-    BeneGesseritReactionKind {
+    closed BeneGesseritReactionKind {
         Accompany = 0,
         DontAccompany = 1,
         Become = 2,
@@ -968,32 +968,31 @@ pub fn get_values_except_default<T: GameEnum>(default_value: T) -> impl Iterator
 // EnumerationExtensions
 
 impl Faction {
-    /// `faction.ToNexus()`; panics for undefined values.
-    pub fn to_nexus(self) -> Nexus {
+    /// `faction.ToNexus()`: `None` for `Faction::None`; panics for undefined values.
+    pub fn to_nexus(self) -> Option<Nexus> {
         match self {
-            Faction::None => Nexus::None,
-            Faction::Fremen => Nexus::Fremen,
-            Faction::Atreides => Nexus::Atreides,
-            Faction::Harkonnen => Nexus::Harkonnen,
-            Faction::Emperor => Nexus::Emperor,
-            Faction::Guild => Nexus::Guild,
-            Faction::BeneGesserit => Nexus::BeneGesserit,
-            Faction::Ixian => Nexus::Ixian,
-            Faction::Tleilaxu => Nexus::Tleilaxu,
-            Faction::Choam => Nexus::Choam,
-            Faction::Richese => Nexus::Richese,
-            Faction::Ecaz => Nexus::Ecaz,
-            Faction::Moritani => Nexus::Moritani,
+            Faction::None => None,
+            Faction::Fremen => Some(Nexus::Fremen),
+            Faction::Atreides => Some(Nexus::Atreides),
+            Faction::Harkonnen => Some(Nexus::Harkonnen),
+            Faction::Emperor => Some(Nexus::Emperor),
+            Faction::Guild => Some(Nexus::Guild),
+            Faction::BeneGesserit => Some(Nexus::BeneGesserit),
+            Faction::Ixian => Some(Nexus::Ixian),
+            Faction::Tleilaxu => Some(Nexus::Tleilaxu),
+            Faction::Choam => Some(Nexus::Choam),
+            Faction::Richese => Some(Nexus::Richese),
+            Faction::Ecaz => Some(Nexus::Ecaz),
+            Faction::Moritani => Some(Nexus::Moritani),
             _ => panic!("faction out of range: {self}"),
         }
     }
 }
 
 impl Nexus {
-    /// `nexus.ToFaction()`; panics for undefined values.
+    /// `nexus.ToFaction()`.
     pub fn to_faction(self) -> Faction {
         match self {
-            Nexus::None => Faction::None,
             Nexus::Fremen => Faction::Fremen,
             Nexus::Atreides => Faction::Atreides,
             Nexus::Harkonnen => Faction::Harkonnen,
@@ -1006,7 +1005,6 @@ impl Nexus {
             Nexus::Richese => Faction::Richese,
             Nexus::Ecaz => Faction::Ecaz,
             Nexus::Moritani => Faction::Moritani,
-            _ => panic!("nexus out of range: {self}"),
         }
     }
 }

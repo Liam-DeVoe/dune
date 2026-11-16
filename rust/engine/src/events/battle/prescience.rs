@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Prescience {
-    pub aspect: PrescienceAspect,
+    pub aspect: Option<PrescienceAspect>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }

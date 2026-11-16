@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct TerrorPlanted {
-    pub type_: TerrorType,
+    pub type_: Option<TerrorType>,
     pub territory_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -43,7 +43,7 @@ impl TerrorPlanted {
 
         match self.stronghold(game) {
             None => {
-                if !game.board.terror_on_planet.contains_key(&self.type_) {
+                if !self.type_.is_some_and(|t| game.board.terror_on_planet.contains_key(&t)) {
                     return Some(express!("You can't remove a token that is not on the board"));
                 }
             }
@@ -51,7 +51,7 @@ impl TerrorPlanted {
                 if !TerrorPlanted::valid_strongholds(game, self.player()).any(|v| v == stronghold) {
                     return Some(express!("Invalid Stronghold"));
                 }
-                if !TerrorPlanted::valid_terror_types(game, false).any(|v| v == self.type_) {
+                if !TerrorPlanted::valid_terror_types(game, false).any(|v| Some(v) == self.type_) {
                     return Some(express!(self.type_, " not available"));
                 }
             }
@@ -116,12 +116,13 @@ impl TerrorPlanted {
         game.contemplate.moritani_has_performed_terror = true;
 
         if !self.passed {
+            let type_ = self.type_.required("terror type")?;
             game.stone(Milestone::TerrorPlanted);
 
             match self.stronghold(game) {
                 None => {
-                    game.board.terror_on_planet.shift_remove(&self.type_);
-                    game.board.unplaced_terror_tokens.push(self.type_);
+                    game.board.terror_on_planet.shift_remove(&type_);
+                    game.board.unplaced_terror_tokens.push(type_);
                     let me = game.player_mut(self.player());
                     me.resources += 4;
                 }
@@ -134,15 +135,15 @@ impl TerrorPlanted {
                         );
                     }
 
-                    if game.board.unplaced_terror_tokens.contains(&self.type_) {
-                        game.board.terror_on_planet.insert_new(self.type_, stronghold);
+                    if game.board.unplaced_terror_tokens.contains(&type_) {
+                        game.board.terror_on_planet.insert_new(type_, stronghold);
                         // List.Remove: the first equal element
-                        if let Some(pos) = game.board.unplaced_terror_tokens.iter().position(|t| *t == self.type_) {
+                        if let Some(pos) = game.board.unplaced_terror_tokens.iter().position(|t| *t == type_) {
                             game.board.unplaced_terror_tokens.remove(pos);
                         }
                     } else {
-                        game.board.terror_on_planet.shift_remove(&self.type_);
-                        game.board.terror_on_planet.insert_new(self.type_, stronghold);
+                        game.board.terror_on_planet.shift_remove(&type_);
+                        game.board.terror_on_planet.insert_new(type_, stronghold);
                     }
                 }
             }
@@ -156,7 +157,7 @@ impl TerrorPlanted {
         }
 
         if let Some(stronghold) = self.stronghold(game) {
-            if let Some(territory) = game.board.terror_on_planet.get(&self.type_).copied() {
+            if let Some(territory) = self.type_.and_then(|t| game.board.terror_on_planet.get(&t).copied()) {
                 return express!(self.initiator(), " move terror from ", territory, " to ", stronghold);
             }
             return express!(self.initiator(), " plant terror in ", stronghold);

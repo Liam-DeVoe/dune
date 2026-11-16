@@ -106,7 +106,6 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         ambassadors: game
             .board.ambassadors_on_planet
             .iter()
-            .filter(|(_, a)| **a != Ambassador::None)
             .map(|(t, a)| AmbassadorOnPlanet { territory: t.id(), ambassador: name(*a) })
             .collect(),
         discoveries: game
@@ -155,7 +154,7 @@ pub fn ring_extras(game: &Game, p: PlayerIndex, out: &mut PublicPlayer) {
     out.skilled_leaders = game
         .get_skilled_leaders(p)
         .filter(|l| game.is_in_front_of_shield(Some(Hero::Leader(*l))))
-        .map(|l| SkilledLeader { id: l.id(), skill: name(game.skill(Some(Hero::Leader(l)))) })
+        .map(|l| SkilledLeader { id: l.id(), skill: name_or_absent(game.skill(Some(Hero::Leader(l)))) })
         .collect();
     out.loyal_leader = (pl.faction == Faction::Ecaz).then_some(game.leaders.ecaz_loyal_leader).flatten().map(|l| l.id());
     out.latest_revealed_no_field = (pl.faction == Faction::Richese && game.ship_move.latest_revealed_no_field_value >= 0).then_some(game.ship_move.latest_revealed_no_field_value);
@@ -229,7 +228,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     if game.turn.current_main_phase != MainPhase::Bidding {
         return None;
     }
-    let silent = game.bidding.current_auction_type == AuctionType::BlackMarketSilent || game.bidding.current_auction_type == AuctionType::RicheseSilent;
+    let silent = game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
     let bids = game
         .bidding.bids
         .iter()
@@ -244,7 +243,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
             MapBid { faction: name(*f), bid: shown }
         })
         .collect();
-    Some(BiddingView { auction_type: name(game.bidding.current_auction_type), bids,
+    Some(BiddingView { auction_type: name_or_absent(game.bidding.current_auction_type), bids,
         panel: crate::actions::bidding::panel(game, v),
         auction_won: game.turn.recent_milestones.contains(&Milestone::AuctionWon),
         next_card: crate::actions::bidding::next_card(game, v),
@@ -312,7 +311,7 @@ fn plan_view(
     opponent: Faction,
 ) -> PlanView {
     let aspect = |a: PrescienceAspect| {
-        game.battle.current_prescience.as_ref().is_some_and(|p| p.aspect == a) || game.turn.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == a)
+        game.battle.current_prescience.as_ref().is_some_and(|p| p.aspect == Some(a)) || game.turn.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == Some(a))
     };
     let pl = game.player(plan.player());
     let initiator = plan.initiator();
@@ -320,7 +319,7 @@ fn plan_view(
     let dial_shown = full || aspect(PrescienceAspect::Dial);
     let homeworld_bonus = territory.and_then(|t| {
         let amount = pl.get_homeworld_battle_contribution_and_lasgun_shield_limit(game, t);
-        (amount != 0).then(|| HomeworldBonus { world: name(t.locations()[0].as_homeworld().map(|h| h.world()).unwrap_or_default()), amount })
+        (amount != 0).then(|| HomeworldBonus { world: name_or_absent(t.locations()[0].as_homeworld().map(|h| h.world())), amount })
     });
 
     let hero_shown = full || aspect(PrescienceAspect::Leader);
@@ -329,19 +328,19 @@ fn plan_view(
             Some(Hero::Leader(l)) => {
                 let h = Hero::Leader(l);
                 let skill = game.skill(Some(h));
-                let passive = game.get_skill(plan.player()).filter(|s| *s != skill && passive_skill_is_relevant_for_battle_plan(*s));
-                let mut used = LeaderSkill::None;
+                let passive = game.get_skill(plan.player()).filter(|s| Some(*s) != skill && passive_skill_is_relevant_for_battle_plan(*s));
+                let mut used = None;
                 let bonus = Battle::determine_skill_bonus(game, plan, &mut used);
                 let penalty = match opponent_plan {
                     Some(op) if game.turn.current_phase > Phase::BattlePhase && game.turn.current_phase < Phase::BattleConclusion => {
                         let amount = Battle::determine_skill_penalty(game, op, plan.player(), &mut used);
-                        (amount != 0).then(|| SkillPenalty { amount, skill: name(used) })
+                        (amount != 0).then(|| SkillPenalty { amount, skill: name_or_absent(used) })
                     }
                     _ => None,
                 };
                 Some(PlanHero::Leader {
                     id: l.id(),
-                    skill: (skill != LeaderSkill::None).then(|| name(skill)),
+                    skill: skill.map(name),
                     passive_skill: passive.map(name),
                     bonus: (bonus != 0).then_some(bonus),
                     penalty,

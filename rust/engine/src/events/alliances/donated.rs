@@ -69,7 +69,7 @@ impl Donated {
             return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
         }
         if !self.from_bank
-            && (game.charity.economics_status == ChoamEconomicsStatus::Double || game.charity.economics_status == ChoamEconomicsStatus::DoubleFlipped)
+            && (game.charity.economics_status == Some(ChoamEconomicsStatus::Double) || game.charity.economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
         {
             // C# parity: the message is built but never returned, so this check has no effect.
             let _ = express!("No bribes can be made during Double Inflation");

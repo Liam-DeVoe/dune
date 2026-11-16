@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct RicheseAnnouncesBlackMarket {
     pub card_id: i32,
-    pub auction_type: AuctionType,
+    pub auction_type: Option<AuctionType>,
     pub direction: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -43,7 +43,7 @@ impl RicheseAnnouncesBlackMarket {
             return None;
         }
 
-        if self.auction_type != AuctionType::BlackMarketNormal && self.auction_type != AuctionType::BlackMarketOnceAround && self.auction_type != AuctionType::BlackMarketSilent {
+        if self.auction_type != Some(AuctionType::BlackMarketNormal) && self.auction_type != Some(AuctionType::BlackMarketOnceAround) && self.auction_type != Some(AuctionType::BlackMarketSilent) {
             return Some(express!("Invalid auction type"));
         }
         if !RicheseAnnouncesBlackMarket::valid_cards(game, self.player()).iter().any(|c| Some(*c) == self.card()) {
@@ -79,7 +79,7 @@ impl RicheseAnnouncesBlackMarket {
 
     pub fn get_message(&self, _game: &Game) -> Message {
         let mut direction_text = "";
-        if self.auction_type == AuctionType::BlackMarketOnceAround {
+        if self.auction_type == Some(AuctionType::BlackMarketOnceAround) {
             if self.direction == 1 {
                 direction_text = " (counter-clockwise)";
             } else {

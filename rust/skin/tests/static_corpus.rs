@@ -55,7 +55,7 @@ fn static_corpus_matches_the_snapshot() {
             "Describe" => s.describe(&element(&a[0])),
             "GetImageUrl" => s.get_image_url(&element(&a[0])),
             "DescribeErrorType" => s.describe_error_type(enum_arg(&a[0])),
-            "DescribeDetailed" => s.describe_detailed(enum_arg(&a[0])),
+            "DescribeDetailed" => s.describe_detailed(enum_arg_opt(&a[0])),
             "GetSound" => s.get_sound(enum_arg(&a[0])),
             "GetImageUrlWorld" => s.get_image_url_world(enum_arg(&a[0])),
             "GetHomeworldCardImageUrl" => s.get_homeworld_card_image_url(enum_arg(&a[0])),

@@ -143,8 +143,8 @@ impl Game {
         self.revival.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
     }
 
-    pub fn ambassador_in(&self, t: Territory) -> Ambassador {
-        self.board.ambassadors_on_planet.get(&t).copied().unwrap_or(Ambassador::None)
+    pub fn ambassador_in(&self, t: Territory) -> Option<Ambassador> {
+        self.board.ambassadors_on_planet.get(&t).copied()
     }
 
     pub fn claim_free_revival(&mut self, player: PlayerIndex) {

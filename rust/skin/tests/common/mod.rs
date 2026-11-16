@@ -70,7 +70,7 @@ fn is_dotnet_exception(message: &str) -> bool {
 macro_rules! enum_by_name {
     ($name:expr, $v:expr; $($t:ident),* $(,)?) => {
         match $name {
-            $(stringify!($t) => Some(EnumValue::of($t($v))),)*
+            $(stringify!($t) => Some(EnumValue { ty: &$t::INFO, value: $v }),)*
             _ => None,
         }
     };
@@ -110,6 +110,14 @@ pub fn element(tok: &Value) -> ExpressionElement {
         "ResourceCard" => ResourceCard::get_resource_cards_in_and_outside_play()[int() as usize].into(),
         "Payment" => Payment::new(int() as i32).into(),
         t => ExpressionElement::Enum(enum_value(t, int() as i32).unwrap_or_else(|| panic!("unknown token type {t}"))),
+    }
+}
+
+/// The enum value of a token, as an optional `T`: `None` for the C# `None` member of a closed enum.
+pub fn enum_arg_opt<T: treachery_engine::enum_type::GameEnum>(tok: &Value) -> Option<T> {
+    match element(tok) {
+        ExpressionElement::Enum(e) => e.get_opt::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name)),
+        _ => panic!("{tok} is not an enum"),
     }
 }
 

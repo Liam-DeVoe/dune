@@ -5,7 +5,7 @@ pub struct ContemplateState {
     pub extortion_to_be_returned: bool,
     pub moritani_has_performed_terror: bool,
     pub winners: Vec<PlayerIndex>,
-    pub win_method: WinMethod,
+    pub win_method: Option<WinMethod>,
 }
 
 impl ContemplateState {
@@ -58,20 +58,20 @@ impl Game {
 
     pub fn handle_economics(&mut self) {
         match self.charity.economics_status {
-            ChoamEconomicsStatus::Double => {
-                self.charity.economics_status = ChoamEconomicsStatus::CancelFlipped;
+            Some(ChoamEconomicsStatus::Double) => {
+                self.charity.economics_status = Some(ChoamEconomicsStatus::CancelFlipped);
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Cancel.".into()]);
                 self.stone(Milestone::Economics);
             }
 
-            ChoamEconomicsStatus::Cancel => {
-                self.charity.economics_status = ChoamEconomicsStatus::DoubleFlipped;
+            Some(ChoamEconomicsStatus::Cancel) => {
+                self.charity.economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
                 self.log(vec![Faction::Choam.into(), " The Economics Token flips to Double.".into()]);
                 self.stone(Milestone::Economics);
             }
 
-            ChoamEconomicsStatus::DoubleFlipped | ChoamEconomicsStatus::CancelFlipped => {
-                self.charity.economics_status = ChoamEconomicsStatus::RemovedFromGame;
+            Some(ChoamEconomicsStatus::DoubleFlipped) | Some(ChoamEconomicsStatus::CancelFlipped) => {
+                self.charity.economics_status = Some(ChoamEconomicsStatus::RemovedFromGame);
                 self.log(vec![Faction::Choam.into(), " The Economics Token has been removed from the game.".into()]);
                 self.stone(Milestone::Economics);
             }
@@ -181,7 +181,7 @@ impl Game {
 
         self.determine_stronghold_ownership();
 
-        if self.leaders.when_to_set_aside_vidal == VidalMoment::EndOfTurn {
+        if self.leaders.when_to_set_aside_vidal == Some(VidalMoment::EndOfTurn) {
             self.set_aside_vidal();
         }
 
@@ -285,7 +285,7 @@ impl Game {
                         "! They had everything planned...".into(),
                     ],
                 );
-                self.contemplate.win_method = WinMethod::Prediction;
+                self.contemplate.win_method = Some(WinMethod::Prediction);
                 self.contemplate.winners.clear();
                 self.contemplate.winners.push(bene_gesserit);
             }
@@ -302,7 +302,7 @@ impl Game {
             let contested = self.applicable(Rule::ContestedStongholdsCountAsOccupied);
             let p = p.expect("player");
             if self.meets_normal_victory_condition(p, contested) {
-                self.contemplate.win_method = WinMethod::Strongholds;
+                self.contemplate.win_method = Some(WinMethod::Strongholds);
 
                 self.contemplate.winners.push(p);
 
@@ -447,7 +447,7 @@ impl Game {
         if fremen.is_some() && self.fremen_victory_condition_met() {
             let fremen = fremen.expect("fremen");
             self.log_win_reason(WinMethod::FremenSpecial, vec![Faction::Fremen.into(), " special victory conditions are met!".into()]);
-            self.contemplate.win_method = WinMethod::FremenSpecial;
+            self.contemplate.win_method = Some(WinMethod::FremenSpecial);
             self.contemplate.winners.push(fremen);
             if self.player(fremen).has_ally() {
                 // The ally faction may not be playing (C# then adds a null winner).
@@ -458,7 +458,7 @@ impl Game {
         } else if guild.is_some() && !self.applicable(Rule::DisableGuildSpecialVictory) {
             let guild = guild.expect("guild");
             self.log_win_reason(WinMethod::GuildSpecial, vec![Faction::Guild.into(), " special victory conditions are met!".into()]);
-            self.contemplate.win_method = WinMethod::GuildSpecial;
+            self.contemplate.win_method = Some(WinMethod::GuildSpecial);
             self.contemplate.winners.push(guild);
             if self.player(guild).has_ally() {
                 if let Some(ally) = self.player(guild).allied_player(self) {
@@ -476,7 +476,7 @@ impl Game {
                     " are not playing and no one else won".into(),
                 ],
             );
-            self.contemplate.win_method = WinMethod::GuildSpecial;
+            self.contemplate.win_method = Some(WinMethod::GuildSpecial);
             self.contemplate.winners.push(fremen);
             if self.player(fremen).has_ally() {
                 if let Some(ally) = self.player(fremen).allied_player(self) {
@@ -531,7 +531,7 @@ impl Game {
 
         if let Some(with_most_points) = with_most_points {
             self.contemplate.winners.push(with_most_points);
-            self.contemplate.win_method = WinMethod::Strongholds;
+            self.contemplate.win_method = Some(WinMethod::Strongholds);
             let faction = self.player(with_most_points).faction;
             self.log_win_reason(
                 WinMethod::Strongholds,
@@ -548,11 +548,11 @@ impl Game {
 
     pub fn has_stronghold_advantage(&self, f: Faction, advantage: StrongholdAdvantage, battle_territory: Territory) -> bool {
         let hms = self.board.map.hidden_mobile_stronghold().location();
-        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(advantage) {
+        if battle_territory == hms.territory() && self.owns_stronghold(f, hms) && self.battle.chosen_hms_advantage == Some(Some(advantage)) {
             return true;
         }
 
-        battle_territory.advantage() == advantage && battle_territory.locations().iter().any(|l| self.owns_stronghold(f, *l))
+        battle_territory.advantage() == Some(advantage) && battle_territory.locations().iter().any(|l| self.owns_stronghold(f, *l))
     }
 
     pub fn owns_stronghold(&self, f: Faction, stronghold: Location) -> bool {

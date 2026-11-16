@@ -52,7 +52,7 @@ fn static_data_matches_the_engine() {
         let info = data.territories.iter().find(|i| i.id == t.id()).expect("every territory");
         assert_eq!(
             (info.is_stronghold, info.is_homeworld, info.is_protected_from_storm, info.is_protected_from_worm, info.advantage.as_str()),
-            (t.is_stronghold(), t.is_homeworld(), t.is_protected_from_storm(), t.is_protected_from_worm(), t.advantage().to_string().as_str())
+            (t.is_stronghold(), t.is_homeworld(), t.is_protected_from_storm(), t.is_protected_from_worm(), name_or_absent(t.advantage()).as_str())
         );
         for l in t.locations() {
             let li = data.locations.iter().find(|i| i.id == l.id()).expect("every location");

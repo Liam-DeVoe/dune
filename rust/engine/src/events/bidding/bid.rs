@@ -53,7 +53,7 @@ impl Bid {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if (game.bidding.current_auction_type == AuctionType::BlackMarketSilent || game.bidding.current_auction_type == AuctionType::RicheseSilent) && self.passed {
+        if (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent)) && self.passed {
             return Some(express!("You cannot pass a silent bid"));
         }
 
@@ -69,7 +69,7 @@ impl Bid {
             return None;
         }
 
-        let is_special_auction = game.bidding.current_auction_type == AuctionType::RicheseOnceAround || game.bidding.current_auction_type == AuctionType::RicheseSilent;
+        let is_special_auction = game.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
         if self.karma_bid && is_special_auction {
             return Some(express!("You can't use ", TreacheryCardType::Karma, " in Once Around or Silent bidding"));
         }
@@ -86,11 +86,11 @@ impl Bid {
         }
 
         let p = game.get_player(Some(self.initiator()));
-        if self.total_amount() < 1 && game.bidding.current_auction_type != AuctionType::RicheseSilent {
+        if self.total_amount() < 1 && game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) {
             return Some(express!("Bid must be higher than 0"));
         }
         if let Some(current_bid) = &game.bidding.current_bid {
-            if self.total_amount() <= current_bid.bid_total_amount() && game.bidding.current_auction_type != AuctionType::RicheseSilent {
+            if self.total_amount() <= current_bid.bid_total_amount() && game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) {
                 return Some(express!("Bid not high enough"));
             }
         }
@@ -118,7 +118,7 @@ impl Bid {
             return Some(express!("You can't use ", Faction::Emperor, " cunning"));
         }
 
-        if game.bidding.current_auction_type == AuctionType::RicheseSilent && self.total_amount() > game.player(self.player()).resources {
+        if game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) && self.total_amount() > game.player(self.player()).resources {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -146,8 +146,8 @@ impl Bid {
             None => either::Either::Right(std::iter::empty()),
         };
         match g.bidding.current_auction_type {
-            AuctionType::Normal | AuctionType::RicheseOnceAround => sequence_players.collect(),
-            AuctionType::RicheseSilent => g
+            Some(AuctionType::Normal) | Some(AuctionType::RicheseOnceAround) => sequence_players.collect(),
+            Some(AuctionType::RicheseSilent) => g
                 .players
                 .iter()
                 .enumerate()
@@ -161,7 +161,7 @@ impl Bid {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
-        if g.bidding.current_auction_type == AuctionType::Normal {
+        if g.bidding.current_auction_type == Some(AuctionType::Normal) {
             return Either::Right(Karma::valid_karma_cards(g, p));
         }
         Either::Left(empty())
@@ -174,18 +174,18 @@ impl Bid {
 
     pub fn may_be_played(game: &Game, player: Option<PlayerIndex>) -> bool {
         let Some(player) = player else { return false };
-        (game.bidding.current_auction_type == AuctionType::RicheseSilent && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
-            || (game.bidding.current_auction_type != AuctionType::RicheseSilent && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
+        (game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
+            || (game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
 
     pub fn may_use_emperor_secret_ally(game: &Game, player: PlayerIndex) -> bool {
-        game.bidding.current_auction_type == AuctionType::Normal && game.player(player).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player)
+        game.bidding.current_auction_type == Some(AuctionType::Normal) && game.player(player).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player)
     }
 
     /// `MayUseEmperorSecretAlly` with a possibly null player: the NullReferenceException
     /// happens only after the auction type check.
     pub(crate) fn may_use_emperor_secret_ally_opt(game: &Game, player: Option<PlayerIndex>) -> bool {
-        game.bidding.current_auction_type == AuctionType::Normal && game.player(player.expect("player")).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.expect("player"))
+        game.bidding.current_auction_type == Some(AuctionType::Normal) && game.player(player.expect("player")).nexus == Faction::Emperor && NexusPlayed::can_use_secret_ally(game, player.expect("player"))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -380,12 +380,12 @@ impl Bid {
         let richese_has_no_room = self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false);
 
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
-        let is_last_bid = (game.bidding.current_auction_type == AuctionType::RicheseSilent && players_with_room() == game.bidding.bids.len() as i32)
-            || (game.bidding.current_auction_type == AuctionType::RicheseOnceAround
+        let is_last_bid = (game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) && players_with_room() == game.bidding.bids.len() as i32)
+            || (game.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround)
                 && (self.initiator() == Faction::Richese || (richese_has_no_room && bid_sequence_has_passed_richese)));
 
         if is_last_bid {
-            if game.bidding.current_auction_type == AuctionType::RicheseSilent {
+            if game.bidding.current_auction_type == Some(AuctionType::RicheseSilent) {
                 let parts: Vec<MessagePart> = game.bidding.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
                 self.log_objects(game, vec!["Bids: ".into(), parts.into()]);
             }

@@ -34,7 +34,7 @@ pub fn enum_name<T: GameEnum>(value: T) -> String {
 
 /// The member with this name.
 pub fn enum_value<T: GameEnum>(name: &str) -> Option<T> {
-    T::INFO.declared.iter().find(|(n, _)| *n == name).map(|(_, v)| T::from_value(*v))
+    T::INFO.declared.iter().find(|(n, _)| *n == name).and_then(|(_, v)| T::from_value(*v))
 }
 
 #[cfg(test)]

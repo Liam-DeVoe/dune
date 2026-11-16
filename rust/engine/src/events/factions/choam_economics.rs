@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ChoamEconomics {
-    pub status: ChoamEconomicsStatus,
+    pub status: Option<ChoamEconomicsStatus>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }

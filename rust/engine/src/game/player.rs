@@ -564,32 +564,32 @@ impl Player {
                 self.forces_in_locations.keys().copied().collect()
     }
 
-    pub fn force(&self) -> FactionForce {
+    pub fn force(&self) -> Option<FactionForce> {
                 match self.faction {
-            Faction::Atreides => FactionForce::Atreides,
-            Faction::Harkonnen => FactionForce::Harkonnen,
-            Faction::Fremen => FactionForce::Fremen,
-            Faction::Emperor => FactionForce::Emperor,
-            Faction::Guild => FactionForce::Guild,
-            Faction::BeneGesserit => FactionForce::BeneGesserit,
-            Faction::Ixian => FactionForce::Ixian,
-            Faction::Tleilaxu => FactionForce::Tleilaxu,
-            Faction::Choam => FactionForce::Choam,
-            Faction::Richese => FactionForce::Richese,
-            Faction::Ecaz => FactionForce::Ecaz,
-            Faction::Moritani => FactionForce::Moritani,
-            _ => FactionForce::None,
+            Faction::Atreides => Some(FactionForce::Atreides),
+            Faction::Harkonnen => Some(FactionForce::Harkonnen),
+            Faction::Fremen => Some(FactionForce::Fremen),
+            Faction::Emperor => Some(FactionForce::Emperor),
+            Faction::Guild => Some(FactionForce::Guild),
+            Faction::BeneGesserit => Some(FactionForce::BeneGesserit),
+            Faction::Ixian => Some(FactionForce::Ixian),
+            Faction::Tleilaxu => Some(FactionForce::Tleilaxu),
+            Faction::Choam => Some(FactionForce::Choam),
+            Faction::Richese => Some(FactionForce::Richese),
+            Faction::Ecaz => Some(FactionForce::Ecaz),
+            Faction::Moritani => Some(FactionForce::Moritani),
+            _ => None,
         }
     }
 
-    pub fn special_force(&self) -> FactionSpecialForce {
+    pub fn special_force(&self) -> Option<FactionSpecialForce> {
                 match self.faction {
-            Faction::Emperor => FactionSpecialForce::Emperor,
-            Faction::Fremen => FactionSpecialForce::Fremen,
-            Faction::BeneGesserit => FactionSpecialForce::BeneGesserit,
-            Faction::Ixian => FactionSpecialForce::Ixian,
-            Faction::Richese => FactionSpecialForce::Richese,
-            _ => FactionSpecialForce::None,
+            Faction::Emperor => Some(FactionSpecialForce::Emperor),
+            Faction::Fremen => Some(FactionSpecialForce::Fremen),
+            Faction::BeneGesserit => Some(FactionSpecialForce::BeneGesserit),
+            Faction::Ixian => Some(FactionSpecialForce::Ixian),
+            Faction::Richese => Some(FactionSpecialForce::Richese),
+            _ => None,
         }
     }
 

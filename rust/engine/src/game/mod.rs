@@ -632,7 +632,7 @@ impl Game {
 
     pub fn has_bidding_prescience(&self, p: PlayerIndex) -> bool {
         let is_publicly_known =
-            self.bidding.current_auction_type == AuctionType::RicheseOnceAround || self.bidding.current_auction_type == AuctionType::RicheseSilent;
+            self.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || self.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
         let player = self.player(p);
 
         is_publicly_known

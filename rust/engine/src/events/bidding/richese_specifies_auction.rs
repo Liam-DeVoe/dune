@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct RicheseSpecifiesAuction {
-    pub auction_type: AuctionType,
+    pub auction_type: Option<AuctionType>,
     pub direction: i32,
     pub card_id: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -40,7 +40,7 @@ impl RicheseSpecifiesAuction {
             return Some(express!("Invalid card"));
         }
 
-        if self.auction_type != AuctionType::RicheseOnceAround && self.auction_type != AuctionType::RicheseSilent {
+        if self.auction_type != Some(AuctionType::RicheseOnceAround) && self.auction_type != Some(AuctionType::RicheseSilent) {
             return Some(express!("Invalid auction type"));
         }
 
@@ -83,7 +83,7 @@ impl RicheseSpecifiesAuction {
             }
         } else {
             let mut direction_text = "";
-            if self.auction_type == AuctionType::RicheseOnceAround {
+            if self.auction_type == Some(AuctionType::RicheseOnceAround) {
                 if self.direction == 1 {
                     direction_text = " (counter-clockwise)";
                 } else {
@@ -101,7 +101,7 @@ impl RicheseSpecifiesAuction {
 
     pub fn get_message(&self, _game: &Game) -> Message {
         let mut direction_text = "";
-        if self.auction_type == AuctionType::RicheseOnceAround {
+        if self.auction_type == Some(AuctionType::RicheseOnceAround) {
             if self.direction == 1 {
                 direction_text = " (counter-clockwise)";
             } else {

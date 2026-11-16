@@ -200,8 +200,7 @@ impl Game {
             .filter(|s| s.locations().iter().any(|l| l.sector(&self.board.map) == self.board.sector_in_storm && !self.is_protected_from_storm(*l)))
             .collect();
         for t in strongholds {
-            let ambassador = self.ambassador_in(t);
-            if ambassador != Ambassador::None {
+            if let Some(ambassador) = self.ambassador_in(t) {
                 let Some(ecaz) = self.get_player(Some(Faction::Ecaz)) else { continue };
                 self.board.ambassadors_on_planet.shift_remove(&t);
                 self.player_mut(ecaz).ambassadors.push(ambassador);

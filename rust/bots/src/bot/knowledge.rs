@@ -129,23 +129,23 @@ impl ClassicBot {
     }
 
     pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerIndex) -> Option<ClairVoyanceQandA> {
-        Self::clairvoyance_in_current_battle(game, player, ClairvoyanceQuestion::CardTypeAsDefenseInBattle)
+        Self::clairvoyance_in_current_battle(game, player, Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle))
     }
 
     pub fn player_clairvoyance_about_enemy_weapon_in_current_battle(game: &Game, player: PlayerIndex) -> Option<ClairVoyanceQandA> {
-        Self::clairvoyance_in_current_battle(game, player, ClairvoyanceQuestion::CardTypeAsWeaponInBattle)
+        Self::clairvoyance_in_current_battle(game, player, Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle))
     }
 
     /// The answer to a clairvoyance about the current battle that `player` or their ally asked:
     /// `question`, or the question that covers both weapon and defense.
-    fn clairvoyance_in_current_battle(game: &Game, player: PlayerIndex, question: ClairvoyanceQuestion) -> Option<ClairVoyanceQandA> {
+    fn clairvoyance_in_current_battle(game: &Game, player: PlayerIndex, question: Option<ClairvoyanceQuestion>) -> Option<ClairVoyanceQandA> {
         let (Some(cv), Some(qna)) = (&game.turn.latest_clairvoyance, &game.turn.latest_clairvoyance_qn_a) else {
             return None;
         };
         let same_battle = super::battle::is_current_battle(game, game.turn.latest_clairvoyance_battle.as_ref());
         let p = game.player(player);
         let asked_by_us = cv.initiator() == p.faction || cv.initiator() == p.ally;
-        let about_this = cv.question == question || cv.question == ClairvoyanceQuestion::CardTypeInBattle;
+        let about_this = cv.question == question || cv.question == Some(ClairvoyanceQuestion::CardTypeInBattle);
         (same_battle && asked_by_us && about_this).then(|| qna.clone())
     }
 

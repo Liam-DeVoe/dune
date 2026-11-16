@@ -23,15 +23,6 @@ fn to_nexus_undefined_message() {
     );
 }
 
-/// Probe `to_faction_13`.
-#[test]
-fn to_faction_undefined_message() {
-    assert_eq!(
-        exception_text(|| Nexus(13).to_faction()),
-        "nexus out of range: 13"
-    );
-}
-
 // ---------------------------------------------------------------- extension_methods.rs
 
 // ---------------------------------------------------------------- expression.rs / message.rs

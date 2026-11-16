@@ -260,7 +260,7 @@ fn tleilaxu_limits(g: &Game) -> Option<PlayerId> {
     let p = g.get_player(Some(Faction::Tleilaxu))?;
     (g.players.len() > 1
         && !g.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
-        && g.revival.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").is_empty())
+        && g.turn.revivals.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").is_empty())
     .then_some(p)
 }
 
@@ -274,7 +274,7 @@ fn emperor_discard(g: &Game) -> Option<PlayerId> {
 
 /// Whoever just won the card on auction.
 fn auction_winner(g: &Game) -> Option<PlayerId> {
-    let winner = g.bidding.winning_bid.as_ref()?.initiator;
+    let winner = g.bidding().and_then(|b| b.winning_bid.as_ref())?.initiator;
     g.get_player(winner)
 }
 
@@ -314,7 +314,7 @@ fn moritani_planting(g: &Game) -> Option<PlayerId> {
 fn choam_in_mentat(g: &Game) -> Vec<(PlayerId, R)> {
     let Some(p) = g.get_player(Some(Faction::Choam)) else { return vec![] };
     let mut result = vec![];
-    if g.charity.economics_status == None && !g.prevented(FactionAdvantage::ChoamEconomics) {
+    if g.board.choam_economics_status == None && !g.prevented(FactionAdvantage::ChoamEconomics) {
         result.push((p, R::Inflation));
     }
     if !g.player(p).treachery_cards.is_empty() {

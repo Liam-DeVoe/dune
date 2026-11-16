@@ -38,7 +38,7 @@ impl EventRules for ChoamFreeRevivalPrevention {
             game.discard_card(card, true)?;
         }
 
-        game.revival.current_free_revival_prevention = Some(RevivalPrevention { target: self.target });
+        game.revival_mut().required("the revival phase")?.current_free_revival_prevention = Some(RevivalPrevention { target: self.target });
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

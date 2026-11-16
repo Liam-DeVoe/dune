@@ -346,7 +346,7 @@ impl Game {
             }
 
             if self.phase() != Phase::BlackMarketBidding
-                && (self.phase() != Phase::Bidding || self.bidding.current_bid.is_none())
+                && (self.phase() != Phase::Bidding || self.current_bid().is_none())
                 && !has_finalized_battle_plan_waiting_to_be_resolved
                 && DistransUsed::can_be_played(self, player)
             {

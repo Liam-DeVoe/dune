@@ -25,6 +25,9 @@ pub struct Board {
     pub owner_of_flight_discovery: Option<Option<Faction>>,
     /// Strongholds revealed as discoveries that forces may still enter, until the next storm.
     pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
+    /// The CHOAM economics token, once CHOAM has played it (`ChoamEconomics`). The mentat pause
+    /// flips it; charity, deals and donations read it.
+    pub choam_economics_status: Option<ChoamEconomicsStatus>,
 }
 
 impl Board {
@@ -45,6 +48,7 @@ impl Board {
             pending_discoveries: Vec::new(),
             owner_of_flight_discovery: None,
             just_revealed_discovery_strongholds: Vec::new(),
+            choam_economics_status: None,
         }
     }
 }

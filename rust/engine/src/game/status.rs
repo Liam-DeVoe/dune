@@ -138,7 +138,7 @@ impl GameStatus {
     pub(crate) fn players_with_room_and_no_bid(g: &Game) -> Vec<Option<PlayerId>> {
         (0..g.players.len())
             .map(|i| g.player_at(i))
-            .filter(|p| g.player(*p).has_room_for_cards(g) && !g.bidding.bids.contains_key_opt(g.player(*p).faction))
+            .filter(|p| g.player(*p).has_room_for_cards(g) && !g.bids().contains_key_opt(g.player(*p).faction))
             .map(Some)
             .collect()
     }

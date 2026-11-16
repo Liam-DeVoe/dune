@@ -15,47 +15,146 @@ pub struct RevivalPrevention {
     pub target: Option<Faction>,
 }
 
-/// State of the revival phase and the revival counts of the current turn.
+/// The revival phase (`PhaseState::Revival`): its step, Recruits, the early revivals Tleilaxu
+/// offered, the CHOAM prevention of free revival and the Graveyard tech token's income. It is
+/// dropped when the phase ends. What other phases read is in `turn.revivals`.
 pub struct RevivalState {
+    pub step: RevivalStep,
     pub revival_tech_token_income: bool,
-    pub total_revivals_this_turn: IndexMap<Faction, i32>,
-    pub free_revivals_this_turn: IndexMap<Faction, i32>,
-    pub factions_that_revived_special_forces_this_turn: Vec<Faction>,
-    pub leader_revivals_this_turn: IndexMap<Faction, i32>,
     pub tleilaxu_started_revival_with_low_threshold: bool,
-    /// Whether Recruits were played this turn (`RecruitsPlayed`).
+    /// Whether Recruits were played this turn (`RecruitsPlayed`). Cleared again when the
+    /// revivals end, before the report.
     pub current_recruits_played: bool,
-    /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
-    pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
-    pub current_revival_requests: Vec<RevivalRequest>,
     // In the order Tleilaxu made the offers.
     pub early_revivals_offers: IndexMap<Hero, i32>,
     pub current_free_revival_prevention: Option<RevivalPrevention>,
-    pub current_karma_revival_prevention: Option<RevivalPrevention>,
-    pub ambassadors_placed_this_turn: i32,
 }
 
 impl RevivalState {
-    pub fn new() -> Self {
+    pub fn new(step: RevivalStep, tleilaxu_started_revival_with_low_threshold: bool) -> Self {
         RevivalState {
-            revival_tech_token_income: Default::default(),
+            step,
+            revival_tech_token_income: false,
+            tleilaxu_started_revival_with_low_threshold,
+            current_recruits_played: false,
+            early_revivals_offers: Default::default(),
+            current_free_revival_prevention: None,
+        }
+    }
+}
+
+/// Where the revival phase is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RevivalStep {
+    /// Before the revivals: Recruits, and Tleilaxu raising revival limits.
+    Beginning,
+    /// Factions revive forces and leaders.
+    Reviving,
+    Report,
+}
+
+impl RevivalStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            RevivalStep::Beginning => Phase::BeginningOfResurrection,
+            RevivalStep::Reviving => Phase::Resurrection,
+            RevivalStep::Report => Phase::ResurrectionReport,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<RevivalStep> {
+        match phase {
+            Phase::BeginningOfResurrection => Some(RevivalStep::Beginning),
+            Phase::Resurrection => Some(RevivalStep::Reviving),
+            Phase::ResurrectionReport => Some(RevivalStep::Report),
+            _ => None,
+        }
+    }
+}
+
+/// What revivals leave for other phases (`turn.revivals`). The counts start again when the
+/// revival phase does; Raise Dead and Nexus cards revive in other phases, and shipments, bots
+/// and views read the counts and limits. Two fields last longer: a request to Tleilaxu stays
+/// until Tleilaxu answers it, and a Karama prevention made after the revivals ended still
+/// applies to the next turn's revivals.
+pub struct Revivals {
+    pub total_revivals_this_turn: IndexMap<Faction, i32>,
+    pub free_revivals_this_turn: IndexMap<Faction, i32>,
+    /// Cleared when the storm phase starts, not the revival phase.
+    pub factions_that_revived_special_forces_this_turn: Vec<Faction>,
+    pub leader_revivals_this_turn: IndexMap<Faction, i32>,
+    /// Set in the bidding report or the revival phase, cleared when ship and move starts.
+    /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
+    pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
+    pub current_revival_requests: Vec<RevivalRequest>,
+    /// Cleared when the revivals end.
+    pub current_karma_revival_prevention: Option<RevivalPrevention>,
+    /// Ecaz ambassadors placed this turn, in the revival report.
+    pub ambassadors_placed_this_turn: i32,
+}
+
+impl Revivals {
+    pub fn new() -> Self {
+        Revivals {
             total_revivals_this_turn: Default::default(),
             free_revivals_this_turn: Default::default(),
             factions_that_revived_special_forces_this_turn: Vec::new(),
             leader_revivals_this_turn: Default::default(),
-            tleilaxu_started_revival_with_low_threshold: Default::default(),
-            current_recruits_played: false,
             factions_with_increased_revival_limits: Some(Vec::new()),
             current_revival_requests: Vec::new(),
-            early_revivals_offers: Default::default(),
-            current_free_revival_prevention: None,
             current_karma_revival_prevention: None,
-            ambassadors_placed_this_turn: Default::default(),
+            ambassadors_placed_this_turn: 0,
         }
     }
 }
 
 impl Game {
+    /// The revival phase's state, while the game is in it (an interrupt may suspend it).
+    pub fn revival(&self) -> Option<&RevivalState> {
+        match &self.phase {
+            PhaseState::Revival(r) => Some(r),
+            _ => None,
+        }
+    }
+
+    pub fn revival_mut(&mut self) -> Option<&mut RevivalState> {
+        match &mut self.phase {
+            PhaseState::Revival(r) => Some(r),
+            _ => None,
+        }
+    }
+
+    /// Starts the revival phase (`EndPhase::enter_revival_phase` does the rest).
+    pub fn begin_revival(&mut self) {
+        let tleilaxu_low = self.has_low_threshold(Faction::Tleilaxu);
+        self.enter_state(PhaseState::Revival(RevivalState::new(RevivalStep::Beginning, tleilaxu_low)));
+    }
+
+    /// Moves the revival phase to `step`, dropping any interrupt, as entering a phase did.
+    pub fn enter_revival(&mut self, step: RevivalStep) {
+        match self.revival_mut() {
+            Some(r) => {
+                r.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => {
+                let tleilaxu_low = self.has_low_threshold(Faction::Tleilaxu);
+                self.enter_state(PhaseState::Revival(RevivalState::new(step, tleilaxu_low)));
+            }
+        }
+    }
+
+    /// Whether Recruits double the revivals now.
+    pub fn recruits_played(&self) -> bool {
+        self.revival().is_some_and(|r| r.current_recruits_played)
+    }
+
+    /// The early revivals Tleilaxu offered in this revival phase, by hero.
+    pub fn early_revival_offer(&self, hero: Hero) -> Option<i32> {
+        self.revival().and_then(|r| r.early_revivals_offers.get(&hero).copied())
+    }
+
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerId, leader: Option<Leader>) {
         let already_assigning = self.phase() == Phase::AssigningSkill;
 
@@ -112,12 +211,12 @@ impl Game {
             nr_of_free_revivals += 1;
         }
 
-        if self.revival.current_recruits_played {
+        if self.recruits_played() {
             nr_of_free_revivals *= 2;
         }
 
         std::cmp::max(
-            nr_of_free_revivals - self.revival.free_revivals_this_turn.get_opt(p.faction).copied().unwrap_or(0),
+            nr_of_free_revivals - self.turn.revivals.free_revivals_this_turn.get_opt(p.faction).copied().unwrap_or(0),
             0,
         )
     }
@@ -142,15 +241,15 @@ impl Game {
         let faction = pl.faction.expect("faction");
         let low_threshold_applies = if faction == Faction::Emperor { pl.has_low_threshold(g, World::Emperor) } else { g.has_low_threshold(faction) };
         let low_threshold: i32 = if low_threshold_applies { 1 } else { 0 };
-        let already_revived = g.revival.total_revivals_this_turn.get_opt(pl.faction).copied().unwrap_or(0);
+        let already_revived = g.turn.revivals.total_revivals_this_turn.get_opt(pl.faction).copied().unwrap_or(0);
 
-        if self.revival.current_recruits_played {
+        if self.recruits_played() {
             return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
         }
 
         // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
         // span, so a null array is empty and doesn't throw.
-        if self.revival.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains_opt(pl.faction) {
+        if self.turn.revivals.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains_opt(pl.faction) {
             return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
 
@@ -158,12 +257,12 @@ impl Game {
     }
 
     pub fn free_revival_prevented(&self, f: Faction) -> bool {
-        self.revival.current_free_revival_prevention.as_ref().map(|e| e.target) == Some(Some(f))
+        self.revival().and_then(|r| r.current_free_revival_prevention.as_ref()).map(|e| e.target) == Some(Some(f))
     }
 
     pub fn prevented_from_reviving(&self, f: impl Into<Option<Faction>>) -> bool {
         let f: Option<Faction> = f.into();
-        self.revival.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
+        self.turn.revivals.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
     }
 
     pub fn ambassador_in(&self, t: Territory) -> Option<Ambassador> {
@@ -207,7 +306,7 @@ impl Game {
 
         let faction = self.player(player).faction;
         if faction != Some(Faction::Tleilaxu) {
-            self.revival.revival_tech_token_income = true;
+            self.revival_mut().expect("in the revival phase").revival_tech_token_income = true;
         }
 
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
@@ -216,7 +315,7 @@ impl Game {
         if let Some(tleilaxu) = tleilaxu {
             // C# parity: Tleilaxu also earns this when it revives its own forces for free.
             tleilaxu_receives_income =
-                !self.revival.tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
+                !self.revival().expect("in the revival phase").tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
 
             if tleilaxu_receives_income {
                 let r = &mut self.player_mut(tleilaxu).resources;
@@ -225,13 +324,13 @@ impl Game {
         }
 
         let v = self
-            .revival.free_revivals_this_turn
+            .turn.revivals.free_revivals_this_turn
             .get_opt(faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
-        self.revival.free_revivals_this_turn.insert(faction.expect("faction"), v);
+        self.turn.revivals.free_revivals_this_turn.insert(faction.expect("faction"), v);
         let v = self
-            .revival.total_revivals_this_turn
+            .turn.revivals.total_revivals_this_turn
             .get_opt(faction).copied().unwrap_or(0) + free_revived_normal_forces + free_revived_special_forces;
-        self.revival.total_revivals_this_turn.insert(faction.expect("faction"), v);
+        self.turn.revivals.total_revivals_this_turn.insert(faction.expect("faction"), v);
 
         let p = self.player(player);
         let mut row = RevivalRow::new(faction.expect("faction"), free_revived_normal_forces, free_revived_special_forces, 0);
@@ -331,7 +430,7 @@ impl Game {
                     result.push(EventType::RequestTleilaxuRevival);
                 }
 
-                if faction == Some(Faction::Tleilaxu) && (!self.revival.current_revival_requests.is_empty() || !self.revival.early_revivals_offers.is_empty()) {
+                if faction == Some(Faction::Tleilaxu) && (!self.turn.revivals.current_revival_requests.is_empty() || self.revival().is_some_and(|r| !r.early_revivals_offers.is_empty())) {
                     result.push(EventType::AcceptOrCancelTleilaxuRevival);
                 }
                 if self.has_something_to_revive(player) && !self.prevented_from_reviving(faction) {

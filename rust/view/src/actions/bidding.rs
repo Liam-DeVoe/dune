@@ -19,11 +19,11 @@ fn name<T: ToString>(v: T) -> String {
 }
 
 fn is_silent(game: &Game) -> bool {
-    game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent)
+    game.current_auction_type() == Some(AuctionType::BlackMarketSilent) || game.current_auction_type() == Some(AuctionType::RicheseSilent)
 }
 
 fn is_richese_bidding(game: &Game) -> bool {
-    game.bidding.current_auction_type == Some(AuctionType::RicheseOnceAround) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent)
+    game.current_auction_type() == Some(AuctionType::RicheseOnceAround) || game.current_auction_type() == Some(AuctionType::RicheseSilent)
 }
 
 /// The amounts the panel starts with, before the pickers clamp them:
@@ -37,7 +37,7 @@ fn starting_amounts(game: &Game, p: PlayerId) -> (i32, i32) {
     let pl = game.player(p);
     let ally_resources = if pl.ally == None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction.expect("faction")) };
     let player_resources = i32::from(pl.resources);
-    let bid_to_do = game.bidding.current_bid.as_ref().map_or(1, |b| b.bid_total_amount() + 1);
+    let bid_to_do = game.current_bid().map_or(1, |b| b.bid_total_amount() + 1);
     let ally = bid_to_do.min(ally_resources);
     let amount = (bid_to_do - ally).min(player_resources);
     (amount, ally)
@@ -120,7 +120,7 @@ pub fn next_card(game: &Game, v: &ResolvedViewer) -> Option<NextCardView> {
     if game.phase() != Phase::WaitingForNextBiddingRound {
         return None;
     }
-    let top = game.bidding.cards_on_auction.as_ref().and_then(|d| d.top())?;
+    let top = game.cards_on_auction().and_then(|d| d.top())?;
     let prescience = v.player.filter(|_| !v.is_observer).is_some_and(|p| {
         let pl = game.player(p);
         game.occupies(pl.faction, World::Atreides)
@@ -145,18 +145,18 @@ pub fn panel(game: &Game, v: &ResolvedViewer) -> Option<BiddingPanelView> {
     // sees: the card only in Richese's auctions, where it is public, and no inputs (they have no
     // Bid action).
     let prescience = v.player.filter(|_| !v.is_observer).is_some_and(|p| game.has_bidding_prescience(p));
-    let top = game.bidding.cards_on_auction.as_ref().and_then(|d| d.top());
+    let top = game.cards_on_auction().and_then(|d| d.top());
     // CardIsVisible: (HasBiddingPrescience(Player) || IsRicheseBidding) && Top != null.
     let card = (prescience || is_richese_bidding(game)).then_some(top).flatten().map(|c| c.id());
     let silent = is_silent(game);
     // NormalBiddingPanel.AuctionDescription: "Card {CardNumber} of {NumberOfCardsOnRegularAuction}"
     // in normal auctions; Richese's auctions and the black market name the auction instead.
-    let card_of = (!black_market && game.bidding.current_auction_type == Some(AuctionType::Normal))
-        .then(|| CardOf { number: game.bidding.card_number, of: game.number_of_cards_on_regular_auction() });
+    let card_of = (!black_market && game.current_auction_type() == Some(AuctionType::Normal))
+        .then(|| CardOf { number: game.bidding().map_or(0, |b| b.card_number), of: game.number_of_cards_on_regular_auction() });
     let current_bid = if silent {
         None
     } else {
-        game.bidding.current_bid.as_ref().map(|b| CurrentBid { faction: name(b.bid_initiator()), amount: b.bid_total_amount() })
+        game.current_bid().map(|b| CurrentBid { faction: name(b.bid_initiator()), amount: b.bid_total_amount() })
     };
     Some(BiddingPanelView {
         black_market,

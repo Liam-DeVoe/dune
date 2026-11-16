@@ -46,7 +46,7 @@ impl EventRules for KarmaFreeRevival {
         if i32::from(self.amount_of_special_forces) > 1 {
             return Err(Rejection(express!("You can only revive one ", pl.special_force(), " per turn")));
         }
-        if i32::from(self.amount_of_special_forces) > 0 && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(by.faction) {
+        if i32::from(self.amount_of_special_forces) > 0 && game.turn.revivals.factions_that_revived_special_forces_this_turn.contains_opt(by.faction) {
             return Err(Rejection(express!("You already revived one ", pl.special_force(), " this turn.")));
         }
         if (i32::from(self.amount_of_forces) + i32::from(self.amount_of_special_forces)) > 0 && self.hero.is_some() {
@@ -96,7 +96,7 @@ impl EventRules for KarmaFreeRevival {
             Player::revive_special_forces(game, me, i32::from(self.amount_of_special_forces))?;
 
             if i32::from(self.amount_of_special_forces) > 0 {
-                game.revival.factions_that_revived_special_forces_this_turn.push(by.faction.required("faction")?);
+                game.turn.revivals.factions_that_revived_special_forces_this_turn.push(by.faction.required("faction")?);
             }
         }
         Ok(())

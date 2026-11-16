@@ -2,17 +2,45 @@ use crate::log::charity::CharityClaim;
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-/// State of the CHOAM charity phase.
+/// The charity phase (`PhaseState::Charity`): its step, and whether a claim earns the Spice tech
+/// token its income. It is dropped when the phase ends. The CHOAM economics token, which lasts
+/// the game, is `board.choam_economics_status`.
 pub struct CharityState {
+    pub step: CharityStep,
     pub resource_tech_token_income: bool,
-    pub economics_status: Option<ChoamEconomicsStatus>,
 }
 
 impl CharityState {
-    pub fn new() -> Self {
-        CharityState {
-            resource_tech_token_income: Default::default(),
-            economics_status: None,
+    pub fn new(step: CharityStep) -> Self {
+        CharityState { step, resource_tech_token_income: false }
+    }
+}
+
+/// Where the charity phase is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CharityStep {
+    /// Before charity is given, while the host may still wait for players.
+    Beginning,
+    /// Factions claim charity.
+    Claiming,
+    Report,
+}
+
+impl CharityStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            CharityStep::Beginning => Phase::BeginningOfCharity,
+            CharityStep::Claiming => Phase::ClaimingCharity,
+            CharityStep::Report => Phase::CharityReport,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<CharityStep> {
+        match phase {
+            Phase::BeginningOfCharity => Some(CharityStep::Beginning),
+            Phase::ClaimingCharity => Some(CharityStep::Claiming),
+            Phase::CharityReport => Some(CharityStep::Report),
+            _ => None,
         }
     }
 }
@@ -23,8 +51,40 @@ macro_rules! elems {
 }
 
 impl Game {
+    /// The charity phase's state, while the game is in it (an interrupt may suspend it).
+    pub fn charity(&self) -> Option<&CharityState> {
+        match &self.phase {
+            PhaseState::Charity(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    pub fn charity_mut(&mut self) -> Option<&mut CharityState> {
+        match &mut self.phase {
+            PhaseState::Charity(c) => Some(c),
+            _ => None,
+        }
+    }
+
+    /// Starts the charity phase (`EndPhase::enter_charity_phase` does the rest).
+    pub fn begin_charity(&mut self) {
+        self.enter_state(PhaseState::Charity(CharityState::new(CharityStep::Beginning)));
+    }
+
+    /// Moves the charity phase to `step`, dropping any interrupt, as entering a phase did.
+    pub fn enter_charity(&mut self, step: CharityStep) {
+        match self.charity_mut() {
+            Some(c) => {
+                c.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => self.enter_state(PhaseState::Charity(CharityState::new(step))),
+        }
+    }
+
     pub fn charity_is_cancelled(&self) -> bool {
-        matches!(self.charity.economics_status, Some(ChoamEconomicsStatus::Cancel) | Some(ChoamEconomicsStatus::CancelFlipped))
+        matches!(self.board.choam_economics_status, Some(ChoamEconomicsStatus::Cancel) | Some(ChoamEconomicsStatus::CancelFlipped))
     }
 
     pub fn receive_tech_income(&mut self, token: TechToken) {
@@ -38,10 +98,10 @@ impl Game {
     }
 
     pub fn current_charity_multiplier(&self) -> i32 {
-        if matches!(self.charity.economics_status, Some(ChoamEconomicsStatus::Double) | Some(ChoamEconomicsStatus::DoubleFlipped)) {
+        if matches!(self.board.choam_economics_status, Some(ChoamEconomicsStatus::Double) | Some(ChoamEconomicsStatus::DoubleFlipped)) {
             return 2;
         }
-        if matches!(self.charity.economics_status, Some(ChoamEconomicsStatus::Cancel) | Some(ChoamEconomicsStatus::CancelFlipped)) {
+        if matches!(self.board.choam_economics_status, Some(ChoamEconomicsStatus::Cancel) | Some(ChoamEconomicsStatus::CancelFlipped)) {
             return 0;
         }
         1
@@ -55,7 +115,7 @@ impl Game {
         self.give_charity(player, basic_amount);
 
         if !self.player(player).is(Faction::BeneGesserit) {
-            self.charity.resource_tech_token_income = true;
+            self.charity_mut().expect("in the charity phase").resource_tech_token_income = true;
         }
 
         self.stone(Milestone::CharityClaimed);

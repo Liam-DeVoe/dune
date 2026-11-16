@@ -19,10 +19,10 @@ impl DealAccepted {
     pub fn may_deal(g: &Game, p: Option<PlayerId>, price: i32) -> bool {
         g.phase() != Phase::Bidding
             || price <= 0
-            || g.bidding.current_bid.is_none()
+            || g.current_bid().is_none()
             || {
                 // p.Faction dereferences a null player only here.
-                let bid = g.bidding.current_bid.as_ref().expect("current bid");
+                let bid = g.current_bid().expect("current bid");
                 let p_faction = g.player(p.expect("player")).faction;
                 bid.initiator != p_faction
                     && (bid.bid_ally_contribution_amount() == 0 || g.player(bid.player.expect("player")).ally != p_faction)
@@ -47,7 +47,7 @@ impl DealAccepted {
                 to.len() == 0 || to.contains_opt(pl.faction)
             }
             && !g.has_responded_to_deal(offer.id, pl.faction)
-            && (g.charity.economics_status != Some(ChoamEconomicsStatus::Double) || (i32::from(offer.benefit) == 0 && i32::from(offer.price) == 0))
+            && (g.board.choam_economics_status != Some(ChoamEconomicsStatus::Double) || (i32::from(offer.benefit) == 0 && i32::from(offer.price) == 0))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.

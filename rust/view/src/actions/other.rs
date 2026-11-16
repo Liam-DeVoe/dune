@@ -402,7 +402,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.target = required_opt(m.target, &targets);
         }),
         Event::IxianRemovedCardFromAuction(e) => adjust!(e, |m| {
-            let cards: Vec<TreacheryCard> = game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
+            let cards: Vec<TreacheryCard> = game.cards_on_auction().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
             m.card = required_opt(m.card, &cards);
         }),
         Event::IxianSelectedStartingCard(e) => adjust!(e, |m| {
@@ -636,7 +636,7 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &Event, d: &dyn 
             })
         }
         Event::IxianRemovedCardFromAuction(_) => {
-            ActionOptions::IxianRemovedCardFromAuction(cards(card_ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
+            ActionOptions::IxianRemovedCardFromAuction(cards(card_ids(game.cards_on_auction().map(|d| d.items.to_vec()).unwrap_or_default())))
         }
         Event::IxianSelectedStartingCard(_) => {
             ActionOptions::IxianSelectedStartingCard(cards(card_ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
@@ -653,8 +653,8 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &Event, d: &dyn 
             draft: json.clone(),
         }),
         Event::KarmaHandSwap(_) => ActionOptions::KarmaHandSwap(KarmaHandSwapOptions {
-            number: game.bidding.karma_hand_swap_number_of_cards,
-            target: name_or_absent(game.bidding.karma_hand_swap_target),
+            number: game.karma_hand_swap().map_or(0, |(n, _)| n),
+            target: name_or_absent(game.karma_hand_swap().and_then(|(_, t)| t)),
             cards: hand(),
             draft: json.clone(),
         }),
@@ -858,7 +858,7 @@ fn yes_no_options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) ->
             yes_no(m(title), true, draft)
         }
         EventType::DivideResourcesAccepted => yes_no(text(render(d, &parts!["Agree with the proposed division of ", Concept::Resource, "?"])), true, draft),
-        EventType::CardGiven => yes_no(m(express!("Give your ally the ", game.bidding.card_that_must_be_kept_or_given_to_ally, " you just received?")), true, draft),
+        EventType::CardGiven => yes_no(m(express!("Give your ally the ", game.bidding().and_then(|b| b.card_that_must_be_kept_or_given_to_ally), " you just received?")), true, draft),
         EventType::Bureaucracy => yes_no(m(express!("Use your ", LeaderSkill::Bureaucrat, " skill?")), true, draft),
         EventType::Captured => yes_no(text("Do you wish to capture a random leader from your opponent?"), true, draft),
         _ => return None,

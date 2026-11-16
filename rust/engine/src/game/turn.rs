@@ -88,6 +88,10 @@ pub struct TurnState {
     pub current_ixian_cunning: Option<NexusCardPlayed>,
     pub harkonnen_traitor_was_cancelled: bool,
     pub facedancer_was_cancelled: bool,
+    /// What revivals leave for the rest of the turn and later (revival.rs).
+    pub revivals: Revivals,
+    /// What the last bidding phase left behind (bidding.rs).
+    pub last_bidding: BiddingLeftovers,
 }
 
 impl TurnState {
@@ -124,6 +128,8 @@ impl TurnState {
             current_ixian_cunning: None,
             harkonnen_traitor_was_cancelled: Default::default(),
             facedancer_was_cancelled: Default::default(),
+            revivals: Revivals::new(),
+            last_bidding: BiddingLeftovers::default(),
         }
     }
 }

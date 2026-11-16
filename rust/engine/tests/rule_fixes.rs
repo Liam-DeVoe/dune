@@ -229,8 +229,8 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     assert!(!g.decks.richese_cache.contains(&drawn));
 
     // Sold from the cache: it leaves the deck.
-    g.bidding.cards_on_auction = Some(Deck::empty());
-    g.enter(Phase::RicheseSpecifyingAuction, false);
+    g.enter_bidding(BiddingStep::RicheseSpecifyingAuction);
+    g.bidding_mut().unwrap().cards_on_auction = Some(Deck::empty());
     let mut auction = RicheseSpecifiesAuction::default();
     auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);
@@ -247,7 +247,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
 #[test]
 fn a_karama_bid_needs_a_karama_card_and_no_pass() {
     let mut g = fixture("bid");
-    let bidder = g.bidding.bid_sequence.as_ref().unwrap().current_player(&g).expect("a bidder");
+    let bidder = g.bidding().unwrap().bid_sequence.as_ref().unwrap().current_player(&g).expect("a bidder");
     let faction = g.player(bidder).faction.expect("bidder has a faction");
     let held: Vec<TreacheryCard> = g.players.iter().flat_map(|p| p.treachery_cards.clone()).collect();
     let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();

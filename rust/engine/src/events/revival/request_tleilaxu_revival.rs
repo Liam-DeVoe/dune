@@ -43,13 +43,13 @@ impl EventRules for RequestTleilaxuRevival {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let hero = self.hero;
         // C# removed the first request for the hero, by reference.
-        if let Some(i) = game.revival.current_revival_requests.iter().position(|r| r.hero == hero) {
-            game.revival.current_revival_requests.remove(i);
+        if let Some(i) = game.turn.revivals.current_revival_requests.iter().position(|r| r.hero == hero) {
+            game.turn.revivals.current_revival_requests.remove(i);
         }
 
         let m = self.describe(game, by);
         game.log_event(m);
-        game.revival.current_revival_requests.push(RevivalRequest { initiator: by.faction, player: by.player, hero: self.hero });
+        game.turn.revivals.current_revival_requests.push(RevivalRequest { initiator: by.faction, player: by.player, hero: self.hero });
         Ok(())
     }
 

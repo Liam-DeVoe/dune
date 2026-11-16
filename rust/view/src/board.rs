@@ -228,9 +228,9 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     if game.turn.current_main_phase != MainPhase::Bidding {
         return None;
     }
-    let silent = game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
+    let silent = game.current_auction_type() == Some(AuctionType::BlackMarketSilent) || game.current_auction_type() == Some(AuctionType::RicheseSilent);
     let bids = game
-        .bidding.bids
+        .bids()
         .iter()
         .map(|(f, bid)| {
             let shown = if silent {
@@ -243,7 +243,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
             MapBid { faction: name(*f), bid: shown }
         })
         .collect();
-    Some(BiddingView { auction_type: name_or_absent(game.bidding.current_auction_type), bids,
+    Some(BiddingView { auction_type: name_or_absent(game.current_auction_type()), bids,
         panel: crate::actions::bidding::panel(game, v),
         auction_won: game.turn.recent_milestones.contains(&Milestone::AuctionWon),
         next_card: crate::actions::bidding::next_card(game, v),

@@ -7,7 +7,7 @@ pub struct EndPhase {
 
 impl EndPhase {
     pub fn continue_to_revivals(&self, game: &mut Game) -> GameResult {
-        game.enter(Phase::Resurrection, true);
+        game.enter_revival(RevivalStep::Reviving);
 
         // foreach over a lazy Where: the filter runs right before each body
         for i in 0..game.players.len() {
@@ -43,11 +43,10 @@ impl EndPhase {
         game.main_phase_start(MainPhase::Charity, true);
         game.turn.has_acted_or_passed.clear();
         game.blow.monsters.clear();
-        game.charity.resource_tech_token_income = false;
         game.allow(FactionAdvantage::FremenControlsMonster);
         game.allow(FactionAdvantage::FremenProtectedFromMonster);
 
-        game.enter(Phase::BeginningOfCharity, true);
+        game.begin_charity();
     }
 
     pub fn start_claiming_charity(&self, game: &mut Game) {
@@ -92,46 +91,44 @@ impl EndPhase {
         }
 
         game.main_phase_middle();
-        game.enter(Phase::ClaimingCharity, true);
+        game.enter_charity(CharityStep::Claiming);
     }
 
     pub fn end_charity_phase(&self, game: &mut Game) {
-        if game.charity.resource_tech_token_income {
+        if game.charity().expect("in the charity phase").resource_tech_token_income {
             game.receive_tech_income(TechToken::Resources);
         }
 
         game.main_phase_end();
-        game.enter(Phase::CharityReport, true);
+        game.enter_charity(CharityStep::Report);
     }
 
     pub fn enter_revival_phase(&self, game: &mut Game) {
-        game.bidding.card_just_won = None;
+        game.leave_bidding();
         game.main_phase_start(MainPhase::Resurrection, true);
         game.allow(FactionAdvantage::HarkonnenFreeCard);
         game.allow(FactionAdvantage::EmperorReceiveBid);
         game.allow(FactionAdvantage::IxianAllyDiscardingCard);
-        game.revival.revival_tech_token_income = false;
-        game.revival.ambassadors_placed_this_turn = 0;
-        game.revival.free_revivals_this_turn.clear();
-        game.revival.total_revivals_this_turn.clear();
-        game.revival.leader_revivals_this_turn.clear();
+        game.turn.revivals.ambassadors_placed_this_turn = 0;
+        game.turn.revivals.free_revivals_this_turn.clear();
+        game.turn.revivals.total_revivals_this_turn.clear();
+        game.turn.revivals.leader_revivals_this_turn.clear();
         //Game.HasActedOrPassed.Clear();
-        game.revival.tleilaxu_started_revival_with_low_threshold = game.has_low_threshold(Faction::Tleilaxu);
 
-        game.enter(Phase::BeginningOfResurrection, true);
+        game.begin_revival();
     }
 
     pub fn end_resurrection_phase(&self, game: &mut Game) {
         game.allow(FactionAdvantage::TleilaxuReviveGhola);
-        if game.revival.revival_tech_token_income {
+        if game.revival().expect("in the revival phase").revival_tech_token_income {
             game.receive_tech_income(TechToken::Graveyard);
         }
-        game.revival.current_karma_revival_prevention = None;
+        game.turn.revivals.current_karma_revival_prevention = None;
         game.turn.current_fremen_secret_ally = None;
-        game.revival.current_recruits_played = false;
+        game.revival_mut().expect("in the revival phase").current_recruits_played = false;
 
         game.main_phase_end();
-        game.enter(Phase::ResurrectionReport, true);
+        game.enter_revival(RevivalStep::Report);
     }
 
     pub fn enter_shipment_and_move_phase(&self, game: &mut Game) {
@@ -143,11 +140,9 @@ impl EndPhase {
             .collect();
         game.ship_move.recent_moves.clear();
         game.ship_move.beginning_of_shipment_and_move_phase = true;
-        game.revival.factions_with_increased_revival_limits = Some(Vec::new());
-        game.revival.early_revivals_offers.clear();
+        game.turn.revivals.factions_with_increased_revival_limits = Some(Vec::new());
 
         game.ship_move.ships_tech_token_income = false;
-        game.revival.current_free_revival_prevention = None;
         game.allow(FactionAdvantage::BeneGesseritAnnouncesBattle);
         game.allow(FactionAdvantage::EmperorLetAllyReviveExtraForces);
         game.allow(FactionAdvantage::TleilaxuReceiveRevive);
@@ -263,7 +258,8 @@ impl EventRules for EndPhase {
             Phase::BeginningOfBidding => game.start_bidding_phase(),
 
             Phase::ReplacingCardJustWon => {
-                if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
+                let b = game.bidding().expect("in the bidding phase");
+                if b.card_just_won == b.card_sold_on_black_market {
                     game.enter_richese_bidding();
                 } else {
                     game.determine_next_step_after_card_was_sold();

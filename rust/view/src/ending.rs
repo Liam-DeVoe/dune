@@ -340,15 +340,15 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         }
 
         if matches!(evt, Event::Bid(_) | Event::BlackMarketBid(_)) {
-            if let Some(wb) = &r.bidding.winning_bid {
+            if let Some(wb) = r.bidding().and_then(|b| b.winning_bid.as_ref()) {
                 if previous_winning_bid.as_ref() != Some(wb) {
                     let buyer = wb.initiator;
                     out.push(StoryBlock::Purchase {
                         buyer: name_or_absent(buyer),
-                        card: r.bidding.card_just_won.map(|c| card(c, rd)),
+                        card: r.card_just_won().map(|c| card(c, rd)),
                         amount: wb.bid_total_amount(),
                         karma_card: wb.karma_card.map(|c| card(c, rd)),
-                        auction: (r.bidding.current_auction_type != Some(AuctionType::Normal)).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
+                        auction: (r.current_auction_type() != Some(AuctionType::Normal)).then(|| describe_detailed(r.current_auction_type(), rd)),
                     });
                 }
                 previous_winning_bid = Some(wb.clone());

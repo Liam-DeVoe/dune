@@ -50,8 +50,8 @@ impl ClassicBot {
                 return Some(d.acceptance());
             }
             if game.turn.current_main_phase == MainPhase::Bidding
-                && game.bidding.card_number == 1
-                && (i32::from(d.price) as f32) < 1.4 * game.bidding.cards_on_auction.as_ref().expect("cards on auction").items.len() as f32
+                && game.bidding().map_or(0, |b| b.card_number) == 1
+                && (i32::from(d.price) as f32) < 1.4 * game.cards_on_auction().expect("cards on auction").items.len() as f32
                 && self.resources_including_ally_contribution(game) - i32::from(d.price) > 16
             {
                 return Some(d.acceptance());
@@ -266,7 +266,7 @@ impl ClassicBot {
         let faction = self.faction(game);
         if faction == Faction::Atreides
             && game.turn.current_main_phase == MainPhase::Bidding
-            && game.bidding.current_auction_type == Some(AuctionType::Normal)
+            && game.current_auction_type() == Some(AuctionType::Normal)
             && game.has_bidding_prescience(self.player)
             && !game.deals.offers.iter().any(|deal| {
                 deal.initiator == Some(faction) && deal.type_ == DealType::ShareBiddingPrescience && deal.end_phase == Some(Phase::Bidding)

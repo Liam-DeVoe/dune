@@ -31,7 +31,7 @@ fn raise_dead_max_amounts() {
     g.player_mut(emperor).forces_killed = 9;
     assert_eq!(RaiseDeadPlayed::valid_max_amount(&g, emperor, true), 1);
     assert_eq!(RaiseDeadPlayed::valid_max_amount(&g, emperor, false), 5);
-    g.revival.factions_that_revived_special_forces_this_turn.push(Faction::Emperor);
+    g.turn.revivals.factions_that_revived_special_forces_this_turn.push(Faction::Emperor);
     assert_eq!(RaiseDeadPlayed::valid_max_amount(&g, emperor, true), 0);
 
     let atreides = idx(&g, Faction::Atreides);
@@ -97,9 +97,10 @@ fn games_on_one_thread_count_leader_deaths_separately() {
 #[test]
 fn deny_all_requests_adds_max_offers() {
     let mut g = game_with(&[Faction::Emperor, Faction::Tleilaxu]);
+    g.enter_revival(RevivalStep::Reviving);
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let emperor = g.get_player(Some(Faction::Emperor));
-    g.revival.current_revival_requests.push(RevivalRequest { initiator: Some(Faction::Emperor), player: emperor, hero: Some(Hero::Leader(emperor_leaders[0])) });
+    g.turn.revivals.current_revival_requests.push(RevivalRequest { initiator: Some(Faction::Emperor), player: emperor, hero: Some(Hero::Leader(emperor_leaders[0])) });
 
     // _heroId defaults to 0, and HeroLookup.Find(0) is treachery card 0, not null
     // (LeaderManager.cs:137). Deny-all is Hero == null, i.e. _heroId -1.
@@ -108,21 +109,22 @@ fn deny_all_requests_adds_max_offers() {
     assert!(!deny.is_denial());
     let by = By::new(&g, Faction::Tleilaxu);
     deny.apply(&mut g, by).unwrap();
-    assert_eq!(g.revival.early_revivals_offers[&Hero::Leader(emperor_leaders[0])], i32::MAX);
-    assert!(g.revival.current_revival_requests.is_empty());
+    assert_eq!(g.revival().unwrap().early_revivals_offers[&Hero::Leader(emperor_leaders[0])], i32::MAX);
+    assert!(g.turn.revivals.current_revival_requests.is_empty());
 }
 
 #[test]
 fn offer_for_hero_with_existing_denial_replaces_it() {
     let mut g = game_with(&[Faction::Emperor, Faction::Tleilaxu]);
+    g.enter_revival(RevivalStep::Reviving);
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let hero = Hero::Leader(emperor_leaders[0]);
-    g.revival.early_revivals_offers.insert(hero, i32::MAX);
+    g.revival_mut().unwrap().early_revivals_offers.insert(hero, i32::MAX);
 
     let mut offer = AcceptOrCancelTleilaxuRevival::default();
     offer.hero = Some(hero);
     offer.price = 3;
     let by = By::new(&g, Faction::Tleilaxu);
     offer.apply(&mut g, by).unwrap();
-    assert_eq!(g.revival.early_revivals_offers[&hero], 3);
+    assert_eq!(g.revival().unwrap().early_revivals_offers[&hero], 3);
 }

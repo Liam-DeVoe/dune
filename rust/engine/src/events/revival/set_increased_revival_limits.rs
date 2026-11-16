@@ -35,7 +35,7 @@ impl EventRules for SetIncreasedRevivalLimits {
         // Stores the event's array, null included (executed without validation). The message
         // can't be built without factions, so the event fails before it is logged (C#: Log()
         // throws ArgumentNullException in GetMessage).
-        game.revival.factions_with_increased_revival_limits = self.factions.clone();
+        game.turn.revivals.factions_with_increased_revival_limits = self.factions.clone();
         let message = self.try_describe(game, by)?;
         game.current_report_mut().express_event(message);
         Ok(())

@@ -269,7 +269,7 @@ fn flash_game_ended_lists_winners() {
 #[test]
 fn status_ambassador_without_ecaz_throws() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.enter(Phase::AmbassadorTriggeredByGuildShip, false);
+    g.interrupt(Interrupt::intrusion(IntrusionType::Ambassador, IntrusionCause::GuildShip));
     let text = exception_text(|| GameStatus::determine_status(&mut g, None, false));
     assert_eq!(text, "player");
 }

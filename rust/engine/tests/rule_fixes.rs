@@ -112,9 +112,9 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     let (intruded, n_intruded) = advisors[0];
     let (elsewhere, n_elsewhere) = *advisors.iter().find(|(l, _)| l.territory() != intruded.territory()).expect("advisors in two territories");
 
-    g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: Some(intruded), type_: IntrusionType::BeneGesseritIntrusion });
+    g.turn.intrusions.push(Intrusion { initiator: Faction::Emperor, to: Some(intruded), type_: IntrusionType::BeneGesseritIntrusion, alliance_offered: false });
     g.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: Some(elsewhere) });
-    g.enter(Phase::BeneGesseritIntrudedByNonGuildMove, false);
+    g.interrupt(Interrupt::intrusion(IntrusionType::BeneGesseritIntrusion, IntrusionCause::NonGuildMove));
 
     let mut flip = BeneGesseritFlip::default();
     flip.as_advisors = false;
@@ -284,9 +284,9 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     let mut g = fixture("bene_gesserit");
     let mut m = Move::default();
     m.to = Some(location(&g, 5));
-    g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: m.to, type_: IntrusionType::BeneGesseritIntrusion });
+    g.turn.intrusions.push(Intrusion { initiator: Faction::Emperor, to: m.to, type_: IntrusionType::BeneGesseritIntrusion, alliance_offered: false });
     g.main_phase_start(MainPhase::Battle, false);
-    assert!(g.ship_move.intrusions.is_empty());
+    assert!(g.turn.intrusions.is_empty());
 }
 
 /// An ally pays for a shipment only spice it has and has offered. C# checked neither, so a

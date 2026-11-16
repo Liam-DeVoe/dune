@@ -7,7 +7,6 @@ pub struct ShipMoveState {
     pub shipment_and_move_sequence: Option<PlayerSequence>,
     /// Where the last shipment or move took forces, for the Bene Gesserit's reaction to it.
     pub last_shipment_or_movement: Option<ShipmentOrMovement>,
-    pub intrusions: Vec<Intrusion>,
     pub ships_tech_token_income: bool,
     /// The moves of this phase, for the arrows on the board.
     pub recent_moves: Vec<RecentMove>,
@@ -21,17 +20,9 @@ pub struct ShipMoveState {
     pub chosen_destinations_with_allies: Vec<Territory>,
     pub current_player_may_perform_extra_move: bool,
     pub bene_gesserit_may_accompany: bool,
-    pub phase_before_caravan_caused_intrusion: Option<Phase>,
-    pub phase_before_revival_caused_intrusion: Option<Phase>,
     pub current_flight_used: Option<FlightUse>,
     /// Who used the Flight discovery token for their next move.
     pub current_flight_discovery_used: Option<By>,
-    pub current_ambassador_activated: Option<AmbassadorActivation>,
-    pub alliance_by_ambassador_offered_to: Option<Faction>,
-    pub paused_ambassador_phase: Option<Phase>,
-    pub paused_terror_phase: Option<Phase>,
-    pub alliance_by_terror_was_offered: bool,
-    pub alliance_by_terror_offered_to: Option<Faction>,
     pub in_guild_cunning_shipment: bool,
     pub current_blocked_territories: Vec<Territory>,
     pub choam_has_extra_move: bool,
@@ -43,7 +34,6 @@ impl ShipMoveState {
         ShipMoveState {
             shipment_and_move_sequence: None,
             last_shipment_or_movement: None,
-            intrusions: Vec::new(),
             ships_tech_token_income: Default::default(),
             recent_moves: Vec::new(),
             current_no_field_value: -1,
@@ -55,16 +45,8 @@ impl ShipMoveState {
             chosen_destinations_with_allies: Vec::new(),
             current_player_may_perform_extra_move: Default::default(),
             bene_gesserit_may_accompany: Default::default(),
-            phase_before_caravan_caused_intrusion: Default::default(),
-            phase_before_revival_caused_intrusion: Default::default(),
             current_flight_used: None,
             current_flight_discovery_used: None,
-            current_ambassador_activated: None,
-            alliance_by_ambassador_offered_to: Default::default(),
-            paused_ambassador_phase: Default::default(),
-            paused_terror_phase: Default::default(),
-            alliance_by_terror_was_offered: Default::default(),
-            alliance_by_terror_offered_to: Default::default(),
             in_guild_cunning_shipment: Default::default(),
             current_blocked_territories: Vec::new(),
             choam_has_extra_move: Default::default(),
@@ -107,26 +89,6 @@ impl RecentMove {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ShipmentPrevention {
     pub target: Option<Faction>,
-}
-
-/// The Ambassador activation that the current intrusion led to (`AmbassadorActivated`), as
-/// `AllianceByAmbassador` reads it.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct AmbassadorActivation {
-    pub submitter: By,
-    pub ecaz_give_vidal_to_ally: bool,
-    pub ecaz_take_vidal: bool,
-}
-
-impl AmbassadorActivation {
-    pub fn initiator(&self) -> Option<Faction> {
-        self.submitter.faction
-    }
-
-    #[track_caller]
-    pub fn player(&self) -> PlayerId {
-        self.submitter.player()
-    }
 }
 
 /// A Flight card played for the next move.
@@ -413,14 +375,14 @@ impl Game {
         if !self.storm.storm_losses_to_take.is_empty() {
             self.storm.phase_before_storm_loss = Some(self.phase());
             self.enter(Phase::StormLosses, true);
-        } else if !self.ship_move.intrusions.is_empty() {
-            match self.ship_move.intrusions[0].type_ {
-                IntrusionType::BeneGesseritIntrusion => self.determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded()?,
-                IntrusionType::Terror => self.determine_next_shipment_and_move_sub_phase_on_terror_triggered()?,
-                IntrusionType::Ambassador => self.determine_next_shipment_and_move_sub_phase_on_ambassador_triggered()?,
-            }
+        } else if let Some(next) = self.turn.intrusions.first() {
+            let kind = next.type_;
+            let Some(cause) = self.current_intrusion_cause() else {
+                game_error!("{} triggered during undefined phase: {}", kind, self.phase());
+            };
+            self.show_intrusion(kind, cause);
         } else {
-            self.determine_next_shipment_and_move_sub_phase_on_no_intrusion()?;
+            self.continue_after_intrusions()?;
         }
 
         self.skip_move_if_nothing_to_move()?;
@@ -486,7 +448,7 @@ impl Game {
     }
 
     pub fn cleanup_obsolete_intrusions(&mut self) -> GameResult {
-        if !self.ship_move.intrusions.is_empty() {
+        if !self.turn.intrusions.is_empty() {
             let mut i = 0;
             let mut search = true;
             while search {
@@ -516,179 +478,80 @@ impl Game {
         Ok(())
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase_on_no_intrusion(&mut self) -> GameResult {
-        match self.phase() {
-            Phase::FremenRidingMonsterA
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
-            | Phase::TerrorTriggeredByFremenRidingMonsterA
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterA => {
-                self.end_worm_ride_during_phase(Phase::FremenRidingMonsterA)?;
-            }
+    /// What caused the intrusion shown, or else the step of the shipment and move phase or the
+    /// worm ride that the next intrusion would interrupt. `None` anywhere else.
+    pub fn current_intrusion_cause(&self) -> Option<IntrusionCause> {
+        if let Some(Interrupt::Intrusion { cause, .. }) = self.interrupts.last() {
+            return Some(*cause);
+        }
+        IntrusionCause::of_step(self.phase())
+    }
 
-            Phase::FremenRidingMonsterB
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
-            | Phase::TerrorTriggeredByFremenRidingMonsterB
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterB => {
-                self.end_worm_ride_during_phase(Phase::FremenRidingMonsterB)?;
-            }
+    /// Shows the next intrusion, in place of the one shown before.
+    pub fn show_intrusion(&mut self, kind: IntrusionType, cause: IntrusionCause) {
+        self.drop_intrusion();
+        self.interrupt(Interrupt::intrusion(kind, cause));
+    }
 
-            Phase::GuildShip | Phase::BeneGesseritIntrudedByGuildShip | Phase::TerrorTriggeredByGuildShip | Phase::AmbassadorTriggeredByGuildShip => {
+    /// After a Caravan or a revival queued intrusions: shows the first.
+    pub fn show_first_intrusion(&mut self, cause: IntrusionCause) -> GameResult {
+        let kind = self.turn.intrusions.first().required("an intrusion")?.type_;
+        self.show_intrusion(kind, cause);
+        Ok(())
+    }
+
+    /// Every intrusion is answered: the game goes on from what caused them.
+    pub fn continue_after_intrusions(&mut self) -> GameResult {
+        let Some(cause) = self.current_intrusion_cause() else { return Ok(()) };
+        match cause {
+            IntrusionCause::WormRideA => self.end_worm_ride_during_phase(Phase::FremenRidingMonsterA)?,
+            IntrusionCause::WormRideB => self.end_worm_ride_during_phase(Phase::FremenRidingMonsterB)?,
+
+            IntrusionCause::GuildShip => {
                 let c1 = self.is_playing(Faction::BeneGesserit) && self.ship_move.bene_gesserit_may_accompany;
                 let c2 = !self.ship_move.in_guild_cunning_shipment;
                 self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritAccompaniesGuildShip)), (c2, Step::Enter(Phase::GuildMove))], Step::Enter(Phase::NonGuildMove))?;
             }
 
-            Phase::BeneGesseritAccompaniesGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => {
+            IntrusionCause::BeneGesseritAccompaniesGuildShip => {
                 let c = !self.ship_move.in_guild_cunning_shipment;
                 self.enter_either(c, Phase::GuildMove, Phase::NonGuildMove);
             }
 
-            Phase::NonGuildShip | Phase::BeneGesseritIntrudedByNonGuildShip | Phase::TerrorTriggeredByNonGuildShip | Phase::AmbassadorTriggeredByNonGuildShip => {
+            IntrusionCause::NonGuildShip => {
                 let c = self.is_playing(Faction::BeneGesserit) && self.ship_move.bene_gesserit_may_accompany;
                 self.enter_either(c, Phase::BeneGesseritAccompaniesNonGuildShip, Phase::NonGuildMove);
             }
 
-            Phase::BeneGesseritAccompaniesNonGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip => {
-                self.enter(Phase::NonGuildMove, true);
+            IntrusionCause::BeneGesseritAccompaniesNonGuildShip => self.enter(Phase::NonGuildMove, true),
+            IntrusionCause::GuildMove => self.determine_next_sub_phase_after_guild_ship_and_move()?,
+            IntrusionCause::NonGuildMove => self.determine_next_sub_phase_after_non_guild_move()?,
+
+            // Back to the shipment step the Caravan was played in.
+            IntrusionCause::Caravan => {
+                self.drop_intrusion();
+                let phase = self.phase();
+                self.remove_ended_deals(phase);
             }
 
-            Phase::GuildMove | Phase::BeneGesseritIntrudedByGuildMove | Phase::TerrorTriggeredByGuildMove | Phase::AmbassadorTriggeredByGuildMove => {
-                self.determine_next_sub_phase_after_guild_ship_and_move()?;
-            }
-
-            Phase::NonGuildMove | Phase::BeneGesseritIntrudedByNonGuildMove | Phase::TerrorTriggeredByNonGuildMove | Phase::AmbassadorTriggeredByNonGuildMove => {
-                self.determine_next_sub_phase_after_non_guild_move()?;
-            }
-
-            Phase::BeneGesseritIntrudedByCaravan | Phase::TerrorTriggeredByCaravan | Phase::AmbassadorTriggeredByCaravan => {
-                let p = self.ship_move.phase_before_caravan_caused_intrusion.required("phase before caravan caused intrusion")?;
-                self.enter(p, true);
-            }
-
-            Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => {
-                let mut next_phase = self.ship_move.phase_before_revival_caused_intrusion.required("phase before revival caused intrusion")?;
-                if next_phase == Phase::AssigningSkill && !SkillAssigned::players_must_choose_leader_skills(self) {
-                    next_phase = self.phase_under(Interrupt::SkillAssignment).required("phase before skill assignment")?;
-                    if next_phase == self.phase() {
-                        next_phase = Phase::Resurrection;
-                    }
+            // Back to the revival, or to the skill assignment it started if that still waits.
+            IntrusionCause::Revival => {
+                self.drop_intrusion();
+                if self.interrupts.last() == Some(&Interrupt::SkillAssignment) && !SkillAssigned::players_must_choose_leader_skills(self) {
+                    self.interrupts.pop();
                 }
-
-                self.enter(next_phase, true);
+                let phase = self.phase();
+                self.remove_ended_deals(phase);
             }
-
-            _ => {}
         }
         Ok(())
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(&mut self) -> GameResult {
-        let next = match self.phase() {
-            Phase::FremenRidingMonsterA
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
-            | Phase::TerrorTriggeredByFremenRidingMonsterA
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterA => Phase::BeneGesseritIntrudedByFremenRidingMonsterA,
-
-            Phase::FremenRidingMonsterB
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
-            | Phase::TerrorTriggeredByFremenRidingMonsterB
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterB => Phase::BeneGesseritIntrudedByFremenRidingMonsterB,
-
-            Phase::GuildShip
-            | Phase::BeneGesseritIntrudedByGuildShip
-            | Phase::TerrorTriggeredByGuildShip
-            | Phase::AmbassadorTriggeredByGuildShip
-            | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip
-            | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => Phase::BeneGesseritIntrudedByGuildShip,
-
-            Phase::NonGuildShip
-            | Phase::BeneGesseritIntrudedByNonGuildShip
-            | Phase::TerrorTriggeredByNonGuildShip
-            | Phase::AmbassadorTriggeredByNonGuildShip
-            | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip
-            | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip => Phase::BeneGesseritIntrudedByNonGuildShip,
-
-            Phase::GuildMove | Phase::BeneGesseritIntrudedByGuildMove | Phase::TerrorTriggeredByGuildMove | Phase::AmbassadorTriggeredByGuildMove => Phase::BeneGesseritIntrudedByGuildMove,
-
-            Phase::NonGuildMove | Phase::BeneGesseritIntrudedByNonGuildMove | Phase::TerrorTriggeredByNonGuildMove | Phase::AmbassadorTriggeredByNonGuildMove => Phase::BeneGesseritIntrudedByNonGuildMove,
-
-            Phase::BeneGesseritIntrudedByCaravan | Phase::TerrorTriggeredByCaravan | Phase::AmbassadorTriggeredByCaravan => Phase::BeneGesseritIntrudedByCaravan,
-
-            Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::BeneGesseritIntrudedByRevival,
-
-            _ => game_error!("BeneGesserit intrusion triggered during undefined phase: {}", self.phase()),
-        };
-        self.enter(next, true);
-        Ok(())
-    }
-
-    pub fn determine_next_shipment_and_move_sub_phase_on_terror_triggered(&mut self) -> GameResult {
-        let next = match self.phase() {
-            Phase::FremenRidingMonsterA
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
-            | Phase::TerrorTriggeredByFremenRidingMonsterA
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterA => Phase::TerrorTriggeredByFremenRidingMonsterA,
-
-            Phase::FremenRidingMonsterB
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
-            | Phase::TerrorTriggeredByFremenRidingMonsterB
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterB => Phase::TerrorTriggeredByFremenRidingMonsterB,
-
-            Phase::GuildShip | Phase::BeneGesseritIntrudedByGuildShip | Phase::TerrorTriggeredByGuildShip | Phase::AmbassadorTriggeredByGuildShip => Phase::TerrorTriggeredByGuildShip,
-
-            // C# parity: unlike the Ambassador mapping, BeneGesseritAccompanies phases go back to the plain ship phase.
-            Phase::BeneGesseritAccompaniesGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => Phase::TerrorTriggeredByGuildShip,
-
-            Phase::NonGuildShip | Phase::BeneGesseritIntrudedByNonGuildShip | Phase::TerrorTriggeredByNonGuildShip | Phase::AmbassadorTriggeredByNonGuildShip => Phase::TerrorTriggeredByNonGuildShip,
-
-            Phase::BeneGesseritAccompaniesNonGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip => Phase::TerrorTriggeredByNonGuildShip,
-
-            Phase::GuildMove | Phase::BeneGesseritIntrudedByGuildMove | Phase::TerrorTriggeredByGuildMove | Phase::AmbassadorTriggeredByGuildMove => Phase::TerrorTriggeredByGuildMove,
-
-            Phase::NonGuildMove | Phase::BeneGesseritIntrudedByNonGuildMove | Phase::TerrorTriggeredByNonGuildMove | Phase::AmbassadorTriggeredByNonGuildMove => Phase::TerrorTriggeredByNonGuildMove,
-
-            Phase::BeneGesseritIntrudedByCaravan | Phase::TerrorTriggeredByCaravan | Phase::AmbassadorTriggeredByCaravan => Phase::TerrorTriggeredByCaravan,
-
-            Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::TerrorTriggeredByRevival,
-
-            _ => game_error!("Terror triggered during undefined phase: {}", self.phase()),
-        };
-        self.enter(next, true);
-        Ok(())
-    }
-
-    pub fn determine_next_shipment_and_move_sub_phase_on_ambassador_triggered(&mut self) -> GameResult {
-        let next = match self.phase() {
-            Phase::FremenRidingMonsterA
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
-            | Phase::TerrorTriggeredByFremenRidingMonsterA
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterA => Phase::AmbassadorTriggeredByFremenRidingMonsterA,
-
-            Phase::FremenRidingMonsterB
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
-            | Phase::TerrorTriggeredByFremenRidingMonsterB
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterB => Phase::AmbassadorTriggeredByFremenRidingMonsterB,
-
-            Phase::GuildShip | Phase::BeneGesseritIntrudedByGuildShip | Phase::TerrorTriggeredByGuildShip | Phase::AmbassadorTriggeredByGuildShip => Phase::AmbassadorTriggeredByGuildShip,
-
-            Phase::BeneGesseritAccompaniesGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip,
-
-            Phase::NonGuildShip | Phase::BeneGesseritIntrudedByNonGuildShip | Phase::TerrorTriggeredByNonGuildShip | Phase::AmbassadorTriggeredByNonGuildShip => Phase::AmbassadorTriggeredByNonGuildShip,
-
-            Phase::BeneGesseritAccompaniesNonGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip => Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip,
-
-            Phase::GuildMove | Phase::BeneGesseritIntrudedByGuildMove | Phase::TerrorTriggeredByGuildMove | Phase::AmbassadorTriggeredByGuildMove => Phase::AmbassadorTriggeredByGuildMove,
-
-            Phase::NonGuildMove | Phase::BeneGesseritIntrudedByNonGuildMove | Phase::TerrorTriggeredByNonGuildMove | Phase::AmbassadorTriggeredByNonGuildMove => Phase::AmbassadorTriggeredByNonGuildMove,
-
-            Phase::BeneGesseritIntrudedByCaravan | Phase::TerrorTriggeredByCaravan | Phase::AmbassadorTriggeredByCaravan => Phase::AmbassadorTriggeredByCaravan,
-
-            Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => Phase::AmbassadorTriggeredByRevival,
-
-            _ => game_error!("Ambassador triggered during undefined phase: {}", self.phase()),
-        };
-        self.enter(next, true);
-        Ok(())
+    /// Drops the intrusion shown, if one is on top, without ending deals.
+    fn drop_intrusion(&mut self) {
+        if let Some(Interrupt::Intrusion { .. }) = self.interrupts.last() {
+            self.interrupts.pop();
+        }
     }
 
     pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerId) -> GameResult {
@@ -852,7 +715,7 @@ impl Game {
         self.check_bene_gesserit_intrusion(e, initiator, territory);
         self.check_ambassador_triggered(e, initiator);
         self.check_terror_triggered(e, initiator);
-        Ok(!self.ship_move.intrusions.is_empty())
+        Ok(!self.turn.intrusions.is_empty())
     }
 
     pub fn check_bene_gesserit_intrusion(&mut self, e: &Event, initiator: Faction, territory: Territory) {
@@ -906,19 +769,19 @@ impl Game {
     }
 
     pub fn queue_intrusion(&mut self, e: &Event, initiator: Faction, type_: IntrusionType) {
-        let intrusion = Intrusion { initiator, to: e.to_location(self), type_ };
-        self.ship_move.intrusions.push(intrusion);
+        let intrusion = Intrusion { initiator, to: e.to_location(self), type_, alliance_offered: false };
+        self.turn.intrusions.push(intrusion);
     }
 
     pub fn dequeue_intrusion(&mut self, type_: IntrusionType) -> GameResult {
-        if self.ship_move.intrusions.is_empty() {
+        if self.turn.intrusions.is_empty() {
             game_error!("No intrusions to dequeue");
         }
-        if self.ship_move.intrusions[0].type_ != type_ {
-            game_error!("Wrong intrusion type: actual:{} vs expected:{}", type_, self.ship_move.intrusions[0].type_);
+        if self.turn.intrusions[0].type_ != type_ {
+            game_error!("Wrong intrusion type: actual:{} vs expected:{}", type_, self.turn.intrusions[0].type_);
         }
 
-        self.ship_move.intrusions.remove(0);
+        self.turn.intrusions.remove(0);
         Ok(())
     }
 
@@ -956,22 +819,45 @@ impl Game {
         }
     }
 
+    /// Marks the terror intrusion being answered as one where Moritani offered an alliance.
+    pub fn set_terror_alliance_offered(&mut self, offered: bool) {
+        if let Some(i) = self.turn.intrusions.first_mut().filter(|i| i.type_ == IntrusionType::Terror) {
+            i.alliance_offered = offered;
+        }
+    }
+
+    /// Who decides about the alliance Moritani offered instead of terror, while they do.
+    pub fn alliance_by_terror_offered_to(&self) -> Option<Faction> {
+        self.interrupts.iter().rev().find_map(|i| match i {
+            Interrupt::AllianceByTerror { offered_to } => *offered_to,
+            _ => None,
+        })
+    }
+
+    /// Who decides about the alliance an Ecaz ambassador offered, while they do.
+    pub fn alliance_by_ambassador_offered_to(&self) -> Option<Faction> {
+        self.interrupts.iter().rev().find_map(|i| match i {
+            Interrupt::AllianceByAmbassador { offered_to, .. } => Some(*offered_to),
+            _ => None,
+        })
+    }
+
     pub fn last_bene_gesserit_intrusion(&self) -> Option<Intrusion> {
-        match self.ship_move.intrusions.first() {
+        match self.turn.intrusions.first() {
             Some(i) if i.type_ == IntrusionType::BeneGesseritIntrusion => Some(i.clone()),
             _ => None,
         }
     }
 
     pub fn last_terror_trigger(&self) -> Option<Intrusion> {
-        match self.ship_move.intrusions.first() {
+        match self.turn.intrusions.first() {
             Some(i) if i.type_ == IntrusionType::Terror => Some(i.clone()),
             _ => None,
         }
     }
 
     pub fn last_ambassador_trigger(&self) -> Option<Intrusion> {
-        match self.ship_move.intrusions.first() {
+        match self.turn.intrusions.first() {
             Some(i) if i.type_ == IntrusionType::Ambassador => Some(i.clone()),
             _ => None,
         }
@@ -1003,6 +889,102 @@ pub struct Intrusion {
     /// Where the forces went (`LocationEvent.To` of the event).
     pub to: Option<Location>,
     pub type_: IntrusionType,
+    /// For a terror intrusion: Moritani offered an alliance instead and it was refused, so they
+    /// may neither pass nor offer again.
+    pub alliance_offered: bool,
+}
+
+/// What made forces enter the territory of an intrusion: a step of the shipment and move
+/// phase, a Caravan, a revival to the planet, or a worm ride.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum IntrusionCause {
+    NonGuildShip,
+    GuildShip,
+    BeneGesseritAccompaniesNonGuildShip,
+    BeneGesseritAccompaniesGuildShip,
+    NonGuildMove,
+    GuildMove,
+    Caravan,
+    Revival,
+    WormRideA,
+    WormRideB,
+}
+
+impl IntrusionCause {
+    /// The cause of an intrusion during the step `phase`, if forces enter territories in it.
+    pub fn of_step(phase: Phase) -> Option<IntrusionCause> {
+        Some(match phase {
+            Phase::NonGuildShip => IntrusionCause::NonGuildShip,
+            Phase::GuildShip => IntrusionCause::GuildShip,
+            Phase::BeneGesseritAccompaniesNonGuildShip => IntrusionCause::BeneGesseritAccompaniesNonGuildShip,
+            Phase::BeneGesseritAccompaniesGuildShip => IntrusionCause::BeneGesseritAccompaniesGuildShip,
+            Phase::NonGuildMove => IntrusionCause::NonGuildMove,
+            Phase::GuildMove => IntrusionCause::GuildMove,
+            Phase::FremenRidingMonsterA => IntrusionCause::WormRideA,
+            Phase::FremenRidingMonsterB => IntrusionCause::WormRideB,
+            _ => return None,
+        })
+    }
+
+    /// The phase shown while an intrusion of `kind` with this cause waits.
+    /// [`Interrupt::intrusion`] never builds a Bene Gesserit or terror intrusion caused by the
+    /// Bene Gesserit accompanying a shipment, so `TerrorTriggeredByBeneGesseritAccompanies*`
+    /// are never shown.
+    pub fn intrusion_phase(self, kind: IntrusionType) -> Phase {
+        use IntrusionCause as C;
+        match kind {
+            IntrusionType::BeneGesseritIntrusion => match self {
+                C::NonGuildShip | C::BeneGesseritAccompaniesNonGuildShip => Phase::BeneGesseritIntrudedByNonGuildShip,
+                C::GuildShip | C::BeneGesseritAccompaniesGuildShip => Phase::BeneGesseritIntrudedByGuildShip,
+                C::NonGuildMove => Phase::BeneGesseritIntrudedByNonGuildMove,
+                C::GuildMove => Phase::BeneGesseritIntrudedByGuildMove,
+                C::Caravan => Phase::BeneGesseritIntrudedByCaravan,
+                C::Revival => Phase::BeneGesseritIntrudedByRevival,
+                C::WormRideA => Phase::BeneGesseritIntrudedByFremenRidingMonsterA,
+                C::WormRideB => Phase::BeneGesseritIntrudedByFremenRidingMonsterB,
+            },
+            IntrusionType::Terror => match self {
+                C::NonGuildShip => Phase::TerrorTriggeredByNonGuildShip,
+                C::GuildShip => Phase::TerrorTriggeredByGuildShip,
+                C::BeneGesseritAccompaniesNonGuildShip => Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip,
+                C::BeneGesseritAccompaniesGuildShip => Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip,
+                C::NonGuildMove => Phase::TerrorTriggeredByNonGuildMove,
+                C::GuildMove => Phase::TerrorTriggeredByGuildMove,
+                C::Caravan => Phase::TerrorTriggeredByCaravan,
+                C::Revival => Phase::TerrorTriggeredByRevival,
+                C::WormRideA => Phase::TerrorTriggeredByFremenRidingMonsterA,
+                C::WormRideB => Phase::TerrorTriggeredByFremenRidingMonsterB,
+            },
+            IntrusionType::Ambassador => match self {
+                C::NonGuildShip => Phase::AmbassadorTriggeredByNonGuildShip,
+                C::GuildShip => Phase::AmbassadorTriggeredByGuildShip,
+                C::BeneGesseritAccompaniesNonGuildShip => Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip,
+                C::BeneGesseritAccompaniesGuildShip => Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip,
+                C::NonGuildMove => Phase::AmbassadorTriggeredByNonGuildMove,
+                C::GuildMove => Phase::AmbassadorTriggeredByGuildMove,
+                C::Caravan => Phase::AmbassadorTriggeredByCaravan,
+                C::Revival => Phase::AmbassadorTriggeredByRevival,
+                C::WormRideA => Phase::AmbassadorTriggeredByFremenRidingMonsterA,
+                C::WormRideB => Phase::AmbassadorTriggeredByFremenRidingMonsterB,
+            },
+        }
+    }
+}
+
+impl Interrupt {
+    /// The intrusion of `kind` caused by `cause`. Only an ambassador keeps the Bene Gesserit
+    /// accompanying a shipment as its cause. A Bene Gesserit intrusion or a terror token counts
+    /// as caused by the shipment itself, so the game goes on from the shipment step when it is
+    /// answered (C# parity).
+    pub fn intrusion(kind: IntrusionType, cause: IntrusionCause) -> Interrupt {
+        let cause = match (kind, cause) {
+            (IntrusionType::Ambassador, _) => cause,
+            (_, IntrusionCause::BeneGesseritAccompaniesNonGuildShip) => IntrusionCause::NonGuildShip,
+            (_, IntrusionCause::BeneGesseritAccompaniesGuildShip) => IntrusionCause::GuildShip,
+            _ => cause,
+        };
+        Interrupt::Intrusion { kind, cause }
+    }
 }
 
 impl Intrusion {
@@ -1081,8 +1063,8 @@ impl GameStatus {
 
             Phase::AllianceByTerror => {
                 let a = express!("Please decide about entering an alliance offered to you by ", Faction::Moritani);
-                let w = express!(game.ship_move.alliance_by_terror_offered_to, " are considering entering an alliance with ", Faction::Moritani, "...");
-                let f = game.ship_move.alliance_by_terror_offered_to;
+                let f = game.alliance_by_terror_offered_to();
+                let w = express!(f, " are considering entering an alliance with ", Faction::Moritani, "...");
                 Self::faction_status(game, a, w, f, None)
             }
 
@@ -1104,8 +1086,8 @@ impl GameStatus {
 
             Phase::AllianceByAmbassador => {
                 let a = express!("Please decide about entering an alliance offered to you by ", Faction::Ecaz);
-                let w = express!(game.ship_move.alliance_by_ambassador_offered_to, " are considering entering an alliance with ", Faction::Ecaz, "...");
-                let f = game.ship_move.alliance_by_ambassador_offered_to;
+                let f = game.alliance_by_ambassador_offered_to();
+                let w = express!(f, " are considering entering an alliance with ", Faction::Ecaz, "...");
                 Self::faction_status(game, a, w, f, None)
             }
 
@@ -1146,13 +1128,13 @@ impl Game {
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
         match self.phase() {
             Phase::AllianceByTerror => {
-                if faction == self.ship_move.alliance_by_terror_offered_to {
+                if faction == self.alliance_by_terror_offered_to() {
                     result.push(EventType::AllianceByTerror);
                 }
             }
 
             Phase::AllianceByAmbassador => {
-                if faction == self.ship_move.alliance_by_ambassador_offered_to {
+                if faction == self.alliance_by_ambassador_offered_to() {
                     result.push(EventType::AllianceByAmbassador);
                 }
             }

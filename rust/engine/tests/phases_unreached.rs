@@ -21,9 +21,9 @@ fn moritani_to_low_threshold(g: &mut Game) {
 // Terror triggered while Bene Gesserit accompany a shipment.
 //
 // `TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip` and `...GuildShip` are never entered:
-// `determine_next_shipment_and_move_sub_phase_on_terror_triggered` sends a token triggered by
-// accompanying forces to the shipment's own phase, as C# did. The game then goes on to the move
-// without asking Bene Gesserit to accompany again.
+// `Interrupt::intrusion` counts a token triggered by accompanying forces as triggered by the
+// shipment itself, as C# did. The game then goes on to the move without asking Bene Gesserit to
+// accompany again.
 //
 // Bene Gesserit can only accompany into the shipment's territory (or the Polar Sink), so the
 // shipment itself mustn't trigger the token: here Moritani, or its ally, ship.
@@ -41,8 +41,8 @@ fn terror_triggered_by_bene_gesserit_accompanying_a_non_guild_shipment() {
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::TerrorTriggeredByNonGuildShip);
     assert_eq!(asked(&mut g, EventType::TerrorRevealed), [Faction::Moritani]);
-    assert_eq!(g.ship_move.intrusions.len(), 1);
-    assert_eq!(g.ship_move.intrusions[0].initiator(), Faction::BeneGesserit);
+    assert_eq!(g.turn.intrusions.len(), 1);
+    assert_eq!(g.turn.intrusions[0].initiator(), Faction::BeneGesserit);
 
     accept(&mut g, &terror_passed());
     assert_eq!(phase(&g), Phase::NonGuildMove);
@@ -63,7 +63,7 @@ fn terror_triggered_by_bene_gesserit_accompanying_the_guilds_shipment() {
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::TerrorTriggeredByGuildShip);
     assert_eq!(asked(&mut g, EventType::TerrorRevealed), [Faction::Moritani]);
-    assert_eq!(g.ship_move.intrusions[0].initiator(), Faction::BeneGesserit);
+    assert_eq!(g.turn.intrusions[0].initiator(), Faction::BeneGesserit);
 
     accept(&mut g, &terror_passed());
     assert_eq!(phase(&g), Phase::GuildMove);
@@ -86,7 +86,7 @@ fn bene_gesserit_accompanying_dont_trigger_terror_when_moritani_is_at_its_low_th
     assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::NonGuildMove);
-    assert!(g.ship_move.intrusions.is_empty());
+    assert!(g.turn.intrusions.is_empty());
 }
 
 // Ambassadors and Bene Gesserit accompanying a shipment.
@@ -117,7 +117,7 @@ fn bene_gesserit_fighters_accompanying_a_non_guild_shipment_dont_trigger_an_amba
     assert_eq!((g.player(bg).forces_in(Some(to)), g.player(bg).special_forces_in(Some(to))), (1, 0), "one fighter");
     // Today's behavior; see the rules question above.
     assert_eq!(phase(&g), Phase::NonGuildMove);
-    assert!(g.ship_move.intrusions.is_empty());
+    assert!(g.turn.intrusions.is_empty());
     assert_eq!(g.ambassador_in(to.territory()), Some(a));
 }
 
@@ -137,7 +137,7 @@ fn bene_gesserit_fighters_accompanying_the_guilds_shipment_dont_trigger_an_ambas
     assert_eq!(g.player(bg).forces_in(Some(to)), 1, "one fighter");
     // Today's behavior; see the rules question above.
     assert_eq!(phase(&g), Phase::GuildMove);
-    assert!(g.ship_move.intrusions.is_empty());
+    assert!(g.turn.intrusions.is_empty());
 }
 
 // BlowA and BlowB.

@@ -137,7 +137,7 @@ fn enter(trigger: Trigger, obstacle: Obstacle, entered: Phase) -> Game {
     let before = phase(&g);
     accept(&mut g, &event);
     assert_eq!(phase(&g), entered, "{trigger:?} into {obstacle:?}, from {before:?}");
-    assert_eq!(g.ship_move.intrusions.len(), 1, "one intrusion waits");
+    assert_eq!(g.turn.intrusions.len(), 1, "one intrusion waits");
     let (reaction_type, reacting, _) = reaction(obstacle);
     assert_eq!(asked(&mut g, reaction_type), [reacting], "who may react");
     g
@@ -149,7 +149,7 @@ fn resume(trigger: Trigger, obstacle: Obstacle, entered: Phase, resumed: Phase) 
     let (_, _, reaction) = reaction(obstacle);
     accept(&mut g, &reaction);
     assert_eq!(phase(&g), resumed, "after {obstacle:?} reacted to {trigger:?}");
-    assert!(g.ship_move.intrusions.is_empty());
+    assert!(g.turn.intrusions.is_empty());
     g
 }
 
@@ -212,7 +212,6 @@ intrusion!(ambassador_by_non_guild_move, NonGuildMove, Ambassador, AmbassadorTri
 // Caravan, played instead of shipping: Tleilaxu still ship.
 fn tleilaxu_still_ship(g: &mut Game) {
     assert_eq!(asked(g, EventType::Shipment), [Faction::Tleilaxu]);
-    assert_eq!(g.ship_move.phase_before_caravan_caused_intrusion, Some(Phase::NonGuildShip));
 }
 
 intrusion!(bene_gesserit_by_caravan, Caravan, BeneGesserit, BeneGesseritIntrudedByCaravan, NonGuildShip, |g| tleilaxu_still_ship(&mut g));
@@ -222,7 +221,6 @@ intrusion!(ambassador_by_caravan, Caravan, Ambassador, AmbassadorTriggeredByCara
 // A revival to the planet: back to the revival phase, where Tleilaxu, with two forces left in
 // the tanks, may revive again.
 fn back_to_revivals(g: &mut Game) {
-    assert_eq!(g.ship_move.phase_before_revival_caused_intrusion, Some(Phase::Resurrection));
     assert_eq!(asked(g, EventType::Revival), [Faction::Tleilaxu]);
 }
 
@@ -251,3 +249,84 @@ fn after_ride_b(g: &mut Game) {
 intrusion!(bene_gesserit_by_worm_ride_b, WormRideB, BeneGesserit, BeneGesseritIntrudedByFremenRidingMonsterB, BlowReport, |g| after_ride_b(&mut g));
 intrusion!(terror_by_worm_ride_b, WormRideB, Terror, TerrorTriggeredByFremenRidingMonsterB, BlowReport, |g| after_ride_b(&mut g));
 intrusion!(ambassador_by_worm_ride_b, WormRideB, Ambassador, AmbassadorTriggeredByFremenRidingMonsterB, BlowReport, |g| after_ride_b(&mut g));
+
+// Alliances offered instead of terror or by the Ecaz ambassador: the offer interrupts the
+// intrusion, and the game goes back to it when the offer is answered.
+
+fn terror_offering_alliance() -> String {
+    format!(
+        r#"{{"$type":"TerrorRevealed","AllianceOffered":true,"Type":0,"ForcesInSneakAttack":0,"RobberyTakesCard":false,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":false,"Initiator":{MORITANI}}}"#
+    )
+}
+
+fn terror_robbery() -> String {
+    format!(
+        r#"{{"$type":"TerrorRevealed","AllianceOffered":false,"Type":60,"ForcesInSneakAttack":0,"RobberyTakesCard":false,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":false,"Initiator":{MORITANI}}}"#
+    )
+}
+
+fn alliance_by_terror(f: i32, accept: bool) -> String {
+    format!(r#"{{"$type":"AllianceByTerror","Passed":{},"Initiator":{f}}}"#, !accept)
+}
+
+#[test]
+fn a_refused_alliance_by_terror_goes_back_to_the_terror_which_must_be_revealed() {
+    let mut g = enter(Trigger::NonGuildShip, Obstacle::Terror, Phase::TerrorTriggeredByNonGuildShip);
+    assert!(TerrorRevealed::may_pass(&g));
+    accept(&mut g, &terror_offering_alliance());
+    assert_eq!(phase(&g), Phase::AllianceByTerror);
+    assert_eq!(asked(&mut g, EventType::AllianceByTerror), [Faction::Tleilaxu]);
+
+    accept(&mut g, &alliance_by_terror(TLEILAXU, false));
+    assert_eq!(phase(&g), Phase::TerrorTriggeredByNonGuildShip);
+    assert!(!TerrorRevealed::may_pass(&g), "after a refused offer, Moritani must reveal");
+    assert!(!TerrorRevealed::may_offer_alliance(&g));
+
+    accept(&mut g, &terror_robbery());
+    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
+    assert!(g.turn.intrusions.is_empty());
+    assert!(g.interrupts.is_empty());
+}
+
+#[test]
+fn an_accepted_alliance_by_terror_returns_the_terror_and_goes_on() {
+    let mut g = enter(Trigger::NonGuildShip, Obstacle::Terror, Phase::TerrorTriggeredByNonGuildShip);
+    accept(&mut g, &terror_offering_alliance());
+    accept(&mut g, &alliance_by_terror(TLEILAXU, true));
+    assert_eq!(g.player(idx(&g, Faction::Tleilaxu)).ally, Some(Faction::Moritani));
+    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
+    assert!(g.turn.intrusions.is_empty());
+}
+
+fn ecaz_offering_alliance() -> String {
+    format!(r#"{{"$type":"AmbassadorActivated","EcazOfferAlliance":true,"EcazGiveVidalToAlly":false,"EcazTakeVidal":false,"Passed":false,"Initiator":{ECAZ}}}"#)
+}
+
+fn alliance_by_ambassador(f: i32, accept: bool) -> String {
+    format!(r#"{{"$type":"AllianceByAmbassador","Passed":{},"Initiator":{f}}}"#, !accept)
+}
+
+fn after_ecaz_ambassador(accept_offer: bool) -> Game {
+    let (mut g, event, to) = prepare(Trigger::NonGuildShip);
+    put_ambassador(&mut g, to.territory(), Ambassador::Ecaz);
+    accept(&mut g, &event);
+    assert_eq!(phase(&g), Phase::AmbassadorTriggeredByNonGuildShip);
+    accept(&mut g, &ecaz_offering_alliance());
+    assert_eq!(phase(&g), Phase::AllianceByAmbassador);
+    assert_eq!(asked(&mut g, EventType::AllianceByAmbassador), [Faction::Tleilaxu]);
+    accept(&mut g, &alliance_by_ambassador(TLEILAXU, accept_offer));
+    g
+}
+
+#[test]
+fn an_alliance_by_ambassador_goes_on_from_the_shipment_either_way() {
+    let g = after_ecaz_ambassador(true);
+    assert_eq!(g.player(idx(&g, Faction::Tleilaxu)).ally, Some(Faction::Ecaz));
+    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
+    assert!(g.interrupts.is_empty());
+
+    let g = after_ecaz_ambassador(false);
+    assert_eq!(g.player(idx(&g, Faction::Tleilaxu)).ally, None);
+    assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
+    assert!(g.interrupts.is_empty());
+}

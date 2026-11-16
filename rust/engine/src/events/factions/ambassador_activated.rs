@@ -192,7 +192,6 @@ impl AmbassadorActivated {
 
             Ambassador::Ecaz => {
                 if self.ecaz_offer_alliance {
-                    game.ship_move.alliance_by_ambassador_offered_to = Some(victim);
                     let vidal = game.vidal();
                     game.log(parts![
                             by.faction,
@@ -200,10 +199,14 @@ impl AmbassadorActivated {
                             victim,
                             express_part_if!(self.ecaz_give_vidal_to_ally; " offering ", vidal, " if they accept")
                         ]);
-                    game.ship_move.paused_ambassador_phase = Some(game.phase());
-                    game.enter(Phase::AllianceByAmbassador, true);
+                    game.interrupt(Interrupt::AllianceByAmbassador {
+                        offered_to: victim,
+                        offered_by: by,
+                        give_vidal_to_ally: self.ecaz_give_vidal_to_ally,
+                        take_vidal: self.ecaz_take_vidal,
+                    });
                 } else {
-                    if game.ship_move.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {
+                    if self.ecaz_take_vidal {
                         game.take_vidal(by.player(), VidalMoment::Never);
                     }
 
@@ -438,11 +441,6 @@ impl EventRules for AmbassadorActivated {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.ship_move.current_ambassador_activated = Some(AmbassadorActivation {
-            submitter: by,
-            ecaz_give_vidal_to_ally: self.ecaz_give_vidal_to_ally,
-            ecaz_take_vidal: self.ecaz_take_vidal,
-        });
         let ambassador_faction = AmbassadorActivated::get_ambassador(game);
         let territory = AmbassadorActivated::get_territory(game);
         let victim = AmbassadorActivated::get_victim(game);

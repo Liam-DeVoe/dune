@@ -75,10 +75,7 @@ impl EventRules for Caravan {
         }
 
         if game.check_intrusion(&event, by.faction.expect("faction"))? {
-            game.ship_move.phase_before_caravan_caused_intrusion = Some(game.phase());
-            let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
-            let terror = game.last_terror_trigger().is_some();
-            game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByCaravan)), (terror, Step::Enter(Phase::TerrorTriggeredByCaravan))], Step::Enter(Phase::AmbassadorTriggeredByCaravan))?;
+            game.show_first_intrusion(IntrusionCause::Caravan)?;
         }
         Ok(())
     }

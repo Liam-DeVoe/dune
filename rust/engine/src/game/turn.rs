@@ -88,6 +88,9 @@ pub struct TurnState {
     pub current_ixian_cunning: Option<NexusCardPlayed>,
     pub harkonnen_traitor_was_cancelled: bool,
     pub facedancer_was_cancelled: bool,
+    /// The intrusions waiting for an answer, the next first. The one being answered is also
+    /// shown by an `Interrupt::Intrusion`.
+    pub intrusions: Vec<Intrusion>,
 }
 
 impl TurnState {
@@ -124,6 +127,7 @@ impl TurnState {
             current_ixian_cunning: None,
             harkonnen_traitor_was_cancelled: Default::default(),
             facedancer_was_cancelled: Default::default(),
+            intrusions: Vec::new(),
         }
     }
 }
@@ -179,7 +183,7 @@ impl Game {
         // An intrusion is answered right after the shipment or move that caused it. One still
         // queued when a new phase starts can no longer be answered, and would take the place of
         // the next real one (escapes.md, "A Bene Gesserit intrusion left over from another phase").
-        self.ship_move.intrusions.clear();
+        self.turn.intrusions.clear();
     }
 
     pub fn main_phase_middle(&mut self) {

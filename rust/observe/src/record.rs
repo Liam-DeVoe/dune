@@ -43,6 +43,10 @@ struct Recorder<'a> {
     events: usize,
     /// Report reach (`RecordOptions::reach`).
     reach: bool,
+    /// Trace lines written so far, the header included.
+    lines: usize,
+    /// The trace lines that carry full views (`RecordOptions::full_views_lines`).
+    full_views_lines: Option<(usize, usize)>,
 }
 
 /// `2024-01-01T12:00:00+00:00` plus `secs`, as .NET writes a `DateTimeOffset`.
@@ -71,10 +75,16 @@ fn to_object(e: &GameEvent) -> Map<String, Value> {
 
 impl<'a> Recorder<'a> {
     fn emit(&mut self, line: Line) {
+        self.lines += 1;
         let _ = self.tx.send(Msg::Line(line));
     }
 
-    fn begin(&self, line: &Line) {
+    /// Announces the call of the next line, and builds full views for it if it is in
+    /// `full_views_lines`.
+    fn begin(&mut self, line: &Line) {
+        if let Some((from, to)) = self.full_views_lines {
+            self.sess.full_views = (from..=to).contains(&(self.lines + 1));
+        }
         let _ = self.tx.send(Msg::Begin(line.clone()));
     }
 
@@ -526,6 +536,10 @@ pub struct RecordOptions {
     pub seed: u64,
     pub index: u64,
     pub full_views: bool,
+    /// With `full_views`: only these trace lines (numbered from 1, the header, both included)
+    /// carry full views. A late difference in a long game can't be shown with every line's
+    /// full views, which take gigabytes.
+    pub full_views_lines: Option<(usize, usize)>,
     /// How views are hashed ([`ViewHash::LATEST`] unless an old trace must be matched).
     pub view_hash: ViewHash,
     pub budgets: Budgets,
@@ -537,6 +551,7 @@ pub struct RecordOptions {
 /// Records one game and writes its trace to `out`. Returns the end reason.
 pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<String> {
     let (mode, seed, index, full_views, reach, view_hash) = (o.mode.clone(), o.seed, o.index, o.full_views, o.reach, o.view_hash);
+    let full_views_lines = o.full_views_lines.filter(|_| full_views);
     let mut reason = String::from("?");
     let mut error: Option<std::io::Error> = None;
     let mut write = |text: Option<String>, out: &mut dyn Write| {
@@ -576,7 +591,7 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
             let _ = tx.send(Msg::Line(Line::Header(header)));
             let shadow = fuzzing.then(|| Shadow::new(&sess.game));
             let fuzz = fuzzing.then(|| Fuzzer::new(rng.next_u64()).with_seating(sess.seating.clone()));
-            let mut r = Recorder { tx, sess, rng, game_seed, cfg, fuzz, shadow, clock: 0, events: 0, reach };
+            let mut r = Recorder { tx, sess, rng, game_seed, cfg, fuzz, shadow, clock: 0, events: 0, reach, lines: 1, full_views_lines };
             // A panic in the recorder's own reads (host actions, fuzz values) ends the game; the
             // replayer stops at the end line like for any other reason.
             let played = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| r.play()));

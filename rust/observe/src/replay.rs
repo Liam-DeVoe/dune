@@ -140,6 +140,8 @@ impl<'a> Replayer<'a> {
             Line::Event { host, event, outcome, .. } => {
                 // The working tree decodes the reference's event itself. An event it can't decode
                 // is `unreadable`, which compares like a rejection.
+                // Full views where the trace has them: it may have them only at some lines.
+                self.sess().full_views = outcome.obs.full.is_some();
                 let actual = match events::from_reference(event) {
                     Ok(ev) => self.sess().submit_event(ev, *host),
                     Err(e) => Ok(EventOutcome { result: "unreadable".into(), message: Some(e), obs: Obs::default() }),
@@ -155,6 +157,7 @@ impl<'a> Replayer<'a> {
             }
             Line::Undo { outcome, .. } | Line::Restore { outcome } | Line::Dismiss { outcome } => {
                 let until = if let Line::Undo { until, .. } = line { *until } else { 0 };
+                self.sess().full_views = outcome.obs.full.is_some();
                 let actual = match self.sess().special(line.op(), until) {
                     Ok(o) => o,
                     Err(e) if outcome.panic => return Ok(self.expected_panic(e.0)),

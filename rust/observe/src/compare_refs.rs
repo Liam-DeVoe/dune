@@ -10,7 +10,7 @@ use std::time::Instant;
 
 use crate::allow::Allow;
 use crate::compare::{self, show, Diff};
-use crate::live::{record_with_reference, record_with_reference_args, Game, GameResult};
+use crate::live::{full_views_lines, record_with_reference_args, Game, GameResult};
 use crate::replay::{Mismatch, Outcome};
 use crate::trace::{self, Line};
 use crate::view_hash::ViewHash;
@@ -155,18 +155,19 @@ pub fn compare_traces(a: &[u8], b: &[u8], allow: &Allow) -> Outcome {
 }
 
 /// Records one game with both binaries and compares them. A failure is recorded again with full
-/// views, so the report can show which view fields differ. Returns both traces of a failure.
+/// views at its first difference, so the report can show which view fields differ. Returns both traces of a failure.
 fn check_game(o: &Options, g: &Game) -> (GameResult, Option<(Vec<u8>, Vec<u8>)>) {
     let start = Instant::now();
     let done = |outcome, traces| (GameResult { game: g.clone(), outcome, trace: None, seconds: start.elapsed().as_secs_f64() }, traces);
-    let record = |full| -> Result<(Vec<u8>, Vec<u8>), String> {
-        let mut a = record_with_reference(&o.a, g, full, &o.budgets).map_err(|e| format!("A: {e}"))?;
-        let mut b = record_with_reference(&o.b, g, full, &o.budgets).map_err(|e| format!("B: {e}"))?;
+    let record = |full, lines: &[String]| -> Result<(Vec<u8>, Vec<u8>), String> {
+        let mut a = record_with_reference_args(&o.a, g, full, lines, &o.budgets).map_err(|e| format!("A: {e}"))?;
+        let mut b = record_with_reference_args(&o.b, g, full, lines, &o.budgets).map_err(|e| format!("B: {e}"))?;
         // A recorder from before `--view-hash` hashes views with SHA-256. A newer one is asked
         // to do the same, so their view hashes compare.
         let (ha, hb) = (view_hash(&a), view_hash(&b));
         if ha != hb {
-            let sha = ["--view-hash", ViewHash::Sha256.name()];
+            let mut sha = lines.to_vec();
+            sha.extend(["--view-hash".to_string(), ViewHash::Sha256.name().to_string()]);
             if ha != Some(ViewHash::Sha256) {
                 a = record_with_reference_args(&o.a, g, full, &sha, &o.budgets).map_err(|e| format!("A: {e}"))?;
             }
@@ -176,7 +177,7 @@ fn check_game(o: &Options, g: &Game) -> (GameResult, Option<(Vec<u8>, Vec<u8>)>)
         }
         Ok((a, b))
     };
-    let (a, b) = match record(false) {
+    let (a, b) = match record(false, &[]) {
         Ok(t) => t,
         Err(e) => return done(Outcome::Bad(e), None),
     };
@@ -184,7 +185,7 @@ fn check_game(o: &Options, g: &Game) -> (GameResult, Option<(Vec<u8>, Vec<u8>)>)
     if outcome.passed() || matches!(outcome, Outcome::Bad(_)) {
         return done(outcome, None);
     }
-    match record(true) {
+    match record(true, &full_views_lines(&outcome, &o.allow)) {
         // With full views, view rules of the allow file can accept a view difference.
         // A long game can run out of memory with full views, so the detailed comparison is used
         // only when it finds the same difference, or accepts a view difference by a view rule.

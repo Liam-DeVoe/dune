@@ -20,10 +20,11 @@ observe: records games with the reference build and replays them through the wor
 
 Usage:
   observe record --mode bots|fuzz --seed S --game I [--full-views] [--out FILE]
-                 [--view-hash sha256|fold64]
+                 [--full-views-from L] [--full-views-to M] [--view-hash sha256|fold64]
       Record one game and write its trace (JSON Lines) to FILE, or to stdout. This is the
       command the reference binary runs. Views are hashed with fold64 unless --view-hash says
-      otherwise (sha256 makes a trace that an older recorder's traces compare with).
+      otherwise (sha256 makes a trace that an older recorder's traces compare with). With
+      --full-views-from or -to, only trace lines L to M (the header is line 1) have full views.
   observe live --mode bots|fuzz --seed S --games N [--start I] [--jobs J]
                [--reference BIN] [--allow FILE] [--keep-failures DIR] [-v]
       Record games with the reference binary and replay each one through the working tree as it
@@ -31,8 +32,9 @@ Usage:
       for the first failing game, the command that shows its difference in detail.
   observe first --mode bots|fuzz --seed S --game I [--reference BIN] [--allow FILE]
   observe first FILE [--allow FILE]
-      Replay one game (recorded now by the reference, with full views, or read from a trace
-      file) and describe its first difference in detail, with a diff of the view that differs.
+      Replay one game (recorded now by the reference, or read from a trace file) and describe
+      its first difference in detail, with a diff of the view that differs. A game recorded now
+      that fails is recorded again with full views at that difference, as live does.
   observe compare-refs A B --mode bots|fuzz --seed S --games N [--start I] [--jobs J]
                [--allow FILE] [--keep-failures DIR] [-v]
       Record the same games with reference binaries A and B and compare what players observe:
@@ -153,6 +155,10 @@ fn cmd_record(args: &Args) -> Result<bool, String> {
         seed: args.required("seed")?,
         index: args.required("game")?,
         full_views: args.has("full-views"),
+        full_views_lines: match (args.get("full-views-from"), args.get("full-views-to")) {
+            (None, None) => None,
+            _ => Some((args.num("full-views-from", 1)?, args.num("full-views-to", usize::MAX)?)),
+        },
         view_hash: match args.get("view-hash") {
             None => ViewHash::LATEST,
             Some(name) => ViewHash::parse(name).ok_or_else(|| format!("--view-hash: sha256 or fold64, not {name}"))?,
@@ -300,12 +306,13 @@ fn cmd_first(args: &Args) -> Result<bool, String> {
         (file.clone(), replay::replay(reader, allow, &budgets))
     } else {
         let g = Game { mode: args.mode()?, seed: args.required("seed")?, index: args.required("game")? };
-        let trace = live::record_with_reference(&reference(args)?, &g, true, &budgets)?;
-        if let Some(dir) = args.get("keep") {
+        // As `live` does: a game that fails is recorded again with full views at its first difference.
+        let r = live::check_game(&reference(args)?, &g, &allow, &budgets);
+        if let (Some(dir), Some(trace)) = (args.get("keep"), &r.trace) {
             std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-            std::fs::write(PathBuf::from(dir).join(format!("{}.jsonl", g.name())), &trace).map_err(|e| e.to_string())?;
+            std::fs::write(PathBuf::from(dir).join(format!("{}.jsonl", g.name())), trace).map_err(|e| e.to_string())?;
         }
-        (g.name(), replay::replay(Box::new(std::io::Cursor::new(trace)), allow, &budgets))
+        (g.name(), r.outcome)
     };
     print!("{}", report::describe(&name, &outcome));
     Ok(outcome.passed())

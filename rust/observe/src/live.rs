@@ -52,7 +52,7 @@ pub fn record_with_reference(reference: &Path, g: &Game, full_views: bool, budge
 }
 
 /// [`record_with_reference`] with more arguments for `record`.
-pub fn record_with_reference_args(reference: &Path, g: &Game, full_views: bool, extra: &[&str], budgets: &Budgets) -> Result<Vec<u8>, String> {
+pub fn record_with_reference_args(reference: &Path, g: &Game, full_views: bool, extra: &[String], budgets: &Budgets) -> Result<Vec<u8>, String> {
     let mut c = Command::new(reference);
     c.args(["record", "--mode", &g.mode, "--seed", &g.seed.to_string(), "--game", &g.index.to_string()])
         .args(["--hang-seconds", &budgets.hang.as_secs().to_string(), "--memory-mb", &(budgets.memory >> 20).to_string()]);
@@ -68,12 +68,27 @@ pub fn record_with_reference_args(reference: &Path, g: &Game, full_views: bool, 
     Ok(out.stdout)
 }
 
+/// The `record` arguments that put full views only where they can show the first difference of
+/// a failed game: at its line, or from there to the end when the allow file has view rules,
+/// which may accept that difference and need full views for the lines after it. Full views of
+/// every line of a long game take gigabytes. A recorder from before these arguments ignores
+/// them and records full views everywhere.
+pub fn full_views_lines(failed: &Outcome, allow: &Allow) -> Vec<String> {
+    let Outcome::Fail(m) = failed else { return vec![] };
+    let mut args = vec!["--full-views-from".to_string(), m.line.to_string()];
+    if !allow.has_view_rules() {
+        args.extend(["--full-views-to".to_string(), m.line.to_string()]);
+    }
+    args
+}
+
 fn replay_bytes(trace: Vec<u8>, allow: &Arc<Allow>, budgets: &Budgets) -> Outcome {
     replay::replay(Box::new(std::io::Cursor::new(trace)), allow.clone(), budgets)
 }
 
-/// Records and replays one game. A failure is recorded again with full views, so the report can
-/// show which view fields differ and view rules of the allow file can apply.
+/// Records and replays one game. A failure is recorded again with full views at its first
+/// difference ([`full_views_lines`]), so the report can show which view fields differ and view
+/// rules of the allow file can apply.
 pub fn check_game(reference: &Path, g: &Game, allow: &Arc<Allow>, budgets: &Budgets) -> GameResult {
     let start = Instant::now();
     let done = |outcome, trace| GameResult { game: g.clone(), outcome, trace, seconds: start.elapsed().as_secs_f64() };
@@ -85,7 +100,7 @@ pub fn check_game(reference: &Path, g: &Game, allow: &Arc<Allow>, budgets: &Budg
     if outcome.passed() {
         return done(outcome, None);
     }
-    match record_with_reference(reference, g, true, budgets) {
+    match record_with_reference_args(reference, g, true, &full_views_lines(&outcome, allow), budgets) {
         Ok(full) => {
             let detailed = replay_bytes(full.clone(), allow, budgets);
             match detailed {

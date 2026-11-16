@@ -20,8 +20,11 @@ fn record(mode: &str, index: u64, full_views: bool) -> Vec<Value> {
 }
 
 fn record_hashed(mode: &str, index: u64, full_views: bool, view_hash: ViewHash) -> Vec<Value> {
+    record_with(RecordOptions { mode: mode.into(), seed: 7, index, full_views, budgets: budgets(), full_views_lines: None, reach: false, view_hash })
+}
+
+fn record_with(o: RecordOptions) -> Vec<Value> {
     let mut out = Vec::new();
-    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views, budgets: budgets(), reach: false, view_hash };
     record_game(&o, &mut out).unwrap();
     String::from_utf8(out).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }
@@ -237,6 +240,31 @@ fn full_views_show_the_fields_that_differ() {
     }
     // A view rule for that path accepts it.
     assert!(replay_lines(&lines, Allow::parse("view /turn").unwrap()).passed());
+}
+
+/// With full views on some lines only, only those lines carry them, and they still name the
+/// fields that differ.
+#[test]
+fn full_views_of_some_lines() {
+    let all = record("bots", 3, true);
+    let i = find(&all, 20, |l| l["full"].is_array());
+    let line = i + 1;
+    let o = RecordOptions { mode: "bots".into(), seed: 7, index: 3, full_views: true, budgets: budgets(), full_views_lines: Some((line, line)), reach: false, view_hash: ViewHash::LATEST };
+    let mut lines = record_with(o);
+    let with_full: Vec<usize> = (0..lines.len()).filter(|&j| lines[j]["full"].is_array()).collect();
+    assert_eq!(with_full, vec![i]);
+    assert_eq!(lines[i], all[i]);
+    assert!(replay_lines(&lines, Allow::default()).passed());
+
+    lines[i]["full"][0]["turn"] = Value::from(99);
+    lines[i]["views"][0] = Value::String("0123456789abcdef".into());
+    match replay_lines(&lines, Allow::default()) {
+        Outcome::Fail(m) => {
+            assert_eq!((m.line, m.key.as_str()), (line, "views"));
+            assert!(m.view_diff.iter().any(|d| d.starts_with("/turn: 99 -> ")), "{:?}", m.view_diff);
+        }
+        other => panic!("expected a difference, got {other:?}"),
+    }
 }
 
 #[test]

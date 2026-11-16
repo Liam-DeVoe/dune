@@ -14,7 +14,7 @@ use serde_json::Value;
 fn record(mode: &str, index: u64) -> Vec<Value> {
     let mut out = Vec::new();
     let budgets = Budgets { hang: Duration::from_secs(60), memory: 2048 << 20 };
-    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views: false, budgets, reach: false, view_hash: ViewHash::LATEST };
+    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views: false, budgets, full_views_lines: None, reach: false, view_hash: ViewHash::LATEST };
     record_game(&o, &mut out).unwrap();
     String::from_utf8(out).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }

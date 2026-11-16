@@ -14,8 +14,8 @@ fn fixture(name: &str) -> Game {
     let state = GameState::load(&text).expect("savegame");
     let mut game = Game::of_version(state.version);
     for e in state.events() {
-        e.initialize_game(&game);
-        assert!(e.execute(&mut game, false, false).is_none(), "{name}: {} failed", e.event_type().name());
+        let event_name = e.event_type().name();
+        assert!(game.play_for_message(e, false, false).is_none(), "{name}: {} failed", event_name);
     }
     game
 }
@@ -23,7 +23,7 @@ fn fixture(name: &str) -> Game {
 /// Submits `e` with validation; the refusal, if any.
 fn submit(g: &mut Game, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     let e = make(g);
-    e.execute(g, true, false).map(|m| m.plain_text())
+    g.play_for_message(HistoryEntry::legacy(e), true, false).map(|m| m.plain_text())
 }
 
 fn idx(g: &Game, f: Faction) -> PlayerId {
@@ -198,8 +198,8 @@ fn ally_permissions_without_an_ally_store_nothing() {
     let mut g = fixture("ship");
     let mut permission = AllyPermission::new(&g, Faction::Guild);
     permission.permitted_resources = 3;
-    let e = Event::AllyPermission(Rc::new(permission));
-    assert!(e.execute(&mut g, false, false).is_none());
+    let e = HistoryEntry::new(Faction::Guild, Rc::new(permission));
+    assert!(g.play_for_message(e, false, false).is_none());
     assert!(g.alliances.permitted_use_of_ally_spice.is_empty(), "{:?}", g.alliances.permitted_use_of_ally_spice);
 }
 
@@ -217,9 +217,9 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     let mut establish = EstablishPlayers::new(&g, None);
     establish.seed = 7;
     establish.settings = Some(s);
-    assert!(Event::EstablishPlayers(Rc::new(establish)).execute(&mut g, false, true).is_none());
-    let end = Event::EndPhase(Rc::new(EndPhase::new(&g, None)));
-    assert!(end.execute(&mut g, false, true).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(None, Rc::new(establish)), false, true).is_none());
+    let end = HistoryEntry::new(None, Rc::new(EndPhase::new(&g, None)));
+    assert!(g.play_for_message(end, false, true).is_none());
 
     let in_deck = |g: &Game, c: TreacheryCard| g.decks.treachery_deck.as_ref().unwrap().items.contains(&c);
     let both: Vec<TreacheryCard> = g.decks.richese_cache.iter().copied().filter(|c| in_deck(&g, *c)).collect();
@@ -241,7 +241,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);
     auction.direction = 1;
-    assert!(Event::RicheseSpecifiesAuction(Rc::new(auction)).execute(&mut g, false, false).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(Faction::Richese, Rc::new(auction)), false, false).is_none());
     assert!(!g.decks.richese_cache.contains(&sold));
     assert!(!in_deck(&g, sold));
 }
@@ -337,10 +337,7 @@ fn revival_fixture(name: &str) -> (Game, PlayerId) {
     let candidates: Vec<PlayerId> = g.player_indices().filter(|p| g.player(*p).faction != Some(Faction::Tleilaxu)).collect();
     let p = candidates
         .into_iter()
-        .find(|p| {
-            let r = Revival::new(&g, g.player(*p).faction);
-            r.is_applicable(&mut g, false)
-        })
+        .find(|p| g.get_applicable_events(Some(*p), false).contains(&EventType::Revival))
         .expect("a faction that may revive");
     g.player_mut(p).resources = 30;
     (g, p)

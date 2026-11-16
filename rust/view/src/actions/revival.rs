@@ -87,7 +87,7 @@ pub fn normalize(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let mut current = draft.clone();
     for _ in 0..8 {
         let next = normalize_once(game, p, &current);
-        if json::serialize(&next) == json::serialize(&current) {
+        if json::serialize(&HistoryEntry::new(None, next.clone())) == json::serialize(&HistoryEntry::new(None, current.clone())) {
             return next;
         }
         current = next;
@@ -225,12 +225,12 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
     let p = v.player?;
     let draft = normalize(game, p, draft);
     let options = options(game, p, &draft, d);
-    Some((Some(options), validate(game, draft, d)))
+    Some((Some(options), validate(game, game.player(p).faction, draft, d)))
 }
 
 fn options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOptions {
     let pl = game.player(p);
-    let json = draft_json(draft);
+    let json = draft_json(pl.faction, draft);
     match draft {
         Event::Revival(e) => {
             let (max_forces_on_planet, max_special_forces_on_planet) = revival_on_planet(game, p, e);

@@ -7,7 +7,7 @@ use std::io::Write;
 use std::sync::mpsc::Sender;
 
 use serde_json::{Map, Value};
-use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, FactionSelected, Event, EventType, PerformHmsPlacement, PerformSetup};
+use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, FactionSelected, EventType, HistoryEntry, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -61,7 +61,7 @@ fn time_text(secs: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}+00:00", rem / 3600, rem / 60 % 60, rem % 60)
 }
 
-fn to_object(e: &Event) -> Map<String, Value> {
+fn to_object(e: &HistoryEntry) -> Map<String, Value> {
     match serde_json::from_str(&json::serialize(e)) {
         Ok(Value::Object(m)) => m,
         _ => Map::new(),
@@ -219,7 +219,7 @@ impl<'a> Recorder<'a> {
             let types = self.query(Some(i), false)?;
             if types.contains(&EventType::AlliancePassed) {
                 let e = AlliancePassed::new(&self.sess.game, faction);
-                return Ok(Some((to_object(&treachery_view::build::event(e)), i)));
+                return Ok(Some((to_object(&HistoryEntry::legacy(treachery_view::build::event(e))), i)));
             }
         }
         Ok(None)
@@ -239,7 +239,7 @@ impl<'a> Recorder<'a> {
                     e.seat = Seat::number_or_minus_one(p.seat);
                     e.faction = Some(valid[self.rng.below(valid.len())]);
                     e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
-                    return Ok(Some(to_object(&treachery_view::build::event(e))));
+                    return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
                 }
             }
         }
@@ -249,13 +249,13 @@ impl<'a> Recorder<'a> {
             let mut e = CardsDetermined::new(game, None);
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
-            return Ok(Some(to_object(&treachery_view::build::event(e))));
+            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
         }
         if types.contains(&EventType::PerformSetup) {
             let mut e = PerformSetup::new(game, game.next_faction_to_perform_custom_setup());
             e.resources = treachery_engine::game::amounts::clamp_u16(self.rng.range(0, 21));
             e.force_locations = Some(String::new());
-            return Ok(Some(to_object(&treachery_view::build::event(e))));
+            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
         }
         if types.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
             let p = game.player_at(0);
@@ -263,11 +263,11 @@ impl<'a> Recorder<'a> {
             if !valid.is_empty() {
                 let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
                 e.target = Some(valid[self.rng.below(valid.len())]);
-                return Ok(Some(to_object(&treachery_view::build::event(e))));
+                return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
             }
         }
         if types.contains(&EventType::EndPhase) {
-            return Ok(Some(to_object(&treachery_view::build::event(EndPhase::new(game, None)))));
+            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(EndPhase::new(game, None))))));
         }
         Ok(None)
     }

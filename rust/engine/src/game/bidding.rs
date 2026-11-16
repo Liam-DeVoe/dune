@@ -380,7 +380,7 @@ impl Game {
             // C# parity: records a recent payment of receiverProfit while it is still 0.
             let initiator_faction = self.player(initiator).faction;
             let receiver_faction = self.player(receiver.required("The payment receiver")?).faction;
-            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid);
+            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.event_type());
         }
 
         if receiver.is_some() && self.player(initiator).faction != Some(payment_receiver) {
@@ -416,7 +416,7 @@ impl Game {
                 }
 
                 let initiator_faction = self.player(initiator).faction;
-                self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid);
+                self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.event_type());
             }
         } else if total_amount_received_by_emperor_instead_of_richese > 0 {
             *message = express_part!(" → ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));

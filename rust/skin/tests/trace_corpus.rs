@@ -16,7 +16,7 @@ use std::path::Path;
 use common::*;
 use serde_json::Value;
 use treachery_engine::enumerations::*;
-use treachery_engine::events::Event;
+use treachery_engine::events::{By, Event, HistoryEntry};
 use treachery_engine::game::Game;
 use treachery_engine::prelude::{IndexMap, IndexSet};
 use treachery_engine::game::GameStatus;
@@ -124,10 +124,11 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
 
         match kind {
             "step" => {
-                let ev: Event = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
-                ev.initialize_game(g);
+                let entry: HistoryEntry = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
+                let ev: Event = entry.event.clone();
+                let by = By::new(g, entry.by);
                 let result = catch_any(|| {
-                    ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
+                    g.play_for_message(entry, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
                 });
                 let gr: &Game = g;
                 match result {
@@ -135,8 +136,8 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                     Ok(None) => {}
                     Err(e) => r.emit("escaped", || e),
                 }
-                r.emit("GetMessage", || skin.render(&ev.get_message(gr)));
-                r.emit("GetShortMessage", || skin.render(&ev.get_short_message(gr)));
+                r.emit("GetMessage", || skin.render(&ev.describe(gr, by)));
+                r.emit("GetShortMessage", || skin.render(&ev.describe_short(gr, by)));
                 r.new_report_messages(gr);
             }
             "undo" => {

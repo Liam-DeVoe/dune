@@ -83,10 +83,9 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
             }
             "step" => {
                 let game = game.as_mut().unwrap();
-                let e: Event = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
-                e.initialize_game(game);
+                let e: HistoryEntry = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
-                let _ = catch_panic(|| e.execute(game, validate, is_host));
+                let _ = catch_panic(|| game.play_for_message(e, validate, is_host));
                 at_step(game, o["n"].as_i64().unwrap());
             }
             _ => {}

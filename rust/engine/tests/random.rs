@@ -138,8 +138,7 @@ fn game_from_seed(seed: i32) -> String {
     let state = GameState::load(&savegame).unwrap();
     let mut game = Game::of_version(state.version);
     for e in state.events.as_ref().unwrap() {
-        e.initialize_game(&game);
-        assert!(e.execute(&mut game, false, true).is_none());
+        assert!(game.play_for_message(e.clone(), false, true).is_none());
     }
     let players: Vec<String> = game
         .players

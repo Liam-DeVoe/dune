@@ -17,8 +17,8 @@ fn name<T: ToString>(v: T) -> String {
 }
 
 /// An event in savegame JSON, for the client to submit as it is.
-fn event_json(e: Event) -> serde_json::Value {
-    serde_json::from_str(&treachery_engine::json::serialize(&e)).expect("events serialize to JSON")
+fn event_json(by: Option<Faction>, e: Event) -> serde_json::Value {
+    serde_json::from_str(&treachery_engine::json::serialize(&HistoryEntry::new(by, e))).expect("events serialize to JSON")
 }
 
 /// The deals panel of a seated player (observers have no trade icons):
@@ -31,7 +31,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
     let id_of = |o: &Rc<DealOffered>| {
         game.history.entries
             .iter()
-            .position(|e| matches!(e, Event::DealOffered(x) if Rc::ptr_eq(x, o)))
+            .position(|e| matches!(&e.event, Event::DealOffered(x) if Rc::ptr_eq(x, o)))
             .map_or(-1, |i| i as i32)
     };
     let acceptable = DealAccepted::acceptable_deals(game, Some(p))
@@ -43,9 +43,9 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
                 price: i32::from(o.price),
                 description: message(&o.get_deal_description(game), d),
                 message: message(&o.get_message(game), d),
-                accept_error: validate(game, Event::from(acceptance.clone()), d),
-                accept: event_json(Event::from(acceptance)),
-                decline: event_json(Event::from(o.rejection(game, faction.expect("faction")).expect("Rejection builds an event"))),
+                accept_error: validate(game, faction, Event::from(acceptance.clone()), d),
+                accept: event_json(faction, Event::from(acceptance)),
+                decline: event_json(faction, Event::from(o.rejection(game, faction.expect("faction")).expect("Rejection builds an event"))),
                 withdraw: None,
                 answers: vec![],
             }
@@ -61,7 +61,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
             accept_error: None,
             accept: serde_json::Value::Null,
             decline: serde_json::Value::Null,
-            withdraw: Some(event_json(Event::from(o.cancellation().expect("Cancellation builds an event")))),
+            withdraw: Some(event_json(o.initiator(), Event::from(o.cancellation().expect("Cancellation builds an event")))),
             answers: game
                 .deal_recipients(&o)
                 .map(|r| DealAnswer { faction: name(r), accepted: game.deal_response(&o, r) })

@@ -171,7 +171,7 @@ fn private_log_lines_reach_only_their_target() {
 fn storm_dial_range() {
     // The alliance fixture's last storm dialled by two players: the last two dials in a row.
     let full = load("alliance");
-    let dials: Vec<usize> = full.game.history.entries.iter().enumerate().filter(|(_, e)| matches!(e, Event::StormDialled(_))).map(|(i, _)| i).collect();
+    let dials: Vec<usize> = full.game.history.entries.iter().enumerate().filter(|(_, e)| matches!(e.event, Event::StormDialled(_))).map(|(i, _)| i).collect();
     let first_dial = dials.windows(2).filter(|w| w[1] == w[0] + 1).last().expect("two dials in a row")[0] as i64;
     let mut r = load_text(&truncated("alliance", first_dial));
     let mut dialers = 0;
@@ -195,7 +195,7 @@ fn storm_dial_range() {
     let mut r = load_text(&truncated("alliance", first_dial + 1));
     let waiting: Vec<String> = r.view(OBSERVER).status.waiting_for;
     assert_eq!(waiting.len(), 1);
-    let dialed = name_or_absent(r.game.history.entries.last().unwrap().initiator());
+    let dialed = name_or_absent(r.game.history.entries.last().unwrap().by);
     assert!(!waiting.contains(&dialed));
 }
 

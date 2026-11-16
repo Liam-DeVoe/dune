@@ -39,10 +39,14 @@ fn draft_of(options: &ActionOptions) -> &serde_json::Value {
     }
 }
 
-fn event_of(v: &serde_json::Value, game: &Game) -> Event {
-    let e: Event = json::deserialize(&v.to_string()).expect("the draft is an event");
-    e.initialize_game(game);
+fn entry_of(v: &serde_json::Value, game: &Game) -> HistoryEntry {
+    let e: HistoryEntry = json::deserialize(&v.to_string()).expect("the draft is an event");
+    e.event.prepare(game, e.by);
     e
+}
+
+fn event_of(v: &serde_json::Value, game: &Game) -> Event {
+    entry_of(v, game).event
 }
 
 fn int(v: &serde_json::Value, k: &str) -> i32 {
@@ -59,8 +63,9 @@ fn hero_of(v: &serde_json::Value) -> Option<Hero> {
 fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<RichText>, d: &dyn Describer, at: &str) {
     let pl = game.player(p);
     let draft = draft_of(options);
-    let e = event_of(draft, game);
-    assert_eq!(*validation, validate(game, e.clone(), d), "{at}: validation");
+    let entry = entry_of(draft, game);
+    let e = entry.event.clone();
+    assert_eq!(*validation, validate(game, entry.by, e.clone(), d), "{at}: validation");
     match options {
         ActionOptions::Revival(o) => {
             let sa = draft["UsesEmperorSecretAlly"].as_bool().unwrap();

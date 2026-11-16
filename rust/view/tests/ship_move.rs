@@ -89,7 +89,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
     let o = opts(game, p, &draft, d);
     seen.add(t);
     // The default draft is already as the component shows it.
-    assert_eq!(json::serialize(&adjusted(game, p, &draft, d)), json::serialize(&draft), "{}: the default draft is stable", t.name());
+    assert_eq!(json::serialize(&HistoryEntry::legacy(adjusted(game, p, &draft, d))), json::serialize(&HistoryEntry::legacy(draft.clone())), "{}: the default draft is stable", t.name());
     check_adjustments(game, p, &draft, d);
     let pl = game.player(p);
     match (&draft, o) {
@@ -547,9 +547,9 @@ fn adjusted(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Event
     let o = o.expect("the builder does not throw");
     let value = serde_json::to_value(&o).unwrap();
     let text = serde_json::to_string(&value["draft"]).unwrap();
-    let e: Event = json::deserialize(&text).unwrap_or_else(|err| panic!("the draft reads back: {err:?} {text}"));
-    e.initialize(game, game.player(p).faction);
-    assert_eq!(validation, validate(game, e.clone(), d), "the validation is the adjusted draft's");
+    let e: Event = json::deserialize::<HistoryEntry>(&text).unwrap_or_else(|err| panic!("the draft reads back: {err:?} {text}")).event;
+    e.prepare(game, game.player(p).faction);
+    assert_eq!(validation, validate(game, game.player(p).faction, e.clone(), d), "the validation is the adjusted draft's");
     e
 }
 
@@ -863,7 +863,7 @@ fn check_shipment_adjustments(game: &Game, p: PlayerId, d: &dyn Describer) {
                 e.ally_contribution_amount = 0;
             }
         }
-        assert_eq!(json::serialize(&event((*a).clone())), json::serialize(&event(e)), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
+        assert_eq!(json::serialize(&HistoryEntry::legacy(event((*a).clone()))), json::serialize(&HistoryEntry::legacy(event(e))), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
         let ActionOptions::Shipment(o) = opts(game, p, &event(s), d) else { panic!() };
         check_shipment_draft(game, p, &a, &o);
     }

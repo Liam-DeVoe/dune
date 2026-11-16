@@ -315,9 +315,9 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
     let mut replay = game.new_like();
 
     for original in &game.history.entries {
-        let Some(evt) = original.shallow_copy() else { continue };
-        evt.initialize_game(&replay);
-        evt.execute(&mut replay, false, true);
+        let entry = original.detached();
+        let evt = entry.event.clone();
+        let _ = replay.play(entry, false, true);
         let r = &replay;
         let rd = InGame::new(d, r);
         let rd: &dyn Describer = &rd;
@@ -330,7 +330,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                 ruleset: rd.describe(&P::from(r.rules.ruleset)),
                 custom_rules: (!custom.is_empty())
                     .then(|| custom.iter().map(|rule| rd.describe(&P::from(*rule))).collect::<Vec<_>>().join(", ")),
-                started: utc(evt.time()),
+                started: utc(original.at),
                 table: table(r, game, s, StoryTable { show_name: true, ..Default::default() }),
             });
         }
@@ -342,7 +342,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         if matches!(evt, Event::Bid(_) | Event::BlackMarketBid(_)) {
             if let Some(wb) = &r.bidding.winning_bid {
                 if previous_winning_bid.as_ref() != Some(wb) {
-                    let buyer = wb.initiator();
+                    let buyer = wb.legacy_initiator();
                     out.push(StoryBlock::Purchase {
                         buyer: name_or_absent(buyer),
                         card: r.bidding.card_just_won.map(|c| card(c, rd)),
@@ -393,7 +393,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         if is_milestone(&evt) {
             // Rendered with the finished game, so the live collections in the message show their
             // contents at the end of the game.
-            out.push(StoryBlock::Milestone { faction: name_or_absent(evt.initiator()), text: crate::expr::message(&evt.get_message(r), d) });
+            out.push(StoryBlock::Milestone { faction: name_or_absent(original.by), text: crate::expr::message(&evt.describe(r, By::new(r, original.by)), d) });
         }
 
         if r.turn.current_phase != previous_phase && r.turn.current_phase == Phase::BattleReport {
@@ -429,7 +429,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                     method: rd.describe(&P::from(r.contemplate.win_method)),
                 });
             }
-            out.push(StoryBlock::Ended { time: utc(evt.time()) });
+            out.push(StoryBlock::Ended { time: utc(original.at) });
         }
 
         previous_phase = r.turn.current_phase;

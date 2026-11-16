@@ -398,7 +398,7 @@ impl Checker {
         Checker { game }
     }
 
-    fn event(l: &Value) -> Option<treachery_engine::events::Event> {
+    fn event(l: &Value) -> Option<treachery_engine::events::HistoryEntry> {
         let text = match &l["event"] {
             Value::String(s) => s.clone(),
             v => v.to_string(),
@@ -412,8 +412,7 @@ impl Checker {
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| match l[key].as_str() {
             Some("step") => {
                 if let Some(e) = Self::event(l) {
-                    e.initialize_game(game);
-                    e.execute(game, l["validate"].as_bool().unwrap_or(true), l["isHost"].as_bool().unwrap_or(false));
+                    let _ = game.play(e, l["validate"].as_bool().unwrap_or(true), l["isHost"].as_bool().unwrap_or(false));
                 }
             }
             Some("undo") => game.undo(l["untilEventNr"].as_i64().unwrap_or(0) as i32),
@@ -428,8 +427,7 @@ impl Checker {
         let Some(e) = Self::event(l) else { return true };
         let game = &self.game;
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            e.initialize_game(game);
-            e.validate(game).is_some()
+            e.validate(game).is_err()
         }))
         .unwrap_or(true)
     }

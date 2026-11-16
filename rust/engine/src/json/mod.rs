@@ -28,7 +28,8 @@ use std::fmt::Write as _;
 use indexmap::IndexMap;
 
 use crate::compat::date_time_offset::DateTimeOffset;
-use crate::events::{Event, EventType};
+use crate::events::{Event, EventType, HistoryEntry};
+use crate::enumerations::Faction;
 use crate::enum_type::GameEnum;
 
 pub type JsonValue = serde_json::Value;
@@ -222,7 +223,7 @@ pub trait JsonNullable {}
 impl JsonNullable for String {}
 impl<T> JsonNullable for Vec<T> {}
 impl<K, V> JsonNullable for IndexMap<K, V> {}
-impl JsonNullable for Event {}
+impl JsonNullable for HistoryEntry {}
 impl JsonNullable for crate::game::GameSettings {}
 
 /// A C# class serialized as a JSON object (events, `GameSettings`).
@@ -230,6 +231,35 @@ pub trait JsonObject: Default {
     fn write_members(&self, w: &mut JsonWriter);
     /// Assigns one member. `Ok(false)` for an unknown key (ignored, like .NET).
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError>;
+}
+
+/// The members of a JSON object, as a trait object (`Event::json_members`).
+pub trait JsonMembers {
+    fn write_members(&self, w: &mut JsonWriter);
+}
+
+impl<T: JsonObject> JsonMembers for T {
+    fn write_members(&self, w: &mut JsonWriter) {
+        JsonObject::write_members(self, w)
+    }
+}
+
+/// [`read_object`], passing the members `T` doesn't know to `other` first. A member neither
+/// knows is ignored.
+pub fn read_object_with<T: JsonObject>(
+    members: &[(String, JsonValue)],
+    other: &mut dyn FnMut(&str, &JsonValue) -> Result<bool, JsonError>,
+) -> Result<T, JsonError> {
+    let mut result = T::default();
+    for (k, v) in members {
+        if k.starts_with('$') {
+            continue;
+        }
+        if !other(k, v)? {
+            result.read_member(k, v)?;
+        }
+    }
+    Ok(result)
 }
 
 /// Reads an object's members into `T::default()` (the C# parameterless
@@ -669,7 +699,7 @@ fn parse_enum_key<K: GameEnum>(s: &str) -> Option<K> {
 impl ToJson for crate::game::GameSettings {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
-        self.write_members(w);
+        JsonObject::write_members(self, w);
         w.end_object();
     }
 }
@@ -680,23 +710,26 @@ impl FromJson for crate::game::GameSettings {
     }
 }
 
-/// An event written as its base type `Event`: `$type` first, then the members.
-impl ToJson for Event {
+/// A history entry written as an event of the C# base type `GameEvent`: `$type` first, then the
+/// event's members, then `Initiator` and `Time`.
+impl ToJson for HistoryEntry {
     fn write_json(&self, w: &mut JsonWriter) {
-        let t = self.event_type();
+        let t = self.event.event_type();
         let Some(discriminator) = t.json_discriminator() else {
-            panic!("Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.Event'.", t.name());
+            panic!("Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.GameEvent'.", t.name());
         };
         w.object_value();
         w.member("$type", discriminator);
-        self.write_json_members(w);
+        JsonMembers::write_members(self.event.json_members(), w);
+        w.member("Initiator", &self.by);
+        w.member("Time", &self.at);
         w.end_object();
     }
 }
 
-/// Reads a polymorphic `Event`: `$type` must be the first
-/// member and a known discriminator; no other `$` member may follow.
-impl FromJson for Event {
+/// Reads a polymorphic `GameEvent` into a history entry: `$type` must be the first member and a
+/// known discriminator; no other `$` member may follow. `Initiator` and `Time` go to the entry.
+impl FromJson for HistoryEntry {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         let members = object_members(v)?;
         let Some((first, discriminator)) = members.first() else {
@@ -716,7 +749,17 @@ impl FromJson for Event {
         if let Some((k, _)) = members[1..].iter().find(|(k, _)| k.starts_with('$')) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
         }
-        Event::read_json(t, &members[1..])
+        let mut by: Option<Faction> = None;
+        let mut at = DateTimeOffset::default();
+        let event = Event::read_json(t, &members[1..], &mut |k, v| {
+            match k {
+                "Initiator" => by = FromJson::from_json(v)?,
+                "Time" => at = FromJson::from_json(v)?,
+                _ => return Ok(false),
+            }
+            Ok(true)
+        })?;
+        Ok(HistoryEntry { by, at, event })
     }
 }
 
@@ -737,16 +780,16 @@ impl FromJson for crate::game::GameState {
             match k.as_str() {
                 "Version" => result.version = FromJson::from_json(&v)?,
                 "_events" => {
-                    // Vec<Event>'s reader, keeping the index for an error's path.
+                    // Vec<HistoryEntry>'s reader, keeping the index for an error's path.
                     result.events = match &v {
                         JsonValue::Array(items) => Some(
                             items
                                 .iter()
                                 .enumerate()
                                 .map(|(i, item)| {
-                                    Event::from_json(item).map_err(|e| e.within(JsonPathSegment::Index(i)).within(JsonPathSegment::Member("_events")))
+                                    HistoryEntry::from_json(item).map_err(|e| e.within(JsonPathSegment::Index(i)).within(JsonPathSegment::Member("_events")))
                                 })
-                                .collect::<Result<Vec<Event>, _>>()?,
+                                .collect::<Result<Vec<HistoryEntry>, _>>()?,
                         ),
                         _ => FromJson::from_json(&v)?,
                     }

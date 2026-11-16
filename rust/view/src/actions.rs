@@ -88,7 +88,7 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Opt
 /// The options of the form for `draft`, and the validation of `draft` itself.
 fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &Event, d: &dyn Describer) -> (Option<ActionOptions>, Option<RichText>) {
     if let Some(r) = revival::options_and_validation(game, v, draft, d) { return r; }
-    if let Some(r) = setup::options_and_validation(game, s, draft, d) { return r; }
+    if let Some(r) = setup::options_and_validation(game, v.faction, s, draft, d) { return r; }
     if let Some(r) = v.player.and_then(|p| ship_move::options_and_validation(game, p, draft, d)) { return r; }
     if let Some(r) = battle::options_and_validation(game, v, draft, d) { return r; }
     if let Some(r) = other::options_and_validation(game, v, s, draft, d) { return r; }
@@ -118,7 +118,7 @@ fn options_and_validation(game: &Game, v: &ResolvedViewer, s: &Seating, draft: &
         Event::Bid(_) | Event::BlackMarketBid(_) => bidding::options(game, v, draft),
         _ => None,
     };
-    (options, validate(game, draft.clone(), d))
+    (options, validate(game, v.faction, draft.clone(), d))
 }
 
 /// Why a draft query was refused.
@@ -138,7 +138,7 @@ pub enum QueryError {
 /// `applicable` is the viewer's applicable event types from the view they are looking at.
 pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[EventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
     let v = viewer.resolve(game);
-    let draft: Event = json::deserialize(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?;
+    let draft: Event = json::deserialize::<HistoryEntry>(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?.event;
     if (v.player.is_none() || v.is_observer) && !setup::seatless_host_may_act(&v, draft.event_type()) {
         return Err(QueryError::NotAPlayer);
     }
@@ -146,7 +146,8 @@ pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[EventType],
     if !applicable.contains(&draft.event_type()) {
         return Err(QueryError::NotApplicable);
     }
-    draft.initialize(game, faction);
+    draft.prepare(game, faction);
+    let v = ResolvedViewer { faction, ..v };
     let (options, validation) = options_and_validation(game, &v, s, &draft, d);
     Ok(DraftResult { event_type: draft.event_type().name().to_string(), options, validation })
 }

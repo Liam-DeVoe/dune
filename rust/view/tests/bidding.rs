@@ -111,7 +111,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                 )
             };
             assert_eq!(options, expected, "{at}: {faction:?} {t:?}");
-            assert_eq!(view.validation, treachery_view::build::validate(game, default_event.clone(), d), "{at}: {faction:?} {t:?} validation");
+            assert_eq!(view.validation, treachery_view::build::validate(game, faction, default_event.clone(), d), "{at}: {faction:?} {t:?} validation");
             // Outside silent auctions the starting bid is the lowest that beats the current one,
             // so it is valid whenever the player and ally can pay for it.
             if !silent(game) {
@@ -189,8 +189,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
         let mut game = Game::of_version(state.version);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
         for (i, e) in state.events.as_ref().unwrap().iter().enumerate() {
-            e.initialize_game(&game);
-            assert!(e.execute(&mut game, false, false).is_none(), "{name}: event {i}");
+            assert!(game.play_for_message(e.clone(), false, false).is_none(), "{name}: event {i}");
             check_state(&mut game, d.as_ref(), &mut seen, &format!("{name} after event {i}"));
         }
     }

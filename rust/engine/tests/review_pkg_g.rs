@@ -3,7 +3,7 @@
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::{Faction, ShipmentType};
 use treachery_engine::events::Shipment;
-use treachery_engine::events::Event;
+use treachery_engine::events::HistoryEntry;
 use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::game::{Game, Seat};
 use treachery_engine::json;
@@ -16,9 +16,8 @@ fn setup() -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::of_version(Game::LATEST_VERSION);
     g.human_seats.insert(Seat::new(2));
-    let e: Event = json::deserialize(ESTABLISH).expect("event json");
-    e.initialize_game(&g);
-    assert!(e.execute(&mut g, true, true).is_none());
+    let e: HistoryEntry = json::deserialize(ESTABLISH).expect("event json");
+    assert!(g.play_for_message(e, true, true).is_none());
     g
 }
 
@@ -110,9 +109,8 @@ fn choam_remove_force_without_location_fails() {
         let json = format!(
             r#"{{"$type":"ChoamRemoveForce","Target":10,"SpecialForce":{special},"_locationId":-1,"Initiator":110,"Time":"2024-01-01T12:03:00+00:00"}}"#
         );
-        let e: Event = json::deserialize(&json).expect("event json");
-        e.initialize_game(&g);
-        let r = e.execute(&mut g, false, true).map(|m| m.plain_text());
+        let e: HistoryEntry = json::deserialize(&json).expect("event json");
+        let r = g.play_for_message(e, false, true).map(|m| m.plain_text());
         assert!(r.as_deref().is_some_and(|m| m.starts_with("Game Error: ")), "SpecialForce = {special}: {r:?}");
     }
 }

@@ -45,9 +45,8 @@ impl ViewReplica {
         Game::check_version(state.version)?;
         let mut game = Game::of_version(state.version);
         for (nr, e) in state.events.as_ref().ok_or("savegame without events")?.iter().enumerate() {
-            e.initialize_game(&game);
-            if let Some(m) = e.execute(&mut game, false, false) {
-                return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().render(&m)));
+            if let Err(error) = game.play(e.clone(), false, false) {
+                return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().render(&error.message())));
             }
         }
         Ok(ViewReplica { game, actions: BTreeMap::new(), describer: default_describer(), timer: -1, seating: Seating::default() })
@@ -75,11 +74,10 @@ impl ViewReplica {
 
     /// Executes an event that the server has accepted, without validating it again.
     pub fn apply(&mut self, event_json: &str) -> Result<(), String> {
-        let e: Event = json::deserialize(event_json).map_err(|e| format!("{e:?}"))?;
-        e.initialize_game(&self.game);
-        match e.execute(&mut self.game, false, false) {
-            None => Ok(()),
-            Some(m) => Err(format!("{:?}", treachery_skin::default_skin().render(&m))),
+        let e: HistoryEntry = json::deserialize(event_json).map_err(|e| format!("{e:?}"))?;
+        match self.game.play(e, false, false) {
+            Ok(()) => Ok(()),
+            Err(error) => Err(format!("{:?}", treachery_skin::default_skin().render(&error.message()))),
         }
     }
 
@@ -130,8 +128,8 @@ impl ViewReplica {
                 let moment = i.checked_sub(1).and_then(|m| self.game.history.moments.get(m));
                 UndoEntry {
                     event_number: i as i32,
-                    text: crate::expr::message(&e.get_short_message(&self.game), &d),
-                    listed: !matches!(e, Event::AllyPermission(_) | Event::BattleRevision(_) | Event::AutomationConfigured(_)),
+                    text: crate::expr::message(&e.event.describe_short(&self.game, e.by_in(&self.game)), &d),
+                    listed: !matches!(e.event, Event::AllyPermission(_) | Event::BattleRevision(_) | Event::AutomationConfigured(_)),
                     turn: moment.map_or(treachery_engine::game::Turn::BEFORE_START, |m| m.turn),
                     phase: moment.map_or_else(|| "None".to_string(), |m| m.phase.to_string()),
                 }
@@ -149,10 +147,10 @@ impl ViewReplica {
         let mut game = self.game.new_like();
         for (nr, e) in self.game.history.entries.iter().take(gap).enumerate() {
             // A copy of the event, so the replica's history stays bound to the replica's game.
-            let copy: Event = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
-            copy.initialize_game(&game);
-            if let Some(m) = copy.execute(&mut game, false, false) {
-                return Err(format!("event {nr} ({}) failed: {:?}", copy.event_type().name(), treachery_skin::default_skin().render(&m)));
+            let copy: HistoryEntry = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
+            let name = copy.event_type().name();
+            if let Err(error) = game.play(copy, false, false) {
+                return Err(format!("event {nr} ({}) failed: {:?}", name, treachery_skin::default_skin().render(&error.message())));
             }
         }
         let mut view = build::build_view(&mut game, viewer, &self.seating, self.describer.as_ref(), -1);

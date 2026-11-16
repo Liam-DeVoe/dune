@@ -5,7 +5,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct GameState {
     pub version: i32,
-    pub events: Option<Vec<Event>>,
+    pub events: Option<Vec<HistoryEntry>>,
 }
 
 impl Default for GameState {
@@ -22,12 +22,12 @@ impl GameState {
         Self::default()
     }
 
-    pub fn events(&self) -> Vec<Event> {
+    pub fn events(&self) -> Vec<HistoryEntry> {
         // get => _events (enumerating a null array throws at the caller)
         self.events.clone().expect("events")
     }
 
-    pub fn set_events(&mut self, value: &[Event]) {
+    pub fn set_events(&mut self, value: &[HistoryEntry]) {
         self.events = Some(value.to_vec());
     }
 

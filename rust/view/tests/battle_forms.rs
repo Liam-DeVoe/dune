@@ -47,12 +47,13 @@ fn cards_by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i3
 /// back to the same JSON.
 fn check_draft(game: &Game, faction: Faction, draft: &serde_json::Value, t: EventType, at: &str) -> Event {
     let text = draft.to_string();
-    let e: Event = json::deserialize(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
-    assert_eq!(e.event_type(), t, "{at}");
-    let again: serde_json::Value = serde_json::from_str(&json::serialize(&e)).unwrap();
+    let entry: HistoryEntry = json::deserialize(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
+    assert_eq!(entry.event_type(), t, "{at}");
+    let again: serde_json::Value = serde_json::from_str(&json::serialize(&entry)).unwrap();
     assert_eq!(&again, draft, "{at}: the draft doesn't survive the engine's JSON");
     // As a draft query and a submission do: the server sets the initiator.
-    e.initialize(game, Some(faction));
+    let e = entry.event;
+    e.prepare(game, Some(faction));
     e
 }
 
@@ -86,7 +87,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut 
     let at = at.as_str();
     let draft = check_draft(game, game.player(p).faction.expect("faction"), &draft_of(&options), t, at);
     // The view's validation is the draft's.
-    assert_eq!(view.validation, treachery_view::build::validate(game, draft.clone(), d), "{at}: validation");
+    assert_eq!(view.validation, treachery_view::build::validate(game, game.player(p).faction, draft.clone(), d), "{at}: validation");
     stats.reached(t.name(), at);
     let me = game.player(p);
     match (&options, &draft) {
@@ -268,7 +269,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
         if hero.is_some() || game.applicable(Rule::BattleWithoutLeader) || heroes.is_empty() {
             assert_eq!(n.hero, hero, "{at}: the chosen leader stays");
         }
-        assert_eq!(validation, treachery_view::build::validate(game, normalized.clone(), d), "{at}");
+        assert_eq!(validation, treachery_view::build::validate(game, game.player(p).faction, normalized.clone(), d), "{at}");
         assert_eq!(o.weapons, cards_by_name(Battle::valid_weapons(game, p, None, n.hero, territory, false), d), "{at}");
         for &w in &o.weapons {
             let mut q = Battle::new(game, game.player(p).faction);
@@ -458,7 +459,7 @@ fn hms_advantage_form_in_a_built_state() {
     let mut e = HMSAdvantageChosen::new(&r.game, faction);
     e.advantage = Some(advantage);
     let e = std::rc::Rc::new(e).into_event();
-    assert!(e.validate(&r.game).is_none(), "{:?}", e.validate(&r.game).map(|m| m.plain_text()));
-    assert!(e.execute(&mut r.game, true, true).is_none());
+    assert!(e.validate_for(&r.game, faction).is_ok(), "{:?}", e.validate_for(&r.game, faction).err().map(|r| r.0.plain_text()));
+    assert!(r.game.play_for_message(HistoryEntry::new(faction, e), true, true).is_none());
     assert_eq!(r.game.battle.chosen_hms_advantage, Some(Some(advantage)));
 }

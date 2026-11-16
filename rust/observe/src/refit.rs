@@ -122,7 +122,7 @@ fn type_of(event: &Map<String, Value>) -> Option<EventType> {
     EventType::ALL.iter().copied().find(|t| t.name() == name)
 }
 
-fn to_object(e: &Event) -> Map<String, Value> {
+fn to_object(e: &HistoryEntry) -> Map<String, Value> {
     match serde_json::from_str(&json::serialize(e)) {
         Ok(Value::Object(m)) => m,
         _ => Map::new(),
@@ -149,13 +149,10 @@ impl Refit {
     /// Executes an event; true if it was accepted (it joined the history).
     fn execute(&mut self, event: &Map<String, Value>, validate: bool, host: bool) -> bool {
         let text = Value::Object(event.clone()).to_string();
-        let Ok(e) = json::deserialize::<Event>(&text) else { return false };
+        let Ok(e) = json::deserialize::<HistoryEntry>(&text) else { return false };
         let before = self.game.history.entries.len();
         let game = &mut self.game;
-        let r = quiet(|| {
-            e.initialize_game(game);
-            e.execute(game, validate, host)
-        });
+        let r = quiet(|| game.play(e, validate, host));
         match r {
             Some(_) => self.game.history.entries.len() > before,
             None => {
@@ -168,15 +165,12 @@ impl Refit {
 
     /// Replays the first `n` events of the history into a new game.
     fn rebuild(&mut self, n: usize) {
-        let events: Vec<Event> = self.game.history.entries.iter().take(n).cloned().collect();
+        let events: Vec<HistoryEntry> = self.game.history.entries.iter().take(n).cloned().collect();
         let mut game = self.game.new_like();
         for e in events {
             let text = json::serialize(&e);
-            let e: Event = json::deserialize(&text).expect("a history event reads back");
-            quiet(|| {
-                e.initialize_game(&game);
-                e.execute(&mut game, false, true)
-            });
+            let e: HistoryEntry = json::deserialize(&text).expect("a history event reads back");
+            quiet(|| game.play(e, false, true));
         }
         self.game = game;
     }
@@ -204,7 +198,7 @@ impl Refit {
             for level in Priority::ALL {
                 if let Some(Some(e)) = quiet(|| bot.decide(game, level, &[t])) {
                     if e.event_type() == t {
-                        return Some(to_object(&e));
+                        return Some(to_object(&HistoryEntry::decided(faction, e)));
                     }
                 }
             }
@@ -215,9 +209,8 @@ impl Refit {
             let text = Value::Object(candidate.clone()).to_string();
             let game = &self.game;
             let valid = quiet(|| {
-                let e: Event = json::deserialize(&text).ok()?;
-                e.initialize_game(game);
-                Some(e.validate(game).is_none())
+                let e: HistoryEntry = json::deserialize(&text).ok()?;
+                Some(e.validate(game).is_ok())
             })
             .flatten()
             .unwrap_or(false);
@@ -239,7 +232,7 @@ impl Refit {
                 let Some(b) = Self::bot(&mut self.bots, &self.game, Some(faction)) else { continue };
                 let (bot, game) = (&mut self.bots[b].1, &self.game);
                 if let Some(Some(e)) = quiet(|| bot.decide(game, level, &allowed)) {
-                    let mut event = to_object(&e);
+                    let mut event = to_object(&HistoryEntry::decided(Some(faction), e));
                     event.insert("Time".into(), time.clone());
                     if self.execute(&event, true, false) {
                         self.push(None, Item::Event { event, validate: true, host: false, legit: true, at: None }, Fate::Added);
@@ -259,7 +252,7 @@ impl Refit {
                 let allowed = quiet(|| self.game.get_applicable_events(Some(p), false)).unwrap_or_default();
                 if allowed.contains(&EventType::AlliancePassed) {
                     let e = Rc::new(AlliancePassed::new(&self.game, faction)).into_event();
-                    if self.add(to_object(&e), false, time) {
+                    if self.add(to_object(&HistoryEntry::new(Some(faction), e)), false, time) {
                         return true;
                     }
                 }
@@ -296,7 +289,7 @@ impl Refit {
             candidates.push(Rc::new(EndPhase::new(game, None)).into_event());
         }
         for e in candidates {
-            if self.add(to_object(&e), true, time) {
+            if self.add(to_object(&HistoryEntry::legacy(e)), true, time) {
                 return true;
             }
         }

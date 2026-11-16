@@ -673,8 +673,8 @@ fn timing() {
     r.timer = 30;
     let view = r.view(OBSERVER);
     let g = &r.game;
-    assert_eq!(view.timing.started, g.history.entries[0].time().to_json_string());
-    assert_eq!(view.timing.last_activity, Some(g.history.entries.last().unwrap().time().to_json_string()));
+    assert_eq!(view.timing.started, g.history.entries[0].at.to_json_string());
+    assert_eq!(view.timing.last_activity, Some(g.history.entries.last().unwrap().at.to_json_string()));
     assert_eq!(view.timing.duration, g.duration().ticks as f64 / 1e7);
     assert_eq!(view.timing.timer, 30);
     assert_eq!(view.timing.time_spent.len(), g.players.len());

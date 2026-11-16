@@ -434,7 +434,7 @@ pub fn flash(flashes: &[FlashInfo], d: &dyn Describer) -> Vec<FlashView> {
 pub fn timing(game: &Game, timer: i32) -> TimingView {
     TimingView {
         started: game.started().to_json_string(),
-        last_activity: game.history.entries.last().map(|e| e.time().to_json_string()),
+        last_activity: game.history.entries.last().map(|e| e.at.to_json_string()),
         duration: seconds(game.duration()),
         time_spent: game
             .players

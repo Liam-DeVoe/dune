@@ -17,7 +17,7 @@ use treachery_bots::prelude::*;
 use common::{run_probes, Bots};
 
 fn ev<T: EventKind>(e: Rc<T>) -> String {
-    treachery_engine::json::serialize(&T::into_event(e))
+    treachery_engine::json::serialize(&HistoryEntry::legacy(T::into_event(e)))
 }
 
 fn opt<T: EventKind>(e: Option<Rc<T>>) -> String {

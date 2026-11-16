@@ -880,9 +880,8 @@ impl Shipment {
             }
         }
 
-        let ev = self.clone().into_event();
-        game.set_recent_payment(receiver_profit, self.initiator(), Some(Faction::Guild), &ev);
-        game.set_recent_payment_to_bank(total_cost - receiver_profit, self.initiator(), &ev);
+        game.set_recent_payment(receiver_profit, self.initiator(), Some(Faction::Guild), EventType::Shipment);
+        game.set_recent_payment_to_bank(total_cost - receiver_profit, self.initiator(), EventType::Shipment);
 
         receiver_profit
     }

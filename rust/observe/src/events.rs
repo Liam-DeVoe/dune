@@ -10,21 +10,21 @@
 //! `legacy_events.rs`, while [`from_working`] and [`encode`] switch to the new format.
 
 use serde_json::Value;
-use treachery_engine::events::Event;
+use treachery_engine::events::HistoryEntry;
 use treachery_engine::json::{self, FromJson};
 
 /// Decodes an event as the reference recorded it. The error text is for reports only.
-pub fn from_reference(v: &Value) -> Result<Event, String> {
-    Event::from_json(v).map_err(|e| format!("{e:?}"))
+pub fn from_reference(v: &Value) -> Result<HistoryEntry, String> {
+    HistoryEntry::from_json(v).map_err(|e| format!("{e:?}"))
 }
 
 /// Decodes an event in the working tree's own format.
-pub fn from_working(v: &Value) -> Result<Event, String> {
-    Event::from_json(v).map_err(|e| format!("{e:?}"))
+pub fn from_working(v: &Value) -> Result<HistoryEntry, String> {
+    HistoryEntry::from_json(v).map_err(|e| format!("{e:?}"))
 }
 
 /// The working tree's encoding of an event.
-pub fn encode(e: &Event) -> Value {
+pub fn encode(e: &HistoryEntry) -> Value {
     let text = json::serialize(e);
     serde_json::from_str(&text).unwrap_or(Value::String(text))
 }

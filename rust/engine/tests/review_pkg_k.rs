@@ -1,6 +1,6 @@
 //! Edge cases of alliances, deals, discards and the game status.
 
-use treachery_engine::events::Event;
+use treachery_engine::events::HistoryEntry;
 use treachery_engine::game::{Game, Seat};
 use treachery_engine::json;
 
@@ -13,14 +13,12 @@ fn new_game() -> Game {
     let mut g = Game::of_version(Game::LATEST_VERSION);
     g.human_seats.insert(Seat::new(2));
     let e = ev(&g, ESTABLISH);
-    assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
+    assert!(g.play_for_message(e, true, true).is_none(), "establish rejected");
     g
 }
 
-fn ev(g: &Game, text: &str) -> Event {
-    let e: Event = json::deserialize(text).expect("event json");
-    e.initialize_game(g);
-    e
+fn ev(_g: &Game, text: &str) -> HistoryEntry {
+    json::deserialize(text).expect("event json")
 }
 
 /// `DealOffered.Same` ends with `offeredDeal.To.SequenceEqual(To)`. Both are
@@ -44,14 +42,14 @@ fn deal_cancel_with_null_to_matches_empty_to() {
         &g,
         r#"{"$type":"DealOffered","To":[],"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":false,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
     );
-    assert!(offer.execute(&mut g, false, true).is_none());
+    assert!(g.play_for_message(offer, false, true).is_none());
     assert_eq!(g.deals.offers.len(), 1);
 
     let cancel = ev(
         &g,
         r#"{"$type":"DealOffered","To":null,"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":true,"Initiator":90,"Time":"2024-01-01T12:02:41+00:00"}"#,
     );
-    let r = cancel.execute(&mut g, false, true);
+    let r = g.play_for_message(cancel, false, true);
     assert!(r.is_none(), "C# accepts the cancellation; Rust: {r:?}");
     assert_eq!(g.deals.offers.len(), 0, "C# removes the offer");
     assert_eq!(g.history.entries.len(), 3);
@@ -73,14 +71,14 @@ fn deal_offer_with_null_to_cancelled_by_empty_to() {
         &g,
         r#"{"$type":"DealOffered","To":null,"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":false,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
     );
-    assert!(offer.execute(&mut g, false, true).is_none());
+    assert!(g.play_for_message(offer, false, true).is_none());
     assert_eq!(g.deals.offers.len(), 1);
 
     let cancel = ev(
         &g,
         r#"{"$type":"DealOffered","To":[],"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":true,"Initiator":90,"Time":"2024-01-01T12:02:41+00:00"}"#,
     );
-    let r = cancel.execute(&mut g, false, true);
+    let r = g.play_for_message(cancel, false, true);
     assert!(r.is_none(), "C# accepts the cancellation; Rust: {r:?}");
     assert_eq!(g.deals.offers.len(), 0, "C# removes the offer");
 }

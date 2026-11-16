@@ -163,22 +163,6 @@ impl EstablishPlayers {
         result
     }
 
-    /// Overrides `Event.Execute`: no try/catch, no applicability check,
-    /// `RecentMilestones` is not cleared.
-    pub fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, _is_host: bool) -> GameResult<Option<Message>> {
-        if perform_validation {
-            if let Some(refusal) = self.validate(game) {
-                return Ok(Some(refusal));
-            }
-        }
-
-        let ev = self.clone().into_event();
-        game.perform_pre_event_tasks(&ev);
-        self.execute_concrete_event(game)?;
-        game.perform_post_event_tasks(&ev, true);
-        Ok(None)
-    }
-
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.start_report(MainPhase::Setup);
         self.log_objects(game, vec!["Game started!".into()]);
@@ -367,10 +351,6 @@ impl GameEventMethods for EstablishPlayers {
 
     fn validate(&self, game: &Game) -> Option<Message> {
         EstablishPlayers::validate(self, game)
-    }
-
-    fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> GameResult<Option<Message>> {
-        EstablishPlayers::try_execute(self, game, perform_validation, is_host)
     }
 
     fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

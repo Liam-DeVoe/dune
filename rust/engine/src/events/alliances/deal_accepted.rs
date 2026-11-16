@@ -86,8 +86,8 @@ impl DealAccepted {
                 // p.Faction dereferences a null player only here.
                 let bid = g.bidding.current_bid.as_ref().expect("current bid");
                 let p_faction = g.player(p.expect("player")).faction;
-                bid.initiator() != p_faction
-                    && (bid.bid_ally_contribution_amount() == 0 || g.player(bid.player_opt().expect("player")).ally != p_faction)
+                bid.legacy_initiator() != p_faction
+                    && (bid.bid_ally_contribution_amount() == 0 || g.player(bid.legacy_player().expect("player")).ally != p_faction)
             }
     }
 

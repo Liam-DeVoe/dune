@@ -220,10 +220,10 @@ pub fn options_and_validation(game: &Game, p: PlayerId, draft: &Event, d: &dyn D
     }
     let draft = normalized(game, p, draft);
     let options = crate::build::draft_check(|| build(game, p, &draft, d)).map(|mut o| {
-        set_draft(&mut o, draft_json(&draft));
+        set_draft(&mut o, draft_json(game.player(p).faction, &draft));
         o
     });
-    Some((options, validate(game, draft, d)))
+    Some((options, validate(game, game.player(p).faction, draft, d)))
 }
 
 fn set_draft(o: &mut ActionOptions, draft: Value) {
@@ -264,7 +264,7 @@ pub fn normalize(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let mut current = draft.clone();
     for _ in 0..8 {
         let next = normalize_once(game, p, &current);
-        if json::serialize(&next) == json::serialize(&current) {
+        if json::serialize(&HistoryEntry::new(None, next.clone())) == json::serialize(&HistoryEntry::new(None, current.clone())) {
             return next;
         }
         current = next;

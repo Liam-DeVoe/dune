@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
-use treachery_engine::events::{Event, EventType};
+use treachery_engine::events::{EventType, HistoryEntry};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -41,9 +41,8 @@ impl Shadow {
             let text = json::serialize(e);
             let shadow = &mut self.game;
             let ok = quiet(|| {
-                let copy: Event = json::deserialize(&text).ok()?;
-                copy.initialize_game(shadow);
-                copy.execute(shadow, false, false);
+                let copy: HistoryEntry = json::deserialize(&text).ok()?;
+                let _ = shadow.play(copy, false, false);
                 Some(())
             });
             if ok.flatten().is_none() {
@@ -844,12 +843,12 @@ impl Fuzzer {
             player.filter(|i| *i < shadow.players.len()).and_then(|i| {
                 let p = shadow.player_at(i);
                 let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
-                quiet(|| treachery_view::actions::default_draft(shadow, &rv, &self.seating, faction, t).map(|e| json::serialize(&e))).flatten()
+                quiet(|| treachery_view::actions::default_draft(shadow, &rv, &self.seating, faction, t).map(|e| json::serialize(&HistoryEntry::new(faction, e)))).flatten()
             })
         });
         let base = draft.unwrap_or_else(|| {
             let minimal = format!("{{\"$type\":\"{}\",\"Initiator\":{}}}", t.name(), value_or_absent(faction));
-            quiet(|| json::deserialize::<Event>(&minimal).ok().map(|e| json::serialize(&e))).flatten().unwrap_or(minimal)
+            quiet(|| json::deserialize::<HistoryEntry>(&minimal).ok().map(|e| json::serialize(&e))).flatten().unwrap_or(minimal)
         });
         let Ok(Value::Object(mut base)) = serde_json::from_str::<Value>(&base) else { return None };
         base.remove("Time");
@@ -901,9 +900,8 @@ impl Fuzzer {
             }
             let text = Value::Object(candidate.clone()).to_string();
             let valid = quiet(|| {
-                let e: Event = json::deserialize(&text).ok()?;
-                e.initialize_game(shadow);
-                Some(e.validate(shadow).is_none())
+                let e: HistoryEntry = json::deserialize(&text).ok()?;
+                Some(e.validate(shadow).is_ok())
             })
             .flatten()
             .unwrap_or(false);

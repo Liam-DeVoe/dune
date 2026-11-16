@@ -852,7 +852,7 @@ impl Player {
 
     pub fn initiated(&self, e: Option<&Event>) -> bool {
                 match e {
-            Some(e) => e.initiator() == self.faction,
+            Some(e) => e.legacy_initiator() == self.faction,
             None => false,
         }
     }

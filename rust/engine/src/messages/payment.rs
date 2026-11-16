@@ -1,5 +1,5 @@
 use crate::enumerations::Faction;
-use crate::events::Event;
+use crate::events::EventType;
 
 /// `Payment`. Messages use it to print an amount of spice (`Payment.Of(3)`).
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -7,8 +7,8 @@ pub struct Payment {
     pub amount: i32,
     pub by: Option<Faction>,
     pub to: Option<Faction>,
-    /// `Event? Reason`, set by `Game.SetRecentPayment`. Compared by reference.
-    pub reason: Option<Event>,
+    /// The type of event the payment was for (`Game::set_recent_payment`).
+    pub reason: Option<EventType>,
 }
 
 impl Payment {
@@ -24,7 +24,7 @@ impl Payment {
         Payment { amount, by, ..Default::default() }
     }
 
-    pub fn new_full(amount: i32, by: Option<Faction>, to: Option<Faction>, reason: Option<Event>) -> Self {
+    pub fn new_full(amount: i32, by: Option<Faction>, to: Option<Faction>, reason: Option<EventType>) -> Self {
         Payment { amount, by, to, reason }
     }
 }

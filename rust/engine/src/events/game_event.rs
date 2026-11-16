@@ -1,15 +1,17 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-/// The fields shared by all events, embedded as `base` in every event struct.
-/// The polymorphic `Event` itself is the enum in `events/mod.rs`.
+/// The submitter of an `@legacy` event, embedded as `base` in its struct. `Game::submit` fills it
+/// from the history entry before validating (`Event::prepare`). Converted events have no base:
+/// they get the submitter as a [`By`] argument.
 #[derive(Clone, Debug)]
 pub struct GameEventBase {
-    /// Interior mutability: written after the event is stored in game state.
+    /// Interior mutability: written when the event is submitted, after it may be stored.
     pub initiator: Cell<Option<Faction>>,
-    /// Interior mutability: the server sets this member after `Execute`, when the event is already in
+    /// A copy of the entry's time (`Game::play`, `History::stamp_last`), because copies of the
+    /// event take it along: a deal's cancellation carries the time of the offer.
     pub time: Cell<DateTimeOffset>,
-    /// Interior mutability: written after the event is stored in game state.
+    /// Interior mutability: written when the event is submitted, after it may be stored.
     pub player: Cell<Option<PlayerId>>,
 }
 
@@ -23,8 +25,9 @@ impl Default for GameEventBase {
     }
 }
 
-/// The instance members shared by all events. Every event implements this trait
-/// (generated in its module); members an event overrides are delegated to its inherent method.
+/// The members of an `@legacy` event. Every legacy event implements this trait (in its module);
+/// members an event overrides are delegated to its inherent method. Converted events implement
+/// [`EventRules`] instead.
 pub trait GameEventMethods {
     /// The `Event` fields of this event.
     fn base(&self) -> &GameEventBase;
@@ -36,10 +39,6 @@ pub trait GameEventMethods {
 
     fn initiator(&self) -> Option<Faction> {
         self.base().initiator.get()
-    }
-
-    fn time(&self) -> DateTimeOffset {
-        self.base().time.get()
     }
 
     /// `Player`, dereferenced: NullReferenceException when it was never set.
@@ -65,13 +64,6 @@ pub trait GameEventMethods {
         self.validate(game).is_none()
     }
 
-    fn is_applicable(&self, game: &mut Game, is_host: bool) -> bool {
-        // `if (Game == null) throw new ArgumentException(...)`: an event always has its
-        // game here (the caller passes it).
-        let player = self.player_opt();
-        game.get_applicable_events(player, is_host).contains(&self.event_type())
-    }
-
     fn initialize(&self, game: &Game, initiator: Option<Faction>) {
         self.base().initiator.set(initiator);
 
@@ -83,38 +75,6 @@ pub trait GameEventMethods {
 
     fn initialize_game(&self, game: &Game) {
         self.initialize(game, self.initiator())
-    }
-
-    /// Validates (when asked) and executes the event. Returns why it was refused: the validation
-    /// message, or a "Game Error" when an accepted event failed partway (see [`GameError`]).
-    fn execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> Option<Message> {
-        match self.try_execute(game, perform_validation, is_host) {
-            Ok(r) => r,
-            Err(e) => Some(express!("Game Error: ", e, ".")),
-        }
-    }
-
-    /// [`execute`](GameEventMethods::execute) with the failure of an accepted event as `Err`.
-    fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, is_host: bool) -> GameResult<Option<Message>> {
-        let moment_just_before_event = game.turn.current_moment;
-
-        if perform_validation {
-            if !self.is_applicable(game, is_host) {
-                return Ok(Some(express!("Event '", self.try_get_message(game)?, "' is not applicable")));
-            }
-
-            if let Some(refusal) = self.try_validate(game)? {
-                return Ok(Some(refusal));
-            }
-        }
-
-        let this: Event = self.clone().into_event();
-        game.turn.recent_milestones.clear();
-        game.perform_pre_event_tasks(&this);
-        self.execute_concrete_event(game)?;
-        let just_entered_start_of_phase = moment_just_before_event != Some(MainPhaseMoment::Start) && game.turn.current_moment == Some(MainPhaseMoment::Start);
-        game.perform_post_event_tasks(&this, just_entered_start_of_phase);
-        Ok(None)
     }
 
     fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult;
@@ -146,14 +106,6 @@ pub trait GameEventMethods {
     fn by_player(&self, _game: &Game, p: PlayerId) -> bool {
         // Player == p (reference equality; a null Player is never equal)
         self.player_opt() == Some(p)
-    }
-
-    fn shallow_copy(&self) -> Option<Event>
-    where
-        Self: Clone + Sized,
-    {
-        // MemberwiseClone: a shallow copy with the same field values
-        Some(Rc::new(self.clone()).into_event())
     }
 
     fn log(&self, game: &mut Game) {

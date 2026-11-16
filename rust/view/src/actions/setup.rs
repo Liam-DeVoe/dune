@@ -38,7 +38,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
     })
 }
 
-pub fn options_and_validation(game: &Game, s: &Seating, draft: &Event, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, by: Option<Faction>, s: &Seating, draft: &Event, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     let options = match draft {
         Event::EstablishPlayers(_) => ActionOptions::EstablishPlayers(EstablishPlayersOptions { seated_players: s.seated_users }),
         Event::PerformSetup(_) => {
@@ -58,7 +58,7 @@ pub fn options_and_validation(game: &Game, s: &Seating, draft: &Event, d: &dyn D
         }
         _ => return None,
     };
-    Some((Some(options), validate(game, draft.clone(), d)))
+    Some((Some(options), validate(game, by, draft.clone(), d)))
 }
 
 impl From<PerformSetupOptions> for ActionOptions {

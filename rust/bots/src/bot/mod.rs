@@ -259,6 +259,12 @@ impl ClassicBot {
         game.player(self.player).faction.expect("a bot plays a faction")
     }
 
+    /// The bot as the submitter of its events: its player's faction (none before faction selection).
+    pub fn by(&self, game: &Game) -> By {
+        // A game without the bot's player (tests) has no faction for it.
+        By::new(game, game.players.get(self.player.index()).and_then(|p| p.faction))
+    }
+
     pub fn ally(&self, game: &Game) -> Option<Faction> {
         game.player(self.player).ally
     }
@@ -432,10 +438,11 @@ impl ClassicBot {
         let event = guarded(|| decide(self, game)).ok()?.into_option()?;
         let event = <R::Event as EventKind>::into_event(event);
 
-        let error = event.validate(game);
+        let by = self.by(game);
+        let valid = event.validate(game, by).is_ok();
         // Building the event's message can throw, which ends the bot's round with that exception.
-        let _ = event.get_message(game);
-        Some(if error.is_none() { Decision::Valid(event) } else { Decision::Invalid(event) })
+        let _ = event.describe(game, by);
+        Some(if valid { Decision::Valid(event) } else { Decision::Invalid(event) })
     }
 
     /// The sum of `amount` dice with `sides` sides each.

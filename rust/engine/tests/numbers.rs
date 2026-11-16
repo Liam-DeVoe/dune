@@ -6,7 +6,7 @@ use treachery_engine::game::amounts;
 use treachery_engine::prelude::*;
 
 fn decode(json: &str) -> Result<Event, String> {
-    Utilities::deserialize::<Event>(json).map(|e| e.expect("an event")).map_err(|e| e.message)
+    Utilities::deserialize::<HistoryEntry>(json).map(|e| e.expect("an event").event).map_err(|e| e.message)
 }
 
 #[test]

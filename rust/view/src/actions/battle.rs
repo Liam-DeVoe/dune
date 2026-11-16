@@ -231,7 +231,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
     }
     let Some(p) = v.player else { return Some((None, None)) };
     let faction = game.player(p).faction;
-    let dj = draft_json(draft);
+    let dj = draft_json(faction, draft);
     let options = match draft {
         Event::AuditCancelled(_) => ActionOptions::AuditCancelled(AuditCancelledOptions {
             cost: AuditCancelled::cost_of_cancelling(game),
@@ -239,7 +239,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
         Event::Audited(_) => ActionOptions::Audited(AuditedOptions { cards: game.battle.audited_cards.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
         Event::Battle(b) => {
             let (options, normalized) = battle_options(game, p, b, d);
-            return Some((Some(ActionOptions::Battle(options)), validate(game, event(normalized), d)));
+            return Some((Some(ActionOptions::Battle(options)), validate(game, faction, event(normalized), d)));
         }
         Event::BattleConcluded(_) => ActionOptions::BattleConcluded(battle_concluded_options(game, p, d, dj.clone())),
         Event::BattleInitiated(_) => ActionOptions::BattleInitiated(BattleInitiatedOptions {
@@ -256,7 +256,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
             treachery_cards: game.decks.treachery_deck.as_ref().map(|d| d.items.iter().map(|c| c.id()).collect()).unwrap_or_default(),
             richese_cards: game.decks.richese_cache.iter().map(|c| c.id()).collect(), draft: dj.clone() }),
         Event::ClairVoyanceAnswered(_) => {
-            let Some(latest) = game.turn.latest_clairvoyance.as_ref() else { return Some((None, validate(game, draft.clone(), d))) };
+            let Some(latest) = game.turn.latest_clairvoyance.as_ref() else { return Some((None, validate(game, faction, draft.clone(), d))) };
             ActionOptions::ClairVoyanceAnswered(ClairVoyanceAnsweredOptions {
                 questioner: name_or_absent(latest.initiator()),
                 question: expr::message(&latest.get_question(game), d), draft: dj.clone() })
@@ -300,7 +300,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
             types: voice_types(game, &Some(d)), draft: dj.clone() }),
         _ => return None,
     };
-    Some((Some(options), validate(game, draft.clone(), d)))
+    Some((Some(options), validate(game, faction, draft.clone(), d)))
 }
 
 // ------------------------------------------------------------------------------------------
@@ -800,7 +800,7 @@ fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -
         max_banker_boost: Battle::max_banker_boost(game, p, hero),
         banker_label,
         leader,
-        draft: draft_json(&event(normalized.clone())),
+        draft: draft_json(pl.faction, &event(normalized.clone())),
     };
     let _ = faction;
     (options, normalized)

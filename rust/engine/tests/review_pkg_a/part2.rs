@@ -90,9 +90,9 @@ fn game_state_load_matches_dotnet() {
 /// nested in EstablishPlayers). `json::read_object` rejects every `$` member.
 #[test]
 fn dollar_members_in_non_polymorphic_objects_are_ignored() {
-    use treachery_engine::events::Event;
-    let r = Utilities::deserialize::<Event>(r#"{"$type":"EstablishPlayers","Settings":{"$foo":1,"MaximumTurns":4}}"#)
-        .map(|e| match e.unwrap() {
+    use treachery_engine::events::{Event, HistoryEntry};
+    let r = Utilities::deserialize::<HistoryEntry>(r#"{"$type":"EstablishPlayers","Settings":{"$foo":1,"MaximumTurns":4}}"#)
+        .map(|e| match e.unwrap().event {
             Event::EstablishPlayers(ep) => i32::from(ep.settings.as_ref().unwrap().maximum_turns),
             _ => -1,
         })
@@ -107,7 +107,7 @@ fn dollar_members_in_non_polymorphic_objects_are_ignored() {
 
     // Events are polymorphic: .NET rejects these with JsonException too.
     for input in [r#"{"$type":"EndPhase","$foo":1,"Initiator":3}"#, r#"{"$type":"EndPhase","$id":"1","Initiator":3}"#] {
-        let r = Utilities::deserialize::<Event>(input).map(|e| e.is_some()).map_err(|e| e.kind.to_string());
+        let r = Utilities::deserialize::<HistoryEntry>(input).map(|e| e.is_some()).map_err(|e| e.kind.to_string());
         assert_eq!(r, Err("JsonException".to_string()), "input {input}");
     }
 }

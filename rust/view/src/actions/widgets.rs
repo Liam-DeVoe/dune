@@ -39,9 +39,9 @@ pub(super) fn card_ids(cards: impl IntoIterator<Item = TreacheryCard>) -> Vec<i3
     cards.into_iter().map(|c| c.id()).collect()
 }
 
-/// The draft as savegame JSON, for the options' `draft`.
-pub(super) fn draft_json(e: &Event) -> serde_json::Value {
-    serde_json::from_str(&json::serialize(e)).expect("the engine writes valid JSON")
+/// The draft of the submitter `by` as savegame JSON, for the options' `draft`.
+pub(super) fn draft_json(by: Option<Faction>, e: &Event) -> serde_json::Value {
+    serde_json::from_str(&json::serialize(&HistoryEntry::new(by, e.clone()))).expect("the engine writes valid JSON")
 }
 
 /// The skin's text of these parts, one after the other.

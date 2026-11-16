@@ -51,7 +51,7 @@ impl Server {
         if speed <= 0 || g.scene {
             return;
         }
-        let delay = bot_delay(g.game.turn.current_main_phase, g.game.latest_event_0().as_ref()) / speed as u64;
+        let delay = bot_delay(g.game.turn.current_main_phase, g.game.latest_event_0().as_ref().map(|e| &e.event)) / speed as u64;
         g.bot_turn += 1;
         self.services.timers.schedule(Duration::from_millis(delay), Timer::BotTurn { game: game.to_string(), turn: g.bot_turn });
     }
@@ -90,6 +90,7 @@ impl Server {
                 let bot = &mut bots[index].1;
                 let event = bot.decide(state, Priority::ALL[level], options);
                 if let Some(event) = event {
+                    let event = treachery_engine::events::HistoryEntry::decided(state.player(player).faction, event);
                     return match Box::pin(self.execute(game, event, level == 4, None, true)).await {
                         Err(CallError::Refused(ErrorCode::InvalidGameEvent, _)) => Ok(()),
                         r => r,
@@ -113,7 +114,7 @@ mod tests {
         assert_eq!(bot_delay(MainPhase::Battle, None), 9600);
         assert_eq!(bot_delay(MainPhase::Charity, None), 2400);
         assert_eq!(bot_delay(MainPhase::Bidding, None), 4800);
-        let bid = treachery_engine::json::deserialize(r#"{"$type":"Bid","Initiator":20,"Amount":1}"#).unwrap();
-        assert_eq!(bot_delay(MainPhase::Bidding, Some(&bid)), 1600);
+        let bid: treachery_engine::events::HistoryEntry = treachery_engine::json::deserialize(r#"{"$type":"Bid","Initiator":20,"Amount":1}"#).unwrap();
+        assert_eq!(bot_delay(MainPhase::Bidding, Some(&bid.event)), 1600);
     }
 }

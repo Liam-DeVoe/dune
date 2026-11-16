@@ -10,19 +10,19 @@ pub struct GameStatus {
     /// `AggressivePlayer!`/`DefendingPlayer!`, which can be null (the `!` does not throw).
     pub waiting_for_players: Vec<Option<PlayerId>>,
     pub flash_info: Vec<FlashInfo>,
-    pub timed_event: Option<Event>,
+    pub timed_event: Option<HistoryEntry>,
     pub waiting_for_host: bool,
     pub description_when_awaited: Message,
     pub description_when_waiting: Message,
 }
 
 impl GameStatus {
-    pub fn for_player(message_when_awaited: Message, message_when_waiting: Message, waiting_for_player: Option<PlayerId>, timed_event: Option<Event>) -> Self {
+    pub fn for_player(message_when_awaited: Message, message_when_waiting: Message, waiting_for_player: Option<PlayerId>, timed_event: Option<HistoryEntry>) -> Self {
         let list = if waiting_for_player.is_some() { vec![waiting_for_player] } else { vec![] };
         Self::for_players(message_when_awaited, message_when_waiting, list, timed_event)
     }
 
-    pub fn for_players(message_when_awaited: Message, message_when_waiting: Message, waiting_for_players: Vec<Option<PlayerId>>, timed_event: Option<Event>) -> Self {
+    pub fn for_players(message_when_awaited: Message, message_when_waiting: Message, waiting_for_players: Vec<Option<PlayerId>>, timed_event: Option<HistoryEntry>) -> Self {
         GameStatus {
             highlighted_territories: vec![],
             waiting_in_sequence: vec![],
@@ -35,7 +35,7 @@ impl GameStatus {
         }
     }
 
-    pub fn for_sequence(message_when_awaited: Message, message_when_waiting: Message, waiting_in_sequence: Vec<SequenceElement>, timed_event: Option<Event>) -> Self {
+    pub fn for_sequence(message_when_awaited: Message, message_when_waiting: Message, waiting_in_sequence: Vec<SequenceElement>, timed_event: Option<HistoryEntry>) -> Self {
         GameStatus {
             highlighted_territories: vec![],
             waiting_in_sequence,
@@ -48,7 +48,7 @@ impl GameStatus {
         }
     }
 
-    pub fn for_host(message_when_awaited: Message, message_when_waiting: Message, timed_event: Option<Event>) -> Self {
+    pub fn for_host(message_when_awaited: Message, message_when_waiting: Message, timed_event: Option<HistoryEntry>) -> Self {
         GameStatus {
             highlighted_territories: vec![],
             waiting_in_sequence: vec![],
@@ -354,8 +354,8 @@ impl GameStatus {
             Phase::ReplacingCardJustWon => {
                 let g: &Game = game;
                 let a = express!("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage.");
-                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
-                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator()).flatten());
+                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.legacy_initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
+                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.legacy_initiator()).flatten());
                 Self::player_status(a, w, p, None)
             }
 
@@ -816,42 +816,42 @@ impl GameStatus {
     }
 
     /// Waiting for the host, with the same text for everyone.
-    pub fn status(message: impl Into<Message>, timed_event: Option<Event>) -> GameStatus {
+    pub fn status(message: impl Into<Message>, timed_event: Option<HistoryEntry>) -> GameStatus {
         let message = message.into();
         Self::for_host(message.clone(), message, timed_event)
     }
 
-    pub fn host_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, timed_event: Option<Event>) -> GameStatus {
+    pub fn host_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, timed_event: Option<HistoryEntry>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         Self::for_host(a, w, timed_event)
     }
 
-    pub fn players_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_players: Vec<Option<PlayerId>>, timed_event: Option<Event>) -> GameStatus {
+    pub fn players_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_players: Vec<Option<PlayerId>>, timed_event: Option<HistoryEntry>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         Self::for_players(a, w, waiting_for_players, timed_event)
     }
 
-    pub fn sequence_status(message_when_awaited: Message, message_when_waiting: Message, waiting_in_sequence: Vec<SequenceElement>, timed_event: Option<Event>) -> GameStatus {
+    pub fn sequence_status(message_when_awaited: Message, message_when_waiting: Message, waiting_in_sequence: Vec<SequenceElement>, timed_event: Option<HistoryEntry>) -> GameStatus {
         Self::for_sequence(message_when_awaited, message_when_waiting, waiting_in_sequence, timed_event)
     }
 
     /// Waiting for the players of these factions. Factions nobody plays are left out.
-    pub fn factions_status(game: &Game, message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_factions: &[Faction], timed_event: Option<Event>) -> GameStatus {
+    pub fn factions_status(game: &Game, message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_factions: &[Faction], timed_event: Option<HistoryEntry>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         let players: Vec<Option<PlayerId>> = waiting_for_factions.iter().filter_map(|f| game.get_player(Some(*f))).map(Some).collect();
         Self::for_players(a, w, players, timed_event)
     }
 
-    pub fn player_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_player: Option<PlayerId>, timed_event: Option<Event>) -> GameStatus {
+    pub fn player_status(message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_player: Option<PlayerId>, timed_event: Option<HistoryEntry>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         Self::for_player(a, w, waiting_for_player, timed_event)
     }
 
-    pub fn faction_status(game: &Game, message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_faction: Option<Faction>, timed_event: Option<Event>) -> GameStatus {
+    pub fn faction_status(game: &Game, message_when_awaited: impl Into<Message>, message_when_waiting: impl Into<Message>, waiting_for_faction: Option<Faction>, timed_event: Option<HistoryEntry>) -> GameStatus {
         let a = message_when_awaited.into();
         let w = message_when_waiting.into();
         Self::for_player(a, w, game.get_player(waiting_for_faction), timed_event)
@@ -877,7 +877,7 @@ impl GameStatus {
         let latest_event = g.history.entries.last().cloned();
 
         if let Some(latest) = &latest_event {
-            match latest {
+            match &latest.event {
                 // Show treachery card played
                 Event::RaiseDeadPlayed(_) => Self::flash_card_type_played(g, &mut result, latest, TreacheryCardType::RaiseDead),
                 Event::MetheorPlayed(_) => Self::flash_card_type_played(g, &mut result, latest, TreacheryCardType::Metheor),
@@ -957,7 +957,7 @@ impl GameStatus {
                     let c = Map::get_resource_cards_in_play(g).into_iter().find(|c| c.is_sand_trout());
                     Self::flash(&mut result, express!(Concept::BabyMonster, " detected!"), c);
                 }
-                Milestone::Karma if matches!(latest_event, Some(Event::Bid(_))) => {
+                Milestone::Karma if matches!(latest_event, Some(HistoryEntry { event: Event::Bid(_), .. })) => {
                     if g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").top().is_some() {
                         let top = g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").top();
                         Self::flash(&mut result, express!("Card was won using ", TreacheryCardType::Karma), top);
@@ -1002,28 +1002,28 @@ impl GameStatus {
         flashes.push(FlashInfo { message, to_show: to_show.into() });
     }
 
-    pub fn flash_event(game: &Game, flashes: &mut Vec<FlashInfo>, e: Option<&Event>) {
+    pub fn flash_event(game: &Game, flashes: &mut Vec<FlashInfo>, e: Option<&HistoryEntry>) {
         let Some(e) = e else { return };
 
-        match e {
-            Event::TreacheryCalled(t) => {
-                let victim = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, t.initiator());
+        match &e.event {
+            Event::TreacheryCalled(_) => {
+                let victim = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, e.by);
                 let victim_plan = game.battle.current_battle.as_ref().expect("current battle").plan_of(game, victim);
-                let msg = express!(victim_plan.as_ref().and_then(|p| p.hero), " is a ", t.initiator(), " traitor!");
+                let msg = express!(victim_plan.as_ref().and_then(|p| p.hero), " is a ", e.by, " traitor!");
                 let hero = victim_plan.as_ref().expect("victim plan").hero;
                 Self::flash(flashes, msg, hero);
             }
 
             Event::FaceDanced(_) => {
                 let dancer = game.winner_hero();
-                Self::flash(flashes, express!(dancer, " is a ", e.initiator(), " facedancer!"), dancer);
+                Self::flash(flashes, express!(dancer, " is a ", e.by, " facedancer!"), dancer);
             }
 
             Event::SwitchedSkilledLeader(_) => {
-                let leader = SwitchedSkilledLeader::switchable_leader(game, e.player());
+                let leader = SwitchedSkilledLeader::switchable_leader(game, e.by_in(game).player());
                 let hero = leader.map(Hero::Leader);
                 let msg = express!(
-                    e.initiator(),
+                    e.by,
                     " place ",
                     game.skill(hero),
                     " ",
@@ -1035,26 +1035,26 @@ impl GameStatus {
             }
 
             _ => {
-                let msg = e.get_message(game);
-                Self::flash(flashes, msg, e.initiator());
+                let msg = e.describe(game);
+                Self::flash(flashes, msg, e.by);
             }
         }
     }
 
-    pub fn flash_card_type_played(game: &Game, flashes: &mut Vec<FlashInfo>, e: &Event, t: TreacheryCardType) {
+    pub fn flash_card_type_played(game: &Game, flashes: &mut Vec<FlashInfo>, e: &HistoryEntry, t: TreacheryCardType) {
         let pile = game.decks.treachery_discard_pile.as_ref().expect("treachery discard pile");
         if pile.top().expect("a discarded card").type_() == t || (t == TreacheryCardType::Karma && pile.top().expect("a discarded card").type_() == TreacheryCardType::Useless) {
-            let msg = e.get_message(game);
+            let msg = e.describe(game);
             Self::flash(flashes, msg, pile.top());
         } else {
-            let msg = e.get_message(game);
+            let msg = e.describe(game);
             let card = TreacheryCardManager::get_cards_in_and_outside_play().iter().copied().find(|card| card.type_() == t).expect("a card of this type");
             Self::flash(flashes, msg, card);
         }
     }
 
-    pub fn flash_skill_used(game: &Game, flashes: &mut Vec<FlashInfo>, e: &Event, s: LeaderSkill) {
-        let msg = if s == LeaderSkill::Decipherer { express!(e.initiator(), " use their ", s, " skill") } else { e.get_message(game) };
+    pub fn flash_skill_used(game: &Game, flashes: &mut Vec<FlashInfo>, e: &HistoryEntry, s: LeaderSkill) {
+        let msg = if s == LeaderSkill::Decipherer { express!(e.by, " use their ", s, " skill") } else { e.describe(game) };
         Self::flash(flashes, msg, s)
     }
 

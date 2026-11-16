@@ -113,10 +113,10 @@ impl EventRules for BeneGesseritAccompanies {
             let me = by.player();
             let location = self.location.required("location")?;
             let amount = self.special_forces_added_to_location(game);
-            if game.player(me).occupies_territory(game, Some(location.territory()))
+            let as_fighters = game.player(me).occupies_territory(game, Some(location.territory()))
                 || !game.is_occupied_territory(location.territory())
-                || !game.applicable(Rule::BeneGesseritAdvisors)
-            {
+                || !game.applicable(Rule::BeneGesseritAdvisors);
+            if as_fighters {
                 Player::ship_forces(game, me, location, amount)?;
             } else {
                 Player::ship_advisors(game, me, location, amount)?;
@@ -127,7 +127,10 @@ impl EventRules for BeneGesseritAccompanies {
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             game.log(parts![m]);
             game.turn.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
-            game.check_intrusion(&Event::from(self.clone()), by.faction.expect("faction"))?;
+            // Fighters trigger an ambassador, advisors don't (behavior-changes.md, "Bene
+            // Gesserit fighters that accompany a shipment trigger an ambassador").
+            let fighters = if as_fighters { amount } else { 0 };
+            game.check_intrusion_with_fighters(&Event::from(self.clone()), by.faction.expect("faction"), fighters)?;
         } else {
             let m = express!(by.faction, " don't accompany")
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::DontAccompany, Option::<Location>::None.into(), false));

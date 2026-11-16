@@ -814,9 +814,17 @@ impl Game {
 
     /// Queues the intrusions that `e`, a location event by `initiator`, causes.
     pub fn check_intrusion(&mut self, e: &Event, initiator: Faction) -> GameResult<bool> {
+        let fighters = e.location_event_forces_added_to_location(self);
+        self.check_intrusion_with_fighters(e, initiator, fighters)
+    }
+
+    /// As [`Game::check_intrusion`], for an event whose forces arrived as `fighters` fighters
+    /// (not advisors): Bene Gesserit accompanying a shipment arrive as either, which their
+    /// event alone doesn't say.
+    pub fn check_intrusion_with_fighters(&mut self, e: &Event, initiator: Faction, fighters: i32) -> GameResult<bool> {
         let territory = e.to_location(self).required("destination")?.territory();
         self.check_bene_gesserit_intrusion(e, initiator, territory);
-        self.check_ambassador_triggered(e, initiator);
+        self.check_ambassador_triggered(e, initiator, fighters);
         self.check_terror_triggered(e, initiator);
         Ok(!self.turn.intrusions.is_empty())
     }
@@ -843,10 +851,12 @@ impl Game {
         }
     }
 
-    pub fn check_ambassador_triggered(&mut self, e: &Event, initiator: Faction) {
+    /// An ambassador triggers when forces of another faction enter its territory, other than
+    /// Ecaz's ally, the faction of the ambassador, or Bene Gesserit advisors.
+    pub fn check_ambassador_triggered(&mut self, e: &Event, initiator: Faction, fighters: i32) {
         let ecaz_player = self.get_player(Some(Faction::Ecaz));
         if let Some(ecaz) = ecaz_player {
-            if (initiator != Faction::BeneGesserit || e.location_event_forces_added_to_location(self) > 0)
+            if (initiator != Faction::BeneGesserit || fighters > 0)
                 && initiator != Faction::Ecaz
                 && Some(initiator) != self.player(ecaz).ally
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != None

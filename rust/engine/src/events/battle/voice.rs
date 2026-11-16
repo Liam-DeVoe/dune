@@ -22,6 +22,14 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
 }
 
+/// How a player gets to use Voice: openly, as the Bene Gesserit or their ally, or as a secret
+/// ally through the Bene Gesserit Nexus card.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum VoiceRight {
+    Open,
+    SecretAlly,
+}
+
 impl Voice {
     pub fn new(game: &Game, initiator: Faction) -> Self {
         let e = Self::default();
@@ -88,40 +96,74 @@ impl Voice {
     /// [`may_use_voice`](Self::may_use_voice) for a player that may be missing (a bot asks about
     /// its opponent in a battle it may not fight). A missing player panics where the answer
     /// depends on it, after the checks that don't.
+    ///
+    /// Voice comes before Prescience (rulebook FAQ), so it is closed once declined. A secret ally
+    /// may also not use it after Prescience; an open one keeps Prescience waiting instead (see
+    /// [`voice_pending`](Self::voice_pending)).
     pub fn may_use_voice_opt(g: &Game, p: Option<PlayerIndex>) -> bool {
-        if g.battle.current_voice.is_none() {
-            if let Some(battle) = g.battle.current_battle.as_ref() {
-                let p = p.expect("player");
-                if battle.is_involved(g, p) {
-                    if g.player(p).nexus == Faction::BeneGesserit && NexusPlayed::can_use_secret_ally(g, p) {
-                        return battle.is_aggressor_or_defender(g, p);
-                    }
+        if g.battle.current_voice.is_some() || g.battle.voice_declined {
+            return false;
+        }
 
-                    // IsOccupiedByFactionOrTheirAlly(World.BeneGesserit, OpponentOf(p)): the Player overload,
-                    // which dereferences a null opponent only when there is an occupier.
-                    let occupied = || match battle.opponent_of(g, p) {
-                        Some(opponent) => g.is_occupied_by_player_or_their_ally(World::BeneGesserit, opponent),
-                        None => {
-                            if g.occupier_of(World::BeneGesserit).is_some() {
-                                panic!("A required value is missing")
-                            }
-                            false
-                        }
-                    };
+        match Self::voice_right(g, p) {
+            Some(VoiceRight::Open) => true,
+            Some(VoiceRight::SecretAlly) => g.battle.current_prescience.is_none(),
+            None => false,
+        }
+    }
 
-                    if !g.prevented(FactionAdvantage::BeneGesseritUsingVoice) && !occupied() {
-                        if g.player(p).faction == Faction::BeneGesserit {
-                            return battle.is_involved(g, p);
-                        }
-                        if g.player(p).ally == Faction::BeneGesserit && g.alliances.bene_gesserit_allows_use_of_voice {
-                            return battle.is_aggressor_or_defender(g, p);
-                        }
-                    }
+    /// Whether `p` could use Voice in the current battle if nobody had used or declined it yet,
+    /// and on what grounds. The same panics as [`may_use_voice_opt`](Self::may_use_voice_opt).
+    pub fn voice_right(g: &Game, p: Option<PlayerIndex>) -> Option<VoiceRight> {
+        let battle = g.battle.current_battle.as_ref()?;
+        let p = p.expect("player");
+        if !battle.is_involved(g, p) {
+            return None;
+        }
+
+        if g.player(p).nexus == Faction::BeneGesserit && NexusPlayed::can_use_secret_ally(g, p) {
+            return battle.is_aggressor_or_defender(g, p).then_some(VoiceRight::SecretAlly);
+        }
+
+        // IsOccupiedByFactionOrTheirAlly(World.BeneGesserit, OpponentOf(p)): the Player overload,
+        // which dereferences a null opponent only when there is an occupier.
+        let occupied = || match battle.opponent_of(g, p) {
+            Some(opponent) => g.is_occupied_by_player_or_their_ally(World::BeneGesserit, opponent),
+            None => {
+                if g.occupier_of(World::BeneGesserit).is_some() {
+                    panic!("A required value is missing")
                 }
+                false
+            }
+        };
+
+        if !g.prevented(FactionAdvantage::BeneGesseritUsingVoice) && !occupied() {
+            if g.player(p).faction == Faction::BeneGesserit {
+                return Some(VoiceRight::Open);
+            }
+            if g.player(p).ally == Faction::BeneGesserit && g.alliances.bene_gesserit_allows_use_of_voice && battle.is_aggressor_or_defender(g, p) {
+                return Some(VoiceRight::Open);
             }
         }
 
-        false
+        None
+    }
+
+    /// Whether Voice may still come from a player everyone knows could use it: nobody has used or
+    /// declined it, and the Bene Gesserit (or their ally, when allowed) could. Prescience waits
+    /// while this holds. A secret ally doesn't count, as waiting for them would reveal their
+    /// Nexus card.
+    pub fn voice_pending(g: &Game) -> bool {
+        g.battle.current_battle.is_some()
+            && g.battle.current_voice.is_none()
+            && !g.battle.voice_declined
+            && g.player_indices().any(|q| Self::voice_right(g, Some(q)) == Some(VoiceRight::Open))
+    }
+
+    /// Whether someone would use Prescience now if Voice weren't pending: then the player who
+    /// may use Voice is asked to use or decline it.
+    pub fn prescience_waits_for_voice(g: &Game) -> bool {
+        Self::voice_pending(g) && g.player_indices().any(|q| Prescience::prescience_right(g, q))
     }
 
     pub fn is_voiced_by(g: &Game, as_weapon: bool, must: bool, card_type: TreacheryCardType, voiced_type: Option<TreacheryCardType>) -> bool {

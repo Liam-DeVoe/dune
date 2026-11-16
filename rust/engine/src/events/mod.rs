@@ -187,6 +187,7 @@ macro_rules! dispatch {
             GameEvent::TraitorsSelected($e) => $body,
             GameEvent::TreacheryCalled($e) => $body,
             GameEvent::Voice($e) => $body,
+            GameEvent::VoiceDeclined($e) => $body,
         }
     };
 }
@@ -335,6 +336,7 @@ pub enum GameEvent {
     TraitorsSelected(Rc<TraitorsSelected>),
     TreacheryCalled(Rc<TreacheryCalled>),
     Voice(Rc<Voice>),
+    VoiceDeclined(Rc<VoiceDeclined>),
 }
 
 impl From<Rc<AcceptOrCancelTleilaxuRevival>> for GameEvent {
@@ -1177,6 +1179,12 @@ impl From<Rc<Voice>> for GameEvent {
     }
 }
 
+impl From<Rc<VoiceDeclined>> for GameEvent {
+    fn from(e: Rc<VoiceDeclined>) -> Self {
+        GameEvent::VoiceDeclined(e)
+    }
+}
+
 /// The type of a concrete event (`GetType()`, `typeof(X)`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum GameEventType {
@@ -1320,6 +1328,7 @@ pub enum GameEventType {
     TraitorsSelected,
     TreacheryCalled,
     Voice,
+    VoiceDeclined,
 }
 
 impl GameEventType {
@@ -1464,6 +1473,7 @@ impl GameEventType {
         GameEventType::TraitorsSelected,
         GameEventType::TreacheryCalled,
         GameEventType::Voice,
+        GameEventType::VoiceDeclined,
     ];
 
     pub fn name(self) -> &'static str {
@@ -1608,6 +1618,7 @@ impl GameEventType {
             GameEventType::TraitorsSelected => "TraitorsSelected",
             GameEventType::TreacheryCalled => "TreacheryCalled",
             GameEventType::Voice => "Voice",
+            GameEventType::VoiceDeclined => "VoiceDeclined",
         }
     }
 
@@ -1754,6 +1765,7 @@ impl GameEventType {
             GameEventType::TraitorsSelected => Some("TraitorsSelected"),
             GameEventType::TreacheryCalled => Some("TreacheryCalled"),
             GameEventType::Voice => Some("Voice"),
+            GameEventType::VoiceDeclined => Some("VoiceDeclined"),
         }
     }
 
@@ -1900,6 +1912,7 @@ impl GameEventType {
             "TraitorsSelected" => Some(GameEventType::TraitorsSelected),
             "TreacheryCalled" => Some(GameEventType::TreacheryCalled),
             "Voice" => Some(GameEventType::Voice),
+            "VoiceDeclined" => Some(GameEventType::VoiceDeclined),
             _ => None,
         }
     }

@@ -56,3 +56,5 @@ mod treachery_called;
 pub use treachery_called::*;
 mod voice;
 pub use voice::*;
+mod voice_declined;
+pub use voice_declined::*;

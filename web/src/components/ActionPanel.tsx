@@ -4,6 +4,9 @@
 // Valid* helpers on every render.
 import type { ActionView } from "../generated/ActionView";
 import type { GameView } from "../generated/GameView";
+import type { WaitingActionView } from "../generated/WaitingActionView";
+import { Layout } from "./other/parts";
+import { RichText } from "./RichText";
 import { useGame } from "../state/context";
 import { otherForm, shownInActionPanel } from "./other/OtherForms";
 import { shipMoveForm } from "./shipmove";
@@ -34,6 +37,7 @@ export function ActionPanel({ filter, inPopover = false }: { filter?: (a: Action
       {/* Phase.GameEnded: the winners and the story (package 9). */}
       {view.ending && <WinnerPanel ending={view.ending} />}
       {view.bidding?.panel && <BiddingPanel panel={view.bidding.panel} />}
+      {view.waitingActions.map((w) => <WaitingForm key={w.eventType} waiting={w} />)}
       {view.actions.filter((a) => shows(view, a)).map((a) => {
         switch (a.options?.form) {
           // Drawn by the bidding panel above.
@@ -47,5 +51,15 @@ export function ActionPanel({ filter, inPopover = false }: { filter?: (a: Action
         }
       })}
     </>
+  );
+}
+
+// An action the player will get but can't take yet (Prescience while it waits for Voice): the
+// form's header where the real form will appear, and why there is no button yet.
+function WaitingForm({ waiting }: { waiting: WaitingActionView }) {
+  return (
+    <Layout type={waiting.eventType} header={waiting.title}>
+      <div className="text-muted"><RichText parts={waiting.reason} /></div>
+    </Layout>
   );
 }

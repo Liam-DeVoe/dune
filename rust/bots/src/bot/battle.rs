@@ -200,7 +200,8 @@ impl ClassicBot {
     pub fn determine_battle_plan_if_not_waiting_for_prescience(&self, game: &Game, include_leader_in_front_of_shield: bool) -> Option<Rc<Battle>> {
         let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, self.player);
 
-        if Prescience::may_use_prescience(game, self.player)
+        // Prescience waits for Voice, but I still plan after it.
+        if Prescience::prescience_right(game, self.player)
             || (self.my_prescience(game).is_some() && game.battle.current_battle.as_ref().expect("current battle").plan_of(game, opponent).is_none())
         {
             return None;
@@ -1030,7 +1031,7 @@ impl ClassicBot {
     pub fn get_dial_needed(&self, game: &Game, p: PlayerIndex, territory: Territory, opponent: PlayerIndex, take_reinforcements_into_account: bool) -> f32 {
         let voice_plan = if Voice::may_use_voice(game, p) { Some(self.best_voice(game, None, p, opponent)) } else { None };
         let strength_of_opponent = Self::max_dial(game, opponent, territory, Some(p), false);
-        let prescience = if Prescience::may_use_prescience(game, p) {
+        let prescience = if Prescience::prescience_right(game, p) {
             self.best_prescience(game, p, opponent, strength_of_opponent, None, territory)
         } else {
             None

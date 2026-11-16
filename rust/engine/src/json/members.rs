@@ -2864,6 +2864,22 @@ impl JsonObject for TreacheryCalled {
     }
 }
 
+impl JsonObject for VoiceDeclined {
+    fn write_members(&self, w: &mut JsonWriter) {
+        w.member("Initiator", &self.base.initiator);
+        w.member("Time", &self.base.time);
+    }
+
+    fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
+        match key {
+            "Initiator" => self.base.initiator = FromJson::from_json(value)?,
+            "Time" => self.base.time = FromJson::from_json(value)?,
+            _ => return Ok(false),
+        }
+        Ok(true)
+    }
+}
+
 impl JsonObject for Voice {
     fn write_members(&self, w: &mut JsonWriter) {
         w.member("Must", &self.must);
@@ -3059,6 +3075,7 @@ impl GameEvent {
             GameEventType::TraitorsSelected => GameEvent::TraitorsSelected(Rc::new(crate::json::read_object::<TraitorsSelected>(members)?)),
             GameEventType::TreacheryCalled => GameEvent::TreacheryCalled(Rc::new(crate::json::read_object::<TreacheryCalled>(members)?)),
             GameEventType::Voice => GameEvent::Voice(Rc::new(crate::json::read_object::<Voice>(members)?)),
+            GameEventType::VoiceDeclined => GameEvent::VoiceDeclined(Rc::new(crate::json::read_object::<VoiceDeclined>(members)?)),
         })
     }
 }

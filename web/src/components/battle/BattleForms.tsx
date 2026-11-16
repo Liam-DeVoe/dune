@@ -502,7 +502,6 @@ function PrescienceComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header="Use Prescience">
-      {o.voiceNote && <div className="text-info small mb-2">Note: Voice should be used before Prescience.</div>}
       <Radio values={o.aspects.map((a) => a.value)} labels={o.aspects.map((a) => a.label)} value={draft.Aspect as number}
              onChange={(v) => void update({ Aspect: v })} label="What should be foreseen?" />
       <ButtonRow confirm={() => submit()} confirmText="Use Prescience" confirmError={validation} />
@@ -608,7 +607,6 @@ function VoiceComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header="Use Voice">
-      {o.prescienceNote && <div className="text-info small mb-2">Note: Voice should be used before Prescience.</div>}
       <Radio values={[true, false]} labels={["Force the use of...", "Deny the use of..."]} value={draft.Must as boolean} onChange={(v) => void update({ Must: v })} />
       <Select options={o.types.map((t) => ({ value: t.value, label: t.label }))} value={draft.Type as number} onChange={(v) => void update({ Type: v })} />
       <ButtonRow confirm={() => submit()} confirmText="Use Voice" confirmError={validation} />

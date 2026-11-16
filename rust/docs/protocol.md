@@ -280,6 +280,7 @@ The server sets a draft's `Initiator` to the caller's faction, so a client can't
 | `board` | `BoardView` | the map |
 | `status` | `StatusView` | the prompt: who is awaited and why |
 | `actions` | `ActionView[]` | the event types the viewer may submit now, in the engine's order |
+| `waitingActions` | `WaitingActionView[]` | actions the viewer will get but can't take yet, each with a header and the reason; only Prescience while it waits for Voice |
 | `log` | `LogView` | report headers and the latest phase's lines |
 | `ruleset`, `rules`, `rulesForBots` | enum names | a rule applies when it is in either list |
 | `economicsStatus` | enum name | CHOAM's charity status |

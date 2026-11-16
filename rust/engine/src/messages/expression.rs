@@ -38,7 +38,22 @@ impl EnumValue {
 
     /// Returns the value if it is a member of enum type `T` (not its absent value).
     pub fn get<T: GameEnum>(&self) -> Option<T> {
-        if std::ptr::eq(self.ty, T::INFO) || self.ty.name == T::INFO.name { T::from_value(self.value) } else { None }
+        if self.is::<T>() { T::from_value(self.value) } else { None }
+    }
+
+    /// Returns the value if it is of enum type `T`: `Some(None)` for its absent value.
+    pub fn get_opt<T: GameEnum>(&self) -> Option<Option<T>> {
+        if !self.is::<T>() {
+            return None;
+        }
+        if self.value == 0 && T::INFO.absent {
+            return Some(None);
+        }
+        T::from_value(self.value).map(Some)
+    }
+
+    fn is<T: GameEnum>(&self) -> bool {
+        std::ptr::eq(self.ty, T::INFO) || self.ty.name == T::INFO.name
     }
 }
 

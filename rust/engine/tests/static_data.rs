@@ -426,7 +426,7 @@ fn dump_hero(h: Hero, opponents: &[Hero]) -> Value {
         "skin_id": h.skin_id(),
         "value": h.value(),
         "faction": h.faction().0,
-        "hero_type": h.hero_type().0,
+        "hero_type": h.hero_type() as i32,
         "cost_to_revive": h.cost_to_revive(),
         "value_in_combat_against": against,
         "is_traitor": opponents.iter().map(|o| json!(h.is_traitor(*o))).collect::<Vec<_>>(),

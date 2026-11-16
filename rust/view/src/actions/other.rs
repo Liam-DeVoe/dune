@@ -184,7 +184,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Faction, t: GameEventTyp
         }
         GameEventType::ChoamEconomics => {
             let mut e = ChoamEconomics::new(game, faction);
-            e.status = ChoamEconomicsStatus::Double;
+            e.status = Some(ChoamEconomicsStatus::Double);
             event(e)
         }
         GameEventType::DealOffered => {
@@ -343,7 +343,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             m.card_id = required(m.card_id, &card_ids(ChoamDiscarded::valid_cards(game, p)), none_card);
         }),
         GameEvent::ChoamEconomics(e) => adjust!(e, |m| {
-            m.status = required(m.status, &[ChoamEconomicsStatus::Double, ChoamEconomicsStatus::Cancel], ChoamEconomicsStatus::default());
+            m.status = required(m.status, &[Some(ChoamEconomicsStatus::Double), Some(ChoamEconomicsStatus::Cancel)], None);
         }),
         GameEvent::ChoamKarmaPrevention(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = game.players_other_than(p).collect();

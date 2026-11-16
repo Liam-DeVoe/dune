@@ -283,7 +283,7 @@ impl Game {
 
         self.player_mut(p).leaders.push(vidal);
         self.leaders.player_to_set_aside_vidal = Some(p);
-        self.leaders.when_to_set_aside_vidal = when_to_set_aside;
+        self.leaders.when_to_set_aside_vidal = Some(when_to_set_aside);
 
         let f = self.player(p).faction;
         self.log(elems![f, " take ", vidal]);
@@ -330,7 +330,6 @@ impl Game {
                 IntrusionType::BeneGesseritIntrusion => self.determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded()?,
                 IntrusionType::Terror => self.determine_next_shipment_and_move_sub_phase_on_terror_triggered()?,
                 IntrusionType::Ambassador => self.determine_next_shipment_and_move_sub_phase_on_ambassador_triggered()?,
-                _ => {}
             }
         } else {
             self.determine_next_shipment_and_move_sub_phase_on_no_intrusion();

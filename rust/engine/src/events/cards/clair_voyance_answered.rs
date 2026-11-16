@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ClairVoyanceAnswered {
-    pub answer: ClairVoyanceAnswer,
+    pub answer: Option<ClairVoyanceAnswer>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -24,11 +24,11 @@ impl ClairVoyanceAnswered {
     }
 
     pub fn is_no(&self) -> bool {
-        self.answer == ClairVoyanceAnswer::No
+        self.answer == Some(ClairVoyanceAnswer::No)
     }
 
     pub fn is_yes(&self) -> bool {
-        self.answer == ClairVoyanceAnswer::Yes
+        self.answer == Some(ClairVoyanceAnswer::Yes)
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {

@@ -13,7 +13,7 @@ pub enum Step {
 pub struct TurnState {
     pub current_turn: i32,
     pub current_main_phase: MainPhase,
-    pub current_moment: MainPhaseMoment,
+    pub current_moment: Option<MainPhaseMoment>,
     pub current_phase: Phase,
     pub has_acted_or_passed: Vec<Faction>,
     pub recent_milestones: Vec<Milestone>,
@@ -55,7 +55,7 @@ impl TurnState {
         TurnState {
             current_turn: Default::default(),
             current_main_phase: MainPhase::Started,
-            current_moment: MainPhaseMoment::None,
+            current_moment: None,
             current_phase: Phase::None,
             has_acted_or_passed: Vec::new(),
             recent_milestones: Vec::new(),
@@ -97,7 +97,7 @@ impl TurnState {
 impl Game {
     pub fn main_phase_start(&mut self, phase: MainPhase, start_report: bool) {
         self.turn.current_main_phase = phase;
-        self.turn.current_moment = MainPhaseMoment::Start;
+        self.turn.current_moment = Some(MainPhaseMoment::Start);
         if start_report {
             self.start_report(phase);
         }
@@ -112,13 +112,13 @@ impl Game {
     }
 
     pub fn main_phase_middle(&mut self) {
-        if self.turn.current_moment == MainPhaseMoment::Start {
-            self.turn.current_moment = MainPhaseMoment::Middle;
+        if self.turn.current_moment == Some(MainPhaseMoment::Start) {
+            self.turn.current_moment = Some(MainPhaseMoment::Middle);
         }
     }
 
     pub fn main_phase_end(&mut self) {
-        self.turn.current_moment = MainPhaseMoment::End;
+        self.turn.current_moment = Some(MainPhaseMoment::End);
 
         let mut exceptions_to_allowing: Vec<FactionAdvantage> = Vec::new();
 

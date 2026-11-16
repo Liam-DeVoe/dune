@@ -115,7 +115,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
         ruleset: name(game.rules.ruleset),
         rules: game.rules.active.iter().map(|r| name(*r)).collect(),
         rules_for_bots: game.rules.rules_for_bots.iter().map(|r| name(*r)).collect(),
-        economics_status: name(game.charity.economics_status),
+        economics_status: name_or_absent(game.charity.economics_status),
         piles: board::piles(game, v),
         tanks: board::tanks(game, v),
         bidding: board::bidding(game, v),

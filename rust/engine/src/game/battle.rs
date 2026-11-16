@@ -1378,7 +1378,7 @@ impl Game {
         // `IHero? == Leader?`: true when both are null.
         let vidal = self.vidal().map(Hero::Leader);
         if aggressor_plan.hero() == vidal
-            && self.leaders.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
+            && self.leaders.when_to_set_aside_vidal == Some(VidalMoment::AfterUsedInBattle)
             && !(aggressor_traitor_action.succeeded(self) && !defender_traitor_action.succeeded(self))
         {
             self.set_aside_vidal();
@@ -1386,7 +1386,7 @@ impl Game {
 
         let vidal = self.vidal().map(Hero::Leader);
         if defender_plan.hero() == vidal
-            && self.leaders.when_to_set_aside_vidal == VidalMoment::AfterUsedInBattle
+            && self.leaders.when_to_set_aside_vidal == Some(VidalMoment::AfterUsedInBattle)
             && !(defender_traitor_action.succeeded(self) && !aggressor_traitor_action.succeeded(self))
         {
             self.set_aside_vidal();
@@ -1398,7 +1398,7 @@ impl Game {
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow_prevented_battle_faction_advantages();
         }
-        if self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor) {
+        if self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor)) {
             self.turn.current_juice = None;
         }
         self.battle.current_diplomacy = None;

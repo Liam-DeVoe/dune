@@ -288,11 +288,11 @@ fn sequence_lines() -> Vec<String> {
             if juice > 0 {
                 let f = g.players[r.below(count)].faction;
                 let mut j = JuicePlayed::new(&g, f);
-                j.type_ = match juice {
+                j.type_ = Some(match juice {
                     1 => JuiceType::GoFirst,
                     2 => JuiceType::GoLast,
                     _ => JuiceType::Aggressor,
-                };
+                });
                 g.turn.current_juice = Some(std::rc::Rc::new(j));
             }
             let skip = r.bool();

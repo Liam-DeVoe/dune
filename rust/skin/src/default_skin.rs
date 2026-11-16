@@ -504,14 +504,14 @@ pub fn build() -> Skin {
         (Faction::Moritani, "-".to_string()),
     ]);
     s.tech_token_name_str = SkinDictionary::from_vec(vec![
-        (TechToken::Graveyard, "Axlotl Tanks".to_string()),
-        (TechToken::Ships, "Heighliners".to_string()),
-        (TechToken::Resources, "Spice Production".to_string()),
+        (Some(TechToken::Graveyard), "Axlotl Tanks".to_string()),
+        (Some(TechToken::Ships), "Heighliners".to_string()),
+        (Some(TechToken::Resources), "Spice Production".to_string()),
     ]);
     s.tech_token_image_url = SkinDictionary::from_vec(vec![
-        (TechToken::Graveyard, "./art/techtoken0.svg".to_string()),
-        (TechToken::Ships, "./art/techtoken1.svg".to_string()),
-        (TechToken::Resources, "./art/techtoken2.svg".to_string()),
+        (Some(TechToken::Graveyard), "./art/techtoken0.svg".to_string()),
+        (Some(TechToken::Ships), "./art/techtoken1.svg".to_string()),
+        (Some(TechToken::Resources), "./art/techtoken2.svg".to_string()),
     ]);
     s.sound = SkinDictionary::from_vec(vec![
         (Milestone::GameStarted, "./art/intro.mp3".to_string()),
@@ -758,9 +758,9 @@ pub fn build() -> Skin {
         (57, "./art/HarassAndWithdraw.gif".to_string()),
     ]);
     s.tech_token_description_str = SkinDictionary::from_vec(vec![
-        (TechToken::Graveyard, "At the end of the Revival phase, yields 1 spice per tech token you own if any player except Tleilaxu used free revival.".to_string()),
-        (TechToken::Resources, "At the end of the Charity phase, yields 1 spice per tech token you own if any player except Bene Gesserit claimed charity.".to_string()),
-        (TechToken::Ships, "At the end of the Shipment & Move phase, yields 1 spice per tech token you own if any player except Guild shipped forces from off-planet.".to_string()),
+        (Some(TechToken::Graveyard), "At the end of the Revival phase, yields 1 spice per tech token you own if any player except Tleilaxu used free revival.".to_string()),
+        (Some(TechToken::Resources), "At the end of the Charity phase, yields 1 spice per tech token you own if any player except Bene Gesserit claimed charity.".to_string()),
+        (Some(TechToken::Ships), "At the end of the Shipment & Move phase, yields 1 spice per tech token you own if any player except Guild shipped forces from off-planet.".to_string()),
     ]);
     s.resource_card_image_url = SkinDictionary::from_vec(vec![
         (7, "./art/CielagoNorth.gif".to_string()),

@@ -184,7 +184,7 @@ impl ClassicBot {
 
         let mut result = BattleConcluded::new(game, faction);
         result.set_discarded_cards(&discarded);
-        result.stolen_token = game.player(opponent.expect("opponent")).tech_tokens.first().copied().unwrap_or(TechToken::None);
+        result.stolen_token = game.player(opponent.expect("opponent")).tech_tokens.first().copied();
         result.kill = kill;
         result.special_force_losses_replaced = replaced_special_forces;
         result.set_new_traitor(new_traitor);
@@ -903,9 +903,9 @@ impl ClassicBot {
         match clairvoyance {
             None => true,
             Some(cv) => {
-                cv.answer.answer == ClairVoyanceAnswer::Unknown
-                    || (cv.answer.answer == ClairVoyanceAnswer::Yes && to_use.is_some() && in_scope)
-                    || (cv.answer.answer == ClairVoyanceAnswer::No && (to_use.is_none() || !in_scope))
+                cv.answer.answer == Some(ClairVoyanceAnswer::Unknown)
+                    || (cv.answer.answer == Some(ClairVoyanceAnswer::Yes) && to_use.is_some() && in_scope)
+                    || (cv.answer.answer == Some(ClairVoyanceAnswer::No) && (to_use.is_none() || !in_scope))
             }
         }
     }

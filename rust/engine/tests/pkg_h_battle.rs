@@ -43,10 +43,10 @@ fn battle_concluded_capture_decision_round_trip() {
     let mut e = BattleConcluded::default();
     // Field initialiser: Capture = true
     assert_eq!(e.decision_to_capture(), CaptureDecision::Capture);
-    e.set_decision_to_capture(CaptureDecision::Kill);
+    e.set_decision_to_capture(Some(CaptureDecision::Kill));
     assert_eq!(e.decision_to_capture(), CaptureDecision::Kill);
     // None and DontCapture leave Kill as it was.
-    e.set_decision_to_capture(CaptureDecision::None);
+    e.set_decision_to_capture(None);
     assert!(!e.capture);
     assert!(e.kill);
     assert_eq!(e.decision_to_capture(), CaptureDecision::DontCapture);
@@ -133,7 +133,7 @@ fn aggressor_by_juice_swaps_roles() {
     assert_eq!(b.defender(&g), Faction::Atreides);
 
     let mut j = JuicePlayed::new(&g, Faction::Atreides);
-    j.type_ = JuiceType::Aggressor;
+    j.type_ = Some(JuiceType::Aggressor);
     g.turn.current_juice = Some(Rc::new(j));
     assert_eq!(b.aggressor(&g), Faction::Atreides);
     assert_eq!(b.defender(&g), Faction::Emperor);

@@ -100,7 +100,7 @@ impl DealAccepted {
                 to.len() == 0 || to.contains(&pl.faction)
             }
             && !g.has_responded_to_deal(offer, pl.faction)
-            && (g.charity.economics_status != ChoamEconomicsStatus::Double || (offer.benefit == 0 && offer.price == 0))
+            && (g.charity.economics_status != Some(ChoamEconomicsStatus::Double) || (offer.benefit == 0 && offer.price == 0))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.

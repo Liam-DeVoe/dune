@@ -59,9 +59,25 @@ macro_rules! enum_keys {
 }
 
 enum_keys!(
-    Concept, MainPhase, Faction, TechToken, Milestone, TreacheryCardType, LeaderSkill, StrongholdAdvantage, World, Nexus,
+    Concept, MainPhase, Faction, Milestone, TreacheryCardType, LeaderSkill, StrongholdAdvantage, World, Nexus,
     TerrorType, DiscoveryToken, DiscoveryTokenType, Ambassador,
 );
+
+/// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
+macro_rules! optional_enum_keys {
+    ($($t:ty),* $(,)?) => {$(
+        impl SkinKey for Option<$t> {
+            fn key_text(self) -> String {
+                treachery_engine::enum_type::name_or_absent(self)
+            }
+            fn parse_key(text: &str) -> Option<Self> {
+                crate::skin_json::parse_optional_enum_key::<$t>(text)
+            }
+        }
+    )*};
+}
+
+optional_enum_keys!(TechToken);
 
 /// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
 /// which is the order .NET enumerates and serializes them in.
@@ -145,14 +161,14 @@ pub struct Skin {
     pub faction_color: SkinDictionary<Faction>,
     pub force_name_str: SkinDictionary<Faction>,
     pub special_force_name_str: SkinDictionary<Faction>,
-    pub tech_token_name_str: SkinDictionary<TechToken>,
-    pub tech_token_image_url: SkinDictionary<TechToken>,
+    pub tech_token_name_str: SkinDictionary<Option<TechToken>>,
+    pub tech_token_image_url: SkinDictionary<Option<TechToken>>,
     pub sound: SkinDictionary<Milestone>,
     pub treachery_card_type_str: SkinDictionary<TreacheryCardType>,
     pub treachery_card_name_str: SkinDictionary<i32>,
     pub treachery_card_description_str: SkinDictionary<i32>,
     pub treachery_card_image_url: SkinDictionary<i32>,
-    pub tech_token_description_str: SkinDictionary<TechToken>,
+    pub tech_token_description_str: SkinDictionary<Option<TechToken>>,
     pub resource_card_image_url: SkinDictionary<i32>,
     pub leader_skill_card_name_str: SkinDictionary<LeaderSkill>,
     pub leader_skill_card_image_url: SkinDictionary<LeaderSkill>,
@@ -420,23 +436,23 @@ impl Skin {
                     self.describe_rule(v)
                 } else if let Some(v) = e.get::<MainPhase>() {
                     self.describe_main_phase(v)
-                } else if let Some(v) = e.get::<TechToken>() {
+                } else if let Some(v) = e.get_opt::<TechToken>() {
                     self.describe_tech_token(v)
-                } else if let Some(v) = e.get::<WinMethod>() {
+                } else if let Some(v) = e.get_opt::<WinMethod>() {
                     self.describe_win_method(v)
                 } else if let Some(v) = e.get::<Phase>() {
                     describe_phase(v)
-                } else if let Some(v) = e.get::<ChoamEconomicsStatus>() {
+                } else if let Some(v) = e.get_opt::<ChoamEconomicsStatus>() {
                     describe_choam_economics_status(v)
                 } else if let Some(v) = e.get::<AuctionType>() {
                     describe_auction_type(v)
-                } else if let Some(v) = e.get::<JuiceType>() {
+                } else if let Some(v) = e.get_opt::<JuiceType>() {
                     describe_juice_type(v)
-                } else if let Some(v) = e.get::<CaptureDecision>() {
+                } else if let Some(v) = e.get_opt::<CaptureDecision>() {
                     describe_capture_decision(v)
                 } else if let Some(v) = e.get::<StrongholdAdvantage>() {
                     self.describe_stronghold_advantage(v)
-                } else if let Some(v) = e.get::<ClairVoyanceAnswer>() {
+                } else if let Some(v) = e.get_opt::<ClairVoyanceAnswer>() {
                     describe_clair_voyance_answer(v)
                 } else {
                     // `value.ToString()`: the enum's name (or number, or flags list).
@@ -589,9 +605,9 @@ impl Skin {
 
     pub fn get_popup_tech_token(&self, tt: TechToken) -> String {
         self.get_token_popup(
-            Some(&self.get_image_url_tech_token(tt)),
-            &self.describe_tech_token(tt),
-            &get_label(&self.tech_token_description_str, tt),
+            Some(&self.get_image_url_tech_token(Some(tt))),
+            &self.describe_tech_token(Some(tt)),
+            &get_label(&self.tech_token_description_str, Some(tt)),
         )
     }
 
@@ -719,7 +735,7 @@ impl Skin {
             E::Enum(e) => {
                 if let Some(v) = e.get::<LeaderSkill>() {
                     self.get_image_url_leader_skill(v)
-                } else if let Some(v) = e.get::<TechToken>() {
+                } else if let Some(v) = e.get_opt::<TechToken>() {
                     self.get_image_url_tech_token(v)
                 } else if let Some(v) = e.get::<Faction>() {
                     self.get_image_url_faction(v)
@@ -777,7 +793,7 @@ impl Skin {
         get_label(&self.main_phase_str, p)
     }
 
-    pub fn describe_tech_token(&self, tt: TechToken) -> String {
+    pub fn describe_tech_token(&self, tt: Option<TechToken>) -> String {
         get_label(&self.tech_token_name_str, tt)
     }
 
@@ -931,14 +947,14 @@ impl Skin {
         }
     }
 
-    pub fn describe_win_method(&self, m: WinMethod) -> String {
+    pub fn describe_win_method(&self, m: Option<WinMethod>) -> String {
         match m {
-            WinMethod::Strongholds => "by number of victory points".to_string(),
-            WinMethod::Prediction => "by prediction".to_string(),
-            WinMethod::Timeout => "by running out of time".to_string(),
-            WinMethod::Forfeit => "by forfeit".to_string(),
-            WinMethod::FremenSpecial => self.format("by {0} special victory", &args![Faction::Fremen]),
-            WinMethod::GuildSpecial => self.format("by {0} special victory", &args![Faction::Guild]),
+            Some(WinMethod::Strongholds) => "by number of victory points".to_string(),
+            Some(WinMethod::Prediction) => "by prediction".to_string(),
+            Some(WinMethod::Timeout) => "by running out of time".to_string(),
+            Some(WinMethod::Forfeit) => "by forfeit".to_string(),
+            Some(WinMethod::FremenSpecial) => self.format("by {0} special victory", &args![Faction::Fremen]),
+            Some(WinMethod::GuildSpecial) => self.format("by {0} special victory", &args![Faction::Guild]),
             _ => "None".to_string(),
         }
     }
@@ -1250,7 +1266,7 @@ impl Skin {
         get_label(&self.nexus_card_image_url, n)
     }
 
-    pub fn get_image_url_tech_token(&self, tech: TechToken) -> String {
+    pub fn get_image_url_tech_token(&self, tech: Option<TechToken>) -> String {
         get_label(&self.tech_token_image_url, tech)
     }
 
@@ -1287,11 +1303,11 @@ fn starts_with_culture(text: &str, prefix: &str) -> bool {
     text.starts_with(prefix)
 }
 
-pub fn describe_clair_voyance_answer(answer: ClairVoyanceAnswer) -> String {
+pub fn describe_clair_voyance_answer(answer: Option<ClairVoyanceAnswer>) -> String {
     match answer {
-        ClairVoyanceAnswer::No => "No.",
-        ClairVoyanceAnswer::Yes => "Yes.",
-        ClairVoyanceAnswer::Unknown => "I don't know...",
+        Some(ClairVoyanceAnswer::No) => "No.",
+        Some(ClairVoyanceAnswer::Yes) => "Yes.",
+        Some(ClairVoyanceAnswer::Unknown) => "I don't know...",
         _ => "?",
     }
     .to_string()
@@ -1432,13 +1448,13 @@ pub fn describe_phase(p: Phase) -> String {
     .to_string()
 }
 
-pub fn describe_choam_economics_status(p: ChoamEconomicsStatus) -> String {
+pub fn describe_choam_economics_status(p: Option<ChoamEconomicsStatus>) -> String {
     match p {
-        ChoamEconomicsStatus::Cancel => "Cancel",
-        ChoamEconomicsStatus::CancelFlipped => "Cancel",
-        ChoamEconomicsStatus::Double => "Double",
-        ChoamEconomicsStatus::DoubleFlipped => "Double",
-        ChoamEconomicsStatus::RemovedFromGame => "Removed from game",
+        Some(ChoamEconomicsStatus::Cancel) => "Cancel",
+        Some(ChoamEconomicsStatus::CancelFlipped) => "Cancel",
+        Some(ChoamEconomicsStatus::Double) => "Double",
+        Some(ChoamEconomicsStatus::DoubleFlipped) => "Double",
+        Some(ChoamEconomicsStatus::RemovedFromGame) => "Removed from game",
         _ => "None",
     }
     .to_string()
@@ -1457,21 +1473,21 @@ pub fn describe_auction_type(t: AuctionType) -> String {
     .to_string()
 }
 
-pub fn describe_juice_type(jt: JuiceType) -> String {
+pub fn describe_juice_type(jt: Option<JuiceType>) -> String {
     match jt {
-        JuiceType::GoFirst => "be considered first in storm order",
-        JuiceType::GoLast => "be considered last in storm order",
-        JuiceType::Aggressor => "be considered aggressor in this battle",
+        Some(JuiceType::GoFirst) => "be considered first in storm order",
+        Some(JuiceType::GoLast) => "be considered last in storm order",
+        Some(JuiceType::Aggressor) => "be considered aggressor in this battle",
         _ => "None",
     }
     .to_string()
 }
 
-pub fn describe_capture_decision(c: CaptureDecision) -> String {
+pub fn describe_capture_decision(c: Option<CaptureDecision>) -> String {
     match c {
-        CaptureDecision::Capture => "Keep",
-        CaptureDecision::Kill => "Kill to gain 2 spice",
-        CaptureDecision::DontCapture => "Neither keep nor kill",
+        Some(CaptureDecision::Capture) => "Keep",
+        Some(CaptureDecision::Kill) => "Kill to gain 2 spice",
+        Some(CaptureDecision::DontCapture) => "Neither keep nor kill",
         _ => "None",
     }
     .to_string()

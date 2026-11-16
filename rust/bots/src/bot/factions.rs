@@ -1063,7 +1063,7 @@ impl ClassicBot {
         };
 
         let mut e = ChoamEconomics::new(game, self.faction(game));
-        e.status = status;
+        e.status = Some(status);
         Some(Rc::new(e))
     }
 

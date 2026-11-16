@@ -67,7 +67,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         GameEventType::Battle => return Some(Some(battle_default(game, p, faction))),
         GameEventType::BattleConcluded => {
             let mut e = BattleConcluded::new(game, faction);
-            e.set_decision_to_capture(CaptureDecision::Kill);
+            e.set_decision_to_capture(Some(CaptureDecision::Kill));
             e.set_traitor_to_replace(None);
             e.set_new_traitor(None);
             e.set_discarded_cards(&[]);
@@ -75,11 +75,11 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
                 if BattleConcluded::may_capture_or_kill(game, Some(p)) {
                     let decisions = BattleConcluded::valid_capture_decisions(game);
                     if !decisions.contains(&CaptureDecision::Kill) {
-                        e.set_decision_to_capture(decisions.first().copied().unwrap_or_default());
+                        e.set_decision_to_capture(decisions.first().copied());
                     }
                 }
                 if let Some(loser) = loser(game) {
-                    e.stolen_token = game.player(loser).tech_tokens.first().copied().unwrap_or(TechToken::None);
+                    e.stolen_token = game.player(loser).tech_tokens.first().copied();
                 }
             }
             event(e)
@@ -107,7 +107,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::ClairVoyanceAnswered => {
             let mut e = ClairVoyanceAnswered::new(game, faction);
-            e.answer = ClairVoyanceAnswer::Yes;
+            e.answer = Some(ClairVoyanceAnswer::Yes);
             event(e)
         }
         GameEventType::ClairVoyancePlayed => {
@@ -159,7 +159,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::JuicePlayed => {
             let mut e = JuicePlayed::new(game, faction);
-            e.type_ = JuicePlayed::valid_types(game, p).first().copied().unwrap_or_default();
+            e.type_ = JuicePlayed::valid_types(game, p).first().copied();
             event(e)
         }
         GameEventType::LoserConcluded => {

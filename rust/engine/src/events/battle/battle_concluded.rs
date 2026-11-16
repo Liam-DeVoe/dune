@@ -8,7 +8,7 @@ pub struct BattleConcluded {
     pub new_traitor_id: i32,
     pub special_force_losses_replaced: i32,
     pub card_ids: Option<String>,
-    pub stolen_token: TechToken,
+    pub stolen_token: Option<TechToken>,
     pub add_extra_force: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -42,12 +42,12 @@ impl BattleConcluded {
         CaptureDecision::Capture
     }
 
-    pub fn set_decision_to_capture(&mut self, value: CaptureDecision) {
-        if value == CaptureDecision::DontCapture || value == CaptureDecision::None {
+    pub fn set_decision_to_capture(&mut self, value: Option<CaptureDecision>) {
+        if matches!(value, None | Some(CaptureDecision::DontCapture)) {
             self.capture = false;
         } else {
             self.capture = true;
-            self.kill = value == CaptureDecision::Kill;
+            self.kill = value == Some(CaptureDecision::Kill);
         }
     }
 
@@ -226,17 +226,17 @@ impl BattleConcluded {
     }
 
     pub fn take_tech_token(&self, game: &mut Game) {
-        if self.stolen_token != TechToken::None {
+        if let Some(stolen_token) = self.stolen_token {
             let loser = self.get_player(game, game.battle.battle_loser);
             if let Some(loser) = loser {
-                if game.player(loser).tech_tokens.contains(&self.stolen_token) {
+                if game.player(loser).tech_tokens.contains(&stolen_token) {
                     let tokens = &mut game.player_mut(loser).tech_tokens;
-                    if let Some(pos) = tokens.iter().position(|t| *t == self.stolen_token) {
+                    if let Some(pos) = tokens.iter().position(|t| *t == stolen_token) {
                         tokens.remove(pos);
                     }
-                    game.player_mut(self.player()).tech_tokens.push(self.stolen_token);
+                    game.player_mut(self.player()).tech_tokens.push(stolen_token);
                     let battle_loser = game.battle.battle_loser;
-                    self.log_objects(game, vec![self.initiator().into(), " steal ".into(), self.stolen_token.into(), " from ".into(), battle_loser.into()]);
+                    self.log_objects(game, vec![self.initiator().into(), " steal ".into(), stolen_token.into(), " from ".into(), battle_loser.into()]);
                 }
             }
         }

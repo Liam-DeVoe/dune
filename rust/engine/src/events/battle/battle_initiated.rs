@@ -83,13 +83,13 @@ impl BattleInitiated {
     }
 
     pub fn is_aggressor_by_juice(g: &Game, f: Faction) -> bool {
-        g.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::Aggressor && j.initiator() == f)
+        g.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::Aggressor) && j.initiator() == f)
     }
 
     /// `IsInitiatorByJuice` with a possibly null `initiator` (as `Aggressor` passes `Player`).
     fn is_initiator_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
         g.turn.current_juice.as_ref().is_some_and(|j| {
-            j.type_ == JuiceType::GoFirst
+            j.type_ == Some(JuiceType::GoFirst)
                 && j.player_opt() == initiator
                 && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
         })
@@ -100,7 +100,7 @@ impl BattleInitiated {
     /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
     fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerIndex>, target: PlayerIndex) -> bool {
         g.turn.current_juice.as_ref().is_some_and(|j| {
-            j.type_ == JuiceType::GoLast
+            j.type_ == Some(JuiceType::GoLast)
                 && j.player_opt() == initiator
                 && PlayerSequence::is_after(g, initiator.expect("initiator"), target)
         })

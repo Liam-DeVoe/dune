@@ -113,6 +113,14 @@ pub fn element(tok: &Value) -> ExpressionElement {
     }
 }
 
+/// The enum value of a token, as an optional `T`: `None` for the C# `None` member of a closed enum.
+pub fn enum_arg_opt<T: treachery_engine::enum_type::GameEnum>(tok: &Value) -> Option<T> {
+    match element(tok) {
+        ExpressionElement::Enum(e) => e.get_opt::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name)),
+        _ => panic!("{tok} is not an enum"),
+    }
+}
+
 /// The enum value of a token, as `T`.
 pub fn enum_arg<T: treachery_engine::enum_type::GameEnum>(tok: &Value) -> T {
     match element(tok) {

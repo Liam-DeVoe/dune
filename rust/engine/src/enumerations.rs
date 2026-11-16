@@ -60,13 +60,13 @@ game_enum! {
 }
 
 game_enum! {
-    TechToken {
-        None = 0,
+    closed TechToken {
+        absent None = 0;
         Graveyard = 10,
         Ships = 20,
         Resources = 30,
     }
-    get_values [None, Graveyard, Ships, Resources]
+    get_values [Graveyard, Ships, Resources]
 }
 
 game_enum! {
@@ -89,25 +89,25 @@ game_enum! {
 }
 
 game_enum! {
-    MainPhaseMoment {
-        None = 0,
+    closed MainPhaseMoment {
+        absent None = 0;
         Start = 10,
         Middle = 20,
         End = 30,
     }
-    get_values [None, Start, Middle, End]
+    get_values [Start, Middle, End]
 }
 
 game_enum! {
-    ChoamEconomicsStatus {
-        None = 0,
+    closed ChoamEconomicsStatus {
+        absent None = 0;
         Double = 10,
         DoubleFlipped = 20,
         Cancel = 30,
         CancelFlipped = 40,
         RemovedFromGame = 50,
     }
-    get_values [None, Double, DoubleFlipped, Cancel, CancelFlipped, RemovedFromGame]
+    get_values [Double, DoubleFlipped, Cancel, CancelFlipped, RemovedFromGame]
 }
 
 game_enum! {
@@ -605,8 +605,8 @@ game_enum! {
 }
 
 game_enum! {
-    WinMethod {
-        None = 0,
+    closed WinMethod {
+        absent None = 0;
         Strongholds = 10,
         Prediction = 20,
         FremenSpecial = 30,
@@ -614,12 +614,12 @@ game_enum! {
         Forfeit = 50,
         Timeout = 60,
     }
-    get_values [None, Strongholds, Prediction, FremenSpecial, GuildSpecial, Forfeit, Timeout]
+    get_values [Strongholds, Prediction, FremenSpecial, GuildSpecial, Forfeit, Timeout]
 }
 
 game_enum! {
-    HeroType {
-        None = 0,
+    closed HeroType {
+        absent None = 0;
         Normal = 10,
         Messiah = 20,
         Mercenary = 30,
@@ -627,7 +627,7 @@ game_enum! {
         Vidal = 50,
         VariableValue = 60,
     }
-    get_values [None, Normal, Messiah, Mercenary, Auditor, Vidal, VariableValue]
+    get_values [Normal, Messiah, Mercenary, Auditor, Vidal, VariableValue]
 }
 
 game_enum! {
@@ -644,13 +644,13 @@ game_enum! {
 }
 
 game_enum! {
-    JuiceType {
-        None = 0,
+    closed JuiceType {
+        absent None = 0;
         GoFirst = 10,
         GoLast = 20,
         Aggressor = 30,
     }
-    get_values [None, GoFirst, GoLast, Aggressor]
+    get_values [GoFirst, GoLast, Aggressor]
 }
 
 game_enum! {
@@ -708,13 +708,13 @@ game_enum! {
 }
 
 game_enum! {
-    CaptureDecision {
-        None = 0,
+    closed CaptureDecision {
+        absent None = 0;
         DontCapture = 10,
         Capture = 20,
         Kill = 30,
     }
-    get_values [None, DontCapture, Capture, Kill]
+    get_values [DontCapture, Capture, Kill]
 }
 
 game_enum! {
@@ -744,34 +744,34 @@ game_enum! {
 }
 
 game_enum! {
-    IntrusionType {
-        None = 0,
+    closed IntrusionType {
+        absent None = 0;
         BeneGesseritIntrusion = 10,
         Terror = 20,
         Ambassador = 30,
     }
-    get_values [None, BeneGesseritIntrusion, Terror, Ambassador]
+    get_values [BeneGesseritIntrusion, Terror, Ambassador]
 }
 
 game_enum! {
-    VidalMoment {
-        None = 0,
+    closed VidalMoment {
+        absent None = 0;
         AfterUsedInBattle = 10,
         EndOfTurn = 20,
         WhileEcazWorldIsOccupied = 30,
         Never = 40,
     }
-    get_values [None, AfterUsedInBattle, EndOfTurn, WhileEcazWorldIsOccupied, Never]
+    get_values [AfterUsedInBattle, EndOfTurn, WhileEcazWorldIsOccupied, Never]
 }
 
 game_enum! {
-    ClairVoyanceAnswer {
-        None = 0,
+    closed ClairVoyanceAnswer {
+        absent None = 0;
         Yes = 10,
         No = 20,
         Unknown = 30,
     }
-    get_values [None, Yes, No, Unknown]
+    get_values [Yes, No, Unknown]
 }
 
 game_enum! {
@@ -846,7 +846,7 @@ game_enum! {
 }
 
 game_enum! {
-    ShipmentType {
+    closed ShipmentType {
         Unknown = 0,
         ShipmentNormal = 1,
         ShipmentSiteToSite = 2,
@@ -857,7 +857,7 @@ game_enum! {
 }
 
 game_enum! {
-    AutomationRuleType {
+    closed AutomationRuleType {
         Unknown = 0,
         CharityAutoClaim = 201,
         BiddingPassWhenAtreidesOrAtreidesAllyPassed = 301,

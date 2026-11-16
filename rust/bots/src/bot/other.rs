@@ -478,7 +478,7 @@ impl ClassicBot {
     }
 
     pub fn determine_charity_claimed(&self, game: &Game) -> Option<Rc<CharityClaimed>> {
-        if !(game.charity.economics_status == ChoamEconomicsStatus::Cancel || game.charity.economics_status == ChoamEconomicsStatus::CancelFlipped) {
+        if !(game.charity.economics_status == Some(ChoamEconomicsStatus::Cancel) || game.charity.economics_status == Some(ChoamEconomicsStatus::CancelFlipped)) {
             return Some(Rc::new(CharityClaimed::new(game, self.faction(game))));
         }
 
@@ -772,7 +772,7 @@ impl ClassicBot {
         .unwrap_or(ClairVoyanceAnswer::Unknown);
 
         let mut e = ClairVoyanceAnswered::new(game, self.faction(game));
-        e.answer = answer;
+        e.answer = Some(answer);
         Rc::new(e)
     }
 
@@ -1164,18 +1164,18 @@ impl ClassicBot {
 
     pub fn determine_juice_played(&self, game: &Game) -> Option<Rc<JuicePlayed>> {
         let go_last_in_shipment = game.turn.current_main_phase == MainPhase::ShipmentAndMove
-            && game.turn.current_moment == MainPhaseMoment::Start
+            && game.turn.current_moment == Some(MainPhaseMoment::Start)
             && self.faction(game) != Faction::Guild
             && game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").get_players_in_sequence(game).last().and_then(|e| e.player) != Some(self.player);
         let go_last_in_battle = || {
             game.turn.current_main_phase == MainPhase::Battle
-                && game.turn.current_moment == MainPhaseMoment::Start
+                && game.turn.current_moment == Some(MainPhaseMoment::Start)
                 && !Battle::battles_to_be_fought(game, self.player, false).is_empty()
         };
 
         if go_last_in_shipment || go_last_in_battle() {
             let mut e = JuicePlayed::new(game, self.faction(game));
-            e.type_ = JuiceType::GoLast;
+            e.type_ = Some(JuiceType::GoLast);
             return Some(Rc::new(e));
         }
 

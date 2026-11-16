@@ -7,7 +7,7 @@ pub struct Leaders {
     pub assassinated: Vec<Leader>,
     pub ecaz_loyal_leader: Option<Leader>,
     pub player_to_set_aside_vidal: Option<PlayerIndex>,
-    pub when_to_set_aside_vidal: VidalMoment,
+    pub when_to_set_aside_vidal: Option<VidalMoment>,
 }
 
 impl Leaders {
@@ -317,6 +317,6 @@ impl Game {
         }
 
         self.leaders.player_to_set_aside_vidal = None;
-        self.leaders.when_to_set_aside_vidal = VidalMoment::None;
+        self.leaders.when_to_set_aside_vidal = None;
     }
 }

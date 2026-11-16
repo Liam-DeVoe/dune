@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
 use treachery_engine::game::Game;
-use treachery_engine::enum_type::GameEnum;
+use treachery_engine::enum_type::{name_or_absent, value_or_absent, GameEnum};
 use treachery_engine::prelude::EstablishPlayers;
 use ts_rs::TS;
 
@@ -65,18 +65,23 @@ pub struct LobbyData {
     pub rule_group: BTreeMap<String, String>,
 }
 
-fn label<T: GameEnum>(v: T) -> String {
-    treachery_skin::default_skin().describe(&ExpressionElement::Enum(EnumValue::of(v)))
+/// The skin's label of a member, or of the C# `None` member of a closed enum (`None`).
+fn label<T: GameEnum>(v: Option<T>) -> String {
+    treachery_skin::default_skin().describe(&ExpressionElement::Enum(EnumValue { ty: T::INFO, value: value_or_absent(v) }))
 }
 
 fn members<T: GameEnum>() -> Vec<EnumMember> {
     members_with(label::<T>)
 }
 
-fn members_with<T: GameEnum>(label: impl Fn(T) -> String) -> Vec<EnumMember> {
-    get_values::<T>()
-        .map(|v| EnumMember { name: T::INFO.name_of(v.value()).unwrap_or_default().to_string(), value: v.value(), label: label(v) })
-        .collect()
+/// Every member in value order, with the C# `None` member of a closed enum first (as `None`), as the
+/// lobby always listed them.
+fn members_with<T: GameEnum>(label: impl Fn(Option<T>) -> String) -> Vec<EnumMember> {
+    with_absent::<T>().map(|v| EnumMember { name: name_or_absent(v), value: value_or_absent(v), label: label(v) }).collect()
+}
+
+fn with_absent<T: GameEnum>() -> impl Iterator<Item = Option<T>> {
+    T::INFO.absent.then_some(None).into_iter().chain(get_values::<T>().map(Some))
 }
 
 fn name<T: GameEnum>(v: T) -> String {
@@ -93,7 +98,7 @@ pub fn lobby_data() -> LobbyData {
         ("MainPhase".to_string(), members::<MainPhase>()),
         ("Phase".to_string(), members::<Phase>()),
         // `Skin.Describe(ErrorType)` is its own overload, not the `Describe(object)` dispatch.
-        ("ErrorType".to_string(), members_with(|e| treachery_skin::default_skin().describe_error_type(e))),
+        ("ErrorType".to_string(), members_with(|e: Option<ErrorType>| treachery_skin::default_skin().describe_error_type(e.expect("ErrorType is open")))),
         ("UserStatus".to_string(), members::<UserStatus>()),
         ("SubscriptionType".to_string(), members::<SubscriptionType>()),
     ]);

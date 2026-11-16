@@ -685,7 +685,7 @@ fn timing() {
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
     assert_eq!(view.ruleset, name(g.rules.ruleset));
     assert_eq!(view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
-    assert_eq!(view.economics_status, name(g.charity.economics_status));
+    assert_eq!(view.economics_status, name_or_absent(g.charity.economics_status));
 }
 
 /// The observer's view holds nothing that only a player may see, in any fixture.

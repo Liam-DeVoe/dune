@@ -30,16 +30,25 @@ pub(crate) fn parse_int_key(text: &str) -> Option<i32> {
 }
 
 /// Reads an enum dictionary key the way System.Text.Json does: a member name (case-sensitive)
-/// in any case, or a number.
+/// in any case, or a number. A number that names no member is not a valid key.
 pub(crate) fn parse_enum_key<T: GameEnum>(text: &str) -> Option<T> {
+    parse_enum_value::<T>(text).and_then(T::from_value)
+}
+
+/// [`parse_enum_key`] for an enum whose C# `None` member is absence in Rust.
+pub(crate) fn parse_optional_enum_key<T: GameEnum>(text: &str) -> Option<Option<T>> {
+    parse_enum_value::<T>(text).and_then(|v| treachery_engine::enum_type::from_value_or_absent(v).ok())
+}
+
+fn parse_enum_value<T: GameEnum>(text: &str) -> Option<i32> {
     if let Some((_, v)) = T::INFO.declared.iter().find(|(n, _)| *n == text) {
-        return T::from_value(*v);
+        return Some(*v);
     }
     // Then ignoring case, as `Enum.TryParse(ignoreCase: true)`.
     if let Some((_, v)) = T::INFO.declared.iter().find(|(n, _)| n.eq_ignore_ascii_case(text)) {
-        return T::from_value(*v);
+        return Some(*v);
     }
-    parse_int_key(text).and_then(T::from_value)
+    parse_int_key(text)
 }
 
 /// One member of the serialized `Skin`.

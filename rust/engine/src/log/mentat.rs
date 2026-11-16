@@ -27,14 +27,6 @@ pub struct WinReason {
     pub method: WinMethod,
 }
 
-impl Default for WinReason {
-    fn default() -> Self {
-        WinReason {
-            method: Default::default(),
-        }
-    }
-}
-
 impl WinReason {
     pub fn new(method: WinMethod) -> Self {
         WinReason { method }

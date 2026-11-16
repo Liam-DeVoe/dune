@@ -214,3 +214,20 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Effect: every game draws different numbers from the same seed, so a game saved before plays out differently when its events are replayed. `Game::LATEST_VERSION` is 189, so the engine refuses older savegames ("Game version 188 is not supported. Only version 189 is supported.") instead of replaying them into a wrong state. The server leaves such games out at startup with a "no longer loads" log line and keeps them in the database (`opens_a_database_written_by_the_csharp_server` in server/tests/persistence.rs checks a version-188 game). The web client sends 189 at login.
 - The savegame fixtures (`scripts/fixtures`) and the recorded games the tests replay were carried over with `observe refit` ([native-harness.md](native-harness.md#refitting-recorded-games)).
 - Tests: `engine/tests/random.rs` (each helper picks every allowed item about equally often, the same seed gives the same game), `deck_shuffle_and_random_item` in engine/tests/static_data.rs (pins the streams), and `clean_replays_pass_and_recording_is_deterministic` in observe/tests/harness.rs (a whole bot game recorded twice is the same).
+
+## Pathfinding from a stale cache
+
+- Area: Shipment and movement (rewrite-plan.md change 2b)
+- What happened: `Map::find_neighbours`, which finds where forces can move, cached its answers until the history grew. Within one event, or after an event that failed halfway, it could answer for the storm, forces and blocked territories as they were before. escapes.md, "Paths found for an earlier state", lists when.
+- Now: every call works from the current state, and `Map` has no cache.
+- Effect: none seen. No game in 200 bots and 200 fuzz games (seed 1) got a different answer from the cache, and with the cache put back every failing game of the harness run fails the same way.
+- Tests: `engine/tests/pathfinding.rs`.
+
+## Reviving a leader who isn't dead
+
+- Area: Revival
+- What happened: `Revival` and `KarmaFreeRevival` accepted a leader who was alive. The revival put them in the tanks, with a time of death of 0, so the tanks listed them before every leader who was killed. A Tleilaxu revival of their own living leader just cost spice. The web form and the bots offer only dead leaders, with one exception: `valid_revival_heroes` counts the Tleilaxu's own living leaders among the gholas a faction can take back, when an early revival offer allows it, so the Tleilaxu bot picked one in fuzz games 48 and 73 (seed 1).
+- Now: both events refuse a leader who is alive, with "You can't revive a leader who isn't dead". The check comes before the other checks of the event. A faction other than the Tleilaxu can still take back its living leader from the Tleilaxu with a `Revival`.
+- The per-game leader death count (`game.counters.leader_deaths`) starts at 0 instead of 1. It started at 1 only so that leaders made dead this way came first, and it orders the tanks the same way otherwise.
+- Effect: 46 of 200 fuzz games (seed 1) first differ at such a revival. In 22 the reference accepted it, in 22 it refused it for another reason and the message changes, and in 2 (games 48 and 73) the Tleilaxu bot's decision changes. With the fix reverted all 46 pass. The 200 bots games (seed 1) are unchanged. Three recorded traces in `rust/testdata/games` and the bot tests' knowledge game 77-00004 contain such a revival, so their snapshots change from that event on.
+- Tests: `only_a_dead_leader_can_be_revived` and `a_living_ghola_can_be_taken_back` in engine/tests/rule_fixes.rs, `games_on_one_thread_count_leader_deaths_separately` in engine/tests/pkg_f_revival.rs.

@@ -457,3 +457,28 @@ Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
 - `scripts/ui/e2e_server.py` step 9 cuts Bob's WebSocket with Playwright. While it's down the host undoes his last event and opens a seat. After the client reconnects on its own, Bob must have the rolled-back view, see the open seat in his players panel, and be able to act.
 - Step 6 kicks Frank while his WebSocket is down. When it comes back his screen must go to the lobby.
 - The phase control comes in the same reply and is now taken from it too. Game settings (`UpdateSettings`) changed while the socket was down are still lost, which matters only before the game starts.
+
+## Paths found for an earlier state (2026-11)
+
+**Bug.** `Map::find_neighbours` finds where a player's forces can move. Validation, the views and the bots all use it. It cached its answers by start, distance, faction and whether the storm counts, and threw the cache away only when the history grew. But the answer also depends on the storm's sector, every faction's forces (a stronghold held by two other factions can't be entered or passed through), the territories CHOAM blocked, the Ecaz alliance, and where the Hidden Mobile Stronghold and the discovered locations are attached. Changing any of those doesn't grow the history by itself, so the cache could answer for an earlier state:
+
+- Within one event, after the event has changed something and before it joins the history. `Move` checks each group of forces for a route through the storm after the groups before it have moved, and the end of a battle asks where the loser could retreat after Harass and Withdraw has sent forces home.
+- After an event that failed halfway with a Game Error or a panic. Its changes stay, the history doesn't grow, and every query until the next accepted event got answers from before it.
+- After a change made directly to a game, as tests and `observe refit` do. Their replayers called `mark_neighbour_cache_stale` before each event to get around this.
+
+C# had the same cache. None of 200 bots and 200 fuzz games (seed 1) got a wrong answer from it: a build that recomputed every cached answer and logged the ones that differed logged none. Pathfinding now works from the current state on every call, and `Map` has no cache. Recording 15 bots games takes the same CPU time with and without the cache, so no caller keeps one of its own.
+
+**Why the tests missed it.** The static data snapshot pinned the stale answer on purpose: after the storm moved, `find_neighbours` had to keep returning the path through it, as C# did. Every other test asked once per state, and the harness compares against a reference with the same cache.
+
+**What catches the class now.**
+- `engine/tests/pathfinding.rs` changes the storm, the forces and the blocked territories between two calls with the same arguments, on a bare map and in the `move` fixture, and checks that the second answer follows the change. All four tests fail with the cache.
+
+## A living leader revived into the tanks (2026-11)
+
+**Bug.** `Revival` and `KarmaFreeRevival` didn't check that the leader was dead. Reviving a living leader flipped them to dead, with a time of death of 0, so the tanks listed them before every leader who was really killed. 46 of 200 fuzz games (seed 1) submit such a revival, and 22 of them had it accepted. Sweep 1c found it in four of them, and started the per-game death count at 1 to keep the views' order. Both events now refuse a leader who is alive, with "You can't revive a leader who isn't dead". A faction can still take back its living leader from the Tleilaxu, which is also a `Revival`. Raise Dead, the Tleilaxu Nexus card and the Tleilaxu ambassador already only offered killed leaders.
+
+**Why the tests missed it.** No test submitted a revival of a leader who wasn't in the tanks. The web form and the bots almost always offer dead leaders, so mostly the fuzzer's events reached it, and the reference accepted them too, so the harness agreed. The exception is the Tleilaxu bot, which `valid_revival_heroes` can offer its own living leaders as gholas to take back (fuzz games 48 and 73, seed 1).
+
+**What catches the class now.**
+- `engine/tests/rule_fixes.rs::only_a_dead_leader_can_be_revived` and `a_living_ghola_can_be_taken_back`.
+- Nothing checks in general that a dead leader has a death. A check after every event in `observe` recordings would find any other event that kills a leader without `LeaderState::kill`.

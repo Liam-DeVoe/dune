@@ -1,33 +1,29 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BlackMarketBid {
     pub amount: u16,
     pub ally_contribution_amount: u16,
     pub emperor_contribution_amount: u16,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for BlackMarketBid {
-    fn default() -> Self {
-        BlackMarketBid {
-            amount: Default::default(),
-            ally_contribution_amount: Default::default(),
-            emperor_contribution_amount: Default::default(),
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl BlackMarketBid {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+    /// The bid as the auction keeps it, numbered as the game's next bid.
+    pub fn placed(&self, game: &mut Game, by: By) -> PlacedBid {
+        PlacedBid {
+            number: game.number_bid(),
+            type_: EventType::BlackMarketBid,
+            initiator: by.faction,
+            player: by.player,
+            amount: self.amount,
+            ally_contribution_amount: self.ally_contribution_amount,
+            emperor_contribution_amount: self.emperor_contribution_amount,
+            uses_emperor_secret_ally: self.uses_emperor_secret_ally(),
+            karma_card: self.karma_card(),
+            karma_bid: self.karma_bid(),
+            passed: self.passed,
+        }
     }
 
     pub fn uses_emperor_secret_ally(&self) -> bool {
@@ -56,30 +52,30 @@ impl BlackMarketBid {
         false
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn execute(&self, game: &mut Game, by: By) -> GameResult {
+        let this = self.placed(game, by);
         game.with_bid_sequence(|seq, g| {
             seq.next_player(g);
             g.skip_players_that_cant_bid(seq);
         });
         game.stone(Milestone::Bid);
-        let initiator = self.initiator();
+        let initiator = by.faction;
         game.bidding.bids.shift_remove_opt(initiator);
-        game.bidding.bids.insert_new(initiator.required("faction")?, self.clone().into_event());
-        let as_event = self.clone().into_event();
-        game.check_if_atreides_or_atreides_ally_passed_bid(&as_event);
+        game.bidding.bids.insert_new(initiator.required("faction")?, this.clone());
+        game.check_if_atreides_or_atreides_ally_passed_bid(&this);
 
         if !self.passed {
-            game.bidding.current_bid = Some(self.clone().into_event());
+            game.bidding.current_bid = Some(this);
         }
 
         match game.bidding.current_auction_type {
             Some(AuctionType::BlackMarketNormal) => self.handle_black_market_normal_bid(game),
-            Some(AuctionType::BlackMarketOnceAround) | Some(AuctionType::BlackMarketSilent) => self.handle_black_market_special_bid(game),
+            Some(AuctionType::BlackMarketOnceAround) | Some(AuctionType::BlackMarketSilent) => self.handle_black_market_special_bid(game, by),
             _ => Ok(()),
         }
     }
 
-    pub fn handle_black_market_normal_bid(&self, game: &mut Game) -> GameResult {
+    fn handle_black_market_normal_bid(&self, game: &mut Game) -> GameResult {
         if self.passed {
             let winning_bid = game.bidding.current_bid.clone();
 
@@ -98,37 +94,37 @@ impl BlackMarketBid {
                     false,
                 )?;
 
-                self.finish_black_market_bid(game, winning_bid.bid_player().required("i bid player")?, winning_bid, card);
+                BlackMarketBid::finish_black_market_bid(game, winning_bid.bid_player().required("i bid player")?, winning_bid, card);
             } else if winning_bid.is_none() && game.bidding.bids.len() as i32 >= game.players_that_can_bid().len() as i32 {
-                self.richese_keeps_card(game);
+                BlackMarketBid::richese_keeps_card(game);
             }
         }
         Ok(())
     }
 
     /// The shared "no faction bid" branch of both handlers.
-    fn richese_keeps_card(&self, game: &mut Game) {
-        let richese = self.get_player(game, Some(Faction::Richese));
+    fn richese_keeps_card(game: &mut Game) {
+        let richese = game.get_player(Some(Faction::Richese));
         let card = game.bidding.cards_on_auction.as_mut().map(|d| d.draw());
         if let (Some(richese), Some(card)) = (richese, card) {
             game.player_mut(richese).treachery_cards.push(card);
         }
-        self.log_objects(game, vec![Faction::Richese.into(), " keep their card as no faction bid on it".into()]);
+        game.log(vec![Faction::Richese.into(), " keep their card as no faction bid on it".into()]);
         game.enter_richese_bidding();
     }
 
-    pub fn handle_black_market_special_bid(&self, game: &mut Game) -> GameResult {
+    fn handle_black_market_special_bid(&self, game: &mut Game, by: By) -> GameResult {
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
         let is_last_bid = (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && players_with_room() == game.bidding.bids.len() as i32)
-            || (game.bidding.current_auction_type == Some(AuctionType::BlackMarketOnceAround) && self.initiator() == Some(Faction::Richese))
-            || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
+            || (game.bidding.current_auction_type == Some(AuctionType::BlackMarketOnceAround) && by.faction == Some(Faction::Richese))
+            || (game.get_player(Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
                 && game.bidding.bid_sequence.as_ref().required("bid sequence")?.has_passed_richese(game));
 
         if is_last_bid {
             if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) {
                 // A List<MessagePart> is one element of the params array.
                 let parts: Vec<MessagePart> = game.bidding.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
-                self.log_objects(game, vec![parts.into()]);
+                game.log(vec![parts.into()]);
             }
 
             let highest_bid = game.determine_highest_bid(&game.bidding.bids);
@@ -148,17 +144,17 @@ impl BlackMarketBid {
                         false,
                     )?;
 
-                    self.finish_black_market_bid(game, highest_bid.bid_player().required("i bid player")?, &highest_bid, card);
+                    BlackMarketBid::finish_black_market_bid(game, highest_bid.bid_player().required("i bid player")?, &highest_bid, card);
                 }
                 _ => {
-                    self.richese_keeps_card(game);
+                    BlackMarketBid::richese_keeps_card(game);
                 }
             }
         }
         Ok(())
     }
 
-    pub fn finish_black_market_bid(&self, game: &mut Game, winner: PlayerId, winning_bid: &Event, card: TreacheryCard) {
+    fn finish_black_market_bid(game: &mut Game, winner: PlayerId, winning_bid: &PlacedBid, card: TreacheryCard) {
         game.bidding.card_just_won = Some(card);
         game.bidding.winning_bid = Some(winning_bid.clone());
         game.bidding.card_sold_on_black_market = Some(card);
@@ -199,15 +195,7 @@ impl BlackMarketBid {
         }
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        if !self.passed {
-            return express!(self.initiator(), " bid");
-        }
-
-        express!(self.initiator(), " pass")
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+    fn validate_bid(&self, game: &Game, by: By) -> Option<Message> {
         if self.passed {
             return None;
         }
@@ -224,23 +212,23 @@ impl BlackMarketBid {
         }
 
         // `Player` is dereferenced (p.Faction) inside ResourcesYourAllyCanPay: NullReferenceException when null.
-        if i32::from(self.ally_contribution_amount) > BlackMarketBid::valid_max_ally_amount(game, self.player()) {
+        if i32::from(self.ally_contribution_amount) > BlackMarketBid::valid_max_ally_amount(game, by.player()) {
             return Some(express!("your ally won't pay that much"));
         }
 
         // Not in C#, which checked only the Emperor's spice, not what the Emperor offered
         // (behavior-changes.md, "Turns, sectors and amounts out of range").
-        if i32::from(self.emperor_contribution_amount) > 0 && i32::from(self.emperor_contribution_amount) > self.initiator().map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
+        if i32::from(self.emperor_contribution_amount) > 0 && i32::from(self.emperor_contribution_amount) > by.faction.map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
         // Not in C#, where a normal Black Market bid could be more than the bidder had, and
         // paying it left them with less than zero (behavior-changes.md, "Turns, sectors and
         // amounts out of range"). `Bid` checks the same.
-        if i32::from(self.amount) > i32::from(game.player(self.player()).resources) {
+        if i32::from(self.amount) > i32::from(game.player(by.player()).resources) {
             return Some(express!("You can't pay ", Payment::of(i32::from(self.amount))));
         }
-        if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && self.total_amount() > i32::from(game.player(self.player()).resources) {
+        if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && self.total_amount() > i32::from(game.player(by.player()).resources) {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -279,87 +267,23 @@ impl BlackMarketBid {
     }
 }
 
-impl GameEventMethods for BlackMarketBid {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for BlackMarketBid {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        match self.validate_bid(game, by) {
+            Some(m) => Err(Rejection(m)),
+            None => Ok(()),
+        }
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::BlackMarketBid
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        self.execute(game, by)
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::BlackMarketBid(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        if !self.passed {
+            return express!(by.faction, " bid");
+        }
+
+        express!(by.faction, " pass")
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        BlackMarketBid::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        BlackMarketBid::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BlackMarketBid::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for BlackMarketBid {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
-}
-
-impl crate::events::bid_trait::BidEvent for BlackMarketBid {
-    fn total_amount(&self) -> i32 {
-        BlackMarketBid::total_amount(self)
-    }
-
-    fn amount(&self) -> i32 {
-        i32::from(self.amount)
-    }
-
-    fn ally_contribution_amount(&self) -> i32 {
-        i32::from(self.ally_contribution_amount)
-    }
-
-    fn emperor_contribution_amount(&self) -> i32 {
-        i32::from(self.emperor_contribution_amount)
-    }
-
-    fn uses_emperor_secret_ally(&self) -> bool {
-        BlackMarketBid::uses_emperor_secret_ally(self)
-    }
-
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
-    fn player(&self) -> Option<PlayerId> {
-        GameEventMethods::player_opt(self)
-    }
-
-    fn passed(&self) -> bool {
-        self.passed
-    }
-
-    fn using_karma_to_remove_bid_limit(&self) -> bool {
-        BlackMarketBid::using_karma_to_remove_bid_limit(self)
-    }
-
-    fn karma_card(&self) -> Option<TreacheryCard> {
-        BlackMarketBid::karma_card(self)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BlackMarketBid::get_message(self, game)
-    }
-
-    fn karma_bid(&self) -> bool {
-        BlackMarketBid::karma_bid(self)
-    }
-
 }

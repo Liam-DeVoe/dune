@@ -2,7 +2,6 @@
 
 mod bid;
 pub use bid::*;
-pub mod bid_trait;
 mod black_market_bid;
 pub use black_market_bid::*;
 mod card_given;

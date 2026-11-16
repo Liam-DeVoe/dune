@@ -60,7 +60,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
     match t {
         EventType::Bid => {
             let (amount, ally) = clamped(game, p, starting_amounts(game, p), Bid::valid_max_amount(game, p, false), Bid::valid_max_ally_amount(game, Some(p)));
-            let mut e = Bid::new(game, faction);
+            let mut e = Bid::default();
             e.amount = treachery_engine::game::amounts::clamp_u16(amount);
             e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
             Some(event(e))
@@ -68,7 +68,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
         EventType::BlackMarketBid => {
             let (amount, ally) =
                 clamped(game, p, starting_amounts(game, p), BlackMarketBid::valid_max_amount(game, p), BlackMarketBid::valid_max_ally_amount(game, p));
-            let mut e = BlackMarketBid::new(game, faction);
+            let mut e = BlackMarketBid::default();
             e.amount = treachery_engine::game::amounts::clamp_u16(amount);
             e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
             Some(event(e))

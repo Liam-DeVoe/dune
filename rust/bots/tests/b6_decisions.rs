@@ -35,8 +35,8 @@ where
 fn call(game: &Game, b: &ClassicBot, m: &str, a: &[String]) -> String {
     let n = |i: usize| a[i][1..].parse::<i32>().unwrap();
     match m {
-        "DetermineBid" => ev(b.determine_bid(game)),
-        "DetermineBlackMarketBid" => ev(b.determine_black_market_bid(game)),
+        "DetermineBid" => common::decision(b, game, b.determine_bid(game)),
+        "DetermineBlackMarketBid" => common::decision(b, game, b.determine_black_market_bid(game)),
         "DetermineDealAccepted" => opt(b.determine_deal_accepted(game)),
         "DetermineDealCancelled" => opt(b.determine_deal_cancelled(game)),
         "DetermineDealOffered" => opt(b.determine_deal_offered(game)),

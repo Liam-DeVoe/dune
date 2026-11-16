@@ -311,7 +311,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
     let mut out = Vec::new();
     let mut previous_phase = Phase::AwaitingPlayers;
     let mut previous_main_phase = MainPhase::Started;
-    let mut previous_winning_bid: Option<Event> = None;
+    let mut previous_winning_bid: Option<PlacedBid> = None;
     let mut replay = game.new_like();
 
     for original in &game.history.entries {
@@ -342,15 +342,12 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         if matches!(evt, Event::Bid(_) | Event::BlackMarketBid(_)) {
             if let Some(wb) = &r.bidding.winning_bid {
                 if previous_winning_bid.as_ref() != Some(wb) {
-                    let buyer = wb.legacy_initiator();
+                    let buyer = wb.initiator;
                     out.push(StoryBlock::Purchase {
                         buyer: name_or_absent(buyer),
                         card: r.bidding.card_just_won.map(|c| card(c, rd)),
                         amount: wb.bid_total_amount(),
-                        karma_card: match wb {
-                            Event::Bid(b) => b.karma_card.map(|c| card(c, rd)),
-                            _ => None,
-                        },
+                        karma_card: wb.karma_card.map(|c| card(c, rd)),
                         auction: (r.bidding.current_auction_type != Some(AuctionType::Normal)).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
                     });
                 }

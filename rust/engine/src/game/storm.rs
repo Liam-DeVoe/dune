@@ -65,23 +65,6 @@ impl StormStep {
     }
 }
 
-/// The storm losses still to be taken, the first one next. The storm fills it in the storm
-/// phase ([`StormStep::Losses`]), and so does a shipment or move into the storm
-/// ([`Interrupt::StormLosses`]).
-///
-/// This is all that is left of the storm's old per-phase struct. It stays at `game.storm` until
-/// the ship and move conversion of wave 5 is merged, because its lines in movement.rs and
-/// events/movement name it there; then it moves to `turn`.
-pub struct StormLossQueue {
-    pub storm_losses_to_take: Vec<LossToTake>,
-}
-
-impl StormLossQueue {
-    pub fn new() -> Self {
-        StormLossQueue { storm_losses_to_take: Vec::new() }
-    }
-}
-
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
@@ -126,7 +109,7 @@ impl Game {
         self.turn.current_turn = self.turn.current_turn.next().expect("a game has at most 255 turns");
         self.main_phase_start(MainPhase::Storm, true);
         self.turn.revivals.factions_that_revived_special_forces_this_turn.clear();
-        self.storm.storm_losses_to_take.clear();
+        self.turn.storm_losses_to_take.clear();
 
         // The new storm state has no dials yet and the Testing Station unused.
         if self.turn.current_turn == Turn::FIRST {
@@ -245,7 +228,7 @@ impl Game {
                         loss.location = Some(key);
                         loss.amount = TakeLosses::half_of(battalion.forces(), battalion.special_forces());
                         loss.faction = Some(battalion.faction);
-                        self.storm.storm_losses_to_take.push(loss);
+                        self.turn.storm_losses_to_take.push(loss);
                     } else {
                         kill_count += self.player(player).any_forces_in(Some(key));
                         killed_forces += self.player(player).forces_in(Some(key));
@@ -262,7 +245,7 @@ impl Game {
                     loss.location = Some(key);
                     loss.amount = battalion.total_amount_of_forces();
                     loss.faction = Some(battalion.faction);
-                    self.storm.storm_losses_to_take.push(loss);
+                    self.turn.storm_losses_to_take.push(loss);
                 } else {
                     self.reveal_current_no_field(player, Some(key))?;
                     kill_count += self.player(player).any_forces_in(Some(key));
@@ -314,7 +297,7 @@ impl Game {
 
         self.main_phase_end();
 
-        if !self.storm.storm_losses_to_take.is_empty() {
+        if !self.turn.storm_losses_to_take.is_empty() {
             // Once they are taken, TakeLosses calls this again, which ends the phase (again) and
             // enters the storm report.
             self.enter_storm(StormStep::Losses);
@@ -357,7 +340,7 @@ impl GameStatus {
             Phase::StormLosses => {
                 let a = express!("Please decide which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, ".");
                 let w = express!(TakeLosses::losses_to_take(g).faction, " are deciding which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, "...");
-                let f = g.storm.storm_losses_to_take[0].faction;
+                let f = g.turn.storm_losses_to_take[0].faction;
                 Self::faction_status(g, a, w, f, None)
             }
 

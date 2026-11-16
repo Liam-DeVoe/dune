@@ -697,7 +697,7 @@ impl Shipment {
 
     fn apply_shipment(&self, game: &mut Game, by: By) -> GameResult {
         game.turn.current_blocked_territories.clear();
-        game.storm.storm_losses_to_take.clear();
+        game.turn.storm_losses_to_take.clear();
         game.turn.chosen_destinations_with_allies.clear();
         game.turn.bene_gesserit_may_accompany = false;
 
@@ -928,7 +928,7 @@ impl Shipment {
             let kill_count: i32;
             if !game.prevented(FactionAdvantage::FremenProtectedFromStorm) && game.applicable(Rule::FremenStormLosses) {
                 kill_count = 0;
-                game.storm.storm_losses_to_take.push(LossToTake {
+                game.turn.storm_losses_to_take.push(LossToTake {
                     location: Some(to),
                     amount: TakeLosses::half_of(force_amount, special_force_amount),
                     faction: Some(Faction::Fremen),

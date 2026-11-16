@@ -113,6 +113,10 @@ pub struct TurnState {
     pub current_flight_discovery_used: Option<By>,
     /// The territories CHOAM closed to moves (`ChoamMovePrevention`), until the next shipment.
     pub current_blocked_territories: Vec<Territory>,
+    /// The storm losses still to be taken, the first one next. The storm fills it in the storm
+    /// phase (`StormStep::Losses`), and so does a shipment or move into the storm
+    /// (`Interrupt::StormLosses`). Cleared when the storm phase starts and before each move.
+    pub storm_losses_to_take: Vec<crate::game::LossToTake>,
 }
 
 impl TurnState {
@@ -157,6 +161,7 @@ impl TurnState {
             factions_with_ornithopters_at_start_of_movement: Vec::new(),
             chosen_destinations_with_allies: Vec::new(),
             bene_gesserit_may_accompany: false,
+            storm_losses_to_take: Vec::new(),
             current_flight_used: None,
             current_flight_discovery_used: None,
             current_blocked_territories: Vec::new(),

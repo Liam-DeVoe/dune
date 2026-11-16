@@ -32,8 +32,7 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 | `history` | `History` | `history.rs` | the events (`entries`), undone events, the game before an undo, moments and timers |
 | `log` | `Log` | `log.rs` | the reports |
 | `counters` | `Counters` | `counters.rs` | numbers handed out in order: the leader deaths' `time_of_death` |
-| `ship_move`, `contemplate` | `ShipMoveState`, `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use, for the phases that have no `PhaseState` variant yet |
-| `storm` | `StormLossQueue` | `storm.rs` | the storm losses still to be taken, from the storm phase or a shipment or move (moves to `turn` after wave 5's ship and move conversion) |
+| `contemplate` | `ContemplateState` | contemplate.rs | what the rules of that phase use, for the phases that have no `PhaseState` variant yet |
 
 `game.phase()` is the flat `Phase`: the top interrupt's, or else the phase state's. Views, bots and the client key on it. Wave 5 of rewrite-plan.md moves the phases into `PhaseState` one at a time, and its Progress entry of 2026-11-16 ("wave 5 scaffolding") has the rules for entering, interrupting and resuming. The phase structs not converted yet are kept side by side whatever the current phase, and some of their fields last longer than the phase (`ship_move.shipment_permissions`, `revival.factions_with_increased_revival_limits`). Fields keep the names they had on `Game` (`game.bidding.current_bid`), except where the old name would repeat the struct's: `rules.active`, `history.entries`, `deals.offers`, `deals.responses` and `deals.agreed`.
 

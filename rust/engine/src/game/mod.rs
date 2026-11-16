@@ -67,7 +67,7 @@ pub use statistics::*;
 mod status;
 pub use status::*;
 mod storm;
-pub use storm::{StormLossQueue, StormState, StormStep};
+pub use storm::{StormState, StormStep};
 mod turn;
 pub use turn::{JuiceUsed, KarmaPrevention, NexusCardPlayed, Step, Turn, TurnState};
 
@@ -102,8 +102,6 @@ pub struct Game {
 
     // The state of the phases that have no `PhaseState` variant yet (rewrite-plan.md, wave 5).
     // They are kept side by side, whatever the current phase.
-    /// Only the storm losses still to be taken (see [`StormLossQueue`]).
-    pub storm: StormLossQueue,
     pub battle_leftovers: BattleLeftovers,
     pub contemplate: ContemplateState,
 }
@@ -163,7 +161,6 @@ impl Game {
             counters: Counters::default(),
             phase: PhaseState::AwaitingPlayers,
             interrupts: Vec::new(),
-            storm: StormLossQueue::new(),
             battle_leftovers: BattleLeftovers::default(),
             contemplate: ContemplateState::new(),
         };

@@ -51,7 +51,7 @@ impl EventRules for Caravan {
         let force_locations = self.force_locations(game, by);
         game.turn.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.to, force_locations: force_locations.clone() });
 
-        game.storm.storm_losses_to_take.clear();
+        game.turn.storm_losses_to_take.clear();
 
         let me = by.player();
         game.discard(me, TreacheryCardType::Caravan)?;

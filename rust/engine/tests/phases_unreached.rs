@@ -206,7 +206,7 @@ fn storm_losses_taken_in_the_storm_phase_end_in_the_storm_report() {
     assert_eq!(phase(&g), Phase::StormLosses);
     assert_eq!(g.storm().map(|s| s.step), Some(StormStep::Losses), "a step of the storm phase");
     assert!(g.interrupts.is_empty(), "not an interrupt");
-    assert_eq!(g.storm.storm_losses_to_take.len(), 2);
+    assert_eq!(g.turn.storm_losses_to_take.len(), 2);
     assert_eq!(asked(&mut g, EventType::TakeLosses), [Faction::Fremen]);
 
     accept(&mut g, &take_losses(FREMEN, 2));

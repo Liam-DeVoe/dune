@@ -10,8 +10,8 @@ pub struct TakeLosses {
 
 impl TakeLosses {
     pub fn losses_to_take(g: &Game) -> LossToTake {
-        if g.storm.storm_losses_to_take.len() > 0 {
-            return g.storm.storm_losses_to_take[0].clone();
+        if g.turn.storm_losses_to_take.len() > 0 {
+            return g.turn.storm_losses_to_take[0].clone();
         }
         LossToTake::new()
     }
@@ -77,15 +77,15 @@ impl EventRules for TakeLosses {
         if self.use_useless_card {
             let card = TakeLosses::valid_useless_card_to_prevent_losses(game, by.player());
             if card.is_none() && NexusPlayed::can_use_cunning(game, player.required("player")?) {
-                let location = game.storm.storm_losses_to_take[0].location;
+                let location = game.turn.storm_losses_to_take[0].location;
                 game.play_nexus_card(player.required("player")?, vec!["prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
                 game.discard_card_of(Some(by.player()), card, true);
-                let location = game.storm.storm_losses_to_take[0].location;
+                let location = game.turn.storm_losses_to_take[0].location;
                 game.log(vec![by.faction.into(), " prevent losing forces in ".into(), location.into()]);
             }
-            game.storm.storm_losses_to_take.remove(0);
+            game.turn.storm_losses_to_take.remove(0);
             game.stone(Milestone::SpecialUselessPlayed);
         } else {
             let location = TakeLosses::losses_to_take(game).location;
@@ -95,7 +95,7 @@ impl EventRules for TakeLosses {
                 game_error!("Value cannot be null. (Parameter 'key')");
             };
             Player::kill_forces(game, player, kill_location, i32::from(self.force_amount), i32::from(self.special_force_amount), false)?;
-            game.storm.storm_losses_to_take.remove(0);
+            game.turn.storm_losses_to_take.remove(0);
             let message = self.describe(game, by).with_log(StormKilled::new(by.faction.required("faction")?, kill_location, i32::from(self.force_amount), i32::from(self.special_force_amount)));
             game.log(vec![message.into()]);
         }
@@ -104,7 +104,7 @@ impl EventRules for TakeLosses {
             // Losses of a shipment or move: back to it, which asks for the next loss if any.
             game.resume(Interrupt::StormLosses, true)?;
             game.determine_next_shipment_and_move_sub_phase()?;
-        } else if !game.storm.storm_losses_to_take.is_empty() {
+        } else if !game.turn.storm_losses_to_take.is_empty() {
             game.enter_storm(StormStep::Losses);
         } else {
             game.end_storm_phase();

@@ -1,10 +1,7 @@
 //! The side column's own data: the deals the menu bar counts and the trade popover lists, the
 //! host's bot speed, Atreides's card tracker and the list of cards in play.
 
-use std::rc::Rc;
-
 use treachery_engine::events::DealAccepted;
-use treachery_engine::events::DealOffered;
 use treachery_engine::prelude::*;
 
 use crate::build::{validate, ResolvedViewer};
@@ -18,7 +15,11 @@ fn name<T: ToString>(v: T) -> String {
 
 /// An event in savegame JSON, for the client to submit as it is.
 fn event_json(by: Option<Faction>, e: Event) -> serde_json::Value {
-    serde_json::from_str(&treachery_engine::json::serialize(&HistoryEntry::new(by, e))).expect("events serialize to JSON")
+    entry_json(&HistoryEntry::new(by, e))
+}
+
+fn entry_json(e: &HistoryEntry) -> serde_json::Value {
+    serde_json::from_str(&treachery_engine::json::serialize(e)).expect("events serialize to JSON")
 }
 
 /// The deals panel of a seated player (observers have no trade icons):
@@ -27,25 +28,20 @@ fn event_json(by: Option<Faction>, e: Event) -> serde_json::Value {
 pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<DealsView> {
     let p = v.player.filter(|_| !v.is_observer)?;
     let faction = game.player(p).faction;
-    // An offer is the event that made it, so its place in the history names it across views.
-    let id_of = |o: &Rc<DealOffered>| {
-        game.history.entries
-            .iter()
-            .position(|e| matches!(&e.event, Event::DealOffered(x) if Rc::ptr_eq(x, o)))
-            .map_or(-1, |i| i as i32)
-    };
+    // An offer's id is its place in the history, which names it across views.
+    let id_of = |o: &DealOffer| o.id.0 as i32;
     let acceptable = DealAccepted::acceptable_deals(game, Some(p))
         .map(|o| {
-            let acceptance = o.acceptance(game, faction.expect("faction")).expect("Acceptance builds an event");
+            let acceptance = o.acceptance();
             DealOfferView {
-                id: id_of(&o),
-                initiator: name_or_absent(o.initiator()),
+                id: id_of(o),
+                initiator: name_or_absent(o.initiator),
                 price: i32::from(o.price),
                 description: message(&o.get_deal_description(game), d),
-                message: message(&o.get_message(game), d),
+                message: message(&o.describe(game), d),
                 accept_error: validate(game, faction, Event::from(acceptance.clone()), d),
                 accept: event_json(faction, Event::from(acceptance)),
-                decline: event_json(faction, Event::from(o.rejection(game, faction.expect("faction")).expect("Rejection builds an event"))),
+                decline: event_json(faction, Event::from(o.rejection())),
                 withdraw: None,
                 answers: vec![],
             }
@@ -53,18 +49,19 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
         .collect();
     let cancellable = DealAccepted::cancellable_deals(game, Some(p))
         .map(|o| DealOfferView {
-            id: id_of(&o),
-            initiator: name_or_absent(o.initiator()),
+            id: id_of(o),
+            initiator: name_or_absent(o.initiator),
             price: i32::from(o.price),
             description: message(&o.get_deal_description(game), d),
-            message: message(&o.get_message(game), d),
+            message: message(&o.describe(game), d),
             accept_error: None,
             accept: serde_json::Value::Null,
             decline: serde_json::Value::Null,
-            withdraw: Some(event_json(o.initiator(), Event::from(o.cancellation().expect("Cancellation builds an event")))),
+            // The copy of the offer's entry, its time included.
+            withdraw: Some(entry_json(&o.cancellation(game))),
             answers: game
-                .deal_recipients(&o)
-                .map(|r| DealAnswer { faction: name(r), accepted: game.deal_response(&o, r) })
+                .deal_recipients(o)
+                .map(|r| DealAnswer { faction: name(r), accepted: game.deal_response(o.id, r) })
                 .collect(),
         })
         .collect();

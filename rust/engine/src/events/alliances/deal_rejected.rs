@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DealRejected {
     pub bound_faction: Option<Faction>,
     pub type_: DealType,
@@ -10,68 +10,43 @@ pub struct DealRejected {
     pub end: Option<Phase>,
     pub price: u16,
     pub benefit: u16,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for DealRejected {
-    fn default() -> Self {
-        DealRejected {
-            bound_faction: Default::default(),
-            type_: Default::default(),
-            deal_parameter1: Default::default(),
-            deal_parameter2: Default::default(),
-            text: Default::default(),
-            end: Default::default(),
-            price: Default::default(),
-            benefit: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl DealRejected {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !game.deals.offers.iter().any(|offer| offer.is_rejected_by(self)) {
-            return Some(express!("Offer is not valid (anymore)"));
-        }
-        if self.open_offer(game).is_none() {
-            return Some(express!("You already answered this offer"));
-        }
-
-        None
-    }
-
-    pub fn open_offer(&self, game: &Game) -> Option<Rc<DealOffered>> {
+    /// The offer this rejects that `by` may still answer.
+    pub fn open_offer<'a>(&self, game: &'a Game, by: By) -> Option<&'a DealOffer> {
         // AcceptableDeals(Game, Player).FirstOrDefault(...): lazy, one offer at a time.
-        let Some(p) = self.player_opt() else { return None };
-        game.deals.offers
-            .iter()
-            .find(|offer| DealAccepted::is_acceptable_deal(game, p, offer) && offer.is_rejected_by(self))
-            .cloned()
+        let p = by.player?;
+        game.deals.offers.iter().find(|offer| DealAccepted::is_acceptable_deal(game, p, offer) && offer.is_rejected_by(self, by.faction))
+    }
+}
+
+impl EventRules for DealRejected {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !game.deals.offers.iter().any(|offer| offer.is_rejected_by(self, by.faction)) {
+            return Err(Rejection(express!("Offer is not valid (anymore)")));
+        }
+        if self.open_offer(game, by).is_none() {
+            return Err(Rejection(express!("You already answered this offer")));
+        }
+
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // A deal parameter that isn't a territory id fails the event before anything changes.
-        let m = self.try_get_message(game)?.with_log(AsideLog::aside());
-        self.log_objects(game, vec![m.into()]);
+        let m = self.try_describe(game, by)?.with_log(AsideLog::aside());
+        game.log(parts![m]);
 
-        let offer = self.open_offer(game);
-        if let Some(offer) = offer {
-            game.record_deal_response(&offer, self.initiator().required("faction")?, false);
+        if let Some(offer) = self.open_offer(game, by).map(|o| o.id) {
+            game.record_deal_response(offer, by.required_faction()?, false);
         }
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    fn describe(&self, game: &Game, by: By) -> Message {
         express!(
-            self.initiator(),
+            by.faction,
             " decline ",
             self.bound_faction,
             " offer for ",
@@ -88,48 +63,12 @@ impl DealRejected {
         )
     }
 
-    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
+    fn try_describe(&self, game: &Game, by: By) -> GameResult<Message> {
         Deal::try_deal_contents_description(game, self.type_, self.text.as_deref(), i32::from(self.benefit), self.end, self.deal_parameter1.as_deref())?;
-        Ok(self.get_message(game))
+        Ok(self.describe(game, by))
     }
 
-    pub fn get_short_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " decline a deal by ", self.bound_faction)
+    fn describe_short(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " decline a deal by ", self.bound_faction)
     }
-
-}
-
-impl GameEventMethods for DealRejected {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DealRejected
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DealRejected(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DealRejected::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DealRejected::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DealRejected::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        DealRejected::try_get_message(self, game)
-    }
-
-    fn get_short_message(&self, game: &Game) -> Message {
-        DealRejected::get_short_message(self, game)
-    }
-
 }

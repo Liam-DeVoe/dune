@@ -136,18 +136,6 @@ impl PlacedBid {
     pub fn bid_karma_bid(&self) -> bool {
         self.karma_bid
     }
-
-    /// The bidder, as `Event::legacy_initiator` gave it when the auction kept the event. Kept
-    /// for alliances/deal_accepted.rs; new code reads `initiator`.
-    pub fn legacy_initiator(&self) -> Option<Faction> {
-        self.initiator
-    }
-
-    /// The bidder's player, as `Event::legacy_player` gave it when the auction kept the event.
-    /// Kept for alliances/deal_accepted.rs; new code reads `player`.
-    pub fn legacy_player(&self) -> Option<PlayerId> {
-        self.player
-    }
 }
 
 /// Removes the first occurrence of `card` from `list`, if any.

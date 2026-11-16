@@ -4,8 +4,6 @@
 
 mod common;
 
-use std::rc::Rc;
-
 use common::{fixture, load, load_text, truncated, viewer_of, OBSERVER};
 use treachery_engine::events::DealAccepted;
 use treachery_engine::heroes::hero::Hero;
@@ -46,12 +44,13 @@ fn parse_event(v: &serde_json::Value) -> HistoryEntry {
     treachery_engine::json::deserialize(&v.to_string()).unwrap_or_else(|e| panic!("{v}: {e:?}"))
 }
 
-/// The offer an id names: the `DealOffered` at that place in the history.
-fn offer_at(game: &Game, id: i32) -> Rc<treachery_engine::events::DealOffered> {
-    match &game.history.entries[id as usize].event {
-        Event::DealOffered(o) => o.clone(),
-        e => panic!("deal id {id} is a {}", e.event_type().name()),
-    }
+/// The offer an id names, which the `DealOffered` at that place in the history made.
+fn offer_at(game: &Game, id: i32) -> DealOffer {
+    let entry = &game.history.entries[id as usize];
+    let Event::DealOffered(e) = &entry.event else { panic!("deal id {id} is a {}", entry.event_type().name()) };
+    let offer = game.deals.offers.iter().find(|o| o.id == DealId(id as usize)).unwrap_or_else(|| panic!("no open offer {id}"));
+    assert!(!e.cancel && offer.same(e) && offer.initiator == entry.by, "deal id {id}: another offer");
+    offer.clone()
 }
 
 // ---- Deals (the panel, the menu's deal count, the toasts) ----
@@ -77,19 +76,19 @@ fn deals() {
                 let p = g.get_player(Some(f)).unwrap();
                 let d = view.deals.as_ref().unwrap_or_else(|| panic!("{at}: no deals for {f}"));
 
-                let expected: Vec<i32> = DealAccepted::acceptable_deals(g, Some(p)).map(|o| g.history.entries.iter().position(|e| matches!(&e.event, Event::DealOffered(x) if Rc::ptr_eq(x, &o))).unwrap() as i32).collect();
+                let expected: Vec<i32> = DealAccepted::acceptable_deals(g, Some(p)).map(|o| o.id.0 as i32).collect();
                 assert_eq!(d.acceptable.iter().map(|o| o.id).collect::<Vec<_>>(), expected, "{at} {f}");
                 for o in &d.acceptable {
                     let offer = offer_at(g, o.id);
                     // Never someone else's offer to a third party.
                     assert!(g.deal_recipients(&offer).any(|x| x == f), "{at} {f}: an offer not addressed to the viewer");
-                    assert_eq!(o.initiator, name_or_absent(offer.initiator()));
+                    assert_eq!(o.initiator, name_or_absent(offer.initiator));
                     assert_eq!(o.price, i32::from(offer.price));
                     assert!(o.answers.is_empty() && o.withdraw.is_none(), "{at} {f}: answers to someone else's offer");
                     let accept = parse_event(&o.accept);
                     assert!(matches!(accept.event, Event::DealAccepted(_)), "{at}");
                     assert_eq!(accept.by, Some(f));
-                    let acceptance = Event::from(offer.acceptance(g, f).unwrap());
+                    let acceptance = Event::from(offer.acceptance());
                     assert_eq!(o.accept_error.is_some(), acceptance.validate_for(g, Some(f)).is_err(), "{at} {f}: Accept enabled");
                     let decline = parse_event(&o.decline);
                     assert!(matches!(decline.event, Event::DealRejected(_)) && decline.by == Some(f), "{at}");
@@ -100,12 +99,12 @@ fn deals() {
                 let own: Vec<_> = DealAccepted::cancellable_deals(g, Some(p)).collect();
                 assert_eq!(d.cancellable.len(), own.len(), "{at} {f}");
                 for (o, offer) in d.cancellable.iter().zip(&own) {
-                    assert!(Rc::ptr_eq(&offer_at(g, o.id), offer), "{at} {f}");
+                    assert_eq!(&offer_at(g, o.id), *offer, "{at} {f}");
                     assert_eq!(o.initiator, name(f), "{at}: someone else's offer as one's own");
                     let withdraw = parse_event(o.withdraw.as_ref().expect("Withdraw"));
                     assert!(matches!(withdraw.event, Event::DealOffered(ref w) if w.cancel), "{at}");
                     assert_eq!(withdraw.by, Some(f));
-                    let answers: Vec<DealAnswer> = g.deal_recipients(offer).map(|x| DealAnswer { faction: name(x), accepted: g.deal_response(offer, x) }).collect();
+                    let answers: Vec<DealAnswer> = g.deal_recipients(offer).map(|x| DealAnswer { faction: name(x), accepted: g.deal_response(offer.id, x) }).collect();
                     assert_eq!(o.answers, answers, "{at} {f}");
                     seen[2] += 1;
                     seen[3] += o.answers.iter().any(|a| a.accepted.is_some()) as usize;

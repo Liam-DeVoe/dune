@@ -101,7 +101,7 @@ impl ClassicBot {
         result
     }
 
-    pub fn determine_alliance_offered(&self, game: &Game) -> Option<Rc<AllianceOffered>> {
+    pub fn determine_alliance_offered(&self, game: &Game) -> Option<AllianceOffered> {
         let faction = self.faction(game);
         let best_offer_to_me = |from_humans_only: bool| {
             game.alliances.current_alliance_offers
@@ -112,9 +112,7 @@ impl ClassicBot {
         };
         // Accept the best offer from a human, else the best from a bot.
         if let Some(offer) = best_offer_to_me(true).or_else(|| best_offer_to_me(false)) {
-            let mut result = AllianceOffered::new(game, faction);
-            result.target = offer.initiator();
-            return Some(Rc::new(result));
+            return Some(AllianceOffered { target: offer.initiator });
         }
 
         let nr_of_players = game.players.len();
@@ -123,7 +121,7 @@ impl ClassicBot {
         let my_offer_is_open = game
             .alliances.current_alliance_offers
             .iter()
-            .any(|o| o.initiator() == Some(faction) && game.player(game.get_player(o.target).expect("player")).ally == None);
+            .any(|o| o.initiator == Some(faction) && game.player(game.get_player(o.target).expect("player")).ally == None);
         if nr_of_players <= 2
             || game.applicable(Rule::BotsCannotAlly)
             || (nr_of_unallied_humans != 0 && nr_of_unallied_humans >= nr_of_unallied_bots - 1)
@@ -143,16 +141,14 @@ impl ClassicBot {
             })
             .random_highest(&self.random, |&p| self.player_standing(game, p))?;
 
-        let mut result = AllianceOffered::new(game, faction);
-        result.target = game.player(most_interesting_bot_without_ally).faction;
-        Some(Rc::new(result))
+        Some(AllianceOffered { target: game.player(most_interesting_bot_without_ally).faction })
     }
 
     pub fn determine_alliance_passed(&self, game: &Game) -> Option<AlliancePassed> {
         let faction = self.faction(game);
 
         // Keep waiting while one of our offers is still open; it is withdrawn when the other faction passes
-        if game.alliances.current_alliance_offers.iter().any(|o| o.initiator() == Some(faction)) {
+        if game.alliances.current_alliance_offers.iter().any(|o| o.initiator == Some(faction)) {
             return None;
         }
 
@@ -263,11 +259,11 @@ impl ClassicBot {
     }
 
     /// Answer a card trade: the card asked for, or else my worst card.
-    pub fn determine_card_traded(&self, game: &Game) -> Option<Rc<CardTraded>> {
+    pub fn determine_card_traded(&self, game: &Game) -> Option<CardTraded> {
         let offer = game.alliances.current_card_trade_offer.as_ref()?;
 
-        let mut result = CardTraded::new(game, self.faction(game));
-        result.target = offer.initiator();
+        let mut result = CardTraded::default();
+        result.target = offer.initiator;
         if offer.requested_card.is_some() {
             result.card = offer.requested_card;
         } else {
@@ -280,6 +276,6 @@ impl ClassicBot {
             result.card = worst;
         }
         result.requested_card = None;
-        Some(Rc::new(result))
+        Some(result)
     }
 }

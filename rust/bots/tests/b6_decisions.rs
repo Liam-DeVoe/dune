@@ -13,42 +13,27 @@
 
 mod common;
 
-use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
-
-fn ev<T: EventKind>(e: Rc<T>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
-}
-
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    e.map_or_else(|| "null".to_string(), ev)
-}
 
 fn call(game: &Game, b: &ClassicBot, m: &str, a: &[String]) -> String {
     let n = |i: usize| a[i][1..].parse::<i32>().unwrap();
     match m {
         "DetermineBid" => common::decision(b, game, b.determine_bid(game)),
         "DetermineBlackMarketBid" => common::decision(b, game, b.determine_black_market_bid(game)),
-        "DetermineDealAccepted" => opt(b.determine_deal_accepted(game)),
-        "DetermineDealCancelled" => opt(b.determine_deal_cancelled(game)),
-        "DetermineDealOffered" => opt(b.determine_deal_offered(game)),
+        "DetermineDealAccepted" => common::decision(b, game, b.determine_deal_accepted(game)),
+        "DetermineDealCancelled" => common::decision(b, game, b.determine_deal_cancelled(game)),
+        "DetermineDealOffered" => common::decision(b, game, b.determine_deal_offered(game)),
         "DetermineAllianceByTerror" => common::decision(b, game, b.determine_alliance_by_terror(game)),
         "DetermineAllianceByAmbassador" => common::decision(b, game, b.determine_alliance_by_ambassador(game)),
         "DetermineNexusVoted" => common::decision(b, game, b.determine_nexus_voted(game)),
-        "DetermineAllianceOffered" => opt(b.determine_alliance_offered(game)),
+        "DetermineAllianceOffered" => common::decision(b, game, b.determine_alliance_offered(game)),
         "DetermineAlliancePassed" => common::decision(b, game, b.determine_alliance_passed(game)),
         "DetermineAllianceBroken" => common::decision(b, game, b.determine_alliance_broken(game)),
         "DetermineNexusCardDrawn" => common::decision(b, game, b.determine_nexus_card_drawn(game)),
         "DetermineAlliancePermissions" => common::decision(b, game, b.determine_alliance_permissions(game)),
-        "DetermineCardTraded" => opt(b.determine_card_traded(game)),
+        "DetermineCardTraded" => common::decision(b, game, b.determine_card_traded(game)),
         "DetermineAllowedResources" => b.determine_allowed_resources(game).to_string(),
         "PlayerStanding" => b.player_standing(game, game.player_at(n(0) as usize)).to_string(),
         "WannaHave" => {

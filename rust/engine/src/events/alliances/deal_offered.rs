@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DealOffered {
     pub to: Option<Vec<Faction>>,
     pub type_: DealType,
@@ -12,8 +12,6 @@ pub struct DealOffered {
     pub price: u16,
     pub benefit: u16,
     pub cancel: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for DealOffered {
@@ -28,114 +26,11 @@ impl Default for DealOffered {
             price: Default::default(),
             benefit: Default::default(),
             cancel: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl DealOffered {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn cancellation(&self) -> Option<Rc<DealOffered>> {
-        // MemberwiseClone: the same field values, including Initiator and Player.
-        let mut result = self.clone();
-        result.cancel = true;
-        Some(Rc::new(result))
-    }
-
-    pub fn acceptance(&self, game: &Game, by: Faction) -> Option<Rc<DealAccepted>> {
-        // new DealAccepted(Game, by)
-        let mut result = DealAccepted::new(game, by);
-        result.bound_faction = self.initiator();
-        result.price = self.price;
-        result.type_ = self.type_;
-        result.deal_parameter1 = self.deal_parameter1.clone();
-        result.deal_parameter2 = self.deal_parameter2.clone();
-        result.text = self.text.clone();
-        result.benefit = self.benefit;
-        result.end = self.end_phase;
-        Some(Rc::new(result))
-    }
-
-    pub fn same(&self, offered_deal: &DealOffered) -> bool {
-        i32::from(offered_deal.price) == i32::from(self.price)
-            && offered_deal.type_ == self.type_
-            && offered_deal.deal_parameter1 == self.deal_parameter1
-            && offered_deal.deal_parameter2 == self.deal_parameter2
-            && offered_deal.text == self.text
-            && i32::from(offered_deal.benefit) == i32::from(self.benefit)
-            && offered_deal.end_phase == self.end_phase
-            // C# parity: C# 14 binds `Faction[].SequenceEqual(Faction[])` to
-            // MemoryExtensions.SequenceEqual on spans, where a null array is an
-            // empty span. So null equals [] and nothing throws.
-            && offered_deal.to.as_deref().unwrap_or(&[]) == self.to.as_deref().unwrap_or(&[])
-    }
-
-    pub fn rejection(&self, game: &Game, by: Faction) -> Option<Rc<DealRejected>> {
-        // new DealRejected(Game, by)
-        let mut result = DealRejected::new(game, by);
-        result.bound_faction = self.initiator();
-        result.price = self.price;
-        result.type_ = self.type_;
-        result.deal_parameter1 = self.deal_parameter1.clone();
-        result.deal_parameter2 = self.deal_parameter2.clone();
-        result.text = self.text.clone();
-        result.benefit = self.benefit;
-        result.end = self.end_phase;
-        Some(Rc::new(result))
-    }
-
-    pub fn is_accepted_by(&self, accepted_deal: &DealAccepted) -> bool {
-        self.matches(
-            accepted_deal.initiator(),
-            accepted_deal.bound_faction,
-            i32::from(accepted_deal.price),
-            accepted_deal.type_,
-            accepted_deal.deal_parameter1.as_deref(),
-            accepted_deal.deal_parameter2.as_deref(),
-            accepted_deal.text.as_deref(),
-            i32::from(accepted_deal.benefit),
-            accepted_deal.end,
-        )
-    }
-
-    pub fn is_rejected_by(&self, rejected_deal: &DealRejected) -> bool {
-        self.matches(
-            rejected_deal.initiator(),
-            rejected_deal.bound_faction,
-            i32::from(rejected_deal.price),
-            rejected_deal.type_,
-            rejected_deal.deal_parameter1.as_deref(),
-            rejected_deal.deal_parameter2.as_deref(),
-            rejected_deal.text.as_deref(),
-            i32::from(rejected_deal.benefit),
-            rejected_deal.end,
-        )
-    }
-
-    pub fn matches(&self, by: Option<Faction>, bound_faction: Option<Faction>, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Option<Phase>) -> bool {
-        bound_faction == self.initiator()
-            && price == i32::from(self.price)
-            && type_ == self.type_
-            && deal_parameter1 == self.deal_parameter1.as_deref()
-            && deal_parameter2 == self.deal_parameter2.as_deref()
-            && text == self.text.as_deref()
-            && benefit == i32::from(self.benefit)
-            && end == self.end_phase
-            && {
-                let to = self.to.as_ref().expect("destination");
-                to.len() == 0 || to.contains_opt(by)
-            }
-    }
-
     pub fn get_standard_deal_types(g: &Game, p: PlayerId) -> Vec<DealType> {
         let mut result = vec![DealType::None, DealType::ForfeitBattle, DealType::TellDiscardedTraitors];
 
@@ -160,39 +55,45 @@ impl DealOffered {
 
         result
     }
+}
 
-    pub fn get_deal_description(&self, game: &Game) -> Message {
-        Deal::describe_deal_contents(
-            game,
-            self.type_,
-            self.text.as_deref(),
-            i32::from(self.benefit),
-            self.end_phase,
-            self.deal_parameter1.as_deref(),
-        )
+impl EventRules for DealOffered {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if self.cancel {
-            let same_offer = game.deals.offers.iter().find(|o| o.same(self)).cloned();
-            if let Some(same_offer) = same_offer {
-                // List.Remove: reference equality, first occurrence.
-                if let Some(i) = game.deals.offers.iter().position(|o| Rc::ptr_eq(o, &same_offer)) {
-                    game.deals.offers.remove(i);
-                }
-                game.deals.responses.shift_remove(&RcKey(same_offer));
+            // The first offer with the same terms, whoever made it.
+            if let Some(i) = game.deals.offers.iter().position(|o| o.same(self)) {
+                let same_offer = game.deals.offers.remove(i);
+                game.deals.responses.shift_remove(&same_offer.id);
             }
         } else {
-            game.deals.offers.push(self.clone());
+            // The entry of this event goes into the history right after it is applied.
+            let id = DealId(game.history.entries.len());
+            game.deals.offers.push(DealOffer {
+                id,
+                initiator: by.faction,
+                player: by.player,
+                to: self.to.clone(),
+                type_: self.type_,
+                deal_parameter1: self.deal_parameter1.clone(),
+                deal_parameter2: self.deal_parameter2.clone(),
+                text: self.text.clone(),
+                end_phase: self.end_phase,
+                price: self.price,
+                benefit: self.benefit,
+            });
         }
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    fn describe(&self, game: &Game, by: By) -> Message {
         if !self.cancel {
             let to = self.to.as_ref().expect("destination");
             express!(
-                self.initiator(),
+                by.faction,
                 " offer ",
                 express_part_if!(to.len() != 0; Part::list(to.iter().copied()), " "),
                 "for ",
@@ -208,46 +109,14 @@ impl DealOffered {
                 )
             )
         } else {
-            express!(self.initiator(), " withdraw a deal offer")
+            express!(by.faction, " withdraw a deal offer")
         }
     }
 
-    pub fn get_short_message(&self, _game: &Game) -> Message {
+    fn describe_short(&self, _game: &Game, by: By) -> Message {
         if !self.cancel {
-            return express!(self.initiator(), " offer a deal");
+            return express!(by.faction, " offer a deal");
         }
-        express!(self.initiator(), " withdraw a deal offer")
+        express!(by.faction, " withdraw a deal offer")
     }
-
-}
-
-impl GameEventMethods for DealOffered {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DealOffered
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DealOffered(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DealOffered::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DealOffered::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DealOffered::get_message(self, game)
-    }
-
-    fn get_short_message(&self, game: &Game) -> Message {
-        DealOffered::get_short_message(self, game)
-    }
-
 }

@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DealAccepted {
     pub bound_faction: Option<Faction>,
     pub type_: DealType,
@@ -11,73 +11,9 @@ pub struct DealAccepted {
     pub end: Option<Phase>,
     pub price: u16,
     pub benefit: u16,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for DealAccepted {
-    fn default() -> Self {
-        DealAccepted {
-            bound_faction: Default::default(),
-            type_: Default::default(),
-            deal_parameter1: Default::default(),
-            deal_parameter2: Default::default(),
-            text: Default::default(),
-            end: Default::default(),
-            price: Default::default(),
-            benefit: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl DealAccepted {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !DealAccepted::may_deal(game, self.player_opt(), i32::from(self.price)) {
-            return Some(express!("You currently have an outstanding bid"));
-        }
-
-        let bound_player = game.get_player(self.bound_faction);
-        if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, i32::from(self.benefit)) {
-            return Some(express!(self.bound_faction, " currently have an outstanding bid"));
-        }
-        if i32::from(self.price) > i32::from(game.player(self.player()).resources) {
-            return Some(express!("You can't pay that much"));
-        }
-
-        if let Some(bound_player) = bound_player {
-            if i32::from(self.benefit) > i32::from(game.player(bound_player).resources) {
-                return Some(express!("Offer is not valid (anymore)"));
-            }
-        }
-
-        if (i32::from(self.price) > 0 || i32::from(self.benefit) > 0) && game.applicable(Rule::DisableResourceTransfers) {
-            return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
-        }
-        if !game.deals.offers.iter().any(|offer| offer.is_accepted_by(self)) {
-            return Some(express!("Offer is not valid (anymore)"));
-        }
-        if self.open_offer(game).is_none() {
-            return Some(express!("You already answered this offer"));
-        }
-        // Not in C#, which let a player give away spice they still had to pay for a bid
-        // (escapes.md, "Forces below zero").
-        if !game.may_give_away_spice(self.player(), i32::from(self.price)) {
-            return Some(express!("You need that spice to pay your bid"));
-        }
-        if bound_player.is_some_and(|b| !game.may_give_away_spice(b, i32::from(self.benefit))) {
-            return Some(express!(self.bound_faction, " need that spice to pay their bid"));
-        }
-
-        None
-    }
-
     pub fn may_deal(g: &Game, p: Option<PlayerId>, price: i32) -> bool {
         g.turn.current_phase != Phase::Bidding
             || price <= 0
@@ -86,67 +22,127 @@ impl DealAccepted {
                 // p.Faction dereferences a null player only here.
                 let bid = g.bidding.current_bid.as_ref().expect("current bid");
                 let p_faction = g.player(p.expect("player")).faction;
-                bid.legacy_initiator() != p_faction
-                    && (bid.bid_ally_contribution_amount() == 0 || g.player(bid.legacy_player().expect("player")).ally != p_faction)
+                bid.initiator != p_faction
+                    && (bid.bid_ally_contribution_amount() == 0 || g.player(bid.player.expect("player")).ally != p_faction)
             }
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn acceptable_deals(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = Rc<DealOffered>> {
+    pub fn acceptable_deals(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = &DealOffer> {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
-        Either::Right(g.deals.offers.iter().filter(move |offer| DealAccepted::is_acceptable_deal(g, p, offer)).cloned())
+        Either::Right(g.deals.offers.iter().filter(move |offer| DealAccepted::is_acceptable_deal(g, p, offer)))
     }
 
     /// The `AcceptableDeals` filter for one offer (Rust-only helper, see `acceptable_deals`).
-    pub fn is_acceptable_deal(g: &Game, p: PlayerId, offer: &Rc<DealOffered>) -> bool {
+    pub fn is_acceptable_deal(g: &Game, p: PlayerId, offer: &DealOffer) -> bool {
         let pl = g.player(p);
-        offer.initiator() != pl.faction
-            && offer.initiator() != pl.ally
+        offer.initiator != pl.faction
+            && offer.initiator != pl.ally
             && {
                 let to = offer.to.as_ref().expect("destination");
                 to.len() == 0 || to.contains_opt(pl.faction)
             }
-            && !g.has_responded_to_deal(offer, pl.faction)
+            && !g.has_responded_to_deal(offer.id, pl.faction)
             && (g.charity.economics_status != Some(ChoamEconomicsStatus::Double) || (i32::from(offer.benefit) == 0 && i32::from(offer.price) == 0))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn cancellable_deals(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = Rc<DealOffered>> {
+    pub fn cancellable_deals(g: &Game, p: Option<PlayerId>) -> impl Iterator<Item = &DealOffer> {
         use either::Either;
         use std::iter::empty;
         let Some(p) = p else { return Either::Left(empty()) };
-        Either::Right(g.deals.offers.iter().filter(move |offer| offer.initiator() == g.player(p).faction).cloned())
+        Either::Right(g.deals.offers.iter().filter(move |offer| offer.initiator == g.player(p).faction))
     }
 
     pub fn current_deals(g: &Game) -> Vec<Deal> {
         g.deals.agreed.clone()
     }
 
-    pub fn open_offer(&self, game: &Game) -> Option<Rc<DealOffered>> {
-        game.deals.offers
-            .iter()
-            .find(|offer| offer.is_accepted_by(self) && !game.has_responded_to_deal(offer, self.initiator()))
-            .cloned()
+    /// The offer this accepts that `by` hasn't answered yet.
+    pub fn open_offer<'a>(&self, game: &'a Game, by: By) -> Option<&'a DealOffer> {
+        game.deals.offers.iter().find(|offer| offer.is_accepted_by(self, by.faction) && !game.has_responded_to_deal(offer.id, by.faction))
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let m = self.get_message(game).with_log(AsideLog::aside());
-        self.log_objects(game, vec![m.into()]);
+    pub fn get_deal_description(&self, game: &Game) -> Message {
+        Deal::describe_deal_contents(
+            game,
+            self.type_,
+            self.text.as_deref(),
+            i32::from(self.benefit),
+            self.end,
+            self.deal_parameter1.as_deref(),
+        )
+    }
+
+    pub fn handle_accepted_bot_deal(&self, game: &mut Game, by: By, offer: &DealOffer) {
+        if offer.type_ == DealType::TellDiscardedTraitors {
+            // A copy of the traitors discarded so far: later discards don't change this message.
+            let discarded = Part::list(game.player(offer.player()).discarded_traitors.iter().copied());
+            game.log_to(by.faction.expect("faction"), parts![offer.initiator, " discarded: ", discarded]);
+            game.log(parts![offer.initiator, " gave ", by.faction, " the agreed information"]);
+        }
+    }
+}
+
+impl EventRules for DealAccepted {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !DealAccepted::may_deal(game, by.player, i32::from(self.price)) {
+            return Err(Rejection(express!("You currently have an outstanding bid")));
+        }
+
+        let bound_player = game.get_player(self.bound_faction);
+        if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, i32::from(self.benefit)) {
+            return Err(Rejection(express!(self.bound_faction, " currently have an outstanding bid")));
+        }
+        if i32::from(self.price) > i32::from(game.player(by.player()).resources) {
+            return Err(Rejection(express!("You can't pay that much")));
+        }
+
+        if let Some(bound_player) = bound_player {
+            if i32::from(self.benefit) > i32::from(game.player(bound_player).resources) {
+                return Err(Rejection(express!("Offer is not valid (anymore)")));
+            }
+        }
+
+        if (i32::from(self.price) > 0 || i32::from(self.benefit) > 0) && game.applicable(Rule::DisableResourceTransfers) {
+            return Err(Rejection(express!(Concept::Resource, " transfers are disabled by house rule")));
+        }
+        if !game.deals.offers.iter().any(|offer| offer.is_accepted_by(self, by.faction)) {
+            return Err(Rejection(express!("Offer is not valid (anymore)")));
+        }
+        if self.open_offer(game, by).is_none() {
+            return Err(Rejection(express!("You already answered this offer")));
+        }
+        // Not in C#, which let a player give away spice they still had to pay for a bid
+        // (escapes.md, "Forces below zero").
+        if !game.may_give_away_spice(by.player(), i32::from(self.price)) {
+            return Err(Rejection(express!("You need that spice to pay your bid")));
+        }
+        if bound_player.is_some_and(|b| !game.may_give_away_spice(b, i32::from(self.benefit))) {
+            return Err(Rejection(express!(self.bound_faction, " need that spice to pay their bid")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by).with_log(AsideLog::aside());
+        game.log(parts![m]);
         // Saved games from before acceptances were recorded replay without
         // validation and may accept the same offer twice, hence the fallback.
-        let offer = match self.open_offer(game) {
-            Some(o) => Some(o),
-            None => game.deals.offers.iter().find(|offer| offer.is_accepted_by(self)).cloned(),
+        let offer = match self.open_offer(game, by) {
+            Some(o) => Some(o.clone()),
+            None => game.deals.offers.iter().find(|offer| offer.is_accepted_by(self, by.faction)).cloned(),
         };
 
         if let Some(offer) = offer {
-            game.record_deal_response(&offer, self.initiator().required("faction")?, true);
+            game.record_deal_response(offer.id, by.required_faction()?, true);
 
             let new_deal = Deal {
-                bound_faction: offer.initiator(),
-                consuming_faction: self.initiator(),
+                bound_faction: offer.initiator,
+                consuming_faction: by.faction,
                 deal_parameter1: self.deal_parameter1.clone(),
                 deal_parameter2: self.deal_parameter2.clone(),
                 end: self.end,
@@ -156,19 +152,19 @@ impl DealAccepted {
             };
 
             game.start_deal(&new_deal);
-            let offer_initiator = self.get_player(game, offer.initiator());
+            let offer_initiator = game.get_player(offer.initiator);
 
             if let Some(offer_initiator) = offer_initiator {
                 if i32::from(self.price) > 0 {
                     // Player is `from`: a null Player throws before anything changes.
-                    game.exchange_resources_in_bribe(self.player(), offer_initiator, i32::from(self.price))?;
+                    game.exchange_resources_in_bribe(by.player(), offer_initiator, i32::from(self.price))?;
                     game.stone(Milestone::Bribe);
                 }
             }
 
             if let Some(offer_initiator) = offer_initiator {
                 if i32::from(self.benefit) > 0 {
-                    match self.player_opt() {
+                    match by.player {
                         Some(me) => game.exchange_resources_in_bribe(offer_initiator, me, i32::from(self.benefit))?,
                         None => {
                             // ExchangeResourcesInBribe(offerInitiator, null, Benefit): `from` pays,
@@ -184,79 +180,17 @@ impl DealAccepted {
             }
 
             if game.is_bot(offer.player()) {
-                self.handle_accepted_bot_deal(game, &offer);
+                self.handle_accepted_bot_deal(game, by, &offer);
             }
         }
         Ok(())
     }
 
-    pub fn handle_accepted_bot_deal(&self, game: &mut Game, offer: &Rc<DealOffered>) {
-        if offer.type_ == DealType::TellDiscardedTraitors {
-            // A copy of the traitors discarded so far: later discards don't change this message.
-            let discarded = Part::list(
-                game.player(offer.player()).discarded_traitors.iter().copied(),
-            );
-            self.log_to(
-                game,
-                self.initiator().expect("faction"),
-                vec![
-                    offer.initiator().into(),
-                    " discarded: ".into(),
-                    discarded,
-                ],
-            );
-            self.log_objects(game, vec![offer.initiator().into(), " gave ".into(), self.initiator().into(), " the agreed information".into()]);
-        }
+    fn describe(&self, game: &Game, by: By) -> Message {
+        express!(by.faction, " accept ", self.bound_faction, " offer for ", Payment::of(i32::from(self.price)), ": ", self.get_deal_description(game))
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " accept ", self.bound_faction, " offer for ", Payment::of(i32::from(self.price)), ": ", self.get_deal_description(game))
+    fn describe_short(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " accept a deal by ", self.bound_faction)
     }
-
-    pub fn get_short_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " accept a deal by ", self.bound_faction)
-    }
-
-    pub fn get_deal_description(&self, game: &Game) -> Message {
-        Deal::describe_deal_contents(
-            game,
-            self.type_,
-            self.text.as_deref(),
-            i32::from(self.benefit),
-            self.end,
-            self.deal_parameter1.as_deref(),
-        )
-    }
-
-}
-
-impl GameEventMethods for DealAccepted {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DealAccepted
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DealAccepted(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DealAccepted::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DealAccepted::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DealAccepted::get_message(self, game)
-    }
-
-    fn get_short_message(&self, game: &Game) -> Message {
-        DealAccepted::get_short_message(self, game)
-    }
-
 }

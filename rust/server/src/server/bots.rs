@@ -90,7 +90,6 @@ impl Server {
                 let bot = &mut bots[index].1;
                 let event = bot.decide(state, Priority::ALL[level], options);
                 if let Some(event) = event {
-                    let event = treachery_engine::events::HistoryEntry::decided(state.player(player).faction, event);
                     return match Box::pin(self.execute(game, event, level == 4, None, true)).await {
                         Err(CallError::Refused(ErrorCode::InvalidGameEvent, _)) => Ok(()),
                         r => r,

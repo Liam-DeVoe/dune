@@ -10,7 +10,6 @@
 
 mod common;
 
-use std::rc::Rc;
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::Event;
@@ -76,7 +75,7 @@ fn applicable(g: &mut Game) -> String {
 fn state(l: &mut Lines, g: &mut Game, at: &str) {
     l.p(&format!("{at}.phase"), g.turn.current_phase);
     l.p(&format!("{at}.acted"), factions(g.turn.has_acted_or_passed.clone()));
-    let offers: Vec<_> = g.alliances.current_alliance_offers.iter().map(|o| format!("{}>{}", treachery_engine::enum_type::name_or_absent(o.initiator()), treachery_engine::enum_type::name_or_absent(o.target))).collect();
+    let offers: Vec<_> = g.alliances.current_alliance_offers.iter().map(|o| format!("{}>{}", treachery_engine::enum_type::name_or_absent(o.initiator), treachery_engine::enum_type::name_or_absent(o.target))).collect();
     l.p(&format!("{at}.offers"), offers.join(","));
     let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", treachery_engine::enum_type::name_or_absent(p.faction), treachery_engine::enum_type::name_or_absent(p.ally))).collect();
     l.p(&format!("{at}.allies"), allies.join(","));
@@ -109,10 +108,8 @@ fn exec(l: &mut Lines, g: &mut Game, at: &str, entry: HistoryEntry) {
     state(l, g, at);
 }
 
-fn offered(g: &Game, by: Faction, target: Faction) -> HistoryEntry {
-    let mut e = AllianceOffered::new(g, by);
-    e.target = Some(target);
-    HistoryEntry::legacy(Rc::new(e))
+fn offered(_g: &Game, by: Faction, target: Faction) -> HistoryEntry {
+    HistoryEntry::new(by, AllianceOffered { target: Some(target) })
 }
 
 fn passed(_g: &Game, by: Faction) -> HistoryEntry {

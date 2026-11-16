@@ -3,8 +3,8 @@ use crate::messages::part::Part;
 
 /// Deals offered, the responses to them, and the deals in force.
 pub struct Deals {
-    pub offers: Vec<Rc<DealOffered>>,
-    pub responses: IndexMap<RcKey<DealOffered>, IndexMap<Faction, bool>>,
+    pub offers: Vec<DealOffer>,
+    pub responses: IndexMap<DealId, IndexMap<Faction, bool>>,
     pub agreed: Vec<Deal>,
 }
 
@@ -18,33 +18,183 @@ impl Deals {
     }
 }
 
+/// A deal offer: the place of its `DealOffered` in the history, which names it in views and
+/// keeps apart two offers with the same terms.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct DealId(pub usize);
+
+/// An open deal offer, as `DealOffered` made it.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DealOffer {
+    pub id: DealId,
+    pub initiator: Option<Faction>,
+    pub player: Option<PlayerId>,
+    pub to: Option<Vec<Faction>>,
+    pub type_: DealType,
+    pub deal_parameter1: Option<String>,
+    pub deal_parameter2: Option<String>,
+    pub text: Option<String>,
+    pub end_phase: Option<Phase>,
+    pub price: u16,
+    pub benefit: u16,
+}
+
+impl DealOffer {
+    /// The offering player; panics for an offer without one.
+    #[track_caller]
+    pub fn player(&self) -> PlayerId {
+        self.player.expect("the offer has a player")
+    }
+
+    /// The event that made the offer.
+    pub fn event(&self) -> DealOffered {
+        DealOffered {
+            to: self.to.clone(),
+            type_: self.type_,
+            deal_parameter1: self.deal_parameter1.clone(),
+            deal_parameter2: self.deal_parameter2.clone(),
+            text: self.text.clone(),
+            end_phase: self.end_phase,
+            price: self.price,
+            benefit: self.benefit,
+            cancel: false,
+        }
+    }
+
+    /// The submitter of the offer, as it was submitted.
+    pub fn by(&self) -> By {
+        By { faction: self.initiator, player: self.player }
+    }
+
+    /// The offer's log line.
+    pub fn describe(&self, game: &Game) -> Message {
+        self.event().describe(game, self.by())
+    }
+
+    /// The withdrawal of the offer: a copy of its history entry (submitter and time included)
+    /// with `cancel` set. Anyone may submit it, and bots do for other factions' offers.
+    pub fn cancellation(&self, game: &Game) -> HistoryEntry {
+        let at = game.history.entries.get(self.id.0).map(|e| e.at).unwrap_or_default();
+        HistoryEntry { by: self.initiator, at, event: Event::from(DealOffered { cancel: true, ..self.event() }) }
+    }
+
+    /// Accepting the offer.
+    pub fn acceptance(&self) -> DealAccepted {
+        DealAccepted {
+            bound_faction: self.initiator,
+            price: self.price,
+            type_: self.type_,
+            deal_parameter1: self.deal_parameter1.clone(),
+            deal_parameter2: self.deal_parameter2.clone(),
+            text: self.text.clone(),
+            benefit: self.benefit,
+            end: self.end_phase,
+        }
+    }
+
+    /// Declining the offer.
+    pub fn rejection(&self) -> DealRejected {
+        DealRejected {
+            bound_faction: self.initiator,
+            price: self.price,
+            type_: self.type_,
+            deal_parameter1: self.deal_parameter1.clone(),
+            deal_parameter2: self.deal_parameter2.clone(),
+            text: self.text.clone(),
+            benefit: self.benefit,
+            end: self.end_phase,
+        }
+    }
+
+    /// Whether `offered_deal` offers the same terms (a withdrawal names the offer by its terms).
+    pub fn same(&self, offered_deal: &DealOffered) -> bool {
+        i32::from(offered_deal.price) == i32::from(self.price)
+            && offered_deal.type_ == self.type_
+            && offered_deal.deal_parameter1 == self.deal_parameter1
+            && offered_deal.deal_parameter2 == self.deal_parameter2
+            && offered_deal.text == self.text
+            && i32::from(offered_deal.benefit) == i32::from(self.benefit)
+            && offered_deal.end_phase == self.end_phase
+            // C# parity: C# 14 binds `Faction[].SequenceEqual(Faction[])` to
+            // MemoryExtensions.SequenceEqual on spans, where a null array is an
+            // empty span. So null equals [] and nothing throws.
+            && offered_deal.to.as_deref().unwrap_or(&[]) == self.to.as_deref().unwrap_or(&[])
+    }
+
+    /// Whether `accepted_deal`, submitted by `by`, accepts this offer.
+    pub fn is_accepted_by(&self, accepted_deal: &DealAccepted, by: Option<Faction>) -> bool {
+        self.matches(
+            by,
+            accepted_deal.bound_faction,
+            i32::from(accepted_deal.price),
+            accepted_deal.type_,
+            accepted_deal.deal_parameter1.as_deref(),
+            accepted_deal.deal_parameter2.as_deref(),
+            accepted_deal.text.as_deref(),
+            i32::from(accepted_deal.benefit),
+            accepted_deal.end,
+        )
+    }
+
+    /// Whether `rejected_deal`, submitted by `by`, declines this offer.
+    pub fn is_rejected_by(&self, rejected_deal: &DealRejected, by: Option<Faction>) -> bool {
+        self.matches(
+            by,
+            rejected_deal.bound_faction,
+            i32::from(rejected_deal.price),
+            rejected_deal.type_,
+            rejected_deal.deal_parameter1.as_deref(),
+            rejected_deal.deal_parameter2.as_deref(),
+            rejected_deal.text.as_deref(),
+            i32::from(rejected_deal.benefit),
+            rejected_deal.end,
+        )
+    }
+
+    pub fn matches(&self, by: Option<Faction>, bound_faction: Option<Faction>, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Option<Phase>) -> bool {
+        bound_faction == self.initiator
+            && price == i32::from(self.price)
+            && type_ == self.type_
+            && deal_parameter1 == self.deal_parameter1.as_deref()
+            && deal_parameter2 == self.deal_parameter2.as_deref()
+            && text == self.text.as_deref()
+            && benefit == i32::from(self.benefit)
+            && end == self.end_phase
+            && {
+                let to = self.to.as_ref().expect("destination");
+                to.len() == 0 || to.contains_opt(by)
+            }
+    }
+
+    pub fn get_deal_description(&self, game: &Game) -> Message {
+        Deal::describe_deal_contents(
+            game,
+            self.type_,
+            self.text.as_deref(),
+            i32::from(self.benefit),
+            self.end_phase,
+            self.deal_parameter1.as_deref(),
+        )
+    }
+}
+
 impl Game {
-    pub fn record_deal_response(&mut self, offer: &Rc<DealOffered>, faction: Faction, accepted: bool) {
-        let key = RcKey(offer.clone());
-        if !self.deals.responses.contains_key(&key) {
-            // Never a duplicate: the key was just checked.
-            self.deals.responses.insert_new(key.clone(), IndexMap::new());
-        }
-
-        self.deals.responses.get_mut(&key).expect("responses to this offer").insert(faction, accepted);
+    pub fn record_deal_response(&mut self, offer: DealId, faction: Faction, accepted: bool) {
+        self.deals.responses.entry(offer).or_default().insert(faction, accepted);
     }
 
-    pub fn deal_response(&self, offer: &Rc<DealOffered>, faction: Faction) -> Option<bool> {
-        let key = RcKey(offer.clone());
-        match self.deals.responses.get(&key) {
-            Some(responses) => responses.get(&faction).copied(),
-            None => None,
-        }
+    pub fn deal_response(&self, offer: DealId, faction: Faction) -> Option<bool> {
+        self.deals.responses.get(&offer).and_then(|responses| responses.get(&faction).copied())
     }
 
-    pub fn has_responded_to_deal(&self, offer: &Rc<DealOffered>, faction: impl Into<Option<Faction>>) -> bool {
+    pub fn has_responded_to_deal(&self, offer: DealId, faction: impl Into<Option<Faction>>) -> bool {
         let faction: Option<Faction> = faction.into();
         self.deal_response(offer, faction.expect("faction")).is_some()
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
-    pub fn deal_recipients(&self, offer: &DealOffered) -> impl Iterator<Item = Faction> {
-        let initiator = offer.initiator();
+    pub fn deal_recipients<'a>(&'a self, offer: &'a DealOffer) -> impl Iterator<Item = Faction> + 'a {
+        let initiator = offer.initiator;
         self.players
             .iter()
             .filter(move |p| {

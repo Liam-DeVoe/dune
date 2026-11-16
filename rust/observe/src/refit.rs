@@ -198,7 +198,7 @@ impl Refit {
             for level in Priority::ALL {
                 if let Some(Some(e)) = quiet(|| bot.decide(game, level, &[t])) {
                     if e.event_type() == t {
-                        return Some(to_object(&HistoryEntry::decided(faction, e)));
+                        return Some(to_object(&e));
                     }
                 }
             }
@@ -232,7 +232,7 @@ impl Refit {
                 let Some(b) = Self::bot(&mut self.bots, &self.game, Some(faction)) else { continue };
                 let (bot, game) = (&mut self.bots[b].1, &self.game);
                 if let Some(Some(e)) = quiet(|| bot.decide(game, level, &allowed)) {
-                    let mut event = to_object(&HistoryEntry::decided(Some(faction), e));
+                    let mut event = to_object(&e);
                     event.insert("Time".into(), time.clone());
                     if self.execute(&event, true, false) {
                         self.push(None, Item::Event { event, validate: true, host: false, legit: true, at: None }, Fate::Added);

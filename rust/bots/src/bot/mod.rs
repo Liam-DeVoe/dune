@@ -182,10 +182,12 @@ impl Priority {
 }
 
 /// What a decision method returns: an event, or maybe an event. A converted event comes by
-/// value, an `@legacy` one in an `Rc`.
+/// value, an `@legacy` one in an `Rc`, and an event the bot submits in another faction's name
+/// as a [`Resubmitted`] entry.
 pub trait IntoDecision {
     type Event: EventKind;
-    fn into_event(self) -> Option<Event>;
+    /// The history entry the bot submits, for a bot of `faction`.
+    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry>;
 }
 
 impl<T: EventKind> IntoDecision for T
@@ -193,8 +195,8 @@ where
     Event: From<T>,
 {
     type Event = T;
-    fn into_event(self) -> Option<Event> {
-        Some(Event::from(self))
+    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
+        Some(HistoryEntry::decided(faction, self))
     }
 }
 
@@ -203,8 +205,8 @@ where
     Event: From<T>,
 {
     type Event = T;
-    fn into_event(self) -> Option<Event> {
-        self.map(Event::from)
+    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
+        self.map(|e| HistoryEntry::decided(faction, e))
     }
 }
 
@@ -213,8 +215,8 @@ where
     Event: From<Rc<T>>,
 {
     type Event = T;
-    fn into_event(self) -> Option<Event> {
-        Some(Event::from(self))
+    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
+        Some(HistoryEntry::decided(faction, self))
     }
 }
 
@@ -223,21 +225,52 @@ where
     Event: From<Rc<T>>,
 {
     type Event = T;
-    fn into_event(self) -> Option<Event> {
-        self.map(Event::from)
+    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
+        self.map(|e| HistoryEntry::decided(faction, e))
     }
 }
 
-/// An event a decision method came up with.
+/// A decision with its own submitter and time: an event of type `T` that the bot submits as
+/// another faction already did. A bot withdraws any faction's outdated deal offer with a copy of
+/// the offer's entry (`DealOffer::cancellation`).
+pub struct Resubmitted<T> {
+    pub entry: HistoryEntry,
+    event_type: std::marker::PhantomData<T>,
+}
+
+impl<T: EventKind> Resubmitted<T> {
+    /// Panics if `entry` doesn't hold a `T`.
+    #[track_caller]
+    pub fn new(entry: HistoryEntry) -> Self {
+        assert_eq!(entry.event_type(), T::TYPE, "a resubmitted entry holds its event type");
+        Resubmitted { entry, event_type: std::marker::PhantomData }
+    }
+}
+
+impl<T: EventKind> IntoDecision for Resubmitted<T> {
+    type Event = T;
+    fn into_entry(self, _faction: Option<Faction>) -> Option<HistoryEntry> {
+        Some(self.entry)
+    }
+}
+
+impl<T: EventKind> IntoDecision for Option<Resubmitted<T>> {
+    type Event = T;
+    fn into_entry(self, _faction: Option<Faction>) -> Option<HistoryEntry> {
+        self.map(|r| r.entry)
+    }
+}
+
+/// The history entry a decision method came up with.
 #[derive(Clone, Debug)]
 pub enum Decision {
-    Valid(Event),
+    Valid(HistoryEntry),
     /// The game rejects it, so the bot tries its next decision method.
-    Invalid(Event),
+    Invalid(HistoryEntry),
 }
 
 impl Decision {
-    pub fn valid(self) -> Option<Event> {
+    pub fn valid(self) -> Option<HistoryEntry> {
         match self {
             Decision::Valid(e) => Some(e),
             Decision::Invalid(_) => None,
@@ -302,9 +335,10 @@ impl ClassicBot {
         i32::from(game.player(self.player).resources)
     }
 
-    /// The event the bot wants to submit in this round, if any. `allowed` lists the event types
-    /// the player may submit now. Deciding changes the bot's own plans, never the game.
-    pub fn decide(&mut self, game: &Game, priority: Priority, allowed: &[EventType]) -> Option<Event> {
+    /// The event the bot wants to submit in this round, if any, as its history entry. `allowed`
+    /// lists the event types the player may submit now. Deciding changes the bot's own plans,
+    /// never the game.
+    pub fn decide(&mut self, game: &Game, priority: Priority, allowed: &[EventType]) -> Option<HistoryEntry> {
         match priority {
             Priority::Highest => first_decision!(self, game, allowed;
                 determine_nexus_played,
@@ -460,13 +494,14 @@ impl ClassicBot {
 
         // The bots aren't written to avoid every state they can't handle (a card the game doesn't
         // have, for example), so a decision that panics counts as no decision.
-        let event = guarded(|| decide(self, game)).ok()?.into_event()?;
+        let faction = self.by(game).faction;
+        let entry = guarded(|| decide(self, game)).ok()?.into_entry(faction)?;
 
-        let by = self.by(game);
-        let valid = event.validate(game, by).is_ok();
+        let by = entry.by_in(game);
+        let valid = entry.event.validate(game, by).is_ok();
         // Building the event's message can throw, which ends the bot's round with that exception.
-        let _ = event.describe(game, by);
-        Some(if valid { Decision::Valid(event) } else { Decision::Invalid(event) })
+        let _ = entry.event.describe(game, by);
+        Some(if valid { Decision::Valid(entry) } else { Decision::Invalid(entry) })
     }
 
     /// The sum of `amount` dice with `sides` sides each.
@@ -497,7 +532,7 @@ mod tests {
             EndPhase::default()
         }
 
-        fn invalid_then_valid(&mut self, game: &Game, allowed: &[EventType]) -> Option<Event> {
+        fn invalid_then_valid(&mut self, game: &Game, allowed: &[EventType]) -> Option<HistoryEntry> {
             first_decision!(self, game, allowed; invalid_thought, end_phase)
         }
     }
@@ -509,6 +544,6 @@ mod tests {
         let mut bot = ClassicBot::new(game.player_at(0), BotParameters::for_faction(Faction::Atreides), SharedRandom::from_seed(1));
         let allowed = [EventType::Thought, EventType::EndPhase];
         assert!(matches!(bot.try_decide(&game, &allowed, |b, g| b.invalid_thought(g)), Some(Decision::Invalid(_))));
-        assert!(matches!(bot.invalid_then_valid(&game, &allowed), Some(Event::EndPhase(_))));
+        assert!(matches!(bot.invalid_then_valid(&game, &allowed).map(|e| e.event), Some(Event::EndPhase(_))));
     }
 }

@@ -81,9 +81,15 @@ fn a_deal_message_keeps_the_traitors_discarded_so_far() {
     let (first, second) = (leaders.next().unwrap(), leaders.next().unwrap());
     g.player_mut(harkonnen).discarded_traitors.insert(first);
 
-    let mut offer = DealOffered::new(&g, Faction::Harkonnen);
-    offer.type_ = DealType::TellDiscardedTraitors;
-    DealAccepted::new(&g, Faction::Atreides).handle_accepted_bot_deal(&mut g, &Rc::new(offer));
+    let offer = DealOffer {
+        initiator: Some(Faction::Harkonnen),
+        player: Some(harkonnen),
+        to: Some(vec![]),
+        type_: DealType::TellDiscardedTraitors,
+        ..Default::default()
+    };
+    let by = By::new(&g, Faction::Atreides);
+    DealAccepted::default().handle_accepted_bot_deal(&mut g, by, &offer);
     // The list is in the message to Atreides, before the public "gave the agreed information".
     let reports = g.current_report().messages.clone();
     let to_atreides = reports.iter().rev().find(|m| m.to == Audience::Faction(Faction::Atreides)).unwrap();

@@ -15,7 +15,7 @@ impl EventRules for AlliancePassed {
 
         let initiator = by.faction;
         loop {
-            let withdrawn_offer = game.alliances.current_alliance_offers.iter().position(|x| x.initiator() == initiator || x.target == initiator);
+            let withdrawn_offer = game.alliances.current_alliance_offers.iter().position(|x| x.initiator == initiator || x.target == initiator);
             let Some(i) = withdrawn_offer else { break };
             // List.Remove(withdrawnOffer): the first occurrence of that object, which is at i.
             game.alliances.current_alliance_offers.remove(i);

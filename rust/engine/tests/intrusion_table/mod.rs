@@ -302,3 +302,18 @@ pub fn terror_passed() -> String {
 pub fn ambassador_passed() -> String {
     format!(r#"{{"$type":"AmbassadorActivated","Passed":true,"Initiator":{ECAZ}}}"#)
 }
+
+pub fn take_losses(f: i32, forces: i32) -> String {
+    format!(r#"{{"$type":"TakeLosses","ForceAmount":{forces},"SpecialForceAmount":0,"UseUselessCard":false,"Initiator":{f}}}"#)
+}
+
+pub fn ally(g: &mut Game, a: Faction, b: Faction) {
+    let (pa, pb) = (idx(g, a), idx(g, b));
+    g.player_mut(pa).ally = b;
+    g.player_mut(pb).ally = a;
+}
+
+/// The texts logged in the current report.
+pub fn log(g: &Game) -> Vec<String> {
+    g.current_report().messages.iter().map(|m| m.to_cs_string()).collect()
+}

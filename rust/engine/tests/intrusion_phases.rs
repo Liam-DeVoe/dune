@@ -251,7 +251,3 @@ fn after_ride_b(g: &mut Game) {
 intrusion!(bene_gesserit_by_worm_ride_b, WormRideB, BeneGesserit, BeneGesseritIntrudedByFremenRidingMonsterB, BlowReport, |g| after_ride_b(&mut g));
 intrusion!(terror_by_worm_ride_b, WormRideB, Terror, TerrorTriggeredByFremenRidingMonsterB, BlowReport, |g| after_ride_b(&mut g));
 intrusion!(ambassador_by_worm_ride_b, WormRideB, Ambassador, AmbassadorTriggeredByFremenRidingMonsterB, BlowReport, |g| after_ride_b(&mut g));
-
-fn log(g: &Game) -> Vec<String> {
-    g.current_report().messages.iter().map(|m| m.to_cs_string()).collect()
-}

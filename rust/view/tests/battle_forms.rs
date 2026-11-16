@@ -436,7 +436,7 @@ fn hms_battle_state() -> ViewReplica {
     g.board.stronghold_ownership.insert(hms.location(), fa.expect("faction"));
     g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa.expect("faction"));
     let battle = BattleInitiated { target: fb, territory: Some(hms.location().territory()) };
-    g.battle.current_battle = Some(battle.battle(By::new(g, fa), 0));
+    g.battle.current_battle = Some(battle.battle(By::new(g, fa), EntryId::default()));
     g.turn.current_phase = Phase::BattlePhase;
     g.battle.chosen_hms_advantage = Some(None);
     r

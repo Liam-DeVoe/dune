@@ -14,8 +14,8 @@ impl Default for BattleInitiated {
 }
 
 impl BattleInitiated {
-    /// The battle this event starts, when `by` submits it as event number `id`.
-    pub fn battle(&self, by: By, id: usize) -> InitiatedBattle {
+    /// The battle this event starts, when `by` submits it as the history entry `id`.
+    pub fn battle(&self, by: By, id: EntryId) -> InitiatedBattle {
         InitiatedBattle { submitter: by, territory: self.territory, target: self.target, id }
     }
 
@@ -217,7 +217,7 @@ impl EventRules for BattleInitiated {
             return Err(Rejection(express!("Invalid battle selected")));
         }
 
-        let opponent = game.get_player(self.battle(by, 0).defender(game));
+        let opponent = game.get_player(self.battle(by, EntryId::default()).defender(game));
         let Some(opponent) = opponent else {
             return Err(Rejection(express!("Opponent not selected")));
         };
@@ -229,7 +229,7 @@ impl EventRules for BattleInitiated {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        let battle = self.battle(by, game.history.entries.len());
+        let battle = self.battle(by, game.history.playing);
         // Not logged: the report panel shows who attacks whom where in the battle's heading.
         // Aggressor, Defender and Territory only read state that StartReport doesn't touch.
         let aggressor = battle.aggressor(game);

@@ -518,3 +518,13 @@ behavior-changes.md, "Turns, sectors and amounts out of range", lists the refusa
 **What catches the class now.**
 - Forces in a battalion, in the tanks, and spice on the board can't go below zero: `game::amounts::change` fails the event instead, so the harness shows any such change as a difference from the reference.
 - `engine/tests/numbers.rs`: `forces_below_zero_are_a_game_error_and_change_nothing`, `spice_on_the_board_below_zero_is_a_game_error`, `reinforcements_come_from_every_homeworld`, `a_caravan_cant_be_passed`, `negative_force_amounts_are_refused`, `a_force_list_out_of_range_doesnt_decode`, `spice_bid_in_a_silent_auction_cant_be_given_away`. `engine/tests/pkg_b_players.rs`: `forces_to_reserves_territory_takes_what_each_location_holds`.
+
+## A battle initiated again after an undo kept its identity (2026-11)
+
+**Bug.** Rewrite-plan change 3a (the battle folder) replaced the `Rc<BattleInitiated>` in game state with an `InitiatedBattle` state struct. C# had compared battles by reference, so the struct got an `id` to tell battles apart: the place of its `BattleInitiated` in the history. An undo frees that place, and the next event takes it. In fuzz seed 1 game 41, the Guild bot used Voice in a battle against the Fremen. The host then undid the battle, and the Fremen initiated it again at the same place. The new battle had the same id, so the bot (which outlives undo, as on the server) planned with its Voice from the undone battle. The reference had treated the new `BattleInitiated` as a different object, so its bot ignored that Voice. The two builds chose different battle plans (trace line 25091). Now `InitiatedBattle.id` is the `EntryId` of the history entry that started the battle. Clones keep it, so an undo keeps it for the entries it replays, while an event submitted after the undo gets a new one.
+
+**Why the tests missed it.** Undo appears in only a few harness games, and the bot must have used Voice or Clairvoyance in the battle that was undone. The merge check ran 12 bots and 12 fuzz games, and none of them did both. Fuzz games 12 to 51 found it in game 41. The unit tests built `InitiatedBattle` by hand, with no history and no undo.
+
+**What catches the class now.**
+- `bots/tests/battle_after_undo.rs` loads game 41 just after the battle starts. It checks that undoing a later event keeps the battle equal, and that initiating the battle again after undoing it makes a different battle. It also checks that a bot that used Voice in the undone battle plans exactly like a bot without that Voice. Without the fix, both tests fail.
+- engine-conventions.md, "State instead of events", says that state compared by identity across an undo uses `EntryId`, not a place in the history.

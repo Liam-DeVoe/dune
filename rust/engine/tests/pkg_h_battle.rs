@@ -21,7 +21,7 @@ fn plan(g: &Game, f: Faction) -> BattlePlan {
 }
 
 fn battle(g: &Game, initiator: Faction, target: Faction) -> InitiatedBattle {
-    BattleInitiated { target: Some(target), ..Default::default() }.battle(By::new(g, initiator), 0)
+    BattleInitiated { target: Some(target), ..Default::default() }.battle(By::new(g, initiator), EntryId::default())
 }
 
 fn call(g: &Game, f: Faction, traitor_called: bool) -> TraitorCall {

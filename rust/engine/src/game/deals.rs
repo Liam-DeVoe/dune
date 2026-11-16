@@ -75,7 +75,7 @@ impl DealOffer {
     /// with `cancel` set. Anyone may submit it, and bots do for other factions' offers.
     pub fn cancellation(&self, game: &Game) -> HistoryEntry {
         let at = game.history.entries.get(self.id.0).map(|e| e.at).unwrap_or_default();
-        HistoryEntry { by: self.initiator, at, event: Event::from(DealOffered { cancel: true, ..self.event() }) }
+        HistoryEntry { by: self.initiator, at, event: Event::from(DealOffered { cancel: true, ..self.event() }), id: EntryId::fresh() }
     }
 
     /// Accepting the offer.

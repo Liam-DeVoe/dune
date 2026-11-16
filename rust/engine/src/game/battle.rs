@@ -134,9 +134,10 @@ pub struct InitiatedBattle {
     pub submitter: By,
     pub territory: Option<Territory>,
     pub target: Option<Faction>,
-    /// Tells two battles with the same factions and territory apart: the number of the event
-    /// that initiated it. C# compared the events by reference.
-    pub id: usize,
+    /// Tells two battles with the same factions and territory apart: the history entry of the
+    /// `BattleInitiated` that started it. C# compared the events by reference, so a battle
+    /// initiated again after an undo is a different battle, at the same place in the history.
+    pub id: EntryId,
 }
 
 /// A finalized battle plan (`Battle`). Revealing the plans can swap in the cards a Mirror Weapon,

@@ -29,7 +29,7 @@ fn card_of(t: TreacheryCardType, nth: usize) -> TreacheryCard {
 fn battle(g: &Game, initiator: Faction, target: Faction) -> InitiatedBattle {
     // A plain sand territory (not a homeworld).
     let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
-    BattleInitiated { target: Some(target), territory: Some(t) }.battle(By::new(g, initiator), 0)
+    BattleInitiated { target: Some(target), territory: Some(t) }.battle(By::new(g, initiator), EntryId::default())
 }
 
 fn plan(g: &Game, f: Faction, weapon: Option<TreacheryCard>, defense: Option<TreacheryCard>) -> BattlePlan {

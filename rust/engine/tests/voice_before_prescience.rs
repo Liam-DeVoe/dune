@@ -21,7 +21,7 @@ fn idx(g: &Game, f: Faction) -> PlayerId {
 fn start_battle(g: &mut Game, initiator: Faction, target: Faction) {
     let t = g.board.map.territories(false).find(|t| !t.is_homeworld() && !t.is_stronghold()).unwrap();
     let b = BattleInitiated { target: Some(target), territory: Some(t) };
-    g.battle.current_battle = Some(b.battle(By::new(g, initiator), 0));
+    g.battle.current_battle = Some(b.battle(By::new(g, initiator), EntryId::default()));
 }
 
 fn ally(g: &mut Game, a: Faction, b: Faction) {

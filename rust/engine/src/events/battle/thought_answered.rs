@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct ThoughtAnswered {
@@ -17,7 +18,7 @@ impl Default for ThoughtAnswered {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl ThoughtAnswered {

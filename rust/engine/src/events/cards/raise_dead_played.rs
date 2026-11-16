@@ -203,7 +203,7 @@ impl RaiseDeadPlayed {
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         if let Some(hero) = self.hero() {
             if !game.leaders.leader_state.contains_key(&hero) {
-                game_error!("{} is not in this game", ExpressionElement::from(hero).to_cs_string());
+                game_error!("{} is not in this game", dotnet_compat::exception::CsToString::cs_to_string(&hero));
             }
             if !game.is_face_down_dead(hero) {
                 return Ok(express!("Using ", TreacheryCardType::RaiseDead, ", ", self.initiator(), " revive ", hero));

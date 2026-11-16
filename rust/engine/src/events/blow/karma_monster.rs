@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct KarmaMonster {
@@ -53,7 +54,7 @@ impl KarmaMonster {
         // Arguments in C# order: Player, the karma card, then the effect (which reads Territory).
         let me = self.player();
         let card = Karma::valid_karma_cards(game, me).next();
-        let effect = vec![ExpressionElement::from("send "), ExpressionElement::from(Concept::Monster), ExpressionElement::from(" to "), ExpressionElement::from(self.territory(game))];
+        let effect = vec![Part::from("send "), Part::from(Concept::Monster), Part::from(" to "), Part::from(self.territory(game))];
         game.play_karma(me, card, effect);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);

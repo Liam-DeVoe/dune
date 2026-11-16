@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct DealAccepted {
@@ -184,8 +185,7 @@ impl DealAccepted {
     pub fn handle_accepted_bot_deal(&self, game: &mut Game, offer: &Rc<DealOffered>) {
         if offer.type_ == DealType::TellDiscardedTraitors {
             // A copy of the traitors discarded so far: later discards don't change this message.
-            let discarded = ExpressionElement::collection(
-                "System.Collections.Generic.HashSet`1[Treachery.Shared.IHero]",
+            let discarded = Part::list(
                 game.player(offer.player()).discarded_traitors.iter().copied(),
             );
             self.log_to(

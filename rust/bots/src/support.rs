@@ -1,7 +1,7 @@
 //! Helpers that only the bots need.
 //!
 //! The casts the bots apply to `ClairVoyancePlayed.Parameter1`/`Parameter2`, which hold any
-//! value (an `ExpressionElement`). They follow the .NET unboxing rules and throw the .NET
+//! value (a `Part`). They follow the .NET unboxing rules and throw the .NET
 //! exceptions and messages (probed on .NET 10):
 //!
 //! - an unboxing cast (`(TreacheryCardType)o`, `(Faction)o`, `(int)o`, `(float)o`) throws
@@ -16,35 +16,37 @@
 //!   "Unable to cast object of type 'X' to type 'Y'.".
 
 use crate::prelude::*;
+use treachery_engine::messages::part::Part;
 use treachery_engine::enum_type::GameEnum;
 
 /// The runtime type name of a boxed value (`o.GetType().FullName`).
-pub fn boxed_type_name(o: &ExpressionElement) -> String {
+pub fn boxed_type_name(o: &Part) -> String {
     match o {
-        ExpressionElement::Null => "null".to_string(),
-        ExpressionElement::String(_) => "System.String".to_string(),
-        ExpressionElement::Bool(_) => "System.Boolean".to_string(),
-        ExpressionElement::Int(_) => "System.Int32".to_string(),
-        ExpressionElement::Long(_) => "System.Int64".to_string(),
-        ExpressionElement::Float(_) => "System.Single".to_string(),
-        ExpressionElement::Double(_) => "System.Double".to_string(),
-        ExpressionElement::Enum(v) => format!("Treachery.Shared.{}", v.ty.name),
-        ExpressionElement::Location(_) => "Treachery.Shared.Location".to_string(),
-        ExpressionElement::Territory(_) => "Treachery.Shared.Territory".to_string(),
-        ExpressionElement::Hero(Hero::Leader(_)) => "Treachery.Shared.Leader".to_string(),
-        ExpressionElement::Hero(Hero::Messiah) => "Treachery.Shared.Messiah".to_string(),
-        ExpressionElement::Hero(Hero::TreacheryCard(_)) => "Treachery.Shared.TreacheryCard".to_string(),
-        ExpressionElement::ResourceCard(_) => "Treachery.Shared.ResourceCard".to_string(),
-        ExpressionElement::Payment(_) => "Treachery.Shared.Payment".to_string(),
-        ExpressionElement::Message(_) => "Treachery.Shared.Message".to_string(),
-        ExpressionElement::MessagePart(_) => "Treachery.Shared.MessagePart".to_string(),
-        ExpressionElement::Error(_) => "Treachery.Shared.GameError".to_string(),
-        ExpressionElement::Player(_) => "Treachery.Shared.Player".to_string(),
-        ExpressionElement::List { type_name, .. } => type_name.clone(),
+        Part::Null => "null".to_string(),
+        Part::Text(_) => "System.String".to_string(),
+        Part::Bool(_) => "System.Boolean".to_string(),
+        Part::Number(_) => "System.Int32".to_string(),
+        Part::Float(_) => "System.Single".to_string(),
+        Part::Double(_) => "System.Double".to_string(),
+        Part::Location(_) => "Treachery.Shared.Location".to_string(),
+        Part::Territory(_) => "Treachery.Shared.Territory".to_string(),
+        Part::Leader(_) => "Treachery.Shared.Leader".to_string(),
+        Part::Messiah => "Treachery.Shared.Messiah".to_string(),
+        Part::Card(_) => "Treachery.Shared.TreacheryCard".to_string(),
+        Part::SpiceCard(_) => "Treachery.Shared.ResourceCard".to_string(),
+        Part::Payment { .. } => "Treachery.Shared.Payment".to_string(),
+        Part::Message(_) => "Treachery.Shared.Message".to_string(),
+        Part::Phrase(_) => "Treachery.Shared.MessagePart".to_string(),
+        Part::Error(_) => "Treachery.Shared.GameError".to_string(),
+        Part::List(_) => "System.Collections.Generic.List`1[System.Object]".to_string(),
+        other => match other.enum_value() {
+            Some((info, _)) => format!("Treachery.Shared.{}", info.name),
+            None => unreachable!("every part that isn't an enum is named above"),
+        },
     }
 }
 
-fn invalid_cast(o: &ExpressionElement, to: &str) -> ! {
+fn invalid_cast(o: &Part, to: &str) -> ! {
     panic!("Unable to cast object of type '{}' to type '{}'.", boxed_type_name(o), to)
 }
 
@@ -53,39 +55,39 @@ fn null_reference() -> ! {
 }
 
 /// `(E)o` for an enum type `E`: `None` for the absent value of a closed enum, or a number that names no member.
-pub fn unbox_enum<E: GameEnum>(o: &ExpressionElement) -> Option<E> {
+pub fn unbox_enum<E: GameEnum>(o: &Part) -> Option<E> {
     match o {
-        ExpressionElement::Null => null_reference(),
-        ExpressionElement::Enum(v) => E::from_value(v.value),
-        ExpressionElement::Int(i) => E::from_value(*i),
+        Part::Null => null_reference(),
+        other if other.enum_value().is_some() => E::from_value(other.enum_value().expect("an enum").1),
+        Part::Number(i) => E::from_value(*i),
         other => invalid_cast(other, &format!("Treachery.Shared.{}", E::INFO.name)),
     }
 }
 
 /// `(int)o`
-pub fn unbox_int(o: &ExpressionElement) -> i32 {
+pub fn unbox_int(o: &Part) -> i32 {
     match o {
-        ExpressionElement::Null => null_reference(),
-        ExpressionElement::Enum(v) => v.value,
-        ExpressionElement::Int(i) => *i,
+        Part::Null => null_reference(),
+        other if other.enum_value().is_some() => other.enum_value().expect("an enum").1,
+        Part::Number(i) => *i,
         other => invalid_cast(other, "System.Int32"),
     }
 }
 
 /// `(float)o`
-pub fn unbox_float(o: &ExpressionElement) -> f32 {
+pub fn unbox_float(o: &Part) -> f32 {
     match o {
-        ExpressionElement::Null => null_reference(),
-        ExpressionElement::Float(f) => *f,
+        Part::Null => null_reference(),
+        Part::Float(f) => *f,
         other => invalid_cast(other, "System.Single"),
     }
 }
 
 /// `(IHero)o`: a reference cast, so null stays null.
-pub fn cast_hero(o: &ExpressionElement) -> Option<Hero> {
+pub fn cast_hero(o: &Part) -> Option<Hero> {
     match o {
-        ExpressionElement::Null => None,
-        ExpressionElement::Hero(h) => Some(*h),
+        Part::Null => None,
+        Part::Leader(_) | Part::Messiah | Part::Card(_) => o.hero(),
         other => invalid_cast(other, "Treachery.Shared.IHero"),
     }
 }

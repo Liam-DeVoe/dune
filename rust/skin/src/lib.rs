@@ -9,7 +9,7 @@
 //! use treachery_engine::{express, enumerations::{Concept, Faction}};
 //! let skin = treachery_skin::default_skin();
 //! let m = express!(Faction::Atreides, " pays ", 3, " ", Concept::Resource);
-//! assert_eq!(skin.message_to_string(&m), "Atreides pays 3 Spice");
+//! assert_eq!(skin.render(&m), "Atreides pays 3 Spice");
 //! ```
 
 pub mod default_skin;

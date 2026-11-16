@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct AuditCancelled {
@@ -17,7 +18,7 @@ impl Default for AuditCancelled {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl AuditCancelled {
@@ -88,7 +89,7 @@ impl AuditCancelled {
             game.enter(Phase::Auditing, true);
             // A copy: the next audit clears and refills `audited_cards`, and this message
             // should keep showing the cards of this audit.
-            let audited = ExpressionElement::list(game.battle.audited_cards.iter().copied());
+            let audited = Part::list(game.battle.audited_cards.iter().copied());
             game.log_to(self.initiator().required("faction")?, elems![Faction::Choam, " see: ", audited]);
         } else {
             let winner_is_none = game.battle.battle_winner == Some(None);

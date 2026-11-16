@@ -6,30 +6,31 @@
 
 | Rust | C# |
 |---|---|
-| `src/skin.rs` | `Skin.cs`, regions Attributes, Descriptions and NamesAndImages, plus the rendering half of `Message`/`MessagePart` (`ToString(IDescriber)`) |
+| `src/skin.rs` | `Skin.cs`, regions Attributes, Descriptions and NamesAndImages, and the renderer of messages (`Skin::render`) |
 | `src/faction_manual.rs` | `Skin.cs`, region FactionManual (`GetFactionInfo_HTML`, `GetFactionSheet`, the twelve templates) |
 | `src/skin_json.rs` | `Skin.cs`, region LoadingAndSaving (`Load`, `Fix`, `SkinToString`) |
 | `src/default_skin.rs` | `DefaultSkin.cs`. Generated from the C# skin once and edited by hand since; `tests/skin_json.rs` checks its JSON form against `tests/golden/default_skin.json` |
 | `src/text.rs` | `WebUtility.HtmlEncode` and the regular expression of `WithSpiceIcons` |
-| `dotnet-compat/src/fmt.rs` `string_format` | `string.Format` (composite formatting, .NET 10 parser) |
 
 `treachery_skin::default_skin()` is `DefaultSkin.Default`, built once per process.
 
 ## Using it
 
 ```rust
-use treachery_skin::{args, default_skin};
+use treachery_engine::parts;
+use treachery_skin::default_skin;
 let skin = default_skin();
-skin.message_to_string(&message);                        // message.ToString(DefaultSkin.Default)
-skin.message_to_string_with_default_describer(&message); // message.ToString() on the C# server: "...*"
-skin.describe(&ExpressionElement::from(Faction::Atreides)); // Describe(object)
-skin.describe_faction(Faction::Atreides);                   // Describe(Faction)
-skin.format("{0} pays {1}", &args![Faction::Emperor, 3]);    // Format(m, params object[])
+skin.render(&message);                                      // a message's text
+skin.describe(&Part::from(Faction::Atreides));              // one part
+skin.describe_faction(Faction::Atreides);                   // one value of a known type
+skin.render_parts(&parts![Faction::Emperor, " pays ", 3]);  // any text, in the syntax of express!
 ```
+
+The skin's own texts that name game values are built the same way, with `parts!`, so a custom skin's label is always printed as it is, braces included. The faction sheets are the exception: they are HTML templates with `{N}` placeholders for the sheet parameters (`Skin::fill_sheet`). An advantage title that comes from a skin label goes into the template with its braces escaped.
 
 Functions that render one type of value are named after it: `describe_rule`, `get_popup_terror_type`. Where two take the same type, the name says what the other parameter adds (`get_popup_hero_in_game`, `get_popup_stronghold_advantage_for`). Optional C# parameters are explicit (`with_spice_icons(text, 18, true)`).
 
-**Exceptions.** `Describe` panics where C# throws (a resource card without a location, a skin missing a label that an indexer reads). Neither happens with the default skin in a valid game, so `Format` doesn't catch these panics. It still returns the template unchanged when `string.Format` fails. `Skin::load` returns an error instead of panicking.
+**Exceptions.** `describe` panics where C# throws (a resource card without a location, a skin missing a label that an indexer reads). Neither happens with the default skin in a valid game. `Skin::load` returns an error instead of panicking.
 
 ## Known differences
 
@@ -44,7 +45,7 @@ The tests compare the rendered texts with snapshots in `tests/golden/`. They wer
 
 | Test | Snapshot | What |
 |---|---|---|
-| `tests/static_corpus.rs` | `static.jsonl.gz` | Every describe, format, image URL and popup function on every value of every enum (plus -1 and 12345), every location, territory, leader, the Messiah, every treachery and resource card, numbers and other values, the center of attached locations, `with_spice_icons` edge cases, and 4,000 random `string_format` templates |
+| `tests/static_corpus.rs` | `static.jsonl.gz` | Every describe, image URL and popup function on every value of every enum (plus -1 and 12345 for the enums that are still open), every location, territory, leader, the Messiah, every treachery and resource card, numbers and other values, the center of attached locations, and `with_spice_icons` edge cases |
 | `tests/trace_corpus.rs` | `traces/*.skin.jsonl.gz` | Replays the games in `rust/testdata/games` and renders every validation result, the message and short message of every event, every report message, the `GameStatus` texts of status queries, and at the end every faction sheet and leader popup |
 | `tests/skin_json.rs` | `default_skin.json`, `load.jsonl.gz` | The default skin's JSON form, and `Skin::load` with fixes on edited skins |
 

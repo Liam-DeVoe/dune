@@ -1,5 +1,5 @@
-use crate::messages::message::LogRecord;
 use crate::prelude::*;
+use crate::messages::part::Part;
 use crate::game::TriggeredBureaucracy;
 
 /// State of the bidding phase: the auction, the bids, Black Market and Richese auctions, and Karama
@@ -226,7 +226,7 @@ impl Game {
     pub fn log_bid(&mut self, initiator: PlayerIndex, bid_amount: i32, bid_ally_contribution_amount: i32, bid_emperor_contribution_amount: i32, receiver_income: &MessagePart, paid_to: Option<Faction>, free: bool) {
         let bid_total_amount = bid_amount + bid_ally_contribution_amount + bid_emperor_contribution_amount;
         // A Black Market card has no number.
-        let card_number: Vec<ExpressionElement> = if self.bidding.current_auction_type == Some(AuctionType::Normal) {
+        let card_number: Vec<Part> = if self.bidding.current_auction_type == Some(AuctionType::Normal) {
             vec![" get card ".into(), express_part!(self.bidding.card_number).into(), " for ".into()]
         } else {
             vec![" get card for ".into()]
@@ -243,41 +243,41 @@ impl Game {
             shares.push(BidShare::new(Faction::Emperor, bid_emperor_contribution_amount));
         }
 
-        let record: Option<Rc<dyn LogRecord>> = if free {
+        let record: Option<LogRecord> = if free {
             None
         } else {
-            Some(Rc::new(CardSold::new(self.bidding.card_number, initiator_faction.expect("faction"), bid_total_amount, paid_to, shares, None)))
+            Some(CardSold::new(self.bidding.card_number, initiator_faction.expect("faction"), bid_total_amount, paid_to, shares, None).into())
         };
 
-        let mut expression = vec![ExpressionElement::from(initiator_faction)];
+        let mut expression = vec![Part::from(initiator_faction)];
         expression.extend(card_number);
         expression.extend([
-            ExpressionElement::from(Payment::of(bid_total_amount)),
-            ExpressionElement::from(express_part_if!(
+            Part::from(Payment::of(bid_total_amount)),
+            Part::from(express_part_if!(
                 bid_ally_contribution_amount > 0 || bid_emperor_contribution_amount > 0;
                 " (",
                 Payment::of_by(bid_ally_contribution_amount, initiator_ally),
                 express_part_if!(bid_emperor_contribution_amount > 0; " and ", Payment::of_by(bid_emperor_contribution_amount, Some(Faction::Emperor))),
                 ")"
             )),
-            ExpressionElement::from(receiver_income.clone()),
+            Part::from(receiver_income.clone()),
         ]);
 
         self.log_bidding(record, expression);
     }
 
-    pub fn log_bidding(&mut self, record: Option<Rc<dyn LogRecord>>, expression: Vec<ExpressionElement>) {
+    pub fn log_bidding(&mut self, record: Option<LogRecord>, expression: Vec<Part>) {
         let mut message = Message::express(expression);
-        if record.is_some() && self.bidding.current_auction_type == Some(AuctionType::Normal) {
-            message.log = record;
+        if let Some(record) = record.filter(|_| self.bidding.current_auction_type == Some(AuctionType::Normal)) {
+            message = message.with_log(record);
         }
         self.current_report_mut().express_message(message);
     }
 
-    pub fn log_bidding_to(&mut self, faction: Faction, record: Rc<dyn LogRecord>, expression: Vec<ExpressionElement>) {
+    pub fn log_bidding_to(&mut self, faction: Faction, record: impl Into<LogRecord>, expression: Vec<Part>) {
         let mut message = Message::express_to(Some(faction), expression);
         if self.bidding.current_auction_type == Some(AuctionType::Normal) {
-            message.log = Some(record);
+            message = message.with_log(record);
         }
         self.current_report_mut().express_message(message);
     }
@@ -299,7 +299,7 @@ impl Game {
         self.register_won_card_as_known(card);
         self.player_mut(winner).treachery_cards.push(card);
         let winner_faction = self.player(winner).faction;
-        self.log_bidding_to(winner_faction.required("faction")?, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
+        self.log_bidding_to(winner_faction.required("faction")?, CardWonShown::new(card), vec!["You won: ".into(), card.into()]);
         self.give_player_extra_card_if_applicable(winner);
         Ok(card)
     }
@@ -461,8 +461,8 @@ impl Game {
                 if let Some(extra_card) = extra_card {
                     self.player_mut(receiver).treachery_cards.push(extra_card);
                     let receiver_faction = self.player(receiver).faction;
-                    self.log_bidding(Some(Rc::new(ExtraCardReceived::new(receiver_faction.expect("faction")))), vec![receiver_faction.into(), " receive an extra treachery card".into()]);
-                    self.log_bidding_to(receiver_faction.expect("faction"), Rc::new(ExtraCardShown::new(extra_card)), vec!["Your extra card is: ".into(), extra_card.into()]);
+                    self.log_bidding(Some(ExtraCardReceived::new(receiver_faction.expect("faction")).into()), vec![receiver_faction.into(), " receive an extra treachery card".into()]);
+                    self.log_bidding_to(receiver_faction.expect("faction"), ExtraCardShown::new(extra_card), vec!["Your extra card is: ".into(), extra_card.into()]);
 
                     if extra_card_must_be_decided_about {
                         self.bidding.card_that_must_be_kept_or_given_to_ally = Some(extra_card);

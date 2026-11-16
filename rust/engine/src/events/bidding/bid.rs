@@ -289,13 +289,13 @@ impl Bid {
         if karma_card.type_() == TreacheryCardType::Karma {
             let card_number = game.bidding.card_number;
             game.log_bidding(
-                Some(Rc::new(sold)),
+                Some(sold.into()),
                 vec![bid.initiator().into(), " get card ".into(), card_number.into(), " using ".into(), TreacheryCardType::Karma.into()],
             );
         } else {
             let card_number = game.bidding.card_number;
             game.log_bidding(
-                Some(Rc::new(sold)),
+                Some(sold.into()),
                 vec![
                     bid.initiator().into(),
                     " get card ".into(),
@@ -315,14 +315,14 @@ impl Bid {
         game.player_mut(winner).treachery_cards.push(card);
         game.register_won_card_as_known(card);
         let winner_faction = game.player(winner).faction;
-        game.log_bidding_to(winner_faction.required("faction")?, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
+        game.log_bidding_to(winner_faction.required("faction")?, CardWonShown::new(card), vec!["You won: ".into(), card.into()]);
         game.give_player_extra_card_if_applicable(winner);
         Ok(card)
     }
 
     pub fn everyone_passed_bid(&self, game: &mut Game) {
         let card_number = game.bidding.card_number;
-        game.log_bidding(Some(Rc::new(BiddingPassedByAll::new(card_number))), vec!["Bidding ends because everyone passed".into()]);
+        game.log_bidding(Some(BiddingPassedByAll::new(card_number).into()), vec!["Bidding ends because everyone passed".into()]);
         game.stone(Milestone::AuctionWon);
 
         if game.bidding.cards_on_auction.is_none() {
@@ -370,7 +370,7 @@ impl Bid {
         game.register_won_card_as_known(card);
         game.player_mut(winner).treachery_cards.push(card);
         let winner_faction = game.player(winner).faction;
-        game.log_bidding_to(winner_faction.required("faction")?, Rc::new(CardWonShown::new(card)), vec!["You won: ".into(), card.into()]);
+        game.log_bidding_to(winner_faction.required("faction")?, CardWonShown::new(card), vec!["You won: ".into(), card.into()]);
         game.give_player_extra_card_if_applicable(winner);
         Ok(card)
     }

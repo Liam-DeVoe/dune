@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// The game log: one report per phase, plus the report of messages logged before the game started.
 pub struct Log {
@@ -55,11 +56,11 @@ impl Game {
         &mut self.log.report_list[last]
     }
 
-    pub fn log(&mut self, expression: Vec<ExpressionElement>) {
+    pub fn log(&mut self, expression: Vec<Part>) {
         // A message logged on its own keeps what it carries, such as a route.
         if expression.len() == 1 {
-            if let ExpressionElement::Message(_) = &expression[0] {
-                let Some(ExpressionElement::Message(message)) = expression.into_iter().next() else { unreachable!() };
+            if let Part::Message(_) = &expression[0] {
+                let Some(Part::Message(message)) = expression.into_iter().next() else { unreachable!() };
                 self.current_report_mut().express_message(*message);
                 return;
             }
@@ -67,13 +68,13 @@ impl Game {
         self.current_report_mut().express(expression);
     }
 
-    pub fn log_if(&mut self, condition: bool, expression: Vec<ExpressionElement>) {
+    pub fn log_if(&mut self, condition: bool, expression: Vec<Part>) {
         if condition {
             self.current_report_mut().express(expression);
         }
     }
 
-    pub fn log_to(&mut self, faction: Faction, expression: Vec<ExpressionElement>) {
+    pub fn log_to(&mut self, faction: Faction, expression: Vec<Part>) {
         self.current_report_mut().express_to(faction, expression);
     }
 }

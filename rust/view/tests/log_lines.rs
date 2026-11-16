@@ -71,7 +71,7 @@ fn snapshot(source: (&str, &str), report: usize, line: usize, m: &Message, d: &I
     out.insert(source.0.into(), json!(source.1));
     out.insert("report".into(), json!(report));
     out.insert("line".into(), json!(line));
-    out.insert("target".into(), json!(treachery_engine::enum_type::name_or_absent(m.target)));
+    out.insert("target".into(), json!(treachery_engine::enum_type::name_or_absent(m.to.faction())));
     for key in RENDERED {
         out.insert(key.into(), rendered[key].clone());
     }

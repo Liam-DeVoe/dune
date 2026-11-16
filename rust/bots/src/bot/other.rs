@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use treachery_engine::messages::part::Part;
 use treachery_engine::random::IndexedRandom;
 use crate::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
 use std::cmp::Reverse;
@@ -642,7 +643,7 @@ impl ClassicBot {
                 let mut e = ClairVoyancePlayed::new(game, self.faction(game));
                 e.target = game.player(p).faction;
                 e.question = Some(ClairvoyanceQuestion::LeaderAsTraitor);
-                e.set_parameter1(ExpressionElement::Int(leader.id()));
+                e.set_parameter1(Part::Number(leader.id()));
                 return Some(Rc::new(e));
             }
         }

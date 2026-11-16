@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct Voice {
@@ -19,7 +20,7 @@ impl Default for Voice {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Voice {

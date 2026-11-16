@@ -235,7 +235,7 @@ impl BattleConcluded {
                         tokens.remove(pos);
                     }
                     game.player_mut(self.player()).tech_tokens.push(stolen_token);
-                    let battle_loser = game.battle.battle_loser.flatten();
+                    let battle_loser = game.battle.battle_loser;
                     self.log_objects(game, vec![self.initiator().into(), " steal ".into(), stolen_token.into(), " from ".into(), battle_loser.into()]);
                 }
             }

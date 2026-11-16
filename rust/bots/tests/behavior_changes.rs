@@ -56,7 +56,7 @@ fn fingerprint(game: &Game) -> String {
     for (i, report) in std::iter::once(&game.log.pre_game_report).chain(game.log.report_list.iter()).enumerate() {
         lines.push(format!("report {i}: {} messages", report.messages.len()));
         for m in &report.messages {
-            lines.push(format!("  {} {} {:?}", name_or_absent(m.target), m.to_cs_string(), m.expression));
+            lines.push(format!("  {:?} {:?}", m.to, m.parts));
         }
     }
     for p in &game.players {

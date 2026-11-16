@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct FaceDancerRevealed {
@@ -18,7 +19,7 @@ impl Default for FaceDancerRevealed {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl FaceDancerRevealed {

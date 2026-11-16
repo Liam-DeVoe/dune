@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 // The enum `ShipKind` is in enumerations.rs.
 
@@ -63,12 +64,12 @@ impl MovePassed {
 #[derive(Clone, Debug, PartialEq)]
 pub struct BeneGesseritReaction {
     pub kind: BeneGesseritReactionKind,
-    pub place: ExpressionElement,
+    pub place: Part,
     pub advisors: bool,
 }
 
 impl BeneGesseritReaction {
-    pub fn new(kind: BeneGesseritReactionKind, place: ExpressionElement, advisors: bool) -> Self {
+    pub fn new(kind: BeneGesseritReactionKind, place: Part, advisors: bool) -> Self {
         BeneGesseritReaction { kind, place, advisors }
     }
 

@@ -9,9 +9,8 @@ use std::path::Path;
 use serde_json::Value;
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
-use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
+use treachery_engine::messages::part::{Part, PartEnum};
 use treachery_engine::identity::Fetcher;
-use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;
 use treachery_engine::messages::message::BattleFactKind;
@@ -67,17 +66,26 @@ fn is_dotnet_exception(message: &str) -> bool {
     message.split_once(": ").is_some_and(|(t, _)| t.ends_with("Exception") && t.chars().all(|c| c.is_ascii_alphabetic()))
 }
 
+/// The part of an enum value, or `None` for a number that names no member of a closed enum.
+fn enum_part<T: PartEnum>(v: i32) -> Option<Part> {
+    if v == 0 && T::INFO.absent {
+        return Some(T::part(None));
+    }
+    T::from_value(v).map(|x| T::part(Some(x)))
+}
+
 macro_rules! enum_by_name {
     ($name:expr, $v:expr; $($t:ident),* $(,)?) => {
         match $name {
-            $(stringify!($t) => Some(EnumValue { ty: &$t::INFO, value: $v }),)*
-            _ => None,
+            $(stringify!($t) => enum_part::<$t>($v),)*
+            other => panic!("unknown token type {other}"),
         }
     };
 }
 
-/// An enum value from its type name and number.
-pub fn enum_value(type_name: &str, v: i32) -> Option<EnumValue> {
+/// An enum value from its type name and number, or `None` for a number that names no member of
+/// a closed enum.
+pub fn enum_value(type_name: &str, v: i32) -> Option<Part> {
     enum_by_name!(type_name, v;
         Ambassador, AsideKind, AuctionType, AutomationRuleType, BattleFactKind, BeneGesseritReactionKind, ChoamEconomicsStatus,
         CaptureDecision, ClairVoyanceAnswer, ClairvoyanceQuestion, Concept, DealType, DiscoveryToken, DiscoveryTokenType,
@@ -88,45 +96,53 @@ pub fn enum_value(type_name: &str, v: i32) -> Option<EnumValue> {
     )
 }
 
-/// An argument token (`["Faction", 20]`, `["Location", 5]`, `["string", "x"]`, ...) as
-/// the element it stands for.
-pub fn element(tok: &Value) -> ExpressionElement {
+/// An argument token (`["Faction", 20]`, `["Location", 5]`, `["string", "x"]`, ...) as the part
+/// it stands for, or `None` for an enum number that names no member of a closed enum.
+pub fn try_element(tok: &Value) -> Option<Part> {
     let a = tok.as_array().expect("token is an array");
     let kind = a[0].as_str().unwrap();
     let int = || a[1].as_i64().unwrap();
-    match kind {
-        "null" => ExpressionElement::Null,
-        "string" => ExpressionElement::String(a[1].as_str().unwrap().to_string()),
-        "bool" => ExpressionElement::Bool(a[1].as_bool().unwrap()),
-        "int" => ExpressionElement::Int(int() as i32),
-        "long" => ExpressionElement::Long(int()),
-        "float" => ExpressionElement::Float(f32::from_bits(int() as i32 as u32)),
-        "double" => ExpressionElement::Double(f64::from_bits(int() as u64)),
+    Some(match kind {
+        "null" => Part::Null,
+        "string" => Part::from(a[1].as_str().unwrap().to_string()),
+        "bool" => Part::Bool(a[1].as_bool().unwrap()),
+        "int" => Part::Number(int() as i32),
+        // A `long` is text.
+        "long" => Part::from(int().to_string()),
+        "float" => Part::Float(f32::from_bits(int() as i32 as u32)),
+        "double" => Part::Double(f64::from_bits(int() as u64)),
         "Territory" => Territory::from_id(int() as i32).expect("territory").into(),
         "Location" => Location::from_id(int() as i32).expect("location").into(),
         "Leader" => LeaderManager::hero_lookup().find(int() as i32).expect("leader").into(),
-        "Messiah" => Hero::Messiah.into(),
+        "Messiah" => Part::Messiah,
         "TreacheryCard" => TreacheryCardManager::lookup().find(int() as i32).expect("card").into(),
         "ResourceCard" => ResourceCard::get_resource_cards_in_and_outside_play()[int() as usize].into(),
         "Payment" => Payment::new(int() as i32).into(),
-        t => ExpressionElement::Enum(enum_value(t, int() as i32).unwrap_or_else(|| panic!("unknown token type {t}"))),
-    }
+        t => return enum_value(t, int() as i32),
+    })
+}
+
+/// Whether a token is an enum number that names no member of a closed enum.
+pub fn names_no_member(tok: &Value) -> bool {
+    const OBJECTS: [&str; 14] =
+        ["null", "string", "bool", "int", "long", "float", "double", "Territory", "Location", "Leader", "Messiah", "TreacheryCard", "ResourceCard", "Payment"];
+    let kind = tok[0].as_str().expect("token type");
+    !OBJECTS.contains(&kind) && enum_value(kind, tok[1].as_i64().expect("enum number") as i32).is_none()
+}
+
+/// [`try_element`] for a token that names a value.
+pub fn element(tok: &Value) -> Part {
+    try_element(tok).unwrap_or_else(|| panic!("{tok} names no value"))
 }
 
 /// The enum value of a token, as an optional `T`: `None` for the C# `None` member of a closed enum.
-pub fn enum_arg_opt<T: treachery_engine::enum_type::GameEnum>(tok: &Value) -> Option<T> {
-    match element(tok) {
-        ExpressionElement::Enum(e) => e.get_opt::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name)),
-        _ => panic!("{tok} is not an enum"),
-    }
+pub fn enum_arg_opt<T: PartEnum>(tok: &Value) -> Option<T> {
+    element(tok).get_opt::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name))
 }
 
 /// The enum value of a token, as `T`.
-pub fn enum_arg<T: treachery_engine::enum_type::GameEnum>(tok: &Value) -> T {
-    match element(tok) {
-        ExpressionElement::Enum(e) => e.get::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name)),
-        _ => panic!("{tok} is not an enum"),
-    }
+pub fn enum_arg<T: PartEnum>(tok: &Value) -> T {
+    element(tok).get::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name))
 }
 
 pub fn str_arg(tok: &Value) -> String {

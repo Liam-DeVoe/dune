@@ -96,11 +96,11 @@ fn voice_validate_with_null_player() {
     let v = Voice::new(&g, Faction::BeneGesserit);
     assert!(v.player_opt().is_none());
     // No battle: MayUseVoice returns false before touching the player.
-    let r = outcome(|| v.validate(&g).map(|m| m.to_cs_string()));
+    let r = outcome(|| v.validate(&g).map(|m| m.plain_text()));
     assert_eq!(r, Ok(Some("You cannot use Voice".to_string())));
     // With a battle, IsInvolved(p) dereferences the null player.
     g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
-    let r = outcome(|| v.validate(&g).map(|m| m.to_cs_string()));
+    let r = outcome(|| v.validate(&g).map(|m| m.plain_text()));
     assert!(r.is_err());
 }
 
@@ -129,21 +129,21 @@ fn may_call_face_dancer_distinguishes_null_and_none_winner() {
 }
 
 #[test]
-fn face_danced_source_locations_message_is_a_lazy_query() {
+fn face_danced_source_locations_message() {
     let g = game_with(&[Faction::Tleilaxu]);
     let locations: Vec<Location> = g.board.map.locations(false).take(2).collect();
     let mut fd = FaceDanced::new(&g, Faction::Tleilaxu);
     fd.force_locations = Some(format!("{}:2|0,{}:0|0", locations[0].id(), locations[1].id()));
     let part = fd.determine_source_locations(&g);
-    let rendered = part.to_cs_string();
+    let rendered = part.plain_text();
     assert_eq!(
         rendered,
-        "System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Location,Treachery.Shared.Battalion],Treachery.Shared.MessagePart]"
+        "[, 2 from Treachery.Shared.Location]"
     );
 
     // An empty string gives a condition of false, so no elements.
     fd.force_locations = Some(String::new());
-    assert_eq!(fd.determine_source_locations(&g).to_cs_string(), "");
+    assert_eq!(fd.determine_source_locations(&g).plain_text(), "");
 }
 
 #[test]
@@ -197,7 +197,7 @@ fn traitor_discarded_appends_without_shuffling() {
 
     let mut bad = TraitorDiscarded::new(&g, Faction::Harkonnen);
     bad.set_traitor(Some(leaders[0]));
-    assert_eq!(bad.validate(&g).map(|m| m.to_cs_string()), Some("Invalid traitor".to_string()));
+    assert_eq!(bad.validate(&g).map(|m| m.plain_text()), Some("Invalid traitor".to_string()));
 }
 
 #[test]

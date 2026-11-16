@@ -93,10 +93,6 @@ These need no helper:
 
 Both match `ToString()` and string interpolation under the invariant culture. They print the shortest digits that round-trip. On an exact tie between two shortest candidates, .NET picks the even last digit; Rust's formatter rounds up, and these helpers correct for that. A double switches to `E` notation when its decimal exponent reaches max(17, digit count): `1E+17`, but `10000000000000000` for 1e16. A float does the same at max(9, digit count): `1E+09`. Small numbers switch below 1e-4: `0.0001` but `1E-05`. Special values print as `Infinity`, `-Infinity`, `NaN` and `-0`. The same functions are also exposed as `math::format_f32`/`format_f64`.
 
-### Composite formatting: `fmt::string_format`
-
-`string.Format(format, args)` for string (or null) arguments, with .NET 10's parser: `{{`/`}}` escapes, `{index[,alignment][:format]}` items with optional spaces, padding counted in UTF-16 units, the 1,000,000 limit on index and alignment, and no `{` inside a format string. A string argument ignores the format string. Every error that throws `FormatException` in .NET is an `Err(FormatError)`. Checked by the 4,000 random templates of the skin's static corpus ([skin.md](skin.md)), whose expected texts were recorded from .NET.
-
 ### Parsing: `parse`
 
 Each function takes `Option<&str>`, where `None` is a C# `null`, and throws like .NET. The `try_` variants (`try_int_parse` and so on) return `Result<_, CsException>` instead.

@@ -2,52 +2,51 @@
 //! failed until its bug was fixed (see rust/docs/escapes.md), except the ones marked as guards.
 
 use treachery_engine::enumerations::*;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 
 // ---------------------------------------------------------------- enumerations.rs
 
 
 // ---------------------------------------------------------------- extension_methods.rs
 
-// ---------------------------------------------------------------- expression.rs / message.rs
+// ---------------------------------------------------------------- part.rs / message.rs
 
 /// Probe `msg_float_small`. .NET's shortest round-trip float formatting
 /// switches to exponent notation; Rust's `Display` never does.
 #[test]
-fn float_to_cs_string_small() {
-    assert_eq!(ExpressionElement::Float(0.00001).to_cs_string(), "1E-05");
+fn float_plain_text_small() {
+    assert_eq!(Part::Float(0.00001).plain_text(), "1E-05");
 }
 
 /// Probe `msg_float_big`.
 #[test]
-fn float_to_cs_string_big() {
-    assert_eq!(ExpressionElement::Float(1e20).to_cs_string(), "1E+20");
+fn float_plain_text_big() {
+    assert_eq!(Part::Float(1e20).plain_text(), "1E+20");
 }
 
 /// Probe `msg_double_small`.
 #[test]
-fn double_to_cs_string_small() {
-    assert_eq!(ExpressionElement::Double(1e-7).to_cs_string(), "1E-07");
+fn double_plain_text_small() {
+    assert_eq!(Part::Double(1e-7).plain_text(), "1E-07");
 }
 
 /// Probes `float_inf_invariant` ("Infinity") and `msg_float_inf` ("∞" under
 /// en-US). Rust prints "inf", which matches neither culture. Messages render under the
 /// invariant culture, so this checks that. `dotnet_compat::fmt::f32_to_string` already implements it.
 #[test]
-fn float_to_cs_string_infinity() {
-    assert_eq!(ExpressionElement::Float(f32::INFINITY).to_cs_string(), "Infinity");
+fn float_plain_text_infinity() {
+    assert_eq!(Part::Float(f32::INFINITY).plain_text(), "Infinity");
 }
 
 /// A game error prints as its message.
 #[test]
-fn game_error_to_cs_string() {
+fn game_error_plain_text() {
     let e = treachery_engine::error::GameError::new("Cannot draw from an empty deck");
-    assert_eq!(ExpressionElement::Error(e).to_cs_string(), "Cannot draw from an empty deck");
+    assert_eq!(Part::Error(e).plain_text(), "Cannot draw from an empty deck");
 }
 
-/// Probe `msg_list`. Known and documented in expression.rs; listed for completeness.
 #[test]
-fn list_to_cs_string_type_name() {
-    let l = ExpressionElement::from(vec![Faction::Atreides]);
-    assert_eq!(l.to_cs_string(), "System.Collections.Generic.List`1[Treachery.Shared.Faction]");
+fn list_plain_text() {
+    let l = Part::from(vec![Faction::Atreides, Faction::Fremen]);
+    assert_eq!(l.plain_text(), "[Atreides, Fremen]");
 }

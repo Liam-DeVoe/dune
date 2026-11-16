@@ -8,7 +8,7 @@
 //! client plays after each event.
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
 use treachery_skin::Skin;
 use ts_rs::TS;
@@ -85,7 +85,7 @@ fn faction_sheet(skin: &Skin, game: &Game, f: Faction) -> Option<FactionSheetVie
 }
 
 /// `Regex.Replace(atStart, @"\{(\d+)\}", ...)`: places become chips, the rest is described.
-fn fill_placeholders(skin: &Skin, text: &str, parameters: &[ExpressionElement]) -> Vec<SheetPart> {
+fn fill_placeholders(skin: &Skin, text: &str, parameters: &[P]) -> Vec<SheetPart> {
     let mut out: Vec<SheetPart> = Vec::new();
     let push_text = |out: &mut Vec<SheetPart>, s: &str| {
         if s.is_empty() {
@@ -109,8 +109,8 @@ fn fill_placeholders(skin: &Skin, text: &str, parameters: &[ExpressionElement]) 
         push_text(&mut out, &rest[..open]);
         let index: usize = after[..digits].parse().unwrap_or(usize::MAX);
         match parameters.get(index) {
-            Some(ExpressionElement::Location(l)) => out.push(SheetPart::Location { id: l.id() }),
-            Some(ExpressionElement::Territory(t)) => out.push(SheetPart::Territory { id: t.id() }),
+            Some(P::Location(l)) => out.push(SheetPart::Location { id: l.id() }),
+            Some(P::Territory(t)) => out.push(SheetPart::Territory { id: t.id() }),
             Some(el) => push_text(&mut out, &skin.describe(el)),
             None => {}
         }
@@ -127,17 +127,17 @@ pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
         let Some(g) = Game::get_rule_group(r).filter(|g| *g != RuleGroup::CoreBasic && *g != RuleGroup::Bots) else {
             continue;
         };
-        let label = d.describe(&ExpressionElement::from(r));
+        let label = d.describe(&P::from(r));
         match groups.iter_mut().find(|(x, _)| *x == g) {
             Some((_, rules)) => rules.push(label),
             None => groups.push((g, vec![label])),
         }
     }
     RuleLabels {
-        ruleset: d.describe(&ExpressionElement::from(game.rules.ruleset)),
+        ruleset: d.describe(&P::from(game.rules.ruleset)),
         groups: groups
             .into_iter()
-            .map(|(g, rules)| RuleGroupLabels { group: d.describe(&ExpressionElement::from(g)), rules })
+            .map(|(g, rules)| RuleGroupLabels { group: d.describe(&P::from(g)), rules })
             .collect(),
     }
 }

@@ -23,7 +23,7 @@ fn fixture(name: &str) -> Game {
 /// Submits `e` with validation; the refusal, if any.
 fn submit(g: &mut Game, make: impl FnOnce(&Game) -> GameEvent) -> Option<String> {
     let e = make(g);
-    e.execute(g, true, false).map(|m| m.to_cs_string())
+    e.execute(g, true, false).map(|m| m.plain_text())
 }
 
 fn idx(g: &Game, f: Faction) -> PlayerIndex {
@@ -125,7 +125,7 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     let mut flip = BeneGesseritFlip::new(&g, Faction::BeneGesserit);
     flip.as_advisors = false;
     assert_eq!(submit(&mut g, |_| GameEvent::BeneGesseritFlip(Rc::new(flip))), None);
-    let log = g.current_report().messages.iter().map(|m| m.to_cs_string()).collect::<Vec<_>>();
+    let log = g.current_report().messages.iter().map(|m| m.plain_text()).collect::<Vec<_>>();
     assert!(log.iter().any(|m| m.contains("become")), "{log:?}");
     let pl = g.player(bg);
     assert_eq!((pl.forces_in(Some(intruded)), pl.special_forces_in(Some(intruded))), (n_intruded, 0), "flipped where intruded");
@@ -363,7 +363,7 @@ fn only_a_dead_leader_can_be_revived() {
     let karama_revival = |g: &Game| {
         let mut r = KarmaFreeRevival::new(g, f);
         r.set_hero(Some(Hero::Leader(leader)));
-        r.validate(g).map(|m| m.to_cs_string())
+        r.validate(g).map(|m| m.plain_text())
     };
     let refusal = Some("You can't revive a leader who isn't dead");
     assert_eq!(submit(&mut g, revival).as_deref(), refusal);

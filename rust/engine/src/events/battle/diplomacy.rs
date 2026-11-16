@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct Diplomacy {
@@ -17,7 +18,7 @@ impl Default for Diplomacy {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Diplomacy {

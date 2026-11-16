@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// Deals offered, the responses to them, and the deals in force.
 pub struct Deals {
@@ -174,9 +175,9 @@ impl Deal {
         )
     }
 
-    pub fn express(d: DealType, parameter: ExpressionElement) -> Message {
-        let p: ExpressionElement = match parameter {
-            ExpressionElement::Null => "...".into(),
+    pub fn express(d: DealType, parameter: Part) -> Message {
+        let p: Part = match parameter {
+            Part::Null => "...".into(),
             other => other,
         };
 

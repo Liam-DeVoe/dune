@@ -458,7 +458,7 @@ fn hms_advantage_form_in_a_built_state() {
     let mut e = HMSAdvantageChosen::new(&r.game, faction);
     e.advantage = Some(advantage);
     let e = std::rc::Rc::new(e).into_event();
-    assert!(e.validate(&r.game).is_none(), "{:?}", e.validate(&r.game).map(|m| m.to_cs_string()));
+    assert!(e.validate(&r.game).is_none(), "{:?}", e.validate(&r.game).map(|m| m.plain_text()));
     assert!(e.execute(&mut r.game, true, true).is_none());
     assert_eq!(r.game.battle.chosen_hms_advantage, Some(Some(advantage)));
 }

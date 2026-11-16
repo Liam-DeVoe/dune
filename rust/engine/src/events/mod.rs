@@ -42,6 +42,7 @@ pub use bidding::bid_trait;
 pub use movement::{location_event, placement};
 
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// `match` over every variant, binding the `&Rc<Event>` to `$e`.
 macro_rules! dispatch {
@@ -2021,15 +2022,15 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::log(&**e, game))
     }
 
-    pub fn log_objects(&self, game: &mut Game, expression: Vec<ExpressionElement>) {
+    pub fn log_objects(&self, game: &mut Game, expression: Vec<Part>) {
         dispatch!(self, e => GameEventMethods::log_objects(&**e, game, expression))
     }
 
-    pub fn log_if(&self, game: &mut Game, condition: bool, expression: Vec<ExpressionElement>) {
+    pub fn log_if(&self, game: &mut Game, condition: bool, expression: Vec<Part>) {
         dispatch!(self, e => GameEventMethods::log_if(&**e, game, condition, expression))
     }
 
-    pub fn log_to(&self, game: &mut Game, faction: Faction, expression: Vec<ExpressionElement>) {
+    pub fn log_to(&self, game: &mut Game, faction: Faction, expression: Vec<Part>) {
         dispatch!(self, e => GameEventMethods::log_to(&**e, game, faction, expression))
     }
 

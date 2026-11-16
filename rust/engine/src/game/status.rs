@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct GameStatus {
@@ -95,7 +96,7 @@ impl GameStatus {
             /* Non-mainphase-related phases */
             Phase::Clairvoyance => {
                 let g: &Game = game;
-                let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().and_then(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
+                let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().map(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
                 let w = express!("Waiting for an answer to a ", TreacheryCardType::Clairvoyance, " question...");
                 let f = g.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance").target;
                 Self::faction_status(g, a, w, f, None)
@@ -353,7 +354,7 @@ impl GameStatus {
             Phase::ReplacingCardJustWon => {
                 let g: &Game = game;
                 let a = express!("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage.");
-                let w = express!(g.bidding.winning_bid.as_ref().and_then(|b| b.initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
+                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
                 let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator()).flatten());
                 Self::player_status(a, w, p, None)
             }
@@ -491,7 +492,7 @@ impl GameStatus {
                 let g: &Game = game;
                 let a = express!("You may now decide who will fight in ", g.battle.battle_about_to_start.as_ref().expect("battle about to start").territory(g));
                 let battle = g.battle.battle_about_to_start.clone().expect("battle about to start");
-                let f: Option<Faction> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction).flatten() } else { Some(Faction::Ecaz) };
+                let f: Option<Option<Faction>> = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz).map(|p| g.player(p).faction) } else { Some(Some(Faction::Ecaz)) };
                 let w = express!(f, " are deciding who will fight in ", battle.territory(g), "...");
                 let p = if g.has_low_threshold(Faction::Ecaz) { battle.opponent_of_faction(g, Faction::Ecaz) } else { g.get_player(Some(Faction::Ecaz)) };
                 Self::player_status(a, w, p, None)
@@ -502,7 +503,7 @@ impl GameStatus {
                 let a = express!(g.battle.current_thought.as_ref().expect("current thought").initiator(), " asked you a question and are waiting for your answer.");
                 let battle = g.battle.current_battle.clone().expect("current battle");
                 let thought_initiator = g.battle.current_thought.as_ref().expect("current thought").initiator();
-                let w = express!("Waiting for ", battle.opponent_of_faction(g, thought_initiator).and_then(|p| g.player(p).faction), " to answer a question...");
+                let w = express!("Waiting for ", battle.opponent_of_faction(g, thought_initiator).map(|p| g.player(p).faction), " to answer a question...");
                 let battle = g.battle.current_battle.clone().expect("current battle");
                 let p = battle.opponent_of_faction(g, g.battle.current_thought.as_ref().expect("current thought").initiator());
                 Self::player_status(a, w, p, None)
@@ -532,7 +533,7 @@ impl GameStatus {
             Phase::Retreating => {
                 let g: &Game = game;
                 let a = express!("Please decide about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
-                let w = express!(g.battle.battle_loser.flatten(), " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
+                let w = express!(g.battle.battle_loser, " are thinking about retreating forces from ", g.battle.current_battle.as_ref().expect("current battle").territory(g), ".");
                 Self::faction_status(g, a, w, g.battle.battle_loser.flatten(), None)
             }
 
@@ -558,7 +559,7 @@ impl GameStatus {
 
             Phase::BattleConclusion => {
                 let a = express!("You won!");
-                let w = express!(game.battle.battle_winner.flatten(), " are celebrating their victory in battle...");
+                let w = express!(game.battle.battle_winner, " are celebrating their victory in battle...");
                 let f = game.battle.battle_winner;
                 Self::faction_status(game, a, w, f.flatten(), None)
             }
@@ -587,7 +588,7 @@ impl GameStatus {
             Phase::DividingCollectedResources => {
                 let g: &Game = game;
                 let a = express!("Please make a proposal about how to divide collected ", Concept::Resource, ".");
-                let w = express!("Waiting for ", g.collection.collected_resources_to_be_divided.first().map(|r| r.first_faction), " to propose how to divide collected ", Concept::Resource);
+                let w = express!("Waiting for ", g.collection.collected_resources_to_be_divided.first().map(|r| Some(r.first_faction)), " to propose how to divide collected ", Concept::Resource);
                 let f = g.collection.collected_resources_to_be_divided.first().map(|r| r.first_faction);
                 Self::faction_status(g, a, w, f, None)
             }
@@ -595,7 +596,7 @@ impl GameStatus {
             Phase::AcceptingResourceDivision => {
                 let g: &Game = game;
                 let a = express!("Please decide about the proposed division of ", Concept::Resource, ".");
-                let w = express!(g.collection.collected_resources_to_be_divided.first().map(|r| r.other_faction), " are thinking about the proposed division");
+                let w = express!(g.collection.collected_resources_to_be_divided.first().map(|r| Some(r.other_faction)), " are thinking about the proposed division");
                 let f = g.collection.collected_resources_to_be_divided.first().map(|r| r.other_faction);
                 Self::faction_status(g, a, w, f, None)
             }
@@ -857,7 +858,7 @@ impl GameStatus {
 
         // C# parity: BattleWinner is a Faction?, so a null winner passes this check and flashes "null win!".
         if g.turn.current_phase == Phase::BattleConclusion && g.battle.battle_winner != Some(None) {
-            Self::flash(&mut result, express!(g.battle.battle_winner.flatten(), " win!"), g.battle.battle_winner.flatten());
+            Self::flash(&mut result, express!(g.battle.battle_winner, " win!"), g.battle.battle_winner);
             return result;
         }
 
@@ -985,7 +986,7 @@ impl GameStatus {
         result
     }
 
-    pub fn flash<T: Into<ExpressionElement>>(flashes: &mut Vec<FlashInfo>, message: Message, to_show: T) {
+    pub fn flash<T: Into<Part>>(flashes: &mut Vec<FlashInfo>, message: Message, to_show: T) {
         flashes.push(FlashInfo { message, to_show: to_show.into() });
     }
 
@@ -1050,7 +1051,7 @@ impl GameStatus {
     }
 
     /// The calls above use `express!` directly, which is the same `Message.Express(elements)`.
-    pub fn express(elements: Vec<ExpressionElement>) -> Message {
+    pub fn express(elements: Vec<Part>) -> Message {
         Message::express(elements)
     }
 }
@@ -1058,6 +1059,6 @@ impl GameStatus {
 /// Every instance is created by `Flash<T>` with both members set, so there is no `new()`.
 #[derive(Clone, Debug)]
 pub struct FlashInfo {
-    pub to_show: ExpressionElement,
+    pub to_show: Part,
     pub message: Message,
 }

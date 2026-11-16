@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct Karma {
@@ -288,7 +289,7 @@ impl Karma {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         game.discard_card(self.card(), false)?;
-        let effect: Vec<ExpressionElement> = if self.prevented == None {
+        let effect: Vec<Part> = if self.prevented == None {
             vec![]
         } else {
             vec!["prevent ".into(), self.prevented.into()]

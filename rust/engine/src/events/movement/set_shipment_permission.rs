@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct SetShipmentPermission {
@@ -72,10 +73,10 @@ impl SetShipmentPermission {
 
     pub fn get_message(&self, _game: &Game) -> Message {
         // A Faction[] is one message element (a value-type array is not spread).
-        let factions: ExpressionElement = match &self.factions {
-            Some(f) => ExpressionElement::array(f.iter().copied()),
+        let factions: Part = match &self.factions {
+            Some(f) => Part::list(f.iter().copied()),
             // A null array, which the log prints as nothing.
-            None => ExpressionElement::Null,
+            None => Part::Null,
         };
         if self.permission == ShipmentPermission::NONE {
             return express!(self.initiator(), " → ", factions, ": all permissions revoked");

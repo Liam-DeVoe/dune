@@ -23,7 +23,7 @@ use treachery_engine::game::GameStatus;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::messages::report::Report;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part;
 use treachery_skin::{default_skin, Skin};
 
 /// The seats users play, from the participation in a recorded game's header (.NET `Participation`
@@ -58,7 +58,7 @@ impl Renderer<'_> {
             }
             for m in r.messages.iter().skip(self.seen[i]) {
                 let skin = self.skin;
-                self.emit(format!("report {i}"), || skin.message_to_string(m));
+                self.emit(format!("report {i}"), || skin.render(m));
             }
             self.seen[i] = r.messages.len();
         }
@@ -108,10 +108,10 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 match catch_any(|| GameStatus::determine_status(g, p, is_player)) {
                     Err(e) => r.emit("status", || format!("!panic: {e}")),
                     Ok(status) => {
-                        r.emit("status awaited", || skin.message_to_string(&status.description_when_awaited));
-                        r.emit("status waiting", || skin.message_to_string(&status.description_when_waiting));
+                        r.emit("status awaited", || skin.render(&status.description_when_awaited));
+                        r.emit("status waiting", || skin.render(&status.description_when_waiting));
                         for fi in &status.flash_info {
-                            r.emit("flash", || skin.message_to_string(&fi.message));
+                            r.emit("flash", || skin.render(&fi.message));
                         }
                     }
                 }
@@ -131,12 +131,12 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 });
                 let gr: &Game = g;
                 match result {
-                    Ok(Some(m)) => r.emit("result", || skin.message_to_string(&m)),
+                    Ok(Some(m)) => r.emit("result", || skin.render(&m)),
                     Ok(None) => {}
                     Err(e) => r.emit("escaped", || e),
                 }
-                r.emit("GetMessage", || skin.message_to_string(&ev.get_message(gr)));
-                r.emit("GetShortMessage", || skin.message_to_string(&ev.get_short_message(gr)));
+                r.emit("GetMessage", || skin.render(&ev.get_message(gr)));
+                r.emit("GetShortMessage", || skin.render(&ev.get_short_message(gr)));
                 r.new_report_messages(gr);
             }
             "undo" => {
@@ -179,7 +179,7 @@ fn end(r: &mut Renderer, game: &Game) {
                 s.theme.clone(),
                 s.advantages.join(";"),
                 s.advanced_advantages.join(";"),
-                s.parameters.iter().map(|p: &ExpressionElement| skin.describe(p)).collect::<Vec<_>>().join(";"),
+                s.parameters.iter().map(|p: &Part| skin.describe(p)).collect::<Vec<_>>().join(";"),
             ]
             .join("|"),
         });

@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::enumerations::*;
-use treachery_engine::messages::expression::{EnumValue, ExpressionElement};
+use treachery_engine::messages::part::PartEnum;
 use treachery_engine::game::Game;
 use treachery_engine::enum_type::{name_or_absent, value_or_absent, GameEnum};
 use treachery_engine::prelude::EstablishPlayers;
@@ -66,11 +66,11 @@ pub struct LobbyData {
 }
 
 /// The skin's label of a member, or of the C# `None` member of a closed enum (`None`).
-fn label<T: GameEnum>(v: Option<T>) -> String {
-    treachery_skin::default_skin().describe(&ExpressionElement::Enum(EnumValue { ty: T::INFO, value: value_or_absent(v) }))
+fn label<T: PartEnum>(v: Option<T>) -> String {
+    treachery_skin::default_skin().describe(&T::part(v))
 }
 
-fn members<T: GameEnum>() -> Vec<EnumMember> {
+fn members<T: PartEnum>() -> Vec<EnumMember> {
     members_with(label::<T>)
 }
 

@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct FaceDanced {
@@ -29,12 +30,8 @@ impl Default for FaceDanced {
 }
 
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
-
-/// The type name shown when the collection built in `DetermineSourceLocations` is rendered as text.
-/// Kept deliberately so the message text stays the same.
-const SOURCE_LOCATIONS_QUERY_TYPE: &str = "System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Location,Treachery.Shared.Battalion],Treachery.Shared.MessagePart]";
 
 impl FaceDanced {
     pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
@@ -266,8 +263,7 @@ impl FaceDanced {
     pub fn determine_source_locations(&self, game: &Game) -> MessagePart {
         // ForceLocations is parsed once for Count and once more for the query.
         let any = self.force_locations(game).len() > 0;
-        let query = ExpressionElement::collection(
-            SOURCE_LOCATIONS_QUERY_TYPE,
+        let query = Part::list(
             self.force_locations(game)
                 .iter()
                 .filter(|(_, b)| b.total_amount_of_forces() > 0)

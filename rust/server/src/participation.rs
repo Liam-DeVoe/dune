@@ -141,7 +141,7 @@ impl Participation {
         if seat >= 0 {
             if let Some(player) = game.get_player_in_seat(seat) {
                 let faction = game.player(player).faction;
-                game.log(vec![name.into(), " now controls ".into(), faction.into()]);
+                game.log(vec![name.to_string().into(), " now controls ".into(), faction.into()]);
             }
         }
         self.seated_players.insert(user, seat);
@@ -152,7 +152,7 @@ impl Participation {
     }
 
     pub fn add_observer(&mut self, game: &mut Game, user: i32, name: &str) {
-        game.log(vec![name.into(), " is now observing".into()]);
+        game.log(vec![name.to_string().into(), " is now observing".into()]);
         self.observers.insert(user);
         self.player_names.insert(user, name.to_string());
     }

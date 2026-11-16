@@ -1,5 +1,6 @@
 use crate::log::storm::StormMoved;
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct StormSpellPlayed {
@@ -36,7 +37,7 @@ impl StormSpellPlayed {
         let card = game.player(self.player()).card(TreacheryCardType::StormSpell);
         game.discard(self.player(), TreacheryCardType::StormSpell)?;
         let msg = self.get_message(game).with_log(StormMoved::new(game.board.sector_in_storm, self.move_amount, self.initiator(), card));
-        self.log_objects(game, vec![ExpressionElement::from(msg)]);
+        self.log_objects(game, vec![Part::from(msg)]);
         game.move_storm_and_determine_next(self.move_amount);
         game.end_storm_phase();
         Ok(())

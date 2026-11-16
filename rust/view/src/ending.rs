@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 use treachery_engine::events::GameEvent;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
@@ -246,12 +246,12 @@ fn utc(t: DateTimeOffset) -> String {
 }
 
 fn card(c: TreacheryCard, d: &dyn Describer) -> StoryCard {
-    StoryCard { id: c.id(), label: d.describe(&ExpressionElement::from(c)) }
+    StoryCard { id: c.id(), label: d.describe(&P::from(c)) }
 }
 
 /// `Skin.DescribeDetailed(AuctionType)`.
 fn describe_detailed(t: Option<AuctionType>, d: &dyn Describer) -> String {
-    let richese = || d.describe(&ExpressionElement::from(Faction::Richese));
+    let richese = || d.describe(&P::from(Faction::Richese));
     match t {
         Some(AuctionType::Normal) => "Normal".to_string(),
         Some(AuctionType::BlackMarketNormal) => "Black Market / Normal".to_string(),
@@ -318,9 +318,9 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
         {
             let custom = r.get_custom_rules();
             out.push(StoryBlock::Setup {
-                ruleset: rd.describe(&ExpressionElement::from(r.rules.ruleset)),
+                ruleset: rd.describe(&P::from(r.rules.ruleset)),
                 custom_rules: (!custom.is_empty())
-                    .then(|| custom.iter().map(|rule| rd.describe(&ExpressionElement::from(*rule))).collect::<Vec<_>>().join(", ")),
+                    .then(|| custom.iter().map(|rule| rd.describe(&P::from(*rule))).collect::<Vec<_>>().join(", ")),
                 started: utc(evt.time()),
                 table: table(r, game, s, StoryTable { show_name: true, ..Default::default() }),
             });
@@ -417,7 +417,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                 out.push(StoryBlock::Winner {
                     faction: name_or_absent(r.player(w).faction),
                     name: s.player_name(r, w),
-                    method: rd.describe(&ExpressionElement::from(r.contemplate.win_method)),
+                    method: rd.describe(&P::from(r.contemplate.win_method)),
                 });
             }
             out.push(StoryBlock::Ended { time: utc(evt.time()) });

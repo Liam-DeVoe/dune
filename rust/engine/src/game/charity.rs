@@ -1,5 +1,6 @@
 use crate::log::charity::CharityClaim;
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// State of the CHOAM charity phase.
 pub struct CharityState {
@@ -18,7 +19,7 @@ impl CharityState {
 
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Game {

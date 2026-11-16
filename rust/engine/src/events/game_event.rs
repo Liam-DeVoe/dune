@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// The fields shared by all events, embedded as `base` in every event struct.
 /// The polymorphic `GameEvent` itself is the enum in `events/mod.rs`.
@@ -160,15 +161,15 @@ pub trait GameEventMethods {
         game.current_report_mut().express_event(m);
     }
 
-    fn log_objects(&self, game: &mut Game, expression: Vec<ExpressionElement>) {
+    fn log_objects(&self, game: &mut Game, expression: Vec<Part>) {
         game.log(expression);
     }
 
-    fn log_if(&self, game: &mut Game, condition: bool, expression: Vec<ExpressionElement>) {
+    fn log_if(&self, game: &mut Game, condition: bool, expression: Vec<Part>) {
         game.log_if(condition, expression);
     }
 
-    fn log_to(&self, game: &mut Game, faction: Faction, expression: Vec<ExpressionElement>) {
+    fn log_to(&self, game: &mut Game, faction: Faction, expression: Vec<Part>) {
         game.log_to(faction, expression);
     }
 

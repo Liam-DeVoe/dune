@@ -12,6 +12,11 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 - `TraitorDiscarded` logs that the traitor deck is shuffled, but the deck isn't shuffled. Either the rule or the text is wrong. Check the rulebook.
 - Plain-text output has no space between a number and a force name ("3forces"). The client draws them as separate tokens, so only mails and server texts show it.
 - "X is a Y facedancer!" and "CHOAM The Economics Token flips ..." read badly.
-- Faction sheets paste advantage titles into the sheet template before formatting it, so a custom skin label with `{N}` gets sheet parameter N, and a lone `{` leaves the whole sheet unformatted. 3b drops this.
 - A custom skin missing any default key is replaced by the default skin entirely (C#'s `FixDictionary`), so its custom names are lost.
 - The web client's Karama help text has typos ("an advantages ... occured").
+
+## Bene Gesserit fighters that accompany a shipment never trigger an ambassador
+
+The rulebook (Ecaz & Moritani, Ecaz faction rules) says an ambassador triggers when another faction "(other than your ally, advisors, or the faction matching the marker) enters a stronghold". Accompanying Bene Gesserit normally arrive as advisors, which don't trigger, so the usual case is right. But the engine sometimes places accompanying forces as fighters (into a territory where Bene Gesserit already have fighters, or with the advisors rule off), and `BeneGesseritAccompanies::forces_added_to_location` always returns 0, so `check_ambassador_triggered` never fires for them. Fighters entering should trigger it. The fuzzer never reaches this. `engine/tests/phases_unreached.rs` pins today's behavior. Fix it in wave 5 (ship and move), with a behavior-changes.md entry, and update that test.
+
+Checked and correct (2026-11-15): at low threshold, Moritani reveals a terror token only when at least 3 forces enter. The Grumman card says "Low (0-7): ... You can only reveal terror tokens when at least 3 forces enter" (web/assets/art/GrummanCard.gif), and `check_terror_triggered` does that.

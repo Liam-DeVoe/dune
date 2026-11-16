@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct EmperorBidSupport {
@@ -47,9 +48,7 @@ impl EmperorBidSupport {
         // `Amounts.Sum(...)` on a null Amounts: ArgumentNullException (Parameter 'source').
         let amounts = self.amounts.as_ref().expect("amounts");
         if amounts.iter().map(|(_, v)| *v).sum::<i32>() > 0 {
-            // One element: the lazy Where/Select query, whose runtime type .NET 10 prints as below.
-            let parts = ExpressionElement::collection(
-                "System.Linq.Enumerable+IEnumerableWhereSelectIterator`2[System.Collections.Generic.KeyValuePair`2[Treachery.Shared.Faction,System.Int32],Treachery.Shared.MessagePart]",
+            let parts = Part::list(
                 amounts.iter().filter(|(_, v)| **v > 0).map(|(k, v)| express_part!(*k, ":", Payment::of(*v), " ")),
             );
             return express!(self.initiator(), " supports ", parts);

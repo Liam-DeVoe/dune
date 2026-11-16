@@ -80,7 +80,7 @@ impl ClairVoyanceAnswered {
             deal.end = Some(Phase::ShipmentAndMoveConcluded);
             game.start_deal(&deal);
         } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsTraitor) {
-            if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
+            if let Some(hero) = latest.parameter1(game).hero() {
                 if self.is_yes() {
                     game.player_mut(self.player()).told_traitors.insert(hero);
                 } else if self.is_no() {
@@ -88,7 +88,7 @@ impl ClairVoyanceAnswered {
                 }
             }
         } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsFacedancer) {
-            if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
+            if let Some(hero) = latest.parameter1(game).hero() {
                 if self.is_yes() {
                     game.player_mut(self.player()).told_face_dancers.insert(hero);
                 } else if self.is_no() {

@@ -5,7 +5,7 @@ use treachery_engine::messages::message::Message;
 use treachery_skin::default_skin;
 
 pub fn message_to_string(message: &Message) -> String {
-    default_skin().message_to_string(message)
+    default_skin().render(message)
 }
 
 pub fn describe_faction(faction: Option<Faction>) -> String {
@@ -14,7 +14,7 @@ pub fn describe_faction(faction: Option<Faction>) -> String {
 
 /// "Turn: 3, phase: ...", for the async-play mail.
 pub fn format_turn_and_phase(turn: i32, phase: Phase) -> String {
-    default_skin().format("Turn: {0}, phase: {1}", &treachery_skin::args![turn, phase])
+    default_skin().render_parts(&treachery_engine::parts!["Turn: ", turn, ", phase: ", phase])
 }
 
 #[cfg(test)]

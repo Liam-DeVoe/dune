@@ -60,7 +60,7 @@ fn factions(fs: impl IntoIterator<Item = Faction>) -> String {
 }
 
 fn message(m: Option<Message>, none: &str) -> String {
-    m.map_or(none.to_string(), |m| m.to_cs_string())
+    m.map_or(none.to_string(), |m| m.plain_text())
 }
 
 fn applicable(g: &mut Game) -> String {
@@ -88,7 +88,7 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
         let p = g.player_at(i);
         let s = GameStatus::determine_status(g, Some(p), true);
         let waiting = factions(s.waiting_for_players.iter().filter_map(|w| g.player(w.unwrap()).faction));
-        l.p(&format!("{at}.status.{}", treachery_engine::enum_type::name_or_absent(g.player(p).faction)), format!("{} | waiting {waiting}", s.get_message(p, false).to_cs_string()));
+        l.p(&format!("{at}.status.{}", treachery_engine::enum_type::name_or_absent(g.player(p).faction)), format!("{} | waiting {waiting}", s.get_message(p, false).plain_text()));
     }
 }
 
@@ -100,7 +100,7 @@ fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
         Err(x) => l.p(&format!("{at}.applicable"), format!("exception {}", x)),
     }
     l.try_(&format!("{at}.validate"), || message(e.validate(g), "valid"));
-    l.try_(&format!("{at}.message"), || e.get_message(g).to_cs_string());
+    l.try_(&format!("{at}.message"), || e.get_message(g).plain_text());
     let r = catch_panic(|| message(e.execute(g, false, true), "ok"));
     match r {
         Ok(v) => l.p(&format!("{at}.execute"), v),

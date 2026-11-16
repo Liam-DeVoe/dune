@@ -30,7 +30,7 @@ fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 }
 
 fn text(m: Option<Message>) -> Option<String> {
-    m.map(|m| m.to_cs_string())
+    m.map(|m| m.plain_text())
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn emperor_bid_support_message_without_amounts_fails() {
     e2.amounts = None;
     let e2 = as_player(e2, &g, Faction::Emperor);
     // Missing amounts (fuzz seed 2 recorded this in C#, where `Amounts.Sum(...)` threw).
-    assert_eq!(outcome(|| e2.get_message(&g).to_cs_string()).unwrap_err(), "amounts");
+    assert_eq!(outcome(|| e2.get_message(&g).plain_text()).unwrap_err(), "amounts");
 }
 
 #[test]
@@ -206,7 +206,7 @@ fn automatic_passes_stop_when_bidding_ends() {
         Bid::execute_concrete_event(&pass, &mut g).unwrap();
 
         let everyone_passed =
-            g.current_report().messages.iter().filter(|m| m.to_cs_string() == "Bidding ends because everyone passed").count();
+            g.current_report().messages.iter().filter(|m| m.plain_text() == "Bidding ends because everyone passed").count();
         tx.send((g.turn.current_phase, everyone_passed)).unwrap();
     });
     // Before the fix the thread never finished and its memory grew without end.

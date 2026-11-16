@@ -9,7 +9,7 @@
 //! form shows, and the options carry the adjusted draft back to the client.
 
 use treachery_engine::events::GameEventType;
-use treachery_engine::messages::expression::ExpressionElement;
+
 use treachery_engine::json;
 use treachery_engine::prelude::*;
 
@@ -18,7 +18,7 @@ use crate::describe::Describer;
 use crate::expr;
 use crate::schema::*;
 use crate::shield::hero_ref;
-use super::widgets::{picker, required_opt, faction_options, hero_options, draft_json, describe};
+use super::widgets::{picker, required_opt, faction_options, hero_options, draft_json, describe, render};
 
 /// The event types this module builds forms for.
 pub const TYPES: [GameEventType; 8] = [
@@ -35,14 +35,6 @@ pub const TYPES: [GameEventType; 8] = [
 /// A force picker drawn only while its maximum is positive, with the field set to 0 otherwise.
 fn forces(value: i32, max: i32) -> i32 {
     if max > 0 { picker(value, 0, max) } else { 0 }
-}
-
-/// `Skin.Format(m, args)`: `string.Format` over the described arguments; `m` itself when that
-/// fails.
-fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> String {
-    let described: Vec<String> = args.iter().map(|a| d.describe(a)).collect();
-    let refs: Vec<Option<&str>> = described.iter().map(|s| Some(s.as_str())).collect();
-    dotnet_compat::fmt::string_format(m, &refs).unwrap_or_else(|_| m.to_string())
 }
 
 /// The first draft of the form, before the player touches it: its starting inputs, adjusted.
@@ -310,8 +302,8 @@ fn options(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) ->
                     price: (*price != i32::MAX).then_some(*price),
                 })
                 .collect(),
-            offer_label: format(d, "Offer {0} for {1}", &[e.hero().into(), e.price.into()]),
-            deny_label: format(d, "Deny revival of {0}", &[e.hero().into()]),
+            offer_label: render(d, &parts!["Offer ", e.hero(), " for ", e.price]),
+            deny_label: render(d, &parts!["Deny revival of ", e.hero()]),
             draft: json,
         }),
         GameEvent::SetIncreasedRevivalLimits(_) => ActionOptions::SetIncreasedRevivalLimits(SetIncreasedRevivalLimitsOptions {

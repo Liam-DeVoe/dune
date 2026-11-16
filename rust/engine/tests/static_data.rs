@@ -594,7 +594,8 @@ fn deck_basics() {
 #[test]
 fn messages() {
     use treachery_engine::{express, express_part, express_part_if, express_to};
-    use treachery_engine::messages::expression::ExpressionElement as E;
+    use treachery_engine::messages::message::Audience;
+    use treachery_engine::messages::part::Part as E;
     use treachery_engine::messages::payment::Payment;
 
     let m = Map::new();
@@ -612,18 +613,18 @@ fn messages() {
         part,
         express!("inner")
     );
-    assert_eq!(msg.target, None);
-    assert_eq!(msg.expression.elements[0], E::from(Faction::Atreides));
-    assert_eq!(msg.expression.elements[6], E::Null);
+    assert_eq!(msg.to, Audience::Everyone);
+    assert_eq!(msg.parts[0], E::from(Faction::Atreides));
+    assert_eq!(msg.parts[6], E::Null);
     assert_eq!(
-        msg.expression.elements[7],
+        msg.parts[7],
         E::list(vec![Faction::Emperor, Faction::BeneGesserit])
     );
     assert_eq!(
-        msg.to_cs_string(),
+        msg.plain_text(),
         "Atreides transfer Treachery.Shared.Payment to Treachery.Shared.LocationTreachery.Shared.Leader\
-         System.Collections.Generic.List`1[Treachery.Shared.Faction] (2.5)inner"
+         [Emperor, BeneGesserit] (2.5)inner"
     );
     let to = express_to!(Some(Faction::Harkonnen); "secret");
-    assert_eq!(to.target, Some(Faction::Harkonnen));
+    assert_eq!(to.to, Audience::Faction(Faction::Harkonnen));
 }

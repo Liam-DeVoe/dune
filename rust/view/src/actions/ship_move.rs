@@ -15,7 +15,7 @@
 use serde_json::Value;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate};
@@ -687,7 +687,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
         .into_iter()
         .map(|w| ShipmentWorld {
             location: w.location().id(),
-            label: d.describe(&ExpressionElement::from(w)),
+            label: d.describe(&P::from(w)),
             normal: normal_worlds.contains(&w),
             special: special_worlds.contains(&w),
             forces: pl.forces_in(Some(w.location())),
@@ -724,7 +724,7 @@ fn shipment(game: &Game, p: PlayerIndex, s: &Shipment, d: &dyn Describer) -> Shi
         ally_can_pay: if pl.ally != None && cost > 0 { game.resources_your_ally_can_pay(p) } else { 0 },
         conflicting_ally: destination.is_some_and(|l| game.contains_conflicting_ally(p, l)),
         great_flat: game.board.map.the_great_flat().territory().id(),
-        karma_name: d.describe(&ExpressionElement::from(TreacheryCardType::Karma)),
+        karma_name: d.describe(&P::from(TreacheryCardType::Karma)),
     }
 }
 

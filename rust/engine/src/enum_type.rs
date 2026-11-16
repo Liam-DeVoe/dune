@@ -128,16 +128,6 @@ macro_rules! game_enum {
     ($(#[$m:meta])* closed $name:ident { absent $none:ident = 0; $($var:ident = $val:literal,)* } get_values [$($gv:ident),* $(,)?]) => {
         $crate::enum_type::game_enum!(@closed true, $(#[$m])* $name { ($none = 0,) $($var = $val,)* } [$($var = $val),*] [$($gv),*]);
 
-        /// Absent is the C# `None` member, which the skin names.
-        impl From<Option<$name>> for $crate::messages::expression::ExpressionElement {
-            fn from(v: Option<$name>) -> Self {
-                $crate::messages::expression::ExpressionElement::Enum($crate::messages::expression::EnumValue {
-                    ty: &$name::INFO,
-                    value: $crate::enum_type::value_or_absent(v),
-                })
-            }
-        }
-
         /// Absent is written as 0, as C# wrote its `None` member.
         impl $crate::json::ToJson for Option<$name> {
             fn write_json(&self, w: &mut $crate::json::JsonWriter) {
@@ -155,7 +145,6 @@ macro_rules! game_enum {
     ($(#[$m:meta])* closed $name:ident { $($var:ident = $val:literal,)* } get_values [$($gv:ident),* $(,)?]) => {
         $crate::enum_type::game_enum!(@closed false, $(#[$m])* $name { () $($var = $val,)* } [$($var = $val),*] [$($gv),*]);
 
-        impl $crate::messages::expression::NullElement for $name {}
         impl $crate::json::JsonNullable for $name {}
 
         /// C# `default(T)`: the member with value 0.
@@ -214,21 +203,10 @@ macro_rules! game_enum {
             fn rank(&self, other: &Self) -> ::std::cmp::Ordering { self.cmp(other) }
         }
 
-        impl $crate::messages::expression::CsType for $name {
-            const IS_VALUE_TYPE: bool = true;
-            fn cs_type_name() -> String { format!("Treachery.Shared.{}", stringify!($name)) }
-        }
-
         /// `ToString()`, for exception messages that embed a key (`Dictionary.Add`, the indexer).
         impl dotnet_compat::exception::CsToString for $name {
             fn cs_to_string(&self) -> String {
                 self.to_string()
-            }
-        }
-
-        impl From<$name> for $crate::messages::expression::ExpressionElement {
-            fn from(v: $name) -> Self {
-                $crate::messages::expression::ExpressionElement::Enum($crate::messages::expression::EnumValue::of(v))
             }
         }
     };

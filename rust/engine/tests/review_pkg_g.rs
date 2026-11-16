@@ -76,7 +76,7 @@ fn shipment_costs_match_csharp_at_the_edges() {
     s.force_amount = i32::MIN;
     s.to_id = to.id();
     s.initialize(&g, faction);
-    assert_eq!(show(|| s.validate(&g).map(|m| m.to_cs_string()).unwrap_or("null".into())), "You can't ship back to reserves");
+    assert_eq!(show(|| s.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
     let mut s2 = Shipment::default();
     s2.shipment_type = ShipmentType::Unknown;
@@ -84,7 +84,7 @@ fn shipment_costs_match_csharp_at_the_edges() {
     s2.special_force_amount = 1;
     s2.to_id = to.id();
     s2.initialize(&g, faction);
-    assert_eq!(show(|| s2.validate(&g).map(|m| m.to_cs_string()).unwrap_or("null".into())), "You can't ship back to reserves");
+    assert_eq!(show(|| s2.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
     let valid: Vec<_> = Shipment::valid_shipment_locations(&g, pl, false, false).collect();
     assert_eq!(valid.len(), 85, "probe: validLocations.count");
@@ -108,7 +108,7 @@ fn choam_remove_force_without_location_fails() {
         );
         let e: GameEvent = json::deserialize(&json).expect("event json");
         e.initialize_game(&g);
-        let r = e.execute(&mut g, false, true).map(|m| m.to_cs_string());
+        let r = e.execute(&mut g, false, true).map(|m| m.plain_text());
         assert!(r.as_deref().is_some_and(|m| m.starts_with("Game Error: ")), "SpecialForce = {special}: {r:?}");
     }
 }

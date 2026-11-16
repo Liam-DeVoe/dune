@@ -1,5 +1,6 @@
 use crate::log::collection::SpiceCollected;
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 /// State of the spice collection phase, including the discoveries revealed during it.
 pub struct CollectionState {
@@ -29,7 +30,7 @@ impl CollectionState {
 
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(ExpressionElement::from($e)),*] };
+    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
 impl Game {

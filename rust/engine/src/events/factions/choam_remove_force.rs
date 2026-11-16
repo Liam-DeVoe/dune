@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::messages::part::Part;
 
 #[derive(Clone, Debug)]
 pub struct ChoamRemoveForce {
@@ -153,7 +154,7 @@ impl ChoamRemoveForce {
 
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
         let target_player = game.get_player(self.target).required("target player")?;
-        let force: ExpressionElement = if self.special_force {
+        let force: Part = if self.special_force {
             game.player(target_player).special_force().into()
         } else {
             game.player(target_player).force().into()

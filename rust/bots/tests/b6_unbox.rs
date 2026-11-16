@@ -10,28 +10,29 @@ mod common;
 
 use serde_json::json;
 use treachery_bots::prelude::*;
+use treachery_engine::messages::part::Part;
 use treachery_engine::error::catch_panic;
 use treachery_bots::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
-use treachery_engine::messages::expression::EnumValue;
+use treachery_engine::enum_type::GameEnum;
 use treachery_engine::identity::Fetcher;
 
 use common::{read_json, updating, write_json};
 
-fn value(game: &Game, kind: &str) -> ExpressionElement {
+fn value(game: &Game, kind: &str) -> Part {
     let (k, v) = kind.split_once(':').unwrap_or((kind, ""));
     let n = || v.parse::<i32>().unwrap();
     match k {
-        "null" => ExpressionElement::Null,
-        "TreacheryCardType" => ExpressionElement::Enum(EnumValue { ty: &TreacheryCardType::INFO, value: n() }),
-        "Faction" => ExpressionElement::Enum(EnumValue { ty: &Faction::INFO, value: n() }),
-        "int" => ExpressionElement::Int(n()),
-        "float" => ExpressionElement::Float(v.parse().unwrap()),
-        "double" => ExpressionElement::Double(v.parse().unwrap()),
-        "string" => ExpressionElement::String(v.to_string()),
-        "leader" => ExpressionElement::Hero(LeaderManager::hero_lookup().find(n()).unwrap()),
-        "messiah" => ExpressionElement::Hero(Hero::Messiah),
-        "card" => ExpressionElement::Hero(Hero::TreacheryCard(TreacheryCardManager::lookup().find(n()).unwrap())),
-        "territory" => ExpressionElement::Territory(game.board.map.territory_lookup().find(n()).unwrap()),
+        "null" => Part::Null,
+        "TreacheryCardType" => TreacheryCardType::from_value(n()).expect("a card type").into(),
+        "Faction" => Faction::from_value(n()).expect("a faction").into(),
+        "int" => Part::Number(n()),
+        "float" => Part::Float(v.parse().unwrap()),
+        "double" => Part::Double(v.parse().unwrap()),
+        "string" => Part::from(v.to_string()),
+        "leader" => LeaderManager::hero_lookup().find(n()).unwrap().into(),
+        "messiah" => Part::Messiah,
+        "card" => Part::Card(TreacheryCardManager::lookup().find(n()).unwrap()),
+        "territory" => Part::Territory(game.board.map.territory_lookup().find(n()).unwrap()),
         _ => panic!("unknown value kind {kind}"),
     }
 }

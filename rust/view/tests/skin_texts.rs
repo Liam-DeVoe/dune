@@ -5,7 +5,7 @@
 mod common;
 
 use common::{fixture, load, truncated, load_text, viewer_of, OBSERVER};
-use treachery_engine::messages::expression::ExpressionElement;
+use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
 use treachery_view::replica::ViewReplica;
 use treachery_view::schema::GameView;
@@ -66,13 +66,13 @@ fn sheets_and_rules_equal_the_skin() {
                 })
                 .collect();
             let template = format!("{}. Start with {} {{16}}.", sheet.at_start, sheet.resources);
-            assert_eq!(joined, skin.format(&template, &sheet.parameters), "{name} {f}");
+            assert_eq!(joined, skin.fill_sheet(&template, &sheet.parameters), "{name} {f}");
             assert!(!joined.contains('{'), "{name} {f}: {joined}");
             sheets_seen += 1;
         }
 
         // TurnPopover's groups, in order of their first rule.
-        assert_eq!(v.rule_labels.ruleset, skin.describe(&ExpressionElement::from(g.rules.ruleset)));
+        assert_eq!(v.rule_labels.ruleset, skin.describe(&P::from(g.rules.ruleset)));
         let mut groups: Vec<RuleGroup> = vec![];
         for r in &g.rules.active {
             let Some(gr) = Game::get_rule_group(*r) else { continue };
@@ -82,8 +82,8 @@ fn sheets_and_rules_equal_the_skin() {
         }
         assert_eq!(v.rule_labels.groups.len(), groups.len(), "{name}");
         for (l, gr) in v.rule_labels.groups.iter().zip(&groups) {
-            assert_eq!(l.group, skin.describe(&ExpressionElement::from(*gr)));
-            let rules: Vec<String> = g.rules.active.iter().filter(|r| Game::get_rule_group(**r) == Some(*gr)).map(|r| skin.describe(&ExpressionElement::from(*r))).collect();
+            assert_eq!(l.group, skin.describe(&P::from(*gr)));
+            let rules: Vec<String> = g.rules.active.iter().filter(|r| Game::get_rule_group(**r) == Some(*gr)).map(|r| skin.describe(&P::from(*r))).collect();
             assert_eq!(l.rules, rules, "{name}");
         }
         assert!(v.rule_labels.groups.iter().all(|gr| gr.rules.iter().all(|r| !r.is_empty())));

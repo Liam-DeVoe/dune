@@ -11,7 +11,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::QueryError;
 use treachery_view::schema::*;
 
-fn factions(r: &treachery_view::replica::ViewReplica) -> Vec<Faction> {
+fn factions(r: &treachery_view::cache::ViewedGame) -> Vec<Faction> {
     r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
@@ -222,10 +222,9 @@ fn draft_queries() {
     assert!(EventType::ALL.contains(&EventType::AllianceOffered));
 }
 
-/// Applying an accepted event to the replica moves every view on, and the event number follows
-/// `History.Count`.
+/// Applying an event moves every view on, and the event number follows `History.Count`.
 #[test]
-fn replica_follows_events() {
+fn views_follow_events() {
     let mut r = load("alliance");
     let before = r.view(OBSERVER).event_number;
     let emperor = Faction::Emperor as i32;
@@ -237,11 +236,11 @@ fn replica_follows_events() {
     assert!(action(&emperor_view, "AllianceOffered").is_none());
 }
 
-/// `ViewReplica::scene` seats one user for the `/scene` route: host, named "Scene", and every
+/// `ViewedGame::scene` seats one user for the `/scene` route: host, named "Scene", and every
 /// other seat without a user (a bot).
 #[test]
 fn scene_seats_one_user_and_bots() {
-    let (mut r, viewer) = treachery_view::replica::ViewReplica::scene(&common::fixture("alliance"), Faction::Atreides).unwrap();
+    let (mut r, viewer) = treachery_view::cache::ViewedGame::scene(&common::converted(&common::fixture("alliance")), Faction::Atreides).unwrap();
     let view = r.view(viewer);
     assert_eq!(view.viewer.faction.as_deref(), Some("Atreides"));
     assert!(view.viewer.is_host && !view.viewer.is_observer);
@@ -251,11 +250,11 @@ fn scene_seats_one_user_and_bots() {
             assert_eq!(p.name, "Scene");
         }
     }
-    assert!(treachery_view::replica::ViewReplica::scene(&common::fixture("alliance"), Faction::Ecaz).is_err());
+    assert!(treachery_view::cache::ViewedGame::scene(&common::converted(&common::fixture("alliance")), Faction::Ecaz).is_err());
 }
 
-/// One replica serves every viewer (client.md, The view replica), so views must not depend on
-/// the order in which viewers' views are built.
+/// One game and view cache serve every viewer, so views must not depend on the order in which
+/// viewers' views are built.
 #[test]
 fn views_do_not_depend_on_build_order() {
     for fixture in ["battle", "mc-voice", "retreat", "mc-concluded", "alliance", "bid", "move"] {
@@ -271,4 +270,31 @@ fn views_do_not_depend_on_build_order() {
         let again: Vec<String> = viewers.iter().map(|v| serde_json::to_string(&forward.view(*v)).unwrap()).collect();
         assert_eq!(a, again, "{fixture}");
     }
+}
+
+/// Views read the battle sequence without moving it. With a sequence whose current player has
+/// no battle, `next_player_to_battle` names the next player who has one, building every view
+/// leaves the sequence as it was, and only `advance_battle_sequence` (which `Game::play` calls
+/// after each event) moves it there.
+#[test]
+fn views_leave_the_battle_sequence_alone() {
+    let passes_someone = |g: &Game| {
+        let seq = PlayerSequence::starting_with_first_player(g);
+        seq.current_player(g).is_some_and(|p| Battle::battles_to_be_fought(g, p, false).is_empty())
+    };
+    let mut r = common::first_bot_state("a battle to choose, with a player before it who has none", |g| {
+        g.turn.current_phase == Phase::BattlePhase && g.battle.current_battle.is_none() && g.next_player_to_battle().is_some() && passes_someone(g)
+    });
+    r.game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(&r.game));
+    let before = format!("{:?}", r.game.battle.battle_sequence);
+    let next = r.game.next_player_to_battle();
+    let mut viewers: Vec<Viewer> = factions(&r).into_iter().map(|f| viewer_of(&r, f)).collect();
+    viewers.push(OBSERVER);
+    let views: Vec<GameView> = viewers.iter().map(|v| r.view(*v)).collect();
+    assert_eq!(format!("{:?}", r.game.battle.battle_sequence), before);
+    let choosing = views.iter().filter(|v| action(v, "BattleInitiated").is_some()).count();
+    assert_eq!(choosing, 1, "one player may initiate a battle");
+    assert_eq!(r.game.advance_battle_sequence(), next);
+    assert_ne!(format!("{:?}", r.game.battle.battle_sequence), before);
+    assert_eq!(r.game.next_player_to_battle(), next);
 }

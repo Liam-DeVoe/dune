@@ -20,7 +20,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::ship_move::{default_draft, options, options_and_validation};
 use treachery_view::build::{event, validate};
 use treachery_view::describe::{default_describer, Describer};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 use treachery_view::shield::hero_ref;
 
@@ -459,7 +459,7 @@ fn fixtures() {
     fixtures.sort();
     for name in fixtures {
         // Fixtures before the lowest version the scene page takes don't replay here either.
-        let Ok(mut r) = std::panic::catch_unwind(|| load(&name)) else { continue };
+        let Ok(r) = std::panic::catch_unwind(|| load(&name)) else { continue };
         let players: Vec<PlayerId> = r.game.player_indices().collect();
         for p in players {
             for t in r.game.get_applicable_events(Some(p), true) {
@@ -480,7 +480,7 @@ fn bot_games() {
     let mut seen = Seen::default();
     for path in common::sample_bot_traces() {
         let trace = common::read_trace(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for e in &trace.events {
             r.apply(e).unwrap();
             let players: Vec<PlayerId> = r.game.player_indices().collect();

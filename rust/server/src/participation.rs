@@ -139,14 +139,13 @@ impl Participation {
         self.seating().player_name(game, p)
     }
 
-    /// Seats a user, or lets them wait for a seat (`None`). Taking over a player's seat is
-    /// logged.
+    /// Seats a user, or lets them wait for a seat (`None`).
+    ///
+    /// Seat changes aren't written to the game's log. They used to be, but players never saw
+    /// those lines: views came from a replica that replayed only the history, and a replay (an
+    /// undo) drops anything that isn't in the history.
     pub fn add_player(&mut self, game: &mut Game, user: UserId, name: &str, seat: Option<Seat>) {
         if let Some(seat) = seat {
-            if let Some(player) = game.get_player_by_seat(seat) {
-                let faction = game.player(player).faction;
-                game.log(vec![name.to_string().into(), " now controls ".into(), faction.into()]);
-            }
             self.available_seats.shift_remove(&seat);
         }
         self.seated_players.insert(user, seat);
@@ -155,16 +154,13 @@ impl Participation {
         self.seat_humans(game);
     }
 
-    pub fn add_observer(&mut self, game: &mut Game, user: UserId, name: &str) {
-        game.log(vec![name.to_string().into(), " is now observing".into()]);
+    pub fn add_observer(&mut self, user: UserId, name: &str) {
         self.observers.insert(user);
         self.player_names.insert(user, name.to_string());
     }
 
-    /// Takes a user out of the game, for good if `kick`. Logged.
+    /// Takes a user out of the game, for good if `kick`.
     pub fn remove_user(&mut self, game: &mut Game, user: UserId, kick: bool) {
-        let name = self.name_of(user);
-        game.log(vec![name.into(), (if kick { " was kicked from" } else { " left" }).into(), " the game".into()]);
         self.seated_players.shift_remove(&user);
         self.observers.shift_remove(&user);
         self.player_names.shift_remove(&user);

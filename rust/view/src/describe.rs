@@ -2,7 +2,7 @@
 //!
 //! The text of every log line and prompt is rendered on the server, with the game's skin
 //! (`rust/skin`). A custom skin is a `treachery_skin::Skin` loaded with `Skin::load`, which the
-//! server puts in the replica.
+//! server puts in the game's [`crate::cache::ViewCache`].
 
 use treachery_engine::messages::part::Part as P;
 use treachery_engine::game::Game;

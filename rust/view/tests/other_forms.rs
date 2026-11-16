@@ -17,7 +17,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::{action_view, other};
 use treachery_view::build::{validate, ResolvedViewer};
 use treachery_view::describe::{default_describer, Describer, InGame};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 fn mine(t: EventType) -> bool {
@@ -233,8 +233,8 @@ fn read_until_undo(path: &std::path::Path) -> common::Trace {
     for line in reader.lines() {
         let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
         match v["kind"].as_str() {
-            Some("header") => version = v["gameVersion"].as_i64().unwrap() as i32,
-            Some("step") if v["result"] == "accepted" => events.push(v["event"].to_string()),
+            Some("header") => version = common::played_version(v["gameVersion"].as_i64().unwrap() as i32),
+            Some("step") if v["result"] == "accepted" => events.push(common::event_text(&v["event"])),
             Some("undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone") => break,
             _ => {}
         }
@@ -270,7 +270,7 @@ fn options_equal_the_engine_helpers_over_the_corpus() {
     let mut seen = Seen::default();
     for path in traces() {
         let trace = read_until_undo(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             if r.apply(e).is_err() {
                 break;

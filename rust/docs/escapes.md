@@ -403,7 +403,7 @@ Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
 
 **What catches the class now.**
 - `engine/tests/rule_fixes.rs::a_karama_bid_needs_a_karama_card_and_no_pass` and `an_intrusion_left_over_from_an_earlier_phase_is_dropped`.
-- The weak spot stays: any other event that passes validation and then throws leaves changes outside the history, and an undo can then replay a different game. The server's view replica also replays the history, so its views can differ from the game too. In `observe` traces this shows as a `replica` field on events. Grep for it after a fuzz run.
+- The weak spot stays: any other event that passes validation and then throws leaves changes outside the history, and an undo can then replay a different game. Until 4a (rewrite-plan.md) the server's view replica also replayed the history, so its views differed from the game too. Views now come from the game itself (behavior-changes.md, "Views after an event that failed halfway").
 
 ## Bots that never shipped back to reserves (2026-11)
 

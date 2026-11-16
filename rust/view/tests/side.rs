@@ -10,26 +10,26 @@ use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-fn factions(r: &ViewReplica) -> Vec<Faction> {
+fn factions(r: &ViewedGame) -> Vec<Faction> {
     r.game.players.iter().filter_map(|p| p.faction).collect()
 }
 
 /// Every seated player's view and the observer's, with the viewer's faction.
-fn all_views(r: &mut ViewReplica) -> Vec<(Option<Faction>, GameView)> {
+fn all_views(r: &mut ViewedGame) -> Vec<(Option<Faction>, GameView)> {
     let mut out: Vec<(Option<Faction>, GameView)> = factions(r).into_iter().map(|f| (Some(f), r.view(viewer_of(r, f)))).collect();
     out.push((None, r.view(OBSERVER)));
     out
 }
 
 /// Calls `each` on every state of a fixture, from the first event on, with everyone seated.
-fn each_state(name: &str, mut each: impl FnMut(&mut ViewReplica, usize)) {
+fn each_state(name: &str, mut each: impl FnMut(&mut ViewedGame, usize)) {
     let v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
     let events = v["_events"].as_array().unwrap();
     let mut r = load_text(&truncated(name, 1));
@@ -296,9 +296,9 @@ fn without_actions(mut v: GameView) -> GameView {
     v
 }
 
-/// The preview at gap n is the view each viewer had after events 0..n (a replica loaded from the
+/// The preview at gap n is the view each viewer had after events 0..n (a game loaded from the
 /// savegame cut at n), without actions or card plays, for any viewer; gaps are clamped to
-/// 1..=History.Count; the replica itself is not changed.
+/// 1..=History.Count; the game itself is not changed.
 #[test]
 fn undo_preview() {
     for fx in ["bid", "ally", "mc-treachery"] {

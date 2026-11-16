@@ -13,7 +13,9 @@
 //!   stored as they are. [`migrate_to_v2`] hashes each password with Argon2id
 //!   (`crate::passwords`) and marks it `password_scheme` 1, stores reset tokens as digests, and
 //!   ends every session: their tokens appeared in URLs and mails.
-//! - version 2: the current schema.
+//! - version 2: games are stored as savegames of game version 190, in the old JSON format.
+//!   [`migrate_to_v3`] converts each to version 191 (`crate::savegames`).
+//! - version 3: the current schema.
 //!
 //! Times are stored as RFC 3339 text in UTC ([`super::time::format`]). Session, login link and
 //! reset tokens are stored as their SHA-256 digests (`crate::ids::digest`).
@@ -25,7 +27,7 @@ use sqlx::{Row, Sqlite, Transaction};
 use super::passwords;
 use super::time::{self, Time};
 
-pub const SCHEMA_VERSION: i64 = 2;
+pub const SCHEMA_VERSION: i64 = 3;
 
 /// The version 1 schema, which the C# conversion fills. [`migrate_to_v2`] brings it up to date.
 const SCHEMA_V1: &[&str] = &[
@@ -297,7 +299,10 @@ impl Db {
                 create_schema_v1(&mut tx).await?;
             }
         }
-        migrate_to_v2(&mut tx).await?;
+        if version < 2 {
+            migrate_to_v2(&mut tx).await?;
+        }
+        migrate_to_v3(&mut tx).await?;
         sqlx::query(&format!("PRAGMA user_version = {SCHEMA_VERSION}")).execute(&mut *tx).await?;
         tx.commit().await?;
         Ok(())
@@ -463,6 +468,33 @@ async fn save_scheduled_game<'e>(executor: impl sqlx::Executor<'e, Database = Sq
 async fn create_schema_v1(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
     for statement in SCHEMA_V1 {
         sqlx::query(statement).execute(&mut **tx).await?;
+    }
+    Ok(())
+}
+
+/// Version 2 to 3. Each stored game, a savegame of game version 190 in the old JSON format, is
+/// rewritten as a savegame of version 191 (`crate::savegames::convert`), which reads back as the
+/// same events. A game that can't be converted is left as it was, with a line on the console:
+/// the server still loads an old savegame (`treachery_legacy::load_any`), or leaves it out at
+/// startup as before when its version is no longer played.
+pub async fn migrate_to_v3(tx: &mut Transaction<'_, Sqlite>) -> Result<(), OpenError> {
+    let rows: Vec<(String, String)> = sqlx::query("SELECT id, state FROM games").fetch_all(&mut **tx).await?.iter().map(|r| (r.get(0), r.get(1))).collect();
+    let (mut converted, mut kept) = (0, 0);
+    for (id, state) in rows {
+        match crate::savegames::convert(&state) {
+            Ok(new) => {
+                sqlx::query("UPDATE games SET state = ? WHERE id = ?").bind(new).bind(&id).execute(&mut **tx).await?;
+                converted += 1;
+            }
+            Err(crate::savegames::NotConverted::Current) => {}
+            Err(reason) => {
+                println!("game {id} is not converted to version 191: {reason:?}");
+                kept += 1;
+            }
+        }
+    }
+    if converted + kept > 0 {
+        println!("converted {converted} games to version 191, {kept} left as they were");
     }
     Ok(())
 }
@@ -756,6 +788,42 @@ mod tests {
         // Opening it again changes nothing.
         let db = Db::open(&path).await.unwrap();
         assert_eq!(db.users().await.unwrap(), users);
+    }
+
+    /// A version 2 database: stored games of version 190 become savegames of version 191, and a
+    /// game that can't be converted stays as it was.
+    #[tokio::test(flavor = "current_thread")]
+    async fn migrates_version_2() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("v2.db");
+        let old = std::fs::read_to_string(format!("{}/../../scripts/fixtures/battle.json", env!("CARGO_MANIFEST_DIR"))).unwrap();
+        let unreadable = r#"{"Version":150,"_events":[]}"#;
+        {
+            let pool = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(&path).create_if_missing(true)).await.unwrap();
+            let mut tx = pool.begin().await.unwrap();
+            create_schema_v1(&mut tx).await.unwrap();
+            migrate_to_v2(&mut tx).await.unwrap();
+            for (id, state) in [("g1", old.as_str()), ("g2", unreadable)] {
+                sqlx::query("INSERT INTO games (id, name, creator_id, created, last_activity, statistics_sent, participation, state) VALUES (?, 'x', 1, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z', 0, '{}', ?)")
+                    .bind(id)
+                    .bind(state)
+                    .execute(&mut *tx)
+                    .await
+                    .unwrap();
+            }
+            sqlx::query("PRAGMA user_version = 2").execute(&mut *tx).await.unwrap();
+            tx.commit().await.unwrap();
+            pool.close().await;
+        }
+        let db = Db::open(&path).await.unwrap();
+        let games = db.games().await.unwrap();
+        let state = |id: &str| games.iter().find(|g| g.id == id).unwrap().state.clone();
+        assert_eq!(state("g1"), crate::savegames::convert(&old).unwrap());
+        assert!(state("g1").starts_with(r#"{"version":191,"#));
+        assert_eq!(state("g2"), unreadable);
+        db.close().await;
+        let db = Db::open(&path).await.unwrap();
+        assert_eq!(db.games().await.unwrap().len(), 2);
     }
 
     #[tokio::test(flavor = "current_thread")]

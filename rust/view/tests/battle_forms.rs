@@ -16,7 +16,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::{self, battle};
 use treachery_view::build::{event, ResolvedViewer};
 use treachery_view::describe::{default_describer, Describer, InGame};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 
 fn viewer(game: &Game, p: PlayerId) -> ResolvedViewer {
@@ -307,7 +307,7 @@ fn battle_forms_in_fixtures() {
     names.sort();
     for name in names {
         let text = common::fixture(&name);
-        let Ok(mut r) = ViewReplica::load(&common::converted(&text)) else { continue };
+        let Ok(mut r) = common::load_raw(&text) else { continue };
         check_all_players(&mut r.game, &*d, &mut stats, &name);
     }
     eprintln!("fixtures: {:?}", stats.0);
@@ -323,7 +323,7 @@ fn battle_forms_in_bot_games() {
     let mut stats = Stats::default();
     for path in common::sample_bot_traces() {
         let trace = common::read_trace(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (n, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             check_all_players(&mut r.game, &*d, &mut stats, &format!("{} step {n}", trace.name));
@@ -345,8 +345,8 @@ fn read_until_undo(path: &std::path::Path) -> common::Trace {
     for line in reader.lines() {
         let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
         match v["kind"].as_str() {
-            Some("header") => version = v["gameVersion"].as_i64().unwrap() as i32,
-            Some("step") if v["result"] == "accepted" => events.push(v["event"].to_string()),
+            Some("header") => version = common::played_version(v["gameVersion"].as_i64().unwrap() as i32),
+            Some("step") if v["result"] == "accepted" => events.push(common::event_text(&v["event"])),
             Some("undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone") => break,
             _ => {}
         }
@@ -377,7 +377,7 @@ fn battle_forms_in_rare_traces() {
     };
     for path in traces_in(&dir) {
         let trace = read_until_undo(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (n, e) in trace.events.iter().enumerate() {
             if r.apply(e).is_err() {
                 break;
@@ -419,7 +419,7 @@ const RARE: &[&str] = &[
 /// latest-version fuzz games did), so the state is built from the `battle` fixture: the HMS is
 /// pointed at the Great Flat, the first two factions get forces in it, the first owns it and
 /// Arrakeen, and the battle between them starts there.
-fn hms_battle_state() -> ViewReplica {
+fn hms_battle_state() -> ViewedGame {
     let mut r = common::load_raw(&common::fixture("battle")).expect("battle fixture loads");
     let g = &mut r.game;
     let flat = g.board.map.the_great_flat();

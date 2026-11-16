@@ -1,8 +1,8 @@
 //! The casts `bots/src/support.rs` applies to the untyped parameters of a Clairvoyance question,
 //! for every kind of value a parameter can hold.
 //!
-//! `golden/b6-unbox.json` lists `[value, cast, expected result]`; a cast that panics has the
-//! result `EX:<panic message>`. The results are snapshots of the current behavior. After a
+//! `golden/b6-unbox.json` lists `[value, cast, expected result]`; a cast that fails has the
+//! result `EX:<.NET exception message>`. The results are snapshots of the current behavior. After a
 //! deliberate change, rewrite them with
 //! `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots --test b6_unbox` and review the diff.
 
@@ -11,7 +11,6 @@ mod common;
 use serde_json::json;
 use treachery_bots::prelude::*;
 use treachery_engine::messages::part::Part;
-use treachery_engine::error::catch_panic;
 use treachery_bots::support::{cast_hero, unbox_enum, unbox_int, unbox_strength};
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::identity::Fetcher;
@@ -46,14 +45,14 @@ fn unboxing_casts() {
     for case in cases {
         let (kind, cast, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap(), case[2].as_str().unwrap());
         let o = value(&game, kind);
-        let actual = catch_panic(|| match cast {
-            "TreacheryCardType" => format!("enum:{}", treachery_engine::enum_type::value_or_absent(unbox_enum::<TreacheryCardType>(&o))),
-            "Faction" => format!("enum:{}", treachery_engine::enum_type::value_or_absent(unbox_enum::<Faction>(&o))),
-            "int" => format!("int:{}", unbox_int(&o)),
-            "strength" => format!("strength:{}", unbox_strength(&o)),
-            "IHero" => cast_hero(&o).map_or("null".to_string(), |h| format!("hero:{}", h.id())),
+        let actual = match cast {
+            "TreacheryCardType" => unbox_enum::<TreacheryCardType>(&o).map(|e| format!("enum:{}", treachery_engine::enum_type::value_or_absent(e))),
+            "Faction" => unbox_enum::<Faction>(&o).map(|e| format!("enum:{}", treachery_engine::enum_type::value_or_absent(e))),
+            "int" => unbox_int(&o).map(|i| format!("int:{i}")),
+            "strength" => unbox_strength(&o).map(|s| format!("strength:{s}")),
+            "IHero" => cast_hero(&o).map(|h| h.map_or("null".to_string(), |h| format!("hero:{}", h.id()))),
             _ => panic!("unknown cast {cast}"),
-        })
+        }
         .unwrap_or_else(|e| format!("EX:{e}"));
         if actual != expected {
             failures.push(format!("({cast}){kind}: expected {expected}, actual {actual}"));

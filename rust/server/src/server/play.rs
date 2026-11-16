@@ -163,7 +163,7 @@ impl Server {
             let Some(address) = self.users.get(&user).map(|u| u.email.clone()).filter(|a| is_valid_address(a)) else { continue };
             let g = self.games.get_mut(game).expect("present");
             let Some(player) = g.participation.player_of(&g.game, user) else { continue };
-            let status = GameStatus::determine_status(&mut g.game, Some(player), true);
+            let status = GameStatus::determine_status(&g.game, Some(player), true);
             let status_text = render::message_to_string(&status.get_message(player, g.participation.is_host(user)));
             let waiting = if status.waiting_for_host {
                 "Players are waiting for the host to continue the game".to_string()

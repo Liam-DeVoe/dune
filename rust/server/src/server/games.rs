@@ -193,7 +193,7 @@ impl Server {
             if g.participation.was_kicked(user) {
                 return Err(refuse(ErrorCode::SeatNotAvailableKicked));
             }
-            g.participation.add_observer(&mut g.game, user, &player_name);
+            g.participation.add_observer(user, &player_name);
             self.connections.notify(&game, Notification::ObserveGame { user, name: player_name });
         }
         self.follow(&game, connection, user);

@@ -142,7 +142,19 @@ impl Game {
         entry.event.apply(self, by)?;
         let just_entered_start_of_phase = moment_just_before_event != Some(MainPhaseMoment::Start) && self.turn.current_moment == Some(MainPhaseMoment::Start);
         self.perform_post_event_tasks(entry, just_entered_start_of_phase);
+        self.settle_battle_sequence();
         Ok(())
+    }
+
+    /// While a player is to initiate a battle, or the battle report is shown, moves the battle
+    /// sequence on to the next player with a battle ([`Game::advance_battle_sequence`]). Queries
+    /// read the sequence without changing it, so this is where the passed-over players are
+    /// recorded, once per event.
+    fn settle_battle_sequence(&mut self) {
+        let choosing_battle = self.turn.current_phase == Phase::BattlePhase && self.battle.current_battle.is_none();
+        if choosing_battle || self.turn.current_phase == Phase::BattleReport {
+            self.advance_battle_sequence();
+        }
     }
 
     pub fn update_timers(&mut self, e: &HistoryEntry) {

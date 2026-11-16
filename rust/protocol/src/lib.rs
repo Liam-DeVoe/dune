@@ -6,12 +6,13 @@
 //! ([`Notification`]). Each call's reply type is in [`replies`], and `tests/ts_bindings.rs`
 //! generates the TypeScript types of all of them in `web/src/protocol/`.
 //!
-//! Events and game settings are still in the savegame format inside `submitEvent`,
-//! `queryDraft`, `updateSettings` and the `updateSettings` notification.
+//! Events inside `submitEvent` and `queryDraft` are the engine's `Event` (`{"type":..}`, without
+//! the submitter or a time, which the server sets), and game settings are its `GameSettings`.
+//! Their TypeScript types are in `web/src/generated/Event.ts`.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use treachery_view::replica::UndoEntry;
+use treachery_view::cache::UndoEntry;
 use treachery_view::schema::{DraftResult, GameView, ReportLines};
 use ts_rs::TS;
 
@@ -28,7 +29,8 @@ pub use lobby::*;
 /// The largest frame a client may send.
 pub const MAX_MESSAGE_BYTES: usize = 4 * 1024 * 1024;
 
-/// An event or draft in the savegame format: `{"$type":"Bid", ...}`.
+/// An event or draft as the client sends it: `{"type":"Bid","play":{"amount":3}}`. The server
+/// decodes it, so that one it can't read is refused with `invalidGameEvent`.
 pub type SavegameEvent = Map<String, Value>;
 
 /// Declares the calls: each one's wire name, arguments and reply type. Makes the [`Call`]
@@ -116,8 +118,8 @@ calls! {
     "createGame" CreateGame { name: Option<String>, password_hash: Option<String>, savegame: Option<String>, skin: Option<String> } => GameInitInfo;
     /// Hosts: replaces the game with a savegame.
     "loadGame" LoadGame { game: String, savegame: String, skin: Option<String> } => ();
-    /// Hosts: the settings for the game's start, in the savegame format.
-    "updateSettings" UpdateSettings { game: String, #[ts(type = "unknown")] settings: Value } => ();
+    /// Hosts: the settings for the game's start.
+    "updateSettings" UpdateSettings { game: String, #[ts(type = "GameSettings")] settings: Value } => ();
     /// The creator: removes everyone and deletes the game.
     "closeGame" CloseGame { game: String } => Lobby;
     /// Members: the game's participation, and the caller's view again.
@@ -170,7 +172,7 @@ calls! {
     // Playing
 
     /// Players: an event in the savegame format. The server sets who made it.
-    "submitEvent" SubmitEvent { game: String, #[ts(type = "Record<string, unknown>")] event: SavegameEvent } => ();
+    "submitEvent" SubmitEvent { game: String, #[ts(type = "Event")] event: SavegameEvent } => ();
     /// Hosts: back to the moment before event `until`.
     "undo" Undo { game: String, until: i32 } => ();
     "restoreUndone" RestoreUndone { game: String } => ();
@@ -216,7 +218,7 @@ calls! {
     // The game view
 
     /// Players: the options and validation of a draft of one of the caller's actions.
-    "queryDraft" QueryDraft { game: String, event_number: i32, #[ts(type = "Record<string, unknown>")] draft: SavegameEvent } => DraftResult;
+    "queryDraft" QueryDraft { game: String, event_number: i32, #[ts(type = "Event")] draft: SavegameEvent } => DraftResult;
     /// Members: the lines of a report of `log.reports`.
     "report" Report { game: String, index: i32 } => ReportLines;
     /// Hosts: every event, for the undo panel.
@@ -264,9 +266,9 @@ pub enum Notification {
     GameView(Box<GameView>),
     /// A host loaded a savegame. A `gameView` follows.
     LoadGame(GameInitInfo),
-    /// The settings a host chose for the game's start, in the savegame format.
+    /// The settings a host chose for the game's start.
     UpdateSettings {
-        #[ts(type = "unknown")]
+        #[ts(type = "GameSettings")]
         settings: Value,
     },
     /// A user joined, on `seat` or -1 for none yet.
@@ -353,8 +355,8 @@ mod tests {
             call(r#"{"id":8,"call":"assignSeats","args":{"game":"g","seats":[[5,1],[2,-1]]}}"#),
             Call::AssignSeats { game: "g".into(), seats: vec![(UserId(5), Some(Seat::new(1))), (UserId(2), None)] }
         );
-        match call(r#"{"id":6,"call":"queryDraft","args":{"game":"g","eventNumber":12,"draft":{"$type":"StormDialled","Amount":3}}}"#) {
-            Call::QueryDraft { event_number: 12, draft, .. } => assert_eq!(Value::Object(draft), json!({"$type": "StormDialled", "Amount": 3})),
+        match call(r#"{"id":6,"call":"queryDraft","args":{"game":"g","eventNumber":12,"draft":{"type":"StormDialled","amount":3}}}"#) {
+            Call::QueryDraft { event_number: 12, draft, .. } => assert_eq!(Value::Object(draft), json!({"type": "StormDialled", "amount": 3})),
             other => panic!("{other:?}"),
         }
     }

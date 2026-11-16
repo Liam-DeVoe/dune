@@ -13,18 +13,11 @@ The server holds each game and runs the engine. After every change it sends each
 | Skin | `rust/skin`, `web/public/skin/default.json` | Text is rendered on the server with the game's skin; the client uses the same skin as JSON for images, colours, map geometry and popover texts |
 | Web client | `web/` | React, TypeScript, Vite |
 
-## The view replica
+## Views and the server's game
 
-Building a view and answering a draft query call into the engine in ways that write game state: working out whose battle is next advances the battle sequence, and pathfinding fills a neighbour cache. The server's game must never see those writes, so views are never built from it.
+Views are built from the server's own game. Every engine query a view or a draft query makes takes `&Game` (`GameStatus::determine_status`, `Game::get_applicable_events`, `Game::next_player_to_battle`, pathfinding), so building a view can't change the game. Until wave 4a of rewrite-plan.md, those queries wrote state (the battle sequence, a neighbour cache) and views came from a second copy of the game, the view replica.
 
-Each game on the server has a `ViewReplica` (`rust/view/src/replica.rs`): a second `Game` that only the view code touches.
-
-- It executes each event the server accepted, without validating it again.
-- Every view is built from it after each event, and draft queries run on it.
-- Undo, restore and dismiss replace it with a replay of the server's new history.
-- Nothing flows back from it, and it can be rebuilt from the history at any time.
-
-One replica serves every viewer of a game. That works because the battle-sequence write stops once it finds a player with a battle, so a second viewer's build in the same state reads without writing. `tests/corpus.rs` and `tests/slice.rs` build all viewers' views in different orders on two replicas and require equal views.
+What a game's views keep between builds is a `ViewCache` (`rust/view/src/cache.rs`): the skin and the faction sheets of the last view, which later views reuse while the factions and rules stay the same. The server keeps one per followed game and starts it over when the game is replaced (undo, restore, dismiss, load) or a view fails to build. A draft query is checked against the actions the viewer has now. Tools and tests that hold a game of their own use `ViewedGame`, a game together with its cache, seating and timer. `tests/corpus.rs` and `tests/slice.rs` still build all viewers' views in different orders and require equal views, which now checks the faction-sheet cache.
 
 ## Visibility
 
@@ -68,7 +61,7 @@ web/
 
 ## Checks
 
-- `rust/tools/check.sh` runs the view tests: forms against the engine, visibility over the bot-game corpus, replica order independence, the log line snapshots (`tests/log_lines.rs`), the generated types and the static data.
+- `rust/tools/check.sh` runs the view tests: forms against the engine, visibility over the bot-game corpus, build order independence, the log line snapshots (`tests/log_lines.rs`), the generated types and the static data.
 - In `web/`: `npm run build` (typecheck and bundle), `npm run check:rich-text` (the React rich text shows each snapshot line's expected text), `npm run check:flash`.
 - `scripts/ui/e2e_server.py` starts the Rust server and drives the web client in Playwright: two players form an alliance by clicking, others join from the lobby, leave, are kicked and observe, the host undoes, a connection drops and comes back, and a user logs in through the form and out again. Its docstring lists every step.
 - `observe live` (native-harness.md) compares every view after every event with the reference build.

@@ -165,7 +165,9 @@ pub struct Obs {
     /// With `--full-views`: the views themselves, in the same order.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub full: Option<Vec<Value>>,
-    /// The view replica could not apply an event the game accepted.
+    /// The view replica could not apply an event the game accepted. Recorders from before
+    /// wave 4a of rewrite-plan.md had a replica; the working tree builds views from the game and
+    /// never sets this.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub replica: Option<String>,
 }

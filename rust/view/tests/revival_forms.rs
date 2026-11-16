@@ -12,7 +12,7 @@ use treachery_engine::prelude::*;
 use treachery_view::actions::{self, revival};
 use treachery_view::build::{validate, ResolvedViewer};
 use treachery_view::describe::{default_describer, Describer};
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::*;
 use treachery_view::shield::hero_ref;
 
@@ -246,8 +246,8 @@ fn check_state(game: &Game, p: PlayerId, types: &[EventType], d: &dyn Describer,
     checked
 }
 
-/// Every fixture, every faction: the views' revival forms, and the draft-query path through the
-/// replica for one varied draft per form.
+/// Every fixture, every faction: the views' revival forms, and the draft-query path for one
+/// varied draft per form.
 #[test]
 fn fixture_forms_match_the_engine() {
     let d = default_describer();
@@ -337,7 +337,7 @@ fn bot_game_forms_match_the_engine() {
     let mut seen = std::collections::BTreeMap::<&str, usize>::new();
     for path in sample_bot_traces() {
         let trace = read_trace(&path);
-        let mut r = ViewReplica::new(trace.version);
+        let mut r = ViewedGame::new(trace.version);
         for (i, e) in trace.events.iter().enumerate() {
             r.apply(e).unwrap();
             let fs: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();

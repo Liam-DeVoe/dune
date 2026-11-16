@@ -287,3 +287,27 @@ export const ShipmentPermissionValue: Record<ShipmentPermission, number> = {
   GuildRate: 4,
 };
 
+/** `AutomationRuleType` members. */
+export type AutomationRuleType = "Unknown" | "CharityAutoClaim" | "BiddingPassWhenAtreidesOrAtreidesAllyPassed" | "BiddingPassAboveAmount" | "BiddingPassWhenHighestBidByFaction" | "RevivalAutoClaimFreeRevival" | "ShipmentGuildAutoDelay";
+
+/** `ClairVoyanceAnswer` members. */
+export type ClairVoyanceAnswer = "None" | "Yes" | "No" | "Unknown";
+
+/** `ClairvoyanceQuestion` members. */
+export type ClairvoyanceQuestion = "None" | "Prediction" | "LeaderAsTraitor" | "LeaderAsFacedancer" | "HasCardTypeInHand" | "LeaderInBattle" | "CardTypeInBattle" | "CardTypeAsDefenseInBattle" | "CardTypeAsWeaponInBattle" | "DialOfMoreThanXInBattle" | "WillAttackX";
+
+/** `DealType` members. */
+export type DealType = "None" | "DontShipOrMoveTo" | "ShareBiddingPrescience" | "ShareResourceDeckPrescience" | "ShareStormPrescience" | "ForfeitBattle" | "TellDiscardedTraitors";
+
+/** `FactionAdvantage` members. */
+export type FactionAdvantage = "None" | "AtreidesBiddingPrescience" | "AtreidesSpiceBlowPrescience" | "AtreidesBattlePlanPrescience" | "AtreidesUseMessiah" | "HarkonnenFreeCard" | "HarkonnenCaptureLeader" | "HarkonnenCallTraitorForAlly" | "BeneGesseritAccompanies" | "BeneGesseritUsingVoice" | "BeneGesseritWorthlessAsKarma" | "BeneGesseritAnnouncesBattle" | "BeneGesseritIntrusion" | "BeneGesseritCharity" | "FremenControlsMonster" | "FremenRidesMonster" | "FremenNotPayingForBattles" | "FremenSpecialForceBonus" | "FremenExtraMove" | "FremenProtectedFromStorm" | "FremenProtectedFromMonster" | "FremenProtectedFromMonsterAlly" | "FremenStormPrescience" | "EmperorSpecialForceBonus" | "EmperorReceiveBid" | "EmperorGiveSpiceToAlly" | "EmperorLetAllyReviveExtraForces" | "GuildDetermineMoveMoment" | "GuildSpecialShipments" | "GuildShipmentsDiscount" | "GuildShipmentsDiscountAlly" | "GuildReceiveShipment" | "TleilaxuRevivalDiscount" | "TleilaxuRevivalDiscountAlly" | "TleilaxuReplacingFaceDancer" | "TleilaxuIncreasingRevivalLimits" | "TleilaxuReceiveRevive" | "TleilaxuEarlyLeaderRevive" | "TleilaxuReviveGhola" | "IxianMovingHms" | "IxianSpecialForceBonus" | "IxianSelectingCardsOnAuction" | "IxianCyborgExtraMove" | "IxianReplacingSpecialForces" | "IxianAllyDiscardingCard" | "IxianSwappingCard" | "ChoamControllingCharity" | "ChoamDiscarding" | "ChoamRevival" | "ChoamEconomics" | "ChoamReceiveForcePayment" | "ChoamAudit" | "RicheseAuction" | "RicheseNofield" | "RicheseBlackMarket" | "EcazAmbassadors" | "EcazOccupation" | "EcazCollection" | "MoritaniPlantingTerror" | "MoritaniGainingVidal" | "MoritaniEnemyOfEnemy";
+
+/** `ItemAction` members. */
+export type ItemAction = "Create" | "Update" | "Delete";
+
+/** `JuiceType` members. */
+export type JuiceType = "None" | "GoFirst" | "GoLast" | "Aggressor";
+
+/** `PrescienceAspect` members. */
+export type PrescienceAspect = "None" | "Dial" | "Leader" | "Weapon" | "Defense";
+

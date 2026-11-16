@@ -34,7 +34,7 @@ fn prescience_shows_as_waiting_until_voice_is_declined() {
     assert!(r.view(OBSERVER).waiting_actions.is_empty());
     assert!(types(&r.view(bg)).contains(&"VoiceDeclined".to_string()));
 
-    r.apply(r#"{"$type":"VoiceDeclined","Initiator":60,"Time":"2026-09-19T20:59:58.974212-04:00"}"#).unwrap();
+    r.apply(&common::event_text(&serde_json::from_str(r#"{"$type":"VoiceDeclined","Initiator":60,"Time":"2026-09-19T20:59:58.974212-04:00"}"#).unwrap())).unwrap();
     let view = r.view(atreides);
     assert!(view.waiting_actions.is_empty());
     assert!(types(&view).contains(&"Prescience".to_string()));

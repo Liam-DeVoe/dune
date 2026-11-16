@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 impl Game {
-    pub fn get_applicable_events(&mut self, player: Option<PlayerId>, is_host: bool) -> Vec<EventType> {
+    pub fn get_applicable_events(&self, player: Option<PlayerId>, is_host: bool) -> Vec<EventType> {
         let mut result: Vec<EventType> = Vec::new();
 
         if self.turn.current_phase == Phase::SelectingFactions && (player.is_none() || self.player(player.expect("player")).faction == None) {
@@ -62,7 +62,7 @@ impl Game {
         }
     }
 
-    pub fn add_player_actions(&mut self, player: PlayerId, is_host: bool, result: &mut Vec<EventType>) {
+    pub fn add_player_actions(&self, player: PlayerId, is_host: bool, result: &mut Vec<EventType>) {
         let faction = self.player(player).faction;
         let has_caravan = |g: &Game| g.player(player).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Caravan);
 
@@ -423,7 +423,6 @@ impl Game {
             }
 
             Phase::BattlePhase => {
-                // NextPlayerToBattle mutates BattleSequence; only read when CurrentBattle is null.
                 if self.battle.current_battle.is_none() && Some(player) == self.next_player_to_battle() {
                     result.push(EventType::BattleInitiated);
                 }

@@ -28,7 +28,7 @@ use serde_json::{json, Value};
 use treachery_engine::messages::message::Message;
 use treachery_view::describe::InGame;
 use treachery_view::log::log_line;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 
 fn golden_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/golden").join(name)
@@ -132,11 +132,11 @@ fn fixture_log_lines_match_the_snapshot() {
     let mut failures = Vec::new();
     let mut written = Vec::new();
     for fixture in fixtures {
-        let replica = ViewReplica::load(&common::converted(&common::fixture(fixture))).unwrap();
+        let viewed = common::load_raw(&common::fixture(fixture)).unwrap();
         let skin = treachery_skin::default_skin();
-        let d = InGame::new(&skin, &replica.game);
+        let d = InGame::new(&skin, &viewed.game);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["fixture"] == fixture).collect();
-        let actual: Vec<Value> = replica
+        let actual: Vec<Value> = viewed
             .game
             .reports()
             .iter()
@@ -179,15 +179,15 @@ fn bot_game_log_lines_match_the_snapshot() {
         if expected.is_empty() {
             continue; // every shape of this game came earlier
         }
-        let mut replica = ViewReplica::new(trace.version);
+        let mut viewed = ViewedGame::new(trace.version);
         for e in &trace.events {
-            replica.apply(e).unwrap();
+            viewed.apply(e).unwrap();
         }
         let skin = treachery_skin::default_skin();
-        let d = InGame::new(&skin, &replica.game);
+        let d = InGame::new(&skin, &viewed.game);
         for g in expected {
             let (r, i) = (g["report"].as_u64().unwrap() as usize, g["line"].as_u64().unwrap() as usize);
-            let m = replica.game.reports()[r].messages.iter().nth(i).expect("message");
+            let m = viewed.game.reports()[r].messages.iter().nth(i).expect("message");
             let actual = snapshot(("trace", &trace.name), r, i, m, &d, g["dom"].as_str().unwrap_or(""));
             if let Some(f) = compare(g, &actual) {
                 failures.push(format!("{} report {r} line {i} {f}", trace.name));
@@ -208,13 +208,13 @@ fn bot_game_lines(paths: &[PathBuf]) -> Vec<Value> {
     let mut out = Vec::new();
     for path in paths {
         let trace = common::read_trace(path);
-        let mut replica = ViewReplica::new(trace.version);
+        let mut viewed = ViewedGame::new(trace.version);
         for e in &trace.events {
-            replica.apply(e).unwrap();
+            viewed.apply(e).unwrap();
         }
         let skin = treachery_skin::default_skin();
-        let d = InGame::new(&skin, &replica.game);
-        for (r, rep) in replica.game.reports().iter().enumerate() {
+        let d = InGame::new(&skin, &viewed.game);
+        for (r, rep) in viewed.game.reports().iter().enumerate() {
             for (i, m) in rep.messages.iter().enumerate() {
                 let line = snapshot(("trace", &trace.name), r, i, m, &d, &dom_for(&doms, m, &d));
                 let n = seen.entry(shape(&line)).or_default();

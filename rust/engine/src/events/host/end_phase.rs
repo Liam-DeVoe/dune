@@ -171,8 +171,7 @@ impl EndPhase {
             game.storm.karma_hms_moves_left = 0;
         }
         self.reset_battle(game);
-        // Arguments are evaluated before the call (NextPlayerToBattle mutates BattleSequence).
-        if game.next_player_to_battle().is_none() {
+        if game.advance_battle_sequence().is_none() {
             enter_spice_collection_phase(game);
         } else {
             game.enter(Phase::BeginningOfBattle, true);
@@ -294,7 +293,7 @@ impl EventRules for EndPhase {
 
             Phase::BattleReport => {
                 self.reset_battle(game);
-                let condition = game.next_player_to_battle().is_some();
+                let condition = game.advance_battle_sequence().is_some();
                 game.enter_or_else(condition, Phase::BattlePhase, enter_spice_collection_phase);
             }
 

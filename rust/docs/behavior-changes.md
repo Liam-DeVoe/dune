@@ -380,3 +380,16 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Area: automation rules, saved games (rewrite-plan.md change 3a)
 - What happened: the game's list of automation rules held the `AutomationConfigured` events of the history, and creating a rule wrote its new id into the event. So a saved game showed the assigned id in the history (`"AutomationRuleId":0`), not the -1 that was submitted.
 - Done (3a, the rest folder): the game keeps `AutomationRuleState` values with their ids, and the history keeps the event as submitted. Replays don't change, because a created rule always gets the next free id, whatever id the event holds. No harness game reaches it (12 bots and 12 fuzz games, seed 1, match).
+
+## Views after an event that failed halfway
+
+- Area: views, server (rewrite-plan.md change 4a)
+- What happened: views were built from a view replica, a second game that executed only the events in the history. An event that passes validation and then fails while it is applied (a "Game Error") isn't added to the history, but the changes it made before failing stay in the server's game. The replica never saw them, so players saw a game that differed from the one the server played on: in fuzz seed 1 game 9, a `TreacheryCalled` failed with "Card 18 is in more than one hand" after recording the traitor call, and the views kept waiting for Fremen to call treachery while the game no longer did.
+- Done (4a): views are built from the server's game, so they show those changes too. The failed event itself is still the bug, and escapes.md ("A Bene Gesserit intrusion left over from another phase") has the weak spot: an undo replays the history without the failed event's changes. Undoing a failed event's changes (applying an event on a copy, or rolling back on an error) would fix both, and is left for a separate change.
+- Harness: fuzz seed 1 games 9, 29 and 30 of 50 differ, each first at a view after a `TreacheryCalled` that failed with "Card N is in more than one hand". With an `observe` built to take its views from a game that plays only the history, as the replica did, all three and all 50 fuzz games match, so nothing else changed. Bots games don't reach it (50 of 50 match).
+
+## Seat changes are no longer written to the game's log
+
+- Area: server (rewrite-plan.md change 4a)
+- What happened: the server wrote "X now controls F", "X is now observing" and "X left/was kicked from the game" into the game's log. Players never saw them, because views came from the replica, which replayed only the history.
+- Done (4a): the server no longer writes them. Shown from the server's game, they would vanish on every undo, because they aren't in the history (`server/tests/play.rs`, `restore_brings_back_the_views_from_before_the_undo`, caught that).

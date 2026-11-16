@@ -7,7 +7,7 @@ mod common;
 use common::{fixture, load, truncated, load_text, viewer_of, OBSERVER};
 use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
-use treachery_view::replica::ViewReplica;
+use treachery_view::cache::ViewedGame;
 use treachery_view::schema::GameView;
 use treachery_view::skin_texts::SheetPart;
 
@@ -21,7 +21,7 @@ fn fixtures() -> Vec<String> {
     names
 }
 
-fn all_views(r: &mut ViewReplica) -> Vec<GameView> {
+fn all_views(r: &mut ViewedGame) -> Vec<GameView> {
     let factions: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
     let mut out: Vec<GameView> = factions.into_iter().map(|f| r.view(viewer_of(r, f))).collect();
     out.push(r.view(OBSERVER));

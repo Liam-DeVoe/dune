@@ -255,7 +255,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
 fn a_karama_bid_needs_a_karama_card_and_no_pass() {
     let mut g = fixture("bid");
     let bidder = g.bidding.bid_sequence.as_ref().unwrap().current_player(&g).expect("a bidder");
-    let faction = g.player(bidder).faction;
+    let faction = g.player(bidder).faction.expect("bidder has a faction");
     let held: Vec<TreacheryCard> = g.players.iter().flat_map(|p| p.treachery_cards.clone()).collect();
     let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();
     g.player_mut(bidder).treachery_cards.push(karama);

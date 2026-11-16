@@ -41,6 +41,8 @@ impl ViewHash {
 
     pub fn hasher(self) -> Hasher {
         match self {
+            #[cfg(target_arch = "aarch64")]
+            ViewHash::Sha256 if crate::sha256_arm::available() => Hasher::Sha256Arm(crate::sha256_arm::Sha256Arm::new()),
             ViewHash::Sha256 => Hasher::Sha256(Sha256::new()),
             ViewHash::Fold64 => Hasher::Fold64(Fold64::new()),
         }
@@ -57,6 +59,9 @@ impl ViewHash {
 /// A hash being computed. Serialize a view into it with `serde_json::to_writer`.
 pub enum Hasher {
     Sha256(Sha256),
+    /// SHA-256 with the CPU's SHA-2 instructions, several times faster.
+    #[cfg(target_arch = "aarch64")]
+    Sha256Arm(crate::sha256_arm::Sha256Arm),
     Fold64(Fold64),
 }
 
@@ -64,6 +69,8 @@ impl Hasher {
     pub fn update(&mut self, bytes: &[u8]) {
         match self {
             Hasher::Sha256(h) => Digest::update(h, bytes),
+            #[cfg(target_arch = "aarch64")]
+            Hasher::Sha256Arm(h) => h.update(bytes),
             Hasher::Fold64(h) => h.update(bytes),
         }
     }
@@ -71,10 +78,16 @@ impl Hasher {
     /// The hash as 16 hex digits.
     pub fn finish(self) -> String {
         match self {
-            Hasher::Sha256(h) => h.finalize().iter().take(8).map(|b| format!("{b:02x}")).collect(),
+            Hasher::Sha256(h) => hex8(&h.finalize()),
+            #[cfg(target_arch = "aarch64")]
+            Hasher::Sha256Arm(h) => hex8(&h.finalize()),
             Hasher::Fold64(h) => format!("{:016x}", h.finish()),
         }
     }
+}
+
+fn hex8(digest: &[u8]) -> String {
+    digest.iter().take(8).map(|b| format!("{b:02x}")).collect()
 }
 
 impl Write for Hasher {

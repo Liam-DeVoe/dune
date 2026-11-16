@@ -219,7 +219,7 @@ fn threshold_for_win() {
 #[test]
 fn status_unknown_phase_waits_for_host() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.enter(Phase::DiscardingTraitor, false);
+    g.interrupt(Interrupt::DiscardingTraitor { faction: Some(Faction::Atreides), remaining: 1 });
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.waiting_for_host);
     assert_eq!(s.get_message(g.player_at(0), true).plain_text(), "Unknown phase: DiscardingTraitor");

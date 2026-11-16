@@ -244,7 +244,7 @@ impl ClassicBot {
     // ---- Ixian ----
 
     pub fn determine_replaced_card_won(&self, game: &Game) -> ReplacedCardWon {
-        let replace = game.bidding.card_just_won.is_some_and(|c| self.card_quality(game, c, Some(self.player)) <= 2);
+        let replace = game.card_just_won().is_some_and(|c| self.card_quality(game, c, Some(self.player)) <= 2);
         let mut e = ReplacedCardWon::default();
         e.passed = !replace;
         e
@@ -254,7 +254,7 @@ impl ClassicBot {
         use TreacheryCardType as T;
         let me = game.player(self.player);
         let p = Some(self.player);
-        let items = || game.bidding.cards_on_auction.as_ref().expect("cards on auction").items.iter().copied();
+        let items = || game.cards_on_auction().expect("cards on auction").items.iter().copied();
         let i_have = |f: fn(&TreacheryCard) -> bool| me.treachery_cards.iter().any(f);
 
         // (whether to look, which card to take off the auction): take away what would counter my
@@ -704,10 +704,10 @@ impl ClassicBot {
     pub fn determine_voice(&mut self, game: &Game) -> Option<Voice> {
         self.voice_plan = None;
 
-        let battle = game.battle.current_battle.clone()?;
+        let battle = game.current_battle().cloned()?;
         if battle.is_aggressor_or_defender(game, self.player) {
             let opponent = battle.opponent_of_faction(game, self.faction(game));
-            let plan = self.best_voice(game, game.battle.current_battle.clone(), self.player, opponent?);
+            let plan = self.best_voice(game, game.current_battle().cloned(), self.player, opponent?);
             let voice = plan.voice.clone();
             self.voice_plan = Some(plan);
             return Some(voice);
@@ -814,10 +814,10 @@ impl ClassicBot {
     // ---- Atreides ----
 
     pub fn determine_prescience(&self, game: &Game) -> Option<Prescience> {
-        let battle = game.battle.current_battle.clone()?;
+        let battle = game.current_battle().cloned()?;
         let opponent = battle.opponent_of_faction(game, self.faction(game));
 
-        if Voice::may_use_voice_opt(game, opponent) && game.battle.current_voice.is_none() && battle.plan_of(game, opponent).is_none() {
+        if Voice::may_use_voice_opt(game, opponent) && game.fight().map_or(true, |c| c.voice.is_none()) && battle.plan_of(game, opponent).is_none() {
             // Wait for voice or a finalized battle plan.
             return None;
         }
@@ -826,7 +826,7 @@ impl ClassicBot {
             return None;
         }
 
-        let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
+        let existing_aspect = game.fight().and_then(|c| c.prescience.as_ref()).map_or(None, |p| p.aspect);
         let mut e = Prescience::default();
         let territory = battle.territory?;
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
@@ -882,7 +882,7 @@ impl ClassicBot {
 
     pub fn determine_set_increased_revival_limits(&self, game: &Game) -> Option<SetIncreasedRevivalLimits> {
         let targets: Vec<Faction> = SetIncreasedRevivalLimits::valid_targets(game, self.player).collect();
-        if game.revival.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").len() != targets.len() {
+        if game.turn.revivals.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").len() != targets.len() {
             let mut e = SetIncreasedRevivalLimits::default();
             e.factions = Some(targets);
             return Some(e);
@@ -902,7 +902,7 @@ impl ClassicBot {
             let face_danced_hero_is_living_leader = face_dancer.is_some_and(|f| f.as_leader().is_some() && game.is_alive(f));
 
             if (FaceDanced::maximum_number_of_forces(game, self.player) > 0 || face_danced_hero_is_living_leader)
-                && game.battle.battle_winner != Some(self.ally(game))
+                && game.battle_winner() != self.ally(game)
             {
                 e.passed = false;
             }
@@ -974,8 +974,8 @@ impl ClassicBot {
 
     pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<RequestTleilaxuRevival> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.initiator == Some(faction))
-            || game.revival.early_revivals_offers.keys().any(|h| h.faction() == Some(faction))
+        if game.turn.revivals.current_revival_requests.iter().any(|r| r.initiator == Some(faction))
+            || game.revival().is_some_and(|r| r.early_revivals_offers.keys().any(|h| h.faction() == Some(faction)))
         {
             return None;
         }
@@ -1010,7 +1010,7 @@ impl ClassicBot {
     }
 
     pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<AcceptOrCancelTleilaxuRevival> {
-        let request_to_handle = game.revival.current_revival_requests.first().cloned()?;
+        let request_to_handle = game.turn.revivals.current_revival_requests.first().cloned()?;
         let hero = request_to_handle.hero.expect("hero");
 
         let price = if request_to_handle.initiator == self.ally(game) {
@@ -1039,7 +1039,7 @@ impl ClassicBot {
     // ---- Choam ----
 
     pub fn determine_resources_audited(&self, game: &Game) -> Option<ResourcesAudited> {
-        let battle = match &game.battle.current_battle {
+        let battle = match game.current_battle() {
             Some(b) if b.is_aggressor_or_defender(game, self.player) => b.clone(),
             _ => return None,
         };
@@ -1243,7 +1243,7 @@ impl ClassicBot {
 
     pub fn determine_ambassador_placed(&mut self, game: &Game) -> Option<AmbassadorPlaced> {
         let resources = self.resources(game);
-        if (resources <= 1 || game.revival.ambassadors_placed_this_turn != 0) && resources <= 3 + game.revival.ambassadors_placed_this_turn {
+        if (resources <= 1 || game.turn.revivals.ambassadors_placed_this_turn != 0) && resources <= 3 + game.turn.revivals.ambassadors_placed_this_turn {
             return None;
         }
 
@@ -1290,7 +1290,7 @@ impl ClassicBot {
             Some(Ambassador::Fremen)
         } else if can_place(Ambassador::Ecaz) && !me.has_ally() {
             Some(Ambassador::Ecaz)
-        } else if game.revival.ambassadors_placed_this_turn == 0 {
+        } else if game.turn.revivals.ambassadors_placed_this_turn == 0 {
             AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_item(&self.random)
         } else {
             None

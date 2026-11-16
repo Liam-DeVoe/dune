@@ -17,12 +17,12 @@ impl AuditCancelled {
     }
 
     pub fn get_number_of_cards_that_may_be_audited(g: &Game) -> i32 {
-        std::cmp::min(if g.battle.auditor_survived_battle { 2 } else { 1 }, Self::get_cards_that_may_be_audited(g).len() as i32)
+        std::cmp::min(if g.fight().is_some_and(|c| c.auditor_survived) { 2 } else { 1 }, Self::get_cards_that_may_be_audited(g).len() as i32)
     }
 
     pub fn get_cards_that_may_be_audited(g: &Game) -> Vec<TreacheryCard> {
         let Some(auditee) = g.auditee() else { return Vec::new() };
-        let recent_battle_plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(auditee));
+        let recent_battle_plan = g.current_battle().expect("current battle").plan_of(g, Some(auditee));
         if let Some(plan) = recent_battle_plan {
             let (weapon, defense, hero) = (plan.weapon(), plan.defense(), plan.hero);
             return g
@@ -68,19 +68,19 @@ impl EventRules for AuditCancelled {
         }
 
         if !self.cancelled {
-            game.enter(Phase::Auditing, true);
+            game.enter_battle(BattleStep::Auditing);
             // A copy: the next audit clears and refills `audited_cards`, and this message
             // should keep showing the cards of this audit.
-            let audited = Part::list(game.battle.audited_cards.iter().copied());
+            let audited = Part::list(game.fight().into_iter().flat_map(|c| c.audited_cards.iter().copied()));
             game.log_to(by.faction.required("faction")?, parts![Faction::Choam, " see: ", audited]);
         } else {
-            let winner_is_none = game.battle.battle_winner == Some(None);
+            let winner_is_none = game.battle_winner().is_none();
             let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
             // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
             if winner_is_none {
                 game.finish_battle()?;
             } else {
-                game.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+                game.enter_battle(if harkonnen_must_decide { BattleStep::CaptureDecision } else { BattleStep::Conclusion });
             }
         }
         Ok(())

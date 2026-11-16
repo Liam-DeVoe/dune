@@ -43,6 +43,9 @@ pub struct Board {
     pub sand_trout: Option<ResourceCard>,
     /// A sandtrout cancelled a worm, so the next spice blow is doubled.
     pub sand_trout_doubles_resources: bool,
+    /// The CHOAM economics token, once CHOAM has played it (`ChoamEconomics`). The mentat pause
+    /// flips it; charity, deals and donations read it.
+    pub choam_economics_status: Option<ChoamEconomicsStatus>,
 }
 
 impl Board {
@@ -71,6 +74,7 @@ impl Board {
             number_of_monsters: 0,
             sand_trout: None,
             sand_trout_doubles_resources: false,
+            choam_economics_status: None,
         }
     }
 }

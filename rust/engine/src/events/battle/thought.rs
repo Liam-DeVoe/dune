@@ -24,9 +24,9 @@ impl Thought {
 
     pub fn may_be_used(game: &Game, player: PlayerId) -> bool {
         game.has_skill_in_front_of_shield(player, LeaderSkill::Thinker)
-            && game.battle.current_battle.is_some()
-            && game.battle.current_thought.is_none()
-            && game.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(game, player)
+            && game.current_battle().is_some()
+            && game.fight().map_or(true, |c| c.thought.is_none())
+            && game.current_battle().expect("current battle").is_aggressor_or_defender(game, player)
     }
 }
 
@@ -42,12 +42,12 @@ impl EventRules for Thought {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.battle.current_thought = Some(ThoughtAsked { submitter: by, card: self.card });
-        let battle = game.battle.current_battle.clone().required("current battle")?;
+        game.fight_mut().thought = Some(ThoughtAsked { submitter: by, card: self.card });
+        let battle = game.current_battle().cloned().required("current battle")?;
         let opponent = game.player(battle.opponent_of_faction(game, by.faction).required("opponent of faction")?).faction;
         game.log(parts![by.faction, " use their ", LeaderSkill::Thinker, " skill to ask ", opponent, " if they have a ", self.card]);
         game.stone(Milestone::Prescience);
-        game.enter(Phase::Thought, true);
+        game.enter_battle(BattleStep::Thought);
         Ok(())
     }
 

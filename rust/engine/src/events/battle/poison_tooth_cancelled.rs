@@ -10,7 +10,7 @@ impl EventRules for PoisonToothCancelled {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.battle.poison_tooth_cancelled = true;
+        game.fight_mut().poison_tooth_cancelled = true;
         let m = self.describe(game, by);
         game.log_event(m);
         Ok(())

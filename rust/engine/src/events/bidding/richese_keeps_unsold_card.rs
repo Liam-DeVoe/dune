@@ -15,7 +15,7 @@ impl EventRules for RicheseKeepsUnsoldCard {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
+        let card = game.in_bidding_mut().cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.register_won_card_as_known(card);
 
         if !self.passed {

@@ -228,9 +228,9 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
     if game.turn.current_main_phase != MainPhase::Bidding {
         return None;
     }
-    let silent = game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) || game.bidding.current_auction_type == Some(AuctionType::RicheseSilent);
+    let silent = game.current_auction_type() == Some(AuctionType::BlackMarketSilent) || game.current_auction_type() == Some(AuctionType::RicheseSilent);
     let bids = game
-        .bidding.bids
+        .bids()
         .iter()
         .map(|(f, bid)| {
             let shown = if silent {
@@ -243,7 +243,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
             MapBid { faction: name(*f), bid: shown }
         })
         .collect();
-    Some(BiddingView { auction_type: name_or_absent(game.bidding.current_auction_type), bids,
+    Some(BiddingView { auction_type: name_or_absent(game.current_auction_type()), bids,
         panel: crate::actions::bidding::panel(game, v),
         auction_won: game.turn.recent_milestones.contains(&Milestone::AuctionWon),
         next_card: crate::actions::bidding::next_card(game, v),
@@ -252,7 +252,7 @@ pub fn bidding(game: &Game, v: &ResolvedViewer) -> Option<BiddingView> {
 
 /// The current battle and the plans this viewer may see.
 pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
-    let current = game.battle.current_battle.clone()?;
+    let current = game.current_battle().cloned()?;
     let aggressor = current.aggressor(game);
     let defender = current.defender(game);
     let territory = current.territory;
@@ -269,18 +269,18 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
 
     let me = viewer_faction(v);
     let my_ally = v.player.map(|p| game.player(p).ally);
-    let sees_atreides_karma = game.battle.atreides_karma && (me == Some(Faction::Atreides) || my_ally == Some(Some(Faction::Atreides)));
+    let sees_atreides_karma = game.fight().is_some_and(|c| c.atreides_karma) && (me == Some(Faction::Atreides) || my_ally == Some(Some(Faction::Atreides)));
     let atreides_opponent = current.opponent_of_faction(game, Faction::Atreides);
-    let both_in = game.battle.aggressor_plan.is_some() && game.battle.defender_plan.is_some();
+    let both_in = game.aggressor_plan().is_some() && game.defender_plan().is_some();
     // What prescience revealed goes to the prescience user and their ally only (protocol.md,
     // Visibility).
     let on_side_of = |f: Option<Faction>| f.is_some() && (me == f || my_ally == Some(f));
     let affected_by_partial = |plan: &BattlePlan| {
         let by = |initiator: Option<Faction>| current.opponent_of_faction(game, initiator) == Some(plan.player()) && on_side_of(initiator);
-        game.battle.current_prescience.as_ref().is_some_and(|pr| by(pr.initiator())) || game.turn.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
+        game.fight().and_then(|c| c.prescience.as_ref()).is_some_and(|pr| by(pr.initiator())) || game.turn.current_nexus_prescience.as_ref().is_some_and(|np| by(np.initiator()))
     };
     let traitor = |a: &Option<TraitorCall>| a.as_ref().is_some_and(|t| t.succeeded(game));
-    let facedanced = |f: Option<Faction>| game.phase() == Phase::Facedancing && game.battle.battle_winner == Some(f);
+    let facedanced = |f: Option<Faction>| game.phase() == Phase::Facedancing && game.battle_winner() == f;
 
     let side = |plan: &Option<BattlePlan>, opponent_plan: &Option<BattlePlan>, is_aggressor: bool, traitor_called: bool| {
         let plan = plan.as_ref()?;
@@ -292,8 +292,11 @@ pub fn battle(game: &Game, v: &ResolvedViewer) -> Option<BattleView> {
         let facedanced = facedanced(if is_aggressor { aggressor } else { defender });
         Some(plan_view(game, plan, opponent_plan.as_ref(), full, is_aggressor, if full { traitor_called } else { false }, facedanced, territory, if is_aggressor { defender.expect("faction") } else { aggressor.expect("faction") }))
     };
-    view.aggressor_plan = side(&game.battle.aggressor_plan, &game.battle.defender_plan, true, traitor(&game.battle.defender_traitor_action));
-    view.defender_plan = side(&game.battle.defender_plan, &game.battle.aggressor_plan, false, traitor(&game.battle.aggressor_traitor_action));
+    let fight = game.fight();
+    let (aggressor_plan, defender_plan) = (fight.and_then(|c| c.aggressor_plan.clone()), fight.and_then(|c| c.defender_plan.clone()));
+    let (aggressor_traitor_action, defender_traitor_action) = (fight.and_then(|c| c.aggressor_traitor_action.clone()), fight.and_then(|c| c.defender_traitor_action.clone()));
+    view.aggressor_plan = side(&aggressor_plan, &defender_plan, true, traitor(&defender_traitor_action));
+    view.defender_plan = side(&defender_plan, &aggressor_plan, false, traitor(&aggressor_traitor_action));
     Some(view)
 }
 
@@ -311,7 +314,7 @@ fn plan_view(
     opponent: Faction,
 ) -> PlanView {
     let aspect = |a: PrescienceAspect| {
-        game.battle.current_prescience.as_ref().is_some_and(|p| p.aspect == Some(a)) || game.turn.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == Some(a))
+        game.fight().and_then(|c| c.prescience.as_ref()).is_some_and(|p| p.aspect == Some(a)) || game.turn.current_nexus_prescience.as_ref().is_some_and(|n| n.atreides_prescience_aspect == Some(a))
     };
     let pl = game.player(plan.player());
     let initiator = plan.initiator();
@@ -372,9 +375,9 @@ fn plan_view(
         is_aggressor,
         full,
         dial: dial_shown.then(|| expr::strength_f64(plan.dial(game, opponent))),
-        ecaz_contribution: (dial_shown && game.battle.current_ecaz_battle_contribution > 0 && (plan.by(Faction::Ecaz) || plan.by_ally_of(game, Faction::Ecaz)))
-            .then_some(game.battle.current_ecaz_battle_contribution),
-        ecaz_karma_bonus: (dial_shown && initiator == Some(Faction::Ecaz) && game.battle.ecaz_karma_bonus != 0).then_some(game.battle.ecaz_karma_bonus),
+        ecaz_contribution: (dial_shown && game.fight().map_or(0, |c| c.ecaz_battle_contribution) > 0 && (plan.by(Faction::Ecaz) || plan.by_ally_of(game, Faction::Ecaz)))
+            .then_some(game.fight().map_or(0, |c| c.ecaz_battle_contribution)),
+        ecaz_karma_bonus: (dial_shown && initiator == Some(Faction::Ecaz) && game.fight().map_or(0, |c| c.ecaz_karma_bonus) != 0).then_some(game.fight().map_or(0, |c| c.ecaz_karma_bonus)),
         homeworld_bonus: homeworld_bonus.filter(|_| dial_shown),
         reinforcements: dial_shown && full && plan.has_reinforcements(),
         cost: full.then(|| plan.cost(game)).filter(|c| *c > 0),

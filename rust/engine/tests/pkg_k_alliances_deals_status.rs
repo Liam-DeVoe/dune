@@ -188,7 +188,7 @@ fn deal_parameter_is_parsed_with_int_parse() {
 #[test]
 fn donated_double_inflation_check_has_no_effect() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.charity.economics_status = Some(ChoamEconomicsStatus::Double);
+    g.board.choam_economics_status = Some(ChoamEconomicsStatus::Double);
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).resources = 5;
     let mut d = Donated::default();
@@ -239,18 +239,15 @@ fn status_discarding_waits_for_present_factions() {
     assert_eq!(s.get_message(emperor, false).plain_text(), "Please decide which card to discard.");
 }
 
-/// `BattleWinner` is a `Faction?`, so `BattleWinner != Faction.None` holds for null, and the
-/// flash shows "null win!" (C# bug kept).
+/// The battle conclusion flashes the winner, and nothing when nobody won.
 #[test]
-fn flash_battle_conclusion_with_null_winner() {
-    let g = game_with(&[Faction::Atreides]);
-    let mut g = g;
-    g.enter(Phase::BattleConclusion, false);
-    g.battle.battle_winner = None;
-    let flashes = GameStatus::determine_flash(&g, None, false);
-    assert_eq!(flashes.len(), 1);
-    g.battle.battle_winner = Some(None);
+fn flash_battle_conclusion_shows_the_winner() {
+    let mut g = game_with(&[Faction::Atreides]);
+    let battle = BattleInitiated::default().battle(By::new(&g, Faction::Atreides), EntryId::default());
+    g.enter_battle_state(BattleStep::Conclusion, Some(battle));
     assert!(GameStatus::determine_flash(&g, None, false).is_empty());
+    g.fight_mut().winner = Some(Faction::Atreides);
+    assert_eq!(GameStatus::determine_flash(&g, None, false).len(), 1);
 }
 
 #[test]

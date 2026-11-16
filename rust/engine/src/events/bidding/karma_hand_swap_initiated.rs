@@ -12,20 +12,19 @@ impl EventRules for KarmaHandSwapInitiated {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.interrupt(Interrupt::KarmaHandSwap);
         let victim = game.get_player(self.target);
+        let number_of_cards = victim.map_or(0, |v| game.player(v).treachery_cards.len() as i32);
+        game.interrupt(Interrupt::KarmaHandSwap { number_of_cards, target: self.target });
         let me = by.player();
         let karama = Karma::valid_karma_cards(game, me).into_iter().next();
         game.player_mut(me).special_karma_power_used = true;
         let victim = victim.required("victim")?;
-        game.bidding.karma_hand_swap_number_of_cards = game.player(victim).treachery_cards.len() as i32;
-        game.bidding.karma_hand_swap_target = self.target;
         let mut cards_to_draw_from = Deck::new(game.player(victim).treachery_cards.clone());
         game.stone(Milestone::Shuffled);
         cards_to_draw_from.shuffle(&mut game.rng);
 
         let mut i = 0;
-        while i < game.bidding.karma_hand_swap_number_of_cards {
+        while i < number_of_cards {
             let card = cards_to_draw_from.try_draw()?;
             Game::register_known_by_player(game, me, Some(card));
             crate::game::remove_card(&mut game.player_mut(victim).treachery_cards, Some(card));

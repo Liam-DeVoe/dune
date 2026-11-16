@@ -61,7 +61,7 @@ impl EventRules for Donated {
         let may_donate = match by.player {
             Some(p) => Donated::may_donate(game, p),
             None => {
-                if game.phase() == Phase::Bidding && game.bidding.current_bid.is_some() {
+                if game.phase() == Phase::Bidding && game.current_bid().is_some() {
                     return Err(Rejection(express!("You are not playing")));
                 }
                 true
@@ -88,7 +88,7 @@ impl EventRules for Donated {
             return Err(Rejection(express!(Concept::Resource, " transfers are disabled by house rule")));
         }
         if !self.from_bank
-            && (game.charity.economics_status == Some(ChoamEconomicsStatus::Double) || game.charity.economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
+            && (game.board.choam_economics_status == Some(ChoamEconomicsStatus::Double) || game.board.choam_economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
         {
             // C# parity: the message is built but never returned, so this check has no effect.
             let _ = express!("No bribes can be made during Double Inflation");

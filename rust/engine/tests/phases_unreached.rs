@@ -262,7 +262,7 @@ fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
 
 /// After CHOAM's audit the battle goes on to its conclusion when there is a winner and Harkonnen
 /// don't need to decide on a capture. The test starts in `Auditing`, as `AuditCancelled` leaves
-/// it, without the battle that led there.
+/// it, in a battle built by hand.
 #[test]
 fn auditing_goes_on_to_the_battle_conclusion() {
     let mut g = seated_with(&[Faction::Choam, Faction::Atreides], |_| {});
@@ -272,9 +272,9 @@ fn auditing_goes_on_to_the_battle_conclusion() {
     let card = g.draw_treachery_card().expect("a card");
     g.player_mut(atreides).treachery_cards.push(card);
     g.turn.current_main_phase = MainPhase::Battle;
-    g.enter(Phase::Auditing, false);
-    g.battle.battle_winner = Some(Some(Faction::Atreides));
-    g.battle.audited_cards = vec![card];
+    g.enter_battle_state(BattleStep::Auditing, Some(BattleInitiated::default().battle(By::new(&g, Faction::Atreides), EntryId::default())));
+    g.fight_mut().winner = Some(Faction::Atreides);
+    g.fight_mut().audited_cards = vec![card];
     assert_eq!(asked(&mut g, EventType::Audited), [Faction::Choam]);
 
     accept(&mut g, &format!(r#"{{"$type":"Audited","Initiator":{CHOAM}}}"#));

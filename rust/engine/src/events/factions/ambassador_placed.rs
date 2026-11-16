@@ -31,7 +31,7 @@ impl AmbassadorPlaced {
     }
 
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
-        i32::from(g.player(p).resources) > g.revival.ambassadors_placed_this_turn
+        i32::from(g.player(p).resources) > g.turn.revivals.ambassadors_placed_this_turn
             && g.phase() == Phase::ResurrectionReport
             && !g.prevented(FactionAdvantage::EcazAmbassadors)
             && !AmbassadorPlaced::valid_ambassadors(g, p).is_empty()
@@ -57,9 +57,9 @@ impl EventRules for AmbassadorPlaced {
             game_error!("Stronghold is null");
         };
 
-        game.revival.ambassadors_placed_this_turn += 1;
+        game.turn.revivals.ambassadors_placed_this_turn += 1;
         let me = by.player();
-        let placed = game.revival.ambassadors_placed_this_turn;
+        let placed = game.turn.revivals.ambassadors_placed_this_turn;
         let p = game.player_mut(me);
         crate::game::amounts::spend(&mut p.resources, placed, "spice")?;
         game.log(parts![by.faction, " station the ", self.ambassador, " ambassador in ", stronghold, " for ", Payment::of(placed)]);

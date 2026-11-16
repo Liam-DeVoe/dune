@@ -29,7 +29,7 @@ impl EventRules for FaceDancerRevealed {
             };
             game.log(parts![by.faction, " reveal ", facedancer, " as one of their Face Dancers!"]);
             game.stone(Milestone::FaceDanced);
-            game.enter(Phase::Facedancing, true);
+            game.enter_battle(BattleStep::Facedancing);
         } else {
             game.log(parts![by.faction, " don't reveal a Face Dancer"]);
             game.finish_battle()?;

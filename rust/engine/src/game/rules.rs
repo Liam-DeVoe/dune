@@ -510,7 +510,7 @@ impl Game {
                 for rule in self.rules.automation_rules.iter().filter(|x| x.initiator == Some(f)) {
             match rule.rule_type {
                 AutomationRuleType::BiddingPassAboveAmount => {
-                    if let Some(bid) = &self.bidding.current_bid {
+                    if let Some(bid) = self.current_bid() {
                         if bid.bid_total_amount() >= i32::from(rule.bidding_above_amount) {
                             return true;
                         }
@@ -518,13 +518,13 @@ impl Game {
                 }
 
                 AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed => {
-                    if self.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed && f != Faction::Atreides {
+                    if self.bidding().is_some_and(|b| b.latest_bid_by_atreides_or_atreides_ally_was_passed) && f != Faction::Atreides {
                         return true;
                     }
                 }
 
                 AutomationRuleType::BiddingPassWhenHighestBidByFaction => {
-                    if let Some(bid) = &self.bidding.current_bid {
+                    if let Some(bid) = self.current_bid() {
                         if Some(bid.bid_initiator()) == rule.bidding_winning_faction {
                             return true;
                         }

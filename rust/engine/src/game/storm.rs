@@ -126,7 +126,7 @@ impl Game {
     pub fn enter_storm_phase(&mut self) -> GameResult {
         self.turn.current_turn = self.turn.current_turn.next().expect("a game has at most 255 turns");
         self.main_phase_start(MainPhase::Storm, true);
-        self.revival.factions_that_revived_special_forces_this_turn.clear();
+        self.turn.revivals.factions_that_revived_special_forces_this_turn.clear();
         self.storm.storm_losses_to_take.clear();
 
         // The new storm state has no dials yet and the Testing Station unused.

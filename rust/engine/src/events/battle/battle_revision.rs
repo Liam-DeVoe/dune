@@ -10,21 +10,23 @@ impl EventRules for BattleRevision {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        let Some(current_battle) = game.battle.current_battle.clone() else {
+        let Some(current_battle) = game.current_battle().cloned() else {
             game_error!("BattleRevision event executed when there is no current battle");
         };
 
         let withdrawn = current_battle.plan_of(game, by.player);
         if let Some(withdrawn) = withdrawn {
             for aspect in Battle::aspects_seen_by_opponent(game, by.player()) {
-                game.battle.prescience_seen_plans.insert(aspect, withdrawn.clone());
+                game.fight_mut().prescience_seen_plans.insert(aspect, withdrawn.clone());
             }
         }
 
         if by.is(current_battle.aggressor(game)) {
-            game.battle.previous_aggressor_plan = game.battle.aggressor_plan.take();
+            let c = game.fight_mut();
+            c.previous_aggressor_plan = c.aggressor_plan.take();
         } else if by.is(current_battle.defender(game)) {
-            game.battle.previous_defender_plan = game.battle.defender_plan.take();
+            let c = game.fight_mut();
+            c.previous_defender_plan = c.defender_plan.take();
         }
         Ok(())
     }

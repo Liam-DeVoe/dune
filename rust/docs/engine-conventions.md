@@ -26,15 +26,16 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 | `alliances` | `Alliances` | `alliances.rs` | alliance offers, card trades, what each faction allows its ally |
 | `deals` | `Deals` | `deals.rs` | `offers`, `responses` and the deals in force (`agreed`) |
 | `turn` | `TurnState` | `turn.rs` | turn and main phase, and what lasts for one turn or phase: payments, milestones, prevented advantages, cards and Nexus cards in effect |
-| `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state (`PhaseState::Storm(StormState)`, ...), or `Legacy(phase)` for a phase not converted yet |
+| `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state (`PhaseState::Storm(StormState)`, `PhaseState::Battle(BattlePhase)`, ...), or `Legacy(phase)` for a phase not converted yet |
+| `battle_leftovers` | `BattleLeftovers` | `battle.rs` | two battle flags that were never reset and outlive their battle (known-issues.md) |
 | `interrupts` | `Vec<Interrupt>` | `phase.rs` | what suspends the phase until it is resolved (a discard, a Clairvoyance answer, ...), the latest last |
 | `history` | `History` | `history.rs` | the events (`entries`), undone events, the game before an undo, moments and timers |
 | `log` | `Log` | `log.rs` | the reports |
 | `counters` | `Counters` | `counters.rs` | numbers handed out in order: the leader deaths' `time_of_death` |
-| `charity`, `bidding`, `revival`, `ship_move`, `battle`, `contemplate` | `CharityState` ... `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use, for the phases that have no `PhaseState` variant yet |
+| `ship_move`, `contemplate` | `ShipMoveState`, `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use, for the phases that have no `PhaseState` variant yet |
 | `storm` | `StormLossQueue` | `storm.rs` | the storm losses still to be taken, from the storm phase or a shipment or move (moves to `turn` after wave 5's ship and move conversion) |
 
-`game.phase()` is the flat `Phase`: the top interrupt's, or else the phase state's. Views, bots and the client key on it. Wave 5 of rewrite-plan.md moves the phases into `PhaseState` one at a time, and its Progress entry of 2026-11-16 ("wave 5 scaffolding") has the rules for entering, interrupting and resuming. The phase structs not converted yet are kept side by side whatever the current phase, and some of their fields last longer than the phase (`ship_move.shipment_permissions`, `revival.factions_with_increased_revival_limits`). Fields keep the names they had on `Game` (`game.battle.current_battle`), except where the old name would repeat the struct's: `rules.active`, `history.entries`, `deals.offers`, `deals.responses` and `deals.agreed`.
+`game.phase()` is the flat `Phase`: the top interrupt's, or else the phase state's. Views, bots and the client key on it. Wave 5 of rewrite-plan.md moves the phases into `PhaseState` one at a time, and its Progress entry of 2026-11-16 ("wave 5 scaffolding") has the rules for entering, interrupting and resuming. The phase structs not converted yet are kept side by side whatever the current phase, and some of their fields last longer than the phase (`ship_move.shipment_permissions`, `revival.factions_with_increased_revival_limits`). Fields keep the names they had on `Game` (`game.bidding.current_bid`), except where the old name would repeat the struct's: `rules.active`, `history.entries`, `deals.offers`, `deals.responses` and `deals.agreed`.
 
 A new field goes into the struct of its topic, or into the phase struct if only that phase's rules use it.
 
@@ -89,7 +90,7 @@ game.bidding.bids.get_opt(game.player(p).faction);           // iter::MapOpt
 let me = self.initiator().required("faction")?;
 ```
 
-`battle.battle_winner`, `battle_loser`, `current_ecaz_or_ally_fighter` and `collection.owner_of_flight_discovery` are `Option<Option<Faction>>`: `None` before the battle (or the discovery) is decided, `Some(None)` when it was decided and nobody won, as C#'s nullable `Faction?` holding `None`.
+`collection.owner_of_flight_discovery` is an `Option<Option<Faction>>`: `None` before the discovery is decided, `Some(None)` when it was decided and nobody owns it, as C#'s nullable `Faction?` holding `None`. The battle's `winner`, `loser` and `ecaz_or_ally_fighter` no longer need that: they live in the battle being fought (`CurrentBattle`), so before it is decided they are `None` like "nobody", which the rules never told apart.
 
 ## Turns and sectors
 
@@ -286,9 +287,9 @@ Inside a `&self` method that needs its own index (C# `this` passed to the game, 
 Other objects that live inside `Game` and are mutated with the game in hand use the same idea. `PlayerSequence` methods are `fn next_player(&mut self, game: &Game)`; call them by taking the sequence out of the game and putting it back:
 
 ```rust
-let mut seq = game.battle.battle_sequence.take().expect("battle sequence");
+let mut seq = game.battle()?.order.clone();
 seq.next_player(game);
-game.battle.battle_sequence = Some(seq);
+game.battle_mut()?.order = seq;
 ```
 
 `LeaderState.Kill(Game)` and `LeaderState.Assassinate(Game)` change the leader state and the game; port them the same way, or as `Game` methods taking the hero.

@@ -17,7 +17,7 @@ impl Default for Diplomacy {
 impl Diplomacy {
     pub fn valid_cards(g: &Game, p: PlayerId) -> Vec<TreacheryCard> {
         let mut result = Vec::new();
-        let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p)).expect("plan of");
+        let plan = g.current_battle().expect("current battle").plan_of(g, Some(p)).expect("plan of");
         if let Some(weapon) = plan.weapon() {
             if weapon.is_useless() && plan.defense().is_none() {
                 result.push(weapon);
@@ -32,9 +32,9 @@ impl Diplomacy {
     }
 
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
-        if g.has_skill_in_front_of_shield(p, LeaderSkill::Diplomat) && g.battle.current_diplomacy.is_none() {
-            let plan = g.battle.current_battle.as_ref().expect("current battle").plan_of(g, Some(p));
-            let plan_of_opponent = g.battle.current_battle.as_ref().expect("current battle").plan_of_opponent(g, Some(p));
+        if g.has_skill_in_front_of_shield(p, LeaderSkill::Diplomat) && g.fight().map_or(true, |c| c.diplomacy.is_none()) {
+            let plan = g.current_battle().expect("current battle").plan_of(g, Some(p));
+            let plan_of_opponent = g.current_battle().expect("current battle").plan_of_opponent(g, Some(p));
             let Some(plan) = plan else { return false };
             // plan.Defense is not { IsDefense: true }
             if plan.defense().is_some_and(|d| d.is_defense()) {
@@ -59,12 +59,11 @@ impl EventRules for Diplomacy {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // Game.CurrentBattle?.PlanOfOpponent(Player)?.Defense
         let opponent_defense = game
-            .battle.current_battle
-            .as_ref()
+            .current_battle()
             .and_then(|b| b.plan_of_opponent(game, by.player))
             .and_then(|plan| plan.defense());
         game.log(parts![by.faction, " use Diplomacy to turn ", self.card, " into a ", opponent_defense]);
-        game.battle.current_diplomacy = Some(DiplomacyUsed { submitter: by, card: self.card });
+        game.fight_mut().diplomacy = Some(DiplomacyUsed { submitter: by, card: self.card });
         Ok(())
     }
 

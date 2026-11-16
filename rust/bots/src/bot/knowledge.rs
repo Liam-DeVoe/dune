@@ -125,7 +125,7 @@ impl ClassicBot {
 
     /// The prescience in the current battle, if I or my ally used it.
     pub fn my_prescience(&self, game: &Game) -> Option<PrescienceUsed> {
-        game.battle.current_prescience.clone().filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
+        game.fight().and_then(|c| c.prescience.clone()).filter(|p| p.initiator() == Some(self.faction(game)) || p.initiator() == self.ally(game))
     }
 
     pub fn my_clairvoyance_about_enemy_defense_in_current_battle(game: &Game, player: PlayerId) -> Option<ClairVoyanceQandA> {
@@ -152,7 +152,7 @@ impl ClassicBot {
     /// The Voice in the current battle, if I or my ally are Bene Gesserit.
     pub fn my_voice(&self, game: &Game) -> Option<VoiceUsed> {
         let bene_gesserit = self.faction(game) == Faction::BeneGesserit || self.ally(game) == Some(Faction::BeneGesserit);
-        game.battle.current_voice.clone().filter(|_| bene_gesserit)
+        game.fight().and_then(|c| c.voice.clone()).filter(|_| bene_gesserit)
     }
 
     pub fn may_use_useless_as_karma(&self, game: &Game) -> bool {

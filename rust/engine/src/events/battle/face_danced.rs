@@ -46,14 +46,14 @@ impl FaceDanced {
 
     pub fn maximum_number_of_forces(g: &Game, p: PlayerId) -> i32 {
         let ally = g.player(p).allied_player(g);
-        let territory = || g.battle.current_battle.as_ref().expect("current battle").territory;
+        let territory = || g.current_battle().expect("current battle").territory;
         let condition = match ally {
             None => true,
-            Some(ally) => g.battle.battle_winner == Some(g.player(p).ally) || g.player(ally).any_forces_in_territory(territory()) == 0,
+            Some(ally) => g.battle_winner() == g.player(p).ally || g.player(ally).any_forces_in_territory(territory()) == 0,
         };
         if condition {
-            let winner = g.get_player(g.battle.battle_winner.flatten());
-            let coocupying_player = if g.battle.battle_winner == g.battle.current_ecaz_or_ally_fighter {
+            let winner = g.get_player(g.battle_winner());
+            let coocupying_player = if g.battle_winner() == g.fight().and_then(|c| c.ecaz_or_ally_fighter) {
                 g.player(winner.expect("winner")).allied_player(g)
             } else {
                 None
@@ -76,10 +76,10 @@ impl FaceDanced {
     /// `p` is only dereferenced where it is needed, so a null `p` throws only there.
     pub(crate) fn may_call_face_dancer_opt(g: &Game, p: Option<PlayerId>) -> bool {
         // `BattleWinner == Faction.None` is false while BattleWinner is null.
-        if g.battle.battle_winner == Some(None) {
+        if g.battle_winner().is_none() {
             return false;
         }
-        let Some(battle) = g.battle.current_battle.as_ref() else { return false };
+        let Some(battle) = g.current_battle() else { return false };
 
         let territory = battle.territory.expect("territory");
         if territory.is_homeworld() && !g.player(p.expect("player")).is_native(territory) {
@@ -87,8 +87,8 @@ impl FaceDanced {
         }
 
         let winner_hero = g.winner_hero();
-        if let (Some(winner_hero), Some(battle_winner)) = (winner_hero, g.battle.battle_winner) {
-            if !g.is_occupied_by_faction_or_their_ally(World::Tleilaxu, battle_winner.expect("faction")) {
+        if let (Some(winner_hero), Some(battle_winner)) = (winner_hero, g.battle_winner()) {
+            if !g.is_occupied_by_faction_or_their_ally(World::Tleilaxu, battle_winner) {
                 let player = g.player(p.expect("player"));
                 return player
                     .face_dancers
@@ -107,7 +107,7 @@ impl FaceDanced {
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_target_locations(g: &Game) -> impl Iterator<Item = Location> {
-        let territory = g.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
+        let territory = g.current_battle().expect("current battle").territory.expect("territory");
         territory
             .locations()
             .iter()
@@ -116,12 +116,12 @@ impl FaceDanced {
     }
 
     pub fn replace_forces(&self, game: &mut Game, by: By) -> GameResult {
-        let Some(battle) = game.battle.current_battle.clone() else { return Ok(()) };
+        let Some(battle) = game.current_battle().cloned() else { return Ok(()) };
 
-        let winner = game.get_player(game.battle.battle_winner.flatten());
+        let winner = game.get_player(game.battle_winner());
         let mut nr_of_removed_forces = game.player(winner.expect("winner")).any_forces_in_territory(battle.territory);
         let winner = winner.expect("winner");
-        let co_occupying_player = if game.battle.battle_winner == game.battle.current_ecaz_or_ally_fighter {
+        let co_occupying_player = if game.battle_winner() == game.fight().and_then(|c| c.ecaz_or_ally_fighter) {
             game.player(winner).allied_player(game)
         } else {
             None
@@ -254,7 +254,7 @@ impl EventRules for FaceDanced {
                 "The amount of forces you selected from the planet and from reserves (",
                 amount_of_forces,
                 ") should equal the amount you wish to put in ",
-                game.battle.current_battle.as_ref().expect("current battle").territory,
+                game.current_battle().expect("current battle").territory,
                 " (",
                 amount_of_placed_forces,
                 ")"

@@ -120,7 +120,7 @@ fn client_auto_pass(viewed: &mut ViewedGame, viewer: Option<Faction>, view: &tre
     }
     let game = &viewed.game;
     let Some(p) = game.get_player(Some(f)) else { return Ok(false) };
-    if game.battle.current_battle.is_none() || TreacheryCalled::may_call_treachery(game, p) {
+    if game.current_battle().is_none() || TreacheryCalled::may_call_treachery(game, p) {
         return Ok(false);
     }
     let pass = TreacheryCalled { traitor_called: false };

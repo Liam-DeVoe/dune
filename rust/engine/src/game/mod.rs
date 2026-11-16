@@ -533,18 +533,15 @@ impl Game {
             self.ship_move.factions_with_ornithopters_at_start_of_movement.contains_opt(self.player(p).faction)
         } else {
             self.occupies_arrakeen_or_carthag(p)
-        }) || (self.ship_move.current_flight_used.as_ref().map_or(false, |f| f.move_three_territories)
-            && self.ship_move.current_flight_used.as_ref().expect("current flight used").player_opt() == Some(p))
-            || (self.ship_move.current_flight_discovery_used.is_some() && self.ship_move.current_flight_discovery_used.as_ref().expect("current flight discovery used").player_opt() == Some(p))
+        }) || self.ship_move.current_flight_used.is_some_and(|f| f.move_three_territories && f.by.player == Some(p))
+            || self.ship_move.current_flight_discovery_used.is_some_and(|by| by.player == Some(p))
     }
 
     pub fn determine_maximum_move_distance(&self, p: PlayerId, moved: &[Battalion]) -> i32 {
         let player = self.player(p);
         let choam_extra_move_bonus = if player.faction == Some(Faction::Choam) && self.ship_move.choam_has_extra_move { 1 } else { 0 };
 
-        let planetology_bonus = if self.turn.current_planetology.as_ref().map_or(false, |pl| pl.add_one_to_movement)
-            && self.turn.current_planetology.as_ref().expect("current planetology").initiator() == player.faction
-        {
+        let planetology_bonus = if self.turn.current_planetology.is_some_and(|pl| pl.add_one_to_movement && pl.initiator == player.faction) {
             1
         } else {
             0

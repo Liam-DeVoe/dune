@@ -30,7 +30,7 @@ pub struct ClassicBot {
     pub turn_when_revival_was_requested: Option<Turn>,
     /// The shipment chosen while deciding, with the move planned after it.
     pub decided_shipment_action: ShipmentDecision,
-    pub decided_shipment: Option<Rc<Shipment>>,
+    pub decided_shipment: Option<Shipment>,
     pub final_destination: Option<Location>,
 }
 

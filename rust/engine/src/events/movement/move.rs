@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Move {
     pub as_advisors: bool,
     // ---- inherited from PlacementEvent ----
@@ -8,8 +8,6 @@ pub struct Move {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Move {
@@ -19,36 +17,43 @@ impl Default for Move {
             to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl Move {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+    /// `ForceLocations`, parsed for the faction of `by`.
+    pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        PlacementEvent::force_locations_by(game, by, &self.force_locations)
     }
 
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+    pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
+        self.force_locations = Some(PlacementEvent::force_locations_string(game, value));
+    }
+}
+
+impl EventRules for Move {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         if !self.passed && game.ship_move.in_guild_cunning_shipment {
-            return Some(express!("You cannot move after Cunning shipment"));
+            return Err(Rejection(express!("You cannot move after Cunning shipment")));
+        }
+        if self.passed {
+            return Ok(());
         }
 
-        self.validate_move(game, self.as_advisors)
+        PlacementEvent::validate_move(game, by, self.to, &self.force_locations(game, by), self.as_advisors)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         game.storm.storm_losses_to_take.clear();
 
         game.ship_move.current_player_may_perform_extra_move = match &game.ship_move.current_flight_used {
-            Some(fu) => fu.initiator() == self.initiator() && fu.extra_move(),
+            Some(fu) => fu.by.faction == by.faction && fu.extra_move(),
             None => false,
         };
 
         if !game.ship_move.current_player_may_perform_extra_move && !game.ship_move.in_guild_cunning_shipment {
-            game.turn.has_acted_or_passed.push(self.initiator().required("faction")?);
+            game.turn.has_acted_or_passed.push(by.required_faction()?);
 
             if game.turn.current_phase == Phase::NonGuildMove {
                 let mut seq = game.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
@@ -70,25 +75,26 @@ impl Move {
         }
 
         if !self.passed {
-            game.ship_move.recent_moves.push(self.clone().into_event());
+            let force_locations = self.force_locations(game, by);
+            game.ship_move.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.to, force_locations: force_locations.clone() });
 
-            let me = self.player();
+            let me = by.player();
             let to = self.to;
             if contains_conflicting_ally_opt(game, me, to)? {
                 game.ship_move.chosen_destinations_with_allies.push(to.required("to")?.territory());
             }
 
-            let force_locations = PlacementEventMethods::force_locations(&**self, game);
-            let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
-            game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, false)?;
-            game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
+            let as_advisors = !by.is(Faction::BeneGesserit) || self.as_advisors;
+            let event = Event::from(self.clone());
+            game.perform_move_from_locations(me, &force_locations, &event, as_advisors, false)?;
+            game.check_intrusion(&event, by.faction.expect("faction"))?;
         } else {
-            let m = express!(self.initiator(), " pass movement").with_log(MovePassed { faction: self.initiator().required("faction")? });
-            self.log_objects(game, vec![m.into()]);
+            let m = express!(by.faction, " pass movement").with_log(MovePassed { faction: by.required_faction()? });
+            game.log(parts![m]);
         }
 
         game.determine_next_shipment_and_move_sub_phase()?;
-        game.check_if_forces_should_be_destroyed_by_ally_presence(self.player())?;
+        game.check_if_forces_should_be_destroyed_by_ally_presence(by.player())?;
         game.flip_bene_gesserit_advisors_when_alone()?;
 
         if !game.applicable(Rule::FullPhaseKarma) {
@@ -104,13 +110,12 @@ impl Move {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " pass move");
+            return express!(by.faction, " pass move");
         }
-        express!(self.initiator(), " move to ", self.to)
+        express!(by.faction, " move to ", self.to)
     }
-
 }
 
 /// `Game.ContainsConflictingAlly(Player, To)` where `To` may be null.
@@ -130,85 +135,20 @@ pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerId, to
     }
 }
 
-impl GameEventMethods for Move {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Move
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Move(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Move::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Move::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Move::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for Move {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
-}
-
-impl PlacementEventMethods for Move {
-    fn field_to(&self) -> &Option<Location> {
-        &self.to
-    }
-
-    fn field_force_locations(&self) -> &Option<String> {
-        &self.force_locations
-    }
-
-    fn field_to_mut(&mut self) -> &mut Option<Location> {
-        &mut self.to
-    }
-
-    fn field_force_locations_mut(&mut self) -> &mut Option<String> {
-        &mut self.force_locations
-    }
-
-}
-
 impl crate::events::location_event::LocationEvent for Move {
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::total_amount_of_forces_added_to_location(self, game)
+        self.forces_added_to_location(game) + self.special_forces_added_to_location(game)
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.force_locations).0
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::special_forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.force_locations).1
     }
-
-}
-
-impl crate::events::placement::Placement for Move {
-    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        <Self as PlacementEventMethods>::force_locations(self, game)
-    }
-
-    fn to(&self, _game: &Game) -> Option<Location> {
-        self.to
-    }
-
 }

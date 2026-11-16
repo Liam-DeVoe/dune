@@ -58,7 +58,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
     let player = |i: usize| game.player_at(n(i) as usize);
     let territory = |i: usize| game.board.map.territory_lookup().find(n(i)).unwrap();
     match m {
-        "DetermineSetShipmentPermission" => opt(bot.determine_set_shipment_permission(game)),
+        "DetermineSetShipmentPermission" => common::decision(bot, game, bot.determine_set_shipment_permission(game)),
         "DetermineEmperorDiscarded" => opt(bot.determine_emperor_discarded(game)),
         "DetermineReplacedCardWon" => ev(bot.determine_replaced_card_won(game)),
         "DetermineIxianRemovedCardFromAuction" => ev(bot.determine_ixian_removed_card_from_auction(game)),
@@ -71,9 +71,9 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineFremenSentMonster" => ev(bot.determine_fremen_sent_monster(game)),
         "DetermineFremenRidesMonster" => ev(bot.determine_fremen_rides_monster(game)),
         "DetermineBeneGesseritPlacement" => ev(bot.determine_bene_gesserit_placement(game)),
-        "DetermineBeneGesseritFlip" => ev(bot.determine_bene_gesserit_flip(game)),
+        "DetermineBeneGesseritFlip" => common::decision(bot, game, bot.determine_bene_gesserit_flip(game)),
         "DetermineBeneGesseritBattleAnnouncement" => opt(bot.determine_bene_gesserit_battle_announcement(game)),
-        "DetermineBeneGesseritAccompanies" => ev(bot.determine_bene_gesserit_accompanies(game)),
+        "DetermineBeneGesseritAccompanies" => common::decision(bot, game, bot.determine_bene_gesserit_accompanies(game)),
         "DetermineBeneGesseritPrediction" => ev(bot.determine_bene_gesserit_prediction(game)),
         "DetermineVoice" => opt(bot.determine_voice(game)),
         "DeterminePrescience" => opt(bot.determine_prescience(game)),
@@ -94,7 +94,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineAmbassadorActivated" => opt(bot.determine_ambassador_activated(game)),
         "PassAmbassadorActivated" => opt(bot.pass_ambassador_activated(game)),
         "DetermineRicheseAnnouncesBlackMarket" => ev(bot.determine_richese_announces_black_market(game)),
-        "DetermineRicheseRevealedNoField" => opt(bot.determine_richese_revealed_no_field(game)),
+        "DetermineRicheseRevealedNoField" => common::decision(bot, game, bot.determine_richese_revealed_no_field(game)),
         "DetermineRicheseAnnouncesAuction" => ev(bot.determine_richese_announces_auction(game)),
         "DetermineRicheseSpecifiesAuction" => ev(bot.determine_richese_specifies_auction(game)),
         "DetermineRicheseKeepsUnsoldCard" => ev(bot.determine_richese_keeps_unsold_card(game)),

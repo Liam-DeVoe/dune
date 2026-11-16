@@ -19,13 +19,13 @@ use dotnet_compat::math::{f64_to_i32, math_max_f32, math_min_f32};
 impl ClassicBot {
     /// Picks this turn's shipment (a pass if nothing suits) and remembers it, with its reason and
     /// any follow-up move, for the decisions that come later in the turn.
-    pub fn determine_shipment(&mut self, game: &Game) -> Rc<Shipment> {
+    pub fn determine_shipment(&mut self, game: &Game) -> Shipment {
         self.decided_shipment_action = ShipmentDecision::None;
         self.decided_shipment = None;
         self.final_destination = None;
 
         let plan = self.plan_shipment(game).unwrap_or_else(|| {
-            let mut pass = Shipment::new(game, self.faction(game));
+            let mut pass = Shipment::default();
             pass.passed = true;
             PlannedShipment { action: ShipmentDecision::None, shipment: pass, then_move_to: None }
         });
@@ -33,8 +33,8 @@ impl ClassicBot {
     }
 
     /// Stores `plan` as the decided shipment.
-    pub fn adopt_shipment(&mut self, plan: PlannedShipment) -> Rc<Shipment> {
-        let shipment = Rc::new(plan.shipment);
+    pub fn adopt_shipment(&mut self, plan: PlannedShipment) -> Shipment {
+        let shipment = plan.shipment;
         self.decided_shipment_action = plan.action;
         self.decided_shipment = Some(shipment.clone());
         self.final_destination = plan.then_move_to;
@@ -794,7 +794,7 @@ impl ClassicBot {
         }
 
         let shipment = self.construct_shipment(game, size, to, funding);
-        shipment.is_valid(game).then_some(PlannedShipment { action, shipment, then_move_to })
+        shipment.validate(game, self.by(game)).is_ok().then_some(PlannedShipment { action, shipment, then_move_to })
     }
 
     /// Returns the event unshared, so the funding can still be set on it.
@@ -810,7 +810,7 @@ impl ClassicBot {
             }
         }
 
-        let mut result = Shipment::new(game, self.faction(game));
+        let mut result = Shipment::default();
         result.force_amount = size.forces - nr_of_smuggled_forces;
         result.special_force_amount = size.special_forces - nr_of_smuggled_special_forces;
         result.smuggled_amount = treachery_engine::game::amounts::clamp_u16(nr_of_smuggled_forces);
@@ -911,7 +911,7 @@ impl ClassicBot {
 
     pub fn use_ally_resources(&self, game: &Game, shipment: &mut Shipment) {
         shipment.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(std::cmp::min(
-            shipment.determine_cost_to_initiator(game),
+            shipment.determine_cost_to_initiator(game, self.by(game)),
             game.resources_your_ally_can_pay(self.player),
         ));
     }
@@ -1010,7 +1010,7 @@ impl ClassicBot {
 
     /// A Richese shipment of one force under a zero No-Field.
     fn plan_zero_no_field_shipment(&self, game: &Game, action: ShipmentDecision, location: Location) -> Option<PlannedShipment> {
-        let mut shipment = Shipment::new(game, self.faction(game));
+        let mut shipment = Shipment::default();
         shipment.force_amount = 0;
         shipment.special_force_amount = 1;
         shipment.passed = false;
@@ -1020,7 +1020,7 @@ impl ClassicBot {
         shipment.set_no_field_value(0);
         shipment.to = Some(location);
 
-        shipment.is_valid(game).then_some(PlannedShipment { action, shipment, then_move_to: None })
+        shipment.validate(game, self.by(game)).is_ok().then_some(PlannedShipment { action, shipment, then_move_to: None })
     }
 
     /// An opponent with a living leader who is my traitor or face dancer, and no weapon I know of

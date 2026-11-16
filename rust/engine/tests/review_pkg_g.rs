@@ -2,9 +2,8 @@
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::{Faction, ShipmentType};
-use treachery_engine::events::Shipment;
+use treachery_engine::events::{By, EventRules, Shipment};
 use treachery_engine::events::HistoryEntry;
-use treachery_engine::events::game_event::GameEventMethods;
 use treachery_engine::game::{Game, Seat};
 use treachery_engine::json;
 
@@ -76,16 +75,14 @@ fn shipment_costs_match_csharp_at_the_edges() {
     s.shipment_type = ShipmentType::ShipmentBack;
     s.force_amount = i32::MIN;
     s.to = Some(to);
-    s.initialize(&g, faction);
-    assert_eq!(show(|| s.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
+    assert_eq!(show(|| s.validate(&g, By::new(&g, faction)).err().map(|r| r.0.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
     let mut s2 = Shipment::default();
     s2.shipment_type = ShipmentType::Unknown;
     s2.force_amount = i32::MAX;
     s2.special_force_amount = 1;
     s2.to = Some(to);
-    s2.initialize(&g, faction);
-    assert_eq!(show(|| s2.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
+    assert_eq!(show(|| s2.validate(&g, By::new(&g, faction)).err().map(|r| r.0.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
     let valid: Vec<_> = Shipment::valid_shipment_locations(&g, pl, false, false).collect();
     // Before the first storm. C# counted the Polar Sink (sector -1, like the storm) as in the storm,

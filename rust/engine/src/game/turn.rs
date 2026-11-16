@@ -73,7 +73,7 @@ pub struct TurnState {
     pub resource_audited_factions: Vec<Faction>,
     pub current_juice: Option<Rc<JuicePlayed>>,
     pub current_karma_prevention: Option<Rc<ChoamKarmaPrevention>>,
-    pub current_planetology: Option<Rc<Planetology>>,
+    pub current_planetology: Option<PlanetologyUse>,
     pub bureaucrat_was_used_this_phase: bool,
     pub phase_before_bureaucrat_was_activated: Option<Phase>,
     pub target_of_bureaucracy: Option<Faction>,

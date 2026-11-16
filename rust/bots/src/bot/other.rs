@@ -515,7 +515,7 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_karma_shipment_prevention(&self, game: &Game) -> Option<Rc<KarmaShipmentPrevention>> {
+    pub fn determine_karma_shipment_prevention(&self, game: &Game) -> Option<KarmaShipmentPrevention> {
         if game.turn.current_phase != Phase::NonGuildShip {
             return None;
         }
@@ -540,9 +540,9 @@ impl ClassicBot {
 
         let w = winning_opponent_that_can_ship_most?;
         if game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(game) == Some(w) {
-            let mut e = KarmaShipmentPrevention::new(game, self.faction(game));
+            let mut e = KarmaShipmentPrevention::default();
             e.target = game.player(w).faction;
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
@@ -599,9 +599,9 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_delay(&self, game: &Game) -> Option<Rc<GuildDelay>> {
+    pub fn determine_delay(&self, game: &Game) -> Option<GuildDelay> {
         if !game.prevented(FactionAdvantage::GuildDetermineMoveMoment) {
-            return Some(Rc::new(GuildDelay::new(game, self.faction(game))));
+            return Some(GuildDelay::default());
         }
 
         None
@@ -1250,9 +1250,9 @@ impl ClassicBot {
         items.choose(&mut *self.random.lock()).expect("an item to choose from").clone()
     }
 
-    pub fn determine_planetology(&self, game: &Game) -> Rc<Planetology> {
-        let mut e = Planetology::new(game, self.faction(game));
+    pub fn determine_planetology(&self, _game: &Game) -> Planetology {
+        let mut e = Planetology::default();
         e.add_one_to_movement = true;
-        Rc::new(e)
+        e
     }
 }

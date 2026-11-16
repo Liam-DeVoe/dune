@@ -45,87 +45,6 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         let _ = self.force_locations(game);
         self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>()
     }
-
-    fn validate_move(&self, game: &Game, as_advisors: bool) -> Option<Message> {
-        if *self.field_passed() {
-            return None;
-        }
-
-        // The player may be unset; it is read only where needed.
-        let p = self.player_opt();
-        let pl = || game.player(p.expect("player"));
-
-        // ForceLocations is re-parsed on every read in C#; parsing has no side effects,
-        // and an exception would come from the first read, so one parse per read site is
-        // kept only where the first read happens.
-        let force_locations = self.force_locations(game);
-
-        let force_amount = force_locations.values().map(|b| b.forces()).sum::<i32>();
-        let too_many_forces = force_locations.iter().any(|(l, b)| b.forces() > pl().forces_in(Some(*l)));
-        if too_many_forces {
-            return Some(express!("Invalid number of ", pl().force()));
-        }
-
-        let special_force_amount = force_locations.values().map(|b| b.special_forces()).sum::<i32>();
-        let too_many_special_forces = force_locations.iter().any(|(l, b)| b.special_forces() > pl().special_forces_in(Some(*l)));
-        if too_many_special_forces {
-            return Some(express!("Invalid number of ", pl().special_force()));
-        }
-
-        if force_amount == 0 && special_force_amount == 0 {
-            return Some(express!("No forces selected"));
-        }
-
-        if (*self.field_to()).is_none() {
-            return Some(express!("To not selected"));
-        }
-        let valid_targets = PlacementEvent::valid_targets_for_forces(game, p.expect("player"), &force_locations);
-        if !valid_targets.contains(&(*self.field_to()).expect("destination")) {
-            return Some(express!("Invalid To location"));
-        }
-        if as_advisors && !(pl().is(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritAdvisors)) {
-            return Some(express!("You can't move as advisors"));
-        }
-
-        if self.initiator() == Some(Faction::BeneGesserit) {
-            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), (*self.field_to()).expect("destination").territory(), special_force_amount > 0) {
-                return Some(express!("You can't be advisors there"));
-            }
-            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.expect("player"), (*self.field_to()).expect("destination").territory()) {
-                return Some(express!("You can't be fighters there"));
-            }
-        }
-
-        let can_move_from_two_territories = game.turn.current_planetology.is_some()
-            && game.turn.current_planetology.as_ref().expect("current planetology").move_from_two_territories()
-            && game.turn.current_planetology.as_ref().expect("current planetology").initiator() == self.initiator();
-        let number_of_selected_territories = force_locations
-            .iter()
-            .filter(|kvp| kvp.1.total_amount_of_forces() > 0)
-            .map(|fl| fl.0.territory())
-            .distinct()
-            .len();
-        if number_of_selected_territories > 1 && !can_move_from_two_territories {
-            return Some(express!("You can't move from two territories at the same time"));
-        }
-        if number_of_selected_territories > 2 {
-            return Some(express!("You can't move from more than two territories at the same time"));
-        }
-
-        if force_locations.keys().any(|l| game.is_in_storm(*l)) {
-            return Some(express!("Cannot move out of a storm"));
-        }
-
-        if self.initiator() == Some(Faction::Richese)
-            && force_locations.values().any(|v| v.amount_of_special_forces != 0)
-            && game.has_low_threshold(Faction::Richese)
-        {
-            return Some(express!("Low Threshold prevents you from moving your No-Field"));
-        }
-
-        None
-    }
-
 }
 
 impl PlacementEvent {
@@ -146,6 +65,16 @@ impl PlacementEvent {
 
     pub fn parse_force_locations(g: &Game, f: Faction, force_locations: &str) -> IndexMap<Location, Battalion> {
         let mut result: IndexMap<Location, Battalion> = IndexMap::new();
+        for (location, amount_of_normal_forces, amount_of_normal_special_forces) in PlacementEvent::parse_entries(g, force_locations) {
+            result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
+        }
+
+        result
+    }
+
+    /// The entries of a force list, skipping unknown locations.
+    fn parse_entries(g: &Game, force_locations: &str) -> Vec<(Location, u16, u16)> {
+        let mut result = Vec::new();
         // forceLocations.Length <= 0 (null is handled by the caller, which throws there)
         if force_locations.len() == 0 {
             return result;
@@ -155,12 +84,97 @@ impl PlacementEvent {
             let location = g.board.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
             let Some(location) = location else { continue };
             let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
-            let amount_of_normal_forces = PlacementEvent::parse_force_amount(amounts[0]);
-            let amount_of_normal_special_forces = PlacementEvent::parse_force_amount(amounts[1]);
-            result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
+            result.push((location, PlacementEvent::parse_force_amount(amounts[0]), PlacementEvent::parse_force_amount(amounts[1])));
         }
 
         result
+    }
+
+    /// `ForceLocations` of a plain placement event submitted by `by`: the list `s` parsed for
+    /// the submitter's faction. Panics without a player or a list, as C# threw.
+    pub fn force_locations_by(game: &Game, by: By, s: &Option<String>) -> IndexMap<Location, Battalion> {
+        let faction = game.player(by.player()).faction;
+        PlacementEvent::parse_force_locations(game, faction.expect("faction"), s.as_deref().expect("field force locations"))
+    }
+
+    /// The forces and special forces in the list `s`, whoever's they are. Panics without a list.
+    pub fn force_amounts(game: &Game, s: &Option<String>) -> (i32, i32) {
+        let mut amounts: IndexMap<Location, (u16, u16)> = IndexMap::new();
+        for (location, amount, special_amount) in PlacementEvent::parse_entries(game, s.as_deref().expect("field force locations")) {
+            amounts.insert_new(location, (amount, special_amount));
+        }
+        (amounts.values().map(|a| i32::from(a.0)).sum(), amounts.values().map(|a| i32::from(a.1)).sum())
+    }
+
+    /// The checks of a move (`PlacementEvent.ValidateMove`) by `by` of `force_locations` to `to`.
+    /// A pass is checked by the caller.
+    pub fn validate_move(game: &Game, by: By, to: Option<Location>, force_locations: &IndexMap<Location, Battalion>, as_advisors: bool) -> Result<(), Rejection> {
+        // The player may be unset; it is read only where needed.
+        let p = by.player;
+        let pl = || game.player(p.expect("player"));
+
+        let force_amount = force_locations.values().map(|b| b.forces()).sum::<i32>();
+        let too_many_forces = force_locations.iter().any(|(l, b)| b.forces() > pl().forces_in(Some(*l)));
+        if too_many_forces {
+            return Err(Rejection(express!("Invalid number of ", pl().force())));
+        }
+
+        let special_force_amount = force_locations.values().map(|b| b.special_forces()).sum::<i32>();
+        let too_many_special_forces = force_locations.iter().any(|(l, b)| b.special_forces() > pl().special_forces_in(Some(*l)));
+        if too_many_special_forces {
+            return Err(Rejection(express!("Invalid number of ", pl().special_force())));
+        }
+
+        if force_amount == 0 && special_force_amount == 0 {
+            return Err(Rejection(express!("No forces selected")));
+        }
+
+        let Some(to) = to else {
+            return Err(Rejection(express!("To not selected")));
+        };
+        let valid_targets = PlacementEvent::valid_targets_for_forces(game, p.expect("player"), force_locations);
+        if !valid_targets.contains(&to) {
+            return Err(Rejection(express!("Invalid To location")));
+        }
+        if as_advisors && !(pl().is(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritAdvisors)) {
+            return Err(Rejection(express!("You can't move as advisors")));
+        }
+
+        if by.is(Faction::BeneGesserit) {
+            if as_advisors && !PlacementEvent::may_move_as_advisors(game, p.expect("player"), to.territory(), special_force_amount > 0) {
+                return Err(Rejection(express!("You can't be advisors there")));
+            }
+            if !as_advisors && !PlacementEvent::may_move_as_bene_gesserit_fighters(game, p.expect("player"), to.territory()) {
+                return Err(Rejection(express!("You can't be fighters there")));
+            }
+        }
+
+        let can_move_from_two_territories = game.turn.current_planetology.is_some_and(|pl| pl.move_from_two_territories() && pl.initiator == by.faction);
+        let number_of_selected_territories = force_locations
+            .iter()
+            .filter(|kvp| kvp.1.total_amount_of_forces() > 0)
+            .map(|fl| fl.0.territory())
+            .distinct()
+            .len();
+        if number_of_selected_territories > 1 && !can_move_from_two_territories {
+            return Err(Rejection(express!("You can't move from two territories at the same time")));
+        }
+        if number_of_selected_territories > 2 {
+            return Err(Rejection(express!("You can't move from more than two territories at the same time")));
+        }
+
+        if force_locations.keys().any(|l| game.is_in_storm(*l)) {
+            return Err(Rejection(express!("Cannot move out of a storm")));
+        }
+
+        if by.is(Faction::Richese)
+            && force_locations.values().any(|v| v.amount_of_special_forces != 0)
+            && game.has_low_threshold(Faction::Richese)
+        {
+            return Err(Rejection(express!("Low Threshold prevents you from moving your No-Field")));
+        }
+
+        Ok(())
     }
 
     pub fn may_move_as_advisors(g: &Game, p: PlayerId, to: Territory, are_advisors: bool) -> bool {

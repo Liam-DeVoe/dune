@@ -194,7 +194,7 @@ impl OpponentCards {
 impl ClassicBot {
     // ---- Guild ----
 
-    pub fn determine_set_shipment_permission(&self, game: &Game) -> Option<Rc<SetShipmentPermission>> {
+    pub fn determine_set_shipment_permission(&self, game: &Game) -> Option<SetShipmentPermission> {
         if game.turn.current_phase != Phase::BeginningOfShipAndMove {
             return None;
         }
@@ -202,10 +202,10 @@ impl ClassicBot {
         let to_deny: Vec<Faction> =
             game.ship_move.shipment_permissions.keys().copied().filter(|f| self.is_winning_opponent_faction(game, *f)).collect();
         if !to_deny.is_empty() {
-            let mut e = SetShipmentPermission::new(game, self.faction(game));
+            let mut e = SetShipmentPermission::default();
             e.factions = Some(to_deny);
             e.permission = ShipmentPermission::NONE;
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         let guild_rate = self.resources(game) > 10 || !self.winning_opponents_i_wish_to_attack(game, 99, true).is_empty();
@@ -216,10 +216,10 @@ impl ClassicBot {
         if to_allow.is_empty() {
             return None;
         }
-        let mut e = SetShipmentPermission::new(game, self.faction(game));
+        let mut e = SetShipmentPermission::default();
         e.factions = Some(to_allow);
         e.permission = permission;
-        Some(Rc::new(e))
+        Some(e)
     }
 
     // ---- Emperor ----
@@ -533,12 +533,12 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_bene_gesserit_flip(&self, game: &Game) -> Rc<BeneGesseritFlip> {
+    pub fn determine_bene_gesserit_flip(&self, game: &Game) -> BeneGesseritFlip {
         let territory = BeneGesseritFlip::get_territory(game);
 
-        let mut e = BeneGesseritFlip::new(game, self.faction(game));
+        let mut e = BeneGesseritFlip::default();
         e.as_advisors = !self.i_want_to_be_fighters_in(game, territory);
-        Rc::new(e)
+        e
     }
 
     /// Whether `x` is an opponent (not me or my ally) who meets the normal victory condition and
@@ -615,21 +615,20 @@ impl ClassicBot {
                     + ClassicBot::max_reinforced_dial_to(game, self.player, opponent, territory)
     }
 
-    pub fn determine_bene_gesserit_accompanies(&self, game: &Game) -> Rc<BeneGesseritAccompanies> {
+    pub fn determine_bene_gesserit_accompanies(&self, game: &Game) -> BeneGesseritAccompanies {
         let me = game.player(self.player);
-        let faction = self.faction(game);
         let accompany = |location: Location, extra_advisor: bool| {
-            let mut e = BeneGesseritAccompanies::new(game, faction);
+            let mut e = BeneGesseritAccompanies::default();
             e.location = Some(location);
             e.accompanies = true;
             e.extra_advisor = extra_advisor;
-            Rc::new(e)
+            e
         };
         let no_accompany = || {
-            let mut e = BeneGesseritAccompanies::new(game, faction);
+            let mut e = BeneGesseritAccompanies::default();
             e.location = None;
             e.accompanies = false;
-            Rc::new(e)
+            e
         };
 
         if me.forces_in_reserve() <= 0 {
@@ -655,7 +654,7 @@ impl ClassicBot {
         let polar_sink = game.board.map.polar_sink();
         if BeneGesseritAccompanies::valid_targets(game, self.player).contains(&polar_sink)
             && (self.resources_including_ally_contribution(game) < 5 || me.forces_in_reserve() > 3)
-            && !(self.last_turn(game) && game.turn.has_acted_or_passed.contains(&faction))
+            && !(self.last_turn(game) && game.turn.has_acted_or_passed.contains(&self.faction(game)))
             && polar_sink.forces_of(game, self.player) < 8
         {
             return accompany(polar_sink, BeneGesseritAccompanies::may_send_extra_advisor(game, self.player, polar_sink));
@@ -1477,13 +1476,13 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_richese_revealed_no_field(&self, game: &Game) -> Option<Rc<RicheseRevealedNoField>> {
+    pub fn determine_richese_revealed_no_field(&self, game: &Game) -> Option<RicheseRevealedNoField> {
         if game.turn.current_phase == Phase::ShipmentAndMoveConcluded {
             let location_with_no_field =
                 self.forces_on_planet(game).iter().find(|(_, b)| b.amount_of_special_forces > 0).map(|(l, _)| *l);
             if let Some(l) = location_with_no_field {
                 if game.board.resources_on_planet.contains_key(&l) && !self.occupied_by_opponent(game, l.territory()) {
-                    return Some(Rc::new(RicheseRevealedNoField::new(game, self.faction(game))));
+                    return Some(RicheseRevealedNoField::default());
                 }
             }
         }

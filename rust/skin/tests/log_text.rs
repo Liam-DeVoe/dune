@@ -8,7 +8,7 @@ use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 use treachery_engine::game::Deal;
 use treachery_engine::messages::part::Part;
 use treachery_engine::events::game_event::GameEventMethods;
-use treachery_engine::events::{AutomationConfigured, FlightDiscoveryUsed, FlightUsed, HistoryEntry, Karma, KarmaChoamDiscard, Shipment, Voice};
+use treachery_engine::events::{AutomationConfigured, By, EventRules, FlightDiscoveryUsed, FlightUsed, HistoryEntry, Karma, KarmaChoamDiscard, Shipment, Voice};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::messages::message::{Message, MessagePart};
@@ -48,11 +48,10 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
     s.force_amount = 2;
     s.karma_card = None;
     s.to = Some(to);
-    s.initialize(&g, Some(Faction::Atreides));
-    let s = Rc::new(s);
     g.prevent(Faction::Atreides, FactionAdvantage::GuildReceiveShipment, false);
     let mut part = MessagePart::express(vec![]);
-    s.handle_received_shipment_payment(&mut g, &mut part);
+    let by = By::new(&g, Faction::Atreides);
+    s.handle_received_shipment_payment(&mut g, by, &mut part);
     let rendered = default_skin().render_parts(&part.parts);
     assert_eq!(rendered, " → Karama prevents Guild from receiving 4 Spice");
 }
@@ -105,14 +104,12 @@ fn ornithopter_and_discovery_texts_have_single_spaces() {
     let flight = |three: bool| {
         let mut e = FlightUsed::default();
         e.move_three_territories = three;
-        e.initialize(&g, Some(Faction::Atreides));
-        text(&e.get_message(&g))
+        text(&e.describe(&g, By::new(&g, Faction::Atreides)))
     };
     assert!(flight(false).ends_with(" to move an additional group of forces"), "{}", flight(false));
     assert!(flight(true).ends_with(" to gain movement speed") && !flight(true).contains("  "), "{}", flight(true));
     let e = FlightDiscoveryUsed::default();
-    e.initialize(&g, Some(Faction::Atreides));
-    let t = text(&e.get_message(&g));
+    let t = text(&e.describe(&g, By::new(&g, Faction::Atreides)));
     assert!(t.ends_with(" discovery token to gain movement speed"), "{t}");
 }
 

@@ -5,26 +5,26 @@
 use crate::prelude::*;
 
 impl ClassicBot {
-    pub fn determine_move(&mut self, game: &Game) -> Option<Rc<Move>> {
+    pub fn determine_move(&mut self, game: &Game) -> Option<Move> {
         let moved = if game.ship_move.in_guild_cunning_shipment { None } else { self.determine_moved_battalion(game, true) };
 
         let Some(moved) = moved else {
-            let mut m = Move::new(game, self.faction(game));
+            let mut m = Move::default();
             m.passed = true;
-            return Some(Rc::new(m));
+            return Some(m);
         };
 
         let (forces, as_advisors) = self.move_details(game, &moved);
-        let mut result = Move::new(game, self.faction(game));
+        let mut result = Move::default();
         result.passed = false;
         result.to = Some(moved.to);
         result.set_force_locations(game, &forces);
         result.as_advisors = as_advisors;
 
-        result.is_valid(game).then(|| Rc::new(result))
+        result.validate(game, self.by(game)).is_ok().then_some(result)
     }
 
-    pub fn determine_caravan(&mut self, game: &Game) -> Option<Rc<Caravan>> {
+    pub fn determine_caravan(&mut self, game: &Game) -> Option<Caravan> {
         if self.forces_on_planet(game).keys().filter(|l| !l.is_stronghold()).count() <= 1 {
             return None;
         }
@@ -32,7 +32,7 @@ impl ClassicBot {
         let moved = self.determine_moved_battalion(game, false)?;
 
         let (forces, as_advisors) = self.move_details(game, &moved);
-        let mut result = Caravan::new(game, self.faction(game));
+        let mut result = Caravan::default();
         result.passed = false;
         result.to = Some(moved.to);
         result.set_force_locations(game, &forces);
@@ -40,7 +40,7 @@ impl ClassicBot {
 
         self.decided_shipment_action = ShipmentDecision::None;
 
-        result.is_valid(game).then(|| Rc::new(result))
+        result.validate(game, self.by(game)).is_ok().then_some(result)
     }
 
     /// The forces to move, keyed by where they come from, and whether Bene Gesserit forces
@@ -197,25 +197,25 @@ impl ClassicBot {
         })
     }
 
-    pub fn determine_flight_used(&self, game: &Game) -> Option<Rc<FlightUsed>> {
+    pub fn determine_flight_used(&self, game: &Game) -> Option<FlightUsed> {
         let outside_strongholds = self.force_locations_outside_strongholds(game);
         if outside_strongholds.len() > 1 && outside_strongholds.iter().map(|(_, b)| b.total_amount_of_forces()).sum::<i32>() > 3 {
-            let mut f = FlightUsed::new(game, self.faction(game));
+            let mut f = FlightUsed::default();
             f.move_three_territories = false;
-            return Some(Rc::new(f));
+            return Some(f);
         }
 
         None
     }
 
-    pub fn determine_flight_discovery_used(&self, game: &Game) -> Option<Rc<FlightDiscoveryUsed>> {
+    pub fn determine_flight_discovery_used(&self, game: &Game) -> Option<FlightDiscoveryUsed> {
         if !game.has_ornithopters(self.player)
             && (self.biggest_battalion_in_spiceless_non_stronghold_location_in_sand_or_not_near_stronghold(game).is_some()
                 || self.biggest_battalion_in_spiceless_non_stronghold_location_not_near_stronghold_and_spice(game).is_some()
                 || self.biggest_battalion_threatened_by_storm_without_spice(game).is_some()
                 || self.biggest_battalion_in_spiceless_non_stronghold_location_on_rock(game).is_some())
         {
-            return Some(Rc::new(FlightDiscoveryUsed::new(game, self.faction(game))));
+            return Some(FlightDiscoveryUsed::default());
         }
 
         None

@@ -1,51 +1,60 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BeneGesseritFlip {
     pub as_advisors: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for BeneGesseritFlip {
-    fn default() -> Self {
-        BeneGesseritFlip {
-            as_advisors: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl BeneGesseritFlip {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        if self.initiator() != Some(Faction::BeneGesserit) {
-            return Some(express!("Your faction can't flip"));
-        }
-
-        None
-    }
-
     /// The territory of the latest Bene Gesserit intrusion. Panics when there is none.
     pub fn get_territory(g: &Game) -> Territory {
         g.last_bene_gesserit_intrusion().expect("a Bene Gesserit intrusion").territory(g)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    pub fn log_record(&self, game: &Game, by: By) -> BeneGesseritReaction {
+        let territory = BeneGesseritFlip::get_territory(game);
+        let become_ = (game.player(by.player()).special_forces_in_territory(Some(territory)) > 0) ^ self.as_advisors;
+        BeneGesseritReaction::new(
+            if become_ { BeneGesseritReactionKind::Become } else { BeneGesseritReactionKind::StayAs },
+            territory.into(),
+            self.as_advisors,
+        )
+    }
+
+    pub fn get_dynamic_message(&self, game: &Game, by: By) -> Message {
+        let territory = BeneGesseritFlip::get_territory(game);
+        let has_advisors_there = game.player(by.player()).special_forces_in_territory(Some(territory)) > 0;
+
+        let force: Part = if self.as_advisors { FactionSpecialForce::BeneGesserit.into() } else { FactionForce::BeneGesserit.into() };
+        express!(
+            by.faction,
+            if has_advisors_there ^ self.as_advisors { " become " } else { " stay as " },
+            force,
+            " in ",
+            territory
+        )
+    }
+}
+
+impl EventRules for BeneGesseritFlip {
+    fn validate(&self, _game: &Game, by: By) -> Result<(), Rejection> {
+        if !by.is(Faction::BeneGesserit) {
+            return Err(Rejection(express!("Your faction can't flip")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if game.last_bene_gesserit_intrusion().is_none() {
             game_error!("There is no Bene Gesserit intrusion");
         }
-        let m = self.get_dynamic_message(game).with_log(self.log_record(game));
-        self.log_objects(game, vec![m.into()]);
+        let m = self.get_dynamic_message(game, by).with_log(self.log_record(game, by));
+        game.log(parts![m]);
 
         let territory = BeneGesseritFlip::get_territory(game);
-        Player::flip_forces_in_territory(game, self.player(), territory, self.as_advisors)?;
+        Player::flip_forces_in_territory(game, by.player(), territory, self.as_advisors)?;
 
         game.flip_bene_gesserit_advisors_when_alone()?;
 
@@ -54,63 +63,11 @@ impl BeneGesseritFlip {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.as_advisors {
-            express!(self.initiator(), " flip to ", FactionSpecialForce::BeneGesserit)
+            express!(by.faction, " flip to ", FactionSpecialForce::BeneGesserit)
         } else {
-            express!(self.initiator(), " flip to ", FactionForce::BeneGesserit)
+            express!(by.faction, " flip to ", FactionForce::BeneGesserit)
         }
     }
-
-    pub fn log_record(&self, game: &Game) -> BeneGesseritReaction {
-        let territory = BeneGesseritFlip::get_territory(game);
-        let become_ = (game.player(self.player()).special_forces_in_territory(Some(territory)) > 0) ^ self.as_advisors;
-        BeneGesseritReaction::new(
-            if become_ { BeneGesseritReactionKind::Become } else { BeneGesseritReactionKind::StayAs },
-            territory.into(),
-            self.as_advisors,
-        )
-    }
-
-    pub fn get_dynamic_message(&self, game: &Game) -> Message {
-        let territory = BeneGesseritFlip::get_territory(game);
-        let has_advisors_there = game.player(self.player()).special_forces_in_territory(Some(territory)) > 0;
-
-        let force: Part = if self.as_advisors { FactionSpecialForce::BeneGesserit.into() } else { FactionForce::BeneGesserit.into() };
-        express!(
-            self.initiator(),
-            if has_advisors_there ^ self.as_advisors { " become " } else { " stay as " },
-            force,
-            " in ",
-            territory
-        )
-    }
-
-}
-
-impl GameEventMethods for BeneGesseritFlip {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::BeneGesseritFlip
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::BeneGesseritFlip(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        BeneGesseritFlip::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        BeneGesseritFlip::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BeneGesseritFlip::get_message(self, game)
-    }
-
 }

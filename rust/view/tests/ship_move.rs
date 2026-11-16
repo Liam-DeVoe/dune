@@ -89,7 +89,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
     let o = opts(game, p, &draft, d);
     seen.add(t);
     // The default draft is already as the component shows it.
-    assert_eq!(json::serialize(&HistoryEntry::legacy(adjusted(game, p, &draft, d))), json::serialize(&HistoryEntry::legacy(draft.clone())), "{}: the default draft is stable", t.name());
+    assert_eq!(json::serialize(&HistoryEntry::new(f, adjusted(game, p, &draft, d))), json::serialize(&HistoryEntry::new(f, draft.clone())), "{}: the default draft is stable", t.name());
     check_adjustments(game, p, &draft, d);
     let pl = game.player(p);
     match (&draft, o) {
@@ -158,7 +158,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
             assert_eq!(o.targets, ids(targets.clone()));
             assert!(!o.may_send_extra_advisor);
             for l in targets {
-                let mut e = BeneGesseritAccompanies::new(game, f);
+                let mut e = BeneGesseritAccompanies::default();
                 e.location = Some(l);
                 e.accompanies = true;
                 let ActionOptions::BeneGesseritAccompanies(o) = opts(game, p, &event(e), d) else { panic!() };
@@ -282,8 +282,8 @@ fn check_shipment_draft(game: &Game, p: PlayerId, s: &Shipment, o: &ShipmentOpti
     );
 }
 
-fn shipment_draft(game: &Game, f: Faction, ty: ShipmentType, from: Option<Location>, to: Option<Location>, forces: i32, special: i32) -> Shipment {
-    let mut s = Shipment::new(game, f);
+fn shipment_draft(_game: &Game, _f: Faction, ty: ShipmentType, from: Option<Location>, to: Option<Location>, forces: i32, special: i32) -> Shipment {
+    let mut s = Shipment::default();
     s.shipment_type = ty;
     s.set_no_field_value(-1);
     s.set_cunning_no_field_value(-1);
@@ -371,7 +371,7 @@ fn check_placement(game: &Game, p: PlayerId, o: &PlacementOptions, t: EventType)
     assert_eq!(o.sources, sources.iter().map(|l| forces_at(game, p, *l)).collect::<Vec<_>>());
     assert!(o.targets.is_empty(), "no destinations before forces are selected");
     let planetology = game.turn.current_planetology.as_ref();
-    assert_eq!(o.may_move_from_two_territories, planetology.is_some_and(|x| x.move_from_two_territories() && x.initiator() == f));
+    assert_eq!(o.may_move_from_two_territories, planetology.is_some_and(|x| x.move_from_two_territories() && x.initiator == f));
     let d = default_describer();
     for l in sources {
         let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
@@ -409,13 +409,13 @@ fn placement_options(o: ActionOptions) -> PlacementOptions {
 fn placement_draft(game: &Game, f: Faction, t: EventType, forces: &IndexMap<Location, Battalion>, to: Option<Location>) -> Event {
     match t {
         EventType::Move => {
-            let mut e = Move::new(game, f);
+            let mut e = Move::default();
             e.set_force_locations(game, forces);
             e.to = to;
             event(e)
         }
         EventType::Caravan => {
-            let mut e = Caravan::new(game, f);
+            let mut e = Caravan::default();
             e.set_force_locations(game, forces);
             e.to = to;
             event(e)
@@ -690,14 +690,14 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
         }
         Event::BeneGesseritAccompanies(_) => {
             for l in BeneGesseritAccompanies::valid_targets(game, p) {
-                let mut e = BeneGesseritAccompanies::new(game, f);
+                let mut e = BeneGesseritAccompanies::default();
                 e.location = Some(l);
                 e.accompanies = true;
                 e.extra_advisor = true;
                 let Event::BeneGesseritAccompanies(a) = adjusted(game, p, &event(e), d) else { panic!() };
                 assert_eq!(a.extra_advisor, BeneGesseritAccompanies::may_send_extra_advisor(game, p, l));
             }
-            let mut e = BeneGesseritAccompanies::new(game, f);
+            let mut e = BeneGesseritAccompanies::default();
             e.location = None;
             e.extra_advisor = true;
             let Event::BeneGesseritAccompanies(a) = adjusted(game, p, &event(e), d) else { panic!() };
@@ -733,7 +733,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
         }
         Event::KarmaShipmentPrevention(_) => {
             let targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, p).collect();
-            let mut e = KarmaShipmentPrevention::new(game, f);
+            let mut e = KarmaShipmentPrevention::default();
             e.target = f;
             let Event::KarmaShipmentPrevention(a) = adjusted(game, p, &event(e), d) else { panic!() };
             assert_eq!(a.target, if targets.contains_opt(f) { f } else { targets.first().copied() });
@@ -788,8 +788,8 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer)
 
 fn set_as_advisors(e: &mut Event, v: bool) {
     match e {
-        Event::Move(m) => std::rc::Rc::make_mut(m).as_advisors = v,
-        Event::Caravan(c) => std::rc::Rc::make_mut(c).as_advisors = v,
+        Event::Move(m) => m.as_advisors = v,
+        Event::Caravan(c) => c.as_advisors = v,
         _ => unreachable!(),
     }
 }
@@ -863,7 +863,7 @@ fn check_shipment_adjustments(game: &Game, p: PlayerId, d: &dyn Describer) {
                 e.ally_contribution_amount = 0;
             }
         }
-        assert_eq!(json::serialize(&HistoryEntry::legacy(event((*a).clone()))), json::serialize(&HistoryEntry::legacy(event(e))), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
+        assert_eq!(json::serialize(&HistoryEntry::new(f, event(a.clone()))), json::serialize(&HistoryEntry::new(f, event(e))), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
         let ActionOptions::Shipment(o) = opts(game, p, &event(s), d) else { panic!() };
         check_shipment_draft(game, p, &a, &o);
     }

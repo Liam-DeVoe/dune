@@ -194,9 +194,9 @@ fn reinforcements_come_from_every_homeworld() {
 #[test]
 fn a_caravan_cant_be_passed() {
     let g = game_with(&[Faction::Atreides]);
-    let mut e = Caravan::new(&g, Faction::Atreides);
+    let mut e = Caravan::default();
     e.passed = true;
-    assert_eq!(refusal(e.validate(&g)).as_deref(), Some("You can't pass a Caravan"));
+    assert_eq!(refusal(e.validate(&g, By::new(&g, Faction::Atreides)).err().map(|r| r.0)).as_deref(), Some("You can't pass a Caravan"));
 }
 
 /// Amounts in events are never negative, and an event with one doesn't decode. A negative bid or

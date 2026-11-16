@@ -53,9 +53,9 @@ impl std::fmt::Display for Turn {
     }
 }
 
-/// Where the game is (turn, main phase, phase) and what lasts only for the current turn or main
-/// phase: who has acted, payments and milestones, prevented advantages, cards and Nexus cards in
-/// effect, and the phases paused by Clairvoyance, discarding and Bureaucracy.
+/// Where the game is (turn and main phase; the phase is `game.phase`) and what lasts only for
+/// the current turn or main phase: who has acted, payments and milestones, prevented advantages,
+/// and cards and Nexus cards in effect.
 pub struct TurnState {
     pub current_turn: Turn,
     pub current_main_phase: MainPhase,

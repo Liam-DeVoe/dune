@@ -11,7 +11,7 @@ impl ClassicBot {
     /// The first offer of bidding prescience until `end_phase` that I can pay for.
     fn affordable_bidding_prescience_offer(&self, game: &Game, end_phase: Phase) -> Option<Rc<DealOffered>> {
         DealAccepted::acceptable_deals(game, Some(self.player))
-            .find(|d| d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Some(end_phase) && d.price <= self.resources(game))
+            .find(|d| d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Some(end_phase) && i32::from(d.price) <= self.resources(game))
     }
 
     /// Buy bidding prescience when it is cheap enough for what I can spend.
@@ -50,8 +50,8 @@ impl ClassicBot {
             }
             if game.turn.current_main_phase == MainPhase::Bidding
                 && game.bidding.card_number == 1
-                && (d.price as f32) < 1.4 * game.bidding.cards_on_auction.as_ref().expect("cards on auction").items.len() as f32
-                && self.resources_including_ally_contribution(game) - d.price > 16
+                && (i32::from(d.price) as f32) < 1.4 * game.bidding.cards_on_auction.as_ref().expect("cards on auction").items.len() as f32
+                && self.resources_including_ally_contribution(game) - i32::from(d.price) > 16
             {
                 return d.acceptance(game, self.faction(game));
             }
@@ -65,7 +65,7 @@ impl ClassicBot {
         };
         let max_price_to_pay = if rich_enough && game.player(me).has_room_for_cards(game) { 1 } else { 0 };
         match for_one_card {
-            Some(d) if game.turn.current_main_phase == MainPhase::Bidding && d.price <= max_price_to_pay => d.acceptance(game, self.faction(game)),
+            Some(d) if game.turn.current_main_phase == MainPhase::Bidding && i32::from(d.price) <= max_price_to_pay => d.acceptance(game, self.faction(game)),
             _ => None,
         }
     }
@@ -156,7 +156,7 @@ impl ClassicBot {
             offer.cancel = false;
             offer.type_ = DealType::TellDiscardedTraitors;
             offer.end_phase = Some(Phase::TurnConcluded);
-            offer.price = self.d(3, 3);
+            offer.price = treachery_engine::game::amounts::clamp_u16(self.d(3, 3));
             offer.text = Some("tell which traitors I discarded".to_string());
             return Some(Rc::new(offer));
         }
@@ -177,7 +177,7 @@ impl ClassicBot {
             offer.cancel = false;
             offer.type_ = DealType::ShareResourceDeckPrescience;
             offer.end_phase = Some(Phase::TurnConcluded);
-            offer.price = self.d(1, 2);
+            offer.price = treachery_engine::game::amounts::clamp_u16(self.d(1, 2));
             offer.text = Some("share spice card prescience Player turn".to_string());
             return Some(Rc::new(offer));
         }
@@ -198,7 +198,7 @@ impl ClassicBot {
             offer.cancel = false;
             offer.type_ = DealType::ShareStormPrescience;
             offer.end_phase = Some(Phase::TurnConcluded);
-            offer.price = self.d(1, 2);
+            offer.price = treachery_engine::game::amounts::clamp_u16(self.d(1, 2));
             offer.text = Some("share storm prescience Player turn".to_string());
             return Some(Rc::new(offer));
         }
@@ -254,8 +254,9 @@ impl ClassicBot {
             offer.type_ = DealType::ShareBiddingPrescience;
             offer.end_phase = Some(Phase::BiddingReport);
             // The first term is computed in f32, the second in f64.
-            offer.price = ((factor * nr_of_cards as f32) as i32)
-                + (0.1f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32;
+            offer.price = treachery_engine::game::amounts::clamp_u16(
+                ((factor * nr_of_cards as f32) as i32) + (0.1f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32,
+            );
             offer.text = Some("share prescience (phase)".to_string());
             return Some(Rc::new(offer));
         }
@@ -277,9 +278,10 @@ impl ClassicBot {
             offer.cancel = false;
             offer.type_ = DealType::ShareBiddingPrescience;
             offer.end_phase = Some(Phase::Bidding);
-            offer.price = 1i32
-                + (0.05f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32
-                + if self.ally(game) == None { 0 } else { 1 };
+            offer.price = treachery_engine::game::amounts::clamp_u16(
+                1i32 + (0.05f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32
+                    + if self.ally(game) == None { 0 } else { 1 },
+            );
             offer.text = Some("share prescience (1 card)".to_string());
             return Some(Rc::new(offer));
         }

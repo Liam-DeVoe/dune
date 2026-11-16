@@ -8,8 +8,8 @@ pub struct DealRejected {
     pub deal_parameter2: Option<String>,
     pub text: Option<String>,
     pub end: Option<Phase>,
-    pub price: i32,
-    pub benefit: i32,
+    pub price: u16,
+    pub benefit: u16,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -75,13 +75,13 @@ impl DealRejected {
             " decline ",
             self.bound_faction,
             " offer for ",
-            Payment::of(self.price),
+            Payment::of(i32::from(self.price)),
             ": ",
             Deal::describe_deal_contents(
                 game,
                 self.type_,
                 self.text.as_deref(),
-                self.benefit,
+                i32::from(self.benefit),
                 self.end,
                 self.deal_parameter1.as_deref(),
             )
@@ -89,7 +89,7 @@ impl DealRejected {
     }
 
     pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        Deal::try_deal_contents_description(game, self.type_, self.text.as_deref(), self.benefit, self.end, self.deal_parameter1.as_deref())?;
+        Deal::try_deal_contents_description(game, self.type_, self.text.as_deref(), i32::from(self.benefit), self.end, self.deal_parameter1.as_deref())?;
         Ok(self.get_message(game))
     }
 

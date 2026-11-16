@@ -116,21 +116,19 @@ fn a_pass_offers_nothing() {
 }
 
 #[test]
-fn bids_with_negative_amounts_or_unoffered_emperor_spice_are_refused() {
+fn bids_with_unoffered_emperor_spice_are_refused() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let atreides = g.get_player(Some(Faction::Atreides)).unwrap();
     let emperor = g.get_player(Some(Faction::Emperor)).unwrap();
     g.player_mut(atreides).resources = 5;
     g.player_mut(emperor).resources = 10;
-    let bid = |g: &Game, amount: i32, ally: i32, emperor: i32| {
+    let bid = |g: &Game, amount: u16, ally: u16, emperor: u16| {
         let mut b = Bid::new(g, Faction::Atreides);
         b.amount = amount;
         b.ally_contribution_amount = ally;
         b.emperor_contribution_amount = emperor;
         refusal(b.validate(g))
     };
-    assert_eq!(bid(&g, -1, 0, 5).as_deref(), Some("Invalid amount"));
-    assert_eq!(bid(&g, 2, -1, 0).as_deref(), Some("Invalid amount"));
     // The Emperor has the spice but offered none of it.
     assert_eq!(bid(&g, 1, 0, 3).as_deref(), Some("Emperor won't pay that much"));
     g.alliances.permitted_use_of_emperor_spice.as_mut().unwrap().insert(Faction::Atreides, 3);
@@ -139,24 +137,6 @@ fn bids_with_negative_amounts_or_unoffered_emperor_spice_are_refused() {
     let mut black_market = BlackMarketBid::new(&g, Faction::Atreides);
     black_market.amount = 6;
     assert_eq!(refusal(black_market.validate(&g)).as_deref(), Some("You can't pay Treachery.Shared.Payment"));
-}
-
-#[test]
-fn spice_given_away_is_never_negative() {
-    let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    let atreides = g.get_player(Some(Faction::Atreides)).unwrap();
-    let card = TreacheryCardManager::items()[0];
-    g.player_mut(atreides).resources = 5;
-    g.player_mut(atreides).treachery_cards.push(card);
-    let mut gift = Donated::new(&g, Faction::Atreides);
-    gift.target = Some(Faction::Emperor);
-    gift.card = Some(card);
-    gift.resources = -3;
-    assert_eq!(refusal(gift.validate(&g)).as_deref(), Some("Invalid amount"));
-
-    let mut transfer = ResourcesTransferred::new(&g, Faction::Atreides);
-    transfer.resources = -3;
-    assert_eq!(refusal(transfer.validate(&g)).as_deref(), Some("Invalid amount"));
 }
 
 fn home(g: &Game, w: World) -> Homeworld {
@@ -219,37 +199,36 @@ fn a_caravan_cant_be_passed() {
     assert_eq!(refusal(e.validate(&g)).as_deref(), Some("You can't pass a Caravan"));
 }
 
-/// Negative amounts in events that place, kill or revive forces moved forces the wrong way: out
-/// of reserves into the tanks, or onto the board instead of into the tanks.
+/// Amounts in events are never negative, and an event with one doesn't decode. A negative bid or
+/// gift paid by receiving spice, and a negative amount of forces placed, killed or revived moved
+/// forces the wrong way. Validation refused most of these; a negative No-Field value meant no
+/// No-Field. The exceptions are a shipment's force amounts, negative for a shipment back to
+/// reserves, and the values that mean a direction (`Direction`, `ValueAdded`).
 #[test]
-fn negative_force_amounts_are_refused() {
-    let g = game_with(&[Faction::Atreides, Faction::Emperor]);
-
-    let mut losses = TakeLosses::new(&g, Faction::Atreides);
-    losses.force_amount = -1;
-    losses.special_force_amount = 5;
-    assert_eq!(refusal(losses.validate(&g)).as_deref(), Some("Invalid amount of forces"));
-
-    let mut free = KarmaFreeRevival::new(&g, Faction::Atreides);
-    free.amount_of_forces = -2;
-    assert_eq!(refusal(free.validate(&g)).as_deref(), Some("Invalid amount"));
-
-    let mut revival = Revival::new(&g, Faction::Atreides);
-    revival.hero = Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap()));
-    revival.amount_of_forces = -2;
-    assert_eq!(refusal(revival.validate(&g)).as_deref(), Some("Invalid amount"));
-
-    let mut shipment = Shipment::new(&g, Faction::Atreides);
-    shipment.from = None;
-    shipment.force_amount = 2;
-    shipment.smuggled_amount = -1;
-    assert_eq!(refusal(shipment.validate(&g)).as_deref(), Some("Invalid amount"));
-
-    // Tleilaxu isn't playing, so this is its secret ally card.
-    let mut nexus = NexusPlayed::new(&g, Faction::Atreides);
-    nexus.faction = Some(Faction::Tleilaxu);
-    nexus.tleilaxu_forces = -1;
-    assert_eq!(refusal(nexus.validate(&g)).as_deref(), Some("Invalid amount"));
+fn negative_event_amounts_dont_decode() {
+    for (event, member) in [
+        ("Bid", "Amount"),
+        ("Bid", "AllyContributionAmount"),
+        ("BlackMarketBid", "EmperorContributionAmount"),
+        ("ResourcesTransferred", "Resources"),
+        ("TakeLosses", "ForceAmount"),
+        ("KarmaFreeRevival", "AmountOfForces"),
+        ("Revival", "AmountOfForces"),
+        ("Shipment", "SmuggledAmount"),
+        ("Shipment", "_noFieldValue"),
+        ("NexusPlayed", "TleilaxuForces"),
+        ("DealOffered", "Price"),
+        ("StormDialled", "Amount"),
+    ] {
+        let json = |n: i64| format!(r#"{{"$type":"{event}","{member}":{n}}}"#);
+        assert!(decode(&json(0)).is_ok(), "{event}.{member} 0");
+        assert!(decode(&json(65535)).is_ok(), "{event}.{member} 65535");
+        assert_eq!(decode(&json(-1)).unwrap_err(), "-1 is not a valid amount", "{event}.{member}");
+        assert_eq!(decode(&json(65536)).unwrap_err(), "65536 is not a valid amount", "{event}.{member}");
+    }
+    assert!(decode(r#"{"$type":"Shipment","ForceAmount":-2,"SpecialForceAmount":-1}"#).is_ok());
+    assert!(decode(r#"{"$type":"RicheseSpecifiesAuction","Direction":-1}"#).is_ok());
+    assert!(decode(r#"{"$type":"TestingStationUsed","ValueAdded":-1}"#).is_ok());
 }
 
 /// A force list (`_forceLocations`) with an amount outside 0 to 65535 doesn't decode.

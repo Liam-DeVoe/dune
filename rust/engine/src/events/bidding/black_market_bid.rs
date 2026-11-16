@@ -2,9 +2,9 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct BlackMarketBid {
-    pub amount: i32,
-    pub ally_contribution_amount: i32,
-    pub emperor_contribution_amount: i32,
+    pub amount: u16,
+    pub ally_contribution_amount: u16,
+    pub emperor_contribution_amount: u16,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
@@ -41,7 +41,7 @@ impl BlackMarketBid {
         if self.passed {
             return 0;
         }
-        (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
+        (i32::from(self.amount) + i32::from(self.ally_contribution_amount)) + i32::from(self.emperor_contribution_amount)
     }
 
     pub fn using_karma_to_remove_bid_limit(&self) -> bool {
@@ -212,11 +212,6 @@ impl BlackMarketBid {
             return None;
         }
 
-        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
-        // sectors and amounts out of range").
-        if self.amount < 0 || self.ally_contribution_amount < 0 || self.emperor_contribution_amount < 0 {
-            return Some(express!("Invalid amount"));
-        }
         if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) && self.total_amount() < 1 {
             return Some(express!("Bid must be higher than 0"));
         }
@@ -229,21 +224,21 @@ impl BlackMarketBid {
         }
 
         // `Player` is dereferenced (p.Faction) inside ResourcesYourAllyCanPay: NullReferenceException when null.
-        if self.ally_contribution_amount > BlackMarketBid::valid_max_ally_amount(game, self.player()) {
+        if i32::from(self.ally_contribution_amount) > BlackMarketBid::valid_max_ally_amount(game, self.player()) {
             return Some(express!("your ally won't pay that much"));
         }
 
         // Not in C#, which checked only the Emperor's spice, not what the Emperor offered
         // (behavior-changes.md, "Turns, sectors and amounts out of range").
-        if self.emperor_contribution_amount > 0 && self.emperor_contribution_amount > self.initiator().map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
+        if i32::from(self.emperor_contribution_amount) > 0 && i32::from(self.emperor_contribution_amount) > self.initiator().map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
         // Not in C#, where a normal Black Market bid could be more than the bidder had, and
         // paying it left them with less than zero (behavior-changes.md, "Turns, sectors and
         // amounts out of range"). `Bid` checks the same.
-        if self.amount > i32::from(game.player(self.player()).resources) {
-            return Some(express!("You can't pay ", Payment::of(self.amount)));
+        if i32::from(self.amount) > i32::from(game.player(self.player()).resources) {
+            return Some(express!("You can't pay ", Payment::of(i32::from(self.amount))));
         }
         if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && self.total_amount() > i32::from(game.player(self.player()).resources) {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
@@ -324,15 +319,15 @@ impl crate::events::bid_trait::BidEvent for BlackMarketBid {
     }
 
     fn amount(&self) -> i32 {
-        self.amount
+        i32::from(self.amount)
     }
 
     fn ally_contribution_amount(&self) -> i32 {
-        self.ally_contribution_amount
+        i32::from(self.ally_contribution_amount)
     }
 
     fn emperor_contribution_amount(&self) -> i32 {
-        self.emperor_contribution_amount
+        i32::from(self.emperor_contribution_amount)
     }
 
     fn uses_emperor_secret_ally(&self) -> bool {

@@ -8,11 +8,11 @@ pub struct Shipment {
     pub from: Option<Location>,
     pub force_amount: i32,
     pub special_force_amount: i32,
-    pub smuggled_amount: i32,
-    pub smuggled_special_amount: i32,
-    pub no_field_value: i32,
-    pub cunning_no_field_value: i32,
-    pub ally_contribution_amount: i32,
+    pub smuggled_amount: u16,
+    pub smuggled_special_amount: u16,
+    pub no_field_value: u16,
+    pub cunning_no_field_value: u16,
+    pub ally_contribution_amount: u16,
     pub karma_card: Option<TreacheryCard>,
     pub use_richese_secret_ally: bool,
     pub force_locations: Option<String>,
@@ -68,19 +68,21 @@ impl Shipment {
     }
 
     pub fn no_field_value(&self) -> i32 {
-        self.no_field_value - 1
+        i32::from(self.no_field_value) - 1
     }
 
+    /// `value` is -1 for none.
     pub fn set_no_field_value(&mut self, value: i32) {
-        self.no_field_value = value + 1;
+        self.no_field_value = u16::try_from(value + 1).expect("a No-Field value from -1");
     }
 
     pub fn cunning_no_field_value(&self) -> i32 {
-        self.cunning_no_field_value - 1
+        i32::from(self.cunning_no_field_value) - 1
     }
 
+    /// `value` is -1 for none.
     pub fn set_cunning_no_field_value(&mut self, value: i32) {
-        self.cunning_no_field_value = value + 1;
+        self.cunning_no_field_value = u16::try_from(value + 1).expect("a No-Field value from -1");
     }
 
     pub fn is_using_karma(&self) -> bool {
@@ -107,11 +109,11 @@ impl Shipment {
     }
 
     pub fn forces_added_to_location(&self, _game: &Game) -> i32 {
-        if self.use_richese_secret_ally { 1 } else { self.force_amount + self.smuggled_amount }
+        if self.use_richese_secret_ally { 1 } else { self.force_amount + i32::from(self.smuggled_amount) }
     }
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
-        if self.use_richese_secret_ally { 0 } else { self.special_force_amount + self.smuggled_special_amount }
+        if self.use_richese_secret_ally { 0 } else { self.special_force_amount + i32::from(self.smuggled_special_amount) }
     }
 
     pub fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
@@ -128,7 +130,7 @@ impl Shipment {
         let initiator = self.player();
         let cost = self.determine_cost_to_initiator(game);
         let extra = if game.player(initiator).ally != Some(Faction::Guild) || game.applicable(Rule::GuildShipmentContributionsFlowBack) {
-            self.ally_contribution_amount
+            i32::from(self.ally_contribution_amount)
         } else {
             0
         };
@@ -138,7 +140,7 @@ impl Shipment {
     pub fn determine_cost_to_initiator(&self, g: &Game) -> i32 {
         let Some(_to) = self.to else { return 0 };
 
-        Shipment::determine_cost(g, self.player(), self) - self.ally_contribution_amount
+        Shipment::determine_cost(g, self.player(), self) - i32::from(self.ally_contribution_amount)
     }
 
     pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {
@@ -219,11 +221,6 @@ impl Shipment {
         if !self.is_back_to_reserves() && (self.force_amount < 0 || self.special_force_amount < 0) {
             return Some(express!("Can't ship less than zero forces"));
         }
-        // Not in C#: a negative smuggled amount took forces from the destination and put them in
-        // reserves, or made them out of nothing where the destination had too few.
-        if self.smuggled_amount < 0 || self.smuggled_special_amount < 0 {
-            return Some(express!("Invalid amount"));
-        }
         if self.force_amount == 0 && self.special_force_amount == 0 {
             return Some(express!("Select forces to ship"));
         }
@@ -245,21 +242,16 @@ impl Shipment {
             }
         }
 
-        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
-        // sectors and amounts out of range").
-        if self.ally_contribution_amount < 0 {
-            return Some(express!("Invalid amount"));
-        }
         let cost = Shipment::determine_cost(game, p(), self);
-        if cost > (i32::from(game.player(p()).resources) + self.ally_contribution_amount) {
+        if cost > (i32::from(game.player(p()).resources) + i32::from(self.ally_contribution_amount)) {
             return Some(express!("You can't pay that much"));
         }
-        if cost < self.ally_contribution_amount {
+        if cost < i32::from(self.ally_contribution_amount) {
             return Some(express!("Your ally is paying more than needed"));
         }
         // Not in C#, which let an ally pay spice it didn't have or hadn't offered
         // (behavior-changes.md). Bid and Battle check the same limit.
-        if self.ally_contribution_amount > 0 && self.ally_contribution_amount > game.resources_your_ally_can_pay(p()) {
+        if i32::from(self.ally_contribution_amount) > 0 && i32::from(self.ally_contribution_amount) > game.resources_your_ally_can_pay(p()) {
             return Some(express!("Your ally won't pay that much"));
         }
         let cross_planet = self.is_back_to_reserves() || (self.is_site_to_site() && !self.from.is_some_and(|f| f.as_homeworld().is_some()));
@@ -303,24 +295,24 @@ impl Shipment {
         }
 
         // C# parity: the sums wrap, so int.MaxValue + 1 passes the check.
-        if !self.is_site_to_site() && (self.force_amount + self.smuggled_amount) > game.player(p()).forces_in_reserve() {
+        if !self.is_site_to_site() && (self.force_amount + i32::from(self.smuggled_amount)) > game.player(p()).forces_in_reserve() {
             return Some(express!("Not enough ", game.player(p()).force(), " in reserve"));
         }
         if !self.is_site_to_site()
             && !is_richese_no_field_shipment
-            && (self.special_force_amount + self.smuggled_special_amount) > game.player(p()).special_forces_in_reserve()
+            && (self.special_force_amount + i32::from(self.smuggled_special_amount)) > game.player(p()).special_forces_in_reserve()
         {
             return Some(express!("Not enough ", game.player(p()).special_force(), " in reserve"));
         }
 
-        let is_smuggling = self.smuggled_amount > 0 || self.smuggled_special_amount > 0;
+        let is_smuggling = i32::from(self.smuggled_amount) > 0 || i32::from(self.smuggled_special_amount) > 0;
         let is_shipping_from_off_planet = !(self.is_back_to_reserves() || self.is_site_to_site())
             && self.initiator() != Some(Faction::Fremen)
             && (self.force_amount > 0 || self.special_force_amount > 0);
         if is_smuggling && (!is_shipping_from_off_planet || !Shipment::may_smuggle(game, p(), Some(to))) {
             return Some(express!("You can't smuggle forces here"));
         }
-        if (self.smuggled_amount + self.smuggled_special_amount) > 1 {
+        if (i32::from(self.smuggled_amount) + i32::from(self.smuggled_special_amount)) > 1 {
             return Some(express!("You can't smuggle more than 1 force"));
         }
 
@@ -779,14 +771,14 @@ impl Shipment {
                 }
             } else if self.is_no_field() && self.initiator() == Some(Faction::Richese) && self.to.is_some() {
                 let to = self.to.required("to")?;
-                self.perform_normal_shipment(game, self.player(), to, self.force_amount + self.smuggled_amount, 1)?;
+                self.perform_normal_shipment(game, self.player(), to, self.force_amount + i32::from(self.smuggled_amount), 1)?;
             } else if let Some(to) = self.to {
                 self.perform_normal_shipment(
                     game,
                     self.player(),
                     to,
-                    self.force_amount + self.smuggled_amount,
-                    self.special_force_amount + self.smuggled_special_amount,
+                    self.force_amount + i32::from(self.smuggled_amount),
+                    self.special_force_amount + i32::from(self.smuggled_special_amount),
                 )?;
             }
 
@@ -841,16 +833,16 @@ impl Shipment {
             game.stone(Milestone::Karma);
         }
 
-        if self.ally_contribution_amount > 0 {
+        if i32::from(self.ally_contribution_amount) > 0 {
             let ally = game.player(self.player()).ally;
             if let Some(a) = game.get_player(ally) {
                 let ap = game.player_mut(a);
-                crate::game::amounts::spend(&mut ap.resources, self.ally_contribution_amount, "spice")?;
+                crate::game::amounts::spend(&mut ap.resources, i32::from(self.ally_contribution_amount), "spice")?;
             }
-            game.decrease_permitted_use_of_ally_spice(self.initiator().required("faction")?, self.ally_contribution_amount);
+            game.decrease_permitted_use_of_ally_spice(self.initiator().required("faction")?, i32::from(self.ally_contribution_amount));
         }
 
-        Ok(cost_to_initiator + self.ally_contribution_amount)
+        Ok(cost_to_initiator + i32::from(self.ally_contribution_amount))
     }
 
     pub fn handle_received_shipment_payment(self: &Rc<Self>, game: &mut Game, profit_message: &mut MessagePart) -> i32 {
@@ -1082,7 +1074,7 @@ impl Shipment {
             from: if self.is_site_to_site() || self.is_back_to_reserves() { self.sources().into_iter().next() } else { None },
             to: if self.is_back_to_reserves() || self.passed { None } else { self.to },
             cost,
-            ally_share: self.ally_contribution_amount,
+            ally_share: i32::from(self.ally_contribution_amount),
             ally: game.player(self.player()).ally,
             guild_paid: guild_income > 0,
             karama: self.karma_card,
@@ -1108,7 +1100,7 @@ impl Shipment {
         express_part!(
             " for ",
             Payment::of(cost),
-            express_part_if!(self.ally_contribution_amount > 0; " (", Payment::of_by(self.ally_contribution_amount, game.player(self.player()).ally), ")")
+            express_part_if!(i32::from(self.ally_contribution_amount) > 0; " (", Payment::of_by(i32::from(self.ally_contribution_amount), game.player(self.player()).ally), ")")
         )
     }
 

@@ -11,8 +11,8 @@ pub struct AmbassadorActivated {
     pub fremen_or_guild_to: Option<Location>,
     pub fremen_force_locations: Option<String>,
     pub ixian_card: Option<TreacheryCard>,
-    pub guild_force_amount: i32,
-    pub tleilaxu_amount_of_forces: i32,
+    pub guild_force_amount: u16,
+    pub tleilaxu_amount_of_forces: u16,
     pub tleilaxu_hero: Option<Hero>,
     pub tleilaxu_assign_skill: bool,
     // ---- inherited from PassableGameEvent ----
@@ -185,19 +185,16 @@ impl AmbassadorActivated {
                     if !AmbassadorActivated::valid_guild_targets(game, player()).into_iter().any(|l| Some(l) == to) {
                         return Some(express!("Invalid target location"));
                     }
-                    if self.guild_force_amount > AmbassadorActivated::valid_guild_max_forces(game, player()) {
+                    if i32::from(self.guild_force_amount) > AmbassadorActivated::valid_guild_max_forces(game, player()) {
                         return Some(express!("Invalid amount of forces"));
                     }
                 }
 
                 Some(Ambassador::Tleilaxu) => {
-                    if self.tleilaxu_amount_of_forces < 0 {
-                        return Some(express!("You can't revive a negative amount of forces"));
-                    }
-                    if self.tleilaxu_amount_of_forces > AmbassadorActivated::valid_tleilaxu_max_amount(game, player()) {
+                    if i32::from(self.tleilaxu_amount_of_forces) > AmbassadorActivated::valid_tleilaxu_max_amount(game, player()) {
                         return Some(express!("You can't revive that many"));
                     }
-                    if self.tleilaxu_amount_of_forces > 0 && self.tleilaxu_hero.is_some() {
+                    if i32::from(self.tleilaxu_amount_of_forces) > 0 && self.tleilaxu_hero.is_some() {
                         return Some(express!("You can't revive both forces and a leader"));
                     }
                     if self.tleilaxu_hero.is_some()
@@ -482,9 +479,9 @@ impl AmbassadorActivated {
             Ambassador::Guild => {
                 let force = game.player(self.player()).force();
                 let to = self.fremen_or_guild_to;
-                self.log_objects(game, elems![self.initiator(), " send ", self.guild_force_amount, force, " to ", to]);
+                self.log_objects(game, elems![self.initiator(), " send ", i32::from(self.guild_force_amount), force, " to ", to]);
                 if let Some(to) = self.fremen_or_guild_to {
-                    Player::ship_forces(game, self.player(), to, self.guild_force_amount)?;
+                    Player::ship_forces(game, self.player(), to, i32::from(self.guild_force_amount))?;
                 }
                 let this = self.clone().into_event();
                 game.ship_move.last_shipment_or_movement = Some(this.clone());
@@ -508,8 +505,8 @@ impl AmbassadorActivated {
                     }
                 } else {
                     let force = game.player(self.player()).force();
-                    self.log_objects(game, elems![self.initiator(), " revive ", self.tleilaxu_amount_of_forces, " ", force]);
-                    Player::revive_forces(game, self.player(), self.tleilaxu_amount_of_forces)?;
+                    self.log_objects(game, elems![self.initiator(), " revive ", i32::from(self.tleilaxu_amount_of_forces), " ", force]);
+                    Player::revive_forces(game, self.player(), i32::from(self.tleilaxu_amount_of_forces))?;
                 }
             }
 

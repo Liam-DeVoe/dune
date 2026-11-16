@@ -382,7 +382,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
                 }
                 Some(Ambassador::Tleilaxu) => {
                     let max = AmbassadorActivated::valid_tleilaxu_max_amount(game, p);
-                    e.tleilaxu_amount_of_forces = if max > 0 { e.tleilaxu_amount_of_forces.clamp(0, max) } else { 0 };
+                    e.tleilaxu_amount_of_forces = treachery_engine::game::amounts::clamp_u16(if max > 0 { i32::from(e.tleilaxu_amount_of_forces).clamp(0, max) } else { 0 });
                     if !e.tleilaxu_hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
                         e.tleilaxu_assign_skill = false;
                     }

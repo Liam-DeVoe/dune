@@ -107,7 +107,7 @@ enum MapChoice {
 
 fn map_choice(game: &Game, p: PlayerId, e: &NexusPlayed) -> MapChoice {
     match game.player(p).nexus {
-        Some(Faction::Tleilaxu) if NexusPlayed::can_use_secret_ally(game, p) && e.tleilaxu_number_of_special_forces_in_location > 0 => MapChoice::TleilaxuLocation,
+        Some(Faction::Tleilaxu) if NexusPlayed::can_use_secret_ally(game, p) && i32::from(e.tleilaxu_number_of_special_forces_in_location) > 0 => MapChoice::TleilaxuLocation,
         Some(Faction::Ecaz) if NexusPlayed::can_use_betrayal(game, p) => MapChoice::EcazTerritory,
         Some(Faction::Moritani) if NexusPlayed::can_use_betrayal(game, p) => MapChoice::MoritaniTerritory,
         _ => MapChoice::None,
@@ -142,12 +142,12 @@ pub(super) fn normalize(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEven
         }
         Some(Case::TleilaxuSecretAlly) => {
             let max = NexusPlayed::valid_tleilaxu_max_amount(game, p, false);
-            m.tleilaxu_forces = if max > 0 { picker(m.tleilaxu_forces, 0, max) } else { 0 };
+            m.tleilaxu_forces = treachery_engine::game::amounts::clamp_u16(if max > 0 { picker(i32::from(m.tleilaxu_forces), 0, max) } else { 0 });
             let max_special = NexusPlayed::valid_tleilaxu_max_amount(game, p, true);
-            m.tleilaxu_special_forces = if max_special > 0 { picker(m.tleilaxu_special_forces, 0, max_special) } else { 0 };
-            let on_planet = max_special_on_planet(game, p, m.tleilaxu_special_forces);
+            m.tleilaxu_special_forces = treachery_engine::game::amounts::clamp_u16(if max_special > 0 { picker(i32::from(m.tleilaxu_special_forces), 0, max_special) } else { 0 });
+            let on_planet = max_special_on_planet(game, p, i32::from(m.tleilaxu_special_forces));
             m.tleilaxu_number_of_special_forces_in_location =
-                if on_planet > 0 { picker(m.tleilaxu_number_of_special_forces_in_location, 0, on_planet) } else { 0 };
+                if on_planet > 0 { treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.tleilaxu_number_of_special_forces_in_location), 0, on_planet)) } else { 0 };
             let hero = m.tleilaxu_hero;
             if !(hero.is_some() && Revival::may_assign_skill(game, p, hero)) {
                 m.tleilaxu_assign_skill = false;
@@ -245,11 +245,11 @@ pub(super) fn options(game: &Game, p: PlayerId, e: &NexusPlayed, d: &dyn Describ
     let tleilaxu = (c == Some(TleilaxuSecretAlly)).then(|| TleilaxuNexusOptions {
         max_forces: NexusPlayed::valid_tleilaxu_max_amount(game, p, false),
         max_special_forces: NexusPlayed::valid_tleilaxu_max_amount(game, p, true),
-        max_special_forces_on_planet: max_special_on_planet(game, p, e.tleilaxu_special_forces),
+        max_special_forces_on_planet: max_special_on_planet(game, p, i32::from(e.tleilaxu_special_forces)),
         locations: Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect(),
         heroes: hero_options(NexusPlayed::valid_tleilaxu_heroes(game, p)),
         may_assign_skill: e.tleilaxu_hero.is_some() && Revival::may_assign_skill(game, p, e.tleilaxu_hero),
-        cost: NexusPlayed::tleilaxu_cost_of_forces(e.tleilaxu_forces, e.tleilaxu_special_forces),
+        cost: NexusPlayed::tleilaxu_cost_of_forces(i32::from(e.tleilaxu_forces), i32::from(e.tleilaxu_special_forces)),
     });
 
     let pick = map_choice(game, p, e);

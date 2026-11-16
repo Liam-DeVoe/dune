@@ -186,7 +186,7 @@ impl ClassicBot {
         result.set_discarded_cards(&discarded);
         result.stolen_token = game.player(opponent.expect("opponent")).tech_tokens.first().copied();
         result.kill = kill;
-        result.special_force_losses_replaced = replaced_special_forces;
+        result.special_force_losses_replaced = treachery_engine::game::amounts::clamp_u16(replaced_special_forces);
         result.new_traitor = new_traitor;
         result.traitor_to_replace = to_replace;
         result.add_extra_force = BattleConcluded::may_add_extra_force(game, self.player);
@@ -298,15 +298,16 @@ impl ClassicBot {
         let mut result = Battle::new(game, self.faction(game));
         result.hero = hero;
         result.messiah = messiah;
-        result.forces = forces.forces;
-        result.forces_at_half_strength = forces.forces_at_half_strength;
-        result.special_forces = forces.special_forces;
-        result.special_forces_at_half_strength = forces.special_forces_at_half_strength;
-        result.ally_contribution_amount = cost
-            .min(resources_from_ally.min(Battle::max_ally_resources(game, self.player, forces.forces, forces.special_forces)));
+        result.forces = treachery_engine::game::amounts::clamp_u16(forces.forces);
+        result.forces_at_half_strength = treachery_engine::game::amounts::clamp_u16(forces.forces_at_half_strength);
+        result.special_forces = treachery_engine::game::amounts::clamp_u16(forces.special_forces);
+        result.special_forces_at_half_strength = treachery_engine::game::amounts::clamp_u16(forces.special_forces_at_half_strength);
+        result.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(
+            cost.min(resources_from_ally.min(Battle::max_ally_resources(game, self.player, forces.forces, forces.special_forces))),
+        );
         result.set_defense(defense);
         result.set_weapon(weapon);
-        result.banker_bonus = banker_boost;
+        result.banker_bonus = treachery_engine::game::amounts::clamp_u16(banker_boost);
         Rc::new(result)
     }
 
@@ -375,10 +376,10 @@ impl ClassicBot {
 
         let mut result = Battle::new(game, self.faction(game));
         result.hero = hero;
-        result.forces = forces;
-        result.forces_at_half_strength = forces_at_half_strength;
-        result.special_forces = special_forces;
-        result.special_forces_at_half_strength = special_forces_at_half_strength;
+        result.forces = treachery_engine::game::amounts::clamp_u16(forces);
+        result.forces_at_half_strength = treachery_engine::game::amounts::clamp_u16(forces_at_half_strength);
+        result.special_forces = treachery_engine::game::amounts::clamp_u16(special_forces);
+        result.special_forces_at_half_strength = treachery_engine::game::amounts::clamp_u16(special_forces_at_half_strength);
         result.set_defense(defense);
         result.set_weapon(weapon);
         result.banker_bonus = 0;
@@ -1333,8 +1334,8 @@ impl ClassicBot {
         if forces_to_retreat > 0 || special_forces_to_retreat > 0 {
             let mut result = Retreat::new(game, self.faction(game));
             result.location = to;
-            result.forces = forces_to_retreat;
-            result.special_forces = special_forces_to_retreat;
+            result.forces = treachery_engine::game::amounts::clamp_u16(forces_to_retreat);
+            result.special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_to_retreat);
             return Some(Rc::new(result));
         }
 

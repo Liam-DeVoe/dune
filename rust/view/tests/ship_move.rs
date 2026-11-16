@@ -674,7 +674,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Descri
                         _ => {}
                     }
                     assert_eq!((a.ecaz_take_vidal, a.ecaz_offer_alliance, a.ecaz_give_vidal_to_ally), (take, offer, give), "Ecaz checkboxes");
-                    assert_eq!((a.guild_force_amount, a.tleilaxu_amount_of_forces, a.tleilaxu_assign_skill), (guild, tleilaxu, skill));
+                    assert_eq!((i32::from(a.guild_force_amount), i32::from(a.tleilaxu_amount_of_forces), a.tleilaxu_assign_skill), (guild, tleilaxu, skill));
                     assert_eq!(a.ixian_card, ixian);
                     assert_eq!(a.tleilaxu_hero, hero, "the hero picker is not required");
                 }
@@ -771,7 +771,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Descri
                 assert_eq!(a.type_, Some(ty));
                 assert_eq!(a.robbery_takes_card, ty == TerrorType::Robbery);
                 assert_eq!(a.card_to_give_in_sabotage, if ty == TerrorType::Sabotage { pl.treachery_cards.first().copied() } else { None });
-                assert_eq!(a.forces_in_sneak_attack, if ty == TerrorType::SneakAttack && possible { 2 } else { 0 });
+                assert_eq!(i32::from(a.forces_in_sneak_attack), if ty == TerrorType::SneakAttack && possible { 2 } else { 0 });
             }
         }
         GameEvent::TestingStationUsed(_) => {

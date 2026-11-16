@@ -2,8 +2,8 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Retreat {
-    pub forces: i32,
-    pub special_forces: i32,
+    pub forces: u16,
+    pub special_forces: u16,
     pub location: Option<Location>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
@@ -34,13 +34,13 @@ impl Retreat {
         if !valid_targets.any(|v| Some(v) == location) {
             return Some(express!("Invalid location"));
         }
-        if self.forces > Retreat::max_forces(game, p) {
+        if i32::from(self.forces) > Retreat::max_forces(game, p) {
             return Some(express!("You selected too many ", game.player(p).force()));
         }
-        if self.special_forces > Retreat::max_special_forces(game, p) {
+        if i32::from(self.special_forces) > Retreat::max_special_forces(game, p) {
             return Some(express!("You selected too many ", game.player(p).special_force()));
         }
-        if (self.forces + self.special_forces) > Retreat::max_total_forces(game, p) {
+        if (i32::from(self.forces) + i32::from(self.special_forces)) > Retreat::max_total_forces(game, p) {
             return Some(express!("You selected too many forces"));
         }
         None
@@ -71,7 +71,7 @@ impl Retreat {
         let plan = current_battle.plan_of(g, Some(p));
         let forces_in = g.player(p).forces_in_territory(current_battle.territory);
         let plan = plan.expect("plan");
-        (forces_in - plan.forces) - plan.forces_at_half_strength
+        (forces_in - i32::from(plan.forces)) - i32::from(plan.forces_at_half_strength)
     }
 
     pub fn max_special_forces(g: &Game, p: PlayerId) -> i32 {
@@ -79,12 +79,12 @@ impl Retreat {
         let plan = current_battle.plan_of(g, Some(p));
         let special_forces_in = g.player(p).special_forces_in_territory(current_battle.territory);
         let plan = plan.expect("plan");
-        (special_forces_in - plan.special_forces) - plan.special_forces_at_half_strength
+        (special_forces_in - i32::from(plan.special_forces)) - i32::from(plan.special_forces_at_half_strength)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
-        let mut forces_to_move = self.forces;
+        let mut forces_to_move = i32::from(self.forces);
         let territory = game.battle.current_battle.as_ref().required("current battle")?.territory.required("territory")?;
         let sources: Vec<Location> = territory.locations().iter().copied().filter(|l| game.player(me).forces_in(Some(*l)) > 0).collect();
         for l in sources {
@@ -97,7 +97,7 @@ impl Retreat {
             forces_to_move -= to_move_from_here;
         }
 
-        let mut special_forces_to_move = self.special_forces;
+        let mut special_forces_to_move = i32::from(self.special_forces);
         let territory = game.battle.current_battle.as_ref().required("current battle")?.territory.required("territory")?;
         let sources: Vec<Location> =
             territory.locations().iter().copied().filter(|l| game.player(me).special_forces_in(Some(*l)) > 0).collect();
@@ -119,14 +119,14 @@ impl Retreat {
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        if self.forces > 0 || self.special_forces > 0 {
+        if i32::from(self.forces) > 0 || i32::from(self.special_forces) > 0 {
             let force = game.player(self.player()).force();
             let special_force = game.player(self.player()).special_force();
             return express!(
                 self.initiator(),
                 " retreat ",
-                express_part_if!(self.forces > 0; self.forces, " ", force),
-                express_part_if!(self.special_forces > 0; self.special_forces, " ", special_force),
+                express_part_if!(i32::from(self.forces) > 0; i32::from(self.forces), " ", force),
+                express_part_if!(i32::from(self.special_forces) > 0; i32::from(self.special_forces), " ", special_force),
                 " to ",
                 self.location
             );

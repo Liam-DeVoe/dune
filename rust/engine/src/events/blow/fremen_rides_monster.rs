@@ -10,8 +10,8 @@ macro_rules! elems {
 
 #[derive(Clone, Debug)]
 pub struct FremenRidesMonster {
-    pub forces_from_reserves: i32,
-    pub special_forces_from_reserves: i32,
+    pub forces_from_reserves: u16,
+    pub special_forces_from_reserves: u16,
     // ---- inherited from PlacementEvent ----
     pub to: Option<Location>,
     pub force_locations: Option<String>,
@@ -44,7 +44,7 @@ impl FremenRidesMonster {
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         // base.TotalAmountOfForcesAddedToLocation is ForcesAddedToLocation + SpecialForcesAddedToLocation.
         let base = <Self as PlacementEventMethods>::forces_added_to_location(self, game) + (<Self as PlacementEventMethods>::special_forces_added_to_location(self, game));
-        (base + self.forces_from_reserves) + self.special_forces_from_reserves
+        (base + i32::from(self.forces_from_reserves)) + i32::from(self.special_forces_from_reserves)
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -78,8 +78,8 @@ impl FremenRidesMonster {
             return Some(express!("Invalid amount of special forces"));
         }
 
-        if self.forces_from_reserves > Self::max_forces_from_reserves(game, self.player(), false)
-            || self.special_forces_from_reserves > Self::max_forces_from_reserves(game, self.player(), true)
+        if i32::from(self.forces_from_reserves) > Self::max_forces_from_reserves(game, self.player(), false)
+            || i32::from(self.special_forces_from_reserves) > Self::max_forces_from_reserves(game, self.player(), true)
         {
             return Some(express!("You can't ride with that many reserves"));
         }
@@ -230,29 +230,29 @@ impl FremenRidesMonster {
                 self.log_objects(game, elems![msg]);
             }
 
-            if self.forces_from_reserves > 0 || self.special_forces_from_reserves > 0 {
-                if self.forces_from_reserves > 0 {
+            if i32::from(self.forces_from_reserves) > 0 || i32::from(self.special_forces_from_reserves) > 0 {
+                if i32::from(self.forces_from_reserves) > 0 {
                     let ini = initiator.required("initiator")?;
                     let to = self.to.required("to")?;
-                    Player::ship_forces(game, ini, to, self.forces_from_reserves)?;
+                    Player::ship_forces(game, ini, to, i32::from(self.forces_from_reserves))?;
                 }
-                if self.special_forces_from_reserves > 0 {
+                if i32::from(self.special_forces_from_reserves) > 0 {
                     let ini = initiator.required("initiator")?;
                     let to = self.to.required("to")?;
-                    Player::ship_special_forces(game, ini, to, self.special_forces_from_reserves)?;
+                    Player::ship_special_forces(game, ini, to, i32::from(self.special_forces_from_reserves))?;
                 }
                 let ini = initiator.required("initiator")?;
                 let msg = express!(
                     self.initiator(),
                     " ride ",
-                    express_part_if!(self.forces_from_reserves > 0; self.forces_from_reserves, game.player(ini).force()),
-                    express_part_if!(self.special_forces_from_reserves > 0; self.special_forces_from_reserves, game.player(ini).special_force()),
+                    express_part_if!(i32::from(self.forces_from_reserves) > 0; i32::from(self.forces_from_reserves), game.player(ini).force()),
+                    express_part_if!(i32::from(self.special_forces_from_reserves) > 0; i32::from(self.special_forces_from_reserves), game.player(ini).special_force()),
                     " from their reserves to ",
                     self.to
                 )
                 .with_route(self.initiator().required("faction")?, [], self.to)
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator().required("faction")?, self.forces_from_reserves, self.special_forces_from_reserves, None, self.to.required("to")?)),
+                    Some(NexusRide::new(self.initiator().required("faction")?, i32::from(self.forces_from_reserves), i32::from(self.special_forces_from_reserves), None, self.to.required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);

@@ -216,7 +216,7 @@ impl ClassicBot {
         let allowed_resources = self.determine_allowed_resources(game);
         let allowed_karma_card = game.player(self.player).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::Karma);
         let mut permission = AllyPermission::new(game, self.faction(game));
-        permission.permitted_resources = allowed_resources;
+        permission.permitted_resources = treachery_engine::game::amounts::clamp_u16(allowed_resources);
         permission.permitted_karma_card = allowed_karma_card;
 
         let advantages = SharedAdvantage::of(self.faction(game));

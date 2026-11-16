@@ -103,7 +103,7 @@ fn resources_your_ally_can_pay_is_capped_by_ally_resources() {
 
 // ---------------------------------------------------------------- Game_Deals / deal events
 
-fn offer(g: &Game, by: Faction, to: Vec<Faction>, price: i32) -> Rc<DealOffered> {
+fn offer(g: &Game, by: Faction, to: Vec<Faction>, price: u16) -> Rc<DealOffered> {
     let mut o = DealOffered::new(g, by);
     o.to = Some(to);
     o.price = price;

@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct FaceDanced {
     pub target_force_locations: Option<String>,
-    pub forces_from_reserve: i32,
+    pub forces_from_reserve: u16,
     pub face_dancer_called: bool,
     // ---- inherited from PlacementEvent ----
     pub to: Option<Location>,
@@ -69,15 +69,14 @@ impl FaceDanced {
         // C# checked neither, so the forces came from reserves and locations that didn't hold
         // them (escapes.md, "Forces below zero").
         let pl = game.player(p);
-        if self.forces_from_reserve < 0 || self.forces_from_reserve > pl.forces_in_reserve() {
+        if i32::from(self.forces_from_reserve) > pl.forces_in_reserve() {
             return Some(express!("Invalid number of forces from reserves"));
         }
         if self.force_locations(game).iter().any(|(l, b)| b.forces() > pl.forces_in(Some(*l)) || b.special_forces() > pl.special_forces_in(Some(*l))) {
             return Some(express!("Invalid number of forces"));
         }
 
-        let amount_of_forces = self
-            .forces_from_reserve + self.force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
+        let amount_of_forces = i32::from(self.forces_from_reserve) + self.force_locations(game).values().map(|b| b.total_amount_of_forces()).sum::<i32>();
         if amount_of_forces != amount_of_placed_forces {
             return Some(express!(
                 "The amount of forces you selected from the planet and from reserves (",
@@ -218,7 +217,7 @@ impl FaceDanced {
             if let Some(co) = co_occupying_player {
                 Player::forces_in_territory_to_reserves(game, co, battle.territory.expect("territory"))?;
             }
-            Player::add_forces_to_reserves(game, self.player(), -self.forces_from_reserve)?;
+            Player::add_forces_to_reserves(game, self.player(), -i32::from(self.forces_from_reserve))?;
 
             for (location, battalion) in self.force_locations(game).iter() {
                 let location = *location;
@@ -247,7 +246,7 @@ impl FaceDanced {
                 replaced_by,
                 force,
                 " (",
-                self.forces_from_reserve,
+                i32::from(self.forces_from_reserve),
                 " from reserves",
                 source_locations,
                 ")"

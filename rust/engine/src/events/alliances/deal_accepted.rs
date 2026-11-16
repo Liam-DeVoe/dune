@@ -9,8 +9,8 @@ pub struct DealAccepted {
     pub deal_parameter2: Option<String>,
     pub text: Option<String>,
     pub end: Option<Phase>,
-    pub price: i32,
-    pub benefit: i32,
+    pub price: u16,
+    pub benefit: u16,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -39,25 +39,25 @@ impl DealAccepted {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !DealAccepted::may_deal(game, self.player_opt(), self.price) {
+        if !DealAccepted::may_deal(game, self.player_opt(), i32::from(self.price)) {
             return Some(express!("You currently have an outstanding bid"));
         }
 
         let bound_player = game.get_player(self.bound_faction);
-        if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, self.benefit) {
+        if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, i32::from(self.benefit)) {
             return Some(express!(self.bound_faction, " currently have an outstanding bid"));
         }
-        if self.price > i32::from(game.player(self.player()).resources) {
+        if i32::from(self.price) > i32::from(game.player(self.player()).resources) {
             return Some(express!("You can't pay that much"));
         }
 
         if let Some(bound_player) = bound_player {
-            if self.benefit > i32::from(game.player(bound_player).resources) {
+            if i32::from(self.benefit) > i32::from(game.player(bound_player).resources) {
                 return Some(express!("Offer is not valid (anymore)"));
             }
         }
 
-        if (self.price > 0 || self.benefit > 0) && game.applicable(Rule::DisableResourceTransfers) {
+        if (i32::from(self.price) > 0 || i32::from(self.benefit) > 0) && game.applicable(Rule::DisableResourceTransfers) {
             return Some(express!(Concept::Resource, " transfers are disabled by house rule"));
         }
         if !game.deals.offers.iter().any(|offer| offer.is_accepted_by(self)) {
@@ -68,10 +68,10 @@ impl DealAccepted {
         }
         // Not in C#, which let a player give away spice they still had to pay for a bid
         // (escapes.md, "Forces below zero").
-        if !game.may_give_away_spice(self.player(), self.price) {
+        if !game.may_give_away_spice(self.player(), i32::from(self.price)) {
             return Some(express!("You need that spice to pay your bid"));
         }
-        if bound_player.is_some_and(|b| !game.may_give_away_spice(b, self.benefit)) {
+        if bound_player.is_some_and(|b| !game.may_give_away_spice(b, i32::from(self.benefit))) {
             return Some(express!(self.bound_faction, " need that spice to pay their bid"));
         }
 
@@ -109,7 +109,7 @@ impl DealAccepted {
                 to.len() == 0 || to.contains_opt(pl.faction)
             }
             && !g.has_responded_to_deal(offer, pl.faction)
-            && (g.charity.economics_status != Some(ChoamEconomicsStatus::Double) || (offer.benefit == 0 && offer.price == 0))
+            && (g.charity.economics_status != Some(ChoamEconomicsStatus::Double) || (i32::from(offer.benefit) == 0 && i32::from(offer.price) == 0))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -151,7 +151,7 @@ impl DealAccepted {
                 deal_parameter2: self.deal_parameter2.clone(),
                 end: self.end,
                 text: self.text.clone(),
-                benefit: self.benefit,
+                benefit: i32::from(self.benefit),
                 type_: self.type_,
             };
 
@@ -159,22 +159,22 @@ impl DealAccepted {
             let offer_initiator = self.get_player(game, offer.initiator());
 
             if let Some(offer_initiator) = offer_initiator {
-                if self.price > 0 {
+                if i32::from(self.price) > 0 {
                     // Player is `from`: a null Player throws before anything changes.
-                    game.exchange_resources_in_bribe(self.player(), offer_initiator, self.price)?;
+                    game.exchange_resources_in_bribe(self.player(), offer_initiator, i32::from(self.price))?;
                     game.stone(Milestone::Bribe);
                 }
             }
 
             if let Some(offer_initiator) = offer_initiator {
-                if self.benefit > 0 {
+                if i32::from(self.benefit) > 0 {
                     match self.player_opt() {
-                        Some(me) => game.exchange_resources_in_bribe(offer_initiator, me, self.benefit)?,
+                        Some(me) => game.exchange_resources_in_bribe(offer_initiator, me, i32::from(self.benefit))?,
                         None => {
                             // ExchangeResourcesInBribe(offerInitiator, null, Benefit): `from` pays,
                             // then dereferencing the null target throws.
                             let from = game.player_mut(offer_initiator);
-                            crate::game::amounts::spend(&mut from.resources, self.benefit, "spice")?;
+                            crate::game::amounts::spend(&mut from.resources, i32::from(self.benefit), "spice")?;
                             let _ = game.bribes_during_mentat();
                             game_error!("A required value is missing");
                         }
@@ -210,7 +210,7 @@ impl DealAccepted {
     }
 
     pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " accept ", self.bound_faction, " offer for ", Payment::of(self.price), ": ", self.get_deal_description(game))
+        express!(self.initiator(), " accept ", self.bound_faction, " offer for ", Payment::of(i32::from(self.price)), ": ", self.get_deal_description(game))
     }
 
     pub fn get_short_message(&self, _game: &Game) -> Message {
@@ -222,7 +222,7 @@ impl DealAccepted {
             game,
             self.type_,
             self.text.as_deref(),
-            self.benefit,
+            i32::from(self.benefit),
             self.end,
             self.deal_parameter1.as_deref(),
         )

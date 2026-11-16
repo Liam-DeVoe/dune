@@ -2,9 +2,9 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct Bid {
-    pub amount: i32,
-    pub ally_contribution_amount: i32,
-    pub emperor_contribution_amount: i32,
+    pub amount: u16,
+    pub ally_contribution_amount: u16,
+    pub emperor_contribution_amount: u16,
     pub uses_emperor_secret_ally: bool,
     pub karma_card: Option<TreacheryCard>,
     pub karma_bid: bool,
@@ -43,7 +43,7 @@ impl Bid {
         if self.passed {
             return 0;
         }
-        (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
+        (i32::from(self.amount) + i32::from(self.ally_contribution_amount)) + i32::from(self.emperor_contribution_amount)
     }
 
     pub fn using_karma_to_remove_bid_limit(&self) -> bool {
@@ -84,11 +84,6 @@ impl Bid {
         }
 
         let p = game.get_player(self.initiator());
-        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
-        // sectors and amounts out of range").
-        if self.amount < 0 || self.ally_contribution_amount < 0 || self.emperor_contribution_amount < 0 {
-            return Some(express!("Invalid amount"));
-        }
         if self.total_amount() < 1 && game.bidding.current_auction_type != Some(AuctionType::RicheseSilent) {
             return Some(express!("Bid must be higher than 0"));
         }
@@ -98,18 +93,18 @@ impl Bid {
             }
         }
 
-        if self.ally_contribution_amount > Bid::valid_max_ally_amount(game, self.player_opt()) {
+        if i32::from(self.ally_contribution_amount) > Bid::valid_max_ally_amount(game, self.player_opt()) {
             return Some(express!("your ally won't pay that much"));
         }
 
         // Not in C#, which checked only the Emperor's spice, not what the Emperor offered
         // (behavior-changes.md, "Turns, sectors and amounts out of range").
-        if self.emperor_contribution_amount > 0 && self.emperor_contribution_amount > self.initiator().map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
+        if i32::from(self.emperor_contribution_amount) > 0 && i32::from(self.emperor_contribution_amount) > self.initiator().map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
-        if !self.using_karma_to_remove_bid_limit() && self.amount > i32::from(game.player(self.player()).resources) {
-            return Some(express!("You can't pay ", Payment::of(self.amount)));
+        if !self.using_karma_to_remove_bid_limit() && i32::from(self.amount) > i32::from(game.player(self.player()).resources) {
+            return Some(express!("You can't pay ", Payment::of(i32::from(self.amount))));
         }
         if let Some(karma_card) = self.karma_card {
             if p.is_none() || !Karma::valid_karma_cards(game, p.expect("player")).any(|v| v == karma_card) {
@@ -254,9 +249,9 @@ impl Bid {
                     let card = game.win_by_highest_bid(
                         winning_bid.player_opt().required("player")?,
                         &wb,
-                        winning_bid.amount,
-                        winning_bid.ally_contribution_amount,
-                        winning_bid.emperor_contribution_amount,
+                        i32::from(winning_bid.amount),
+                        i32::from(winning_bid.ally_contribution_amount),
+                        i32::from(winning_bid.emperor_contribution_amount),
                         receiver,
                         winning_bid.uses_emperor_secret_ally,
                     )?;
@@ -357,13 +352,13 @@ impl Bid {
             let paid_to = game.pay_for_card(
                 winner,
                 &bid_event,
-                bid.amount,
-                bid.ally_contribution_amount,
-                bid.emperor_contribution_amount,
+                i32::from(bid.amount),
+                i32::from(bid.ally_contribution_amount),
+                i32::from(bid.emperor_contribution_amount),
                 payment_receiver,
                 &mut receiver_income_message,
             )?;
-            game.log_bid(winner, bid.amount, bid.ally_contribution_amount, bid.emperor_contribution_amount, &receiver_income_message, paid_to, false);
+            game.log_bid(winner, i32::from(bid.amount), i32::from(bid.ally_contribution_amount), i32::from(bid.emperor_contribution_amount), &receiver_income_message, paid_to, false);
         } else {
             game.play_nexus_card(winner, vec!["get this card for free".into()]);
             game.log_bid(winner, 0, 0, 0, &receiver_income_message, None, true);
@@ -487,15 +482,15 @@ impl crate::events::bid_trait::BidEvent for Bid {
     }
 
     fn amount(&self) -> i32 {
-        self.amount
+        i32::from(self.amount)
     }
 
     fn ally_contribution_amount(&self) -> i32 {
-        self.ally_contribution_amount
+        i32::from(self.ally_contribution_amount)
     }
 
     fn emperor_contribution_amount(&self) -> i32 {
-        self.emperor_contribution_amount
+        i32::from(self.emperor_contribution_amount)
     }
 
     fn uses_emperor_secret_ally(&self) -> bool {

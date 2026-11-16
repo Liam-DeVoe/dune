@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct EstablishPlayers {
     pub settings: Option<GameSettings>,
     pub seed: i32,
-    pub maximum_number_of_players: i32,
+    pub maximum_number_of_players: u16,
     pub maximum_turns: Turn,
     pub applicable_rules: Option<Vec<Rule>>,
     pub players: Option<String>,

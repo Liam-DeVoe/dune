@@ -53,16 +53,17 @@ fn silent_bids_cannot_be_passed() {
 }
 
 #[test]
-fn bid_total_amount_wraps() {
+fn bid_total_amount_doesnt_wrap() {
+    // C# added ints, so a total above i32::MAX wrapped below zero. The amounts are u16 now.
     let mut bid = Bid::default();
-    bid.amount = i32::MAX;
+    bid.amount = u16::MAX;
     bid.ally_contribution_amount = 1;
-    assert_eq!(bid.total_amount(), i32::MIN);
+    assert_eq!(bid.total_amount(), 65_536);
 
     let mut g = game_with(&[Faction::Atreides]);
     g.bidding.current_auction_type = Some(AuctionType::Normal);
     let bid = as_player(bid, &g, Faction::Atreides);
-    // The wrapped total is below 1.
+    // More than Atreides has.
     assert!(bid.validate(&g).is_some());
 }
 

@@ -37,3 +37,9 @@ pub fn gain(have: &mut u16, amount: i32, what: &str) -> GameResult {
 pub fn change(have: &mut u16, delta: i32, what: &str) -> GameResult {
     if delta >= 0 { gain(have, delta, what) } else { spend(have, delta.checked_neg().unwrap_or(i32::MAX), what) }
 }
+
+/// An amount a bot or a form computed with `i32`, as an event field: below zero is 0, and above
+/// 65535 is 65535. Validation then decides whether the event is acceptable.
+pub fn clamp_u16(n: i32) -> u16 {
+    u16::try_from(n.max(0)).unwrap_or(u16::MAX)
+}

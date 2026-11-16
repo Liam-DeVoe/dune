@@ -411,8 +411,8 @@ impl ClassicBot {
         let losses = TakeLosses::losses_to_take(game).amount;
         let normal_forces = std::cmp::min(losses, TakeLosses::valid_max_force_amount(game, self.player));
         let mut e = TakeLosses::new(game, self.faction(game));
-        e.force_amount = normal_forces;
-        e.special_force_amount = losses - normal_forces;
+        e.force_amount = treachery_engine::game::amounts::clamp_u16(normal_forces);
+        e.special_force_amount = treachery_engine::game::amounts::clamp_u16(losses - normal_forces);
         e.use_useless_card = TakeLosses::can_prevent_losses(game, self.player);
         Rc::new(e)
     }
@@ -505,8 +505,8 @@ impl ClassicBot {
             e.passed = false;
             e.set_force_locations(game, &battalions_to_move.clone());
             e.to = Some(target);
-            e.forces_from_reserves = forces_from_reserves;
-            e.special_forces_from_reserves = special_forces_from_reserves;
+            e.forces_from_reserves = treachery_engine::game::amounts::clamp_u16(forces_from_reserves);
+            e.special_forces_from_reserves = treachery_engine::game::amounts::clamp_u16(special_forces_from_reserves);
         } else {
             e.passed = true;
         }
@@ -936,7 +936,7 @@ impl ClassicBot {
 
         let mut result = FaceDanced::new(game, faction);
         result.set_force_locations(game, &forces_from_planet);
-        result.forces_from_reserve = from_reserves;
+        result.forces_from_reserve = treachery_engine::game::amounts::clamp_u16(from_reserves);
         result.set_target_force_locations(game, &target_locations);
         Rc::new(result)
     }
@@ -1225,7 +1225,7 @@ impl ClassicBot {
         e.type_ = type_;
         e.robbery_takes_card = false;
         e.card_to_give_in_sabotage = card_in_sabotage;
-        e.forces_in_sneak_attack = TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player);
+        e.forces_in_sneak_attack = treachery_engine::game::amounts::clamp_u16(TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player));
         e.sneak_attack_to = TerrorRevealed::valid_sneak_attack_targets(game, self.player).next();
         Rc::new(e)
     }
@@ -1412,7 +1412,7 @@ impl ClassicBot {
                 if let Some(attack) = attack {
                     let mut e = new_event();
                     e.fremen_or_guild_to = Some(attack.location);
-                    e.guild_force_amount = AmbassadorActivated::valid_guild_max_forces(game, self.player);
+                    e.guild_force_amount = treachery_engine::game::amounts::clamp_u16(AmbassadorActivated::valid_guild_max_forces(game, self.player));
                     return Some(Rc::new(e));
                 }
             }
@@ -1438,7 +1438,7 @@ impl ClassicBot {
                 }
                 if AmbassadorActivated::valid_tleilaxu_max_amount(game, self.player) >= 3 {
                     let mut e = new_event();
-                    e.tleilaxu_amount_of_forces = AmbassadorActivated::valid_tleilaxu_max_amount(game, self.player);
+                    e.tleilaxu_amount_of_forces = treachery_engine::game::amounts::clamp_u16(AmbassadorActivated::valid_tleilaxu_max_amount(game, self.player));
                     return Some(Rc::new(e));
                 }
             }

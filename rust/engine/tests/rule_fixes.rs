@@ -145,7 +145,7 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
     permission.emperor_will_pay_for_extra_revival = 3;
     assert_eq!(submit(&mut g, |_| GameEvent::AllyPermission(Rc::new(permission))), None);
 
-    let revival = |own: i32, by_emperor: i32, g: &Game| {
+    let revival = |own: u16, by_emperor: u16, g: &Game| {
         let mut r = Revival::new(g, Faction::Fremen);
         r.hero = None;
         r.amount_of_special_forces = own;
@@ -300,7 +300,7 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     ally(&mut g, f, other);
     let pally = idx(&g, other);
     let to = Shipment::valid_shipment_locations(&g, shipper, false, false).find(|l| l.territory().is_stronghold()).expect("a stronghold to ship to");
-    let shipment = |g: &Game, contribution: i32| {
+    let shipment = |g: &Game, contribution: u16| {
         let mut s = Shipment::new(g, f);
         s.shipment_type = ShipmentType::ShipmentNormal;
         s.karma_card = None;
@@ -318,14 +318,14 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     // The ally offered enough but has less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
     g.player_mut(pally).resources = (cost - 1) as u16;
-    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
+    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
     // The ally has enough but offered less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost - 1);
     g.player_mut(pally).resources = cost as u16;
-    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
+    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
 
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
-    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))), None);
+    assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost as u16)))), None);
     assert_eq!(i32::from(g.player(pally).resources), 0);
     assert_eq!(i32::from(g.player(shipper).resources), 0);
     assert_eq!(g.alliances.permitted_use_of_ally_spice[&f], 0);

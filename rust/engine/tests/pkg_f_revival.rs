@@ -57,29 +57,13 @@ fn karma_free_revival_max_amounts() {
 }
 
 #[test]
-fn raise_dead_negative_amount_checked_before_player_dereference() {
-    // C# checks the sign before the first `p.` access, so no NullReferenceException.
+fn raise_dead_without_a_player_panics() {
+    // C# dereferences the missing player. (A negative amount, which C# refused first, no longer
+    // decodes.)
     let g = game_with(&[Faction::Emperor]);
-    let mut e = RaiseDeadPlayed::default();
-    e.amount_of_forces = -1;
-    assert!(e.validate(&g).is_some());
-
-    e.amount_of_forces = 0;
+    let e = RaiseDeadPlayed::default();
     let r = catch_panic(|| e.validate(&g));
     assert!(r.is_err());
-}
-
-#[test]
-fn karma_free_revival_refuses_negative_amounts() {
-    // C# had no sign check, so the forces went from reserves to the tanks (escapes.md, "Forces
-    // below zero").
-    let mut g = game_with(&[Faction::Emperor]);
-    let emperor = idx(&g, Faction::Emperor);
-    g.player_mut(emperor).forces_killed = 0;
-    let mut e = KarmaFreeRevival::default();
-    e.amount_of_forces = -3;
-    let e = as_player(e, &g, Faction::Emperor);
-    assert_eq!(e.validate(&g).map(|m| m.plain_text()).as_deref(), Some("Invalid amount"));
 }
 
 #[test]

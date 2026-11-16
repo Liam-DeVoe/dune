@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PerformSetup {
-    pub resources: i32,
+    pub resources: u16,
     // ---- inherited from PlacementEvent ----
     pub to: Option<Location>,
     pub force_locations: Option<String>,
@@ -59,11 +59,11 @@ impl PerformSetup {
             Player::ship_special_forces(game, player.required("player")?, location, battalion.special_forces())?;
         }
 
-        game.player_mut(player.required("player")?).resources = u16::try_from(self.resources).ok().required("an amount of spice from 0 to 65535")?;
+        game.player_mut(player.required("player")?).resources = u16::try_from(i32::from(self.resources)).ok().required("an amount of spice from 0 to 65535")?;
 
         self.log_objects(
             game,
-            vec![faction.into(), " initial positions set, starting with ".into(), Payment::of(self.resources).into()],
+            vec![faction.into(), " initial positions set, starting with ".into(), Payment::of(i32::from(self.resources)).into()],
         );
         game.turn.has_acted_or_passed.push(faction.required("faction")?);
 
@@ -78,7 +78,7 @@ impl PerformSetup {
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " initial positions and ", Concept::Resource, " (", Payment::of(self.resources), ") determined")
+        express!(self.initiator(), " initial positions and ", Concept::Resource, " (", Payment::of(i32::from(self.resources)), ") determined")
     }
 
 }

@@ -9,6 +9,7 @@
 
 use treachery_engine::events::GameEventType;
 use treachery_engine::prelude::*;
+use treachery_engine::game::amounts::clamp_u16;
 use treachery_engine::messages::part::Part as P;
 use treachery_engine::enum_type::GameEnum;
 
@@ -184,8 +185,8 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             let mut e = Retreat::new(game, faction);
             e.location = None;
             let (f, s) = retreat_defaults(game, p);
-            e.forces = f;
-            e.special_forces = s;
+            e.forces = treachery_engine::game::amounts::clamp_u16(f);
+            e.special_forces = treachery_engine::game::amounts::clamp_u16(s);
             event(e)
         }
         GameEventType::RockWasMelted => {
@@ -538,8 +539,10 @@ fn battle_default(game: &Game, p: PlayerId, faction: Faction) -> GameEvent {
         let f = full.min(len);
         (f, half.min(len - f))
     };
-    (e.forces, e.forces_at_half_strength) = trim(e.forces, e.forces_at_half_strength, Battle::max_forces(game, supplier, false));
-    (e.special_forces, e.special_forces_at_half_strength) = trim(e.special_forces, e.special_forces_at_half_strength, Battle::max_forces(game, supplier, true));
+    let (forces, half) = trim(i32::from(e.forces), i32::from(e.forces_at_half_strength), Battle::max_forces(game, supplier, false));
+    (e.forces, e.forces_at_half_strength) = (clamp_u16(forces), clamp_u16(half));
+    let (special, special_half) = trim(i32::from(e.special_forces), i32::from(e.special_forces_at_half_strength), Battle::max_forces(game, supplier, true));
+    (e.special_forces, e.special_forces_at_half_strength) = (clamp_u16(special), clamp_u16(special_half));
     normalize_battle(game, p, &mut e);
     event(e)
 }
@@ -549,11 +552,11 @@ fn normalize_battle(game: &Game, p: PlayerId, e: &mut Battle) {
     let pl = game.player(p);
     let territory = game.battle.current_battle.as_ref().and_then(|b| b.territory);
     // The spice the ally pays, between what the player can't pay and what the ally can.
-    let cost = Battle::cost_of_forces(game, p, e.forces, e.special_forces, &mut 0);
+    let cost = Battle::cost_of_forces(game, p, i32::from(e.forces), i32::from(e.special_forces), &mut 0);
     let ally_cap = ally_cap(game, p);
     let ally_min = 0.max(cost - i32::from(pl.resources));
     let ally_max = cost.min(ally_cap);
-    e.ally_contribution_amount = if ally_max < ally_min { ally_max } else { e.ally_contribution_amount.clamp(ally_min, ally_max) };
+    e.ally_contribution_amount = clamp_u16(if ally_max < ally_min { ally_max } else { i32::from(e.ally_contribution_amount).clamp(ally_min, ally_max) });
 
     let heroes = Battle::valid_battle_heroes(game, p);
     let leader_required = !game.applicable(Rule::BattleWithoutLeader);
@@ -576,7 +579,7 @@ fn normalize_battle(game: &Game, p: PlayerId, e: &mut Battle) {
     }
     let max_banker = Battle::max_banker_boost(game, p, e.hero);
     // The spice picker clamps into [0, max] when it is drawn.
-    e.banker_bonus = if max_banker <= 0 { 0 } else { e.banker_bonus.clamp(0, max_banker) };
+    e.banker_bonus = if max_banker <= 0 { 0 } else { clamp_u16(i32::from(e.banker_bonus).clamp(0, max_banker)) };
 }
 
 fn messiah_available(game: &Game, p: PlayerId) -> bool {
@@ -760,7 +763,7 @@ fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -
             Some(h),
             normalized.weapon(),
             normalized.defense(),
-            normalized.banker_bonus,
+            i32::from(normalized.banker_bonus),
             &mut skill,
         );
         BattleLeaderStrength { value: h.value_in_combat_against(None), skill_bonus: bonus, skill_label: d.describe(&skill.into()) }

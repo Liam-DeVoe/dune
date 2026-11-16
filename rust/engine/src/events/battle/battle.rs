@@ -4,16 +4,16 @@ use crate::prelude::*;
 pub struct Battle {
     pub hero: Option<Hero>,
     pub messiah: bool,
-    pub forces: i32,
-    pub forces_at_half_strength: i32,
-    pub special_forces: i32,
-    pub special_forces_at_half_strength: i32,
-    pub ally_contribution_amount: i32,
+    pub forces: u16,
+    pub forces_at_half_strength: u16,
+    pub special_forces: u16,
+    pub special_forces_at_half_strength: u16,
+    pub ally_contribution_amount: u16,
     /// Interior mutability: written after the event is stored in game state.
     pub weapon: Cell<Option<TreacheryCard>>,
     /// Interior mutability: written after the event is stored in game state.
     pub defense: Cell<Option<TreacheryCard>>,
-    pub banker_bonus: i32,
+    pub banker_bonus: u16,
     /// Interior mutability: written after the event is stored in game state.
     pub original_weapon: Cell<Option<TreacheryCard>>,
     /// Interior mutability: written after the event is stored in game state.
@@ -80,7 +80,7 @@ impl Battle {
     }
 
     pub fn total_forces(&self) -> i32 {
-        (self.forces + self.forces_at_half_strength + self.special_forces) + self.special_forces_at_half_strength
+        (i32::from(self.forces) + i32::from(self.forces_at_half_strength) + i32::from(self.special_forces)) + i32::from(self.special_forces_at_half_strength)
     }
 
     pub fn has_poison(&self) -> bool {
@@ -215,7 +215,7 @@ impl Battle {
             ", dial: ",
             self.dial(game, game.player(opponent).faction.required("faction")?),
             express_part_if!(game.applicable(Rule::AdvancedCombat); Payment::of(self.cost(game))),
-            express_part_if!(self.ally_contribution_amount > 0; " (", Payment::of_by(self.ally_contribution_amount, game.player(self.player()).ally), ")"),
+            express_part_if!(i32::from(self.ally_contribution_amount) > 0; " (", Payment::of_by(i32::from(self.ally_contribution_amount), game.player(self.player()).ally), ")"),
             ", weapon: ",
             self.weapon(),
             ", defense: ",
@@ -230,7 +230,7 @@ impl Battle {
         let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, self.initiator()).expect("opponent of faction");
         let dial = self.dial(game, game.player(opponent).faction.expect("faction"));
         let spice = if game.applicable(Rule::AdvancedCombat) { Some(self.cost(game)) } else { None };
-        let ally_contribution = self.ally_contribution_amount;
+        let ally_contribution = i32::from(self.ally_contribution_amount);
         let ally = game.player(self.player()).ally;
         PlanSummary {
             faction: faction.expect("faction"),
@@ -296,10 +296,10 @@ impl Battle {
             g,
             self.player(),
             opponent,
-            self.forces,
-            self.special_forces,
-            self.forces_at_half_strength,
-            self.special_forces_at_half_strength,
+            i32::from(self.forces),
+            i32::from(self.special_forces),
+            i32::from(self.forces_at_half_strength),
+            i32::from(self.special_forces_at_half_strength),
         )
     }
 
@@ -322,11 +322,11 @@ impl Battle {
 
     pub fn cost(&self, g: &Game) -> i32 {
         let mut _paid = 0;
-        Battle::cost_of_forces(g, self.player(), self.forces, self.special_forces, &mut _paid)
+        Battle::cost_of_forces(g, self.player(), i32::from(self.forces), i32::from(self.special_forces), &mut _paid)
     }
 
     pub fn cost_with_arrakeen_share(&self, g: &Game, paid_by_arrakeen: &mut i32) -> i32 {
-        Battle::cost_of_forces(g, self.player(), self.forces, self.special_forces, paid_by_arrakeen)
+        Battle::cost_of_forces(g, self.player(), i32::from(self.forces), i32::from(self.special_forces), paid_by_arrakeen)
     }
 
     pub fn determine_battle_outcome(agg: &Rc<Battle>, def: &Rc<Battle>, territory: Territory, game: &mut Game) -> BattleOutcome {
@@ -530,31 +530,26 @@ impl Battle {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player();
         let pl = game.player(p);
-        if (self.forces + self.forces_at_half_strength) > Battle::max_forces(game, p, false) {
+        if (i32::from(self.forces) + i32::from(self.forces_at_half_strength)) > Battle::max_forces(game, p, false) {
             return Some(express!("Too many ", pl.force(), " selected"));
         }
-        if (self.special_forces + self.special_forces_at_half_strength) > Battle::max_forces(game, p, true) {
+        if (i32::from(self.special_forces) + i32::from(self.special_forces_at_half_strength)) > Battle::max_forces(game, p, true) {
             return Some(express!("Too many ", pl.special_force(), " selected"));
         }
-        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
-        // sectors and amounts out of range").
-        if self.ally_contribution_amount < 0 || self.banker_bonus < 0 {
-            return Some(express!("Invalid amount"));
-        }
         let mut _paid = 0;
-        let cost = Battle::cost_of_forces(game, p, self.forces, self.special_forces, &mut _paid);
-        if self.ally_contribution_amount > cost {
+        let cost = Battle::cost_of_forces(game, p, i32::from(self.forces), i32::from(self.special_forces), &mut _paid);
+        if i32::from(self.ally_contribution_amount) > cost {
             return Some(express!("Your ally is paying more than needed"));
         }
-        if self.ally_contribution_amount > Battle::max_ally_resources(game, p, self.forces, self.special_forces) {
+        if i32::from(self.ally_contribution_amount) > Battle::max_ally_resources(game, p, i32::from(self.forces), i32::from(self.special_forces)) {
             return Some(express!("Your ally won't pay that much"));
         }
-        if cost > (i32::from(pl.resources) + self.ally_contribution_amount) {
+        if cost > (i32::from(pl.resources) + i32::from(self.ally_contribution_amount)) {
             return Some(express!(
                 "You can't pay ",
                 Payment::of(cost),
                 " to fight with ",
-                self.forces + self.special_forces,
+                i32::from(self.forces) + i32::from(self.special_forces),
                 " forces at full strength"
             ));
         }
@@ -603,14 +598,14 @@ impl Battle {
             return Some(express!(self.hero, " is currently in front of your player shield"));
         }
         if let Some(hero) = self.hero {
-            if self.banker_bonus > 0 && !game.skilled_as(hero, LeaderSkill::Banker) {
+            if i32::from(self.banker_bonus) > 0 && !game.skilled_as(hero, LeaderSkill::Banker) {
                 return Some(express!("Only a leader skilled as ", LeaderSkill::Banker, " can be boosted by ", Concept::Resource));
             }
         }
-        if self.banker_bonus > Battle::max_banker_boost(game, self.player(), self.hero) {
+        if i32::from(self.banker_bonus) > Battle::max_banker_boost(game, self.player(), self.hero) {
             return Some(express!("You cannot boost your leader this much"));
         }
-        if (cost + self.banker_bonus) > (i32::from(pl.resources) + self.ally_contribution_amount) {
+        if (cost + i32::from(self.banker_bonus)) > (i32::from(pl.resources) + i32::from(self.ally_contribution_amount)) {
             return Some(express!("You can't pay this ", LeaderSkill::Banker, " bonus"));
         }
 
@@ -1101,7 +1096,7 @@ impl Battle {
             plan.hero,
             plan.weapon(),
             plan.defense(),
-            plan.banker_bonus,
+            i32::from(plan.banker_bonus),
             activated_skill,
         )
     }

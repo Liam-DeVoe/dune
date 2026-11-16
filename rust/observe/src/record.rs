@@ -253,7 +253,7 @@ impl<'a> Recorder<'a> {
         }
         if types.contains(&GameEventType::PerformSetup) {
             let mut e = PerformSetup::new(game, game.next_faction_to_perform_custom_setup());
-            e.resources = self.rng.range(0, 21);
+            e.resources = treachery_engine::game::amounts::clamp_u16(self.rng.range(0, 21));
             e.force_locations = Some(String::new());
             return Ok(Some(to_object(&treachery_view::build::event(e))));
         }

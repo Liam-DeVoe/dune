@@ -21,4 +21,3 @@ pub mod shield;
 pub mod side;
 pub mod skin_texts;
 pub mod static_data;
-pub mod wire;

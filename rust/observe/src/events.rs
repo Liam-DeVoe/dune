@@ -6,17 +6,14 @@
 //!
 //! Version 191 changed the format (rewrite-plan.md, wave 4b): an entry is
 //! `{"by":..,"at":..,"event":{"type":..}}`, where version 190 wrote `{"$type":..,"Initiator":..,
-//! "Time":..}`. [`decode`] reads both, so traces of a reference that records version 190 still
-//! replay. Replaying such a trace, the working tree also writes the events in its views the old
-//! way and shows version 190 ([`legacy_views`]), because the reference hashed views like that.
-//!
-//! The recorder's fuzzer still builds events as maps of the old format, with the old member names
-//! its heuristics key on, so it makes the same games as before (fuzz.rs). [`to_trace`] converts
-//! each to the new format before it is submitted and written.
+//! "Time":..}`. The recorder's fuzzer still builds events as maps of the old format, with the old
+//! member names its heuristics key on, so it makes the same games as before (fuzz.rs).
+//! [`decode`] reads both formats, and [`to_trace`] converts each fuzzed event to the new format
+//! before it is submitted and written.
 
 use serde_json::{Map, Value};
-use treachery_engine::events::HistoryEntry;
-use treachery_engine::game::Game;
+use treachery_engine::events::{Event, HistoryEntry};
+use treachery_engine::prelude::Faction;
 use treachery_legacy::{self as legacy, FromJson};
 
 /// Whether `v` is an event in the format of version 190.
@@ -97,44 +94,23 @@ pub fn to_legacy_object(v: &Value) -> Option<Map<String, Value>> {
     decode(v).ok().map(|e| legacy_object(&e))
 }
 
-/// The view of events and the version as a reference of version 190 wrote them.
-fn legacy_wire() -> treachery_view::wire::LegacyWire {
-    treachery_view::wire::LegacyWire {
-        encode: |e| serde_json::from_str(&legacy::serialize(e)).expect("the old writer writes valid JSON"),
-        version: legacy::LAST_LEGACY_VERSION,
-    }
-}
-
-/// Views built on this thread write events in the format of version 190 (`true`) or in the
-/// engine's (`false`). See the top of this file.
-pub fn legacy_views(on: bool) {
-    treachery_view::wire::set_legacy(on.then(legacy_wire));
-}
-
-/// Runs `f` with views that write events in the old format, as the fuzzer reads them.
-pub fn with_legacy_views<R>(f: impl FnOnce() -> R) -> R {
-    struct Restore(bool);
-    impl Drop for Restore {
-        fn drop(&mut self) {
-            legacy_views(self.0);
+/// Rewrites the events in a view's JSON (the drafts and the current permissions of action
+/// options, the deals panel's buttons) as objects of the old format submitted by `by`, as the
+/// fuzzer reads them. Views write them in the engine's format, without a submitter or time.
+pub fn legacy_view_events(v: &mut Value, by: Option<Faction>) {
+    match v {
+        Value::Object(m) => {
+            for (k, x) in m.iter_mut() {
+                if matches!(k.as_str(), "draft" | "current" | "accept" | "decline" | "withdraw") && x.get("type").is_some() {
+                    if let Ok(e) = serde_json::from_value::<Event>(x.clone()) {
+                        *x = Value::Object(legacy_object(&HistoryEntry::new(by, e)));
+                        continue;
+                    }
+                }
+                legacy_view_events(x, by);
+            }
         }
+        Value::Array(items) => items.iter_mut().for_each(|x| legacy_view_events(x, by)),
+        _ => {}
     }
-    let _restore = Restore(LEGACY_REPLAY.with(|l| l.get()));
-    legacy_views(true);
-    f()
-}
-
-thread_local! {
-    /// Whether this thread replays a trace of version 190, whose views stay in the old format.
-    static LEGACY_REPLAY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-
-/// The game version the working tree plays a trace of `version` at: version 190 is played as
-/// the version after it, which has the same rules, and its views are written as the reference
-/// wrote them.
-pub fn replay_version(version: i32) -> i32 {
-    let legacy = version == legacy::LAST_LEGACY_VERSION;
-    LEGACY_REPLAY.with(|l| l.set(legacy));
-    legacy_views(legacy);
-    if legacy { Game::LATEST_VERSION } else { version }
 }

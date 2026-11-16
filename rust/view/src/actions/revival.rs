@@ -229,7 +229,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
 
 fn options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOptions {
     let pl = game.player(p);
-    let json = draft_json(pl.faction, draft);
+    let json = draft_json(draft);
     match draft {
         Event::Revival(e) => {
             let (max_forces_on_planet, max_special_forces_on_planet) = revival_on_planet(game, p, e);

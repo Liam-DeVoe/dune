@@ -3,7 +3,7 @@
 // open from the menu bar's TradePopover), EmperorBidSupportComponent and
 // AutomationConfiguredComponent (opened from the menu bar).
 import { useEffect, useRef, useState } from "react";
-import type { AutomationRuleType, DealType, Faction, Phase } from "../../generated/enums";
+import { type AutomationRuleType, type DealType, DealTypeValue, type Faction, type Phase } from "../../generated/enums";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
 import { Checkbox } from "../Checkbox";
@@ -119,13 +119,10 @@ export function DonatedForm({ action, inPopover = false }: FormProps) {
   );
 }
 
-// DealType by number, as DealTypeOption gives it.
-const DEAL_TYPES: Record<number, DealType> = {
-  0: "None", 10: "DontShipOrMoveTo", 30: "ShareBiddingPrescience", 50: "ShareResourceDeckPrescience", 60: "ShareStormPrescience",
-  70: "ForfeitBattle", 80: "TellDiscardedTraitors",
-};
-const dealTypeName = (v: number): DealType => DEAL_TYPES[v] ?? "None";
-const dealTypeValue = (t: unknown): number => Number(Object.keys(DEAL_TYPES).find((k) => DEAL_TYPES[Number(k)] === t) ?? 0);
+// DealTypeOption gives a deal type by number, and the event names it.
+const dealTypeName = (v: number): DealType =>
+  (Object.keys(DealTypeValue) as DealType[]).find((t) => DealTypeValue[t] === v) ?? "None";
+const dealTypeValue = (t: unknown): number => DealTypeValue[t as DealType] ?? 0;
 
 // DealOfferedComponent. Every target starts picked, which offers to everyone (`to` empty); a click
 // drops a faction, shift-click offers to that faction alone.

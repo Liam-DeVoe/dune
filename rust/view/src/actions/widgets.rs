@@ -38,9 +38,10 @@ pub(super) fn card_ids(cards: impl IntoIterator<Item = TreacheryCard>) -> Vec<i3
     cards.into_iter().map(|c| c.id()).collect()
 }
 
-/// The draft of the submitter `by`, for the options' `draft` (`crate::wire`).
-pub(super) fn draft_json(by: Option<Faction>, e: &Event) -> serde_json::Value {
-    crate::wire::event_json(by, e)
+/// The options' `draft`: the event the form starts from, in the engine's format (`{"type":..}`),
+/// without the submitter or a time, which the server fills in.
+pub(super) fn draft_json(e: &Event) -> serde_json::Value {
+    serde_json::to_value(e).expect("events serialize")
 }
 
 /// The skin's text of these parts, one after the other.

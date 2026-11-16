@@ -241,9 +241,9 @@ game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sect
 ## Objects the game owns
 
 - Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
-- Events stored in game state are `Rc<Event>`, shared with `History` (see [Events](#events)). The few event fields that C# writes after the event is stored are `Cell`s.
+- Game state holds no converted event: it holds a state struct that the event's `apply` builds ([Events](#events), "State instead of events"). Legacy events stored in game state are still `Rc`s shared with `History`, with `Cell` fields where C# writes them after storing.
 - Where C# keeps two references to one mutable object, the game keeps its own copy if nothing mutates the object afterwards: `EstablishPlayers` copies its settings into `rules.settings`, and the allowed factions into `rules.factions_in_play`. The same goes for `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions`.
-- When C# uses an object as an identity token, key by a stable handle: `PlayerId` for players, `shared::RcKey<Event>` for events (`deals.responses` is keyed by `RcKey<DealOffered>`). Don't compare structurally.
+- When C# uses an object as an identity token, key by a stable handle: `PlayerId` for players. Legacy events are still keyed by `shared::RcKey` (`deals.responses` is keyed by `RcKey<DealOffered>`); a converted event's state gets an id instead (`DealId`).
 - The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`, the last use of `Shared<T>` (an `Rc<RefCell<T>>` whose `==` is reference equality).
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
@@ -295,7 +295,7 @@ game.battle.battle_sequence = Some(seq);
 
 `game.undo(n)` replays the first `n` events of the history into a new game and puts it in `game`'s place. The events after them become `history.recently_undone_events`, and the game it replaced is kept, unchanged, in `history.previous_game_state`. `restore_recently_undone()` puts that game back. Without one (a game loaded with undone events), it replays the history and the undone events into a new game. `dismiss_recently_undone()` replays the history into a new game with neither. A negative `n` throws and leaves the game as it was.
 
-The event objects are shared between the games (`Rc`), and each replay initializes them again against the new game. An event keeps no game of its own, and a `PlayerId` is only a position in `players`, so nothing in one game refers to another.
+The history entries are shared between the games, and each replay plays them again in the new game (a legacy event's base is filled again by `Game::play`). An event keeps no game of its own, and a `PlayerId` is only a position in `players`, so nothing in one game refers to another. The view's story replays `HistoryEntry::detached` copies, so the live game's legacy events aren't touched.
 
 C# undo differs here. Its new game shares the event objects with the old one, and each event remembers the game it was last initialized against. After a restore, events that the restored game holds (`CurrentBattle`, `AggressorPlan`, deal offers) belong to the game made by the undo, and their members read that game. The Rust port imitated this until native-plan.md step 3. Snapshots drop it: a restore returns to the state before the undo, with nothing read from the discarded game.
 
@@ -303,52 +303,87 @@ The native harness sees the change in fuzz games that restore. In 200 fuzz games
 
 ## Events
 
-### Representation
+Events are being converted from the C# shape to plain data (rewrite-plan.md, wave 3a). Until every event is converted, both shapes exist side by side. The `events!` list in `events/mod.rs` names every event once and marks the ones not converted yet with `@legacy`.
 
-- Each C# event class is a struct in `src/events/<name>.rs` with its fields in C# order, the fields inherited from `PassableGameEvent`/`PlacementEvent` inlined, and the `GameEvent` fields in `base: GameEventBase` (`Initiator`, `Time`, `Game`, `Player`).
-- A C# `GameEvent` reference is the enum `events::GameEvent`, with one variant per concrete event holding an `Rc`. Cloning shares the object; `==` and `Hash` are by address. A field typed as a concrete event (`Game.AggressorPlan`) is `Option<Rc<Battle>>`. A field typed as `BidEvent`, `LocationEvent` or `Placement` is `GameEvent`.
-- `events::GameEventType` is C# `Type` for events: `GetType()`, `typeof(Bid)`, the result of `GetApplicableEvents`. `name()` is `Type.Name`.
-- `X::default()` is `new X()` with the C# field initializers. `X::new(game, initiator)` is `new X(game, initiator)`; it calls `initialize`.
+### What every event has
 
-### Behaviour
+- `Event` is an enum with one variant per event type, declared by `events!` (`events/macros.rs`), which also gives `EventType` (with `ALL`, `name()` and the JSON discriminator), `From<X> for Event` for every event struct, `Event::event_type()`, `detached()` (a copy that shares nothing), and the dispatch.
+- A played event is a `HistoryEntry { by, at, event }` (`events/rules.rs`): `by` is the submitter's faction, `None` for the host, and `at` the time. `game.history.entries` holds them. The event itself holds neither.
+- The submitter reaches the rules as a `By { faction, player }`: the faction and that faction's player when the event was submitted. `By::new(game, faction)` looks the player up the way C#'s `Initialize` did (so the host, `None`, gets the first player without a faction during setup). The player is looked up once, before validation, so it stays the submitter even when the event changes who plays which faction.
+- Event JSON reads into and writes from a `HistoryEntry`: `Initiator` is `by` and `Time` is `at`. The format is unchanged until 4b.
 
-`GameEvent`'s instance members are the trait `GameEventMethods` (in `events/game_event.rs`); `PassableGameEvent` and `PlacementEvent` add `PassableGameEventMethods` and `PlacementEventMethods`. The non-virtual base members are default trait methods, ported once in those files. Each event implements the traits in its own module, and overridden members (`Validate`, `ExecuteConcreteEvent`, `GetMessage`, `Execute` in `EstablishPlayers`, `TotalAmountOfForcesAddedToLocation` in `FremenRidesMonster`) delegate to the event's inherent method of the same name. Port the inherent method; leave the trait impls alone.
+### Playing an event
 
 ```rust
-self.initiator()           // Initiator
-self.player()              // Player (NullReferenceException if it was never set)
-self.player_opt()          // Player, possibly null
-self.by(Faction::Emperor)      // By(Faction.Emperor)
-self.passed                // Passed (a field on every passable event)
+game.submit(by, event, at, is_host)?;               // validated, as a submission: Result<(), SubmitError>
+game.play(entry, validate, is_host)                  // the same with a whole entry, validated or not
+game.play_for_message(entry, validate, is_host)      // Option<Message>, as C#'s Execute returned it
+game.history.stamp_last(now);                        // the server sets the time after the event is applied
 ```
 
-`GameEvent` (the enum) has a dispatching method for every `GameEventMethods` member: `ev.validate(&game)`, `ev.execute(&mut game, true, false)`, `ev.get_message(&game)`. Interface members dispatch as `ev.bid_amount()` and `ev.location_event_to(&game)`, which panic for an event that does not implement the trait. The interface traits (`BidEvent`, `LocationEvent`, `Placement`) are not in the prelude, because their method names clash with the base traits.
+`SubmitError` is `NotApplicable(Message)`, `Rejected(Rejection)` or `Failed(GameError)`, and `message()` gives the text the player sees ("Event '...' is not applicable", the rejection, or "Game Error: ..."). `play` checks the applicable events (`get_applicable_events(by.player, is_host)`), runs `try_validate`, clears the recent milestones, runs the pre-event tasks, applies the event, runs the post-event tasks and adds the entry to the history. `EstablishPlayers` skips the applicability check and keeps the milestones, as C# did. An event sees `at` while it is applied; the server submits with no time and stamps the entry afterwards, so the timers only count on a replay, as in C#.
 
-### Signatures
+### A converted event
 
-- Every override of one virtual member, and every implementation of one interface member, has the same Rust signature. That is why `Validate` takes `&Game` even where an event doesn't read the game.
-- `ExecuteConcreteEvent` and every method that stores or upcasts `this` take `self: &Rc<Self>`, so they can write `game.battle.aggressor_plan = Some(self.clone())` or `game.ship_move.last_shipment_or_movement = Some(self.clone().into_event())`.
-- A parameter of a concrete event type is `&Battle`, so `this` can be passed as `self`. Where the callee stores the event, the parameter is `&Rc<Battle>`.
-- Event methods only get a `game` parameter when the C# body reads `Game` or `Player`.
+A converted event is plain data: `#[derive(Clone, Debug, Default, PartialEq)]`, no `base`, no `Rc`, no `Cell`. It implements `EventRules`:
 
-### Fields written after the event is shared
+```rust
+impl EventRules for CharityClaimed {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if i32::from(game.player(by.player()).resources) > 1 {
+            return Err(Rejection(express!("You cannot claim charity")));
+        }
+        Ok(())
+    }
 
-These event fields are written after the event may be stored in game state or `History`, so they are `Cell`s that `&self` methods can write:
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.claim_charity(by.player());
+        Ok(())
+    }
 
-- `GameEventBase.initiator`, `GameEventBase.player` (`Initialize`)
-- `GameEventBase.time` (set by the server after `execute`)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " claim charity")
+    }
+}
+```
+
+`try_validate`, `try_describe` and `describe_short` have defaults; override them where the legacy event overrode `try_validate`, `try_get_message` or `get_short_message`. Where the legacy code wrote `self.initiator()`, write `by.faction`; `self.player()` is `by.player()`, `self.player_opt()` is `by.player`, `self.by(f)` is `by.is(f)`, and `self.log(game)` is `let m = self.describe(game, by); game.log_event(m);`. Static helpers (`can_be_played`, `valid_targets`) stay inherent functions.
+
+Build a converted event with a struct literal or `X::default()`, not `X::new(game, faction)`: the submitter goes on the entry. `Event::from(x)` wraps any event struct, converted or legacy, and `HistoryEntry::new(faction, x)` makes the entry. A bot's decision method returns a converted event by value (`X` or `Option<X>`), a legacy one in an `Rc`, and the caller makes the entry with `HistoryEntry::decided(bot_faction, event)`, which keeps a legacy event's own initiator: a bot cancels another faction's deal offer with a copy of the offer, initiator included. The bots' golden tests write a converted event's decision with `common::decision(bot, game, ..)`, and the view's `adjust!` takes `@plain` for one.
+
+### An `@legacy` event
+
+A legacy event is a struct with `base: GameEventBase` (the initiator, player and time, in `Cell`s) that implements `GameEventMethods` in its module, and its `Event` variant holds an `Rc`. `play` fills the base from the entry before validating (`Event::prepare`, and the time), and `History::stamp_last` updates its time, so `self.initiator()` and `self.player()` work as before, and the `by` argument of the dispatch is ignored. `X::new(game, faction)` still initializes the base. `Event::validate`, `describe` and the rest go through `events/dispatch.rs`, which turns the legacy `Option<Message>` into `Result<(), Rejection>`.
+
+Game state that still holds a legacy event (`bidding.current_bid`, `battle.aggressor_plan`, `ship_move.last_shipment_or_movement` ...) reads its submitter with `Event::legacy_initiator()` and `legacy_player()`, which panic for a converted event. `HistoryEntry::legacy(e)` makes the entry of a legacy event from its own initiator, and `HistoryEntry::new` takes a legacy event's time from its base (a deal's cancellation, a copy of the offer, carries the offer's time into the bots' decisions). Converting the event means replacing that state and these calls first (below).
+
+### State instead of events
+
+Game state never holds a converted event. Where it held `Rc<X>`, it holds a state struct that `apply` builds, with only what the rules read later, and the submitter if they read it: `collection.current_division_proposal` is a `DivisionProposal { portion_to_first_player }`. Where C# compared stored events by reference (`RcKey`, `Rc::ptr_eq`), give the state an id (`DealId`) or compare the state's values. The `Cell` fields of legacy events (`Battle.weapon_card_id` and the others in "Fields written after the event is shared" below) become fields of the state struct that `apply` writes.
+
+`Payment.reason` is the `EventType` the payment was for. Intrusions keep the intruder and the destination (`Intrusion { initiator, to, type_ }`), and `check_intrusion(e, initiator)` takes the initiator from the caller.
+
+### Fields written after the event is shared (legacy events only)
+
+These legacy event fields are written after the event may be stored in game state or `History`, so they are `Cell`s that `&self` methods can write. Each goes away with its event's conversion:
+
+- `GameEventBase.initiator`, `GameEventBase.player` (`Event::prepare`)
 - `Battle.weapon_card_id`, `defense_card_id`, `original_weapon`, `original_defense` (`ActivateDynamicWeapons`)
 - `AutomationConfigured.automation_rule_id`
 - `Shipment.guild_income_prevented`
 
-Setters of other fields take `&mut self`: call them before wrapping the event in `Rc`. If you find another C# write to a stored event, make that field a `Cell` and add it here.
-
-When the event to call is itself stored in the game, clone the `Rc` first so the game is free to borrow mutably:
+When a legacy event to call is itself stored in the game, clone the `Rc` first so the game is free to borrow mutably:
 
 ```rust
 let plan = game.battle.aggressor_plan.clone().expect("aggressor plan");
 plan.activate_dynamic_weapons(game, hero, weapon, defense);
 ```
+
+### Signatures (legacy events)
+
+- Every override of one virtual member, and every implementation of one interface member, has the same Rust signature. That is why `Validate` takes `&Game` even where an event doesn't read the game.
+- `ExecuteConcreteEvent` and every method that stores or upcasts `this` take `self: &Rc<Self>`, so they can write `game.battle.aggressor_plan = Some(self.clone())`.
+- The interface traits (`BidEvent`, `LocationEvent`, `Placement`) are not in the prelude, because their method names clash with the base traits. `Event` dispatches their members as `ev.bid_amount()` and `ev.location_event_to(&game)`, which panic for an event that does not implement the trait. `LocationEvent` and `Placement` have no `initiator`: the caller passes it.
 
 ## Messages
 
@@ -396,16 +431,16 @@ A message stores a copy of each collection passed to it, taken when it is built,
 
 The macro evaluates its arguments left to right. `express_part_if!` evaluates its arguments even when the condition is false, as C# does. Messages are data. Turning them into text is `Skin.Describe`, in the `rust/skin` crate ([skin.md](skin.md)).
 
-`Validate()` returns `Option<Message>`, where `None` means valid.
+A converted event's `validate` returns `Result<(), Rejection>`, where `Rejection(Message)` is what the player sees. Legacy events still return `Option<Message>`, and `Event::validate` converts it.
 
 ## Errors
 
 Validation doesn't rule out every event the rules can't handle, so an accepted event can fail partway through executing. Such a failure is a `GameError` (`error.rs`), and the code on the way to it returns `GameResult<T>`:
 
-- `execute_concrete_event` returns `GameResult`, and so do the game methods it calls that can fail: drawing from a deck that can run out (`Deck::try_draw`), discarding a card the player doesn't hold (`Game::discard`), moving on from a phase the intrusion queue doesn't expect (`determine_next_shipment_and_move_sub_phase`), and the bid and battle resolution around them.
-- `GameEventMethods::execute` turns an `Err` into the "Game Error: ..." message the server shows the player. The state changes made before the failure stay, and the event isn't added to the history. `try_execute` returns the `GameResult` itself.
-- An event's message can't always be built for an event that is about to be refused (a faction that isn't playing, no card). Those events implement `try_get_message`, which the "not applicable" refusal uses.
-- A few events can't even be validated without a value the client left out. They implement `try_validate`, which `try_execute` calls, so such an event fails with a Game Error. Their `validate` turns the failure into a refusal for bots and views.
+- `apply` (`execute_concrete_event` of a legacy event) returns `GameResult`, and so do the game methods it calls that can fail: drawing from a deck that can run out (`Deck::try_draw`), discarding a card the player doesn't hold (`Game::discard`), moving on from a phase the intrusion queue doesn't expect (`determine_next_shipment_and_move_sub_phase`), and the bid and battle resolution around them.
+- `Game::play` returns an `Err` as `SubmitError::Failed`, whose `message()` is the "Game Error: ..." text the server shows the player. The state changes made before the failure stay, and the event isn't added to the history.
+- An event's message can't always be built for an event that is about to be refused (a faction that isn't playing, no card). Those events implement `try_describe` (`try_get_message` when legacy), which the "not applicable" refusal uses.
+- A few events can't even be validated without a value the client left out. They implement `try_validate`, which `Game::play` calls, so such an event fails with a Game Error. Their `validate` turns the failure into a refusal for bots and views.
 
 ```rust
 let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
@@ -472,8 +507,8 @@ Nothing counts draws any more. Tests that check how far a generator has drawn co
 `json.rs` writes and reads System.Text.Json exactly as `Utilities.Serialize`/`Deserialize` do: member order, escaping, number and date formats, the `$type` rules, missing members keeping their initializers, unknown members ignored. A `$`-prefixed member other than the leading `$type` is rejected in an event (a polymorphic type) and skipped as an unknown member anywhere else (`GameSettings`, `GameState`), as .NET does. `json_members.rs` holds each event's member list, generated from `JsonSerializerOptions.GetTypeInfo`.
 
 ```rust
-let text = json::serialize(&event);                       // Utilities.Serialize<GameEvent>(e)
-let event: GameEvent = json::deserialize(&text)?;         // Utilities.Deserialize<GameEvent>(text)
+let text = json::serialize(&entry);                       // a HistoryEntry: the event, then Initiator and Time
+let entry: HistoryEntry = json::deserialize(&text)?;      // Utilities.Deserialize<GameEvent>(text)
 let state: GameState = json::deserialize(&savegame)?;     // without the legacy path, see below
 ```
 

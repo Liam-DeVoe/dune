@@ -5,7 +5,7 @@
 //! Events are being converted from the C# shape (an `Rc` holding `GameEventBase` with the
 //! initiator, implementing `GameEventMethods`) to plain data implementing [`EventRules`]. The
 //! `events!` list in `events/mod.rs` marks the ones not yet converted with `@legacy`.
-//! [`EventImpl`] lets the dispatch treat both alike.
+//! `events/dispatch.rs` lets the dispatch treat both alike.
 
 use crate::prelude::*;
 

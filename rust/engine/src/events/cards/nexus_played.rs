@@ -261,7 +261,7 @@ impl NexusPlayed {
                     }
                     let traitor_deck = game.decks.traitor_deck.as_mut().required("traitor deck")?;
                     traitor_deck.items.push(traitor);
-                    traitor_deck.shuffle();
+                    traitor_deck.shuffle(&mut game.rng);
                     game.stone(Milestone::Shuffled);
                     game.turn.harkonnen_traitor_was_cancelled = true;
                     game.play_nexus_card(actor, elems!["cancel the ", Faction::Harkonnen, " traitor call"]);
@@ -350,7 +350,7 @@ impl NexusPlayed {
                         .treachery_cards
                         .iter()
                         .copied()
-                        .random_item(game.random.as_ref().required("random")?);
+                        .collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                     if let Some(card) = card {
                         game.discard_card(Some(card), true)?;
                     }
@@ -423,7 +423,7 @@ impl NexusPlayed {
                 if let Some(moritani_territory) = self.moritani_territory {
                     // Validation only offers a territory with terror. C# took `default(TerrorType)`
                     // (None) from an empty territory and added it to the unplaced tokens.
-                    let terror_to_remove = game.terror_in(moritani_territory).into_iter().random_item(game.random.as_ref().required("random")?);
+                    let terror_to_remove = game.terror_in(moritani_territory).into_iter().collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                     if let Some(terror_to_remove) = terror_to_remove {
                         game.board.terror_on_planet.shift_remove(&terror_to_remove);
                         game.board.unplaced_terror_tokens.push(terror_to_remove);
@@ -509,7 +509,7 @@ impl NexusPlayed {
                     let revealed: Vec<Hero> = game.player(tleilaxu).revealed_face_dancers.iter().copied().collect();
                     let traitor_deck = game.decks.traitor_deck.as_mut().expect("traitor deck");
                     traitor_deck.items.extend(revealed.iter().copied());
-                    traitor_deck.shuffle();
+                    traitor_deck.shuffle(&mut game.rng);
 
                     for dancer in &revealed {
                         let face_dancers = &mut game.player_mut(tleilaxu).face_dancers;
@@ -664,7 +664,7 @@ impl NexusPlayed {
                     );
 
                     if !auditable_cards.is_empty() {
-                        let audited_card = auditable_cards.iter().copied().random_item(game.random.as_ref().expect("random"));
+                        let audited_card = auditable_cards.iter().copied().random_item(&mut game.rng);
                         if let Some(audited_card) = audited_card {
                             Game::register_known_by_player(game, actor, Some(audited_card));
                             game.log_to(by.faction.expect("faction"), elems!["You see: ", audited_card]);

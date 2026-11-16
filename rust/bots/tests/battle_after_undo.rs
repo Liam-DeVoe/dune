@@ -50,7 +50,7 @@ fn a_battle_initiated_again_after_an_undo_is_a_new_battle() {
 fn a_bot_does_not_plan_with_its_voice_from_an_undone_battle() {
     let mut game = savegame();
     let guild = game.get_player(Some(Faction::Guild)).unwrap();
-    let bot = || ClassicBot::new(guild, BotParameters::for_faction(Some(Faction::Guild)), SharedRandom::from_seed(1));
+    let bot = || ClassicBot::new(guild, BotParameters::for_faction(Some(Faction::Guild)), treachery_engine::random::new_rng(1));
 
     // Both bots use Voice in the first battle, so their random draws stay in step. The second
     // forgets its Voice, as it would for a different battle.

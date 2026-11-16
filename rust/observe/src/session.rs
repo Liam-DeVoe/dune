@@ -148,7 +148,7 @@ impl Session {
                         }
                         None => {
                             let seed = seed_for(faction).ok_or_else(|| format!("harness: no seed for a new {} bot", name_or_absent(faction)))?;
-                            let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(seed));
+                            let bot = ClassicBot::new(p, BotParameters::for_faction(faction), treachery_engine::random::new_rng(seed));
                             self.bots.push((faction, bot));
                             created.push((faction_name(faction), seed));
                             self.bots.len() - 1

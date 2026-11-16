@@ -157,11 +157,7 @@ impl Game {
         self.main_phase_start(MainPhase::Bidding, true);
         self.allow(FactionAdvantage::ChoamControllingCharity);
         self.allow(FactionAdvantage::BeneGesseritCharity);
-        let random = match &self.random {
-            Some(r) => r.clone(),
-            None => panic!("Random generator is not initialized"),
-        };
-        self.bidding.cards_on_auction = Some(Deck::empty(Some(random)));
+        self.bidding.cards_on_auction = Some(Deck::empty());
         self.bidding.ixian_swapped_card_on_bid = false;
         self.bidding.card_sold_on_black_market = None;
         self.bidding.black_market_auction_type = None;
@@ -579,7 +575,7 @@ impl Game {
             }
 
             self.decks.treachery_discard_pile.as_mut().expect("treachery discard pile").clear();
-            self.decks.treachery_deck.as_mut().expect("treachery deck").shuffle();
+            self.decks.treachery_deck.as_mut().expect("treachery deck").shuffle(&mut self.rng);
             self.stone(Milestone::Shuffled);
         }
 

@@ -26,8 +26,8 @@ impl EventRules for ResidualPlayed {
             .map(|l| Hero::Leader(*l))
             .filter(|l| game.is_alive(*l) && game.can_join_current_battle(*l))
             .collect();
-        let mut leaders_to_kill = Deck::new(candidates, game.random.clone());
-        leaders_to_kill.shuffle();
+        let mut leaders_to_kill = Deck::new(candidates);
+        leaders_to_kill.shuffle(&mut game.rng);
 
         if !leaders_to_kill.is_empty() {
             let to_kill = leaders_to_kill.try_draw()?;

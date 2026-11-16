@@ -52,8 +52,8 @@ impl EventRules for CardsDetermined {
     }
 
     fn apply(&self, game: &mut Game, _by: By) -> GameResult {
-        game.decks.treachery_deck = Some(Deck::new(self.treachery_cards(), game.random.clone()));
-        game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle();
+        game.decks.treachery_deck = Some(Deck::new(self.treachery_cards()));
+        game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle(&mut game.rng);
         game.stone(Milestone::Shuffled);
         game.decks.richese_cache = self.richese_cards();
         let message = self.get_verbose_message();

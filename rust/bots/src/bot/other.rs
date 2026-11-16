@@ -1246,7 +1246,7 @@ impl ClassicBot {
     }
 
     pub fn random_item_from<T: Clone>(&self, items: &[T]) -> T {
-        items.choose(&mut *self.random.lock()).expect("an item to choose from").clone()
+        self.random.draw(|r| items.choose(r)).expect("an item to choose from").clone()
     }
 
     pub fn determine_planetology(&self, _game: &Game) -> Planetology {

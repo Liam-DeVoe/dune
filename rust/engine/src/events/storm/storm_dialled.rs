@@ -71,8 +71,8 @@ impl StormDialled {
             tech_tokens_to_be_dealt.push(TechToken::Ships);
         }
 
-        let mut remaining_tech_tokens = Deck::new(tech_tokens_to_be_dealt, game.random.clone());
-        remaining_tech_tokens.shuffle();
+        let mut remaining_tech_tokens = Deck::new(tech_tokens_to_be_dealt);
+        remaining_tech_tokens.shuffle(&mut game.rng);
         game.stone(Milestone::Shuffled);
 
         let mut tech_token_sequence = PlayerSequence::starting_with_first_player(game);

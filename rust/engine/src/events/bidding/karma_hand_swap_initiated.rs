@@ -20,9 +20,9 @@ impl EventRules for KarmaHandSwapInitiated {
         let victim = victim.required("victim")?;
         game.bidding.karma_hand_swap_number_of_cards = game.player(victim).treachery_cards.len() as i32;
         game.bidding.karma_hand_swap_target = self.target;
-        let mut cards_to_draw_from = Deck::new(game.player(victim).treachery_cards.clone(), game.random.clone());
+        let mut cards_to_draw_from = Deck::new(game.player(victim).treachery_cards.clone());
         game.stone(Milestone::Shuffled);
-        cards_to_draw_from.shuffle();
+        cards_to_draw_from.shuffle(&mut game.rng);
 
         let mut i = 0;
         while i < game.bidding.karma_hand_swap_number_of_cards {

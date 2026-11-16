@@ -181,7 +181,7 @@ impl Refit {
         let index = match bots.iter().position(|(f, _)| *f == faction) {
             Some(i) => i,
             None => {
-                let bot = ClassicBot::new(p, BotParameters::for_faction(faction), SharedRandom::from_seed(7919 * value_or_absent(faction) + 1));
+                let bot = ClassicBot::new(p, BotParameters::for_faction(faction), treachery_engine::random::new_rng(7919 * value_or_absent(faction) + 1));
                 bots.push((faction, bot));
                 bots.len() - 1
             }

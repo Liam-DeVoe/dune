@@ -17,8 +17,7 @@ How `rust/engine` and `rust/bots` are organized. Most engine code starts with `u
 | `identity.rs` | The `Identifiable` and `Fetcher` traits for looking objects up by id. |
 | `iter.rs` | Iterator and map helpers std lacks (`unique`, `distinct`, `remove_first`, `MapExt::insert_new`). |
 | `enum_type.rs` | How the enums are made (`game_enum!`, `GameEnum`): open `i32` newtypes that print like .NET's `Enum.ToString()`. |
-| `shared.rs` | `Shared<T>` (the random number generator the decks share with the game). |
-| `random.rs` | The game's random number generator (`GameRng`, a ChaCha8 stream, shared as `SharedRandom`) and the selection helpers (`RandomPick`: `random_item`, `random_highest`, ...). |
+| `random.rs` | The game's random number generator (`GameRng`, a ChaCha8 stream, owned by `Game.rng`) and the selection helpers (`RandomPick`: `random_item`, `random_highest`, ...). |
 | `json/` | Reading and writing events and savegames, byte for byte in the established JSON format. |
 | `error.rs` | `GameError`: an accepted event that failed partway (see engine-conventions.md, "Errors"). |
 | `compat/` | .NET behavior the engine still needs: `DateTimeOffset`/`TimeSpan`, whose text is part of the event JSON. |

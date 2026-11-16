@@ -108,7 +108,7 @@ pub fn bot_for(game: &Game, probe: &Value) -> ClassicBot {
     let player = game.player_at(probe["p"].as_i64().unwrap() as usize);
     let faction = game.player(player).faction;
     let seed = probe["seed"].as_i64().unwrap() as i32;
-    ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed))
+    ClassicBot::new(player, BotParameters::for_faction(faction), treachery_engine::random::new_rng(seed))
 }
 
 /// The probe's arguments.

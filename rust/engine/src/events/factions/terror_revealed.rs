@@ -193,7 +193,7 @@ impl EventRules for TerrorRevealed {
                         .iter()
                         .copied()
                         .filter(|l| game.is_alive(Hero::Leader(*l)))
-                        .random_item(game.random.as_ref().required("random")?);
+                        .collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                     if let Some(random_leader) = random_leader {
                         let price = if random_leader.hero_type() == HeroType::VariableValue {
                             3
@@ -215,7 +215,7 @@ impl EventRules for TerrorRevealed {
                     game.board.atomics_aftermath = territory;
 
                     while game.player(by.player()).hand_size_exceeded(game) {
-                        let card = game.player(by.player()).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);
+                        let card = game.player(by.player()).treachery_cards.iter().copied().collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                         game.discard_card_of(Some(by.player()), card, true);
                     }
 
@@ -223,7 +223,7 @@ impl EventRules for TerrorRevealed {
                         while game.player(game.player(by.player()).allied_player(game).required("allied player")?).hand_size_exceeded(game) {
                             let ally = game.player(by.player()).allied_player(game).required("allied player")?;
                             let ally2 = game.player(by.player()).allied_player(game).required("allied player")?;
-                            let card = game.player(ally2).treachery_cards.iter().copied().random_item(game.random.as_ref().required("random")?);
+                            let card = game.player(ally2).treachery_cards.iter().copied().collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                             game.discard_card_of(Some(ally), card, true);
                         }
                     }
@@ -268,7 +268,7 @@ impl EventRules for TerrorRevealed {
                             .treachery_cards
                             .iter()
                             .copied()
-                            .random_item(game.random.as_ref().required("random")?);
+                            .collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                         game.discard_card(card, true)?;
                     } else {
                         game.log(parts![victim_faction, " have no treachery cards to discard"]);

@@ -585,7 +585,7 @@ impl Game {
                 self.decks.traitor_deck.as_mut().expect("traitor deck").put_on_top(item);
             }
 
-            self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
+            self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle(&mut self.rng);
             self.stone(Milestone::Shuffled);
             self.battle.traitors_decipherer_can_look_at.clear();
         }
@@ -669,15 +669,12 @@ impl Game {
             return Ok(());
         };
 
-        let Some(random) = self.random.clone() else {
-            panic!("Random is not initialized");
-        };
-        let mut auditable_cards = Deck::new(AuditCancelled::get_cards_that_may_be_audited(self), Some(random));
+        let mut auditable_cards = Deck::new(AuditCancelled::get_cards_that_may_be_audited(self));
 
         if auditable_cards.items.len() > 0 {
             let nr_of_audited_cards = AuditCancelled::get_number_of_cards_that_may_be_audited(self);
             self.battle.audited_cards.clear();
-            auditable_cards.shuffle();
+            auditable_cards.shuffle(&mut self.rng);
             let mut i = 0;
             while i < nr_of_audited_cards {
                 let card = auditable_cards.try_draw()?;
@@ -1483,10 +1480,10 @@ impl Game {
                 l.hero_type() != HeroType::Auditor && self.leaders.leader_state[&Hero::Leader(*l)].alive() && self.can_join_current_battle(Hero::Leader(*l))
             })
             .collect();
-        let mut available_leaders: Deck<Leader> = Deck::new(leaders, self.random.clone());
+        let mut available_leaders: Deck<Leader> = Deck::new(leaders);
 
         if !available_leaders.is_empty() {
-            available_leaders.shuffle();
+            available_leaders.shuffle(&mut self.rng);
             self.battle.harkonnen_victim = Some(available_leaders.draw());
         } else {
             self.battle.harkonnen_victim = None;

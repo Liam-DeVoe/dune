@@ -42,7 +42,7 @@ impl EventRules for MulliganPerformed {
             let traitors = game.player(me).traitors.clone();
             game.decks.traitor_deck.as_mut().required("traitor deck")?.items.extend(traitors);
             game.player_mut(me).traitors.clear();
-            game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle();
+            game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle(&mut game.rng);
             game.stone(Milestone::Shuffled);
             game.deal_harkonnen_traitor_cards();
             game.enter(Phase::HarkonnenMulligan, true);

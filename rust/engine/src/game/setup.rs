@@ -41,9 +41,9 @@ impl Game {
         // The Deck constructor copies its source, so evaluating the filter here is equivalent.
         let all = self.rules.factions_in_play.clone();
         let available_factions: Vec<Faction> = all.into_iter().filter(|f| !self.is_playing(*f)).collect();
-        let mut selectable = Deck::new(available_factions, self.random.clone());
+        let mut selectable = Deck::new(available_factions);
         self.stone(Milestone::Shuffled);
-        selectable.shuffle();
+        selectable.shuffle(&mut self.rng);
 
         // foreach over a lazy Where: the predicate is checked per player, before its body.
         for i in 0..self.players.len() {
@@ -56,14 +56,14 @@ impl Game {
     }
 
     pub fn determine_positions_at_table(&mut self) {
-        let mut seats: Deck<Seat> = Deck::empty(self.random.clone());
+        let mut seats: Deck<Seat> = Deck::empty();
         let mut i = 0;
         while i < self.rules.settings.as_ref().expect("settings").number_of_players {
             seats.put_on_top(Seat::from_number(i).expect("at most 255 players"));
             i += 1;
         }
 
-        seats.shuffle();
+        seats.shuffle(&mut self.rng);
 
         //Seat players
         for p in 0..self.players.len() {
@@ -97,7 +97,7 @@ impl Game {
 
             if self.applicable(Rule::EcazLoyalty) {
                 let leaders = self.player(ecaz).leaders.clone();
-                self.leaders.ecaz_loyal_leader = leaders.into_iter().random_item(self.random.as_ref().expect("random"));
+                self.leaders.ecaz_loyal_leader = leaders.into_iter().random_item(&mut self.rng);
                 let pll = self.leaders.ecaz_loyal_leader;
                 self.log(vec![pll.into(), " is forever loyal to ".into(), Faction::Ecaz.into()]);
             }
@@ -111,8 +111,7 @@ impl Game {
 
     pub fn deal_traitors(&mut self) -> GameResult {
         self.stone(Milestone::Shuffled);
-        let random = self.random.clone();
-        self.decks.traitor_deck = Some(self.create_and_shuffle_traitor_deck(random));
+        self.decks.traitor_deck = Some(self.create_and_shuffle_traitor_deck());
 
         if self.applicable(Rule::HarkonnenMulligan) && self.is_playing(Faction::Harkonnen) {
             self.deal_harkonnen_traitor_cards();
@@ -132,10 +131,8 @@ impl Game {
         Ok(())
     }
 
-    /// `random` is `Option` because `Game.Random` may be null; only the
-    /// shuffle would then throw.
-    pub fn create_and_shuffle_traitor_deck(&mut self, random: Option<SharedRandom>) -> Deck<Hero> {
-        let mut result = Deck::new(self.traitors_in_play(), random);
+    pub fn create_and_shuffle_traitor_deck(&mut self) -> Deck<Hero> {
+        let mut result = Deck::new(self.traitors_in_play());
 
         if let Some(pll) = self.leaders.ecaz_loyal_leader {
             let hero = Hero::Leader(pll);
@@ -154,7 +151,7 @@ impl Game {
             }
         }
 
-        result.shuffle();
+        result.shuffle(&mut self.rng);
         result
     }
 
@@ -187,7 +184,7 @@ impl Game {
     pub fn assign_face_dancers(&mut self) -> GameResult {
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
         if let Some(tleilaxu) = tleilaxu {
-            self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
+            self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle(&mut self.rng);
             for _i in 0..3 {
                 let leader = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 self.player_mut(tleilaxu).face_dancers.push(leader);
@@ -205,8 +202,8 @@ impl Game {
 
     pub fn assign_leader_skills(&mut self) -> GameResult {
         if self.applicable(Rule::LeaderSkills) {
-            self.decks.skill_deck = Some(Deck::new(get_values::<LeaderSkill>().collect::<Vec<_>>(), self.random.clone()));
-            self.decks.skill_deck.as_mut().expect("skill deck").shuffle();
+            self.decks.skill_deck = Some(Deck::new(get_values::<LeaderSkill>().collect::<Vec<_>>()));
+            self.decks.skill_deck.as_mut().expect("skill deck").shuffle(&mut self.rng);
             self.stone(Milestone::Shuffled);
 
             let nr_of_skills_to_assign = if self.players.len() <= 7 { 2 } else { 1 };
@@ -394,7 +391,7 @@ impl Game {
         }
         self.decks.ambassadors_set_aside.clear();
 
-        self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").shuffle();
+        self.decks.unassigned_ambassadors.as_mut().expect("unassigned ambassadors").shuffle(&mut self.rng);
         self.stone(Milestone::Shuffled);
         let faction = self.player(p).faction;
         self.log(vec![faction.into(), " get 5 random Ambassadors".into()]);
@@ -405,7 +402,7 @@ impl Game {
     }
 
     pub fn deal_starting_treachery_cards(&mut self) -> GameResult {
-        self.setup.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
+        self.setup.starting_treachery_cards = Some(Deck::empty());
         for p in 0..self.players.len() {
             let card = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
             self.drop_copy_in_richese_cache(card);

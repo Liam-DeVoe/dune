@@ -187,7 +187,7 @@ fn automatic_passes_stop_when_bidding_ends() {
         }
         g.turn.current_main_phase = MainPhase::Bidding;
         g.turn.current_phase = Phase::Bidding;
-        g.bidding.cards_on_auction = Some(Deck::empty(None));
+        g.bidding.cards_on_auction = Some(Deck::empty());
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
         let mut seq = g.bidding.bid_sequence.take().unwrap();
         g.skip_players_that_cant_bid(&mut seq);
@@ -232,7 +232,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         }
         g.turn.current_main_phase = MainPhase::Bidding;
         g.turn.current_phase = Phase::Bidding;
-        g.bidding.cards_on_auction = Some(Deck::empty(None));
+        g.bidding.cards_on_auction = Some(Deck::empty());
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
         let mut high = Bid::default();
         high.amount = 15;

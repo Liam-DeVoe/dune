@@ -60,7 +60,7 @@ fn treachery_cards_before_traitors_needs_leader_skills() {
 fn deal_remaining_starting_cards_panics_on_empty_deck_after_partial_deal() {
     let mut g = game_with(&[Faction::Atreides, Faction::Ixian, Faction::Emperor]);
     let card = TreacheryCardManager::items()[0];
-    g.setup.starting_treachery_cards = Some(Deck::new(vec![card], None));
+    g.setup.starting_treachery_cards = Some(Deck::new(vec![card]));
     let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| g.deal_remaining_starting_treachery_cards_to_non_ixian()));
     assert!(r.is_err());
     assert_eq!(g.players[0].treachery_cards, vec![card]);

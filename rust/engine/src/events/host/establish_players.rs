@@ -162,8 +162,8 @@ impl EstablishPlayers {
     }
 
     pub fn create_nexus_deck(&self, game: &mut Game) {
-        game.decks.nexus_card_deck = Some(Deck::new(Self::available_factions(), game.random.clone()));
-        game.decks.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
+        game.decks.nexus_card_deck = Some(Deck::new(Self::available_factions()));
+        game.decks.nexus_card_deck.as_mut().expect("nexus card deck").shuffle(&mut game.rng);
     }
 
     /// Takes the factions players already have out of the factions in play. A validated
@@ -183,20 +183,20 @@ impl EstablishPlayers {
     }
 
     pub fn create_and_shuffle_resource_card_deck(&self, game: &mut Game) -> Deck<ResourceCard> {
-        let mut result = Deck::empty(game.random.clone());
+        let mut result = Deck::empty();
         // PutOnTop one by one reverses the source order.
         for c in Map::get_resource_cards_in_play(&*game) {
             result.put_on_top(c);
         }
 
         game.stone(Milestone::Shuffled);
-        result.shuffle();
+        result.shuffle(&mut game.rng);
         result
     }
 
     pub fn create_discovery_tokens(&self, game: &mut Game) {
-        game.decks.fremen_discovery_tokens = Some(Deck::empty(game.random.clone()));
-        game.decks.guild_discovery_tokens = Some(Deck::empty(game.random.clone()));
+        game.decks.fremen_discovery_tokens = Some(Deck::empty());
+        game.decks.guild_discovery_tokens = Some(Deck::empty());
 
         if game.applicable(Rule::DiscoveryTokens) {
             let fremen = game.decks.fremen_discovery_tokens.as_mut().expect("fremen discovery tokens");
@@ -204,14 +204,14 @@ impl EstablishPlayers {
             fremen.items.push(DiscoveryToken::Shrine);
             fremen.items.push(DiscoveryToken::TestingStation);
             fremen.items.push(DiscoveryToken::Cistern);
-            fremen.shuffle();
+            fremen.shuffle(&mut game.rng);
 
             let guild = game.decks.guild_discovery_tokens.as_mut().expect("guild discovery tokens");
             guild.items.push(DiscoveryToken::ProcessingStation);
             guild.items.push(DiscoveryToken::CardStash);
             guild.items.push(DiscoveryToken::ResourceStash);
             guild.items.push(DiscoveryToken::Flight);
-            guild.shuffle();
+            guild.shuffle(&mut game.rng);
         }
     }
 
@@ -238,7 +238,7 @@ impl EventRules for EstablishPlayers {
 
         game.turn.current_main_phase = MainPhase::Setup;
         game.seed = self.seed;
-        game.random = Some(SharedRandom::from_seed(self.seed));
+        game.rng = crate::random::new_rng(self.seed);
 
         //Settings
 
@@ -280,17 +280,17 @@ impl EventRules for EstablishPlayers {
         //Decks and card piles
 
         game.decks.resource_card_deck = Some(self.create_and_shuffle_resource_card_deck(game));
-        game.decks.treachery_deck = Some(TreacheryCardManager::create_treachery_deck(&*game, game.random.clone()));
+        game.decks.treachery_deck = Some(TreacheryCardManager::create_treachery_deck(&*game));
         self.create_discovery_tokens(game);
 
         if !game.applicable(Rule::CustomDecks) {
-            game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle();
+            game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle(&mut game.rng);
             game.stone(Milestone::Shuffled);
         }
 
-        game.decks.treachery_discard_pile = Some(Deck::empty(game.random.clone()));
-        game.decks.resource_card_discard_pile_a = Some(Deck::empty(game.random.clone()));
-        game.decks.resource_card_discard_pile_b = Some(Deck::empty(game.random.clone()));
+        game.decks.treachery_discard_pile = Some(Deck::empty());
+        game.decks.resource_card_discard_pile_a = Some(Deck::empty());
+        game.decks.resource_card_discard_pile_b = Some(Deck::empty());
 
         if game.applicable(Rule::NexusCards) {
             self.create_nexus_deck(game);
@@ -300,7 +300,6 @@ impl EventRules for EstablishPlayers {
 
         game.decks.unassigned_ambassadors = Some(Deck::new(
             Self::available_factions().into_iter().filter(|f| *f != Faction::Moritani).filter_map(Game::ambassador_of),
-            game.random.clone(),
         ));
 
         //Initial alliance settings

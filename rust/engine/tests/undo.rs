@@ -21,7 +21,7 @@ fn dump(g: &mut Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(g)),
         format!("phase: {} turn {}", g.turn.current_phase, g.turn.current_turn),
-        format!("stream position: {:?}", g.random.as_ref().map(|r| r.state().get_word_pos())),
+        format!("stream position: {:?}", g.rng.get_word_pos()),
     ];
     for (i, report) in std::iter::once(&g.log.pre_game_report).chain(g.log.report_list.iter()).enumerate() {
         for m in &report.messages {

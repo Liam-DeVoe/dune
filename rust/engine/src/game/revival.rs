@@ -62,7 +62,7 @@ impl Game {
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;
-        self.decks.skill_deck.as_mut().expect("skill deck").shuffle();
+        self.decks.skill_deck.as_mut().expect("skill deck").shuffle(&mut self.rng);
         self.stone(Milestone::Shuffled);
         let skill = self.decks.skill_deck.as_mut().expect("skill deck").draw();
         self.player_mut(player).skills_to_choose_from.push(skill);

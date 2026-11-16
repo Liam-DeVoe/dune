@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use treachery_engine::cards::deck::Deck;
 use treachery_engine::game::{Game, GameState};
-use treachery_engine::random::{RandomPick, SharedRandom};
+use treachery_engine::random::{new_rng, RandomPick};
 
 /// Asserts that every count is within `tolerance` (a fraction) of `expected`.
 fn assert_even<K: std::fmt::Debug>(what: &str, counts: &HashMap<K, usize>, cells: usize, expected: f64, tolerance: f64) {
@@ -22,12 +22,12 @@ fn assert_even<K: std::fmt::Debug>(what: &str, counts: &HashMap<K, usize>, cells
 
 #[test]
 fn shuffle_gives_every_order_about_equally_often() {
-    let random = SharedRandom::from_seed(20261113);
+    let mut random = new_rng(20261113);
     let mut counts: HashMap<Vec<i32>, usize> = HashMap::new();
     let n = 24_000;
     for _ in 0..n {
-        let mut deck = Deck::new([1, 2, 3, 4], Some(random.clone()));
-        deck.shuffle();
+        let mut deck = Deck::new([1, 2, 3, 4]);
+        deck.shuffle(&mut random);
         *counts.entry(deck.items).or_default() += 1;
     }
     // 24 orders, 1000 each; one standard deviation is about 31.
@@ -36,12 +36,12 @@ fn shuffle_gives_every_order_about_equally_often() {
 
 #[test]
 fn shuffle_puts_every_card_on_top_about_equally_often() {
-    let random = SharedRandom::from_seed(7);
+    let mut random = new_rng(7);
     let mut counts: HashMap<i32, usize> = HashMap::new();
     let n = 33_000;
     for _ in 0..n {
-        let mut deck = Deck::new(0..33, Some(random.clone()));
-        deck.shuffle();
+        let mut deck = Deck::new(0..33);
+        deck.shuffle(&mut random);
         *counts.entry(deck.top().unwrap()).or_default() += 1;
     }
     // 1000 each; one standard deviation is about 31.
@@ -50,36 +50,36 @@ fn shuffle_puts_every_card_on_top_about_equally_often() {
 
 #[test]
 fn random_item_picks_every_item_about_equally_often() {
-    let random = SharedRandom::from_seed(1);
+    let mut random = new_rng(1);
     let mut counts: HashMap<char, usize> = HashMap::new();
     let n = 50_000;
     for _ in 0..n {
-        let c = "abcde".chars().random_item(&random).unwrap();
+        let c = "abcde".chars().random_item(&mut random).unwrap();
         *counts.entry(c).or_default() += 1;
     }
     assert_even("random_item of 5", &counts, 5, 10_000.0, 0.1);
-    assert_eq!(std::iter::empty::<i32>().random_item(&random), None);
+    assert_eq!(std::iter::empty::<i32>().random_item(&mut random), None);
 }
 
 #[test]
 fn random_item_draws_only_when_there_is_a_choice() {
-    let random = SharedRandom::from_seed(3);
-    let before = random.state();
-    assert_eq!(std::iter::once(9).random_item(&random), Some(9));
-    assert_eq!(std::iter::empty::<i32>().random_item(&random), None);
-    assert_eq!(random.state(), before);
+    let mut random = new_rng(3);
+    let before = random.clone();
+    assert_eq!(std::iter::once(9).random_item(&mut random), Some(9));
+    assert_eq!(std::iter::empty::<i32>().random_item(&mut random), None);
+    assert_eq!(random, before);
 }
 
 #[test]
 fn random_highest_and_lowest_pick_among_the_ties() {
-    let random = SharedRandom::from_seed(5);
+    let mut random = new_rng(5);
     let items = [(0, 1), (1, 3), (2, 3), (3, 2), (4, 3), (5, 1)];
     let mut highest: HashMap<usize, usize> = HashMap::new();
     let mut lowest: HashMap<usize, usize> = HashMap::new();
     let n = 30_000;
     for _ in 0..n {
-        *highest.entry(items.iter().random_highest(&random, |x| x.1).unwrap().0).or_default() += 1;
-        *lowest.entry(items.iter().random_lowest(&random, |x| x.1).unwrap().0).or_default() += 1;
+        *highest.entry(items.iter().random_highest(&mut random, |x| x.1).unwrap().0).or_default() += 1;
+        *lowest.entry(items.iter().random_lowest(&mut random, |x| x.1).unwrap().0).or_default() += 1;
     }
     assert_even("highest", &highest, 3, n as f64 / 3.0, 0.1);
     assert!(highest.contains_key(&1) && highest.contains_key(&2) && highest.contains_key(&4));
@@ -89,40 +89,30 @@ fn random_highest_and_lowest_pick_among_the_ties() {
 
 #[test]
 fn random_of_lowest_n_picks_among_the_n_lowest() {
-    let random = SharedRandom::from_seed(11);
+    let mut random = new_rng(11);
     let mut counts: HashMap<i32, usize> = HashMap::new();
     let n = 30_000;
     for _ in 0..n {
-        let v = [50, 10, 40, 20, 30].into_iter().random_of_lowest_n(&random, |x| *x, 3).unwrap();
+        let v = [50, 10, 40, 20, 30].into_iter().random_of_lowest_n(&mut random, |x| *x, 3).unwrap();
         *counts.entry(v).or_default() += 1;
     }
     assert_even("lowest 3", &counts, 3, n as f64 / 3.0, 0.1);
     assert!(counts.contains_key(&10) && counts.contains_key(&20) && counts.contains_key(&30));
-    assert_eq!([1, 2].into_iter().random_of_lowest_n(&random, |x| *x, 0), None);
+    assert_eq!([1, 2].into_iter().random_of_lowest_n(&mut random, |x| *x, 0), None);
 }
 
 #[test]
 fn keys_are_computed_once_per_item() {
-    let random = SharedRandom::from_seed(1);
+    let mut random = new_rng(1);
     let calls = std::cell::Cell::new(0);
     let key = |x: &i32| {
         calls.set(calls.get() + 1);
         *x
     };
-    let _ = [5, 3, 9, 1, 7].into_iter().random_highest(&random, key);
+    let _ = [5, 3, 9, 1, 7].into_iter().random_highest(&mut random, key);
     assert_eq!(calls.get(), 5);
-    let _ = [5, 3, 9, 1, 7].into_iter().random_of_lowest_n(&random, key, 2);
+    let _ = [5, 3, 9, 1, 7].into_iter().random_of_lowest_n(&mut random, key, 2);
     assert_eq!(calls.get(), 10);
-}
-
-/// A key function may draw from the generator the pick uses.
-#[test]
-fn a_key_may_draw_from_the_same_generator() {
-    use treachery_engine::random::Rng;
-    let random = SharedRandom::from_seed(1);
-    let r = random.clone();
-    let picked = (0..10).random_highest(&random, move |_| r.lock().random_range(0..3));
-    assert!(picked.is_some());
 }
 
 // ---------------------------------------------------------------- whole games

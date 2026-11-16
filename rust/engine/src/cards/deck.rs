@@ -1,21 +1,20 @@
 use crate::error::{GameError, GameResult};
-use crate::random::{SharedRandom, SliceRandom};
+use crate::random::{GameRng, SliceRandom};
 
-/// A deck of cards, tokens or leaders. `random` is `None` for a deck created before
-/// `EstablishPlayers` seeds the game; such a deck can't be shuffled.
+/// A deck of cards, tokens or leaders. Shuffling draws from the generator it is given, which is
+/// the game's (`game.rng`) for every deck the game owns.
 #[derive(Clone, Debug)]
 pub struct Deck<T> {
     pub items: Vec<T>,
-    pub random: Option<SharedRandom>,
 }
 
 impl<T: Clone> Deck<T> {
-    pub fn new(items: impl IntoIterator<Item = T>, random: Option<SharedRandom>) -> Self {
-        Deck { items: items.into_iter().collect(), random }
+    pub fn new(items: impl IntoIterator<Item = T>) -> Self {
+        Deck { items: items.into_iter().collect() }
     }
 
-    pub fn empty(random: Option<SharedRandom>) -> Self {
-        Deck { items: Vec::new(), random }
+    pub fn empty() -> Self {
+        Deck { items: Vec::new() }
     }
 
     pub fn put_on_top(&mut self, item: T) {
@@ -47,17 +46,9 @@ impl<T: Clone> Deck<T> {
         Ok(self.items.remove(0))
     }
 
-    /// Shuffles the deck. A deck without a generator can only "shuffle" when it has fewer than
-    /// two items.
-    pub fn shuffle(&mut self) {
-        match &self.random {
-            Some(random) => self.items.shuffle(&mut *random.lock()),
-            None => {
-                if self.items.len() > 1 {
-                    panic!("shuffling a deck without a random generator")
-                }
-            }
-        }
+    /// Shuffles the deck with draws from `rng`.
+    pub fn shuffle(&mut self, rng: &mut GameRng) {
+        self.items.shuffle(rng);
     }
 
     pub fn is_empty(&self) -> bool {

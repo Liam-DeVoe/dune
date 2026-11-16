@@ -1496,9 +1496,9 @@ impl ClassicBot {
     }
 
     pub fn determine_richese_specifies_auction(&self, game: &Game) -> RicheseSpecifiesAuction {
-        // A copy of the cache, shuffled with the bot's random.
-        let mut to_auction = Deck::new(game.decks.richese_cache.iter().copied(), Some(self.random.clone()));
-        to_auction.shuffle();
+        // A copy of the cache, shuffled with the bot's generator.
+        let mut to_auction = Deck::new(game.decks.richese_cache.iter().copied());
+        self.random.draw(|r| to_auction.shuffle(r));
         let mut e = RicheseSpecifiesAuction::default();
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
         e.card = card;

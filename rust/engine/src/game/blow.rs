@@ -234,7 +234,7 @@ impl Game {
 
         self.decks.resource_card_discard_pile_b.as_mut().expect("resource card discard pile b").clear();
 
-        self.decks.resource_card_deck.as_mut().expect("resource card deck").shuffle();
+        self.decks.resource_card_deck.as_mut().expect("resource card deck").shuffle(&mut self.rng);
         self.stone(Milestone::Shuffled);
     }
 
@@ -563,7 +563,7 @@ impl Game {
                 self.decks.resource_card_deck.as_mut().expect("resource card deck").items.push(sandtrout);
             }
 
-            self.decks.resource_card_deck.as_mut().expect("resource card deck").shuffle();
+            self.decks.resource_card_deck.as_mut().expect("resource card deck").shuffle(&mut self.rng);
             self.stone(Milestone::Shuffled);
         }
     }

@@ -9,13 +9,13 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 - Where C# overloads one name, the Rust names say how the versions differ, not which parameter types they take: `Game::discard_card(card, log)` and `discard_card_of(player, card, log)`, `GameStatus::for_player` and `for_players`, `Player::kill_forces` and `kill_forces_in_territory`.
 - Comments describe the Rust code. A comment about the C# engine is only for a deliberate difference (`// Not in C#: ...`, listed in [behavior-changes.md](behavior-changes.md)) or a copied C# bug (`// C# parity: ...`).
 - A name that is a Rust keyword gets a trailing underscore: `card.Type` is `card.type_()`.
-- Support modules have no C# counterpart. `shared.rs` holds `Shared<T>` (only the random number generator uses it), `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
+- Support modules have no C# counterpart. `enum_type.rs` defines how enums work, `iter.rs` the iterator and map helpers std lacks, `compat/date_time_offset.rs` is `DateTimeOffset`/`TimeSpan`, `random.rs` the random number generator and selection helpers, `json/mod.rs` and `json/members.rs` are the event JSON, and `prelude.rs` is the common import.
 - `map/data.rs` and the enum declarations in `enumerations.rs` were generated from the C# source once and are edited by hand now. `tests/static_data.rs` checks them against a snapshot.
 - Mark deliberate copies of C# bugs with `// C# parity: <why>`.
 
 ## Game state
 
-`Game` holds a few fields of its own (`seed`, `random`, `players`, `human_seats`) and groups the rest of its state by topic, one struct per topic. Each struct is defined in the file under `game/` that holds the rules of its topic, so work on one topic stays in one file:
+`Game` holds a few fields of its own (`seed`, `rng`, `players`, `human_seats`) and groups the rest of its state by topic, one struct per topic. Each struct is defined in the file under `game/` that holds the rules of its topic, so work on one topic stays in one file:
 
 | Field | Type | File | Holds |
 |---|---|---|---|
@@ -244,7 +244,7 @@ game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sect
 - Game state holds no event: it holds a state struct that the event's `apply` builds ([Events](#events), "State instead of events").
 - Where C# keeps two references to one mutable object, the game keeps its own copy if nothing mutates the object afterwards: `EstablishPlayers` copies its settings into `rules.settings`, and the allowed factions into `rules.factions_in_play`. The same goes for `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerId` for players. An event's state gets an id instead: `deals.responses` is keyed by `DealId`, the offer's place in the history.
-- The game's random number generator is shared between `Game.random` and every deck built from it. That is `random::SharedRandom`, a `Shared<GameRng>`, the last use of `Shared<T>` (an `Rc<RefCell<T>>` whose `==` is reference equality).
+- The game owns its random number generator (`Game.rng`), and the decks don't hold one: `shuffle` takes it ([Randomness](#randomness)).
 - C# objects that hold their owning game (`Player.Game`, `PlayerSequence._game`, `GameEvent.Game`) don't keep it in Rust. Their methods take the game as a parameter.
 
 ## Players
@@ -454,29 +454,37 @@ Rust iterator adapters are lazy and pull one element at a time, like LINQ. `filt
 
 Every random draw of a game comes from one generator, a ChaCha8 stream (`rand_chacha::ChaCha8Rng`, `random::GameRng`) seeded with the `Seed` of `EstablishPlayers`. A game is its seed plus its events, so replaying the events gives the same game. Each bot has its own generator of the same kind, seeded when the bot is created (the server draws the seed from the operating system; the harness records it in the trace).
 
+The game owns its generator, `game.rng`, and nothing else holds it. Code that draws takes it as `&mut GameRng`, so a function that draws needs `&mut Game` (or the generator itself), and a query that takes `&Game` can't draw. A deck has no generator of its own: its `shuffle` takes one.
+
 ```rust
 // EstablishPlayers
-game.random = Some(SharedRandom::from_seed(self.seed));
+game.rng = random::new_rng(self.seed);
 
-// A deck shares the game's generator
-let mut deck = Deck::new(cards, game.random.clone());
-deck.shuffle();                                      // SliceRandom::shuffle
+// A deck is shuffled with the game's generator. The two fields borrow separately.
+game.decks.treachery_deck.as_mut().expect("treachery deck").shuffle(&mut game.rng);
+let mut deck = Deck::new(cards);
+deck.shuffle(&mut game.rng);                         // SliceRandom::shuffle
 let card = deck.draw();                              // panics on an empty deck; try_draw fails the event
 
 // rand's sampling on the generator
 use crate::random::Rng;
-let roll = game.random.as_ref().expect("random").lock().random_range(1..=6);
+let roll = self.rng.random_range(1..=6);
 
 // A random item, or a random one of the best (prelude: RandomPick)
-let card = player.treachery_cards.iter().copied().random_item(game.random.as_ref().expect("random"));
-let hero = heroes.into_iter().random_highest(&self.random, |h| h.value());
+let cards: Vec<TreacheryCard> = game.player(p).treachery_cards.clone();
+let card = cards.into_iter().random_item(&mut game.rng);
+let hero = heroes.into_iter().random_highest(&self.random, |h| h.value());   // a bot
 ```
 
-`RandomPick` (`random.rs`) has `random_item`, `random_highest`, `random_lowest` and `random_of_lowest_n`. Each collects the items and computes every key once before it draws, so a key function may draw from the same generator, and `random_item` draws only when there are two or more items. Keys implement `RankKey`: integers, `bool` and the game enums. The bots rank floats with their own `support::FloatKey`. Don't hold `SharedRandom::lock()` across a call that may draw from the same generator: the `RefCell` panics.
+`RandomPick` (`random.rs`) has `random_item`, `random_highest`, `random_lowest` and `random_of_lowest_n`. Each collects the items and computes every key once before it draws, and `random_item` draws only when there are two or more items. Keys implement `RankKey`: integers, `bool` and the game enums. The bots rank floats with their own `support::FloatKey`.
+
+A pick draws from a `RandomSource`: the game's `&mut GameRng`, or a bot's `&BotRng`. While the game's generator is borrowed for a pick, the items and the key function can't read the game, so collect the items first (`.collect::<Vec<_>>().into_iter()`) and compute the keys first when they read the game. Collecting changes no draw, because the pick collects anyway.
+
+Each `ClassicBot` owns its generator (`bot.random`, a `BotRng`). Bot decision methods take `&self`, so `BotRng` lends the generator out for one draw at a time (`self.random.draw(|r| ..)`, and the bot's dice, `self.d(n, sides)`). That lets a bot's key function draw from the bot's own generator, as some do: the pick has computed every key before it borrows the generator. A draw inside `draw`'s closure panics. Nothing shares a generator: a game or bot that draws advances only its own stream.
 
 Why ChaCha8 and not `rand::rngs::StdRng`: rand may change `StdRng`'s algorithm in any release, and a different stream turns every saved game into a different game. `rand_chacha` promises the same stream for a seed on every platform and version, and rand promises the same results from `random_range`, `shuffle` and `choose` within a minor version (0.9). A new minor version of rand, or turning on rand's `unbiased` feature anywhere in the workspace, can change the draws. `deck_shuffle_and_random_item` in tests/static_data.rs pins a few streams and catches that; such a change needs a new game version (`Game::LATEST_VERSION`), like the move to this generator in version 189 ([behavior-changes.md](behavior-changes.md#random-number-generator)).
 
-Nothing counts draws any more. Tests that check how far a generator has drawn compare `SharedRandom::state()` with a generator that made the expected draws, or read its `get_word_pos()`.
+Nothing counts draws any more. Tests that check how far a generator has drawn compare it (`game.rng`, or `bot.random.state()`) with a generator that made the expected draws, or read its `get_word_pos()`.
 
 ## JSON
 

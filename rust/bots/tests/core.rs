@@ -22,7 +22,7 @@ const GOLDEN: &str = "core.json";
 fn bot(seed: i32) -> (Game, ClassicBot) {
     let game = Game::new();
     let player = game.player_at(0);
-    let bot = ClassicBot::new(player, BotParameters::for_faction(Faction::Atreides), SharedRandom::from_seed(seed));
+    let bot = ClassicBot::new(player, BotParameters::for_faction(Faction::Atreides), treachery_engine::random::new_rng(seed));
     (game, bot)
 }
 
@@ -159,9 +159,9 @@ fn draws_before_an_exception_stay() {
     });
     assert!(r.is_none());
     // The two dice of `d(2, 6)` were drawn; `d(1, -1)` panicked without drawing.
-    let expected = SharedRandom::from_seed(1);
+    let mut expected = treachery_engine::random::new_rng(1);
     for _ in 0..2 {
-        expected.lock().random_range(1..=6);
+        expected.random_range(1..=6);
     }
-    assert_eq!(bot.random.state(), expected.state());
+    assert_eq!(bot.random.state(), expected);
 }

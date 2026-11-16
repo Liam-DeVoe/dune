@@ -85,7 +85,7 @@ impl Territory {
 
     pub fn middle_location(self) -> Location {
         let locations = self.locations();
-        locations[(0.5 * locations.len() as f64) as usize]
+        locations[locations.len() / 2]
     }
 
     pub fn resource_blow_location(self) -> Option<Location> {

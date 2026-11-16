@@ -35,10 +35,7 @@ impl TimeSpan {
         TimeSpan { ticks }
     }
 
-    /// `TotalHours`: `(double)Ticks / TicksPerHour`.
-    pub fn total_hours(&self) -> f64 {
-        self.ticks as f64 / (3600 * TICKS_PER_SECOND) as f64
-    }
+    pub const ONE_HOUR: TimeSpan = TimeSpan { ticks: 3600 * TICKS_PER_SECOND };
 
     /// `t1 + t2` (`TimeSpan.Add`): OverflowException when the sum leaves the range.
     #[track_caller]

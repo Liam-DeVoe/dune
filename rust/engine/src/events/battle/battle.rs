@@ -291,7 +291,7 @@ impl Battle {
         }
     }
 
-    pub fn dial(&self, g: &Game, opponent: Faction) -> f32 {
+    pub fn dial(&self, g: &Game, opponent: Faction) -> HalfPoints {
         Battle::dial_of_forces(
             g,
             self.player(),
@@ -303,7 +303,7 @@ impl Battle {
         )
     }
 
-    pub fn dial_of_forces(g: &Game, p: PlayerId, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
+    pub fn dial_of_forces(g: &Game, p: PlayerId, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> HalfPoints {
         let pl = g.player(p);
         let ecaz_battle_contribution = if !g.prevented(FactionAdvantage::EcazOccupation) && (pl.faction == Some(Faction::Ecaz) || pl.ally == Some(Faction::Ecaz)) {
             g.battle.current_ecaz_battle_contribution
@@ -314,10 +314,10 @@ impl Battle {
         // `CurrentEcazOrAllyFighter == Faction.None` is false while it is null.
         if g.battle.current_ecaz_or_ally_fighter == Some(None) || pl.faction != Some(Faction::Ecaz) {
             return Battle::force_value(g, pl.faction.expect("faction"), opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength)
-                + ecaz_battle_contribution as f32;
+                + HalfPoints::whole(ecaz_battle_contribution);
         }
 
-        Battle::force_value(g, pl.ally.expect("faction"), opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength) + ecaz_battle_contribution as f32
+        Battle::force_value(g, pl.ally.expect("faction"), opponent, forces, special_forces, forces_at_half_strength, special_forces_at_half_strength) + HalfPoints::whole(ecaz_battle_contribution)
     }
 
     pub fn cost(&self, g: &Game) -> i32 {
@@ -451,34 +451,31 @@ impl Battle {
             result.agg_homeworld_contribution = game.player(agg.player()).get_homeworld_battle_contribution_and_lasgun_shield_limit(game, territory);
             result.def_homeworld_contribution = game.player(def.player()).get_homeworld_battle_contribution_and_lasgun_shield_limit(game, territory);
 
-            // float + int + ... evaluates left to right, converting each int to float.
             let defender_faction = game.player(result.defender).faction;
             result.agg_total = agg.dial(game, defender_faction.expect("faction"))
-                + agg_hero_contribution as f32
-                + agg_ecaz_karma_contribution as f32
-                + result.agg_homeworld_contribution as f32
-                + result.agg_reinforcements_contribution as f32
-                - result.agg_battle_penalty as f32;
+                + HalfPoints::whole(
+                    agg_hero_contribution + agg_ecaz_karma_contribution + result.agg_homeworld_contribution + result.agg_reinforcements_contribution
+                        - result.agg_battle_penalty,
+                );
             let aggressor_faction = game.player(result.aggressor).faction;
             result.def_total = def.dial(game, aggressor_faction.expect("faction"))
-                + def_hero_contribution as f32
-                + def_ecaz_karma_contribution as f32
-                + result.def_homeworld_contribution as f32
-                + result.def_reinforcements_contribution as f32
-                - result.def_battle_penalty as f32;
+                + HalfPoints::whole(
+                    def_hero_contribution + def_ecaz_karma_contribution + result.def_homeworld_contribution + result.def_reinforcements_contribution
+                        - result.def_battle_penalty,
+                );
         } else {
             let ecaz = game.get_player(Some(Faction::Ecaz));
 
-            result.agg_total = result.agg_undialed_forces as f32;
+            result.agg_total = HalfPoints::whole(result.agg_undialed_forces);
             if Some(game.player(result.aggressor).faction) == game.battle.current_ecaz_or_ally_fighter {
                 let ecaz_forces = ecaz.map(|p| game.player(p).any_forces_in_territory(Some(territory))).unwrap_or(0);
-                result.agg_total += ((0.5f32 * ecaz_forces as f32) as f64).ceil() as i32 as f32;
+                result.agg_total += HalfPoints::whole(half_rounded_up(ecaz_forces));
             }
 
-            result.def_total = result.def_undialed_forces as f32;
+            result.def_total = HalfPoints::whole(result.def_undialed_forces);
             if Some(game.player(result.defender).faction) == game.battle.current_ecaz_or_ally_fighter {
                 let ecaz_forces = ecaz.map(|p| game.player(p).any_forces_in_territory(Some(territory))).unwrap_or(0);
-                result.def_total += ((0.5f32 * ecaz_forces as f32) as f64).ceil() as i32 as f32;
+                result.def_total += HalfPoints::whole(half_rounded_up(ecaz_forces));
             }
         }
 
@@ -653,7 +650,7 @@ impl Battle {
         player_that_fights
     }
 
-    pub fn force_value(g: &Game, player: Faction, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> f32 {
+    pub fn force_value(g: &Game, player: Faction, opponent: Faction, forces: i32, special_forces: i32, forces_at_half_strength: i32, special_forces_at_half_strength: i32) -> HalfPoints {
         let emperor_cunning = g.turn.current_emperor_cunning.as_ref().is_some_and(|c| c.initiator() == Some(player));
 
         let nr_of_forces_to_count_as_special_due_to_emperor_cunning = if emperor_cunning { 5.min(forces) } else { 0 };
@@ -670,14 +667,12 @@ impl Battle {
             special_forces_at_half_strength + nr_of_forces_at_half_strength_to_count_as_special_due_to_emperor_cunning;
 
         let special_force_strength = Battle::determine_special_force_strength(g, player, opponent);
-        let special_force_no_spice_factor = Battle::determine_special_force_no_spice_factor(g, player);
         let normal_force_strength = Battle::determine_normal_force_strength(g, player);
-        let normal_force_no_spice_factor = Battle::determine_normal_force_no_spice_factor(player);
 
-        normal_force_strength * forces_adjusted_for_cunning as f32
-            + special_force_strength * special_forces_adjusted_for_cunning as f32
-            + normal_force_no_spice_factor * normal_force_strength * forces_at_half_strength_adjusted_for_cunning as f32
-            + special_force_no_spice_factor * special_force_strength * special_forces_at_half_strength_adjusted_for_cunning as f32
+        normal_force_strength * forces_adjusted_for_cunning
+            + special_force_strength * special_forces_adjusted_for_cunning
+            + Battle::determine_normal_force_strength_without_spice(g, player) * forces_at_half_strength_adjusted_for_cunning
+            + Battle::determine_special_force_strength_without_spice(g, player, opponent) * special_forces_at_half_strength_adjusted_for_cunning
     }
 
     /// The elements of this player's plan that the other side's prescience lets them see. Eager: the only
@@ -707,7 +702,6 @@ impl Battle {
             Some(PrescienceAspect::Leader) => self.hero == seen.hero,
             Some(PrescienceAspect::Weapon) => self.weapon() == seen.weapon(),
             Some(PrescienceAspect::Defense) => self.defense() == seen.defense(),
-            // float ==: NaN never matches.
             Some(PrescienceAspect::Dial) => self.dial(game, opponent) == seen.dial(game, opponent),
             None => true,
         }
@@ -717,46 +711,53 @@ impl Battle {
         g.battle.current_portable_antidote_used.as_ref().map(|e| e.initiator()) == Some(Some(faction))
     }
 
-    pub fn determine_special_force_strength(g: &Game, player: Faction, opponent: Faction) -> f32 {
+    /// The strength of one special force with spice support.
+    pub fn determine_special_force_strength(g: &Game, player: Faction, opponent: Faction) -> HalfPoints {
         if player == Faction::Fremen && g.prevented(FactionAdvantage::FremenSpecialForceBonus) {
-            return 1.0;
+            return HalfPoints::whole(1);
         }
         if player == Faction::Emperor
             && (g.prevented(FactionAdvantage::EmperorSpecialForceBonus) || opponent == Faction::Fremen || g.occupier_of(World::SalusaSecundus).is_some())
         {
-            return 1.0;
+            return HalfPoints::whole(1);
         }
         if player == Faction::Ixian && g.prevented(FactionAdvantage::IxianSpecialForceBonus) {
-            return 1.0;
+            return HalfPoints::whole(1);
         }
         if player == Faction::BeneGesserit {
-            return 1.0;
+            return HalfPoints::whole(1);
         }
 
-        2.0
+        HalfPoints::whole(2)
     }
 
-    pub fn determine_special_force_no_spice_factor(g: &Game, player: Faction) -> f32 {
+    /// The strength of one special force without spice support: half, or full for the Emperor
+    /// at high threshold on Salusa Secundus.
+    pub fn determine_special_force_strength_without_spice(g: &Game, player: Faction, opponent: Faction) -> HalfPoints {
+        let full = Battle::determine_special_force_strength(g, player, opponent);
         if player == Faction::Emperor && g.has_high_threshold_in(player, World::SalusaSecundus) {
-            return 1.0;
+            return full;
         }
-        0.5
+        full.halved().expect("a special force's strength is whole")
     }
 
-    pub fn determine_normal_force_strength(g: &Game, player: Faction) -> f32 {
+    /// The strength of one normal force with spice support.
+    pub fn determine_normal_force_strength(g: &Game, player: Faction) -> HalfPoints {
         if player == Faction::Ixian && g.turn.current_ixian_cunning.is_none() {
-            return 0.5;
+            return HalfPoints::HALF;
         }
 
-        1.0
+        HalfPoints::whole(1)
     }
 
-    pub fn determine_normal_force_no_spice_factor(player: Faction) -> f32 {
+    /// The strength of one normal force without spice support: half, or full for the Ixians,
+    /// whose suboids don't need spice.
+    pub fn determine_normal_force_strength_without_spice(g: &Game, player: Faction) -> HalfPoints {
+        let full = Battle::determine_normal_force_strength(g, player);
         if player == Faction::Ixian {
-            return 1.0;
+            return full;
         }
-
-        0.5
+        full.halved().expect("only Ixian forces are worth half a point")
     }
 
     pub fn must_pay_for_any_forces_in_battle(g: &Game, p: PlayerId) -> bool {

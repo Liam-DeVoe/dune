@@ -2,7 +2,7 @@ use crate::prelude::*;
 use super::knowledge::storm_or_before_first;
 use treachery_engine::messages::part::Part;
 use treachery_engine::random::IndexedRandom;
-use crate::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
+use crate::support::{cast_hero, unbox_enum, unbox_int, unbox_strength};
 use std::cmp::Reverse;
 use treachery_engine::events::PlacementEventMethods;
 
@@ -753,7 +753,7 @@ impl ClassicBot {
                 Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) if in_battle() => {
                     let plan = my_plan();
                     let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, self.player).expect("opponent of");
-                    yes_no(plan.dial(game, game.player(opponent).faction.expect("faction")) > unbox_float(&p1()))
+                    yes_no(plan.dial(game, game.player(opponent).faction.expect("faction")) > unbox_strength(&p1()))
                 }
 
                 Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => yes_no(my_plan().hero == cast_hero(&p1())),

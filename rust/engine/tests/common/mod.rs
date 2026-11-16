@@ -20,7 +20,6 @@
 //! | enum                   | `"e:Faction:20"`                 |
 //! | location, card, leader | `"o:Homeworld#105"` (type and id) |
 //! | ResourceCard           | `"rc:3"` (index in `get_resource_cards_in_and_outside_play`) |
-//! | PointD                 | `"pt:1.5,-2"`                    |
 //! | Message, MessagePart   | `"m:"` + `plain_text()`          |
 //! | collection             | JSON array                       |
 //! | anything else          | `"?:TypeName"`                   |
@@ -42,7 +41,6 @@ use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
 use treachery_engine::messages::message::{BattleFactKind, Message, MessagePart};
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::map::point::PointD;
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
@@ -279,15 +277,6 @@ impl Enc for ResourceCard {
         json!(format!("rc:{}", self.index()))
     }
 }
-impl Enc for PointD {
-    fn enc(&self) -> Value {
-        json!(format!(
-            "pt:{},{}",
-            dotnet_compat::fmt::f64_to_string(self.x),
-            dotnet_compat::fmt::f64_to_string(self.y)
-        ))
-    }
-}
 impl Enc for Message {
     fn enc(&self) -> Value {
         json!(format!("m:{}", self.plain_text()))
@@ -439,12 +428,6 @@ pub fn hero(v: &Value) -> Hero {
 pub fn resource_card(v: &Value) -> ResourceCard {
     let i: usize = tagged(v, "rc:").parse().unwrap();
     ResourceCard::get_resource_cards_in_and_outside_play()[i]
-}
-
-pub fn point(v: &Value) -> PointD {
-    let s = tagged(v, "pt:");
-    let (x, y) = s.split_once(',').unwrap();
-    PointD::new(parse_net_float(x), parse_net_float(y))
 }
 
 /// Compares two encoded values. Floats are encoded as text, so this is plain JSON equality.

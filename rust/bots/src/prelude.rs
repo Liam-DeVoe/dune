@@ -8,6 +8,7 @@ pub use treachery_engine::game::ObjectCounter;
 pub use treachery_engine::random::RandomPick;
 
 pub use crate::bot::{ClassicBot, Decision, Priority};
+pub use crate::support::{f32_of, FloatKey};
 pub use crate::parameters::BotParameters;
 pub use crate::bot::VoicePlan;
 pub use crate::bot::BattalionInLocation;

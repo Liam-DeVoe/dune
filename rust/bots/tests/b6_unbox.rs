@@ -12,7 +12,7 @@ use serde_json::json;
 use treachery_bots::prelude::*;
 use treachery_engine::messages::part::Part;
 use treachery_engine::error::catch_panic;
-use treachery_bots::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
+use treachery_bots::support::{cast_hero, unbox_enum, unbox_int, unbox_strength};
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::identity::Fetcher;
 
@@ -26,8 +26,7 @@ fn value(game: &Game, kind: &str) -> Part {
         "TreacheryCardType" => TreacheryCardType::from_value(n()).expect("a card type").into(),
         "Faction" => Faction::from_value(n()).expect("a faction").into(),
         "int" => Part::Number(n()),
-        "float" => Part::Float(v.parse().unwrap()),
-        "double" => Part::Double(v.parse().unwrap()),
+        "strength" => Part::Strength(HalfPoints::from_halves(dotnet_compat::parse::try_halves_parse_invariant(Some(v)).unwrap())),
         "string" => Part::from(v.to_string()),
         "leader" => LeaderManager::hero_lookup().find(n()).unwrap().into(),
         "messiah" => Part::Messiah,
@@ -51,7 +50,7 @@ fn unboxing_casts() {
             "TreacheryCardType" => format!("enum:{}", treachery_engine::enum_type::value_or_absent(unbox_enum::<TreacheryCardType>(&o))),
             "Faction" => format!("enum:{}", treachery_engine::enum_type::value_or_absent(unbox_enum::<Faction>(&o))),
             "int" => format!("int:{}", unbox_int(&o)),
-            "float" => format!("float:{}", dotnet_compat::fmt::f32_to_string(unbox_float(&o))),
+            "strength" => format!("strength:{}", unbox_strength(&o)),
             "IHero" => cast_hero(&o).map_or("null".to_string(), |h| format!("hero:{}", h.id())),
             _ => panic!("unknown cast {cast}"),
         })

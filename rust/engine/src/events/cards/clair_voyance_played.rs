@@ -36,7 +36,7 @@ impl ClairVoyancePlayed {
         }
     }
 
-    /// The boxed value as a message element: an enum, an `IHero`, a `Territory`, a float, or null.
+    /// The boxed value as a message element: an enum, an `IHero`, a `Territory`, a strength, or null.
     /// Panics like .NET's parse when the parameter doesn't fit the question.
     pub fn parameter1(&self, game: &Game) -> Part {
         self.parse_parameter1(game).unwrap_or_else(|e| panic!("{}: {}", e.type_name, e.message))
@@ -48,7 +48,7 @@ impl ClairVoyancePlayed {
     }
 
     fn parse_parameter1(&self, game: &Game) -> Result<Part, dotnet_compat::exception::CsException> {
-        use dotnet_compat::parse::{try_enum_parse, try_float_parse_invariant, try_int_parse};
+        use dotnet_compat::parse::{try_enum_parse, try_halves_parse_invariant, try_int_parse};
         let Some(p1) = self.question_parameter1.as_deref() else {
             return Ok(Part::Null);
         };
@@ -77,7 +77,7 @@ impl ClairVoyancePlayed {
                 faction.into()
             }
             Some(ClairvoyanceQuestion::WillAttackX) => game.board.map.territory_lookup().find(try_int_parse(Some(p1))?).into(),
-            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => try_float_parse_invariant(Some(p1))?.into(),
+            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => HalfPoints::from_halves(try_halves_parse_invariant(Some(p1))?).into(),
             _ => Part::Null,
         })
     }
@@ -89,7 +89,7 @@ impl ClairVoyancePlayed {
             self.question_parameter1 = Some(match self.question {
                 Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) => match value {
                     // ((float)value).ToString(CultureInfo.InvariantCulture)
-                    Part::Float(f) => dotnet_compat::fmt::f32_to_string(f),
+                    Part::Strength(h) => h.to_string(),
                     other => panic!("Unable to cast object of type '{}' to type 'System.Single'.",
                         ClairVoyancePlayed::boxed_type_name(&other)),
                 },
@@ -108,8 +108,7 @@ impl ClairVoyancePlayed {
             Part::Text(_) => "System.String".to_string(),
             Part::Bool(_) => "System.Boolean".to_string(),
             Part::Number(_) => "System.Int32".to_string(),
-            Part::Float(_) => "System.Single".to_string(),
-            Part::Double(_) => "System.Double".to_string(),
+            Part::Strength(_) => "System.Single".to_string(),
             other => match other.enum_value() {
                 Some((info, _)) => format!("Treachery.Shared.{}", info.name),
                 None => format!("{other:?}"),

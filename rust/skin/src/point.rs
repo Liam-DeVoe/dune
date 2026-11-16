@@ -1,4 +1,5 @@
-//! `PointD`, a point on the board image. Only used for drawing.
+//! `PointD`, a point on the board image, for drawing. It lived in the engine until the engine
+//! dropped its floats.
 
 /// `PointD`. `==` compares coordinates with `==` (so NaN != NaN).
 #[derive(Copy, Clone, Debug, PartialEq, Default)]

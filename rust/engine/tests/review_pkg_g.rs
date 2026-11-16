@@ -65,7 +65,9 @@ fn shipment_costs_match_csharp_at_the_edges() {
         show(|| Shipment::determine_cost_of_forces(&g, pl, f, s, to, karma, back, false, false, false))
     };
     assert_eq!(cost(1073741824, 0, false, false), "-2147483648");
-    assert_eq!(cost(16777217, 0, false, true), "8388608");
+    // C# halved in `float`, which rounds 16777217 to 16777216 first; integers don't
+    // (behavior-changes.md, "Battle strength in halves").
+    assert_eq!(cost(16777217, 0, false, true), "8388609");
     assert_eq!(cost(i32::MAX, 0, false, true), "1073741824");
     assert_eq!(cost(-3, 0, false, true), "-1");
     assert_eq!(cost(3, 0, true, false), "3");

@@ -523,7 +523,7 @@ fn plan(g: &Game, b: &treachery_engine::events::Battle, opponent: Faction, advan
         messiah: b.messiah,
         weapon: b.weapon().map(|c| c.id()),
         defense: b.defense().map(|c| c.id()),
-        dial: dotnet_compat::fmt::f32_to_string(b.dial(g, opponent)),
+        dial: b.dial(g, opponent).to_string(),
         cost: advanced.then(|| b.cost(g)),
     }
 }

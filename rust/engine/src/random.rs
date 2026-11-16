@@ -56,7 +56,7 @@ impl SharedRandom {
     }
 }
 
-/// A key to rank items by in [`RandomPick`]. Floats rank by `total_cmp`, with -0 equal to 0.
+/// A key to rank items by in [`RandomPick`].
 pub trait RankKey {
     fn rank(&self, other: &Self) -> Ordering;
 }
@@ -69,18 +69,6 @@ macro_rules! rank_key_ord {
     )*};
 }
 rank_key_ord!(u16, i32, i64, u32, usize, bool);
-
-impl RankKey for f32 {
-    fn rank(&self, other: &Self) -> Ordering {
-        (self + 0.0).total_cmp(&(other + 0.0))
-    }
-}
-
-impl RankKey for f64 {
-    fn rank(&self, other: &Self) -> Ordering {
-        (self + 0.0).total_cmp(&(other + 0.0))
-    }
-}
 
 /// Picking a random item from an iterator. Each helper collects the items (and computes each key
 /// once) before it draws, so the iterator and the key function may draw from the same generator.

@@ -615,7 +615,7 @@ fn messages() {
         Some(LeaderManager::leaders()[0]),
         None::<Location>,
         vec![Faction::Emperor, Faction::BeneGesserit],
-        express_part!(" (", 2.5f32, ")"),
+        express_part!(" (", treachery_engine::game::HalfPoints::from_halves(5), ")"),
         part,
         express!("inner")
     );

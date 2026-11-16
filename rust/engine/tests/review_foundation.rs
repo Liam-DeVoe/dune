@@ -11,31 +11,28 @@ use treachery_engine::messages::part::Part;
 
 // ---------------------------------------------------------------- part.rs / message.rs
 
-/// Probe `msg_float_small`. .NET's shortest round-trip float formatting
-/// switches to exponent notation; Rust's `Display` never does.
+/// A strength prints as C# printed the `float` it replaces: whole numbers without a decimal
+/// point, halves with ".5", and the sign before both.
 #[test]
-fn float_plain_text_small() {
-    assert_eq!(Part::Float(0.00001).plain_text(), "1E-05");
+fn strength_plain_text() {
+    use treachery_engine::game::HalfPoints;
+    for (halves, text) in [(0, "0"), (1, "0.5"), (5, "2.5"), (26, "13"), (-1, "-0.5"), (-2, "-1"), (-7, "-3.5"), (20_000_001, "10000000.5")] {
+        assert_eq!(Part::Strength(HalfPoints::from_halves(halves)).plain_text(), text);
+    }
 }
 
-/// Probe `msg_float_big`.
+/// Floors and halves of negative amounts round the way `Math.Floor` and `Math.Ceiling` did.
 #[test]
-fn float_plain_text_big() {
-    assert_eq!(Part::Float(1e20).plain_text(), "1E+20");
-}
-
-/// Probe `msg_double_small`.
-#[test]
-fn double_plain_text_small() {
-    assert_eq!(Part::Double(1e-7).plain_text(), "1E-07");
-}
-
-/// Probes `float_inf_invariant` ("Infinity") and `msg_float_inf` ("∞" under
-/// en-US). Rust prints "inf", which matches neither culture. Messages render under the
-/// invariant culture, so this checks that. `dotnet_compat::fmt::f32_to_string` already implements it.
-#[test]
-fn float_plain_text_infinity() {
-    assert_eq!(Part::Float(f32::INFINITY).plain_text(), "Infinity");
+fn halves_round_like_dotnet() {
+    use treachery_engine::game::half_points::{half_rounded_toward_zero, half_rounded_up};
+    use treachery_engine::game::HalfPoints;
+    for n in -9..=9 {
+        assert_eq!(half_rounded_up(n), (0.5 * n as f64).ceil() as i32, "{n}");
+        assert_eq!(half_rounded_toward_zero(n), (0.5f32 * n as f32) as i32, "{n}");
+        assert_eq!(HalfPoints::from_halves(n).floor(), (n as f64 / 2.0).floor() as i32, "{n}");
+    }
+    assert_eq!(half_rounded_up(i32::MAX), 1 << 30);
+    assert_eq!(half_rounded_up(i32::MIN), -(1 << 30));
 }
 
 /// A game error prints as its message.

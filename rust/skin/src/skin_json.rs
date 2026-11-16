@@ -15,7 +15,7 @@ use serde_json::Value;
 use dotnet_compat::exception::CsException;
 use treachery_engine::json::write_escaped;
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::map::point::PointD;
+use crate::point::PointD;
 
 use crate::skin::{Skin, SkinDictionary, SkinKey};
 

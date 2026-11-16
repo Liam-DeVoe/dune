@@ -462,7 +462,7 @@ fn plan(p: &m::PlanSummary, d: &dyn Describer) -> PlanSummary {
         faction: name(p.faction),
         leader: p.leader.map(|h| hero(h, d)),
         messiah: p.messiah,
-        dial: p.dial,
+        dial: expr::strength_f32(p.dial),
         spice: p.spice,
         ally_contribution: p.ally_contribution,
         ally: name_or_absent(p.ally),
@@ -475,7 +475,7 @@ fn fact(f: &m::BattleFact, d: &dyn Describer) -> BattleFact {
     BattleFact {
         kind: name(f.kind),
         faction: name(f.faction),
-        strength: f.strength,
+        strength: expr::strength_f32(f.strength),
         hero: f.hero.map(|h| hero(h, d)),
         cause: f.cause.as_ref().and_then(|c| object(c, d)),
         value: f.value,

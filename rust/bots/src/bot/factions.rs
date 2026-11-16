@@ -441,7 +441,7 @@ impl ClassicBot {
 
     pub fn determine_fremen_sent_monster(&self, game: &Game) -> Rc<FremenSentMonster> {
         let target = FremenSentMonster::valid_targets(game).random_highest(&self.random, |t| {
-            self.total_max_dial_of_opponents(game, *t) + (2 * t.forces_of(game, self.player)) as f32
+            FloatKey(self.total_max_dial_of_opponents(game, *t) + (2 * t.forces_of(game, self.player)) as f32)
         });
         let mut e = FremenSentMonster::new(game, self.faction(game));
         e.territory = target;
@@ -491,7 +491,7 @@ impl ClassicBot {
                         .iter()
                         .copied()
                         .filter(|l| *l != game.board.map.sietch_tabr() && l.is_stronghold() && can_take(l))
-                        .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
+                        .random_lowest(&self.random, |l| FloatKey(self.total_max_dial_of_opponents(game, l.territory())))
                 })
         });
         let target = target.unwrap_or(game.board.map.polar_sink());
@@ -587,7 +587,7 @@ impl ClassicBot {
             let territory = BeneGesseritBattleAnnouncement::valid_territories(game, self.player)
                 .filter(|t| self.i_want_to_announce_battle_in(game, *t))
                 .random_lowest(&self.random, |t| {
-                    self.dial_needed_against(game, *t, self.get_opponent_that_occupies(game, *t), false)
+                    FloatKey(self.dial_needed_against(game, *t, self.get_opponent_that_occupies(game, *t), false))
                 });
 
             if let Some(territory) = territory {
@@ -1407,7 +1407,7 @@ impl ClassicBot {
                         _ => false,
                     })
                     .filter(|s| s.has_forces() && s.shortage_for_shipment == 0.0)
-                    .random_lowest(&self.random, |s| s.dial_needed + ClassicBot::determine_penalty(game, s.opponent));
+                    .random_lowest(&self.random, |s| FloatKey(s.dial_needed + ClassicBot::determine_penalty(game, s.opponent)));
 
                 if let Some(attack) = attack {
                     let mut e = new_event();

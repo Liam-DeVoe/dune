@@ -467,9 +467,8 @@ impl Shipment {
             total_forces = std::cmp::max(forces, 1);
         }
 
-        // (int)Math.Ceiling(0.5f * totalForces): float product, widened to double for Math.Ceiling.
         if back_to_reserves {
-            return ((0.5f32 * total_forces as f32) as f64).ceil() as i32;
+            return half_rounded_up(total_forces);
         }
 
         if !site_to_site
@@ -480,15 +479,14 @@ impl Shipment {
             return 0;
         }
 
-        // The int product can wrap before it is widened to double.
-        let mut cost_of_shipment: f64 =
-            (total_forces.abs() * if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
+        // The int product wraps, as in C#.
+        let cost_of_shipment = total_forces.wrapping_abs().wrapping_mul(if to.territory().has_reduced_shipping_cost() { 1 } else { 2 });
 
         if Shipment::may_ship_with_discount(g, p) || karama_shipment || (site_to_site && g.has_shipment_permission(p, ShipmentPermission::GUILD_RATE)) {
-            cost_of_shipment /= 2.0;
+            return half_rounded_up(cost_of_shipment);
         }
 
-        cost_of_shipment.ceil() as i32
+        cost_of_shipment
     }
 
     pub fn valid_max_normal_shipment_forces(game: &Game, p: PlayerId, special_forces: bool, used_no_field: i32) -> i32 {

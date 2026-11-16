@@ -13,6 +13,7 @@
 
 use crate::enumerations::{Concept, Faction};
 use crate::messages::part::Part;
+use crate::game::HalfPoints;
 use crate::heroes::hero::Hero;
 use crate::map::location::Location;
 use crate::enum_type::game_enum;
@@ -211,33 +212,18 @@ pub struct BattlePlans {
     pub defender: PlanSummary,
 }
 
-/// `record PlanSummary(...)`: one side's revealed plan. Equality is record
-/// equality: `EqualityComparer<float>.Default` for `dial`, where NaN equals NaN.
-#[derive(Clone, Debug)]
+/// One side's revealed plan.
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlanSummary {
     pub faction: Faction,
     pub leader: Option<Hero>,
     pub messiah: bool,
-    pub dial: f32,
+    pub dial: HalfPoints,
     pub spice: Option<i32>,
     pub ally_contribution: i32,
     pub ally: Option<Faction>,
     pub weapon: Option<TreacheryCard>,
     pub defense: Option<TreacheryCard>,
-}
-
-impl PartialEq for PlanSummary {
-    fn eq(&self, other: &Self) -> bool {
-        self.faction == other.faction
-            && self.leader == other.leader
-            && self.messiah == other.messiah
-            && self.dial == other.dial
-            && self.spice == other.spice
-            && self.ally_contribution == other.ally_contribution
-            && self.ally == other.ally
-            && self.weapon == other.weapon
-            && self.defense == other.defense
-    }
 }
 
 game_enum! {
@@ -254,13 +240,12 @@ game_enum! {
 }
 
 /// `record BattleFact(BattleFactKind Kind, Faction Faction) { ... }`. Only the
-/// fields its kind describes are set; the rest keep their defaults. Equality
-/// is record equality: NaN `strength` equals NaN, `cause` uses `object.Equals`.
-#[derive(Clone, Debug)]
+/// fields its kind describes are set; the rest keep their defaults.
+#[derive(Clone, Debug, PartialEq)]
 pub struct BattleFact {
     pub kind: BattleFactKind,
     pub faction: Faction,
-    pub strength: f32,
+    pub strength: HalfPoints,
     pub hero: Option<Hero>,
     pub cause: Option<Part>,
     pub value: i32,
@@ -270,28 +255,13 @@ pub struct BattleFact {
     pub card: Option<TreacheryCard>,
 }
 
-impl PartialEq for BattleFact {
-    fn eq(&self, other: &Self) -> bool {
-        self.kind == other.kind
-            && self.faction == other.faction
-            && self.strength == other.strength
-            && self.hero == other.hero
-            && self.cause == other.cause
-            && self.value == other.value
-            && self.forces == other.forces
-            && self.special_forces == other.special_forces
-            && self.all == other.all
-            && self.card == other.card
-    }
-}
-
 impl BattleFact {
     /// `new BattleFact(kind, faction)` with every init-only property at its default.
     pub fn new(kind: BattleFactKind, faction: Faction) -> Self {
         BattleFact {
             kind,
             faction,
-            strength: 0.0,
+            strength: HalfPoints::ZERO,
             hero: None,
             cause: None,
             value: 0,

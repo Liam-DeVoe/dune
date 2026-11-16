@@ -7,6 +7,7 @@ use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::messages::message::Message;
 use treachery_engine::messages::part::Part as P;
+use treachery_engine::game::HalfPoints;
 
 use crate::describe::Describer;
 use crate::schema::{Part, RichText};
@@ -20,6 +21,16 @@ pub fn enum_name(info: &EnumTypeInfo, value: i32) -> String {
 /// The client prints the result in JavaScript's shortest round-trip form.
 pub fn support_round(x: f64) -> f64 {
     dotnet_compat::math::round_f64_digits(x, 3)
+}
+
+/// A strength as the number views write: exact, since it is a whole number of halves.
+pub fn strength_f64(h: HalfPoints) -> f64 {
+    h.halves() as f64 / 2.0
+}
+
+/// A strength as the `float` some views still write (`13.0` rather than `13` in JSON).
+pub fn strength_f32(h: HalfPoints) -> f32 {
+    h.halves() as f32 / 2.0
 }
 
 pub fn message(m: &Message, d: &dyn Describer) -> RichText {
@@ -102,8 +113,7 @@ fn element_marked(el: &P, d: &dyn Describer, out: &mut RichText, borders: &mut V
         }
         // Numbers, as a number token.
         P::Number(i) => out.push(Part::Num { v: *i as f64 }),
-        P::Float(f) => out.push(Part::Num { v: support_round(*f as f64) }),
-        P::Double(x) => out.push(Part::Num { v: support_round(*x) }),
+        P::Strength(h) => out.push(Part::Num { v: strength_f64(*h) }),
         P::Payment { amount, by } => out.push(Part::Payment { amount: *amount, by: by.map(|f| f.to_string()) }),
         P::Faction(_) => {
             let (info, value) = el.enum_value().expect("an enum");

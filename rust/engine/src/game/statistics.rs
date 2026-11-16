@@ -3,7 +3,9 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct GameStatistics {
     pub date: DateTimeOffset,
-    pub time: f32,
+    /// How long the game took. C# kept it as a `float` of hours rounded to halves; nothing
+    /// writes it yet, so it is the exact duration.
+    pub time: TimeSpan,
     pub turn: Turn,
     pub ruleset: String,
     pub players: Vec<GameStatisticsPlayerInfo>,
@@ -28,11 +30,6 @@ impl Default for GameStatistics {
 impl GameStatistics {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn round_to_halves(value: f64) -> f32 {
-        // Math.Round(x, MidpointRounding.AwayFromZero) is f64::round.
-        ((value * 2.0).round() as f32) / 2.0
     }
 
     pub fn win_method_name(m: WinMethod) -> String {

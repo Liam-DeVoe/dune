@@ -26,8 +26,7 @@ pub fn boxed_type_name(o: &Part) -> String {
         Part::Text(_) => "System.String".to_string(),
         Part::Bool(_) => "System.Boolean".to_string(),
         Part::Number(_) => "System.Int32".to_string(),
-        Part::Float(_) => "System.Single".to_string(),
-        Part::Double(_) => "System.Double".to_string(),
+        Part::Strength(_) => "System.Single".to_string(),
         Part::Location(_) => "Treachery.Shared.Location".to_string(),
         Part::Territory(_) => "Treachery.Shared.Territory".to_string(),
         Part::Leader(_) => "Treachery.Shared.Leader".to_string(),
@@ -74,12 +73,29 @@ pub fn unbox_int(o: &Part) -> i32 {
     }
 }
 
-/// `(float)o`
-pub fn unbox_float(o: &Part) -> f32 {
+/// `(float)o`, for the dial of a Clairvoyance question.
+pub fn unbox_strength(o: &Part) -> HalfPoints {
     match o {
         Part::Null => null_reference(),
-        Part::Float(f) => *f,
+        Part::Strength(h) => *h,
         other => invalid_cast(other, "System.Single"),
+    }
+}
+
+/// A strength as the `float` the bots' estimates compute with. Exact: a strength is a whole
+/// number of halves.
+pub fn f32_of(h: HalfPoints) -> f32 {
+    h.halves() as f32 / 2.0
+}
+
+/// A `float` the bots rank by in `RandomPick`: by `total_cmp`, with -0 equal to 0. The engine
+/// ranks only integers and enums.
+#[derive(Clone, Copy, Debug)]
+pub struct FloatKey(pub f32);
+
+impl treachery_engine::random::RankKey for FloatKey {
+    fn rank(&self, other: &Self) -> std::cmp::Ordering {
+        (self.0 + 0.0).total_cmp(&(other.0 + 0.0))
     }
 }
 
@@ -89,5 +105,23 @@ pub fn cast_hero(o: &Part) -> Option<Hero> {
         Part::Null => None,
         Part::Leader(_) | Part::Messiah | Part::Card(_) => o.hero(),
         other => invalid_cast(other, "Treachery.Shared.IHero"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FloatKey;
+    use treachery_engine::random::{RandomPick, SharedRandom};
+
+    /// -0 and 0 tie, so both are drawn; -1 never is.
+    #[test]
+    fn float_keys_rank_negative_zero_with_zero() {
+        let random = SharedRandom::from_seed(5);
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..1000 {
+            let items = [(0, -0.0f32), (1, 0.0f32), (2, -1.0f32)];
+            seen.insert(items.iter().random_highest(&random, |x| FloatKey(x.1)).unwrap().0);
+        }
+        assert_eq!(seen.into_iter().collect::<Vec<_>>(), [0, 1]);
     }
 }

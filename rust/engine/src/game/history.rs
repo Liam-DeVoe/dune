@@ -95,7 +95,7 @@ impl Game {
 
             // DateTimeOffset.Subtract compares UTC instants.
             let elapsed_time = TimeSpan::from_ticks(e.time().utc_ticks() - previous_event.time().utc_ticks());
-            if !(elapsed_time.total_hours() < 1.0) {
+            if elapsed_time >= TimeSpan::ONE_HOUR {
                 return;
             }
 

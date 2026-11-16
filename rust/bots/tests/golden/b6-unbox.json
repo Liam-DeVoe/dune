@@ -16,7 +16,7 @@
   ],
   [
     "null",
-    "float",
+    "strength",
     "EX:Object reference not set to an instance of an object."
   ],
   [
@@ -41,7 +41,7 @@
   ],
   [
     "TreacheryCardType:10",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'Treachery.Shared.TreacheryCardType' to type 'System.Single'."
   ],
   [
@@ -66,7 +66,7 @@
   ],
   [
     "Faction:20",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'Treachery.Shared.Faction' to type 'System.Single'."
   ],
   [
@@ -91,7 +91,7 @@
   ],
   [
     "int:3",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'System.Int32' to type 'System.Single'."
   ],
   [
@@ -100,54 +100,29 @@
     "EX:Unable to cast object of type 'System.Int32' to type 'Treachery.Shared.IHero'."
   ],
   [
-    "float:2.5",
+    "strength:2.5",
     "TreacheryCardType",
     "EX:Unable to cast object of type 'System.Single' to type 'Treachery.Shared.TreacheryCardType'."
   ],
   [
-    "float:2.5",
+    "strength:2.5",
     "Faction",
     "EX:Unable to cast object of type 'System.Single' to type 'Treachery.Shared.Faction'."
   ],
   [
-    "float:2.5",
+    "strength:2.5",
     "int",
     "EX:Unable to cast object of type 'System.Single' to type 'System.Int32'."
   ],
   [
-    "float:2.5",
-    "float",
-    "float:2.5"
+    "strength:2.5",
+    "strength",
+    "strength:2.5"
   ],
   [
-    "float:2.5",
+    "strength:2.5",
     "IHero",
     "EX:Unable to cast object of type 'System.Single' to type 'Treachery.Shared.IHero'."
-  ],
-  [
-    "double:2.5",
-    "TreacheryCardType",
-    "EX:Unable to cast object of type 'System.Double' to type 'Treachery.Shared.TreacheryCardType'."
-  ],
-  [
-    "double:2.5",
-    "Faction",
-    "EX:Unable to cast object of type 'System.Double' to type 'Treachery.Shared.Faction'."
-  ],
-  [
-    "double:2.5",
-    "int",
-    "EX:Unable to cast object of type 'System.Double' to type 'System.Int32'."
-  ],
-  [
-    "double:2.5",
-    "float",
-    "EX:Unable to cast object of type 'System.Double' to type 'System.Single'."
-  ],
-  [
-    "double:2.5",
-    "IHero",
-    "EX:Unable to cast object of type 'System.Double' to type 'Treachery.Shared.IHero'."
   ],
   [
     "string:x",
@@ -166,7 +141,7 @@
   ],
   [
     "string:x",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'System.String' to type 'System.Single'."
   ],
   [
@@ -191,7 +166,7 @@
   ],
   [
     "leader:1001",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'Treachery.Shared.Leader' to type 'System.Single'."
   ],
   [
@@ -216,7 +191,7 @@
   ],
   [
     "card:5",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'Treachery.Shared.TreacheryCard' to type 'System.Single'."
   ],
   [
@@ -241,7 +216,7 @@
   ],
   [
     "messiah",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'Treachery.Shared.Messiah' to type 'System.Single'."
   ],
   [
@@ -266,7 +241,7 @@
   ],
   [
     "territory:3",
-    "float",
+    "strength",
     "EX:Unable to cast object of type 'Treachery.Shared.Territory' to type 'System.Single'."
   ],
   [

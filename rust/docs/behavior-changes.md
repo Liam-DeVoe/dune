@@ -356,3 +356,11 @@ Not part of the review. Each has an escapes.md entry with the details.
   - A force list (`_forceLocations`, `_targetForceLocations`, `_fremenForceLocations`) with an amount outside 0 to 65535 doesn't decode: "-3 is not a valid amount of forces".
 - Two rule fixes where C# made forces out of nothing. Forces saved from battle losses or sent home by Harass and Withdraw come from each location of the territory as far as it holds them; C# sent all that was left to save to the reserves at every location. Reinforcements kill 3 forces in reserve on any homeworld, the one of that kind of force first; C# took them only from the first homeworld, and counted them in the tanks even when it held fewer.
 - Tests: `engine/tests/numbers.rs`, and `forces_to_reserves_territory_takes_what_each_location_holds` in `engine/tests/pkg_b_players.rs`.
+
+## Battle strength in halves
+
+- Area: battle strength, Clairvoyance, costs (rewrite-plan.md change 2d)
+- The engine holds no floats. A strength or dial is `HalfPoints`, a whole number of halves, and halving a cost uses integers (`half_rounded_up`). Every strength, cost and log text of a well-formed game is the same as with C#'s `float`, because each was already a multiple of 0.5 well inside a `float`'s exact range.
+- A Clairvoyance question "is your dial higher than X?" takes a whole or half number. Any other number, such as "2.7", fails the event like a parameter that isn't a number: "The input string '2.7' is not a whole or half number." The form only offers 0 to 25 in halves. A dial is always a multiple of 0.5, so the answer to a question with X in between is the same as with X rounded down to a half.
+- Costs of more than 16,777,216 forces are now exact. C# halved them in `float`, which rounded first: shipping 16,777,217 forces back to reserves cost 8,388,608, and now costs 8,388,609. Only a crafted event can hold such an amount.
+- Tests: `strength_plain_text` and `halves_round_like_dotnet` in `engine/tests/review_foundation.rs`, `clairvoyance_parameters_parse_like_dotnet` in `engine/tests/pkg_j_faction_specials.rs`, `shipment_costs_match_csharp_at_the_edges` in `engine/tests/review_pkg_g.rs`.

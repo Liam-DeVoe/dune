@@ -16,7 +16,7 @@ use treachery_engine::heroes::leader::Leader;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
 use treachery_engine::messages::message::Message;
-use treachery_engine::map::point::PointD;
+use crate::point::PointD;
 use treachery_engine::cards::resource_card::ResourceCard;
 use treachery_engine::map::territory::Territory;
 use treachery_engine::cards::treachery_card::TreacheryCard;
@@ -368,8 +368,7 @@ impl Skin {
             Part::Bool(b) => if *b { "Yes" } else { "No" }.to_string(),
             Part::Number(i) => i.to_string(),
             // Printed as .NET prints them, under the invariant culture.
-            Part::Float(f) => dotnet_compat::fmt::f32_to_string(*f),
-            Part::Double(f) => dotnet_compat::fmt::f64_to_string(*f),
+            Part::Strength(h) => h.to_string(),
             Part::Payment { amount, .. } => self.render_parts(&parts![*amount, " ", Concept::Resource]),
             Part::Location(l) => self.describe_location(*l),
             Part::Territory(t) => self.describe_territory(*t),

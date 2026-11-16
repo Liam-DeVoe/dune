@@ -497,8 +497,7 @@ impl Game {
             return;
         }
 
-        // (int)Math.Floor(float): the float widens to double.
-        let collected = (opponent_plan.dial(self, winner_plan.initiator().expect("faction")) as f64).floor() as i32;
+        let collected = opponent_plan.dial(self, winner_plan.initiator().expect("faction")).floor();
         if collected <= 0 {
             return;
         }
@@ -1091,7 +1090,7 @@ impl Game {
         self.log(le![message]);
     }
 
-    pub fn log_strength(&mut self, faction: Faction, strength: f32) {
+    pub fn log_strength(&mut self, faction: Faction, strength: HalfPoints) {
         let mut fact = BattleFact::new(BattleFactKind::Strength, faction);
         fact.strength = strength;
         let message = express!(faction, " strength: ", strength).with_fact(fact);

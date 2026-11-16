@@ -32,8 +32,8 @@ pub enum Part {
     Text { v: String },
     /// No value: drawn as a bold "none".
     None,
-    /// An `int`, `float` or `double`, drawn as a number token. Floats and doubles are already
-    /// rounded to three decimals, to even. A `long` is not a number token; it arrives as `text`.
+    /// A whole number or a strength (`2.5`), drawn as a number token. A `long` is not a number
+    /// token; it arrives as `text`.
     Num { v: f64 },
     /// A `bool`, drawn as its label ("Yes", "No").
     Bool { v: bool, label: String },

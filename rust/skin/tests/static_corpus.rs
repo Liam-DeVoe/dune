@@ -17,7 +17,7 @@ use treachery_engine::game::Game;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::Map;
-use treachery_engine::map::point::PointD;
+use treachery_skin::point::PointD;
 use treachery_skin::default_skin;
 
 fn p(p: PointD) -> String {

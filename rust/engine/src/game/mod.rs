@@ -30,6 +30,8 @@ mod deals;
 pub use deals::*;
 mod decks;
 pub use decks::Decks;
+pub mod half_points;
+pub use half_points::HalfPoints;
 mod history;
 pub use history::History;
 mod leaders;

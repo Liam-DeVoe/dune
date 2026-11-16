@@ -4,7 +4,7 @@
 #![allow(clippy::all)]
 
 use treachery_engine::enumerations::*;
-use treachery_engine::map::point::PointD;
+use crate::point::PointD;
 
 use crate::skin::{Skin, SkinDictionary};
 

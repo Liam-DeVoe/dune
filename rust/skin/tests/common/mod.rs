@@ -109,8 +109,8 @@ pub fn try_element(tok: &Value) -> Option<Part> {
         "int" => Part::Number(int() as i32),
         // A `long` is text.
         "long" => Part::from(int().to_string()),
-        "float" => Part::Float(f32::from_bits(int() as i32 as u32)),
-        "double" => Part::Double(f64::from_bits(int() as u64)),
+        // A strength, in halves.
+        "strength" => Part::Strength(treachery_engine::game::HalfPoints::from_halves(int() as i32)),
         "Territory" => Territory::from_id(int() as i32).expect("territory").into(),
         "Location" => Location::from_id(int() as i32).expect("location").into(),
         "Leader" => LeaderManager::hero_lookup().find(int() as i32).expect("leader").into(),
@@ -124,8 +124,8 @@ pub fn try_element(tok: &Value) -> Option<Part> {
 
 /// Whether a token is an enum number that names no member of a closed enum.
 pub fn names_no_member(tok: &Value) -> bool {
-    const OBJECTS: [&str; 14] =
-        ["null", "string", "bool", "int", "long", "float", "double", "Territory", "Location", "Leader", "Messiah", "TreacheryCard", "ResourceCard", "Payment"];
+    const OBJECTS: [&str; 13] =
+        ["null", "string", "bool", "int", "long", "strength", "Territory", "Location", "Leader", "Messiah", "TreacheryCard", "ResourceCard", "Payment"];
     let kind = tok[0].as_str().expect("token type");
     !OBJECTS.contains(&kind) && enum_value(kind, tok[1].as_i64().expect("enum number") as i32).is_none()
 }

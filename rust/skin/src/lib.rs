@@ -13,6 +13,7 @@
 //! ```
 
 pub mod default_skin;
+pub mod point;
 pub mod faction_manual;
 pub mod skin;
 pub mod skin_json;

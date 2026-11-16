@@ -88,17 +88,6 @@ fn random_highest_and_lowest_pick_among_the_ties() {
 }
 
 #[test]
-fn random_float_keys_rank_negative_zero_with_zero() {
-    let random = SharedRandom::from_seed(5);
-    let mut seen: HashMap<usize, usize> = HashMap::new();
-    for _ in 0..1000 {
-        let items = [(0, -0.0f32), (1, 0.0f32), (2, -1.0f32)];
-        *seen.entry(items.iter().random_highest(&random, |x| x.1).unwrap().0).or_default() += 1;
-    }
-    assert_eq!(seen.len(), 2, "-0 and 0 tie: {seen:?}");
-}
-
-#[test]
 fn random_of_lowest_n_picks_among_the_n_lowest() {
     let random = SharedRandom::from_seed(11);
     let mut counts: HashMap<i32, usize> = HashMap::new();

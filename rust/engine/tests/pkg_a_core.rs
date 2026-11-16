@@ -50,11 +50,11 @@ fn timer_accumulates() {
 }
 
 #[test]
-fn time_span_total_hours_threshold() {
+fn time_span_one_hour_threshold() {
     let hour = 36_000_000_000i64;
-    assert!(TimeSpan::from_ticks(hour - 1).total_hours() < 1.0);
-    assert!(!(TimeSpan::from_ticks(hour).total_hours() < 1.0));
-    assert!(TimeSpan::from_ticks(-hour * 5).total_hours() < 1.0);
+    assert!(TimeSpan::from_ticks(hour - 1) < TimeSpan::ONE_HOUR);
+    assert!(TimeSpan::from_ticks(hour) >= TimeSpan::ONE_HOUR);
+    assert!(TimeSpan::from_ticks(-hour * 5) < TimeSpan::ONE_HOUR);
 }
 
 #[test]

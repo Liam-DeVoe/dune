@@ -17,6 +17,7 @@ use crate::cards::resource_card::ResourceCard;
 use crate::cards::treachery_card::TreacheryCard;
 use crate::enum_type::{value_or_absent, EnumTypeInfo, GameEnum};
 use crate::enumerations::*;
+use crate::game::HalfPoints;
 use crate::heroes::hero::Hero;
 use crate::heroes::leader::Leader;
 use crate::map::location::Location;
@@ -48,10 +49,8 @@ macro_rules! part {
             /// "Yes" or "No".
             Bool(bool),
             Number(i32),
-            /// A `float`, printed the way .NET prints one (a battle strength, a dial).
-            Float(f32),
-            /// A `double`, printed the way .NET prints one.
-            Double(f64),
+            /// A battle strength or a dial: `13`, `2.5`.
+            Strength(HalfPoints),
             /// An amount of spice, paid by `by` if there is one.
             Payment { amount: i32, by: Option<Faction> },
             Location(Location),
@@ -164,8 +163,7 @@ impl Part {
             Part::Text(s) => s.to_string(),
             Part::Bool(b) => if *b { "True" } else { "False" }.to_string(),
             Part::Number(i) => i.to_string(),
-            Part::Float(f) => dotnet_compat::fmt::f32_to_string(*f),
-            Part::Double(f) => dotnet_compat::fmt::f64_to_string(*f),
+            Part::Strength(h) => h.to_string(),
             Part::Payment { .. } => "Treachery.Shared.Payment".to_string(),
             Part::Location(l) => l.cs_to_string(),
             Part::Territory(_) => "Treachery.Shared.Territory".to_string(),
@@ -236,14 +234,9 @@ impl From<crate::game::Turn> for Part {
         Part::Number(v.into())
     }
 }
-impl From<f32> for Part {
-    fn from(v: f32) -> Self {
-        Part::Float(v)
-    }
-}
-impl From<f64> for Part {
-    fn from(v: f64) -> Self {
-        Part::Double(v)
+impl From<HalfPoints> for Part {
+    fn from(v: HalfPoints) -> Self {
+        Part::Strength(v)
     }
 }
 impl From<Location> for Part {

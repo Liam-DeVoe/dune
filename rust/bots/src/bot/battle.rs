@@ -469,8 +469,8 @@ impl ClassicBot {
     /// `resources_available` spice, and how much dial is still missing with them.
     fn forces_for_dial(&self, game: &Game, mut dial_needed: f32, opponent: Faction, mut forces_available: i32, mut special_forces_available: i32, resources_available: i32, territory: Territory) -> ForceDial {
         let faction = self.faction(game);
-        let normal_strength = Battle::determine_normal_force_strength(game, faction);
-        let special_strength = Battle::determine_special_force_strength(game, faction, opponent);
+        let normal_strength = f32_of(Battle::determine_normal_force_strength(game, faction));
+        let special_strength = f32_of(Battle::determine_special_force_strength(game, faction, opponent));
         let stronghold_bonus =
             if game.has_stronghold_advantage(faction, StrongholdAdvantage::FreeResourcesForBattles, territory) { 2 } else { 0 };
         let mut spice_left = resources_available + stronghold_bonus;
@@ -1175,7 +1175,7 @@ impl ClassicBot {
             0
         };
         let opponent_dial = match &opponent_plan {
-            Some(plan) if prescience == Some(PrescienceAspect::Dial) => plan.dial(game, game.player(player).faction.expect("faction")),
+            Some(plan) if prescience == Some(PrescienceAspect::Dial) => f32_of(plan.dial(game, game.player(player).faction.expect("faction"))),
             _ => Self::max_dial(game, opponent, territory, Some(player), false),
         };
         let my_homeworld_bonus = game.player(player).get_homeworld_battle_contribution_and_lasgun_shield_limit(game, territory);

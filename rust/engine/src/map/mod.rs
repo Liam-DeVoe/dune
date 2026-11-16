@@ -18,7 +18,6 @@ pub mod discovery;
 pub mod hidden_mobile_stronghold;
 pub mod homeworld;
 pub mod location;
-pub mod point;
 pub mod sector;
 pub mod territory;
 

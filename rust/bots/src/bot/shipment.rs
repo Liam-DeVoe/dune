@@ -433,7 +433,7 @@ impl ClassicBot {
             .map(|s| (s, self.max_potential_force_shortage(game, take_reinforcements_into_account, s)))
             .collect();
 
-        let (location, difference) = my_weak_strongholds.into_iter().filter(|s| s.1 > 0.0).random_highest(&self.random, |s| s.1)?;
+        let (location, difference) = my_weak_strongholds.into_iter().filter(|s| s.1 > 0.0).random_highest(&self.random, |s| FloatKey(s.1))?;
 
         let opponent = self.opponents(game).into_iter().find(|o| game.player(*o).any_forces_in(Some(location)) > 0);
         let dial_needed = self.make_even_if_efficient_for_shipping(game, difference + extra_forces as f32);
@@ -497,7 +497,7 @@ impl ClassicBot {
                 (*l == game.board.map.arrakeen() && self.ally_doesnt_block(game, game.board.map.arrakeen()))
                     || (*l == game.board.map.carthag() && self.ally_doesnt_block(game, game.board.map.carthag()))
             })
-            .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))?;
+            .random_lowest(&self.random, |l| FloatKey(self.total_max_dial_of_opponents(game, l.territory())))?;
 
         let opponent = self.occupying_opponent_in(game, me, target.territory());
         let needed = match opponent {
@@ -621,7 +621,7 @@ impl ClassicBot {
         let attack = attacks
             .into_iter()
             .filter(|a| a.has_forces() && a.shortage_for_shipment <= risk_appetite)
-            .random_lowest(&self.random, |a| a.dial_needed)?;
+            .random_lowest(&self.random, |a| FloatKey(a.dial_needed))?;
 
         self.plan_attack(game, ShipmentDecision::PreventNormalWin, &attack)
     }
@@ -650,7 +650,7 @@ impl ClassicBot {
                 None => false,
             })
             .filter(|s| s.has_forces() && s.shortage_for_shipment - self.unlocked_forces_in_polar_sink(game, s.location) as f32 <= extra_forces as f32)
-            .random_lowest(&self.random, |s| s.dial_needed + Self::determine_penalty(game, s.opponent))?;
+            .random_lowest(&self.random, |s| FloatKey(s.dial_needed + Self::determine_penalty(game, s.opponent)))?;
 
         self.plan_attack(game, ShipmentDecision::AttackWeakStronghold, &attack)
     }
@@ -704,12 +704,12 @@ impl ClassicBot {
             dial_needed,
             max_unsupported_forces,
             prefer_special_forces,
-            normal_strength: Battle::determine_normal_force_strength(game, faction),
-            special_strength: Battle::determine_special_force_strength(
+            normal_strength: f32_of(Battle::determine_normal_force_strength(game, faction)),
+            special_strength: f32_of(Battle::determine_special_force_strength(
                 game,
                 faction,
                 opponent.map(|o| game.player(o).faction).unwrap_or(Some(Faction::Harkonnen)).expect("faction"),
-            ),
+            )),
             spice_available: self.resources_including_ally_contribution(game) - min_resources_to_keep,
             no_spice_for_force_modifier: if must_pay_for_forces { 0.5 } else { 1.0 },
             cost_per_force_in_battle: if dialling_for_battle && must_pay_for_forces { 1 } else { 0 },
@@ -969,7 +969,7 @@ impl ClassicBot {
             let most_dangerous_opponent = opponents
                 .iter()
                 .copied()
-                .random_highest(&self.random, |opp| Self::max_reinforced_dial_to(game, me, *opp, s.territory()));
+                .random_highest(&self.random, |opp| FloatKey(Self::max_reinforced_dial_to(game, me, *opp, s.territory())));
 
             if let Some(most_dangerous_opponent) = most_dangerous_opponent {
                 max_reinforced_dial = Self::max_reinforced_dial_to(game, me, most_dangerous_opponent, s.territory());

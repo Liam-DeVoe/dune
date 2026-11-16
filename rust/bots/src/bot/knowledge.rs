@@ -379,7 +379,7 @@ impl ClassicBot {
     pub fn occupying_opponent_in(&self, game: &Game, player: PlayerId, t: Territory) -> Option<PlayerId> {
         Self::occupying_opponents_in(game, player, t)
             .into_iter()
-            .random_highest(&self.random, |p| Self::max_dial(game, *p, t, Some(player), false))
+            .random_highest(&self.random, |p| FloatKey(Self::max_dial(game, *p, t, Some(player), false)))
     }
 
     pub fn occupying_opponents_in(game: &Game, player: PlayerId, place: impl Place) -> Vec<PlayerId> {
@@ -603,7 +603,7 @@ impl ClassicBot {
                     && self.ally_doesnt_block(game, *to)
                     && opponents().into_iter().any(|opponent| game.player(opponent).occupies(game, Some(*to)))
             })
-            .random_lowest(&self.random, |l| self.total_max_dial_of_opponents(game, l.territory()))
+            .random_lowest(&self.random, |l| FloatKey(self.total_max_dial_of_opponents(game, l.territory())))
     }
 
     pub fn is_winning_opponent(&self, game: &Game, p: PlayerId) -> bool {
@@ -747,9 +747,9 @@ impl ClassicBot {
         let forces_at_half_strength = forces - forces_at_full_strength;
 
         let faction = game.player(p).faction;
-        Battle::determine_special_force_strength(game, faction.expect("faction"), opponent_faction)
+        f32_of(Battle::determine_special_force_strength(game, faction.expect("faction"), opponent_faction))
             * (special_forces_at_full_strength as f32 + 0.5 * special_forces_at_half_strength as f32)
-            + Battle::determine_normal_force_strength(game, faction.expect("faction")) * (forces_at_full_strength as f32 + 0.5 * forces_at_half_strength as f32)
+            + f32_of(Battle::determine_normal_force_strength(game, faction.expect("faction"))) * (forces_at_full_strength as f32 + 0.5 * forces_at_half_strength as f32)
     }
 
     pub fn total_max_dial_of_opponents(&self, game: &Game, t: Territory) -> f32 {
@@ -827,8 +827,8 @@ impl ClassicBot {
             normal_forces += 1;
         }
 
-        special_forces as f32 * Battle::determine_special_force_strength(game, o.faction.expect("faction"), game.player(player).faction.expect("faction"))
-            + normal_forces as f32 * Battle::determine_normal_force_strength(game, o.faction.expect("faction"))
+        special_forces as f32 * f32_of(Battle::determine_special_force_strength(game, o.faction.expect("faction"), game.player(player).faction.expect("faction")))
+            + normal_forces as f32 * f32_of(Battle::determine_normal_force_strength(game, o.faction.expect("faction")))
     }
 
     /// The leaders that I know won't betray me: my traitors and known non-traitors and my ally's,

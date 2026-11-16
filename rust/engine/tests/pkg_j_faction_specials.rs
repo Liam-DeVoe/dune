@@ -299,7 +299,13 @@ fn clairvoyance_parameters_parse_like_dotnet() {
     e.question = Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle);
     // "1,5" is 15 under the invariant culture (thousands separator).
     e.question_parameter1 = Some("1,5".to_string());
-    assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Float(15.0));
+    assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Strength(treachery_engine::game::HalfPoints::whole(15)));
+    e.question_parameter1 = Some("2.5".to_string());
+    assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Strength(treachery_engine::game::HalfPoints::from_halves(5)));
+    // A dial is whole or half (behavior-changes.md, "Battle strength in halves").
+    e.question_parameter1 = Some("2.7".to_string());
+    assert_eq!(outcome(|| e.parameter1(&g)).unwrap_err(), "FormatException: The input string '2.7' is not a whole or half number.");
+    assert!(e.try_get_question(&g).is_err());
     e.question_parameter1 = None;
     assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Null);
 

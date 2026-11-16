@@ -247,7 +247,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
     }
     assert_eq!(o.mixes.len() as i32, expected, "{at}: mixes");
     for &(fs, hs, fn_, hn, dial, cost) in &o.mixes {
-        assert_eq!(dial, Battle::dial_of_forces(game, p, opponent.expect("faction"), fn_, fs, hn, hs), "{at}");
+        assert_eq!(dial, treachery_view::expr::strength_f32(Battle::dial_of_forces(game, p, opponent.expect("faction"), fn_, fs, hn, hs)), "{at}");
         assert_eq!(cost, Battle::cost_of_forces(game, p, fn_, fs, &mut 0), "{at}");
     }
     if o.half_normal || o.half_special {

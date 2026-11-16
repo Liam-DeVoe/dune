@@ -65,8 +65,7 @@ impl DivideResources {
         if agreed {
             portion_to_first_player
         } else {
-            // (int)(0.5f * tbd.Amount): float multiply, then truncation toward zero.
-            (0.5f32 * tbd.expect("resources to be divided").amount as f32) as i32
+            half_rounded_toward_zero(tbd.expect("resources to be divided").amount)
         }
     }
 

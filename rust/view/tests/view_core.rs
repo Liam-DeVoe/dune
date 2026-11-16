@@ -454,7 +454,7 @@ fn battle_plans_once_both_are_in() {
             let plan = plan.as_ref().unwrap();
             assert!(shown.full && shown.hero_shown && shown.weapon_shown && shown.defense_shown);
             assert_eq!(shown.faction, name_or_absent(plan.initiator()));
-            assert_eq!(shown.dial, Some(plan.dial(g, opponent.expect("faction")) as f64));
+            assert_eq!(shown.dial, Some(treachery_view::expr::strength_f64(plan.dial(g, opponent.expect("faction")))));
             assert_eq!(shown.weapon, plan.weapon().map(|c| c.id()));
             assert_eq!(shown.cost, Some(plan.cost(g)).filter(|c| *c > 0));
             match (plan.hero, &shown.hero) {

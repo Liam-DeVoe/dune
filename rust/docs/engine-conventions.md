@@ -118,6 +118,20 @@ A change that would go below zero is a Game Error, never a negative amount, and 
 
 Event fields stay `i32` (rewrite-plan.md, change 2d), except the force lists (`_forceLocations` and the like), whose amounts the JSON reader checks (`json::read_force_locations`) so that they fit a `Battalion`.
 
+## Battle strength
+
+The engine holds no floats. A battle strength or dial is `HalfPoints` (`game/half_points.rs`), a whole number of halves, because a force without spice support counts half. It is signed: a Bureaucrat's penalty can take a total below zero, and -1 loses to 0. It prints as `13` or `2.5`, as C# printed the `float`.
+
+```rust
+let dial: HalfPoints = plan.dial(game, opponent);
+Battle::determine_normal_force_strength(game, f) * forces   // HalfPoints * i32
+HalfPoints::whole(hero_strength) + dial                      // whole points
+dial.floor()                                                 // Math.Floor, for Sietch Tabr's spice
+half_rounded_up(n)                                           // (int)Math.Ceiling(0.5 * n), for costs
+```
+
+Views write strengths as JSON numbers through `expr::strength_f64` and `strength_f32`, unchanged from the `float` they had. The bots estimate with `f32` and convert with `support::f32_of`. Both are exact.
+
 ## Static game data: handles
 
 Territories, locations, leaders, the Messiah, treachery cards and resource cards are created once per process or once per game, and C# compares them by reference or by `Id`. Within one game those agree. In Rust each is a small `Copy` handle into a static table. Its `==` matches the C# `Equals`/`==`.
@@ -363,14 +377,14 @@ express!(...).with_log(StormLog { /* ... */ }).as_heading(Concept::Monster);
 
 What converts:
 
-- `&'static str`, `String`, `bool`, `i32`, `f32`, `f64`. Pass any other `&str` as a `String`.
+- `&'static str`, `String`, `bool`, `i32`, `u16`, `Turn`, `Sector` and `HalfPoints`. Pass any other `&str` as a `String`.
 - Every enum that has a variant in the `part!` list of part.rs. An enum whose C# `None` member is `Option::None` in Rust goes in the `optional` list.
 - `Location` and its subtypes, `Territory`, `Leader`, `Hero`, `TreacheryCard`, `ResourceCard`.
 - `Payment`, `Message`, `MessagePart` and `GameError`.
 - `Option<T>`, where `None` is null.
 - `Vec<T>`, `&[T]` and `[T; N]`, which become a list element.
 
-Keep the C# numeric type: a `float` dial must go in as `f32`, not `i32`. If something new needs to go in a message, add a variant and a `From` impl in part.rs, and say how the skin (`Skin::describe`) and the view (`view/src/expr.rs`) draw it.
+A strength or dial goes in as `HalfPoints` (`Part::Strength`), not as a whole number, so it prints `2.5`. If something new needs to go in a message, add a variant and a `From` impl in part.rs, and say how the skin (`Skin::describe`) and the view (`view/src/expr.rs`) draw it.
 
 `parts!` takes the same arguments and gives the `Vec<Part>`, for texts that aren't messages (the skin's own labels). A new log record goes in the `log_records!` list of `log/mod.rs`, and `view/src/log.rs` converts it for the client.
 
@@ -447,7 +461,7 @@ let card = player.treachery_cards.iter().copied().random_item(game.random.as_ref
 let hero = heroes.into_iter().random_highest(&self.random, |h| h.value());
 ```
 
-`RandomPick` (`random.rs`) has `random_item`, `random_highest`, `random_lowest` and `random_of_lowest_n`. Each collects the items and computes every key once before it draws, so a key function may draw from the same generator, and `random_item` draws only when there are two or more items. Keys implement `RankKey`: integers, `bool`, the game enums, and floats (by `total_cmp`, with -0 equal to 0). Don't hold `SharedRandom::lock()` across a call that may draw from the same generator: the `RefCell` panics.
+`RandomPick` (`random.rs`) has `random_item`, `random_highest`, `random_lowest` and `random_of_lowest_n`. Each collects the items and computes every key once before it draws, so a key function may draw from the same generator, and `random_item` draws only when there are two or more items. Keys implement `RankKey`: integers, `bool` and the game enums. The bots rank floats with their own `support::FloatKey`. Don't hold `SharedRandom::lock()` across a call that may draw from the same generator: the `RefCell` panics.
 
 Why ChaCha8 and not `rand::rngs::StdRng`: rand may change `StdRng`'s algorithm in any release, and a different stream turns every saved game into a different game. `rand_chacha` promises the same stream for a seed on every platform and version, and rand promises the same results from `random_range`, `shuffle` and `choose` within a minor version (0.9). A new minor version of rand, or turning on rand's `unbiased` feature anywhere in the workspace, can change the draws. `deck_shuffle_and_random_item` in tests/static_data.rs pins a few streams and catches that; such a change needs a new game version (`Game::LATEST_VERSION`), like the move to this generator in version 189 ([behavior-changes.md](behavior-changes.md#random-number-generator)).
 
@@ -494,6 +508,6 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 
 ## What is left of .NET
 
-- `dotnet_compat::fmt` (float `ToString()`) and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
+- `dotnet_compat::parse`: the parsing of the strings events carry (force locations, Clairvoyance parameters). A Clairvoyance dial is parsed by `try_halves_parse_invariant`, so the float stays in the compat crate.
 - `compat/date_time_offset.rs`: the `Time` of events in the JSON.
 - `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.

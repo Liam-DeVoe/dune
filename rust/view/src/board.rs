@@ -371,7 +371,7 @@ fn plan_view(
         faction: name_or_absent(initiator),
         is_aggressor,
         full,
-        dial: dial_shown.then(|| plan.dial(game, opponent) as f64),
+        dial: dial_shown.then(|| expr::strength_f64(plan.dial(game, opponent))),
         ecaz_contribution: (dial_shown && game.battle.current_ecaz_battle_contribution > 0 && (plan.by(Faction::Ecaz) || plan.by_ally_of(game, Faction::Ecaz)))
             .then_some(game.battle.current_ecaz_battle_contribution),
         ecaz_karma_bonus: (dial_shown && initiator == Some(Faction::Ecaz) && game.battle.ecaz_karma_bonus != 0).then_some(game.battle.ecaz_karma_bonus),

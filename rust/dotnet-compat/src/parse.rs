@@ -43,6 +43,20 @@ pub fn try_float_parse_invariant(s: Option<&str>) -> Result<f32, CsException> {
     math::parse_f32(s).map_err(|_| format(s))
 }
 
+/// [`try_float_parse_invariant`] for a number that must be whole or a half (a dial), in halves:
+/// `"2.5"` is 5. Any other number is a FormatException, so the engine never holds the float.
+pub fn try_halves_parse_invariant(s: Option<&str>) -> Result<i32, CsException> {
+    let f = try_float_parse_invariant(s)?;
+    let halves = f * 2.0;
+    // Below 2^24 every whole f32 is exact, so the cast loses nothing.
+    if halves.is_finite() && halves.fract() == 0.0 && halves.abs() < 16_777_216.0 {
+        Ok(halves as i32)
+    } else {
+        let s = s.expect("parsed");
+        Err(CsException { type_name: "FormatException", message: format!("The input string '{s}' is not a whole or half number.") })
+    }
+}
+
 /// `double.Parse(s, CultureInfo.InvariantCulture)`; see [`float_parse_invariant`].
 pub fn try_double_parse_invariant(s: Option<&str>) -> Result<f64, CsException> {
     let s = s.ok_or_else(|| null("s"))?;

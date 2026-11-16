@@ -20,7 +20,6 @@ pub use crate::random::{RandomPick, SharedRandom};
 pub use crate::map::Map;
 pub use crate::messages::message::{Audience, BattleFact, BattleFactKind, BattlePlans, LogDetail, Message, MessagePart, PlanSummary, Rejection, Route};
 pub use crate::messages::payment::Payment;
-pub use crate::map::point::PointD;
 pub use crate::messages::report::Report;
 pub use crate::cards::treachery_card_manager::TreacheryCardManager;
 pub use crate::{express, express_part, express_part_if, express_to, game_error, parts};
@@ -35,6 +34,7 @@ pub use crate::map::location::Location;
 pub use crate::cards::resource_card::ResourceCard;
 pub use crate::map::territory::Territory;
 pub use crate::map::sector::Sector;
+pub use crate::game::half_points::{half_rounded_toward_zero, half_rounded_up, HalfPoints};
 pub use crate::cards::treachery_card::TreacheryCard;
 
 pub use crate::events::*;

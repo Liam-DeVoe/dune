@@ -175,10 +175,9 @@ impl Revival {
     }
 
     pub fn determine_cost_of_forces_for_emperor(g: &Game, emperor: PlayerId, ally: Faction, forces: i32, special_forces: i32) -> i32 {
-        // float arithmetic, then Math.Ceiling widens to double.
-        let sum: f32 = forces as f32 * Self::get_price_per_force(g, emperor)
-            + special_forces as f32 * Self::get_price_per_special_force(g, emperor, ally);
-        (sum as f64).ceil() as i32
+        let halves = forces * Self::get_price_per_force_in_halves(g, emperor)
+            + special_forces * Self::get_price_per_special_force_in_halves(g, emperor, ally);
+        half_rounded_up(halves)
     }
 
     pub fn determine_cost(g: &Game, initiator: PlayerId, hero: Option<Hero>, amount_of_forces: i32, amount_of_special_forces: i32, extra_forces_paid_by_emperor: i32, extra_special_forces_paid_by_emperor: i32, uses_emperor_secret_ally: bool) -> RevivalCost {
@@ -236,7 +235,7 @@ impl Revival {
         let mut cost = (*nr_of_paid_special_forces * price_of_special_forces) + (nr_of_paid_normal_forces * price_of_normal_forces);
 
         if Self::may_revive_with_discount(g, initiator) {
-            cost = (0.5 * cost as f64).ceil() as i32;
+            cost = half_rounded_up(cost);
         }
 
         cost
@@ -456,7 +455,7 @@ impl Revival {
         let mut price = hero.cost_to_revive();
 
         if ip.is(Faction::Tleilaxu) && !tleilaxu_discount_prevented {
-            price = (0.5 * price as f64).ceil() as i32;
+            price = half_rounded_up(price);
         } else if let Some(offer) = (!Self::normally_revivable_heroes(g, initiator).contains(&hero))
             .then(|| g.revival.early_revivals_offers.get(&hero).copied())
             .flatten()
@@ -466,21 +465,23 @@ impl Revival {
             && g.alliances.tleilaxu_allows_revival_discount
             && !tleilaxu_discount_prevented
         {
-            price = (0.5 * price as f64).ceil() as i32;
+            price = half_rounded_up(price);
         }
 
         price
     }
 
-    pub fn get_price_per_force(g: &Game, reviving_player: PlayerId) -> f32 {
+    /// The spice one force costs to revive, in halves of a spice: a discount halves it.
+    pub fn get_price_per_force_in_halves(g: &Game, reviving_player: PlayerId) -> i32 {
         let rp = g.player(reviving_player);
-        (if Self::may_revive_with_discount(g, reviving_player) { 0.5f32 } else { 1.0 })
-            * (if rp.is(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamRevival) { 1 } else { 2 }) as f32
+        let price = if rp.is(Faction::Choam) && !g.prevented(FactionAdvantage::ChoamRevival) { 1 } else { 2 };
+        if Self::may_revive_with_discount(g, reviving_player) { price } else { 2 * price }
     }
 
-    pub fn get_price_per_special_force(g: &Game, reviving_player: PlayerId, of_revived_forces: Faction) -> f32 {
-        (if Self::may_revive_with_discount(g, reviving_player) { 0.5f32 } else { 1.0 })
-            * (if of_revived_forces == Faction::Ixian { 3 } else { 2 }) as f32
+    /// The spice one special force costs to revive, in halves of a spice: a discount halves it.
+    pub fn get_price_per_special_force_in_halves(g: &Game, reviving_player: PlayerId, of_revived_forces: Faction) -> i32 {
+        let price = if of_revived_forces == Faction::Ixian { 3 } else { 2 };
+        if Self::may_revive_with_discount(g, reviving_player) { price } else { 2 * price }
     }
 
     pub fn valid_max_revivals_by_emperor(g: &Game, p: PlayerId) -> i32 {

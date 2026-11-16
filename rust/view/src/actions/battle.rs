@@ -456,15 +456,9 @@ fn clairvoyance_lists(game: &Game, d: &dyn Describer) -> (Vec<BattleFormParam>, 
     (card_types, leaders, factions, turns, territories)
 }
 
-/// The dials of `DialOfMoreThanXInBattle`: 0 to 25 in steps of a half, as `float.ToString()`.
+/// The dials of `DialOfMoreThanXInBattle`: 0 to 25 in steps of a half.
 fn clairvoyance_dials() -> Vec<String> {
-    let mut out = vec![];
-    let mut current = 0.0f32;
-    while current <= 25.0 {
-        out.push(dotnet_compat::fmt::f32_to_string(current));
-        current += 0.5;
-    }
-    out
+    (0..=50).map(|halves| HalfPoints::from_halves(halves).to_string()).collect()
 }
 
 fn clairvoyance_defaults(game: &Game, q: Option<ClairvoyanceQuestion>, d: Option<&dyn Describer>) -> (Option<String>, Option<String>) {
@@ -623,7 +617,7 @@ fn mixes(game: &Game, p: PlayerId, opponent: Faction, normal: i32, special: i32)
             for hs in 0..=(if half_s { special - fs } else { 0 }) {
                 for hn in 0..=(if half_n { normal - fn_ } else { 0 }) {
                     let dial = Battle::dial_of_forces(game, p, opponent, fn_, fs, hn, hs);
-                    result.push((fs, hs, fn_, hn, dial, cost));
+                    result.push((fs, hs, fn_, hn, expr::strength_f32(dial), cost));
                 }
             }
         }
@@ -661,7 +655,7 @@ fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, pl
     };
     BattleNote::Seen {
         aspect: d.describe(&aspect.into()),
-        dial: (aspect == Some(PrescienceAspect::Dial)).then(|| dotnet_compat::fmt::f32_to_string(plan.dial(game, faction))),
+        dial: (aspect == Some(PrescienceAspect::Dial)).then(|| plan.dial(game, faction).to_string()),
         shown: shown.map(|el| {
             let mut out = vec![];
             expr::element_into(&el, d, &mut out);

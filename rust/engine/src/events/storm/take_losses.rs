@@ -87,8 +87,8 @@ impl TakeLosses {
     }
 
     pub fn half_of(amount_of_forces: i32, amount_of_special_forces: i32) -> i32 {
-        // double arithmetic; the int addition wraps first.
-        (0.5f64 * (amount_of_forces + amount_of_special_forces) as f64).ceil() as i32
+        // The int addition wraps, as in C#.
+        half_rounded_up(amount_of_forces.wrapping_add(amount_of_special_forces))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

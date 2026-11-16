@@ -9,9 +9,11 @@ import type { Faction, NexusAllianceChange, Phase } from "../../generated/enums"
 import type { LogLine } from "../../generated/LogLine";
 import type { NexusAlliance } from "../../generated/NexusAlliance";
 import { useGame } from "../../state/context";
+import { resourceCardPopup } from "../../popups";
 import { useBoardGeometry } from "../shipmove/common";
 import { FactionChip } from "../FactionChip";
 import { ForceToken } from "../ForceToken";
+import { Hoverable } from "../Hoverable";
 import { MonsterIcon } from "../MonsterIcon";
 import { RichText } from "../RichText";
 import { SimpleNumber } from "../SimpleNumber";
@@ -216,8 +218,10 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
 
   const card = (c: RecordOf<"BlowCardLog">): ReactNode => (
     <div className="blow-card" data-ref-locations={placeId(c.location)}>
-      <img className={`card ${c.lost ? "lost" : ""}`} src={skin.url(skin.get("ResourceCardImage_URL", c.card.t === "resourceCard" ? c.card.id : -1))}
-        alt={"label" in c.card ? c.card.label : ""} title={"label" in c.card ? c.card.label : ""} />
+      <Hoverable popover={c.card.t === "resourceCard" ? resourceCardPopup(skin, c.card.id) : null}>
+        <img className={`card ${c.lost ? "lost" : ""}`} src={skin.url(skin.get("ResourceCardImage_URL", c.card.t === "resourceCard" ? c.card.id : -1))}
+          alt={"label" in c.card ? c.card.label : ""} />
+      </Hoverable>
       <div>
         <div className="big">
           <SpiceComponent amount={String(c.amount)} size={34} />

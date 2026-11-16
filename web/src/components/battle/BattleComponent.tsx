@@ -8,7 +8,7 @@ import type { ActionView } from "../../generated/ActionView";
 import type { BattleNote } from "../../generated/BattleNote";
 import type { BattleSide } from "../../generated/BattleSide";
 import type { Faction } from "../../generated/enums";
-import { treacheryCardPopup } from "../../popups";
+import { messiahPopup, treacheryCardPopup } from "../../popups";
 import { useGame } from "../../state/context";
 import { FactionChip } from "../FactionChip";
 import { ForceToken } from "../ForceToken";
@@ -199,12 +199,10 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
 
   const tokenRow = (row: Commit[], isSpecial: boolean) => {
     if (row.length === 0) return null;
-    const name = skin.get(isSpecial ? "SpecialForceName_STR" : "ForceName_STR", o.supplier);
-    const label = { full: "full strength", half: "half strength", out: "not dialled" };
     return (
       <div className="bp-pips">
         {row.map((state, i) => (
-          <button key={i} type="button" className={`bp-pip ${state}`} title={`${name} · ${label[state]}`} onClick={() => clickToken(isSpecial, i)}>
+          <button key={i} type="button" className={`bp-pip ${state}`} onClick={() => clickToken(isSpecial, i)}>
             <ForceToken faction={o.supplier as Faction} special={isSpecial} size={26} />
           </button>
         ))}
@@ -219,7 +217,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
         <button type="button" className={`bp-none ${chosen === null ? "on" : ""}`} onClick={() => void update({ [key]: -1 })}>None</button>
         {list.map((c) => (
           <Image key={c} src={skin.cardImage(c)} alt={skin.card(c)} width={50} pointer highlightOnHover darkened={chosen !== c}
-                 popover={treacheryCardPopup(skin, c)} onClick={() => void update({ [key]: c })} />
+                 popover={treacheryCardPopup(skin, c)} onClick={() => void update({ [key]: chosen === c ? -1 : c })} />
         ))}
       </div>
     </div>
@@ -244,14 +242,14 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
           <div className="bp-label">Forces</div>
           <div className="bp-ctl">
             <span className="bp-what">Dial</span>
-            <StepperInput value={formatStrength(dial)} title="The strength of your forces in this battle" mayDown={allDials.some((d) => d < dial)}
+            <StepperInput value={formatStrength(dial)} mayDown={allDials.some((d) => d < dial)}
                           mayUp={allDials.some((d) => d > dial)} step={stepDial} typed={typeDial} />
           </div>
           {o.mustPay && (
             <>
               <div className="bp-ctl">
                 <span className="bp-what">{skin.concept("Resource")}</span>
-                <StepperInput value={Number.isFinite(cost) ? String(cost) : "0"} title={`${skin.concept("Resource")} used to support forces`}
+                <StepperInput value={Number.isFinite(cost) ? String(cost) : "0"}
                               mayDown={allCosts.some((c) => c < cost)} mayUp={allCosts.some((c) => c > cost)} step={stepCost} typed={typeCost}
                               icon={<span className="ic"><img src={harvester} alt="" /></span>} />
               </div>
@@ -259,8 +257,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
                 <div className="bp-ctl">
                   <span className="bp-what">From ally</span>
                   <div className="d-flex">
-                    <NumberPicker value={draft.AllyContributionAmount as number} min={allyMin} max={allyMax} spice symbolSrc={skin.factionImage(o.ally as Faction)}
-                                  title={`${skin.concept("Resource")} paid by your ally`} onChange={(v) => void update({ AllyContributionAmount: v })} />
+                    <NumberPicker value={draft.AllyContributionAmount as number} min={allyMin} max={allyMax} spice symbolSrc={skin.factionImage(o.ally as Faction)} onChange={(v) => void update({ AllyContributionAmount: v })} />
                   </div>
                 </div>
               )}
@@ -291,7 +288,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
       {o.messiahAvailable && (
         <div className="bp-section">
           <Radio values={[false, true]} labels={["No", "Yes"]} value={messiah} onChange={(v) => void update({ Messiah: v })}
-                 label={<>Should <img className="img-fluid" width={32} height={32} src={skin.url(skin.str("Messiah_URL"))} title={skin.concept("Messiah")} alt={skin.concept("Messiah")} /> join the fight?</>} />
+                 label={<>Should <Image width={32} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} /> join the fight?</>} />
         </div>
       )}
 
@@ -321,9 +318,8 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
 
 // The dial and spice steppers: − and + move to the next value a mix allows; a typed value goes
 // to the nearest one.
-function StepperInput({ value, title, mayDown, mayUp, step, typed, icon }: {
+function StepperInput({ value, mayDown, mayUp, step, typed, icon }: {
   value: string;
-  title: string;
   mayDown: boolean;
   mayUp: boolean;
   step: (dir: number) => void;
@@ -336,7 +332,7 @@ function StepperInput({ value, title, mayDown, mayUp, step, typed, icon }: {
     <div className="num">
       {icon}
       <button type="button" disabled={!mayDown} onClick={() => step(-1)}>−</button>
-      <input value={text} title={title} onChange={(e) => setText(e.target.value)} onBlur={(e) => typed(e.target.value)}
+      <input value={text} onChange={(e) => setText(e.target.value)} onBlur={(e) => typed(e.target.value)}
              onKeyDown={(e) => {
                if (e.key === "ArrowUp") step(1);
                else if (e.key === "ArrowDown") step(-1);
@@ -355,16 +351,16 @@ function Side({ side, name, opponent }: { side: BattleSide; name: string; oppone
   return (
     <div className={`bp-side ${opponent ? "them" : "you"}`} data-ref-faction={f} data-ref-locations={side.locations.join(",")}
          style={{ ["--fc" as string]: skin.factionColor(f) }}>
-      <img className="bp-sigil" src={skin.factionImage(f)} alt="" title={skin.faction(f)} />
+      <img className="bp-sigil" src={skin.factionImage(f)} alt="" />
       <span className="bp-name">{name}</span>
       {side.aggressor && <span className="bp-agg">aggressor</span>}
       <span className="bp-forces">
         {side.groups.map((g, i) => (
           <span key={i} className="bp-groups">
-            {g.forces > 0 && <><ForceToken faction={g.faction as Faction} size={20} title={skin.get("ForceName_STR", g.faction)} /><b>{g.forces}</b></>}
+            {g.forces > 0 && <><ForceToken faction={g.faction as Faction} size={20} /><b>{g.forces}</b></>}
             {g.specialForces > 0 && (
               <>
-                <ForceToken faction={g.faction as Faction} special size={20} title={skin.get("SpecialForceName_STR", g.faction)} />
+                <ForceToken faction={g.faction as Faction} special size={20} />
                 {!g.hideSpecialCount && <b>{g.specialForces}</b>}
               </>
             )}

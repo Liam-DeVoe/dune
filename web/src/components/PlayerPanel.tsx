@@ -166,7 +166,7 @@ function Messiah({ forcesKilled, available }: { forcesKilled: number; available:
   const name = skin.concept("Messiah");
   return (
     <div>
-      <img className="img-fluid m-0 p-0" width="32" height="32" src={skin.url(skin.str("Messiah_URL"))} title={name} alt={name} />
+      <Image className="m-0 p-0" width={32} src={skin.url(skin.str("Messiah_URL"))} alt={name} noShadow popover={messiahPopup(skin)} />
       {forcesKilled >= 7
         ? (available ? <span> is available.</span> : <span>has been killed.</span>)
         : <span> will be available after <SimpleNumber>{7 - forcesKilled}</SimpleNumber> more forces are killed in battle.</span>}

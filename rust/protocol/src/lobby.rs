@@ -229,6 +229,52 @@ pub struct PhaseControlInfo {
     pub countdown_ends: Option<Time>,
     /// Seats.
     pub holding: Vec<i32>,
+    /// Why the pause waits for each seat in `waiting_for`, in the same order. Every reason is
+    /// something everyone can already see, so it goes to everyone.
+    pub reasons: Vec<PauseWait>,
+}
+
+/// What the pause waits for one seat to do.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseWait {
+    pub seat: i32,
+    /// One or more things the seat may do here; the client joins them with "or".
+    pub reasons: Vec<PauseReason>,
+}
+
+/// Something a player may do in a pause between phases (`rust/server/src/pause_rules.rs`). Some
+/// need a secret card or spice; the pause waits regardless, so the reason says what the player may
+/// do, never what they hold.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub enum PauseReason {
+    ChooseFaction,
+    TradeFactions,
+    EnterDiscovery,
+    UseTestingStation,
+    /// Fremen's once-per-game Karama sandworm.
+    KaramaSandworm,
+    /// Swap the card just won, as Ixian's ally or with the Ixian Nexus.
+    ReplaceCardWon,
+    /// Atreides looks at the next card before its auction.
+    LookAtNextCard,
+    SetRevivalLimits,
+    /// Kaitain at high threshold: discard cards for 2 spice each.
+    EmperorDiscard,
+    /// Tleilaxu's once-per-game Karama, which stops a revival.
+    KaramaStopRevival,
+    Revive,
+    PlaceAmbassador,
+    RevealNoField,
+    RemoveTerror,
+    PlantTerror,
+    /// CHOAM's Inflation token.
+    Inflation,
+    TripToGamont,
+    ChoamDiscard,
+    /// CHOAM and its ally trading a card.
+    TradeCard,
 }
 
 /// The reply to creating, joining, observing or reconnecting to a game, and the `loadGame`

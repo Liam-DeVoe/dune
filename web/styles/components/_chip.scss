@@ -30,11 +30,13 @@
 // Chips inside a sentence: log lines, prompts, chat. Smaller than the seat
 // chip so a line stays a line. .place names a sector or territory and
 // carries a storm-wheel glyph whose lit wedges are its sectors; .faction
-// names a faction. Both carry data-ref-locations, which the hover script in
+// names a faction, .ref-card a treachery or Nexus card by its art. Place and
+// faction chips carry data-ref-locations, which the hover script in
 // index.html reads to light those sectors on the map while the mouse is over
 // the chip.
 .chip.place,
-.chip.faction {
+.chip.faction,
+.chip.ref-card {
   gap: 5px;
   padding: 1px 8px 1px 3px;
   font-size: 14px;
@@ -70,6 +72,14 @@
   + .chip {
     margin-left: 3px;
   }
+}
+
+// A card chip shows the card's art at the height of a line.
+.chip.ref-card img {
+  width: 15px;
+  height: 21px;
+  margin: 1px 0;
+  border-radius: 2px;
 }
 
 // The sector's compass word, in the label face like the map popover's title.
@@ -118,8 +128,10 @@
 // Chips inside the parchment prompt card take the on-parchment colours.
 .prompt-act .chip.place,
 .prompt-act .chip.faction,
+.prompt-act .chip.ref-card,
 .act-stack > .card:not(.battle-plan) .chip.place,
-.act-stack > .card:not(.battle-plan) .chip.faction {
+.act-stack > .card:not(.battle-plan) .chip.faction,
+.act-stack > .card:not(.battle-plan) .chip.ref-card {
   background: rgba(29, 12, 0, 0.08);
   border-color: rgba(29, 12, 0, 0.2);
   color: var(--ink-1);

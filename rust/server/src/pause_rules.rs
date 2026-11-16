@@ -15,10 +15,13 @@ use treachery_engine::events::TestingStationUsed;
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::prelude::*;
 
+use treachery_protocol::PauseReason as R;
+
 #[derive(Clone, Debug)]
 pub struct PauseRequirements {
-    /// Players who may act here, each of whom must act or pass.
-    pub wait_for: Vec<PlayerIndex>,
+    /// Players who may act here, each of whom must act or pass, with what they may do. A player
+    /// with several options appears once per option.
+    pub wait_for: Vec<(PlayerIndex, R)>,
     /// Whether the pause runs a countdown that any player can hold.
     pub countdown: bool,
 }
@@ -29,11 +32,11 @@ fn nothing() -> PauseRequirements {
     PauseRequirements { wait_for: vec![], countdown: false }
 }
 
-fn wait(players: Vec<PlayerIndex>) -> PauseRequirements {
+fn wait(players: Vec<(PlayerIndex, R)>) -> PauseRequirements {
     PauseRequirements { wait_for: players, countdown: false }
 }
 
-fn with(players: Vec<PlayerIndex>, countdown: bool) -> PauseRequirements {
+fn with(players: Vec<(PlayerIndex, R)>, countdown: bool) -> PauseRequirements {
     PauseRequirements { wait_for: players, countdown }
 }
 
@@ -41,6 +44,22 @@ impl PauseRequirements {
     fn with_countdown(mut self, countdown: bool) -> Self {
         self.countdown = self.countdown || countdown;
         self
+    }
+
+    /// The players waited for, each once, in order.
+    pub fn players(&self) -> Vec<PlayerIndex> {
+        let mut result = vec![];
+        for &(p, _) in &self.wait_for {
+            if !result.contains(&p) {
+                result.push(p);
+            }
+        }
+        result
+    }
+
+    /// What `p` may do here.
+    pub fn reasons_of(&self, p: PlayerIndex) -> Vec<R> {
+        self.wait_for.iter().filter(|(q, _)| *q == p).map(|&(_, r)| r).collect()
     }
 }
 
@@ -50,13 +69,13 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
     let nexus = g.applicable(Rule::NexusCards);
 
     Some(match g.turn.current_phase {
-        Phase::SelectingFactions => wait(players(g, |g, p| g.player(p).faction == Faction::None)),
-        Phase::TradingFactions => wait(g.player_indices().collect()),
+        Phase::SelectingFactions => wait(tag(players(g, |g, p| g.player(p).faction == Faction::None), R::ChooseFaction)),
+        Phase::TradingFactions => wait(tag(g.player_indices().collect(), R::TradeFactions)),
 
-        Phase::BeginningOfStorm => with(players(g, |g, p| DiscoveryEntered::valid_targets(g, p).next().is_some()), amal),
+        Phase::BeginningOfStorm => with(tag(players(g, |g, p| DiscoveryEntered::valid_targets(g, p).next().is_some()), R::EnterDiscovery), amal),
         Phase::MetheorAndStormSpell => {
             let turn = g.turn.current_turn;
-            with(players(g, |g, p| TestingStationUsed::can_be_played(g, p)), turn > 1)
+            with(tag(players(g, |g, p| TestingStationUsed::can_be_played(g, p)), R::UseTestingStation), turn > 1)
         }
         Phase::StormReport => end_of_phase(g, vec![]),
 
@@ -66,7 +85,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
         }
         Phase::HarvesterA | Phase::HarvesterB => with(vec![], true),
         Phase::BlowReport => {
-            let others = fremen_sandworm(g);
+            let others = tag(fremen_sandworm(g), R::KaramaSandworm);
             end_of_phase(g, others).with_countdown(amal)
         }
 
@@ -81,20 +100,25 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
             let countdown = amal || g.is_playing(Faction::Richese) || g.is_playing(Faction::Ixian);
             end_of_phase(g, vec![]).with_countdown(countdown)
         }
-        Phase::ReplacingCardJustWon => wait(present(&[g.get_player(Some(g.bidding.faction_that_may_replace_bought_card))])),
-        Phase::WaitingForNextBiddingRound => wait(present(&[atreides(g)])),
+        // The winner, whatever they hold. The engine enters this step on public grounds only, and
+        // waiting for just the players who can swap would tell everyone who holds the Ixian Nexus.
+        Phase::ReplacingCardJustWon => wait(tag(present(&[auction_winner(g)]), R::ReplaceCardWon)),
+        Phase::WaitingForNextBiddingRound => wait(tag(present(&[atreides(g)]), R::LookAtNextCard)),
         Phase::BiddingReport => {
-            let others = present(&[tleilaxu_limits(g), emperor_discard(g)]);
+            let mut others = tag(present(&[tleilaxu_limits(g)]), R::SetRevivalLimits);
+            others.extend(tag(present(&[emperor_discard(g)]), R::EmperorDiscard));
             end_of_phase(g, others)
         }
 
         Phase::BeginningOfResurrection => {
             let countdown = amal || g.applicable(Rule::Expansion3TreacheryCards) || secret_ally(g, nexus, Faction::Fremen);
-            with(present(&[tleilaxu_limits(g).or_else(|| tleilaxu_karma(g))]), countdown)
+            let mut wait_for = tag(present(&[tleilaxu_limits(g)]), R::SetRevivalLimits);
+            wait_for.extend(tag(present(&[tleilaxu_karma(g)]), R::KaramaStopRevival));
+            with(wait_for, countdown)
         }
         Phase::Resurrection => wait(revivers(g)),
         Phase::ResurrectionReport => {
-            let others = present(&[ecaz(g)]);
+            let others = tag(present(&[ecaz(g)]), R::PlaceAmbassador);
             end_of_phase(g, others)
         }
 
@@ -103,9 +127,8 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
             end_of_phase(g, vec![]).with_countdown(countdown)
         }
         Phase::ShipmentAndMoveConcluded => {
-            let end = end_of_phase(g, vec![]);
-            let no_field = players(g, |g, p| g.player(p).no_field_is_active());
-            merge(end, no_field)
+            let no_field = tag(players(g, |g, p| g.player(p).no_field_is_active()), R::RevealNoField);
+            end_of_phase(g, no_field)
         }
 
         Phase::BeginningOfBattle => with(vec![], amal),
@@ -113,15 +136,19 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
         Phase::BattleReport if g.turn.current_moment != Some(MainPhaseMoment::End) => nothing(),
         Phase::BattleReport => end_of_phase(g, vec![]),
 
-        Phase::BeginningOfCollection => with(present(&[moritani_removing_tokens(g)]), amal || g.is_playing(Faction::Ecaz)),
+        Phase::BeginningOfCollection => with(tag(present(&[moritani_removing_tokens(g)]), R::RemoveTerror), amal || g.is_playing(Faction::Ecaz)),
         Phase::CollectionReport => {
-            let others = present(&[moritani_removing_tokens(g)]);
+            let others = tag(present(&[moritani_removing_tokens(g)]), R::RemoveTerror);
             let countdown = secret_ally(g, nexus, Faction::Choam);
             end_of_phase(g, others).with_countdown(countdown)
         }
 
         Phase::Extortion => with(vec![], true),
-        Phase::Contemplate => with(present(&[choam_in_mentat(g), moritani_planting(g)]), secret_ally(g, nexus, Faction::Harkonnen)),
+        Phase::Contemplate => {
+            let mut wait_for = choam_in_mentat(g);
+            wait_for.extend(tag(present(&[moritani_planting(g)]), R::PlantTerror));
+            with(wait_for, secret_ally(g, nexus, Faction::Harkonnen))
+        }
         Phase::TurnConcluded => end_of_phase(g, vec![]),
 
         _ => return None,
@@ -141,10 +168,14 @@ fn present(players: &[Option<PlayerIndex>]) -> Vec<PlayerIndex> {
     players.iter().flatten().copied().collect()
 }
 
-fn merge(mut r: PauseRequirements, others: Vec<PlayerIndex>) -> PauseRequirements {
-    for p in others {
-        if !r.wait_for.contains(&p) {
-            r.wait_for.push(p);
+fn tag(players: Vec<PlayerIndex>, reason: R) -> Vec<(PlayerIndex, R)> {
+    players.into_iter().map(|p| (p, reason)).collect()
+}
+
+fn merge(mut r: PauseRequirements, others: Vec<(PlayerIndex, R)>) -> PauseRequirements {
+    for w in others {
+        if !r.wait_for.contains(&w) {
+            r.wait_for.push(w);
         }
     }
     r
@@ -152,12 +183,12 @@ fn merge(mut r: PauseRequirements, others: Vec<PlayerIndex>) -> PauseRequirement
 
 /// An end-of-phase pause: CHOAM may discard and CHOAM may trade a card with its ally, plus
 /// whoever else may act there.
-fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
+fn end_of_phase(g: &mut Game, others: Vec<(PlayerIndex, R)>) -> PauseRequirements {
     let mut result = vec![];
 
     if let Some(choam) = g.get_player(Some(Faction::Choam)) {
         if !g.player(choam).treachery_cards.is_empty() && !g.prevented(FactionAdvantage::ChoamDiscarding) {
-            result.push(choam);
+            result.push((choam, R::ChoamDiscard));
         }
     }
 
@@ -170,8 +201,8 @@ fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
         })
         .collect();
     for p in candidates {
-        if !result.contains(&p) && g.get_applicable_events(Some(p), false).contains(&GameEventType::CardTraded) {
-            result.push(p);
+        if g.get_applicable_events(Some(p), false).contains(&GameEventType::CardTraded) {
+            result.push((p, R::TradeCard));
         }
     }
 
@@ -180,14 +211,17 @@ fn end_of_phase(g: &mut Game, others: Vec<PlayerIndex>) -> PauseRequirements {
 
 /// Players who may revive, ask Tleilaxu for a revival or answer such a request, or (for
 /// Tleilaxu) still set revival limits.
-fn revivers(g: &mut Game) -> Vec<PlayerIndex> {
+fn revivers(g: &mut Game) -> Vec<(PlayerIndex, R)> {
     let revival_actions = [GameEventType::Revival, GameEventType::RequestTleilaxuRevival, GameEventType::AcceptOrCancelTleilaxuRevival];
     let limits = tleilaxu_limits(g);
 
     let mut result = vec![];
     for p in g.player_indices().collect::<Vec<_>>() {
-        if Some(p) == limits || g.get_applicable_events(Some(p), false).iter().any(|t| revival_actions.contains(t)) {
-            result.push(p);
+        if Some(p) == limits {
+            result.push((p, R::SetRevivalLimits));
+        }
+        if g.get_applicable_events(Some(p), false).iter().any(|t| revival_actions.contains(t)) {
+            result.push((p, R::Revive));
         }
     }
     result
@@ -231,11 +265,18 @@ fn tleilaxu_limits(g: &Game) -> Option<PlayerIndex> {
     .then_some(p)
 }
 
-/// The Emperor may pay 2 to discard a card at high threshold. Spice is secret, so it is not
-/// checked.
+/// The Emperor may pay 2 per card to discard cards while Kaitain is at high threshold. The size
+/// of the hand is public, so an empty hand is checked; spice is secret, so it is not.
 fn emperor_discard(g: &Game) -> Option<PlayerIndex> {
     let p = g.get_player(Some(Faction::Emperor))?;
-    g.player(p).has_any_high_threshold(g).then_some(p)
+    let pl = g.player(p);
+    (pl.has_high_threshold(g, World::Emperor) && !pl.treachery_cards.is_empty()).then_some(p)
+}
+
+/// Whoever just won the card on auction.
+fn auction_winner(g: &Game) -> Option<PlayerIndex> {
+    let winner = g.bidding.winning_bid.as_ref()?.initiator();
+    g.get_player(Some(winner))
 }
 
 fn atreides(g: &Game) -> Option<PlayerIndex> {
@@ -271,8 +312,14 @@ fn moritani_planting(g: &Game) -> Option<PlayerIndex> {
 }
 
 /// In the Mentat phase CHOAM may play Inflation or, with cards, Trip to Gamont.
-fn choam_in_mentat(g: &Game) -> Option<PlayerIndex> {
-    let p = g.get_player(Some(Faction::Choam))?;
-    let inflation = g.charity.economics_status == None && !g.prevented(FactionAdvantage::ChoamEconomics);
-    (inflation || !g.player(p).treachery_cards.is_empty()).then_some(p)
+fn choam_in_mentat(g: &Game) -> Vec<(PlayerIndex, R)> {
+    let Some(p) = g.get_player(Some(Faction::Choam)) else { return vec![] };
+    let mut result = vec![];
+    if g.charity.economics_status == None && !g.prevented(FactionAdvantage::ChoamEconomics) {
+        result.push((p, R::Inflation));
+    }
+    if !g.player(p).treachery_cards.is_empty() {
+        result.push((p, R::TripToGamont));
+    }
+    result
 }

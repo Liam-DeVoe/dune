@@ -119,7 +119,10 @@ impl Game {
         }
 
         let emperor_secret_ally: i32 = if emperor_secret_ally_used { 3 } else { 0 };
-        let low_threshold: i32 = if g.has_low_threshold(pl.faction) { 1 } else { 0 };
+        // Low threshold's free revival raises the limit too. The Emperor gets it from Kaitain only:
+        // Salusa Secundus at low threshold gives no free revival.
+        let low_threshold_applies = if pl.is(Faction::Emperor) { pl.has_low_threshold(g, World::Emperor) } else { g.has_low_threshold(pl.faction) };
+        let low_threshold: i32 = if low_threshold_applies { 1 } else { 0 };
         let already_revived = g.revival.total_revivals_this_turn.get(&pl.faction).copied().unwrap_or(0);
 
         if self.revival.current_recruits_played.is_some() {

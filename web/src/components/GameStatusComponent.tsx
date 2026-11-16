@@ -19,6 +19,7 @@ import type { GameView } from "../generated/GameView";
 import type { SequenceEntry } from "../generated/SequenceEntry";
 import { useGame } from "../state/context";
 import { NumberComponent } from "./NumberComponent";
+import { OwnLines, WaitingLine } from "./PauseReasons";
 import { RichText } from "./RichText";
 import { secondsSince, since, useClock } from "./turnClock";
 import { withBase } from "../base";
@@ -55,6 +56,12 @@ export function GameStatusComponent() {
   const isBidding = view.mainPhase === "Bidding";
   // Between auctions: the card that goes up next, which Atreides looks at before opening its auction.
   const nextCard = view.bidding?.nextCard ?? null;
+  // Why the pause waits for each seat (PauseReasons.tsx). Atreides' look at the next card has its
+  // own message below; everything else is worded when the server gave a reason for every seat.
+  const reasonsOf = (seat: number) => pause?.reasons.find((w) => w.seat === seat)?.reasons ?? [];
+  const waitingSeats = pause ? bySeat(pause.waitingFor) : [];
+  const worded = !nextCard && waitingSeats.length > 0
+    && waitingSeats.every((p) => reasonsOf(p.seat).some((r) => r !== "lookAtNextCard"));
   // The host's controls, in their own strip at the foot of the card. Continue for everyone is
   // left out when only bots are pending (they end the pause themselves) and when the host is the
   // only one the pause waits for, with no countdown or hold, since Done does the same.
@@ -69,7 +76,7 @@ export function GameStatusComponent() {
 
   const pauseMessage = (): ReactNode => {
     const phase = skin.enumValue("MainPhase", view.mainPhase);
-    if (nextCard && amWaitedFor) return "Look at the next card";
+    if (nextCard && amWaitedFor) return "Prescience: you see the next card";
     if (nextCard && waitingFor.length > 0) {
       return <>{waitingFor.map((f) => <FactionChip key={f} faction={f} />)} {waitingFor.length > 1 ? "are" : "is"} looking at the next card</>;
     }
@@ -95,7 +102,18 @@ export function GameStatusComponent() {
         {pause
           ? (
             <>
-              <div className="text-dark fw-bold text-center" style={statusStyle}>{pauseMessage()}</div>
+              {worded
+                ? (
+                  <>
+                    {amWaitedFor && <OwnLines view={view} reasons={reasonsOf(mySeat!)} style={statusStyle} />}
+                    {waitingSeats.filter((p) => p.seat !== mySeat).map((p) => (
+                      <div key={p.seat} className={`text-dark text-center mt-1${amWaitedFor ? "" : " fw-bold"}`}>
+                        <WaitingLine faction={p.faction} reasons={reasonsOf(p.seat)} />
+                      </div>
+                    ))}
+                  </>
+                )
+                : <div className="text-dark fw-bold text-center" style={statusStyle}>{pauseMessage()}</div>}
               {nextCard && <NextCard card={nextCard.card} />}
               {holders.length > 0 && <div className="text-dark text-center">Held by {holders.map((p) => <FactionChip key={p.faction} faction={p.faction} />)}</div>}
               {(canHold || amWaitedFor || amHolding) && (
@@ -244,7 +262,6 @@ function NextCard({ card }: { card: number | null }) {
       {card !== null
         ? <Image src={skin.cardImage(card)} alt={skin.card(card)} width={96} popover={treacheryCardPopup(skin, card)} />
         : <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} width={96} alt="The next card" />}
-      {card !== null && <div className="next-card-text"><div className="kicker">Prescience</div></div>}
     </div>
   );
 }

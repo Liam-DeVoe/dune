@@ -54,7 +54,7 @@ export function NoteComponent({ open = false }: { open?: boolean }) {
 function Noted({ p }: { p: NotesPlayer }) {
   const { view, skin } = useGame();
   const pub = view.players.find((x) => x.faction === p.faction);
-  const messiah = <img className="img-fluid m-0 p-0" width="32" height="32" src={skin.url(skin.str("Messiah_URL"))} title={skin.concept("Messiah")} />;
+  const messiah = <Image className="m-0 p-0" width={32} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
   return (
     <>
       <div className="row m-0">

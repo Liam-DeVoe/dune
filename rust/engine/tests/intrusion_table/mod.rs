@@ -10,7 +10,7 @@
 
 
 use treachery_engine::enum_type::GameEnum;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::prelude::*;
 
 pub const BENE_GESSERIT: i32 = 60;

@@ -1,10 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct RicheseAnnouncesBlackMarket {
     pub card: Option<TreacheryCard>,
     pub auction_type: Option<AuctionType>,
     pub direction: i32,
+    #[serde(skip)]
     pub passed: bool,
 }
 

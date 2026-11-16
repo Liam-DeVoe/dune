@@ -10,7 +10,6 @@
 
 use treachery_engine::events::EventType;
 
-use treachery_engine::json;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate, ResolvedViewer};
@@ -87,7 +86,7 @@ pub fn normalize(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let mut current = draft.clone();
     for _ in 0..8 {
         let next = normalize_once(game, p, &current);
-        if json::serialize(&HistoryEntry::new(None, next.clone())) == json::serialize(&HistoryEntry::new(None, current.clone())) {
+        if next == current {
             return next;
         }
         current = next;

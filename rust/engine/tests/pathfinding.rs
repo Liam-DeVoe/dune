@@ -79,9 +79,9 @@ fn a_territory_becoming_blocked_changes_the_paths_found() {
 #[test]
 fn a_game_finds_move_targets_for_its_current_storm() {
     let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts/fixtures/move.json");
-    let state = treachery_engine::game::GameState::load(&std::fs::read_to_string(path).unwrap()).expect("savegame");
+    let state = treachery_legacy::load_any(&std::fs::read_to_string(path).unwrap()).expect("savegame");
     let mut g = Game::of_version(state.version);
-    for e in state.events() {
+    for e in state.events.clone() {
         assert!(g.play_for_message(e, false, false).is_none());
     }
 

@@ -1,5 +1,5 @@
-use crate::json::JsonError;
-use crate::json::{self, FromJson, JsonValue, ToJson};
+use crate::JsonError;
+use crate::{self as json, FromJson, JsonValue, ToJson};
 
 pub struct Utilities;
 

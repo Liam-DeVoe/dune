@@ -124,7 +124,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
 
         match kind {
             "step" => {
-                let entry: HistoryEntry = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
+                let entry: HistoryEntry = treachery_legacy::deserialize(&line["event"].to_string()).expect("event JSON");
                 let ev: Event = entry.event.clone();
                 let by = By::new(g, entry.by);
                 let result = catch_any(|| {

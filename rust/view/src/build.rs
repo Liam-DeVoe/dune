@@ -106,7 +106,7 @@ pub(crate) fn build_view_cached(game: &mut Game, v: &ResolvedViewer, s: &Seating
     let me = v.player.filter(|_| !v.is_observer);
     GameView {
         event_number: game.event_count(),
-        version: game.rules.version,
+        version: crate::wire::shown_version(game),
         turn: game.turn.current_turn,
         maximum_turns: game.maximum_turns(),
         maximum_players: game.maximum_players(),

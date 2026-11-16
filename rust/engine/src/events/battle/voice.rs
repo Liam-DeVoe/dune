@@ -1,8 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Voice {
     pub must: bool,
+    #[serde(rename = "cardType")]
     pub type_: Option<TreacheryCardType>,
 }
 

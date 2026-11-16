@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct RaiseDeadPlayed {
     pub amount_of_forces: u16,
     pub amount_of_special_forces: u16,

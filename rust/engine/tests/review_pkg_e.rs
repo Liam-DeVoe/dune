@@ -61,7 +61,7 @@ fn emperor_bid_support_amounts_duplicate_keys() {
         r#"{"$type":"EmperorBidSupport","Amounts":{"Atreides":1,"Harkonnen":5,"20":2},"Initiator":10}"#,
         r#"{"$type":"EmperorBidSupport","Amounts":{"Atreides":1,"Harkonnen":5,"Atreides":2},"Initiator":10}"#,
     ] {
-        let e: HistoryEntry = treachery_engine::json::deserialize(json).expect("event json");
+        let e: HistoryEntry = treachery_legacy::deserialize(json).expect("event json");
         let Event::EmperorBidSupport(e) = e.event else { panic!("not a EmperorBidSupport") };
         let got: Vec<String> = e.amounts.as_ref().unwrap().iter().map(|(k, v)| format!("{}={}", k, v)).collect();
         assert_eq!(got.join(","), "Atreides=2,Harkonnen=5", "{json}");

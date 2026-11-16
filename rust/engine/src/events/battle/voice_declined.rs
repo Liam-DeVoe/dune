@@ -3,7 +3,8 @@ use crate::prelude::*;
 /// A player who may use Voice in this battle says they won't, so Prescience can be used. Voice
 /// must be used before Prescience (rulebook FAQ), and Prescience waits for this or a Voice. One
 /// decline closes Voice for the battle, also for the other player who could have used it.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(deny_unknown_fields)]
 pub struct VoiceDeclined {}
 
 impl VoiceDeclined {

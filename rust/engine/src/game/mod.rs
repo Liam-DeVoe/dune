@@ -111,7 +111,10 @@ pub struct Game {
 const _: fn() = || { fn send<T: Send>() {} send::<Game>(); };
 
 impl Game {
-    pub const LATEST_VERSION: i32 = 190;
+    /// The game version of new games, and the only one the engine plays. 191 changed only how
+    /// events and savegames are written (rewrite-plan.md, "Wire format"); `treachery-legacy`
+    /// converts a savegame of 190.
+    pub const LATEST_VERSION: i32 = 191;
 
     pub fn maximum_turns(&self) -> Turn {
         self.rules.settings.as_ref().expect("settings").maximum_turns
@@ -435,8 +438,7 @@ impl Game {
         Game::check_version(state.version).map_err(|e| express!(e))?;
         let mut game = Game::of_version(state.version);
         game.human_seats = human_seats.clone();
-        let events = state.events.as_ref().ok_or_else(|| express!("The savegame has no events"))?;
-        for (nr, e) in events.iter().enumerate() {
+        for (nr, e) in state.events.iter().enumerate() {
             if let Err(error) = game.play(e.clone(), perform_validation, is_host) {
                 return Err(express!(e.event_type().name(), "(", nr as i32, "):", error.message()));
             }

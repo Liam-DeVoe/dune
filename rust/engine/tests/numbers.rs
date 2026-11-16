@@ -1,7 +1,7 @@
 //! Turns, sectors and amounts as unsigned types (rewrite-plan.md, change 2d): event JSON refuses a
 //! value out of range, and the rules refuse or report what would go below zero.
 
-use treachery_engine::json::utilities::Utilities;
+use treachery_legacy::utilities::Utilities;
 use treachery_engine::game::amounts;
 use treachery_engine::prelude::*;
 

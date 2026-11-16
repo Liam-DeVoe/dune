@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct ChoamRemoveForce {
     pub target: Option<Faction>,
     pub special_force: bool,

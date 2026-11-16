@@ -1,13 +1,16 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct TerrorRevealed {
     pub alliance_offered: bool,
+    #[serde(rename = "terrorType")]
     pub type_: Option<TerrorType>,
     pub forces_in_sneak_attack: u16,
     pub sneak_attack_to: Option<Location>,
     pub robbery_takes_card: bool,
     pub card_to_give_in_sabotage: Option<TreacheryCard>,
+    #[serde(skip)]
     pub passed: bool,
 }
 

@@ -14,7 +14,6 @@ use std::collections::BTreeMap;
 
 use treachery_engine::events::EventType;
 use treachery_engine::game::GameState;
-use treachery_engine::json;
 use treachery_engine::prelude::*;
 
 use crate::actions::QueryError;
@@ -45,10 +44,10 @@ pub struct ViewReplica {
 impl ViewReplica {
     /// Replays a savegame in a game that bots play.
     pub fn load(savegame: &str) -> Result<ViewReplica, String> {
-        let state: GameState = GameState::load(savegame).map_err(|e| e.message)?;
+        let state: GameState = GameState::load(savegame)?;
         Game::check_version(state.version)?;
         let mut game = Game::of_version(state.version);
-        for (nr, e) in state.events.as_ref().ok_or("savegame without events")?.iter().enumerate() {
+        for (nr, e) in state.events.iter().enumerate() {
             if let Err(error) = game.play(e.clone(), false, false) {
                 return Err(format!("event {nr} ({}) failed: {:?}", e.event_type().name(), treachery_skin::default_skin().render(&error.message())));
             }
@@ -78,7 +77,7 @@ impl ViewReplica {
 
     /// Executes an event that the server has accepted, without validating it again.
     pub fn apply(&mut self, event_json: &str) -> Result<(), String> {
-        let e: HistoryEntry = json::deserialize(event_json).map_err(|e| format!("{e:?}"))?;
+        let e: HistoryEntry = serde_json::from_str(event_json).map_err(|e| e.to_string())?;
         match self.game.play(e, false, false) {
             Ok(()) => Ok(()),
             Err(error) => Err(format!("{:?}", treachery_skin::default_skin().render(&error.message()))),
@@ -152,7 +151,7 @@ impl ViewReplica {
         let mut game = self.game.new_like();
         for (nr, e) in self.game.history.entries.iter().take(gap).enumerate() {
             // A copy of the event, so the replica's history stays bound to the replica's game.
-            let copy: HistoryEntry = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
+            let copy = e.detached();
             let name = copy.event_type().name();
             if let Err(error) = game.play(copy, false, false) {
                 return Err(format!("event {nr} ({}) failed: {:?}", name, treachery_skin::default_skin().render(&error.message())));

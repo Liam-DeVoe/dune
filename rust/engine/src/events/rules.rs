@@ -74,17 +74,21 @@ pub trait EventRules {
     }
 }
 
-/// One played event, as the history keeps it.
-#[derive(Clone, Debug)]
+/// One played event, as the history keeps it. Savegames hold it as
+/// `{"by":"Atreides","at":"2026-11-13T04:14:35.622405Z","event":{"type":"Move",..}}`.
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(deny_unknown_fields)]
 pub struct HistoryEntry {
     /// The submitter's faction, `None` for the host.
     pub by: Option<Faction>,
     /// When the event was played. The server sets it after the event is applied, so the event
     /// itself sees the time it was submitted with (none, for a live submission).
     pub at: DateTimeOffset,
+    #[ts(type = "Event")]
     pub event: Event,
     /// Which submission this is. A clone keeps it, so an undo, which replays the kept entries,
     /// keeps it too, while an event submitted after the undo gets a new one.
+    #[serde(skip, default = "EntryId::fresh")]
     pub id: EntryId,
 }
 

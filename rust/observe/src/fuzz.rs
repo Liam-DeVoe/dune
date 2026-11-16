@@ -6,6 +6,13 @@
 //!
 //! The generator reads a shadow copy of the game ([`Shadow`]), never the session's game, so it
 //! can't change state the replayer wouldn't change: drafts and validation fill caches. Only the recorder runs it; the replayer reads its events from the trace.
+//!
+//! Events are built and changed as objects in the format of game version 190 (`$type`,
+//! `_toId`, `Passed`, enums as numbers), which the field heuristics below key on, and the views'
+//! drafts are read in that format too ([`crate::events::with_legacy_views`]). So the generator
+//! draws the same values as before the format changed, and makes the same games. The recorder
+//! converts each event to the engine's format before it submits and records it
+//! (`events::to_trace`).
 
 use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
@@ -13,7 +20,7 @@ use std::panic::{self, AssertUnwindSafe};
 use serde_json::{Map, Value};
 use treachery_engine::events::{EventType, HistoryEntry};
 use treachery_engine::game::Game;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::prelude::*;
 use treachery_engine::enum_type::GameEnum;
 use treachery_view::build::{ResolvedViewer, Seating};
@@ -363,7 +370,7 @@ impl Pools {
         let p = shadow.player_at(i);
         let faction = shadow.players[i].faction;
         let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
-        let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok()))
+        let options = quiet(|| crate::events::with_legacy_views(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok())))
             .flatten()
             .flatten();
         pools.event_type = Some(t);
@@ -381,7 +388,7 @@ impl Pools {
             pools.harvest("", &o);
         }
         if matches!(t, EventType::DealAccepted | EventType::DealRejected | EventType::DealOffered) {
-            let deals = quiet(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok())).flatten().flatten();
+            let deals = quiet(|| crate::events::with_legacy_views(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok()))).flatten().flatten();
             for list in ["acceptable", "cancellable"] {
                 for offer in deals.as_ref().and_then(|d| d.get(list)).and_then(|l| l.as_array()).into_iter().flatten() {
                     for button in ["accept", "decline", "withdraw"] {

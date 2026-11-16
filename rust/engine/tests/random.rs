@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 
 use treachery_engine::cards::deck::Deck;
-use treachery_engine::game::{Game, GameState};
+use treachery_engine::game::Game;
 use treachery_engine::random::{new_rng, RandomPick};
 
 /// Asserts that every count is within `tolerance` (a fraction) of `expected`.
@@ -125,9 +125,9 @@ const END_PHASE: &str = r#"{"$type":"EndPhase","Initiator":0,"Time":"2026-09-19T
 fn game_from_seed(seed: i32) -> String {
     let events = format!("[{},{END_PHASE},{END_PHASE}]", ESTABLISH.replace("SEED", &seed.to_string()));
     let savegame = format!(r#"{{"Version":{},"_events":{events}}}"#, Game::LATEST_VERSION);
-    let state = GameState::load(&savegame).unwrap();
+    let state = treachery_legacy::load_any(&savegame).unwrap();
     let mut game = Game::of_version(state.version);
-    for e in state.events.as_ref().unwrap() {
+    for e in &state.events {
         assert!(game.play_for_message(e.clone(), false, true).is_none());
     }
     let players: Vec<String> = game

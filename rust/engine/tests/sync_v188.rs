@@ -15,7 +15,7 @@ use treachery_engine::error::catch_panic;
 use treachery_engine::events::Event;
 use treachery_engine::game::Game;
 use treachery_engine::game::GameStatus;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::prelude::*;
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;

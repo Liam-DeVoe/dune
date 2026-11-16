@@ -11,17 +11,16 @@
 use std::io::Read;
 
 use treachery_bots::prelude::*;
-use treachery_engine::game::GameState;
 
 fn savegame() -> Game {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/battle-initiated-again-after-undo.json.gz");
     let mut text = String::new();
     flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()).read_to_string(&mut text).unwrap();
-    Game::load(&GameState::load(&text).unwrap(), &Default::default(), false, false).unwrap()
+    Game::load(&treachery_legacy::load_any(&text).unwrap(), &Default::default(), false, false).unwrap()
 }
 
 fn submit(game: &mut Game, event: &str) {
-    let e: HistoryEntry = treachery_engine::json::deserialize(event).unwrap();
+    let e: HistoryEntry = treachery_legacy::deserialize(event).unwrap();
     assert_eq!(game.play_for_message(e, true, false), None, "{event}");
 }
 

@@ -1,8 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct DiscoveryRevealed {
     pub location: Option<Location>,
+    #[serde(skip)]
     pub passed: bool,
 }
 

@@ -7,7 +7,6 @@ mod common;
 
 use common::{load, read_trace, sample_bot_traces, viewer_of};
 use treachery_engine::events::EventType;
-use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, revival};
@@ -40,7 +39,7 @@ fn draft_of(options: &ActionOptions) -> &serde_json::Value {
 }
 
 fn entry_of(v: &serde_json::Value) -> HistoryEntry {
-    json::deserialize(&v.to_string()).expect("the draft is an event")
+    HistoryEntry::new(None, serde_json::from_value::<Event>(v.clone()).expect("the draft is an event"))
 }
 
 fn event_of(v: &serde_json::Value) -> Event {

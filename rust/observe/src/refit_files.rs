@@ -399,11 +399,10 @@ impl Checker {
     }
 
     fn event(l: &Value) -> Option<treachery_engine::events::HistoryEntry> {
-        let text = match &l["event"] {
-            Value::String(s) => s.clone(),
-            v => v.to_string(),
-        };
-        treachery_engine::json::deserialize(&text).ok()
+        match &l["event"] {
+            Value::String(s) => crate::events::decode(&serde_json::from_str(s).ok()?).ok(),
+            v => crate::events::decode(v).ok(),
+        }
     }
 
     fn apply(&mut self, l: &Value, knowledge: bool) {

@@ -10,7 +10,6 @@ use std::path::PathBuf;
 
 use common::*;
 use treachery_engine::events::EventType;
-use treachery_engine::game::GameState;
 use treachery_engine::prelude::*;
 use treachery_view::actions;
 use treachery_view::build::ResolvedViewer;
@@ -185,10 +184,10 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     let d = default_describer();
     let mut seen = Seen::default();
     for path in fixtures() {
-        let state = GameState::load(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
+        let state = treachery_legacy::load_any(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
         let mut game = Game::of_version(state.version);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
-        for (i, e) in state.events.as_ref().unwrap().iter().enumerate() {
+        for (i, e) in state.events.iter().enumerate() {
             assert!(game.play_for_message(e.clone(), false, false).is_none(), "{name}: event {i}");
             check_state(&mut game, d.as_ref(), &mut seen, &format!("{name} after event {i}"));
         }

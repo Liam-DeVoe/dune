@@ -1,9 +1,12 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct TerrorPlanted {
+    #[serde(rename = "terrorType")]
     pub type_: Option<TerrorType>,
     pub stronghold: Option<Territory>,
+    #[serde(skip)]
     pub passed: bool,
 }
 

@@ -26,8 +26,7 @@ pub mod messages;
 // Iterator helpers
 pub mod iter;
 
-// Randomness and serialization
-pub mod json;
+// Randomness
 pub mod random;
 
 // .NET runtime behavior the engine still relies on

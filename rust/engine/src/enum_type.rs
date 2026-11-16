@@ -128,24 +128,9 @@ macro_rules! game_enum {
     ($(#[$m:meta])* closed $name:ident { absent $none:ident = 0; $($var:ident = $val:literal,)* } get_values [$($gv:ident),* $(,)?]) => {
         $crate::enum_type::game_enum!(@closed true, $(#[$m])* $name { ($none = 0,) $($var = $val,)* } [$($var = $val),*] [$($gv),*]);
 
-        /// Absent is written as 0, as C# wrote its `None` member.
-        impl $crate::json::ToJson for Option<$name> {
-            fn write_json(&self, w: &mut $crate::json::JsonWriter) {
-                w.int($crate::enum_type::value_or_absent(*self) as i64)
-            }
-        }
-
-        impl $crate::json::FromJson for Option<$name> {
-            fn from_json(v: &$crate::json::JsonValue) -> Result<Self, $crate::json::JsonError> {
-                let n = <i32 as $crate::json::FromJson>::from_json(v)?;
-                $crate::enum_type::from_value_or_absent(n).map_err(|e| $crate::json::JsonError::new("JsonException", e))
-            }
-        }
     };
     ($(#[$m:meta])* closed $name:ident { $($var:ident = $val:literal,)* } get_values [$($gv:ident),* $(,)?]) => {
         $crate::enum_type::game_enum!(@closed false, $(#[$m])* $name { () $($var = $val,)* } [$($var = $val),*] [$($gv),*]);
-
-        impl $crate::json::JsonNullable for $name {}
 
         /// C# `default(T)`: the member with value 0.
         impl Default for $name {
@@ -196,6 +181,20 @@ macro_rules! game_enum {
         impl ::std::fmt::Debug for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
                 write!(f, "{}::{}", stringify!($name), self)
+            }
+        }
+
+        /// In TypeScript, the union of member names that `enums.ts` declares under the enum's name.
+        impl ::ts_rs::TS for $name {
+            type WithoutGenerics = Self;
+            type OptionInnerType = Self;
+
+            fn name(_: &::ts_rs::Config) -> String {
+                stringify!($name).to_string()
+            }
+
+            fn inline(cfg: &::ts_rs::Config) -> String {
+                <Self as ::ts_rs::TS>::name(cfg)
             }
         }
 

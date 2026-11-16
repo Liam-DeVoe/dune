@@ -71,6 +71,9 @@ fn main() {
 
 /// Writes the views of one fixture and returns its manifest entry.
 fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
+    // Fixtures are savegames of version 190; replicas read the engine's format.
+    let converted = serde_json::to_string(&treachery_legacy::load_any(savegame)?).expect("savegames serialize");
+    let savegame = converted.as_str();
     // One replay to read the game's factions and facts; each scene then replays its own copy,
     // because building a view writes state (client.md, The view replica).
     let probe = ViewReplica::load(savegame)?;
@@ -121,7 +124,7 @@ fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &t
         return Ok(false);
     }
     let pass = TreacheryCalled { traitor_called: false };
-    let json = treachery_engine::json::serialize(&HistoryEntry::new(f, pass));
+    let json = serde_json::to_string(&HistoryEntry::new(f, pass)).expect("events serialize");
     replica.apply(&json)?;
     Ok(true)
 }

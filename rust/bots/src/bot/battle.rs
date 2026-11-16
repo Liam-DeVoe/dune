@@ -1359,7 +1359,6 @@ impl ClassicBot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use treachery_engine::game::GameState;
 
     /// A Mirror Weapon picked without knowing the opponent's weapon is kept, with an even chance.
     /// It used to be drawn again from the weapons the opponent doesn't know about, which left the
@@ -1367,7 +1366,7 @@ mod tests {
     #[test]
     fn a_mirror_weapon_pick_is_kept() {
         let path = format!("{}/../../scripts/fixtures/battle.json", env!("CARGO_MANIFEST_DIR"));
-        let state = GameState::load(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let state = treachery_legacy::load_any(&std::fs::read_to_string(path).unwrap()).unwrap();
         let mut game = Game::load(&state, &Default::default(), false, false).unwrap();
         let battle = game.battle.current_battle.clone().unwrap();
         let me = game.get_player(Some(battle.aggressor(&game).expect("faction"))).unwrap();

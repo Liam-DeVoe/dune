@@ -48,9 +48,29 @@ pub fn truncated(name: &str, n: i64) -> String {
     v.to_string()
 }
 
-/// Like [`load`], from savegame text.
+/// A replica of a savegame of either format, with nobody seated.
+pub fn load_raw(savegame: &str) -> Result<ViewReplica, String> {
+    ViewReplica::load(&converted(savegame))
+}
+
+/// A savegame of either format (fixtures are in the format of version 190) in the engine's.
+pub fn converted(savegame: &str) -> String {
+    serde_json::to_string(&treachery_legacy::load_any(savegame).expect("savegame reads")).unwrap()
+}
+
+/// An event of a fixture or trace (either format), as `ViewReplica::apply` takes it.
+pub fn event_text(e: &serde_json::Value) -> String {
+    let entry: HistoryEntry = if e.get("$type").is_some() {
+        treachery_legacy::deserialize(&e.to_string()).expect("event reads")
+    } else {
+        serde_json::from_value(e.clone()).expect("event reads")
+    };
+    serde_json::to_string(&entry).unwrap()
+}
+
+/// Like [`load`], from savegame text of either format.
 pub fn load_text(savegame: &str) -> ViewReplica {
-    let mut replica = ViewReplica::load(savegame).expect("savegame replays");
+    let mut replica = ViewReplica::load(&converted(savegame)).expect("savegame replays");
     seat_everyone(&mut replica);
     replica
 }
@@ -81,8 +101,9 @@ pub fn read_trace(path: &std::path::Path) -> Trace {
     for line in reader.lines() {
         let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
         match v["kind"].as_str() {
-            Some("header") => version = v["gameVersion"].as_i64().unwrap() as i32,
-            Some("step") if v["result"] == "accepted" => events.push(v["event"].to_string()),
+            // Version 190 is played as 191, which changed only the format.
+            Some("header") => version = (v["gameVersion"].as_i64().unwrap() as i32).max(treachery_legacy::LAST_LEGACY_VERSION + 1),
+            Some("step") if v["result"] == "accepted" => events.push(event_text(&v["event"])),
             Some("undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone") => panic!("{}: bot traces have no undo", path.display()),
             _ => {}
         }

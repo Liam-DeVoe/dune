@@ -1,9 +1,11 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct DealAccepted {
     pub bound_faction: Option<Faction>,
+    #[serde(rename = "dealType")]
     pub type_: DealType,
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,

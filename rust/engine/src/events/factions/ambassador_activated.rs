@@ -1,20 +1,26 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct AmbassadorActivated {
     pub bene_gesserit_selected_ambassador: Option<Ambassador>,
+    #[serde(with = "crate::events::wire::id_list")]
+    #[ts(as = "Option<Vec<i32>>")]
     pub choam_card_ids: Option<String>,
     pub ecaz_offer_alliance: bool,
     pub ecaz_give_vidal_to_ally: bool,
     pub ecaz_take_vidal: bool,
     pub fremen_or_guild_to: Option<Location>,
+    #[serde(with = "crate::events::wire::force_list")]
+    #[ts(as = "Option<Vec<crate::events::wire::ForceEntry>>")]
     pub fremen_force_locations: Option<String>,
     pub ixian_card: Option<TreacheryCard>,
     pub guild_force_amount: u16,
     pub tleilaxu_amount_of_forces: u16,
     pub tleilaxu_hero: Option<Hero>,
     pub tleilaxu_assign_skill: bool,
+    #[serde(skip)]
     pub passed: bool,
 }
 

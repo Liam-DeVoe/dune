@@ -13,7 +13,6 @@ use treachery_protocol::UserId;
 use std::collections::{BTreeMap, BTreeSet};
 use std::panic::AssertUnwindSafe;
 
-use treachery_engine::json;
 use treachery_view::replica::{UndoEntry, ViewReplica};
 use treachery_view::schema::{DraftResult, GameView, ReportLines};
 
@@ -54,7 +53,7 @@ impl Entry {
         replica.game.human_seats = game.human_seats.clone();
         let done = replica.game.event_count() as usize;
         for (nr, e) in game.history.entries.iter().enumerate().skip(done) {
-            replica.apply(&json::serialize(e)).map_err(|m| format!("event {nr} ({}): {m}", e.event_type().name()))?;
+            replica.apply(&serde_json::to_string(e).expect("history entries serialize")).map_err(|m| format!("event {nr} ({}): {m}", e.event_type().name()))?;
         }
         Ok(replica)
     }

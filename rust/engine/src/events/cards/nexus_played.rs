@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct NexusPlayed {
     pub faction: Option<Faction>,
     pub atreides_prescience_aspect: Option<PrescienceAspect>,

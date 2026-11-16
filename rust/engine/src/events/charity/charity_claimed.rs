@@ -1,7 +1,8 @@
 use crate::prelude::*;
 
 /// A player with at most 1 spice claims CHOAM charity.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(deny_unknown_fields)]
 pub struct CharityClaimed {}
 
 impl CharityClaimed {

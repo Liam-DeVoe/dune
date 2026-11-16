@@ -1,7 +1,8 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Shipment {
     pub shipment_type: ShipmentType,
     pub to: Option<Location>,
@@ -15,8 +16,11 @@ pub struct Shipment {
     pub ally_contribution_amount: u16,
     pub karma_card: Option<TreacheryCard>,
     pub use_richese_secret_ally: bool,
+    #[serde(with = "crate::events::wire::force_list")]
+    #[ts(as = "Option<Vec<crate::events::wire::ForceEntry>>")]
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
+    #[serde(skip)]
     pub passed: bool,
 }
 
@@ -1060,13 +1064,13 @@ impl Shipment {
             kind,
             forces: if self.passed { 0 } else { self.force_amount },
             special_forces: if self.passed || self.is_back_to_reserves() { 0 } else { self.special_force_amount },
-            from: if self.is_site_to_site() || self.is_back_to_reserves() { self.sources().into_iter().next() } else { None },
+            from: if !self.passed && (self.is_site_to_site() || self.is_back_to_reserves()) { self.sources().into_iter().next() } else { None },
             to: if self.is_back_to_reserves() || self.passed { None } else { self.to },
             cost,
             ally_share: i32::from(self.ally_contribution_amount),
             ally: game.player(by.player()).ally,
             guild_paid: guild_income > 0,
-            karama: self.karma_card,
+            karama: if self.passed { None } else { self.karma_card },
             blocked,
             blocked_by,
             plain,

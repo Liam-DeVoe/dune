@@ -1,9 +1,11 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct DealOffered {
     pub to: Option<Vec<Faction>>,
+    #[serde(rename = "dealType")]
     pub type_: DealType,
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,

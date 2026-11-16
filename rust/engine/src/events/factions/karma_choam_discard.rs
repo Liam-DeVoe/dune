@@ -1,9 +1,12 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct KarmaChoamDiscard {
     pub card_to_use: Option<TreacheryCard>,
+    #[serde(with = "crate::events::wire::id_list")]
+    #[ts(as = "Option<Vec<i32>>")]
     pub card_ids: Option<String>,
 }
 

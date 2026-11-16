@@ -1,49 +1,26 @@
-use crate::json::JsonError;
-use crate::json::utilities::Utilities;
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+/// A savegame: `{"version":191,"events":[HistoryEntry, ..]}`. Savegames of version 190 and
+/// before have another format, which `treachery-legacy` reads.
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct GameState {
     pub version: i32,
-    pub events: Option<Vec<HistoryEntry>>,
-}
-
-impl Default for GameState {
-    fn default() -> Self {
-        GameState {
-            version: Default::default(),
-            events: Some(Default::default()),
-        }
-    }
+    pub events: Vec<HistoryEntry>,
 }
 
 impl GameState {
-    pub fn new() -> Self {
-        Self::default()
+    /// Reads a savegame. The error says what is wrong with the text.
+    pub fn load(data: &str) -> Result<GameState, String> {
+        serde_json::from_str(data).map_err(|e| e.to_string())
     }
 
-    pub fn events(&self) -> Vec<HistoryEntry> {
-        // get => _events (enumerating a null array throws at the caller)
-        self.events.clone().expect("events")
-    }
-
-    pub fn set_events(&mut self, value: &[HistoryEntry]) {
-        self.events = Some(value.to_vec());
-    }
-
-    /// Reads a savegame.
-    pub fn load(data: &str) -> Result<GameState, JsonError> {
-        // Old savegames named their types "Treachery.online.*". The replacement also changes
-        // any text in the savegame that contains the string, which players could see.
-        let data = data.replace("Treachery.online", "Treachery");
-        Utilities::deserialize::<GameState>(&data)?.ok_or_else(|| JsonError::new("JsonException", "Cannot load game state"))
+    /// The savegame of `g`.
+    pub fn of(g: &Game) -> GameState {
+        GameState { version: g.rules.version, events: g.history.entries.clone() }
     }
 
     pub fn get_state_as_string(g: &Game) -> String {
-        let mut state = GameState::new();
-        state.version = g.rules.version;
-        state.set_events(&g.history.entries);
-        Utilities::serialize(&state)
+        serde_json::to_string(&GameState::of(g)).expect("savegames serialize")
     }
-
 }

@@ -4,8 +4,6 @@
 use treachery_protocol::UserId;
 use treachery_engine::game::{Game, Seat};
 use treachery_engine::game::GameSettings;
-use treachery_engine::json::FromJson;
-use treachery_engine::game::GameState;
 
 use super::{refuse, Answer, CallError, RunningGame, Server, MAX_BOT_SPEED, MAX_GAMES_PER_USER};
 use crate::connections::ConnectionId;
@@ -14,9 +12,10 @@ use crate::ids;
 use crate::participation::{self, Participation};
 use treachery_protocol::{GameInitInfo, GameListScope, Lobby};
 
-/// Loads a savegame into a game whose seats the participation gives, or says why it can't.
+/// Loads a savegame into a game whose seats the participation gives, or says why it can't. A
+/// savegame of version 190 or before is converted (`treachery_legacy::load_any`).
 pub fn load_savegame(savegame: &str, participation: &Participation, restoring: bool) -> Result<Game, String> {
-    let state = GameState::load(savegame).map_err(|e| e.message)?;
+    let state = treachery_legacy::load_any(savegame)?;
     Game::load(&state, &participation.human_seats(), false, restoring).map_err(|m| crate::render::message_to_string(&m))
 }
 
@@ -286,12 +285,12 @@ impl Server {
         Ok(())
     }
 
-    /// The settings the host is choosing before the game starts, in the savegame format.
+    /// The settings the host is choosing before the game starts.
     pub(super) fn update_settings(&mut self, user: UserId, game: &str, settings: &serde_json::Value) -> Answer<()> {
         let game = self.host_of(user, game)?;
-        let settings = GameSettings::from_json(settings).map_err(|e| CallError::Refused(ErrorCode::BadCall, format!("settings: {}", e.message)))?;
+        let settings: GameSettings = serde_json::from_value(settings.clone()).map_err(|e| CallError::Refused(ErrorCode::BadCall, format!("settings: {e}")))?;
         let g = self.games.get_mut(&game).expect("checked");
-        let json = serde_json::from_str(&treachery_engine::json::serialize(&settings)).expect("settings serialize to JSON");
+        let json = serde_json::to_value(&settings).expect("settings serialize to JSON");
         g.game.rules.settings = Some(settings);
         self.connections.notify(&game, Notification::UpdateSettings { settings: json });
         self.changed(&game);

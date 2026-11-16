@@ -1,11 +1,15 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct PerformSetup {
     pub resources: u16,
     // ---- inherited from PlacementEvent ----
     pub to: Option<Location>,
+    #[serde(with = "crate::events::wire::force_list")]
+    #[ts(as = "Option<Vec<crate::events::wire::ForceEntry>>")]
     pub force_locations: Option<String>,
+    #[serde(skip)]
     pub passed: bool,
 }
 

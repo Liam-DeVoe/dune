@@ -14,7 +14,7 @@ mod common;
 use common::{load, viewer_of};
 use treachery_engine::events::EventType;
 use treachery_engine::messages::part::Part as P;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_view::actions::ship_move::{default_draft, options, options_and_validation};
@@ -547,7 +547,7 @@ fn adjusted(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Event
     let o = o.expect("the builder does not throw");
     let value = serde_json::to_value(&o).unwrap();
     let text = serde_json::to_string(&value["draft"]).unwrap();
-    let e: Event = json::deserialize::<HistoryEntry>(&text).unwrap_or_else(|err| panic!("the draft reads back: {err:?} {text}")).event;
+    let e: Event = serde_json::from_str(&text).unwrap_or_else(|err| panic!("the draft reads back: {err:?} {text}"));
     assert_eq!(validation, validate(game, game.player(p).faction, e.clone(), d), "the validation is the adjusted draft's");
     e
 }

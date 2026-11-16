@@ -229,7 +229,7 @@ fn replica_follows_events() {
     let mut r = load("alliance");
     let before = r.view(OBSERVER).event_number;
     let emperor = Faction::Emperor as i32;
-    r.apply(&format!(r#"{{"$type":"AlliancePassed","Initiator":{emperor},"Time":"2026-01-01T00:00:00+00:00"}}"#)).unwrap();
+    r.apply(&common::event_text(&serde_json::from_str(&format!(r#"{{"$type":"AlliancePassed","Initiator":{emperor},"Time":"2026-01-01T00:00:00+00:00"}}"#)).unwrap())).unwrap();
     let view = r.view(OBSERVER);
     assert_eq!(view.event_number, before + 1);
     assert!(!view.status.waiting_for.contains(&"Emperor".to_string()));

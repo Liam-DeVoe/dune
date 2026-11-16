@@ -132,7 +132,7 @@ fn fixture_log_lines_match_the_snapshot() {
     let mut failures = Vec::new();
     let mut written = Vec::new();
     for fixture in fixtures {
-        let replica = ViewReplica::load(&common::fixture(fixture)).unwrap();
+        let replica = ViewReplica::load(&common::converted(&common::fixture(fixture))).unwrap();
         let skin = treachery_skin::default_skin();
         let d = InGame::new(&skin, &replica.game);
         let expected: Vec<&Value> = golden.iter().filter(|g| g["fixture"] == fixture).collect();

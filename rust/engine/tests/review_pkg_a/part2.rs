@@ -5,8 +5,7 @@ use treachery_engine::error::catch_panic;
 use treachery_engine::enumerations::*;
 use treachery_engine::events::PlacementEvent;
 use treachery_engine::game::Game;
-use treachery_engine::game::GameState;
-use treachery_engine::json::utilities::Utilities;
+use treachery_legacy::utilities::Utilities;
 
 fn outcome<R: ToString>(f: impl FnOnce() -> R) -> String {
     match catch_panic(f) {
@@ -55,7 +54,7 @@ fn parse_force_locations_edge_cases_match_dotnet() {
 #[test]
 fn game_state_load_matches_dotnet() {
     let ty = |s: &str| -> String {
-        match GameState::load(s) {
+        match treachery_legacy::read_savegame(s) {
             Ok(st) => format!("ok:{}:{}", st.version, st.events.as_ref().map(|e| e.len() as i64).unwrap_or(-1)),
             Err(_) => "exception".to_string(),
         }
@@ -101,7 +100,7 @@ fn dollar_members_in_non_polymorphic_objects_are_ignored() {
     assert_eq!(r, Ok(4));
 
     for (input, version) in [(r#"{"$foo":1,"Version":3}"#, 3), (r#"{"$ref":"1","Version":3}"#, 3), (r#"{"$type":"x","Version":3}"#, 3)] {
-        let r = GameState::load(input).map(|s| s.version).map_err(|e| format!("{}: {}", e.kind, e.message));
+        let r = treachery_legacy::read_savegame(input).map(|s| s.version).map_err(|e| format!("{}: {}", e.kind, e.message));
         assert_eq!(r, Ok(version), "input {input}");
     }
 

@@ -4,12 +4,10 @@
 use treachery_protocol::UserId;
 use std::time::Duration;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 use treachery_engine::enumerations::MainPhase;
-use treachery_engine::enum_type::value_or_absent;
 use treachery_engine::events::{By, Event, HistoryEntry};
 use treachery_engine::game::{GameStatus, Seat};
-use treachery_engine::json::FromJson;
 
 use super::{refuse, Answer, CallError, Server};
 
@@ -26,28 +24,28 @@ impl Server {
     /// the engine validates it as an action of that player and no other. Starting the game is
     /// for hosts, and the server draws the new game's seed, which decides every deck: a seed
     /// chosen by a player would tell them the cards to come.
-    pub(super) async fn submit_event(&mut self, user: UserId, game: &str, mut event: serde_json::Map<String, Value>) -> Answer<()> {
+    pub(super) async fn submit_event(&mut self, user: UserId, game: &str, event: serde_json::Map<String, Value>) -> Answer<()> {
         let game = self.player_of(user, game)?;
         let running = &self.games[&game];
         let (g, participation) = (&running.game, &running.participation);
         let as_host = participation.is_host(user);
         let faction = participation.player_of(g, user).map_or(None, |p| g.player(p).faction);
-        event.insert("Initiator".into(), json!(value_or_absent(faction)));
-        event.remove("Time");
-        match event.get("$type").and_then(Value::as_str) {
-            Some("EstablishPlayers") => {
+        let mut event: Event = serde_json::from_value(Value::Object(event)).map_err(|e| CallError::Refused(ErrorCode::InvalidGameEvent, e.to_string()))?;
+        match &mut event {
+            Event::EstablishPlayers(e) => {
                 if !as_host {
                     return Err(refuse(ErrorCode::NoHost));
                 }
-                event.insert("Seed".into(), json!((self.services.seeds)()));
+                e.seed = (self.services.seeds)();
             }
-            Some("FactionSelected") => {
-                event.insert("Seat".into(), json!(Seat::number_or_minus_one(participation.seat_of(user))));
-                event.insert("InitiatorPlayerName".into(), json!(participation.name_of(user)));
+            Event::FactionSelected(e) => {
+                e.seat = Seat::number_or_minus_one(participation.seat_of(user));
+                e.initiator_player_name = Some(participation.name_of(user));
             }
             _ => {}
         }
-        let event = HistoryEntry::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorCode::InvalidGameEvent, e.message))?;
+        // The submitter is the caller's faction, and the time is set once the event is played.
+        let event = HistoryEntry::new(faction, event);
         // The engine doesn't know who waits for a seat, so the server checks that they fit at
         // the table, in the order of the engine's other checks.
         if let Event::EstablishPlayers(e) = &event.event {

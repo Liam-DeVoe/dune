@@ -8,7 +8,7 @@ use treachery_engine::game::Deal;
 use treachery_engine::messages::part::Part;
 use treachery_engine::events::{AutomationConfigured, By, EventRules, FlightDiscoveryUsed, FlightUsed, HistoryEntry, Karma, KarmaChoamDiscard, Shipment, Voice};
 use treachery_engine::game::Game;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::messages::message::{Message, MessagePart};
 use treachery_skin::default_skin;
 

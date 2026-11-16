@@ -11,7 +11,6 @@
 
 use treachery_engine::events::EventType;
 use treachery_engine::messages::part::Part as P;
-use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_engine::express;
@@ -237,8 +236,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
         }
         _ => {
             // A fresh event of the type.
-            let disc = t.json_discriminator().unwrap_or(t.name());
-            json::deserialize::<HistoryEntry>(&format!(r#"{{"$type":"{disc}"}}"#)).ok()?.event
+            t.default_event()
         }
     })
 }

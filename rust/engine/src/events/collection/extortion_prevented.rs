@@ -1,7 +1,8 @@
 use crate::prelude::*;
 
 /// A player pays 3 spice so that Moritani doesn't get its Extortion token back.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(deny_unknown_fields)]
 pub struct ExtortionPrevented {}
 
 impl ExtortionPrevented {

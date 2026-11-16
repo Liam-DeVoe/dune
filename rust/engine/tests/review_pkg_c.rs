@@ -8,7 +8,7 @@ mod common;
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::*;
 use treachery_engine::game::Game;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::prelude::*;
 
 const T: &str = r#""Time":"2024-01-01T12:00:00+00:00""#;

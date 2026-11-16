@@ -5,7 +5,7 @@ use treachery_engine::enumerations::{Faction, ShipmentType};
 use treachery_engine::events::{By, EventRules, Shipment};
 use treachery_engine::events::HistoryEntry;
 use treachery_engine::game::{Game, Seat};
-use treachery_engine::json;
+use treachery_legacy as json;
 
 // Same text as ReviewA.Establish (step 1 of fuzz-2026-00018).
 // The seed deals Fremen, Ecaz and Richese, as the probes below expect (game version 189).

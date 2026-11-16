@@ -13,13 +13,13 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// An event in savegame JSON, for the client to submit as it is.
+/// An event for the client to submit as it is (`crate::wire`).
 fn event_json(by: Option<Faction>, e: Event) -> serde_json::Value {
-    entry_json(&HistoryEntry::new(by, e))
+    crate::wire::event_json(by, &e)
 }
 
 fn entry_json(e: &HistoryEntry) -> serde_json::Value {
-    serde_json::from_str(&treachery_engine::json::serialize(e)).expect("events serialize to JSON")
+    crate::wire::entry_json(e)
 }
 
 /// The deals panel of a seated player (observers have no trade icons):

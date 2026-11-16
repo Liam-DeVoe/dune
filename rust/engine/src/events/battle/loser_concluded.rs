@@ -1,8 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct LoserConcluded {
     pub karma_forced_kept_card_decision: i32,
+    #[serde(with = "crate::events::wire::id_list")]
+    #[ts(as = "Option<Vec<i32>>")]
     pub forced_kept_or_discarded_card_ids: Option<String>,
     pub assassinate: bool,
     pub kept_card: Option<TreacheryCard>,

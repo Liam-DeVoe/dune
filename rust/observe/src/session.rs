@@ -15,7 +15,6 @@ use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{EventType, HistoryEntry};
 use treachery_engine::messages::part::Part;
 use treachery_engine::game::Game;
-use treachery_engine::json;
 use treachery_engine::messages::message::Message;
 use treachery_engine::prelude::*;
 use treachery_engine::game::PlayerId;
@@ -41,6 +40,8 @@ pub struct Session {
     /// Number of log messages already reported.
     log_seen: usize,
     pub full_views: bool,
+    /// The latest bot decision, as the bot made it: the recorder's fuzzer changes it.
+    pub last_decision: Option<HistoryEntry>,
     /// How views are hashed: [`ViewHash::LATEST`] when recording, what the trace says when
     /// replaying.
     pub view_hash: ViewHash,
@@ -98,7 +99,7 @@ impl Session {
         let (human_seats, seating) = seats(seated);
         let mut game = Game::of_version(version);
         game.human_seats = human_seats;
-        Session { game, seating, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, view_hash: ViewHash::LATEST }
+        Session { game, seating, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, last_decision: None, view_hash: ViewHash::LATEST }
     }
 
     pub fn player_count(&self) -> usize {
@@ -170,8 +171,8 @@ impl Session {
             Ok(Err(e)) | Ok(Ok(Err(e))) => BotsResult { error: Some(e), ..Default::default() },
             Ok(Ok(Ok(None))) => BotsResult::default(),
             Ok(Ok(Ok(Some((p, level, e))))) => {
-                let text = json::serialize(&e);
-                let event: Value = serde_json::from_str(&text).unwrap_or(Value::String(text));
+                let event = crate::events::encode(&e);
+                self.last_decision = Some(e);
                 BotsResult { choice: Some(BotChoice { p, level: LEVELS[level].to_string(), event }), ..Default::default() }
             }
         };
@@ -179,10 +180,10 @@ impl Session {
     }
 
     /// Executes an event with validation, as the server does for a submission.
-    pub fn submit(&mut self, event_json: &str, host: bool) -> Result<EventOutcome, Panicked> {
-        match json::deserialize(event_json) {
+    pub fn submit(&mut self, event: &Value, host: bool) -> Result<EventOutcome, Panicked> {
+        match crate::events::decode(event) {
             Ok(e) => self.submit_event(e, host),
-            Err(e) => Ok(EventOutcome { result: "unreadable".into(), message: Some(format!("{e:?}")), obs: Obs::default() }),
+            Err(e) => Ok(EventOutcome { result: "unreadable".into(), message: Some(e), obs: Obs::default() }),
         }
     }
 
@@ -270,7 +271,7 @@ impl Session {
         });
         let done = replica.game.event_count() as usize;
         for (nr, e) in self.game.history.entries.iter().enumerate().skip(done) {
-            let text = json::serialize(e);
+            let text = serde_json::to_string(e).expect("history entries serialize");
             match guarded(|| replica.apply(&text))? {
                 Ok(Ok(())) => {}
                 Ok(Err(m)) | Err(m) => {

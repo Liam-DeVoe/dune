@@ -7,7 +7,6 @@
 //! draft.
 
 use treachery_engine::events::EventType;
-use treachery_engine::json;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate, ResolvedViewer, Seating, Viewer};
@@ -133,12 +132,12 @@ pub enum QueryError {
 }
 
 /// A draft query (protocol.md, Dependent inputs): the options and validation of a form for the
-/// inputs the player has chosen so far. `draft_json` is the event in savegame JSON. Its
-/// `Initiator` is replaced by the viewer's faction, as the server does on submission.
+/// inputs the player has chosen so far. `draft_json` is the event as the client submits it
+/// (`{"type":..}`). Its submitter is the viewer's faction, as the server makes it on submission.
 /// `applicable` is the viewer's applicable event types from the view they are looking at.
 pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[EventType], draft_json: &str, d: &dyn Describer) -> Result<DraftResult, QueryError> {
     let v = viewer.resolve(game);
-    let draft: Event = json::deserialize::<HistoryEntry>(draft_json).map_err(|e| QueryError::BadJson(format!("{e:?}")))?.event;
+    let draft: Event = serde_json::from_str(draft_json).map_err(|e| QueryError::BadJson(e.to_string()))?;
     if (v.player.is_none() || v.is_observer) && !setup::seatless_host_may_act(&v, draft.event_type()) {
         return Err(QueryError::NotAPlayer);
     }

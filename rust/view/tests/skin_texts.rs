@@ -101,7 +101,7 @@ fn milestones_follow_each_event() {
         let events = v["_events"].as_array().unwrap();
         let mut r = load_text(&truncated(name, 1));
         for e in events.iter().skip(1) {
-            r.apply(&e.to_string()).unwrap();
+            r.apply(&common::event_text(e)).unwrap();
             let view = r.view(OBSERVER);
             let expected: Vec<String> = r.game.turn.recent_milestones.iter().map(|m| m.to_string()).collect();
             assert_eq!(view.recent_milestones, expected);

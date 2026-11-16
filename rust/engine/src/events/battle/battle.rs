@@ -1,7 +1,8 @@
 use crate::prelude::*;
 
 /// A faction's battle plan: leader, forces dialed, spice, weapon and defense.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct Battle {
     pub hero: Option<Hero>,
     pub messiah: bool,

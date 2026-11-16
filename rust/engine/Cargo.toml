@@ -7,12 +7,14 @@ license.workspace = true
 [dependencies]
 dotnet-compat = { path = "../dotnet-compat" }
 either = "1"
-indexmap = "2"
+indexmap = { version = "2", features = ["serde"] }
 rand = { version = "0.9", default-features = false, features = ["alloc"] }
 rand_chacha = { version = "0.9", default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
-ts-rs = { version = "12", default-features = false }
+ts-rs = { version = "12", default-features = false, features = ["serde-compat", "indexmap-impl"] }
 
 [dev-dependencies]
+# Old savegames and event JSON in test data.
+treachery-legacy = { path = "../legacy" }
 sha2 = "0.10"

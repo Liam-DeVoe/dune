@@ -9,7 +9,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use treachery_engine::events::HistoryEntry;
-use treachery_engine::json;
+use treachery_legacy as json;
 
 fn traces(dir: &Path, out: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(dir).unwrap() {

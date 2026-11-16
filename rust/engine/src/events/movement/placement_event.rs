@@ -13,7 +13,7 @@ impl PlacementEvent {
     }
 
     /// An amount in a force list. Panics on text that isn't a number, as C# threw. The JSON
-    /// reader has refused amounts outside 0 to 65535 (`json::read_force_locations`).
+    /// reader has refused amounts outside 0 to 65535 (`wire::force_list`).
     pub fn parse_force_amount(s: &str) -> u16 {
         let n = dotnet_compat::parse::convert_to_int32(Some(s));
         u16::try_from(n).expect("an amount of forces the event JSON reader accepted")

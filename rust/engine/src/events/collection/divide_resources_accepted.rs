@@ -1,8 +1,10 @@
 use crate::prelude::*;
 
 /// The other faction agrees to the proposed division of collected spice, or doesn't.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct DivideResourcesAccepted {
+    #[serde(skip)]
     pub passed: bool,
 }
 

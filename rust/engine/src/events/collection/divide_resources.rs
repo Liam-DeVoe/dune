@@ -2,9 +2,11 @@ use crate::prelude::*;
 
 /// The first faction of a shared collection proposes how to divide the spice, or passes to split
 /// it evenly.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct DivideResources {
     pub portion_to_first_player: u16,
+    #[serde(skip)]
     pub passed: bool,
 }
 

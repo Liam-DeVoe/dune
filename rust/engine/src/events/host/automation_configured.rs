@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct AutomationConfigured {
     /// The rule to delete. A created rule gets its id in [`AutomationRuleState`].
     pub automation_rule_id: i32,

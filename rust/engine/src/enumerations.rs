@@ -802,10 +802,11 @@ game_enum! {
     get_values [Dial, Leader, Weapon, Defense]
 }
 
-/// What the Guild allows a faction to do with its shipments. C# had a `[Flags]` enum, and event
-/// JSON still writes it as that number: `Cross` 1, `ToHomeworld` 2, `GuildRate` 4. A number with
-/// any other bit set doesn't decode.
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Default)]
+/// What the Guild allows a faction to do with its shipments. C# had a `[Flags]` enum (`Cross` 1,
+/// `ToHomeworld` 2, `GuildRate` 4), which the savegames of version 190 and before still hold.
+/// Events write the three bools.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShipmentPermission {
     /// Ship from the planet to another faction's homeworld.
     pub cross: bool,
@@ -890,7 +891,7 @@ impl std::fmt::Debug for ShipmentPermission {
     }
 }
 
-impl crate::json::JsonNullable for ShipmentPermission {}
+
 
 game_enum! {
     closed UserStatus {

@@ -15,7 +15,7 @@ fn fixtures_dir() -> String {
 
 fn load(name: &str) -> Game {
     let path = format!("{}/{name}.json", fixtures_dir());
-    let state = GameState::load(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let state = treachery_legacy::load_any(&std::fs::read_to_string(&path).unwrap()).unwrap();
     Game::load(&state, &Default::default(), false, false).unwrap_or_else(|_| panic!("{name} loads"))
 }
 

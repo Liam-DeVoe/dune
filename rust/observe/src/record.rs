@@ -9,7 +9,6 @@ use std::sync::mpsc::Sender;
 use serde_json::{Map, Value};
 use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, FactionSelected, EventType, HistoryEntry, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
-use treachery_engine::json;
 use treachery_engine::prelude::*;
 
 use crate::config::{Config, HostStyle};
@@ -66,11 +65,13 @@ fn time_text(secs: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}+00:00", rem / 3600, rem / 60 % 60, rem % 60)
 }
 
+/// An event as the fuzzer builds and changes events: an object of the old format (fuzz.rs).
 fn to_object(e: &HistoryEntry) -> Map<String, Value> {
-    match serde_json::from_str(&json::serialize(e)) {
-        Ok(Value::Object(m)) => m,
-        _ => Map::new(),
-    }
+    crate::events::legacy_object(e)
+}
+
+fn json_object(e: &HistoryEntry) -> Map<String, Value> {
+    to_object(e)
 }
 
 impl<'a> Recorder<'a> {
@@ -113,13 +114,18 @@ impl<'a> Recorder<'a> {
         let r = self.rng.f64();
         self.clock += if r < 0.02 { 7200 + self.rng.range(0, 3600) as i64 } else { self.rng.range(1, 120) as i64 };
         event.insert("Time".into(), Value::String(time_text(self.clock)));
+        // The trace and the game get the event in the engine's format (events.rs).
+        let (recorded, decoded) = crate::events::to_trace(&event);
         let event = Value::Object(event);
         self.events += 1;
         let phase = self.sess.game.turn.current_phase;
         let type_name = event.get("$type").and_then(|t| t.as_str()).unwrap_or("").to_string();
-        let mut line = Line::Event { src: src.into(), p, host, event: event.clone(), outcome: Default::default() };
+        let mut line = Line::Event { src: src.into(), p, host, event: recorded, outcome: Default::default() };
         self.begin(&line);
-        let outcome = self.sess.submit(&event.to_string(), host);
+        let outcome = match decoded {
+            Ok(e) => self.sess.submit_event(e, host),
+            Err(e) => Ok(trace::EventOutcome { result: "unreadable".into(), message: Some(e), obs: Default::default() }),
+        };
         let (outcome, stop) = match outcome {
             Ok(o) => (o, None),
             Err(e) => (trace::EventOutcome { result: "panic".into(), ..Default::default() }, Some(Stop::from(e))),
@@ -489,9 +495,10 @@ impl<'a> Recorder<'a> {
             };
 
             let host = self.cfg.style == HostStyle::Tests || choice.level == "End";
-            let event = match choice.event {
-                Value::Object(m) => m,
-                _ => return Err(Stop("botException".into(), Some("bot event did not serialize".into()))),
+            // The decision as the bot made it, in the old format the fuzzer changes events in.
+            let event = match self.sess.last_decision.take() {
+                Some(e) => json_object(&e),
+                None => return Err(Stop("botException".into(), Some("bot event did not serialize".into()))),
             };
             if self.fuzz.is_some() {
                 // A bot that keeps sending the same accepted event (AllyPermission when its

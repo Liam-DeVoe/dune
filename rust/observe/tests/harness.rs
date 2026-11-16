@@ -112,7 +112,7 @@ fn tampered_traces_fail() {
     // A bot decision.
     let mut t = lines.clone();
     let i = find(&t, 0, |l| is_op(l, "bots") && l["choice"].is_object());
-    t[i]["choice"]["event"]["Time"] = Value::String("2030-01-01T00:00:00+00:00".into());
+    t[i]["choice"]["event"]["at"] = Value::String("2030-01-01T00:00:00Z".into());
     assert_eq!(failure_key(&replay_lines(&t, Allow::default())), "bot");
     assert!(!matches!(replay_lines(&t, Allow::parse("bots").unwrap()), Outcome::Fail(ref m) if m.line == i + 1));
 
@@ -127,14 +127,17 @@ fn tampered_traces_fail() {
     assert!(matches!(replay_lines(&t, Allow::default()), Outcome::Bad(_)));
 }
 
-/// Writes an event differently without changing what it decodes to: the members after `$type`
-/// in reverse order, and a member the reader doesn't know.
-fn reencode(event: &Value) -> Value {
-    let Value::Object(m) = event else { panic!("an event object: {event}") };
-    let mut members: Vec<(String, Value)> = m.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
-    members[1..].reverse();
-    members.push(("NotAField".into(), Value::from(1)));
-    Value::Object(members.into_iter().collect())
+/// Writes an event differently without changing what it decodes to: the members of the entry,
+/// the event and its `play` in reverse order. (An unknown member doesn't decode.)
+fn reencode(entry: &Value) -> Value {
+    fn reversed(v: &Value) -> Value {
+        let Value::Object(m) = v else { return v.clone() };
+        let mut members: Vec<(String, Value)> = m.iter().map(|(k, v)| (k.clone(), if k == "event" || k == "play" { reversed(v) } else { v.clone() })).collect();
+        members.reverse();
+        Value::Object(members.into_iter().collect())
+    }
+    assert!(entry.get("event").is_some(), "an entry: {entry}");
+    reversed(entry)
 }
 
 #[test]
@@ -149,7 +152,7 @@ fn events_are_compared_decoded_not_as_text() {
             }
             if l["op"] == "bots" && l["choice"].is_object() {
                 let e = reencode(&l["choice"]["event"]);
-                assert_ne!(e, l["choice"]["event"], "the JSON differs");
+                assert_ne!(e.to_string(), l["choice"]["event"].to_string(), "the JSON differs");
                 l["choice"]["event"] = e;
                 changed += 1;
             }
@@ -163,36 +166,48 @@ fn events_are_compared_decoded_not_as_text() {
 #[test]
 fn bot_decisions_compare_through_the_working_trees_encoding() {
     let lines = record("bots", 1, false);
-    let i = find(&lines, 0, |l| l["op"] == "bots" && l["choice"].is_object());
-    let event = &lines[i]["choice"]["event"];
+    // The event's own fields: in `play` for an event that can be passed.
+    fn own(e: &mut Value) -> Option<&mut serde_json::Map<String, Value>> {
+        let ev = e.get_mut("event")?;
+        if ev.get("play").is_some() { ev.get_mut("play")?.as_object_mut() } else { ev.as_object_mut() }
+    }
     // A member left out decodes to its default. If that's the value it had, the event is the same.
-    let defaults: Vec<String> = event
-        .as_object()
-        .unwrap()
-        .keys()
-        .filter(|k| *k != "$type")
-        .filter(|k| {
-            let mut e = event.clone();
-            e.as_object_mut().unwrap().shift_remove(k.as_str());
-            observe::events::normalize_reference(&e).unwrap() == observe::events::normalize_reference(event).unwrap()
-        })
-        .cloned()
-        .collect();
-    assert!(!defaults.is_empty(), "no member of {event} has its default value");
+    let without = |e: &Value, k: &str| -> Value {
+        let mut e = e.clone();
+        if let Some(o) = own(&mut e) {
+            o.shift_remove(k);
+        }
+        e
+    };
+    let defaults_of = |entry: &Value| -> Vec<String> {
+        let mut probe = entry.clone();
+        let keys: Vec<String> = own(&mut probe).map(|o| o.keys().cloned().collect()).unwrap_or_default();
+        keys.into_iter()
+            .filter(|k| k != "type")
+            .filter(|k| observe::events::normalize_reference(&without(entry, k)).unwrap() == observe::events::normalize_reference(entry).unwrap())
+            .collect()
+    };
+    // The first decision with a member that has its default value.
+    let i = (0..lines.len())
+        .find(|&i| lines[i]["op"] == "bots" && lines[i]["choice"].is_object() && !defaults_of(&lines[i]["choice"]["event"]).is_empty())
+        .expect("a decision with a member at its default");
+    let entry = &lines[i]["choice"]["event"];
+    let defaults = defaults_of(entry);
+    assert!(!defaults.is_empty(), "no member of {entry} has its default value");
     let mut t = lines.clone();
     for k in &defaults {
-        t[i]["choice"]["event"].as_object_mut().unwrap().shift_remove(k.as_str());
+        t[i]["choice"]["event"] = without(&t[i]["choice"]["event"], k);
     }
     assert!(replay_lines(&t, Allow::default()).passed());
 
     // A different value of a member that is read does fail.
     let mut t = lines.clone();
-    t[i]["choice"]["event"]["Time"] = Value::String("2030-01-01T00:00:00+00:00".into());
+    t[i]["choice"]["event"]["at"] = Value::String("2030-01-01T00:00:00Z".into());
     assert_eq!(failure_key(&replay_lines(&t, Allow::default())), "bot");
 
     // So does an event the working tree can't read.
     let mut t = lines.clone();
-    t[i]["choice"]["event"]["$type"] = Value::String("NoSuchEvent".into());
+    t[i]["choice"]["event"]["event"]["type"] = Value::String("NoSuchEvent".into());
     match replay_lines(&t, Allow::default()) {
         Outcome::Fail(m) => {
             assert_eq!(m.key, "bot");

@@ -4,7 +4,7 @@
 
 mod common;
 
-use common::{fixture, load, load_text, truncated, viewer_of, OBSERVER};
+use common::{event_text, fixture, load, load_text, truncated, viewer_of, OBSERVER};
 use treachery_engine::events::DealAccepted;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
@@ -35,13 +35,13 @@ fn each_state(name: &str, mut each: impl FnMut(&mut ViewReplica, usize)) {
     let mut r = load_text(&truncated(name, 1));
     each(&mut r, 1);
     for (i, e) in events.iter().enumerate().skip(1) {
-        r.apply(&e.to_string()).unwrap_or_else(|m| panic!("{name} event {i}: {m}"));
+        r.apply(&event_text(e)).unwrap_or_else(|m| panic!("{name} event {i}: {m}"));
         each(&mut r, i + 1);
     }
 }
 
 fn parse_event(v: &serde_json::Value) -> HistoryEntry {
-    treachery_engine::json::deserialize(&v.to_string()).unwrap_or_else(|e| panic!("{v}: {e:?}"))
+    HistoryEntry::new(None, serde_json::from_value::<Event>(v.clone()).unwrap_or_else(|e| panic!("{v}: {e}")))
 }
 
 /// The offer an id names, which the `DealOffered` at that place in the history made.

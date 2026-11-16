@@ -113,7 +113,7 @@ mod tests {
         assert_eq!(bot_delay(MainPhase::Battle, None), 9600);
         assert_eq!(bot_delay(MainPhase::Charity, None), 2400);
         assert_eq!(bot_delay(MainPhase::Bidding, None), 4800);
-        let bid: treachery_engine::events::HistoryEntry = treachery_engine::json::deserialize(r#"{"$type":"Bid","Initiator":20,"Amount":1}"#).unwrap();
+        let bid: treachery_engine::events::HistoryEntry = serde_json::from_str(r#"{"by":"Atreides","at":"0001-01-01T00:00:00Z","event":{"type":"Bid","play":{"amount":1}}}"#).unwrap();
         assert_eq!(bot_delay(MainPhase::Bidding, Some(&bid.event)), 1600);
     }
 }

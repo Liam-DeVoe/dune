@@ -13,7 +13,6 @@
 
 use serde_json::Value;
 use dotnet_compat::exception::CsException;
-use treachery_engine::json::write_escaped;
 use treachery_engine::enum_type::GameEnum;
 use crate::point::PointD;
 
@@ -416,4 +415,34 @@ fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<
 fn keys_of(json: &str) -> Vec<String> {
     let v: Value = serde_json::from_str(json).unwrap();
     v.as_object().unwrap().keys().cloned().collect()
+}
+
+/// `JavaScriptEncoder.Default` escaping, as System.Text.Json wrote skins.
+fn write_escaped(out: &mut String, s: &str) {
+    use std::fmt::Write as _;
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '\u{8}' => out.push_str("\\b"),
+            '\t' => out.push_str("\\t"),
+            '\n' => out.push_str("\\n"),
+            '\u{c}' => out.push_str("\\f"),
+            '\r' => out.push_str("\\r"),
+            '"' | '&' | '\'' | '+' | '<' | '>' | '`' | '\u{7f}' => {
+                let _ = write!(out, "\\u{:04X}", c as u32);
+            }
+            c if (c as u32) < 0x20 => {
+                let _ = write!(out, "\\u{:04X}", c as u32);
+            }
+            c if c.is_ascii() => out.push(c),
+            c => {
+                let mut buf = [0u16; 2];
+                for unit in c.encode_utf16(&mut buf) {
+                    let _ = write!(out, "\\u{:04X}", unit);
+                }
+            }
+        }
+    }
+    out.push('"');
 }

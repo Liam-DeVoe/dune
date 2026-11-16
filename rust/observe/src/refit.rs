@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, Event, EventType, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
-use treachery_engine::json;
+use treachery_legacy as json;
 use treachery_engine::prelude::*;
 
 use crate::fuzz::Fuzzer;
@@ -148,8 +148,7 @@ impl Refit {
 
     /// Executes an event; true if it was accepted (it joined the history).
     fn execute(&mut self, event: &Map<String, Value>, validate: bool, host: bool) -> bool {
-        let text = Value::Object(event.clone()).to_string();
-        let Ok(e) = json::deserialize::<HistoryEntry>(&text) else { return false };
+        let Ok(e) = crate::events::decode(&Value::Object(event.clone())) else { return false };
         let before = self.game.history.entries.len();
         let game = &mut self.game;
         let r = quiet(|| game.play(e, validate, host));

@@ -11,7 +11,6 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use treachery_engine::events::EventType;
-use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{self, battle};
@@ -47,11 +46,11 @@ fn cards_by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i3
 /// back to the same JSON.
 fn check_draft(draft: &serde_json::Value, t: EventType, at: &str) -> Event {
     let text = draft.to_string();
-    let entry: HistoryEntry = json::deserialize(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
-    assert_eq!(entry.event_type(), t, "{at}");
-    let again: serde_json::Value = serde_json::from_str(&json::serialize(&entry)).unwrap();
+    let event: Event = serde_json::from_str(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
+    assert_eq!(event.event_type(), t, "{at}");
+    let again = serde_json::to_value(&event).unwrap();
     assert_eq!(&again, draft, "{at}: the draft doesn't survive the engine's JSON");
-    entry.event
+    event
 }
 
 /// Every battle form carries its draft; take it from the serialized options.
@@ -308,7 +307,7 @@ fn battle_forms_in_fixtures() {
     names.sort();
     for name in names {
         let text = common::fixture(&name);
-        let Ok(mut r) = ViewReplica::load(&text) else { continue };
+        let Ok(mut r) = ViewReplica::load(&common::converted(&text)) else { continue };
         check_all_players(&mut r.game, &*d, &mut stats, &name);
     }
     eprintln!("fixtures: {:?}", stats.0);
@@ -421,7 +420,7 @@ const RARE: &[&str] = &[
 /// pointed at the Great Flat, the first two factions get forces in it, the first owns it and
 /// Arrakeen, and the battle between them starts there.
 fn hms_battle_state() -> ViewReplica {
-    let mut r = ViewReplica::load(&common::fixture("battle")).expect("battle fixture loads");
+    let mut r = common::load_raw(&common::fixture("battle")).expect("battle fixture loads");
     let g = &mut r.game;
     let flat = g.board.map.the_great_flat();
     let hms = g.board.map.hidden_mobile_stronghold();

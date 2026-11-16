@@ -1,7 +1,11 @@
-//! Byte-exact System.Text.Json for events and savegames, as configured in
-//! `Model/Utilities.cs` (`new JsonSerializerOptions { IncludeFields = true }`).
-//! Support module; the per-type member lists are in
-//! members.rs.
+//! The event and savegame JSON of game version 190 and before: byte-exact System.Text.Json, as
+//! the C# version configured it in `Model/Utilities.cs` (`new JsonSerializerOptions {
+//! IncludeFields = true }`). The per-type member lists are in members.rs.
+//!
+//! Version 191 replaced this format with the engine's serde format (rewrite-plan.md, "Wire
+//! format"). This crate reads the old one, to convert a savegame or a stored game once
+//! ([`load_savegame`]), and the harness reads and writes it for traces of a reference that
+//! records the old format (native-harness.md).
 //!
 //! Writing is hand-rolled so the output matches .NET byte for byte: members in
 //! the order C# declares them, enums as numbers, nulls written, compact, and the
@@ -26,10 +30,8 @@ use std::fmt::Write as _;
 
 use indexmap::IndexMap;
 
-use crate::compat::date_time_offset::DateTimeOffset;
-use crate::events::{Event, EventType, HistoryEntry};
-use crate::enumerations::Faction;
-use crate::enum_type::GameEnum;
+use treachery_engine::enum_type::GameEnum;
+use treachery_engine::prelude::*;
 
 pub type JsonValue = serde_json::Value;
 
@@ -223,7 +225,7 @@ impl JsonNullable for String {}
 impl<T> JsonNullable for Vec<T> {}
 impl<K, V> JsonNullable for IndexMap<K, V> {}
 impl JsonNullable for HistoryEntry {}
-impl JsonNullable for crate::game::GameSettings {}
+impl JsonNullable for treachery_engine::game::GameSettings {}
 
 /// A C# class serialized as a JSON object (events, `GameSettings`).
 pub trait JsonObject: Default {
@@ -514,15 +516,15 @@ pub fn read_force_locations(v: &JsonValue) -> Result<Option<String>, JsonError> 
     Ok(s)
 }
 
-impl ToJson for crate::game::Turn {
+impl ToJson for treachery_engine::game::Turn {
     fn write_json(&self, w: &mut JsonWriter) {
         w.int(self.number() as i64)
     }
 }
 
-impl FromJson for crate::game::Turn {
+impl FromJson for treachery_engine::game::Turn {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        read_bounded::<u8>(v, "turn").map(crate::game::Turn::new)
+        read_bounded::<u8>(v, "turn").map(treachery_engine::game::Turn::new)
     }
 }
 
@@ -544,17 +546,51 @@ impl FromJson for String {
     }
 }
 
-impl<T: GameEnum> ToJson for T {
-    fn write_json(&self, w: &mut JsonWriter) {
-        w.int(self.value() as i64)
-    }
+/// An enum is written as its number. `Option` of an enum whose C# type had a `None` member
+/// writes absence as 0, as C# did; `Option` of any other enum writes `null`.
+macro_rules! json_enum {
+    (absent: $($t:ty),*; nullable: $($n:ty),* $(,)?) => {
+        $(json_enum!(@one $t);
+        impl ToJson for Option<$t> {
+            fn write_json(&self, w: &mut JsonWriter) {
+                w.int(treachery_engine::enum_type::value_or_absent(*self) as i64)
+            }
+        }
+        impl FromJson for Option<$t> {
+            fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
+                let n = i32::from_json(v)?;
+                treachery_engine::enum_type::from_value_or_absent(n).map_err(|e| JsonError::new("JsonException", e))
+            }
+        }
+        impl EnumKey for $t {})*
+        $(json_enum!(@one $n);
+        impl JsonNullable for $n {}
+        impl EnumKey for $n {})*
+    };
+    (@one $t:ty) => {
+        impl ToJson for $t {
+            fn write_json(&self, w: &mut JsonWriter) {
+                w.int(GameEnum::value(*self) as i64)
+            }
+        }
+        impl FromJson for $t {
+            fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
+                let n = i32::from_json(v)?;
+                <$t as GameEnum>::from_value(n).ok_or_else(|| JsonError::new("JsonException", treachery_engine::enum_type::undefined_value::<$t>(n)))
+            }
+        }
+    };
 }
 
-impl<T: GameEnum> FromJson for T {
-    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        let n = i32::from_json(v)?;
-        T::from_value(n).ok_or_else(|| JsonError::new("JsonException", crate::enum_type::undefined_value::<T>(n)))
-    }
+/// An enum that keys a dictionary.
+pub trait EnumKey: GameEnum {}
+
+json_enum! {
+    absent: Faction, Nexus, Ambassador, TechToken, MainPhase, MainPhaseMoment, ChoamEconomicsStatus, Phase, Milestone, FactionAdvantage,
+        FactionForce, FactionSpecialForce, Ruleset, DiscoveryToken, DiscoveryTokenType, Rule, RuleGroup, TreacheryCardType, Concept,
+        WinMethod, HeroType, AuctionType, JuiceType, LeaderSkill, StrongholdAdvantage, World, CaptureDecision, TerrorType, IntrusionType,
+        VidalMoment, ClairVoyanceAnswer, ClairvoyanceQuestion, PrescienceAspect;
+    nullable: DealType, ShipmentType, AutomationRuleType, ItemAction, ShipmentPermission,
 }
 
 impl ToJson for DateTimeOffset {
@@ -610,11 +646,11 @@ macro_rules! json_handle {
 }
 
 json_handle! {
-    crate::map::location::Location => "Location", crate::map::location::Location::from_id;
-    crate::map::territory::Territory => "Territory", crate::map::territory::Territory::from_id;
-    crate::heroes::leader::Leader => "Leader", |id| crate::identity::Fetcher::find(&crate::heroes::leader_manager::LeaderManager::leader_lookup(), id);
-    crate::heroes::hero::Hero => "Hero", |id| crate::identity::Fetcher::find(&crate::heroes::leader_manager::LeaderManager::hero_lookup(), id);
-    crate::cards::treachery_card::TreacheryCard => "TreacheryCard", |id| crate::identity::Fetcher::find(&crate::cards::treachery_card_manager::TreacheryCardManager::lookup(), id);
+    treachery_engine::map::location::Location => "Location", treachery_engine::map::location::Location::from_id;
+    treachery_engine::map::territory::Territory => "Territory", treachery_engine::map::territory::Territory::from_id;
+    treachery_engine::heroes::leader::Leader => "Leader", |id| treachery_engine::identity::Fetcher::find(&treachery_engine::heroes::leader_manager::LeaderManager::leader_lookup(), id);
+    treachery_engine::heroes::hero::Hero => "Hero", |id| treachery_engine::identity::Fetcher::find(&treachery_engine::heroes::leader_manager::LeaderManager::hero_lookup(), id);
+    treachery_engine::cards::treachery_card::TreacheryCard => "TreacheryCard", |id| treachery_engine::identity::Fetcher::find(&treachery_engine::cards::treachery_card_manager::TreacheryCardManager::lookup(), id);
 }
 
 impl<T: ToJson> ToJson for Vec<T> {
@@ -638,7 +674,7 @@ impl<T: FromJson> FromJson for Vec<T> {
 
 /// `Dictionary<TEnum, V>`: keys are written as enum names (`ToString()`), and
 /// read leniently: trimmed, case-insensitive names or integers.
-impl<K: GameEnum, V: ToJson> ToJson for IndexMap<K, V> {
+impl<K: EnumKey, V: ToJson> ToJson for IndexMap<K, V> {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
         for (k, v) in self.iter() {
@@ -649,7 +685,7 @@ impl<K: GameEnum, V: ToJson> ToJson for IndexMap<K, V> {
     }
 }
 
-impl<K: GameEnum, V: FromJson> FromJson for IndexMap<K, V> {
+impl<K: EnumKey, V: FromJson> FromJson for IndexMap<K, V> {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         let mut result = IndexMap::new();
         for (key, value) in object_members(v)? {
@@ -671,7 +707,7 @@ fn parse_enum_key<K: GameEnum>(s: &str) -> Option<K> {
 
 // ---- objects ----
 
-impl ToJson for crate::game::GameSettings {
+impl ToJson for treachery_engine::game::GameSettings {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
         JsonObject::write_members(self, w);
@@ -679,7 +715,7 @@ impl ToJson for crate::game::GameSettings {
     }
 }
 
-impl FromJson for crate::game::GameSettings {
+impl FromJson for treachery_engine::game::GameSettings {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         read_object(&object_members(v)?)
     }
@@ -689,13 +725,9 @@ impl FromJson for crate::game::GameSettings {
 /// event's members, then `Initiator` and `Time`.
 impl ToJson for HistoryEntry {
     fn write_json(&self, w: &mut JsonWriter) {
-        let t = self.event.event_type();
-        let Some(discriminator) = t.json_discriminator() else {
-            panic!("Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.GameEvent'.", t.name());
-        };
         w.object_value();
-        w.member("$type", discriminator);
-        JsonMembers::write_members(self.event.json_members(), w);
+        w.member("$type", self.event.event_type().name());
+        write_event_members(&self.event, w);
         w.member("Initiator", &self.by);
         w.member("Time", &self.at);
         w.end_object();
@@ -719,14 +751,14 @@ impl FromJson for HistoryEntry {
         if let Some((k, _)) = members.get(1).filter(|(k, _)| matches!(k.as_str(), "$id" | "$ref" | "$type" | "$values")) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
         }
-        let t = EventType::from_json_discriminator(name).ok_or_else(|| JsonError::unrecognized_discriminator(name))?;
+        let t = EventType::from_name(name).ok_or_else(|| JsonError::unrecognized_discriminator(name))?;
         // A polymorphic type rejects any other metadata member.
         if let Some((k, _)) = members[1..].iter().find(|(k, _)| k.starts_with('$')) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
         }
         let mut by: Option<Faction> = None;
         let mut at = DateTimeOffset::default();
-        let event = Event::read_json(t, &members[1..], &mut |k, v| {
+        let event = read_event(t, &members[1..], &mut |k, v| {
             match k {
                 "Initiator" => by = FromJson::from_json(v)?,
                 "Time" => at = FromJson::from_json(v)?,
@@ -734,12 +766,18 @@ impl FromJson for HistoryEntry {
             }
             Ok(true)
         })?;
-        Ok(HistoryEntry { by, at, event, id: crate::events::EntryId::fresh() })
+        Ok(HistoryEntry { by, at, event, id: treachery_engine::events::EntryId::fresh() })
     }
 }
 
-/// `GameState`: `{"Version":...,"_events":[...]}`.
-impl ToJson for crate::game::GameState {
+/// A savegame in the old format: `{"Version":...,"_events":[...]}`.
+#[derive(Clone, Debug, Default)]
+pub struct LegacyGameState {
+    pub version: i32,
+    pub events: Option<Vec<HistoryEntry>>,
+}
+
+impl ToJson for LegacyGameState {
     fn write_json(&self, w: &mut JsonWriter) {
         w.object_value();
         w.member("Version", &self.version);
@@ -748,9 +786,9 @@ impl ToJson for crate::game::GameState {
     }
 }
 
-impl FromJson for crate::game::GameState {
+impl FromJson for LegacyGameState {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        let mut result = crate::game::GameState::default();
+        let mut result = LegacyGameState { version: 0, events: Some(Vec::new()) };
         for (k, v) in object_members(v)? {
             match k.as_str() {
                 "Version" => result.version = FromJson::from_json(&v)?,
@@ -775,4 +813,95 @@ impl FromJson for crate::game::GameState {
         }
         Ok(result)
     }
+}
+
+/// The last game version whose savegames are in this format. Its rules are those of the
+/// version after it, which changed only the format.
+pub const LAST_LEGACY_VERSION: i32 = 190;
+
+/// Whether `text` looks like a savegame in the old format (`Version` and `_events`), rather
+/// than the engine's (`version` and `events`). It only looks at the first member name.
+pub fn is_legacy_savegame(text: &str) -> bool {
+    let rest = text.trim_start().strip_prefix('{').unwrap_or("").trim_start();
+    rest.starts_with("\"Version\"") || rest.starts_with("\"_events\"") || rest.starts_with("\"$")
+}
+
+/// Reads a savegame in the old format as it was written.
+pub fn read_savegame(data: &str) -> Result<LegacyGameState, JsonError> {
+    // Old savegames named their types "Treachery.online.*". The replacement also changes
+    // any text in the savegame that contains the string, which players could see.
+    let data = data.replace("Treachery.online", "Treachery");
+    let v: JsonValue = serde_json::from_str(&data).map_err(|e| JsonError::new("JsonException", e.to_string()))?;
+    if v.is_null() {
+        return Err(JsonError::new("JsonException", "Cannot load game state"));
+    }
+    LegacyGameState::from_json(&v).map_err(|e| locate(&data, e))
+}
+
+/// Reads a savegame in the old format and converts it: a game of version
+/// [`LAST_LEGACY_VERSION`] becomes a game of the next version, which has the same rules. Other
+/// versions keep theirs, and the engine refuses them as before.
+pub fn load_savegame(data: &str) -> Result<treachery_engine::game::GameState, JsonError> {
+    let state = read_savegame(data)?;
+    let events = state.events.ok_or_else(|| JsonError::new("JsonException", "A savegame without events"))?;
+    let version = if state.version == LAST_LEGACY_VERSION { LAST_LEGACY_VERSION + 1 } else { state.version };
+    Ok(treachery_engine::game::GameState { version, events })
+}
+
+/// Reads a savegame in either format, converting an old one ([`load_savegame`]).
+pub fn load_any(data: &str) -> Result<treachery_engine::game::GameState, String> {
+    if is_legacy_savegame(data) { load_savegame(data).map_err(|e| e.message) } else { treachery_engine::game::GameState::load(data) }
+}
+
+/// Writes a savegame in the old format, with the version it had there.
+pub fn savegame_text(events: &[HistoryEntry]) -> String {
+    serialize(&LegacyGameState { version: LAST_LEGACY_VERSION, events: Some(events.to_vec()) })
+}
+
+/// Declares the members of every event: [`write_event_members`] and [`read_event`]. A missing
+/// or extra event type is a compile error, because both match exhaustively.
+macro_rules! legacy_events {
+    ($($name:ident),* $(,)?) => {
+        /// The event's members, without `$type`, `Initiator` and `Time`.
+        pub fn write_event_members(e: &Event, w: &mut JsonWriter) {
+            match e {
+                $( Event::$name(e) => JsonObject::write_members(e, w), )*
+            }
+        }
+
+        /// Builds an event of type `t` from its JSON members. `other` reads the members that
+        /// aren't the event's own (`Initiator`, `Time`), in document order.
+        pub fn read_event(
+            t: EventType,
+            members: &[(String, JsonValue)],
+            other: &mut dyn FnMut(&str, &JsonValue) -> Result<bool, JsonError>,
+        ) -> Result<Event, JsonError> {
+            Ok(match t {
+                $( EventType::$name => Event::$name(read_object_with::<$name>(members, other)?), )*
+            })
+        }
+    };
+}
+
+legacy_events! {
+    AcceptOrCancelTleilaxuRevival, AllianceBroken, AllianceByAmbassador, AllianceByTerror, AllianceOffered, AlliancePassed, AllyPermission,
+    AmalPlayed, AmbassadorActivated, AmbassadorPlaced, AuditCancelled, Audited, AutomationConfigured, Battle, BattleClaimed,
+    BattleConcluded, BattleInitiated, BattleRevision, BeneGesseritAccompanies, BeneGesseritBattleAnnouncement, BeneGesseritFlip,
+    BeneGesseritPrediction, Bid, BlackMarketBid, Bureaucracy, Captured, Caravan, CardGiven, CardTraded, CardsDetermined, CharityClaimed,
+    ChoamDiscarded, ChoamEconomics, ChoamExtraMove, ChoamFreeRevivalPrevention, ChoamKarmaPrevention, ChoamMovePrevention,
+    ChoamRemoveForce, ClairVoyanceAnswered, ClairVoyancePlayed, DealAccepted, DealOffered, DealRejected, Diplomacy, Discarded,
+    DiscardedSearched, DiscardedSearchedAnnounced, DiscardedTaken, DiscoveryEntered, DiscoveryRevealed, DistransUsed, DivideResources,
+    DivideResourcesAccepted, Donated, EmperorBidSupport, EmperorDiscarded, EndPhase, EstablishPlayers, ExtortionPrevented, FaceDanced,
+    FaceDancerReplaced, FaceDancerRevealed, FactionSelected, FactionTradeOffered, FlightDiscoveryUsed, FlightUsed, FremenRidesMonster,
+    FremenSentMonster, GuildDelay, HMSAdvantageChosen, HarvesterPlayed, HideSecrets, IxianRemovedCardFromAuction,
+    IxianSelectedStartingCard, IxianSwappedCardOnBid, JuicePlayed, Karma, KarmaChoamDiscard, KarmaEcazDial, KarmaFreeRevival,
+    KarmaHandSwap, KarmaHandSwapInitiated, KarmaHmsMovement, KarmaMonster, KarmaPrescience, KarmaRevivalPrevention, KarmaRicheseBuy,
+    KarmaShipmentPrevention, LoserConcluded, MetheorPlayed, Move, MulliganPerformed, NexusCardDrawn, NexusPlayed, NexusVoted,
+    PerformBeneGesseritPlacement, PerformFremenSetup, PerformHmsMovement, PerformHmsPlacement, PerformMoritaniSetup, PerformSetup,
+    Planetology, PlayerReplaced, PoisonToothCancelled, PortableAntidoteUsed, Prescience, RaiseDeadPlayed, RecruitsPlayed,
+    ReplacedCardWon, RequestTleilaxuRevival, ResidualPlayed, ResourcesAudited, ResourcesTransferred, Retreat, Revival,
+    RicheseAnnouncesAuction, RicheseAnnouncesBlackMarket, RicheseGaveCard, RicheseKeepsUnsoldCard, RicheseRevealedNoField,
+    RicheseSpecifiesAuction, RockWasMelted, SetIncreasedRevivalLimits, SetShipmentPermission, Shipment, SkillAssigned, StormDialled,
+    StormSpellPlayed, SwitchedSkilledLeader, TakeLosses, TerrorPlanted, TerrorRevealed, TestingStationUsed, Thought, ThoughtAnswered,
+    ThumperPlayed, TraitorDiscarded, TraitorsSelected, TreacheryCalled, Voice, VoiceDeclined,
 }

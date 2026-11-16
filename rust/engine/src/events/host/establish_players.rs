@@ -1,13 +1,18 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct EstablishPlayers {
     pub settings: Option<GameSettings>,
     pub seed: i32,
     pub maximum_number_of_players: u16,
     pub maximum_turns: Turn,
     pub applicable_rules: Option<Vec<Rule>>,
+    #[serde(with = "crate::events::wire::name_list")]
+    #[ts(as = "Option<Vec<String>>")]
     pub players: Option<String>,
+    #[serde(with = "crate::events::wire::faction_list")]
+    #[ts(as = "Option<Vec<Faction>>")]
     pub factions_in_play: Option<String>,
 }
 

@@ -11,5 +11,7 @@ dotnet-compat = { path = "../dotnet-compat" }
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]
+# Old savegames and event JSON in test data.
+treachery-legacy = { path = "../legacy" }
 serde_json = { version = "1", features = ["preserve_order"] }
 flate2 = "1"

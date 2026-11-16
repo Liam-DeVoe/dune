@@ -12,7 +12,6 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use treachery_engine::events::EventType;
-use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_view::actions::{action_view, other};
@@ -205,7 +204,7 @@ fn check_state(game: &mut Game, d: &dyn Describer, at: &str, seen: &mut Seen) {
             let options = view.options.as_ref().unwrap_or_else(|| panic!("{at}: no options"));
             check(game, p, &v, options, &at);
             if let Some(draft) = draft_of(options) {
-                let e: Event = json::deserialize::<HistoryEntry>(&draft.to_string()).unwrap_or_else(|e| panic!("{at}: draft {draft}: {e:?}")).event;
+                let e: Event = serde_json::from_value(draft.clone()).unwrap_or_else(|e| panic!("{at}: draft {draft}: {e:?}"));
                 assert_eq!(e.event_type(), t, "{at}");
                 assert_eq!(validate(game, game.player(p).faction, e, &in_game), view.validation, "{at}: validation is the draft's");
             }
@@ -326,7 +325,7 @@ fn fixtures() -> Vec<String> {
 fn fixture_forms_and_queries() {
     let mut seen = Seen::default();
     for name in fixtures() {
-        let Ok(mut r) = ViewReplica::load(&common::fixture(&name)) else { continue };
+        let Ok(mut r) = common::load_raw(&common::fixture(&name)) else { continue };
         let mut r2 = common::load(&name);
         let d = default_describer();
         check_state(&mut r.game, d.as_ref(), &name, &mut seen);

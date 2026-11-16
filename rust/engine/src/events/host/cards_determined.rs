@@ -1,8 +1,13 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
+#[serde(rename_all = "camelCase", default, deny_unknown_fields)]
 pub struct CardsDetermined {
+    #[serde(with = "crate::events::wire::id_list")]
+    #[ts(as = "Option<Vec<i32>>")]
     pub treachery_card_ids: Option<String>,
+    #[serde(with = "crate::events::wire::id_list")]
+    #[ts(as = "Option<Vec<i32>>")]
     pub richese_card_ids: Option<String>,
 }
 

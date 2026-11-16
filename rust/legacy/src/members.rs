@@ -3,8 +3,8 @@
 //! Generated once from the serializer's type information; maintained by hand since the generator
 //! was retired. The machinery is in json/mod.rs.
 
-use crate::json::{FromJson, JsonError, JsonObject, JsonValue, JsonWriter};
-use crate::prelude::*;
+use crate::{FromJson, JsonError, JsonObject, JsonValue, JsonWriter};
+use treachery_engine::prelude::*;
 
 impl JsonObject for AcceptOrCancelTleilaxuRevival {
     fn write_members(&self, w: &mut JsonWriter) {
@@ -169,7 +169,7 @@ impl JsonObject for AmbassadorActivated {
             "TleilaxuAssignSkill" => self.tleilaxu_assign_skill = FromJson::from_json(value)?,
             "_choamCardIds" => self.choam_card_ids = FromJson::from_json(value)?,
             "_fremenOrGuildToId" => self.fremen_or_guild_to = FromJson::from_json(value)?,
-            "_fremenForceLocations" => self.fremen_force_locations = crate::json::read_force_locations(value)?,
+            "_fremenForceLocations" => self.fremen_force_locations = crate::read_force_locations(value)?,
             "_ixianCardId" => self.ixian_card = FromJson::from_json(value)?,
             "_tleilaxuHeroId" => self.tleilaxu_hero = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
@@ -487,7 +487,7 @@ impl JsonObject for Caravan {
         match key {
             "AsAdvisors" => self.as_advisors = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -844,7 +844,7 @@ impl JsonObject for DiscoveryEntered {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -1020,9 +1020,9 @@ impl JsonObject for FaceDanced {
         match key {
             "ForcesFromReserve" => self.forces_from_reserve = FromJson::from_json(value)?,
             "FaceDancerCalled" => self.face_dancer_called = FromJson::from_json(value)?,
-            "_targetForceLocations" => self.target_force_locations = crate::json::read_force_locations(value)?,
+            "_targetForceLocations" => self.target_force_locations = crate::read_force_locations(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -1129,7 +1129,7 @@ impl JsonObject for FremenRidesMonster {
             "ForcesFromReserves" => self.forces_from_reserves = FromJson::from_json(value)?,
             "SpecialForcesFromReserves" => self.special_forces_from_reserves = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -1463,7 +1463,7 @@ impl JsonObject for Move {
         match key {
             "AsAdvisors" => self.as_advisors = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -1573,7 +1573,7 @@ impl JsonObject for PerformFremenSetup {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -1637,7 +1637,7 @@ impl JsonObject for PerformSetup {
         match key {
             "Resources" => self.resources = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }
@@ -2018,7 +2018,7 @@ impl JsonObject for Shipment {
             "_noFieldValue" => self.no_field_value = FromJson::from_json(value)?,
             "_cunningNoFieldValue" => self.cunning_no_field_value = FromJson::from_json(value)?,
             "_karmaCardId" => self.karma_card = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
+            "_forceLocations" => self.force_locations = crate::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             _ => return Ok(false),
         }

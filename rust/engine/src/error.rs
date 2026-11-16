@@ -6,7 +6,7 @@ use std::fmt;
 ///
 /// Validation doesn't rule out every event the rules can't handle, so some accepted events fail
 /// partway through executing. What they changed before failing stays changed, and they are not
-/// added to the history. Players see the failure as a "Game Error" (see `GameEventMethods::execute`).
+/// added to the history. Players see the failure as a "Game Error" (`SubmitError::Failed`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GameError {
     message: String,

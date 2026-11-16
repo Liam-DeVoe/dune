@@ -22,7 +22,6 @@
 pub mod members;
 pub mod utilities;
 
-use std::cell::{Cell, RefCell};
 use std::fmt::Write as _;
 
 use indexmap::IndexMap;
@@ -634,30 +633,6 @@ impl<T: FromJson> FromJson for Vec<T> {
             JsonValue::Array(items) => items.iter().map(T::from_json).collect(),
             _ => Err(JsonError::invalid("array", v)),
         }
-    }
-}
-
-impl<T: ToJson + Copy> ToJson for Cell<T> {
-    fn write_json(&self, w: &mut JsonWriter) {
-        self.get().write_json(w)
-    }
-}
-
-impl<T: FromJson> FromJson for Cell<T> {
-    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        T::from_json(v).map(Cell::new)
-    }
-}
-
-impl<T: ToJson> ToJson for RefCell<T> {
-    fn write_json(&self, w: &mut JsonWriter) {
-        self.borrow().write_json(w)
-    }
-}
-
-impl<T: FromJson> FromJson for RefCell<T> {
-    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        T::from_json(v).map(RefCell::new)
     }
 }
 

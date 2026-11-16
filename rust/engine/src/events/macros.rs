@@ -1,80 +1,23 @@
 //! The `events!` macro, which declares every event type once.
 
-/// What an `Event` variant holds: the event itself, or an `Rc` for an `@legacy` event.
-macro_rules! event_payload {
-    (legacy $name:ident) => { ::std::rc::Rc<$name> };
-    ($name:ident) => { $name };
-}
-pub(crate) use event_payload;
-
-/// `From<Rc<X>> for Event`, for an `@legacy` event only.
-macro_rules! from_rc {
-    (legacy $name:ident) => {
-        impl From<::std::rc::Rc<$name>> for Event {
-            fn from(e: ::std::rc::Rc<$name>) -> Self {
-                Event::$name(e)
-            }
-        }
-    };
-    ($name:ident) => {};
-}
-pub(crate) use from_rc;
-
-/// Wraps a decoded event in its variant.
-macro_rules! wrap_event {
-    (legacy $name:ident, $e:expr) => { Event::$name(::std::rc::Rc::new($e)) };
-    ($name:ident, $e:expr) => { Event::$name($e) };
-}
-pub(crate) use wrap_event;
-
-/// `==` on one variant: by identity for an `@legacy` event (it is shared), by value otherwise.
-macro_rules! event_eq {
-    (legacy $a:ident, $b:ident) => { ::std::rc::Rc::ptr_eq($a, $b) };
-    ($a:ident, $b:ident) => { $a == $b };
-}
-pub(crate) use event_eq;
-
-/// The event struct inside a variant.
-macro_rules! event_inner {
-    (legacy $e:ident) => { &**$e };
-    ($e:ident) => { $e };
-}
-pub(crate) use event_inner;
-
-/// A copy of the event that shares nothing with the original.
-macro_rules! event_copy {
-    (legacy $name:ident, $e:ident) => { Event::$name(::std::rc::Rc::new((**$e).clone())) };
-    ($name:ident, $e:ident) => { Event::$name($e.clone()) };
-}
-pub(crate) use event_copy;
-
-/// The base of an `@legacy` event, `None` for a converted one.
-macro_rules! event_legacy_base {
-    (legacy $e:ident) => { Some(&$e.base) };
-    ($e:ident) => { { let _ = $e; None } };
-}
-pub(crate) use event_legacy_base;
-
 /// Declares `Event` (one variant per event type), `EventType`, the `From` impls and the dispatch.
 ///
-/// Each item is an event struct of the same name. `@legacy X` is an event not yet converted to
-/// plain data: its variant holds an `Rc<X>`, and it implements `GameEventMethods` instead of
-/// `EventRules` (engine-conventions.md, "Events").
+/// Each item is an event struct of the same name, which implements `EventRules`
+/// (engine-conventions.md, "Events").
 macro_rules! events {
-    ($( $(@$legacy:ident)? $name:ident ),* $(,)?) => {
+    ($( $name:ident ),* $(,)?) => {
         /// Any event.
-        #[derive(Clone)]
+        #[derive(Clone, PartialEq)]
         pub enum Event {
-            $( $name($crate::events::macros::event_payload!($($legacy)? $name)), )*
+            $( $name($name), )*
         }
 
         $(
             impl From<$name> for Event {
                 fn from(e: $name) -> Self {
-                    $crate::events::macros::wrap_event!($($legacy)? $name, e)
+                    Event::$name(e)
                 }
             }
-            $crate::events::macros::from_rc!($($legacy)? $name);
         )*
 
         /// The type of an event, as `Event::event_type` gives it and `Game::get_applicable_events`
@@ -108,15 +51,6 @@ macro_rules! events {
             }
         }
 
-        impl PartialEq for Event {
-            fn eq(&self, other: &Self) -> bool {
-                match (self, other) {
-                    $( (Event::$name(a), Event::$name(b)) => $crate::events::macros::event_eq!($($legacy)? a, b), )*
-                    _ => false,
-                }
-            }
-        }
-
         impl Event {
             pub fn event_type(&self) -> EventType {
                 match self {
@@ -124,33 +58,17 @@ macro_rules! events {
                 }
             }
 
-            /// The event's rules, whether it is converted or `@legacy`.
-            pub(crate) fn rules(&self) -> &dyn $crate::events::dispatch::EventImpl {
+            /// The event's rules.
+            pub(crate) fn rules(&self) -> &dyn $crate::events::EventRules {
                 match self {
                     $( Event::$name(e) => e, )*
-                }
-            }
-
-            /// A copy that shares nothing with this event: `clone` shares an `@legacy` event,
-            /// whose base `Game::play` writes.
-            pub fn detached(&self) -> Event {
-                match self {
-                    $( Event::$name(e) => $crate::events::macros::event_copy!($($legacy)? $name, e), )*
-                }
-            }
-
-            /// The base of an `@legacy` event: its initiator and player. `None` for a converted
-            /// event, whose submitter is in its `HistoryEntry`.
-            pub fn legacy_base(&self) -> Option<&$crate::events::GameEventBase> {
-                match self {
-                    $( Event::$name(e) => $crate::events::macros::event_legacy_base!($($legacy)? e), )*
                 }
             }
 
             /// The event's JSON members (without `$type`, `Initiator` and `Time`).
             pub(crate) fn json_members(&self) -> &dyn $crate::json::JsonMembers {
                 match self {
-                    $( Event::$name(e) => $crate::events::macros::event_inner!($($legacy)? e), )*
+                    $( Event::$name(e) => e, )*
                 }
             }
 
@@ -162,7 +80,7 @@ macro_rules! events {
                 other: &mut dyn FnMut(&str, &$crate::json::JsonValue) -> Result<bool, $crate::json::JsonError>,
             ) -> Result<Event, $crate::json::JsonError> {
                 Ok(match t {
-                    $( EventType::$name => $crate::events::macros::wrap_event!($($legacy)? $name, $crate::json::read_object_with::<$name>(members, other)?), )*
+                    $( EventType::$name => Event::$name($crate::json::read_object_with::<$name>(members, other)?), )*
                 })
             }
         }

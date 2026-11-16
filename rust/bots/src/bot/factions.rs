@@ -224,7 +224,7 @@ impl ClassicBot {
 
     // ---- Emperor ----
 
-    pub fn determine_emperor_discarded(&self, game: &Game) -> Option<Rc<EmperorDiscarded>> {
+    pub fn determine_emperor_discarded(&self, game: &Game) -> Option<EmperorDiscarded> {
         let me = game.player(self.player);
         if !(i32::from(me.resources) >= 10 && !me.has_room_for_cards(game)) {
             return None;
@@ -233,9 +233,9 @@ impl ClassicBot {
         let worst_card = me.treachery_cards.iter().copied().min_by_key(|c| self.card_quality(game, *c, None))?;
 
         if self.card_quality(game, worst_card, None) <= 1 {
-            let mut e = EmperorDiscarded::new(game, self.faction(game));
+            let mut e = EmperorDiscarded::default();
             e.card = Some(worst_card);
-            Some(Rc::new(e))
+            Some(e)
         } else {
             None
         }
@@ -243,14 +243,14 @@ impl ClassicBot {
 
     // ---- Ixian ----
 
-    pub fn determine_replaced_card_won(&self, game: &Game) -> Rc<ReplacedCardWon> {
+    pub fn determine_replaced_card_won(&self, game: &Game) -> ReplacedCardWon {
         let replace = game.bidding.card_just_won.is_some_and(|c| self.card_quality(game, c, Some(self.player)) <= 2);
-        let mut e = ReplacedCardWon::new(game, self.faction(game));
+        let mut e = ReplacedCardWon::default();
         e.passed = !replace;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_ixian_removed_card_from_auction(&self, game: &Game) -> Rc<IxianRemovedCardFromAuction> {
+    pub fn determine_ixian_removed_card_from_auction(&self, game: &Game) -> IxianRemovedCardFromAuction {
         use TreacheryCardType as T;
         let me = game.player(self.player);
         let p = Some(self.player);
@@ -283,13 +283,13 @@ impl ClassicBot {
         let quality = self.card_quality(game, to_be_removed, p);
         let put_on_top = (quality <= 2 && self.ally(game) == None) || (quality >= 4 && self.ally(game) != None);
 
-        let mut e = IxianRemovedCardFromAuction::new(game, self.faction(game));
+        let mut e = IxianRemovedCardFromAuction::default();
         e.card = Some(to_be_removed);
         e.put_on_top = put_on_top;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_ixian_swapped_card_on_bid(&self, game: &Game) -> Rc<IxianSwappedCardOnBid> {
+    pub fn determine_ixian_swapped_card_on_bid(&self, game: &Game) -> IxianSwappedCardOnBid {
         let p = Some(self.player);
         let worst_card = game
             .player(self.player)
@@ -299,12 +299,12 @@ impl ClassicBot {
             .random_lowest(&self.random, |c| self.card_quality(game, *c, p))
             .filter(|c| self.card_quality(game, *c, p) <= 2);
 
-        let mut e = IxianSwappedCardOnBid::new(game, self.faction(game));
+        let mut e = IxianSwappedCardOnBid::default();
         e.passed = worst_card.is_none();
         if worst_card.is_some() {
             e.card = worst_card;
         }
-        Rc::new(e)
+        e
     }
 
     pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> IxianSelectedStartingCard {
@@ -1459,20 +1459,20 @@ impl ClassicBot {
 
     // ---- Richese ----
 
-    pub fn determine_richese_announces_black_market(&self, game: &Game) -> Rc<RicheseAnnouncesBlackMarket> {
+    pub fn determine_richese_announces_black_market(&self, game: &Game) -> RicheseAnnouncesBlackMarket {
         let p = Some(self.player);
         let card = game.player(self.player).treachery_cards.iter().copied().find(|c| self.card_quality(game, *c, p) < 3);
-        let mut e = RicheseAnnouncesBlackMarket::new(game, self.faction(game));
+        let mut e = RicheseAnnouncesBlackMarket::default();
         if card.is_some() {
             e.passed = false;
             e.card = card;
             // The auction type is drawn before the direction.
             e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::BlackMarketSilent) } else { Some(AuctionType::BlackMarketOnceAround) };
             e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
-            return Rc::new(e);
+            return e;
         }
         e.passed = true;
-        Rc::new(e)
+        e
     }
 
     pub fn determine_richese_revealed_no_field(&self, game: &Game) -> Option<RicheseRevealedNoField> {
@@ -1489,28 +1489,28 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_richese_announces_auction(&self, game: &Game) -> Rc<RicheseAnnouncesAuction> {
-        let mut e = RicheseAnnouncesAuction::new(game, self.faction(game));
+    pub fn determine_richese_announces_auction(&self, _game: &Game) -> RicheseAnnouncesAuction {
+        let mut e = RicheseAnnouncesAuction::default();
         e.first = self.d(1, 2) > 1;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_richese_specifies_auction(&self, game: &Game) -> Rc<RicheseSpecifiesAuction> {
+    pub fn determine_richese_specifies_auction(&self, game: &Game) -> RicheseSpecifiesAuction {
         // A copy of the cache, shuffled with the bot's random.
         let mut to_auction = Deck::new(game.decks.richese_cache.iter().copied(), Some(self.random.clone()));
         to_auction.shuffle();
-        let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
+        let mut e = RicheseSpecifiesAuction::default();
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
         e.card = card;
         e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::RicheseSilent) } else { Some(AuctionType::RicheseOnceAround) };
         e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_richese_keeps_unsold_card(&self, game: &Game) -> Rc<RicheseKeepsUnsoldCard> {
-        let mut e = RicheseKeepsUnsoldCard::new(game, self.faction(game));
+    pub fn determine_richese_keeps_unsold_card(&self, _game: &Game) -> RicheseKeepsUnsoldCard {
+        let mut e = RicheseKeepsUnsoldCard::default();
         e.passed = false;
-        Rc::new(e)
+        e
     }
 
     // ---- Harkonnen ----

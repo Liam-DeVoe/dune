@@ -1,11 +1,6 @@
 //! What every event has in common: who submitted it ([`By`]), the rules it follows
 //! ([`EventRules`]), its place in the history ([`HistoryEntry`]), and why a submission failed
 //! ([`SubmitError`]).
-//!
-//! Events are being converted from the C# shape (an `Rc` holding `GameEventBase` with the
-//! initiator, implementing `GameEventMethods`) to plain data implementing [`EventRules`]. The
-//! `events!` list in `events/mod.rs` marks the ones not yet converted with `@legacy`.
-//! `events/dispatch.rs` lets the dispatch treat both alike.
 
 use crate::prelude::*;
 
@@ -108,40 +103,18 @@ impl EntryId {
 }
 
 impl HistoryEntry {
-    /// The entry of `event` by `by`. Its time is none, except for an `@legacy` event copied from
-    /// a played one (a deal's cancellation copies the offer), which keeps the original's time.
+    /// The entry of `event` by `by`, with no time.
     pub fn new(by: impl Into<Option<Faction>>, event: impl Into<Event>) -> HistoryEntry {
-        let event = event.into();
-        let at = event.legacy_base().map(|b| b.time.get()).unwrap_or_default();
-        HistoryEntry { by: by.into(), at, event, id: EntryId::fresh() }
+        HistoryEntry { by: by.into(), at: DateTimeOffset::default(), event: event.into(), id: EntryId::fresh() }
     }
 
     pub fn event_type(&self) -> EventType {
         self.event.event_type()
     }
 
-    /// The entry of an `@legacy` event built for its initiator (`X::new(game, faction)`): the
-    /// submitter is the initiator in its base. Panics for a converted event; use
-    /// [`HistoryEntry::new`] with the submitter instead.
-    #[track_caller]
-    pub fn legacy(event: impl Into<Event>) -> HistoryEntry {
-        let event = event.into();
-        HistoryEntry::new(event.legacy_initiator(), event)
-    }
-
-    /// The entry of a bot's decision for a bot of `faction`. An `@legacy` event keeps the initiator
-    /// it was built with, which isn't always the bot's: a bot cancels a deal offer with a copy of
-    /// the offer, initiator included.
-    pub fn decided(faction: Option<Faction>, event: impl Into<Event>) -> HistoryEntry {
-        let event = event.into();
-        let by = event.legacy_base().map_or(faction, |b| b.initiator.get());
-        HistoryEntry::new(by, event)
-    }
-
-    /// A copy whose event shares nothing with this one's (see [`Event::detached`]), to play in
-    /// another game. It is a new submission, with its own id.
+    /// A copy to play in another game. It is a new submission, with its own id.
     pub fn detached(&self) -> HistoryEntry {
-        HistoryEntry { by: self.by, at: self.at, event: self.event.detached(), id: EntryId::fresh() }
+        HistoryEntry { by: self.by, at: self.at, event: self.event.clone(), id: EntryId::fresh() }
     }
 
     /// The submitter in `game`: its faction and that faction's player now.
@@ -161,7 +134,6 @@ impl HistoryEntry {
 
     /// Whether the event is valid in `game`, for its submitter.
     pub fn validate(&self, game: &Game) -> Result<(), Rejection> {
-        self.event.prepare(game, self.by);
         self.event.validate(game, self.by_in(game))
     }
 }

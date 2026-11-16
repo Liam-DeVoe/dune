@@ -54,33 +54,3 @@ impl<T: Default> Default for Shared<T> {
         Shared::new(T::default())
     }
 }
-
-/// An `Rc` used as a map key or set element by identity: equality and hashing by
-/// address, not by contents.
-pub struct RcKey<T>(pub Rc<T>);
-
-impl<T> Clone for RcKey<T> {
-    fn clone(&self) -> Self {
-        RcKey(Rc::clone(&self.0))
-    }
-}
-
-impl<T> PartialEq for RcKey<T> {
-    fn eq(&self, other: &Self) -> bool {
-        Rc::ptr_eq(&self.0, &other.0)
-    }
-}
-
-impl<T> Eq for RcKey<T> {}
-
-impl<T> std::hash::Hash for RcKey<T> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        (Rc::as_ptr(&self.0) as *const () as usize).hash(state)
-    }
-}
-
-impl<T> std::fmt::Debug for RcKey<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "RcKey({:p})", Rc::as_ptr(&self.0))
-    }
-}

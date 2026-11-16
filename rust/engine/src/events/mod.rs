@@ -2,13 +2,9 @@
 //! of them. The `events!` list below declares them; engine-conventions.md, "Events", says how.
 
 pub(crate) mod macros;
-mod dispatch;
 pub mod rules;
 pub use rules::*;
-pub mod game_event;
-pub use game_event::*;
-pub mod passable_game_event;
-pub use passable_game_event::*;
+mod game_event;
 
 mod alliances;
 pub use alliances::*;
@@ -37,9 +33,9 @@ pub use setup::*;
 mod storm;
 pub use storm::*;
 
-// Interfaces shared by several events. Not glob-exported: their method names clash with
-// the `GameEventMethods` ones, so `Event` has a dispatching method for each member.
-pub use movement::{location_event, placement};
+// The interface shared by the events that move forces to a location. Not glob-exported:
+// `Event` has a dispatching method for each member.
+pub use movement::location_event;
 
 use crate::prelude::*;
 
@@ -235,30 +231,8 @@ impl Event {
         self.rules().describe_short(game, by)
     }
 
-    /// Readies an `@legacy` event for `by`: its base takes the initiator and its player. Does
-    /// nothing for a converted event.
-    pub fn prepare(&self, game: &Game, by: Option<Faction>) {
-        self.rules().prepare(game, by)
-    }
-
-    /// The initiator of an `@legacy` event that game state holds (`bidding.current_bid`,
-    /// `ship_move.last_shipment_or_movement`, ...). Panics for a converted event: game state
-    /// that holds one must keep its submitter itself (a state struct, or a `HistoryEntry`).
-    #[track_caller]
-    pub fn legacy_initiator(&self) -> Option<Faction> {
-        self.legacy_base().map(|b| b.initiator.get()).unwrap_or_else(|| panic!("{} is converted: its initiator isn't in the event", self.event_type().name()))
-    }
-
-    /// The player of an `@legacy` event that game state holds. Panics for a converted event,
-    /// as [`legacy_initiator`](Event::legacy_initiator) does.
-    #[track_caller]
-    pub fn legacy_player(&self) -> Option<PlayerId> {
-        self.legacy_base().map(|b| b.player.get()).unwrap_or_else(|| panic!("{} is converted: its player isn't in the event", self.event_type().name()))
-    }
-
-    /// Prepares the event for `by` and validates it.
+    /// Validates the event for the submitter `by`.
     pub fn validate_for(&self, game: &Game, by: Option<Faction>) -> Result<(), Rejection> {
-        self.prepare(game, by);
         self.validate(game, By::new(game, by))
     }
 

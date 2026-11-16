@@ -114,13 +114,13 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_card_given(&self, game: &Game) -> Rc<CardGiven> {
-        let mut e = CardGiven::new(game, self.faction(game));
+    pub fn determine_card_given(&self, game: &Game) -> CardGiven {
+        let mut e = CardGiven::default();
         let card = game.bidding.card_that_must_be_kept_or_given_to_ally.expect("card that must be kept or given to ally");
         let ally = self.ally(game);
         e.passed = !(self.card_quality(game, card, Some(self.player)) <= 2
             && (ally == Some(Faction::BeneGesserit) || ally == Some(Faction::Choam) || self.card_quality(game, card, self.allied_player(game)) > 0));
-        Rc::new(e)
+        e
     }
 
     pub fn determine_divide_resources_accepted(&self, game: &Game) -> DivideResourcesAccepted {
@@ -504,14 +504,14 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_karma_hand_swap(&self, game: &Game) -> Rc<KarmaHandSwap> {
+    pub fn determine_karma_hand_swap(&self, game: &Game) -> KarmaHandSwap {
         let mut cards = game.player(self.player).treachery_cards.clone();
         cards.sort_by_cached_key(|c| self.card_quality(game, *c, Some(self.player)));
         cards.truncate(game.bidding.karma_hand_swap_number_of_cards.try_into().unwrap_or(usize::MAX));
 
-        let mut e = KarmaHandSwap::new(game, self.faction(game));
+        let mut e = KarmaHandSwap::default();
         e.set_returned_cards(&cards);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_karma_shipment_prevention(&self, game: &Game) -> Option<KarmaShipmentPrevention> {
@@ -547,7 +547,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_karma_hand_swap_initiated(&self, game: &Game) -> Option<Rc<KarmaHandSwapInitiated>> {
+    pub fn determine_karma_hand_swap_initiated(&self, game: &Game) -> Option<KarmaHandSwapInitiated> {
         if game.turn.current_phase != Phase::BiddingReport {
             return None;
         }
@@ -561,9 +561,9 @@ impl ClassicBot {
             Self::known_cards_held_by_other_player(game, me, o).iter().filter(|c| (self.card_quality(game, **c, Some(me)) >= 3) == good).count() as i32
         };
         let swap_with = |o: PlayerId| {
-            let mut e = KarmaHandSwapInitiated::new(game, self.faction(game));
+            let mut e = KarmaHandSwapInitiated::default();
             e.target = game.player(o).faction;
-            Some(Rc::new(e))
+            Some(e)
         };
 
         // Swap with an opponent holding 2 or more good cards that I know of.

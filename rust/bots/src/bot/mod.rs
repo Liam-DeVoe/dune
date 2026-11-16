@@ -181,9 +181,8 @@ impl Priority {
     pub const ALL: [Priority; 5] = [Priority::Highest, Priority::High, Priority::Middle, Priority::Low, Priority::End];
 }
 
-/// What a decision method returns: an event, or maybe an event. A converted event comes by
-/// value, an `@legacy` one in an `Rc`, and an event the bot submits in another faction's name
-/// as a [`Resubmitted`] entry.
+/// What a decision method returns: an event, or maybe an event. An event the bot submits in
+/// another faction's name comes as a [`Resubmitted`] entry.
 pub trait IntoDecision {
     type Event: EventKind;
     /// The history entry the bot submits, for a bot of `faction`.
@@ -196,7 +195,7 @@ where
 {
     type Event = T;
     fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        Some(HistoryEntry::decided(faction, self))
+        Some(HistoryEntry::new(faction, self))
     }
 }
 
@@ -206,27 +205,7 @@ where
 {
     type Event = T;
     fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        self.map(|e| HistoryEntry::decided(faction, e))
-    }
-}
-
-impl<T: EventKind> IntoDecision for Rc<T>
-where
-    Event: From<Rc<T>>,
-{
-    type Event = T;
-    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        Some(HistoryEntry::decided(faction, self))
-    }
-}
-
-impl<T: EventKind> IntoDecision for Option<Rc<T>>
-where
-    Event: From<Rc<T>>,
-{
-    type Event = T;
-    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        self.map(|e| HistoryEntry::decided(faction, e))
+        self.map(|e| HistoryEntry::new(faction, e))
     }
 }
 

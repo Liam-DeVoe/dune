@@ -23,6 +23,7 @@ pub enum PhaseState {
     Charity(CharityState),
     Bidding(BiddingState),
     Revival(RevivalState),
+    ShipMove(ShipMoveState),
     Collection(CollectionState),
 }
 
@@ -35,6 +36,7 @@ impl PhaseState {
             PhaseState::Charity(c) => c.step.phase(),
             PhaseState::Bidding(b) => b.step.phase(),
             PhaseState::Revival(r) => r.step.phase(),
+            PhaseState::ShipMove(s) => s.step.phase(),
             PhaseState::Collection(c) => c.step.phase(),
         }
     }
@@ -47,6 +49,7 @@ impl PhaseState {
             || CharityStep::of(phase).is_some()
             || BiddingStep::of(phase).is_some()
             || RevivalStep::of(phase).is_some()
+            || ShipMoveStep::of(phase).is_some()
             || CollectionStep::of(phase).is_some()
     }
 }
@@ -71,9 +74,17 @@ pub enum Interrupt {
     Bureaucracy,
     /// A player chooses the skill of a revived leader.
     SkillAssignment,
-    /// A suspension not converted yet, by the phase it shows: an intrusion (Bene Gesserit,
-    /// terror or ambassador), an alliance offered through terror or an ambassador, or storm
-    /// losses. The ship and move agent of wave 5 gives these their own variants.
+    /// Forces entered a territory and the Bene Gesserit, a terror token or an ambassador there
+    /// may react (`turn.intrusions` holds the ones waiting). Build it with
+    /// [`Interrupt::intrusion`].
+    Intrusion { kind: IntrusionType, cause: IntrusionCause },
+    /// Moritani offered an alliance instead of terror, and `offered_to` decides.
+    AllianceByTerror { offered_to: Option<Faction> },
+    /// An Ecaz ambassador offered an alliance, and `offered_to` decides. `offered_by` activated
+    /// the ambassador (Ecaz, or their ally), and the two flags are its Vidal options.
+    AllianceByAmbassador { offered_to: Faction, offered_by: By, give_vidal_to_ally: bool, take_vidal: bool },
+    /// A suspension not converted yet, by the phase it shows: storm losses taken during a
+    /// shipment or move.
     Legacy(Phase),
 }
 
@@ -89,12 +100,16 @@ impl Interrupt {
             Interrupt::KarmaHandSwap { .. } => Phase::PerformingKarmaHandSwap,
             Interrupt::Bureaucracy => Phase::Bureaucracy,
             Interrupt::SkillAssignment => Phase::AssigningSkill,
+            Interrupt::Intrusion { kind, cause } => cause.intrusion_phase(kind),
+            Interrupt::AllianceByTerror { .. } => Phase::AllianceByTerror,
+            Interrupt::AllianceByAmbassador { .. } => Phase::AllianceByAmbassador,
             Interrupt::Legacy(phase) => phase,
         }
     }
 
-    /// The interrupt that a phase of that name is, if it is one. Not `PerformingKarmaHandSwap`,
-    /// whose interrupt carries data: only `KarmaHandSwapInitiated` pushes it.
+    /// The interrupt that a phase of that name is, if it is one that holds no data. An intrusion
+    /// or an alliance offer is pushed by its owner ([`Interrupt::intrusion`]), never by name; nor is
+    /// `PerformingKarmaHandSwap`, which only `KarmaHandSwapInitiated` pushes.
     pub fn of(phase: Phase) -> Option<Interrupt> {
         let i = match phase {
             Phase::Discarding => Interrupt::Discarding,
@@ -104,37 +119,7 @@ impl Interrupt {
             Phase::TradingCards => Interrupt::CardTrade,
             Phase::Bureaucracy => Interrupt::Bureaucracy,
             Phase::AssigningSkill => Interrupt::SkillAssignment,
-            Phase::BeneGesseritIntrudedByNonGuildShip
-            | Phase::BeneGesseritIntrudedByGuildShip
-            | Phase::BeneGesseritIntrudedByNonGuildMove
-            | Phase::BeneGesseritIntrudedByGuildMove
-            | Phase::BeneGesseritIntrudedByCaravan
-            | Phase::BeneGesseritIntrudedByRevival
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
-            | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
-            | Phase::TerrorTriggeredByNonGuildShip
-            | Phase::TerrorTriggeredByGuildShip
-            | Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip
-            | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip
-            | Phase::TerrorTriggeredByNonGuildMove
-            | Phase::TerrorTriggeredByGuildMove
-            | Phase::TerrorTriggeredByCaravan
-            | Phase::TerrorTriggeredByRevival
-            | Phase::TerrorTriggeredByFremenRidingMonsterA
-            | Phase::TerrorTriggeredByFremenRidingMonsterB
-            | Phase::AmbassadorTriggeredByNonGuildShip
-            | Phase::AmbassadorTriggeredByGuildShip
-            | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip
-            | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip
-            | Phase::AmbassadorTriggeredByNonGuildMove
-            | Phase::AmbassadorTriggeredByGuildMove
-            | Phase::AmbassadorTriggeredByCaravan
-            | Phase::AmbassadorTriggeredByRevival
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterA
-            | Phase::AmbassadorTriggeredByFremenRidingMonsterB
-            | Phase::AllianceByTerror
-            | Phase::AllianceByAmbassador
-            | Phase::StormLosses => Interrupt::Legacy(phase),
+            Phase::StormLosses => Interrupt::Legacy(phase),
             _ => return None,
         };
         Some(i)

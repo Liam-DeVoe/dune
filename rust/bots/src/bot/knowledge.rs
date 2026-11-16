@@ -705,8 +705,8 @@ impl ClassicBot {
         if p.faction == Some(Faction::Richese) && p.special_forces_in_territory(Some(t)) > 0 {
             // C# parity: the condition is always true here, so the else branch is dead.
             count_forces_for_richese = if p.faction == Some(Faction::Richese) || p.ally == Some(Faction::Richese) {
-                game.ship_move.current_no_field_value
-            } else if game.ship_move.latest_revealed_no_field_value == 5 {
+                game.board.current_no_field_value
+            } else if game.board.latest_revealed_no_field_value == 5 {
                 3
             } else {
                 5

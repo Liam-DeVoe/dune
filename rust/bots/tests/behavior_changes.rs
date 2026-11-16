@@ -177,7 +177,7 @@ fn worthless_cards_count_as_karama_for_bene_gesserit() {
 #[test]
 fn karama_shipment_prevention_blocks_a_winning_opponent_without_ally() {
     let mut game = load("ship");
-    let shipper = game.ship_move.shipment_and_move_sequence.as_ref().unwrap().current_player(&game).unwrap();
+    let shipper = game.current_shipment_and_move_player().unwrap();
     assert_eq!(game.player(shipper).ally, None);
     assert_ne!(game.player(shipper).faction, Some(Faction::Fremen));
     let strongholds = [game.board.map.arrakeen(), game.board.map.carthag(), game.board.map.sietch_tabr(), game.board.map.habbanya_sietch()];

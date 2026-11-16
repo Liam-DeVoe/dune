@@ -807,9 +807,9 @@ fn simple_options(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer) -> 
         EventType::RicheseRevealedNoField => simple(
             m(express!(
                 "Reveal your currently active No-Field of ",
-                game.ship_move.current_no_field_value,
+                game.board.current_no_field_value,
                 ", placing ",
-                game.ship_move.current_no_field_value.min(pl.forces_in_reserve()),
+                game.board.current_no_field_value.min(pl.forces_in_reserve()),
                 " ",
                 FactionForce::Richese,
                 "?"

@@ -225,10 +225,10 @@ fn ring_ecaz_and_richese() {
     assert_eq!(ecaz.loyal_leader, r.game.leaders.ecaz_loyal_leader.map(|l| l.id()));
     assert!(view.players.iter().filter(|p| p.faction != "Ecaz").all(|p| p.loyal_leader.is_none()));
 
-    let mut r = first_bot_state("a revealed No-Field", |g| g.ship_move.latest_revealed_no_field_value >= 0);
+    let mut r = first_bot_state("a revealed No-Field", |g| g.board.latest_revealed_no_field_value >= 0);
     let view = r.view(OBSERVER);
     let richese = view.players.iter().find(|p| p.faction == "Richese").unwrap();
-    assert_eq!(richese.latest_revealed_no_field, Some(r.game.ship_move.latest_revealed_no_field_value));
+    assert_eq!(richese.latest_revealed_no_field, Some(r.game.board.latest_revealed_no_field_value));
 }
 
 /// `Game.HomeworldOccupation`-free thresholds: a homeworld at low threshold shows as such.
@@ -564,7 +564,7 @@ fn recent_moves() {
         let view = r.view(OBSERVER);
         let g = &r.game;
         let mut expected_ends: Vec<(String, i32)> = vec![];
-        for m in &g.ship_move.recent_moves {
+        for m in &g.turn.recent_moves {
             let to = m.placement_to(g).unwrap();
             if !to.is_homeworld() {
                 for _ in m.placement_force_locations(g).keys() {
@@ -659,9 +659,9 @@ fn expansion_tokens() {
     assert_eq!(shown.attached_to, hms.attached_to_location(&r.game.board.map).unwrap().id());
     assert_eq!(shown.sector, Sector::number_or_none(hms.location().sector(&r.game.board.map)));
 
-    let mut r = first_bot_state("a No-Field on the planet", |g| g.ship_move.current_no_field_value >= 0 && g.is_playing(Faction::Richese));
+    let mut r = first_bot_state("a No-Field on the planet", |g| g.board.current_no_field_value >= 0 && g.is_playing(Faction::Richese));
     for (f, view) in all_views(&mut r) {
-        assert_eq!(view.board.no_field_value, (f == Some(Faction::Richese)).then_some(r.game.ship_move.current_no_field_value), "{f:?}");
+        assert_eq!(view.board.no_field_value, (f == Some(Faction::Richese)).then_some(r.game.board.current_no_field_value), "{f:?}");
     }
 }
 

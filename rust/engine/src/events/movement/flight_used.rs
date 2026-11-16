@@ -25,7 +25,7 @@ impl EventRules for FlightUsed {
         let m = self.describe(game, by);
         game.log_event(m);
         game.discard(by.player(), TreacheryCardType::Flight)?;
-        game.ship_move.current_flight_used = Some(FlightUse { by, move_three_territories: self.move_three_territories });
+        game.turn.current_flight_used = Some(FlightUse { by, move_three_territories: self.move_three_territories });
         Ok(())
     }
 

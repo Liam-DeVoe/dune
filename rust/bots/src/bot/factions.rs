@@ -200,7 +200,7 @@ impl ClassicBot {
         }
 
         let to_deny: Vec<Faction> =
-            game.ship_move.shipment_permissions.keys().copied().filter(|f| self.is_winning_opponent_faction(game, *f)).collect();
+            game.alliances.shipment_permissions.keys().copied().filter(|f| self.is_winning_opponent_faction(game, *f)).collect();
         if !to_deny.is_empty() {
             let mut e = SetShipmentPermission::default();
             e.factions = Some(to_deny);
@@ -211,7 +211,7 @@ impl ClassicBot {
         let guild_rate = self.resources(game) > 10 || !self.winning_opponents_i_wish_to_attack(game, 99, true).is_empty();
         let permission = ShipmentPermission { cross: true, to_homeworld: true, guild_rate };
         let to_allow: Vec<Faction> = SetShipmentPermission::valid_targets(game, self.player)
-            .filter(|f| !self.is_winning_opponent_faction(game, *f) && game.ship_move.shipment_permissions.get(f) != Some(&permission))
+            .filter(|f| !self.is_winning_opponent_faction(game, *f) && game.alliances.shipment_permissions.get(f) != Some(&permission))
             .collect();
         if to_allow.is_empty() {
             return None;

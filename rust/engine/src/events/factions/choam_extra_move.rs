@@ -36,7 +36,9 @@ impl EventRules for ChoamExtraMove {
             game.discard_card(card, true)?;
         }
 
-        game.ship_move.choam_has_extra_move = true;
+        if let Some(s) = game.ship_move_mut() {
+            s.choam_has_extra_move = true;
+        }
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

@@ -761,14 +761,11 @@ impl EventRules for Revival {
                     " in ".into(),
                     to.into(),
                 ]);
-                game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
+                game.turn.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
             }
 
             if game.check_intrusion(&Event::from(self.clone()), by.faction.expect("faction"))? {
-                game.ship_move.phase_before_revival_caused_intrusion = Some(game.phase());
-                let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
-                let terror = game.last_terror_trigger().is_some();
-                game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByRevival)), (terror, Step::Enter(Phase::TerrorTriggeredByRevival))], Step::Enter(Phase::AmbassadorTriggeredByRevival))?;
+                game.show_first_intrusion(IntrusionCause::Revival)?;
             }
         }
         Ok(())

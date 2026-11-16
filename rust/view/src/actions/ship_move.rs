@@ -618,7 +618,7 @@ fn build(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOp
         Event::FremenSentMonster(_) => O::FremenSentMonster(LocationPickOptions { draft: Value::Null, targets: sectors_of(FremenSentMonster::valid_targets(game)) }),
         Event::SetShipmentPermission(_) => O::SetShipmentPermission(SetShipmentPermissionOptions { draft: Value::Null,
             permissions: game
-                .ship_move.shipment_permissions
+                .alliances.shipment_permissions
                 .iter()
                 .map(|(f, perm)| ShipmentPermissionRow {
                     faction: name(*f),

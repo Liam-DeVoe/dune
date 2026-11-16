@@ -192,7 +192,6 @@ impl AmbassadorActivated {
 
             Ambassador::Ecaz => {
                 if self.ecaz_offer_alliance {
-                    game.ship_move.alliance_by_ambassador_offered_to = Some(victim);
                     let vidal = game.vidal();
                     game.log(parts![
                             by.faction,
@@ -200,10 +199,14 @@ impl AmbassadorActivated {
                             victim,
                             express_part_if!(self.ecaz_give_vidal_to_ally; " offering ", vidal, " if they accept")
                         ]);
-                    game.ship_move.paused_ambassador_phase = Some(game.phase());
-                    game.enter(Phase::AllianceByAmbassador, true);
+                    game.interrupt(Interrupt::AllianceByAmbassador {
+                        offered_to: victim,
+                        offered_by: by,
+                        give_vidal_to_ally: self.ecaz_give_vidal_to_ally,
+                        take_vidal: self.ecaz_take_vidal,
+                    });
                 } else {
-                    if game.ship_move.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {
+                    if self.ecaz_take_vidal {
                         game.take_vidal(by.player(), VidalMoment::Never);
                     }
 
@@ -222,7 +225,7 @@ impl AmbassadorActivated {
                 let force_locations = self.fremen_force_locations(game, by);
                 let this = Event::from(self.clone());
                 game.perform_move_from_locations(by.player(), &force_locations, &this, false, false)?;
-                game.ship_move.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.fremen_or_guild_to, force_locations: force_locations.clone() });
+                game.turn.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.fremen_or_guild_to, force_locations: force_locations.clone() });
                 game.check_intrusion(&this, by.faction.expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -278,7 +281,7 @@ impl AmbassadorActivated {
                     Player::ship_forces(game, by.player(), to, i32::from(self.guild_force_amount))?;
                 }
                 let this = Event::from(self.clone());
-                game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.fremen_or_guild_to });
+                game.turn.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.fremen_or_guild_to });
                 game.check_intrusion(&this, by.faction.expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -438,11 +441,6 @@ impl EventRules for AmbassadorActivated {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.ship_move.current_ambassador_activated = Some(AmbassadorActivation {
-            submitter: by,
-            ecaz_give_vidal_to_ally: self.ecaz_give_vidal_to_ally,
-            ecaz_take_vidal: self.ecaz_take_vidal,
-        });
         let ambassador_faction = AmbassadorActivated::get_ambassador(game);
         let territory = AmbassadorActivated::get_territory(game);
         let victim = AmbassadorActivated::get_victim(game);

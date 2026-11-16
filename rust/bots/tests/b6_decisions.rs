@@ -18,11 +18,17 @@ use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
 
-fn ev<T: EventKind>(e: Rc<T>) -> String {
-    treachery_engine::json::serialize(&HistoryEntry::legacy(T::into_event(e)))
+fn ev<T: EventKind>(e: Rc<T>) -> String
+where
+    Event: From<Rc<T>>,
+{
+    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
 }
 
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String {
+fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
+where
+    Event: From<Rc<T>>,
+{
     e.map_or_else(|| "null".to_string(), ev)
 }
 

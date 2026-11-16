@@ -426,7 +426,7 @@ impl AmbassadorActivated {
                 let this = self.clone().into_event();
                 game.perform_move_from_locations(self.player(), &force_locations, &this, false, false)?;
                 game.ship_move.recent_moves.push(this.clone());
-                game.check_intrusion(&this)?;
+                game.check_intrusion(&this, self.initiator().expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
@@ -485,7 +485,7 @@ impl AmbassadorActivated {
                 }
                 let this = self.clone().into_event();
                 game.ship_move.last_shipment_or_movement = Some(this.clone());
-                game.check_intrusion(&this)?;
+                game.check_intrusion(&this, self.initiator().expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 
@@ -555,10 +555,6 @@ impl PassableGameEventMethods for AmbassadorActivated {
 }
 
 impl crate::events::location_event::LocationEvent for AmbassadorActivated {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         AmbassadorActivated::to(self, game)
     }
@@ -578,10 +574,6 @@ impl crate::events::location_event::LocationEvent for AmbassadorActivated {
 }
 
 impl crate::events::placement::Placement for AmbassadorActivated {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         AmbassadorActivated::force_locations(self, game)
     }

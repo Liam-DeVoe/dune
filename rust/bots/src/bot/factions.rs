@@ -1107,9 +1107,9 @@ impl ClassicBot {
 
     // ---- Moritani ----
 
-    pub fn determine_extortion_prevented(&self, game: &Game) -> Option<Rc<ExtortionPrevented>> {
+    pub fn determine_extortion_prevented(&self, game: &Game) -> Option<ExtortionPrevented> {
         if game.player(self.player).ally != Some(Faction::Moritani) && self.resources(game) > 12 && self.d(1, 6) >= 3 {
-            return Some(Rc::new(ExtortionPrevented::new(game, self.faction(game))));
+            return Some(ExtortionPrevented::default());
         }
 
         None

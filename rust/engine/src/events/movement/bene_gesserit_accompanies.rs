@@ -64,7 +64,7 @@ impl BeneGesseritAccompanies {
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             self.log_objects(game, vec![m.into()]);
             game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
-            game.check_intrusion(&self.clone().into_event())?;
+            game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
         } else {
             let m = express!(self.initiator(), " don't accompany")
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::DontAccompany, Option::<Location>::None.into(), false));
@@ -181,10 +181,6 @@ impl GameEventMethods for BeneGesseritAccompanies {
 }
 
 impl crate::events::location_event::LocationEvent for BeneGesseritAccompanies {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         BeneGesseritAccompanies::to(self, game)
     }

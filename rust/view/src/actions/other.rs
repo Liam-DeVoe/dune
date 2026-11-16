@@ -294,7 +294,13 @@ fn deal_end_phases(t: DealType) -> Vec<Option<Phase>> {
 pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draft: &Event) -> Event {
     let pl = game.player(p);
     let hand: Vec<TreacheryCard> = pl.treachery_cards.clone();
+    // `@plain` for a converted event, which the variant holds by value.
     macro_rules! adjust {
+        (@plain $e:expr, |$m:ident| $body:block) => {{
+            let mut $m = $e.clone();
+            $body
+            event($m)
+        }};
         ($e:expr, |$m:ident| $body:block) => {{
             let mut $m = (**$e).clone();
             $body
@@ -370,7 +376,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.target = required_opt(m.target, &targets);
             m.card = required_opt(m.card, &DistransUsed::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
-        Event::DivideResources(e) => adjust!(e, |m| {
+        Event::DivideResources(e) => adjust!(@plain e, |m| {
             let amount = DivideResources::get_resources_to_be_divided(game).map_or(0, |t| t.amount);
             m.portion_to_first_player = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.portion_to_first_player), 0, amount));
         }),

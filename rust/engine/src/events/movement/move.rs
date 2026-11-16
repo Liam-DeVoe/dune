@@ -81,7 +81,7 @@ impl Move {
             let force_locations = PlacementEventMethods::force_locations(&**self, game);
             let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
             game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, false)?;
-            game.check_intrusion(&self.clone().into_event())?;
+            game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
         } else {
             let m = express!(self.initiator(), " pass movement").with_log(MovePassed { faction: self.initiator().required("faction")? });
             self.log_objects(game, vec![m.into()]);
@@ -184,10 +184,6 @@ impl PlacementEventMethods for Move {
 }
 
 impl crate::events::location_event::LocationEvent for Move {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }
@@ -207,10 +203,6 @@ impl crate::events::location_event::LocationEvent for Move {
 }
 
 impl crate::events::placement::Placement for Move {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }

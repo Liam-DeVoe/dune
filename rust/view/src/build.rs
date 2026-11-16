@@ -4,7 +4,7 @@
 //! field is filled only for the viewers who may see it under the game rules.
 
 use std::collections::BTreeMap;
-use std::rc::Rc;
+
 
 use treachery_engine::game::GameStatus;
 use treachery_engine::prelude::*;
@@ -208,9 +208,9 @@ pub fn draft_check<R>(f: impl FnOnce() -> R) -> Option<R> {
 /// Wraps a freshly built event for [`validate`].
 pub fn event<E>(e: E) -> Event
 where
-    Event: From<Rc<E>>,
+    Event: From<E>,
 {
-    Event::from(Rc::new(e))
+    Event::from(e)
 }
 
 /// Prescience waits while the Bene Gesserit (or their ally) may still use Voice, so a player who

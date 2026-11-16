@@ -259,7 +259,7 @@ impl FremenRidesMonster {
             }
 
             game.flip_bene_gesserit_advisors_when_alone()?;
-            game.check_intrusion(&self.clone().into_event())?;
+            game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
         } else {
             let msg = express!(self.initiator(), " pass a ride on ", Concept::Monster).with_log(NexusLog::new(None, None));
             self.log_objects(game, elems![msg]);
@@ -342,10 +342,6 @@ impl PlacementEventMethods for FremenRidesMonster {
 }
 
 impl crate::events::location_event::LocationEvent for FremenRidesMonster {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }
@@ -365,10 +361,6 @@ impl crate::events::location_event::LocationEvent for FremenRidesMonster {
 }
 
 impl crate::events::placement::Placement for FremenRidesMonster {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }

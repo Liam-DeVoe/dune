@@ -319,7 +319,7 @@ impl TerrorRevealed {
                             elems![self.initiator(), " sneak attack ", territory, " with ", i32::from(self.forces_in_sneak_attack), force],
                         );
                         Player::ship_forces(game, self.player(), sneak_attack_to, i32::from(self.forces_in_sneak_attack))?;
-                        game.check_intrusion(&self.clone().into_event())?;
+                        game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
                     }
                 }
 
@@ -385,10 +385,6 @@ impl PassableGameEventMethods for TerrorRevealed {
 }
 
 impl crate::events::location_event::LocationEvent for TerrorRevealed {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         TerrorRevealed::to(self, game)
     }

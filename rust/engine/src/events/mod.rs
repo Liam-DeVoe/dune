@@ -44,7 +44,6 @@ pub use movement::{location_event, placement};
 
 use crate::prelude::*;
 
-
 use macros::events;
 
 events! {
@@ -78,7 +77,7 @@ events! {
     @legacy CardGiven,
     @legacy CardTraded,
     @legacy CardsDetermined,
-    @legacy CharityClaimed,
+    CharityClaimed,
     @legacy ChoamDiscarded,
     @legacy ChoamEconomics,
     @legacy ChoamExtraMove,
@@ -99,14 +98,14 @@ events! {
     @legacy DiscoveryEntered,
     @legacy DiscoveryRevealed,
     @legacy DistransUsed,
-    @legacy DivideResources,
-    @legacy DivideResourcesAccepted,
+    DivideResources,
+    DivideResourcesAccepted,
     @legacy Donated,
     @legacy EmperorBidSupport,
     @legacy EmperorDiscarded,
     @legacy EndPhase,
     @legacy EstablishPlayers,
-    @legacy ExtortionPrevented,
+    ExtortionPrevented,
     @legacy FaceDanced,
     @legacy FaceDancerReplaced,
     @legacy FaceDancerRevealed,
@@ -354,27 +353,6 @@ impl Event {
         }
     }
 
-    /// `((LocationEvent)this).Initiator`; InvalidCastException for events that do not implement `LocationEvent`.
-    pub fn location_event_initiator(&self) -> Faction {
-        match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::initiator(&**e),
-            Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::initiator(&**e),
-            Event::Caravan(e) => <Caravan as location_event::LocationEvent>::initiator(&**e),
-            Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::initiator(&**e),
-            Event::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::initiator(&**e),
-            Event::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::initiator(&**e),
-            Event::Move(e) => <Move as location_event::LocationEvent>::initiator(&**e),
-            Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::initiator(&**e),
-            Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::initiator(&**e),
-            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::initiator(&**e),
-            Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::initiator(&**e),
-            Event::Revival(e) => <Revival as location_event::LocationEvent>::initiator(&**e),
-            Event::Shipment(e) => <Shipment as location_event::LocationEvent>::initiator(&**e),
-            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::initiator(&**e),
-            _ => panic!("{} is not a LocationEvent", self.event_type().name()),
-        }
-    }
-
     /// `((LocationEvent)this).To`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_to(&self, game: &Game) -> Option<Location> {
         match self {
@@ -435,21 +413,6 @@ impl Event {
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::forces_added_to_location(&**e, game),
             Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((Placement)this).Initiator`; InvalidCastException for events that do not implement `Placement`.
-    pub fn placement_initiator(&self) -> Faction {
-        match self {
-            Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::initiator(&**e),
-            Event::Caravan(e) => <Caravan as placement::Placement>::initiator(&**e),
-            Event::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::initiator(&**e),
-            Event::FaceDanced(e) => <FaceDanced as placement::Placement>::initiator(&**e),
-            Event::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::initiator(&**e),
-            Event::Move(e) => <Move as placement::Placement>::initiator(&**e),
-            Event::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::initiator(&**e),
-            Event::PerformSetup(e) => <PerformSetup as placement::Placement>::initiator(&**e),
-            _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }
 

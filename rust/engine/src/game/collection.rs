@@ -8,7 +8,7 @@ pub struct CollectionState {
     pub resources_collected_by_harkonnen_from_desert_or_homeworld: i32,
     pub pending_discoveries: Vec<DiscoveryToken>,
     pub collected_resources_to_be_divided: Vec<ResourcesToBeDivided>,
-    pub current_division_proposal: Option<Rc<DivideResources>>,
+    pub current_division_proposal: Option<DivisionProposal>,
     /// `Some(None)`: decided, and nobody.
     pub owner_of_flight_discovery: Option<Option<Faction>>,
     pub just_revealed_discovery_strongholds: Vec<DiscoveredLocation>,
@@ -31,6 +31,12 @@ impl CollectionState {
 /// `params object?[]` element list for `Log(...)`.
 macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
+}
+
+/// The division of shared spice that the first faction proposed (`DivideResources`).
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
+pub struct DivisionProposal {
+    pub portion_to_first_player: u16,
 }
 
 impl Game {

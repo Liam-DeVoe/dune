@@ -7,6 +7,19 @@ macro_rules! event_payload {
 }
 pub(crate) use event_payload;
 
+/// `From<Rc<X>> for Event`, for an `@legacy` event only.
+macro_rules! from_rc {
+    (legacy $name:ident) => {
+        impl From<::std::rc::Rc<$name>> for Event {
+            fn from(e: ::std::rc::Rc<$name>) -> Self {
+                Event::$name(e)
+            }
+        }
+    };
+    ($name:ident) => {};
+}
+pub(crate) use from_rc;
+
 /// Wraps a decoded event in its variant.
 macro_rules! wrap_event {
     (legacy $name:ident, $e:expr) => { Event::$name(::std::rc::Rc::new($e)) };
@@ -56,11 +69,12 @@ macro_rules! events {
         }
 
         $(
-            impl From<$crate::events::macros::event_payload!($($legacy)? $name)> for Event {
-                fn from(e: $crate::events::macros::event_payload!($($legacy)? $name)) -> Self {
-                    Event::$name(e)
+            impl From<$name> for Event {
+                fn from(e: $name) -> Self {
+                    $crate::events::macros::wrap_event!($($legacy)? $name, e)
                 }
             }
+            $crate::events::macros::from_rc!($($legacy)? $name);
         )*
 
         /// The type of an event, as `Event::event_type` gives it and `Game::get_applicable_events`

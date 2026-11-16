@@ -67,7 +67,7 @@ impl Caravan {
             game.allow(FactionAdvantage::IxianCyborgExtraMove);
         }
 
-        if game.check_intrusion(&self.clone().into_event())? {
+        if game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))? {
             game.ship_move.phase_before_caravan_caused_intrusion = Some(game.turn.current_phase);
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
@@ -139,10 +139,6 @@ impl PlacementEventMethods for Caravan {
 }
 
 impl crate::events::location_event::LocationEvent for Caravan {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }
@@ -162,10 +158,6 @@ impl crate::events::location_event::LocationEvent for Caravan {
 }
 
 impl crate::events::placement::Placement for Caravan {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }

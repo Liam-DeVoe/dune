@@ -24,6 +24,16 @@ use serde_json::{json, Value};
 use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 
+/// A decision method's result as the goldens write it, for a converted event (returned by value)
+/// or a legacy one: the entry of the bot's faction, "null" for no event.
+#[allow(dead_code)]
+pub fn decision<R: treachery_bots::bot::IntoDecision>(bot: &ClassicBot, game: &Game, e: R) -> String {
+    match e.into_event() {
+        Some(e) => treachery_engine::json::serialize(&HistoryEntry::decided(bot.by(game).faction, e)),
+        None => "null".to_string(),
+    }
+}
+
 /// Whether this run rewrites the snapshots instead of comparing with them.
 pub fn updating() -> bool {
     std::env::var("UPDATE_GOLDENS").is_ok()

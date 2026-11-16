@@ -259,10 +259,6 @@ impl GameEventMethods for RaiseDeadPlayed {
 }
 
 impl crate::events::location_event::LocationEvent for RaiseDeadPlayed {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         RaiseDeadPlayed::to(self, game)
     }

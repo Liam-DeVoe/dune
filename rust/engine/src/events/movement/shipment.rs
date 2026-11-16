@@ -795,7 +795,7 @@ impl Shipment {
             }
 
             if !self.is_back_to_reserves() {
-                game.check_intrusion(&self.clone().into_event())?;
+                game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
             }
 
             game.determine_next_shipment_and_move_sub_phase()?;
@@ -1151,10 +1151,6 @@ impl PassableGameEventMethods for Shipment {
 }
 
 impl crate::events::location_event::LocationEvent for Shipment {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }

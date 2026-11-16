@@ -118,7 +118,7 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
         m.to = Some(to);
         Event::Move(Rc::new(m))
     };
-    g.ship_move.intrusions.push(Intrusion::new(&mv(intruded, &g), IntrusionType::BeneGesseritIntrusion));
+    g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: Some(intruded), type_: IntrusionType::BeneGesseritIntrusion });
     g.ship_move.last_shipment_or_movement = Some(mv(elsewhere, &g));
     g.turn.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
 
@@ -283,7 +283,7 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     let mut g = fixture("bene_gesserit");
     let mut m = Move::new(&g, Faction::Emperor);
     m.to = Some(location(&g, 5));
-    g.ship_move.intrusions.push(Intrusion::new(&Event::Move(Rc::new(m)), IntrusionType::BeneGesseritIntrusion));
+    g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: m.to, type_: IntrusionType::BeneGesseritIntrusion });
     g.main_phase_start(MainPhase::Battle, false);
     assert!(g.ship_move.intrusions.is_empty());
 }

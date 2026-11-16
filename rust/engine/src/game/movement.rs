@@ -762,12 +762,12 @@ impl Game {
         }
     }
 
-    pub fn check_intrusion(&mut self, e: &Event) -> GameResult<bool> {
-        let initiator = e.location_event_initiator();
+    /// Queues the intrusions that `e`, a location event by `initiator`, causes.
+    pub fn check_intrusion(&mut self, e: &Event, initiator: Faction) -> GameResult<bool> {
         let territory = e.to_location(self).required("destination")?.territory();
         self.check_bene_gesserit_intrusion(e, initiator, territory);
-        self.check_ambassador_triggered(e);
-        self.check_terror_triggered(e);
+        self.check_ambassador_triggered(e, initiator);
+        self.check_terror_triggered(e, initiator);
         Ok(!self.ship_move.intrusions.is_empty())
     }
 
@@ -787,44 +787,43 @@ impl Game {
                         self.allow(FactionAdvantage::BeneGesseritIntrusion);
                     }
                 } else {
-                    self.queue_intrusion(e, IntrusionType::BeneGesseritIntrusion);
+                    self.queue_intrusion(e, initiator, IntrusionType::BeneGesseritIntrusion);
                 }
             }
         }
     }
 
-    pub fn check_ambassador_triggered(&mut self, e: &Event) {
+    pub fn check_ambassador_triggered(&mut self, e: &Event, initiator: Faction) {
         let ecaz_player = self.get_player(Some(Faction::Ecaz));
         if let Some(ecaz) = ecaz_player {
-            let initiator = e.location_event_initiator();
             if (initiator != Faction::BeneGesserit || e.location_event_forces_added_to_location(self) > 0)
                 && initiator != Faction::Ecaz
                 && Some(initiator) != self.player(ecaz).ally
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != None
                 && self.ambassador_in(e.to_location(self).expect("to location").territory()) != Game::ambassador_of(initiator)
             {
-                self.queue_intrusion(e, IntrusionType::Ambassador);
+                self.queue_intrusion(e, initiator, IntrusionType::Ambassador);
             }
         }
     }
 
-    pub fn check_terror_triggered(&mut self, e: &Event) {
+    pub fn check_terror_triggered(&mut self, e: &Event, initiator: Faction) {
         let moritani_player = self.get_player(Some(Faction::Moritani));
         if let Some(moritani) = moritani_player {
-            let initiator = e.location_event_initiator();
             if (e.location_event_total_amount_of_forces_added_to_location(self) >= 3 || !self.player(moritani).has_any_low_threshold(self))
                 && initiator != Faction::Moritani
                 && Some(initiator) != self.player(moritani).ally
                 && !self.is_occupied_by_faction_or_their_ally(World::Moritani, initiator)
                 && !self.terror_in(e.to_location(self).expect("to location").territory()).next().is_none()
             {
-                self.queue_intrusion(e, IntrusionType::Terror);
+                self.queue_intrusion(e, initiator, IntrusionType::Terror);
             }
         }
     }
 
-    pub fn queue_intrusion(&mut self, e: &Event, type_: IntrusionType) {
-        self.ship_move.intrusions.push(Intrusion::new(e, type_));
+    pub fn queue_intrusion(&mut self, e: &Event, initiator: Faction, type_: IntrusionType) {
+        let intrusion = Intrusion { initiator, to: e.to_location(self), type_ };
+        self.ship_move.intrusions.push(intrusion);
     }
 
     pub fn dequeue_intrusion(&mut self, type_: IntrusionType) -> GameResult {
@@ -913,24 +912,21 @@ impl Game {
     }
 }
 
-#[derive(Clone, Debug)]
+/// An intrusion waiting for its answer: who moved forces where, from the event that caused it.
+#[derive(Clone, Debug, PartialEq)]
 pub struct Intrusion {
-    pub triggering_event: Event,
+    pub initiator: Faction,
+    /// Where the forces went (`LocationEvent.To` of the event).
+    pub to: Option<Location>,
     pub type_: IntrusionType,
 }
 
 impl Intrusion {
-    /// Takes the game because `TriggeringEvent.To` resolves an id through it.
-    pub fn territory(&self, game: &Game) -> Territory {
-        self.triggering_event.to_location(game).expect("to location").territory()
+    pub fn territory(&self, _game: &Game) -> Territory {
+        self.to.expect("to location").territory()
     }
 
     pub fn initiator(&self) -> Faction {
-        self.triggering_event.location_event_initiator()
+        self.initiator
     }
-
-    pub fn new(triggering_event: &Event, type_: IntrusionType) -> Self {
-        Intrusion { triggering_event: triggering_event.clone(), type_ }
-    }
-
 }

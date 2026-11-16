@@ -20,11 +20,17 @@ use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
 
-fn ev<T: EventKind>(e: Rc<T>) -> String {
-    treachery_engine::json::serialize(&HistoryEntry::legacy(T::into_event(e)))
+fn ev<T: EventKind>(e: Rc<T>) -> String
+where
+    Event: From<Rc<T>>,
+{
+    treachery_engine::json::serialize(&HistoryEntry::legacy(e))
 }
 
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String {
+fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
+where
+    Event: From<Rc<T>>,
+{
     e.map_or_else(|| "null".to_string(), ev)
 }
 
@@ -44,9 +50,9 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDiscoveryEntered" => ev(bot.determine_discovery_entered(game)),
         "DetermineDiscoveryRevealed" => ev(bot.determine_discovery_revealed(game)),
         "DetermineTestingStationUsed" => opt(bot.determine_testing_station_used(game)),
-        "DetermineDivideResources" => ev(bot.determine_divide_resources(game)),
+        "DetermineDivideResources" => common::decision(bot, game, bot.determine_divide_resources(game)),
         "DetermineCardGiven" => ev(bot.determine_card_given(game)),
-        "DetermineDivideResourcesAccepted" => ev(bot.determine_divide_resources_accepted(game)),
+        "DetermineDivideResourcesAccepted" => common::decision(bot, game, bot.determine_divide_resources_accepted(game)),
         "DetermineDiscarded" => ev(bot.determine_discarded(game)),
         "DetermineTraitorDiscarded" => ev(bot.determine_traitor_discarded(game)),
         "DetermineWorstTraitor" => hero(bot.determine_worst_traitor(game)),
@@ -54,7 +60,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineTerritoryToRemoveEcazFrom" => {
             bot.determine_territory_to_remove_ecaz_from(game).map_or_else(|| "null".to_string(), |t| format!("T{}", t.id()))
         }
-        "DetermineCharityClaimed" => opt(bot.determine_charity_claimed(game)),
+        "DetermineCharityClaimed" => common::decision(bot, game, bot.determine_charity_claimed(game)),
         "DetermineKarmaFreeRevival" => opt(bot.determine_karma_free_revival(game)),
         "DetermineKarmaHandSwap" => ev(bot.determine_karma_hand_swap(game)),
         "DetermineKarmaShipmentPrevention" => opt(bot.determine_karma_shipment_prevention(game)),

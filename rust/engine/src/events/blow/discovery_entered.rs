@@ -164,10 +164,6 @@ impl PlacementEventMethods for DiscoveryEntered {
 }
 
 impl crate::events::location_event::LocationEvent for DiscoveryEntered {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, _game: &Game) -> Option<Location> {
         self.to
     }
@@ -187,10 +183,6 @@ impl crate::events::location_event::LocationEvent for DiscoveryEntered {
 }
 
 impl crate::events::placement::Placement for DiscoveryEntered {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         <Self as PlacementEventMethods>::force_locations(self, game)
     }

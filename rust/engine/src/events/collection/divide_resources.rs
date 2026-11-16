@@ -1,51 +1,14 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-/// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
-#[derive(Clone, Debug)]
+/// The first faction of a shared collection proposes how to divide the spice, or passes to split
+/// it evenly.
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct DivideResources {
     pub portion_to_first_player: u16,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for DivideResources {
-    fn default() -> Self {
-        DivideResources {
-            portion_to_first_player: Default::default(),
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl DivideResources {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.passed {
-            return None;
-        }
-
-        let to_be_divided = Self::get_resources_to_be_divided(game);
-        let Some(to_be_divided) = to_be_divided else { return Some(express!("No collections to be divided")) };
-        if i32::from(self.portion_to_first_player) > Self::get_resources_to_be_divided(game).expect("resources to be divided").amount {
-            return Some(express!("Too much assigned to ", to_be_divided.first_faction));
-        }
-
-        None
-    }
-
     pub fn get_resources_to_be_divided(g: &Game) -> Option<ResourcesToBeDivided> {
         g.collection.collected_resources_to_be_divided.first().cloned()
     }
@@ -68,9 +31,25 @@ impl DivideResources {
             half_rounded_toward_zero(tbd.expect("resources to be divided").amount)
         }
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.collection.current_division_proposal = Some(self.clone());
+impl EventRules for DivideResources {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        if self.passed {
+            return Ok(());
+        }
+
+        let to_be_divided = Self::get_resources_to_be_divided(game);
+        let Some(to_be_divided) = to_be_divided else { return Err(Rejection(express!("No collections to be divided"))) };
+        if i32::from(self.portion_to_first_player) > Self::get_resources_to_be_divided(game).expect("resources to be divided").amount {
+            return Err(Rejection(express!("Too much assigned to ", to_be_divided.first_faction)));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.collection.current_division_proposal = Some(DivisionProposal { portion_to_first_player: self.portion_to_first_player });
 
         if self.passed {
             game.divide_resources_from_collection(false);
@@ -80,51 +59,13 @@ impl DivideResources {
             let to_be_divided = Self::get_resources_to_be_divided(game);
             let gained_by_other_faction = Self::gained_by_other_faction(to_be_divided.as_ref(), true, i32::from(self.portion_to_first_player));
             let other = to_be_divided.required("to be divided")?.other_faction;
-            self.log_objects(
-                game,
-                elems![self.initiator(), " propose that they take ", Payment::of(i32::from(self.portion_to_first_player)), " and ", other, " take ", Payment::of(gained_by_other_faction)],
-            );
+            game.log(parts![by.faction, " propose that they take ", Payment::of(i32::from(self.portion_to_first_player)), " and ", other, " take ", Payment::of(gained_by_other_faction)]);
             game.enter(Phase::AcceptingResourceDivision, true);
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, _by: By) -> Message {
         express!("Collected resources were divided")
     }
-
-}
-
-impl GameEventMethods for DivideResources {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DivideResources
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DivideResources(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DivideResources::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DivideResources::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DivideResources::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for DivideResources {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

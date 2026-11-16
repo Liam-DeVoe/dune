@@ -2,7 +2,6 @@
 //! game states by hand and check rules that are easy to get wrong.
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::events::GameEventMethods;
 use treachery_engine::game::Intrusion;
 use treachery_engine::random::SharedRandom;
 use treachery_engine::prelude::*;
@@ -37,8 +36,8 @@ fn a_stronghold(g: &Game) -> Territory {
 fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
     let mut e = NexusPlayed::new(g, faction);
     e.tleilaxu_location = Some(t.locations()[0]);
-    let e = Rc::new(e).into_event();
-    g.ship_move.intrusions.push(Intrusion::new(&e, IntrusionType::Terror));
+    let to = e.tleilaxu_location;
+    g.ship_move.intrusions.push(Intrusion { initiator: faction, to, type_: IntrusionType::Terror });
 }
 
 // ---------------------------------------------------------------------------

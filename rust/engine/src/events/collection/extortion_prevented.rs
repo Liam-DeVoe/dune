@@ -1,50 +1,37 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct ExtortionPrevented {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for ExtortionPrevented {
-    fn default() -> Self {
-        ExtortionPrevented {
-            base: Default::default(),
-        }
-    }
-}
+/// A player pays 3 spice so that Moritani doesn't get its Extortion token back.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExtortionPrevented {}
 
 impl ExtortionPrevented {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.player(p).faction != Some(Faction::Moritani)
             && i32::from(g.player(p).resources) >= 3
             && g.contemplate.extortion_to_be_returned
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for ExtortionPrevented {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
         game.contemplate.extortion_to_be_returned = false;
-        let p = game.player_mut(self.player());
+        let p = game.player_mut(by.player());
         p.resources -= 3;
-        let moritani = self.get_player(game, Some(Faction::Moritani)).required("get player")?;
+        let moritani = game.get_player(Some(Faction::Moritani)).required("get player")?;
         let c = game.player_mut(moritani);
         c.resources += 3;
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         express!(
-            self.initiator(),
+            by.faction,
             " pay ",
             Payment::of(3),
             " to prevent ",
@@ -53,31 +40,4 @@ impl ExtortionPrevented {
             TerrorType::Extortion
         )
     }
-}
-
-impl GameEventMethods for ExtortionPrevented {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ExtortionPrevented
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ExtortionPrevented(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ExtortionPrevented::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ExtortionPrevented::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ExtortionPrevented::get_message(self, game)
-    }
-
 }

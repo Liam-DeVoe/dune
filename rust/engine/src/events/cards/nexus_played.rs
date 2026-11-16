@@ -870,10 +870,6 @@ impl GameEventMethods for NexusPlayed {
 }
 
 impl crate::events::location_event::LocationEvent for NexusPlayed {
-    fn initiator(&self) -> Faction {
-        GameEventMethods::initiator(self).expect("faction")
-    }
-
     fn to(&self, game: &Game) -> Option<Location> {
         NexusPlayed::to(self, game)
     }

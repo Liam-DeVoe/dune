@@ -37,14 +37,12 @@ pub struct ClassicBot {
 /// An event type a decision method can return.
 pub trait EventKind: Sized {
     const TYPE: EventType;
-    fn into_event(e: Rc<Self>) -> Event;
 }
 
 macro_rules! event_kind {
     ($($t:ident),* $(,)?) => {
         $(impl EventKind for $t {
             const TYPE: EventType = EventType::$t;
-            fn into_event(e: Rc<Self>) -> Event { Event::$t(e) }
         })*
     };
 }
@@ -183,23 +181,50 @@ impl Priority {
     pub const ALL: [Priority; 5] = [Priority::Highest, Priority::High, Priority::Middle, Priority::Low, Priority::End];
 }
 
-/// What a decision method returns: an event, or maybe an event.
+/// What a decision method returns: an event, or maybe an event. A converted event comes by
+/// value, an `@legacy` one in an `Rc`.
 pub trait IntoDecision {
     type Event: EventKind;
-    fn into_option(self) -> Option<Rc<Self::Event>>;
+    fn into_event(self) -> Option<Event>;
 }
 
-impl<T: EventKind> IntoDecision for Rc<T> {
+impl<T: EventKind> IntoDecision for T
+where
+    Event: From<T>,
+{
     type Event = T;
-    fn into_option(self) -> Option<Rc<T>> {
-        Some(self)
+    fn into_event(self) -> Option<Event> {
+        Some(Event::from(self))
     }
 }
 
-impl<T: EventKind> IntoDecision for Option<Rc<T>> {
+impl<T: EventKind> IntoDecision for Option<T>
+where
+    Event: From<T>,
+{
     type Event = T;
-    fn into_option(self) -> Option<Rc<T>> {
-        self
+    fn into_event(self) -> Option<Event> {
+        self.map(Event::from)
+    }
+}
+
+impl<T: EventKind> IntoDecision for Rc<T>
+where
+    Event: From<Rc<T>>,
+{
+    type Event = T;
+    fn into_event(self) -> Option<Event> {
+        Some(Event::from(self))
+    }
+}
+
+impl<T: EventKind> IntoDecision for Option<Rc<T>>
+where
+    Event: From<Rc<T>>,
+{
+    type Event = T;
+    fn into_event(self) -> Option<Event> {
+        self.map(Event::from)
     }
 }
 
@@ -435,8 +460,7 @@ impl ClassicBot {
 
         // The bots aren't written to avoid every state they can't handle (a card the game doesn't
         // have, for example), so a decision that panics counts as no decision.
-        let event = guarded(|| decide(self, game)).ok()?.into_option()?;
-        let event = <R::Event as EventKind>::into_event(event);
+        let event = guarded(|| decide(self, game)).ok()?.into_event()?;
 
         let by = self.by(game);
         let valid = event.validate(game, by).is_ok();

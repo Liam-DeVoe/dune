@@ -139,7 +139,7 @@ Numbers now go through `dotnet_compat::fmt`.
 **What catches the class now.**
 - `csharp-gen --message-collections` finds every site from the Roslyn operation trees of Shared: each collection converted to `object`, each array passed as a whole `params` array, and each collection given to a log record. It writes `engine/tests/coverage/message_collections.txt`.
 - `engine/tests/live_lists.rs` fails for any site without a row in live-lists.md, for any row without a site, and for a `live` row whose `LiveList` variant doesn't exist or isn't used by any port.
-- The conventions now send porters to that table ([engine-conventions.md](engine-conventions.md#collections-in-messages)), and `LiveList` makes a live element a one-line change.
+- The conventions now send porters to that table ([engine-conventions.md](engine-conventions.md#messages)), and `LiveList` makes a live element a one-line change.
 
 The weak spot is the generated file. It only changes when someone reruns the tool after changing Shared. Shared is the spec and rarely changes, so we accepted that.
 
@@ -166,7 +166,7 @@ Since 2026-11-15 (rewrite plan, 2c) every logged collection is a copy, and `Live
 
 **What catches the class now.**
 
-- Every handle has a null value (`TreacheryCard::NULL`, `PlayerIndex::NULL`, ...). It throws from every member, throws ArgumentNullException as a dictionary key, and dumps as `null` ([engine-conventions.md](engine-conventions.md#null-handles)). The conventions now say `x!` is `x.or_null()` wherever C# stores or passes the value on.
+- Every handle has a null value (`TreacheryCard::NULL`, `PlayerIndex::NULL`, ...). It throws from every member, throws ArgumentNullException as a dictionary key, and dumps as `null` ([engine-conventions.md](engine-conventions.md#absent-values)). The conventions now say `x!` is `x.or_null()` wherever C# stores or passes the value on.
 - `csharp-ref/Boundary.cs` now passes null to every parameter of a game-object type, whatever its annotation. `every_member_matches_csharp` compares those cases with .NET.
 - `boundary.rs::null_receivers_throw_null_reference` calls every ported member of every game-object type on the null handle, with the arguments of each C# case. Each call must throw NullReferenceException with the .NET message.
 - `tests/null_handles.rs` checks the collection behaviour against .NET 10: `List.Remove(null)`, `HashSet.Add(null)`, null dictionary keys for every key-taking method, the dump, message elements, `GetId(null)`, and `linq_source`.
@@ -271,7 +271,7 @@ A related case is evaluation order inside the query. Several ports read `p.Facti
 - `csharp-gen --lazy-queries` finds every lazy producer and every site from the Roslyn operation trees of Shared, with the consumer of each site: short-circuit operator, full enumeration, `foreach` with or without early exit, a local enumerated twice, or a pass to another member. It writes `engine/tests/coverage/lazy_queries.txt`.
 - `engine/tests/lazy_queries.rs` fails for a site without a row in lazy-queries.md, for a stale row, and for a short-circuited site whose producer isn't `iter` with a Rust function that returns an iterator. That holds through `return` chains too.
 - The `lazy` section of `boundary.json` (`csharp-ref/LazyBoundary.cs`) runs every `iter` producer that takes a `Game` or a `Player` on states with a null card after a match, a dangling ally, an unattached discovery stronghold, and a null player. It records the items yielded up to the exception. `boundary.rs::lazy_queries_yield_like_csharp` compares, and fails on 18 cases if `Karma.ValidKarmaCards` collects before yielding. `lazy_queries.rs` fails for an `iter` producer the harness doesn't call, unless it is listed with a reason.
-- The conventions now say lazy producers return `impl Iterator` ([engine-conventions.md](engine-conventions.md#ienumerable-and-laziness)), and `lazy.rs` has `Either`, lazy `distinct` and `union`, and `cs_contains`.
+- The conventions now say lazy producers return `impl Iterator` ([engine-conventions.md](engine-conventions.md#iterators-and-laziness)), and `lazy.rs` has `Either`, lazy `distinct` and `union`, and `cs_contains`.
 
 The weak spots: the tool reads Shared only, so the bot port has to rerun it with Bots included. Inline chains such as `hand.Where(p).Any()` aren't listed, because a Rust port of them is one iterator chain and lazy already. And the harness's three scenarios exercise only the nulls we know about.
 

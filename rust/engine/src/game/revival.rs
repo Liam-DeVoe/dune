@@ -293,3 +293,65 @@ impl RevivalCost {
     }
 
 }
+
+impl GameStatus {
+    /// The status in the revival phase, or `None` in another phase.
+    pub(crate) fn revival_status(_game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        Some(match phase {
+            Phase::Resurrection => Self::status("Factions may now reclaim forces and leaders.", None),
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the revival phase (see `add_player_actions`).
+    pub(crate) fn add_revival_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::BeginningOfResurrection => {
+                if faction == Some(Faction::Tleilaxu)
+                    && self.players.len() > 1
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
+                {
+                    result.push(EventType::SetIncreasedRevivalLimits);
+                }
+                if RecruitsPlayed::is_applicable(self, player) {
+                    result.push(EventType::RecruitsPlayed);
+                }
+            }
+
+            Phase::Resurrection => {
+                if self.is_playing(Faction::Tleilaxu)
+                    && faction != Some(Faction::Tleilaxu)
+                    && !self.killed_heroes(player).is_empty()
+                    && Revival::normally_revivable_heroes(self, player).is_empty()
+                {
+                    result.push(EventType::RequestTleilaxuRevival);
+                }
+
+                if faction == Some(Faction::Tleilaxu) && (!self.revival.current_revival_requests.is_empty() || !self.revival.early_revivals_offers.is_empty()) {
+                    result.push(EventType::AcceptOrCancelTleilaxuRevival);
+                }
+                if self.has_something_to_revive(player) && !self.prevented_from_reviving(faction) {
+                    result.push(EventType::Revival);
+                }
+                if faction == Some(Faction::Tleilaxu)
+                    && self.players.len() > 1
+                    && !self.prevented(FactionAdvantage::TleilaxuIncreasingRevivalLimits)
+                {
+                    result.push(EventType::SetIncreasedRevivalLimits);
+                }
+            }
+
+            Phase::ResurrectionReport => {
+                if faction == Some(Faction::Ecaz) && AmbassadorPlaced::is_applicable(self, player) {
+                    result.push(EventType::AmbassadorPlaced);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

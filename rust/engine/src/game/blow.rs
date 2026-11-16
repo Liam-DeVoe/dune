@@ -55,7 +55,6 @@ macro_rules! elems {
     ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
 }
 
-
 impl Game {
     pub fn enter_spice_blow_phase(&mut self) {
         self.main_phase_start(MainPhase::Blow, true);
@@ -642,4 +641,116 @@ impl MonsterAppearance {
         if self.is_great_monster { Concept::GreatMonster } else { Concept::Monster }
     }
 
+}
+
+impl GameStatus {
+    /// The status in the spice blow phase, or `None` in another phase.
+    pub(crate) fn blow_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB => {
+                let a = express!("Please decide where to let ", Concept::Monster, " appear.");
+                let w = express!(Faction::Fremen, " are deciding where to let ", Concept::Monster, " appear...");
+                Self::faction_status(game, a, w, Some(Faction::Fremen), None)
+            }
+
+            Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB => {
+                let a = express!("Please decide where to travel with ", Concept::Monster, ".");
+                let w = express!(Faction::Fremen, " are deciding where to travel with ", Concept::Monster, "...");
+                Self::faction_status(game, a, w, Some(Faction::Fremen), None)
+            }
+
+            Phase::BlowA | Phase::HarvesterA => {
+                let t = game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory();
+                Self::status(express!("Factions may use a ", TreacheryCardType::Harvester, " to double the ", Concept::Resource, " blow in ", t, "..."), None)
+            }
+
+            Phase::BlowB | Phase::HarvesterB => {
+                let t = game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location").territory();
+                Self::status(express!("Factions may use a ", TreacheryCardType::Harvester, " to double the ", Concept::Resource, " blow in ", t, "..."), None)
+            }
+
+            Phase::VoteAllianceA | Phase::VoteAllianceB => {
+                let players = Self::players_that_have_not_acted_or_passed(game);
+                Self::players_status("Please vote Yes or No to a Nexus.", "Factions are voting on a Nexus...", players, None)
+            }
+
+            Phase::AllianceA | Phase::AllianceB => {
+                let players = Self::players_that_have_not_acted_or_passed(game);
+                Self::players_status(
+                    "You may now make or break an alliance.",
+                    "Factions are making and breaking alliances...",
+                    players,
+                    None,
+                )
+            }
+
+            Phase::NexusCards => {
+                let players: Vec<Option<PlayerId>> = g.player_indices().filter(|p| NexusCardDrawn::applicable(g, *p)).map(Some).collect();
+                Self::players_status("Do you wish to draw a Nexus card in case you have none or have your own faction?", "Factions are thinking about drawing Nexus cards...", players, None)
+            }
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the spice blow phase (see `add_player_actions`).
+    pub(crate) fn add_blow_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::Thumper => {
+                if self.player(player).has_treachery_card_type(TreacheryCardType::Thumper) {
+                    result.push(EventType::ThumperPlayed);
+                }
+            }
+
+            Phase::VoteAllianceA | Phase::VoteAllianceB => {
+                if self.blow.nexus_votes.iter().all(|v| v.initiator != faction) {
+                    result.push(EventType::NexusVoted);
+                }
+            }
+
+            Phase::HarvesterA | Phase::HarvesterB => {
+                if self.player(player).has_treachery_card_type(TreacheryCardType::Harvester) {
+                    result.push(EventType::HarvesterPlayed);
+                }
+            }
+
+            Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB => {
+                if faction == Some(Faction::Fremen) {
+                    result.push(EventType::FremenSentMonster);
+                }
+            }
+
+            Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB => {
+                if faction == Some(Faction::Fremen) {
+                    result.push(EventType::FremenRidesMonster);
+                }
+            }
+
+            Phase::AllianceA | Phase::AllianceB => {
+                if !self.turn.has_acted_or_passed.contains_opt(faction) {
+                    if self.player(player).ally == None && self.players.len() > 1 {
+                        result.push(EventType::AllianceOffered);
+                    }
+                    if self.player(player).ally != None {
+                        result.push(EventType::AllianceBroken);
+                    }
+                    result.push(EventType::AlliancePassed);
+                }
+            }
+
+            Phase::NexusCards => {
+                if NexusCardDrawn::applicable(self, player) {
+                    result.push(EventType::NexusCardDrawn);
+                }
+            }
+
+            Phase::BlowReport => {}
+
+            _ => {}
+        }
+    }
 }

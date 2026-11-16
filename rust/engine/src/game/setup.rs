@@ -449,3 +449,149 @@ impl Game {
         self.applicable(Rule::LeaderSkills)
     }
 }
+
+impl GameStatus {
+    /// The status in the setup, or `None` in another phase.
+    pub(crate) fn setup_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        Some(match phase {
+            Phase::AwaitingPlayers => Self::host_status(
+                "Configure the game and wait for players to join. Start the game when ready.",
+                "Waiting for the host to configure and start the game...",
+                None,
+            ),
+
+            Phase::SelectingFactions => Self::status("Players may now choose a faction...", None),
+
+            Phase::TradingFactions => Self::status("Players may now trade factions...", None),
+
+            Phase::BeneGesseritPredicting => {
+                let a = express!("Please predict who will win the game and when.");
+                let w = express!(Faction::BeneGesserit, " are predicting who will win the game and when...");
+                Self::faction_status(game, a, w, Some(Faction::BeneGesserit), None)
+            }
+
+            Phase::HarkonnenMulligan => {
+                let a = express!("You may draw a new set of traitors if you were dealt two or more of your own leaders.");
+                let w = express!(Faction::Harkonnen, " may draw a new set of traitors if they were dealt two or more of their own leaders...");
+                Self::faction_status(game, a, w, Some(Faction::Harkonnen), None)
+            }
+
+            Phase::SelectingTraitors => {
+                let players = Self::players_that_have_not_acted_or_passed(game);
+                Self::players_status("Please select one leader to keep as a traitor.", "Factions are selecting traitors...", players, None)
+            }
+
+            Phase::CustomizingDecks => Self::host_status("Please select which cards will be in play.", "The host is selecting which cards will be in play...", None),
+
+            Phase::PerformCustomSetup => {
+                let a = express!("Please set up ", game.next_faction_to_perform_custom_setup(), " starting ", Concept::Resource, " and force positions.");
+                let w = express!("The host is setting up ", game.next_faction_to_perform_custom_setup(), " starting ", Concept::Resource, " and force positions...");
+                Self::host_status(a, w, None)
+            }
+
+            Phase::FremenSettingUp => {
+                let a = express!("Please choose your initial force positions.");
+                let w = express!(Faction::Fremen, " are setting up their starting force positions...");
+                Self::faction_status(game, a, w, Some(Faction::Fremen), None)
+            }
+
+            Phase::BeneGesseritSettingUp => {
+                let a = express!("Please select your starting force position.");
+                let w = express!(Faction::BeneGesserit, " are selecting their starting force position...");
+                Self::faction_status(game, a, w, Some(Faction::BeneGesserit), None)
+            }
+
+            Phase::MoritaniSettingUp => {
+                let a = express!("Please select your starting force position.");
+                let w = express!(Faction::Moritani, " are selecting their starting force position...");
+                Self::faction_status(game, a, w, Some(Faction::Moritani), None)
+            }
+
+            Phase::IxianSelectingCard => {
+                let a = express!("Please select your starting Treachery Card.");
+                let w = express!(Faction::Ixian, " are selecting their starting Treachery Card...");
+                Self::faction_status(game, a, w, Some(Faction::Ixian), None)
+            }
+
+            Phase::HmsPlacement => {
+                let a = express!("Please position the Hidden Mobile Stronghold.");
+                let w = express!(Faction::Ixian, " are positioning the Hidden Mobile Stronghold...");
+                Self::faction_status(game, a, w, Some(Faction::Ixian), None)
+            }
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the setup (see `add_player_actions`).
+    pub(crate) fn add_setup_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::SelectingFactions => {
+                if self.player(player).faction == None {
+                    result.push(EventType::FactionSelected);
+                }
+            }
+
+            Phase::TradingFactions => {
+                if self.players.len() > 1 {
+                    result.push(EventType::FactionTradeOffered);
+                }
+            }
+
+            Phase::PerformCustomSetup => {}
+
+            Phase::BeneGesseritPredicting => {
+                if faction == Some(Faction::BeneGesserit) {
+                    result.push(EventType::BeneGesseritPrediction);
+                }
+            }
+
+            Phase::FremenSettingUp => {
+                if faction == Some(Faction::Fremen) {
+                    result.push(EventType::PerformFremenSetup);
+                }
+            }
+
+            Phase::BeneGesseritSettingUp => {
+                if faction == Some(Faction::BeneGesserit) {
+                    result.push(EventType::PerformBeneGesseritPlacement);
+                }
+            }
+
+            Phase::MoritaniSettingUp => {
+                if faction == Some(Faction::Moritani) {
+                    result.push(EventType::PerformMoritaniSetup);
+                }
+            }
+
+            Phase::HarkonnenMulligan => {
+                if faction == Some(Faction::Harkonnen) {
+                    result.push(EventType::MulliganPerformed);
+                }
+            }
+
+            Phase::SelectingTraitors => {
+                if faction != Some(Faction::Harkonnen) && faction != Some(Faction::Tleilaxu) && !self.turn.has_acted_or_passed.contains_opt(faction) {
+                    result.push(EventType::TraitorsSelected);
+                }
+            }
+
+            Phase::IxianSelectingCard => {
+                if faction == Some(Faction::Ixian) {
+                    result.push(EventType::IxianSelectedStartingCard);
+                }
+            }
+
+            Phase::HmsPlacement => {
+                if faction == Some(Faction::Ixian) {
+                    result.push(EventType::PerformHmsPlacement);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

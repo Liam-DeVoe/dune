@@ -347,3 +347,54 @@ pub struct ResourcesToBeDivided {
     pub territory: Territory,
 }
 
+impl GameStatus {
+    /// The status in the collection phase, or `None` in another phase.
+    pub(crate) fn collection_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::DividingCollectedResources => {
+                let a = express!("Please make a proposal about how to divide collected ", Concept::Resource, ".");
+                let w = express!("Waiting for ", g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| Some(r.first_faction)), " to propose how to divide collected ", Concept::Resource);
+                let f = g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| r.first_faction);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            Phase::AcceptingResourceDivision => {
+                let a = express!("Please decide about the proposed division of ", Concept::Resource, ".");
+                let w = express!(g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| Some(r.other_faction)), " are thinking about the proposed division");
+                let f = g.collection().and_then(|c| c.collected_resources_to_be_divided.first()).map(|r| r.other_faction);
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the collection phase (see `add_player_actions`).
+    pub(crate) fn add_collection_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::DividingCollectedResources => {
+                if DivideResources::is_applicable(self, player) {
+                    result.push(EventType::DivideResources);
+                }
+            }
+
+            Phase::AcceptingResourceDivision => {
+                if DivideResourcesAccepted::is_applicable(self, player) {
+                    result.push(EventType::DivideResourcesAccepted);
+                }
+            }
+
+            Phase::BeginningOfCollection | Phase::CollectionReport => {
+                if faction == Some(Faction::Moritani) && TerrorPlanted::is_applicable(self, player) {
+                    result.push(EventType::TerrorPlanted);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

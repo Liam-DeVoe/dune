@@ -574,3 +574,50 @@ impl Game {
         self.board.terror_on_planet.iter().filter(move |(_, v)| **v == t).map(move |(k, _)| *k)
     }
 }
+
+impl GameStatus {
+    /// The status in the Mentat phase and the end of the game, or `None` in another phase.
+    pub(crate) fn contemplate_status(_game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        Some(match phase {
+            Phase::Extortion => Self::host_status(
+                express!("You may proceed when done waiting for players to avoid future {0} by {1}", TerrorType::Extortion, Faction::Moritani),
+                express!("Players may pay {0} to avoid future {1} by {2}...", Concept::Resource, TerrorType::Extortion, Faction::Moritani),
+                None,
+            ),
+
+            Phase::Contemplate => Self::host_status("Check for victories?", "Waiting for the host to start determining victories...", None),
+
+            Phase::GameEnded => Self::status("The game has ended.", None),
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the Mentat phase and the end of the game (see `add_player_actions`).
+    pub(crate) fn add_contemplate_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::Extortion => {
+                if ExtortionPrevented::can_be_played(self, player) {
+                    result.push(EventType::ExtortionPrevented);
+                }
+            }
+
+            Phase::Contemplate => {
+                if faction == Some(Faction::Choam)
+                    && !self.prevented(FactionAdvantage::ChoamEconomics)
+                    && self.charity.economics_status == None
+                {
+                    result.push(EventType::ChoamEconomics);
+                }
+                if faction == Some(Faction::Moritani) && TerrorPlanted::is_applicable(self, player) {
+                    result.push(EventType::TerrorPlanted);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

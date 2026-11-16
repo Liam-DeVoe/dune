@@ -217,3 +217,98 @@ impl Game {
         self.interrupts.contains(&interrupt)
     }
 }
+
+impl GameStatus {
+    /// The status while a card or skill interrupt is on top, or `None`.
+    pub(crate) fn interrupt_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::Clairvoyance => {
+                let a = express!("Please answer a question from ", g.turn.latest_clairvoyance.as_ref().map(|c| c.initiator()), " by ", TreacheryCardType::Clairvoyance, ".");
+                let w = express!("Waiting for an answer to a ", TreacheryCardType::Clairvoyance, " question...");
+                let f = g.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance").target;
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            Phase::SearchingDiscarded => {
+                let p = g.owner_of_treachery_card_type(TreacheryCardType::SearchDiscarded);
+                Self::player_status("Please take a card from the treachery discard pile.", "Waiting for a card to be taken from the treachery discard pile...", p, None)
+            }
+
+            Phase::TradingCards => {
+                let offer_player = g.alliances.current_card_trade_offer.as_ref().expect("current card trade offer").player();
+                let f = g.player(offer_player).ally;
+                Self::faction_status(g, "Please select which card to give to your ally.", "Waiting for a card to be returned...", f, None)
+            }
+
+            Phase::Bureaucracy => {
+                let p = g.player_skilled_as(LeaderSkill::Bureaucrat);
+                Self::player_status("Please decide whether to apply Bureaucracy to the latest payment.", "Waiting for Bureaucracy to be applied to the latest payment...", p, None)
+            }
+
+            Phase::Discarding => {
+                Self::factions_status(g, "Please decide which card to discard.", "Waiting for factions to discard...", &g.turn.factions_that_must_discard, None)
+            }
+
+            Phase::PerformingKarmaHandSwap => {
+                let a = express!("Please decide which ", game.bidding.karma_hand_swap_number_of_cards, " cards to return to ", game.bidding.karma_hand_swap_target, ".");
+                let w = express!(Faction::Harkonnen, " are deciding which ", game.bidding.karma_hand_swap_number_of_cards, " cards to return to ", game.bidding.karma_hand_swap_target, "...");
+                Self::faction_status(game, a, w, Some(Faction::Harkonnen), None)
+            }
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do while a card or skill interrupt is on top (see `add_player_actions`).
+    pub(crate) fn add_interrupt_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::Discarding => {
+                if self.turn.factions_that_must_discard.contains_opt(faction) {
+                    result.push(EventType::Discarded);
+                }
+            }
+
+            Phase::DiscardingTraitor => {
+                if faction == self.turn.faction_that_must_discard_traitor {
+                    result.push(EventType::TraitorDiscarded);
+                }
+            }
+
+            Phase::Bureaucracy => {
+                if Some(player) == self.player_skilled_as(LeaderSkill::Bureaucrat) {
+                    result.push(EventType::Bureaucracy);
+                }
+            }
+
+            Phase::PerformingKarmaHandSwap => {
+                if faction == Some(Faction::Harkonnen) && !self.karma_prevented(faction) {
+                    result.push(EventType::KarmaHandSwap);
+                }
+            }
+
+            Phase::TradingCards => {
+                if Some(faction) == self.alliances.current_card_trade_offer.as_ref().map(|o| o.target) {
+                    result.push(EventType::CardTraded);
+                }
+            }
+
+            Phase::Clairvoyance => {
+                if Some(faction) == self.turn.latest_clairvoyance.as_ref().map(|c| c.target) {
+                    result.push(EventType::ClairVoyanceAnswered);
+                }
+            }
+
+            Phase::SearchingDiscarded => {
+                if DiscardedSearched::can_be_played(self, player) {
+                    result.push(EventType::DiscardedSearched);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

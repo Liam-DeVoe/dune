@@ -251,3 +251,80 @@ impl Game {
             && !(l.id() == self.board.map.arrakeen().id() || l.territory() == self.board.map.imperial_basin() || l.id() == self.board.map.carthag().id())
     }
 }
+
+impl GameStatus {
+    /// The status in the storm phase, or `None` in another phase.
+    pub(crate) fn storm_status(game: &Game, _me: Option<PlayerId>, phase: Phase) -> Option<GameStatus> {
+        let g = game;
+        Some(match phase {
+            Phase::HmsMovement => {
+                let a = express!("You may move the Hidden Mobile Stronghold to a sector in an adjacent territory, or pass.");
+                let w = express!(Faction::Ixian, " are moving the Hidden Mobile Stronghold...");
+                Self::faction_status(game, a, w, Some(Faction::Ixian), None)
+            }
+
+            Phase::DiallingStorm => {
+                let factions: Vec<Faction> = g.rules.factions_in_play.iter().copied().filter(|f| g.storm.has_battle_wheel.contains(f) && !g.turn.has_acted_or_passed.contains(f)).collect();
+                Self::factions_status(g, "Please dial a number to determine storm movement.", "Storm movement is being determined...", &factions, None)
+            }
+
+            Phase::MetheorAndStormSpell => Self::status(express!("Factions may now use ", TreacheryCardType::Metheor, " or ", TreacheryCardType::StormSpell, "..."), None),
+
+            Phase::StormLosses => {
+                let a = express!("Please decide which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, ".");
+                let w = express!(TakeLosses::losses_to_take(g).faction, " are deciding which forces were killed by the storm in ", TakeLosses::losses_to_take(g).location, "...");
+                let f = g.storm.storm_losses_to_take[0].faction;
+                Self::faction_status(g, a, w, f, None)
+            }
+
+            _ => return None,
+        })
+    }
+}
+
+impl Game {
+    /// What `player` may do in the storm phase (see `add_player_actions`).
+    pub(crate) fn add_storm_actions(&self, player: PlayerId, _is_host: bool, result: &mut Vec<EventType>) {
+        let faction = self.player(player).faction;
+        match self.phase() {
+            Phase::DiallingStorm => {
+                let f = self.player(player).faction;
+                if self.storm.has_battle_wheel.contains_opt(f) && !self.turn.has_acted_or_passed.contains_opt(f) {
+                    result.push(EventType::StormDialled);
+                }
+            }
+
+            Phase::BeginningOfStorm => {
+                if !DiscoveryEntered::valid_targets(self, player).next().is_none() {
+                    result.push(EventType::DiscoveryEntered);
+                }
+            }
+
+            Phase::HmsMovement => {
+                if faction == Some(Faction::Ixian) {
+                    result.push(EventType::PerformHmsMovement);
+                }
+            }
+
+            Phase::MetheorAndStormSpell => {
+                if self.player(player).has_treachery_card_type(TreacheryCardType::StormSpell) && self.turn.current_turn > Turn::FIRST {
+                    result.push(EventType::StormSpellPlayed);
+                }
+                if MetheorPlayed::may_play_metheor(self, player) {
+                    result.push(EventType::MetheorPlayed);
+                }
+                if TestingStationUsed::can_be_played(self, player) {
+                    result.push(EventType::TestingStationUsed);
+                }
+            }
+
+            Phase::StormLosses => {
+                if faction == TakeLosses::losses_to_take(self).faction {
+                    result.push(EventType::TakeLosses);
+                }
+            }
+
+            _ => {}
+        }
+    }
+}

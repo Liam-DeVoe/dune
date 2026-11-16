@@ -15,3 +15,10 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 - Faction sheets paste advantage titles into the sheet template before formatting it, so a custom skin label with `{N}` gets sheet parameter N, and a lone `{` leaves the whole sheet unformatted. 3b drops this.
 - A custom skin missing any default key is replaced by the default skin entirely (C#'s `FixDictionary`), so its custom names are lost.
 - The web client's Karama help text has typos ("an advantages ... occured").
+
+## Rules questions for the owner
+
+Pinned as they are today by tests in `engine/tests/phases_unreached.rs`, so wave 5 can't change them silently.
+
+- Accompanying Bene Gesserit fighters never trigger an Ecaz ambassador. `check_ambassador_triggered` needs the event to add fighters, and `BeneGesseritAccompanies::forces_added_to_location` always returns 0, even when they are shipped as fighters. Should they trigger it?
+- `check_terror_triggered` lets fewer than 3 forces trigger a terror token only while Moritani is not at its low threshold. Is that the right way round?

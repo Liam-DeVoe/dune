@@ -129,11 +129,18 @@ impl Config {
         if fuzz && rng.chance(FOCUS) {
             focus = true;
             ruleset = Ruleset::AllExpansionsAdvancedGame;
+            // The house rules drawn above stay, so these games still set up decks, forces and
+            // factions by hand now and then.
+            let kept: Vec<Rule> = rules.iter().copied().filter(|r| house.contains(r) || *r == Rule::BotsCannotAlly).collect();
             rules = definitions.iter().find(|(k, _)| **k == ruleset).map(|(_, v)| v.clone()).unwrap_or_default();
-            rules.extend([Rule::BeneGesseritAccompaniesToShipmentLocation, Rule::FillWithBots]);
+            for r in kept.into_iter().chain([Rule::BeneGesseritAccompaniesToShipmentLocation, Rule::FillWithBots]) {
+                if !rules.contains(&r) {
+                    rules.push(r);
+                }
+            }
             let mut others: Vec<Faction> = all.iter().copied().filter(|f| !FOCUS_FACTIONS.contains(f)).collect();
             rng.shuffle(&mut others);
-            others.truncate(rng.below(3));
+            others.truncate(rng.below(4));
             factions = FOCUS_FACTIONS.iter().copied().chain(others).collect();
             rng.shuffle(&mut factions);
             players = factions.len() as i32;

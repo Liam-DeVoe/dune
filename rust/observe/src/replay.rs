@@ -281,7 +281,7 @@ fn replay_on_thread(reader: Box<dyn BufRead + Send>, allow: &Allow, tx: &Sender<
             if h.format != trace::FORMAT {
                 return Outcome::Bad(format!("trace format {} (this replayer reads {})", h.format, trace::FORMAT));
             }
-            let mut sess = Session::new(events::replay_version(h.version), &h.seated, h.full_views);
+            let mut sess = Session::new(h.version, &h.seated, h.full_views);
             sess.view_hash = h.view_hash;
             r.sess = Some(sess);
             continue;

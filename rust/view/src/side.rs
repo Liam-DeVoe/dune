@@ -13,13 +13,10 @@ fn name<T: ToString>(v: T) -> String {
     v.to_string()
 }
 
-/// An event for the client to submit as it is (`crate::wire`).
-fn event_json(by: Option<Faction>, e: Event) -> serde_json::Value {
-    crate::wire::event_json(by, &e)
-}
-
-fn entry_json(e: &HistoryEntry) -> serde_json::Value {
-    crate::wire::entry_json(e)
+/// An event for the client to submit as it is: in the engine's format (`{"type":..}`), without
+/// the submitter or a time, which the server fills in.
+fn event_json(e: Event) -> serde_json::Value {
+    serde_json::to_value(e).expect("events serialize")
 }
 
 /// The deals panel of a seated player (observers have no trade icons):
@@ -40,8 +37,8 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
                 description: message(&o.get_deal_description(game), d),
                 message: message(&o.describe(game), d),
                 accept_error: validate(game, faction, Event::from(acceptance.clone()), d),
-                accept: event_json(faction, Event::from(acceptance)),
-                decline: event_json(faction, Event::from(o.rejection())),
+                accept: event_json(Event::from(acceptance)),
+                decline: event_json(Event::from(o.rejection())),
                 withdraw: None,
                 answers: vec![],
             }
@@ -57,8 +54,7 @@ pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<Deals
             accept_error: None,
             accept: serde_json::Value::Null,
             decline: serde_json::Value::Null,
-            // The copy of the offer's entry, its time included.
-            withdraw: Some(entry_json(&o.cancellation(game))),
+            withdraw: Some(event_json(o.cancellation(game).event)),
             answers: game
                 .deal_recipients(o)
                 .map(|r| DealAnswer { faction: name(r), accepted: game.deal_response(o.id, r) })

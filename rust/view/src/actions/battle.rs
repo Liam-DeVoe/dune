@@ -231,7 +231,7 @@ pub fn options_and_validation(game: &Game, v: &ResolvedViewer, draft: &Event, d:
     }
     let Some(p) = v.player else { return Some((None, None)) };
     let faction = game.player(p).faction;
-    let dj = draft_json(faction, draft);
+    let dj = draft_json(draft);
     let options = match draft {
         Event::AuditCancelled(_) => ActionOptions::AuditCancelled(AuditCancelledOptions {
             cost: AuditCancelled::cost_of_cancelling(game),
@@ -800,7 +800,7 @@ fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -
         max_banker_boost: Battle::max_banker_boost(game, p, hero),
         banker_label,
         leader,
-        draft: draft_json(pl.faction, &event(normalized.clone())),
+        draft: draft_json(&event(normalized.clone())),
     };
     let _ = faction;
     (options, normalized)

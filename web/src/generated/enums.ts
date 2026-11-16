@@ -298,6 +298,16 @@ export type ClairvoyanceQuestion = "None" | "Prediction" | "LeaderAsTraitor" | "
 
 /** `DealType` members. */
 export type DealType = "None" | "DontShipOrMoveTo" | "ShareBiddingPrescience" | "ShareResourceDeckPrescience" | "ShareStormPrescience" | "ForfeitBattle" | "TellDiscardedTraitors";
+/** `DealType` member values. */
+export const DealTypeValue: Record<DealType, number> = {
+  None: 0,
+  DontShipOrMoveTo: 10,
+  ShareBiddingPrescience: 30,
+  ShareResourceDeckPrescience: 50,
+  ShareStormPrescience: 60,
+  ForfeitBattle: 70,
+  TellDiscardedTraitors: 80,
+};
 
 /** `FactionAdvantage` members. */
 export type FactionAdvantage = "None" | "AtreidesBiddingPrescience" | "AtreidesSpiceBlowPrescience" | "AtreidesBattlePlanPrescience" | "AtreidesUseMessiah" | "HarkonnenFreeCard" | "HarkonnenCaptureLeader" | "HarkonnenCallTraitorForAlly" | "BeneGesseritAccompanies" | "BeneGesseritUsingVoice" | "BeneGesseritWorthlessAsKarma" | "BeneGesseritAnnouncesBattle" | "BeneGesseritIntrusion" | "BeneGesseritCharity" | "FremenControlsMonster" | "FremenRidesMonster" | "FremenNotPayingForBattles" | "FremenSpecialForceBonus" | "FremenExtraMove" | "FremenProtectedFromStorm" | "FremenProtectedFromMonster" | "FremenProtectedFromMonsterAlly" | "FremenStormPrescience" | "EmperorSpecialForceBonus" | "EmperorReceiveBid" | "EmperorGiveSpiceToAlly" | "EmperorLetAllyReviveExtraForces" | "GuildDetermineMoveMoment" | "GuildSpecialShipments" | "GuildShipmentsDiscount" | "GuildShipmentsDiscountAlly" | "GuildReceiveShipment" | "TleilaxuRevivalDiscount" | "TleilaxuRevivalDiscountAlly" | "TleilaxuReplacingFaceDancer" | "TleilaxuIncreasingRevivalLimits" | "TleilaxuReceiveRevive" | "TleilaxuEarlyLeaderRevive" | "TleilaxuReviveGhola" | "IxianMovingHms" | "IxianSpecialForceBonus" | "IxianSelectingCardsOnAuction" | "IxianCyborgExtraMove" | "IxianReplacingSpecialForces" | "IxianAllyDiscardingCard" | "IxianSwappingCard" | "ChoamControllingCharity" | "ChoamDiscarding" | "ChoamRevival" | "ChoamEconomics" | "ChoamReceiveForcePayment" | "ChoamAudit" | "RicheseAuction" | "RicheseNofield" | "RicheseBlackMarket" | "EcazAmbassadors" | "EcazOccupation" | "EcazCollection" | "MoritaniPlantingTerror" | "MoritaniGainingVidal" | "MoritaniEnemyOfEnemy";

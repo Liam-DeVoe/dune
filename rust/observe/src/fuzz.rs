@@ -9,7 +9,7 @@
 //!
 //! Events are built and changed as objects in the format of game version 190 (`$type`,
 //! `_toId`, `Passed`, enums as numbers), which the field heuristics below key on, and the views'
-//! drafts are read in that format too ([`crate::events::with_legacy_views`]). So the generator
+//! drafts are converted to that format ([`crate::events::legacy_view_events`]). So the generator
 //! draws the same values as before the format changed, and makes the same games. The recorder
 //! converts each event to the engine's format before it submits and records it
 //! (`events::to_trace`).
@@ -370,7 +370,7 @@ impl Pools {
         let p = shadow.player_at(i);
         let faction = shadow.players[i].faction;
         let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
-        let options = quiet(|| crate::events::with_legacy_views(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok())))
+        let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok().map(|mut o| { crate::events::legacy_view_events(&mut o, faction); o })))
             .flatten()
             .flatten();
         pools.event_type = Some(t);
@@ -388,7 +388,7 @@ impl Pools {
             pools.harvest("", &o);
         }
         if matches!(t, EventType::DealAccepted | EventType::DealRejected | EventType::DealOffered) {
-            let deals = quiet(|| crate::events::with_legacy_views(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok()))).flatten().flatten();
+            let deals = quiet(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok().map(|mut d| { crate::events::legacy_view_events(&mut d, faction); d }))).flatten().flatten();
             for list in ["acceptable", "cancellable"] {
                 for offer in deals.as_ref().and_then(|d| d.get(list)).and_then(|l| l.as_array()).into_iter().flatten() {
                     for button in ["accept", "decline", "withdraw"] {

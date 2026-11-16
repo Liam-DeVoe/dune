@@ -537,7 +537,7 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &Event, d: &dyn 
         return yes_no_options(game, p, draft, d);
     }
     let pl = game.player(p);
-    let json = draft_json(pl.faction, draft);
+    let json = draft_json(draft);
     let hand = || card_ids(pl.treachery_cards.iter().copied());
     let cards = |cards: Vec<i32>| CardChoiceOptions { cards, draft: json.clone() };
     let factions = |fs: Vec<Faction>| FactionChoiceOptions { targets: faction_options(fs), draft: json.clone() };
@@ -745,7 +745,7 @@ fn ally_permission(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_jso
         current_resources: game.get_permitted_use_of_ally_resources(ally),
         karma_cards: Karma::can_karma(game, p).then(|| card_ids(Karma::valid_karma_cards(game, p))),
         current_karma_card: game.get_permitted_use_of_ally_karma(ally).map(|c| c.id()),
-        current: draft_json(pl.faction, &event(current)),
+        current: draft_json(&event(current)),
         fremen_determines_storm: game.applicable(Rule::FremenDeterminesStorm),
         fremen_refunds_dial: game.applicable(Rule::FremenAllyGetsDialedResourcesRefunded),
         draft,
@@ -838,17 +838,16 @@ fn simple_options(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer) -> 
     })
 }
 
-fn yes_no(by: Option<Faction>, title: RichText, alert: bool, draft: &Event) -> ActionOptions {
-    ActionOptions::YesNo(YesNoOptions { title, alert, draft: draft_json(by, draft) })
+fn yes_no(title: RichText, alert: bool, draft: &Event) -> ActionOptions {
+    ActionOptions::YesNo(YesNoOptions { title, alert, draft: draft_json(draft) })
 }
 
 fn yes_no_options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Option<ActionOptions> {
-    let by = game.player(p).faction;
     let m = |e: Message| message(&e, d);
     Some(match draft.event_type() {
-        EventType::NexusVoted => yes_no(by, text("Should a Nexus occur?"), true, draft),
-        EventType::AllianceByTerror => yes_no(by, m(express!("Enter an alliance with ", Faction::Moritani, "?")), true, draft),
-        EventType::AllianceByAmbassador => yes_no(by, m(express!("Enter an alliance with ", Faction::Ecaz, "?")), true, draft),
+        EventType::NexusVoted => yes_no(text("Should a Nexus occur?"), true, draft),
+        EventType::AllianceByTerror => yes_no(m(express!("Enter an alliance with ", Faction::Moritani, "?")), true, draft),
+        EventType::AllianceByAmbassador => yes_no(m(express!("Enter an alliance with ", Faction::Ecaz, "?")), true, draft),
         EventType::BattleClaimed => {
             let territory = game.battle.battle_about_to_start.as_ref().and_then(|b| b.territory);
             let title = if game.player(p).faction == Some(Faction::Ecaz) {
@@ -856,12 +855,12 @@ fn yes_no_options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) ->
             } else {
                 express!("Should ", Faction::Ecaz, " fight the battle in ", territory, "?")
             };
-            yes_no(by, m(title), true, draft)
+            yes_no(m(title), true, draft)
         }
-        EventType::DivideResourcesAccepted => yes_no(by, text(render(d, &parts!["Agree with the proposed division of ", Concept::Resource, "?"])), true, draft),
-        EventType::CardGiven => yes_no(by, m(express!("Give your ally the ", game.bidding.card_that_must_be_kept_or_given_to_ally, " you just received?")), true, draft),
-        EventType::Bureaucracy => yes_no(by, m(express!("Use your ", LeaderSkill::Bureaucrat, " skill?")), true, draft),
-        EventType::Captured => yes_no(by, text("Do you wish to capture a random leader from your opponent?"), true, draft),
+        EventType::DivideResourcesAccepted => yes_no(text(render(d, &parts!["Agree with the proposed division of ", Concept::Resource, "?"])), true, draft),
+        EventType::CardGiven => yes_no(m(express!("Give your ally the ", game.bidding.card_that_must_be_kept_or_given_to_ally, " you just received?")), true, draft),
+        EventType::Bureaucracy => yes_no(m(express!("Use your ", LeaderSkill::Bureaucrat, " skill?")), true, draft),
+        EventType::Captured => yes_no(text("Do you wish to capture a random leader from your opponent?"), true, draft),
         _ => return None,
     })
 }

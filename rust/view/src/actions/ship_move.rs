@@ -224,7 +224,7 @@ pub fn options_and_validation(game: &Game, p: PlayerId, draft: &Event, d: &dyn D
     }
     let draft = normalized(game, p, draft);
     let options = crate::build::draft_check(|| build(game, p, &draft, d)).map(|mut o| {
-        set_draft(&mut o, draft_json(game.player(p).faction, &draft));
+        set_draft(&mut o, draft_json(&draft));
         o
     });
     Some((options, validate(game, game.player(p).faction, draft, d)))

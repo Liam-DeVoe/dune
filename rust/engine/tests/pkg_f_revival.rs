@@ -112,8 +112,8 @@ fn games_on_one_thread_count_leader_deaths_separately() {
     a.kill_hero(Hero::Leader(leaders[0]));
     a.kill_hero(Hero::Leader(leaders[1]));
     b.kill_hero(Hero::Leader(leaders[0]));
-    assert_eq!((time_of_death(&a, leaders[0]), time_of_death(&a, leaders[1])), (0, 1));
-    assert_eq!(time_of_death(&b, leaders[0]), 0);
+    assert_eq!((time_of_death(&a, leaders[0]), time_of_death(&a, leaders[1])), (1, 2));
+    assert_eq!(time_of_death(&b, leaders[0]), 1);
 }
 
 #[test]

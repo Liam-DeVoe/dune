@@ -1,10 +1,19 @@
 use crate::prelude::*;
 
 /// Numbers the game hands out in order.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Counters {
-    /// The next leader death's `time_of_death`.
+    /// The next leader death's `time_of_death`. It starts at 1, so a leader killed in the game
+    /// comes after one that is dead without having been killed (a revival of a living leader
+    /// makes one), whose `time_of_death` is 0. The views saw that order when the count was per
+    /// thread, because the replica they come from never had the thread's first death.
     pub leader_deaths: i32,
+}
+
+impl Default for Counters {
+    fn default() -> Self {
+        Counters { leader_deaths: 1 }
+    }
 }
 
 impl Counters {

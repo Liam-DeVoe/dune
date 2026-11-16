@@ -4,7 +4,7 @@
 // end the phase (the EndPhase action).
 //
 // The pause between phases (Client.PhaseControl: "continues in 5s", Hold, Done) comes from the
-// server's PhaseControl notification, which the lobby client keeps; a game shown without it (a
+// server's phaseControl notification, which the lobby client keeps; a game shown without it (a
 // saved view) has no pause.
 import { useContext, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { LobbyContext } from "../lobby/context";
@@ -36,18 +36,18 @@ export function GameStatusComponent() {
   const [error, setError] = useState<string | null>(null);
   const clock = useClock();
   const control = usePhaseControl();
-  const pause = control?.Active ? control : null;
+  const pause = control?.active ? control : null;
   const bySeat = (seats: number[]) => seats.map((seat) => view.players.find((p) => p.seat === seat)).filter((p) => p !== undefined);
   const mySeat = view.viewer.isObserver ? undefined : view.players.find((p) => p.faction === view.viewer.faction)?.seat;
   // WaitingForPlayers: the pause's when there is one.
-  const waitingFor: Faction[] = pause ? bySeat(pause.WaitingFor).map((p) => p.faction) : s.waitingFor;
-  const amWaitedFor = mySeat !== undefined && !!pause?.WaitingFor.includes(mySeat);
-  const amHolding = mySeat !== undefined && !!pause?.Holding.includes(mySeat);
-  const holders = bySeat(pause?.Holding ?? []);
+  const waitingFor: Faction[] = pause ? bySeat(pause.waitingFor).map((p) => p.faction) : s.waitingFor;
+  const amWaitedFor = mySeat !== undefined && !!pause?.waitingFor.includes(mySeat);
+  const amHolding = mySeat !== undefined && !!pause?.holding.includes(mySeat);
+  const holders = bySeat(pause?.holding ?? []);
   // OnlyBotsPending: the pause waits only for bots, which end it themselves.
-  const onlyBotsPending = !!pause && pause.CountdownEnds === null && pause.Holding.length === 0
+  const onlyBotsPending = !!pause && pause.countdownEnds === null && pause.holding.length === 0
     && waitingFor.every((f) => view.players.find((p) => p.faction === f)?.isBot);
-  const canHold = mySeat !== undefined && !!pause && pause.CountdownEnds !== null && !amHolding;
+  const canHold = mySeat !== undefined && !!pause && pause.countdownEnds !== null && !amHolding;
   const isBidding = view.mainPhase === "Bidding";
   const showRow = isBidding || waitingFor.length > 0 || s.waitingInSequence.length > 0;
   // StatusStyle: a faint red text border while the viewer is awaited.
@@ -59,14 +59,13 @@ export function GameStatusComponent() {
     const phase = skin.enumValue("MainPhase", view.mainPhase);
     if (amWaitedFor) return `You may still act before the ${phase} phase continues.`;
     if (onlyBotsPending) return `The ${phase} phase continues...`;
-    if (pause!.WaitingFor.length > 0) return `Waiting for players before the ${phase} phase continues...`;
-    if (pause!.CountdownEnds !== null) {
-      const seconds = Math.max(0, Math.ceil((Date.parse(pause!.CountdownEnds) - clock) / 1000));
+    if (pause!.waitingFor.length > 0) return `Waiting for players before the ${phase} phase continues...`;
+    if (pause!.countdownEnds !== null) {
+      const seconds = Math.max(0, Math.ceil((Date.parse(pause!.countdownEnds) - clock) / 1000));
       return `The ${phase} phase continues in ${seconds}s.`;
     }
-    return pause!.Holding.length > 0 ? `Waiting for the hold before the ${phase} phase continues...` : `The ${phase} phase continues...`;
+    return pause!.holding.length > 0 ? `Waiting for the hold before the ${phase} phase continues...` : `The ${phase} phase continues...`;
   };
-  const call = (method: string, ...args: unknown[]) => { void source.gameCall?.(method, ...args); };
 
   return (
     <div className="card p-0 mb-2 prompt-act" style={{ animation: "fadeIn 1s" }}>
@@ -84,11 +83,11 @@ export function GameStatusComponent() {
               {holders.length > 0 && <div className="text-dark text-center">Held by {holders.map((p) => p.name).join(", ")}</div>}
               <div className="mt-2 text-end">
                 {view.viewer.isHost && !onlyBotsPending && (
-                  <button className="btn btn-outline-secondary me-1" onClick={() => call("RequestPhaseContinue", view.eventNumber)} title="Continue without waiting">Continue now</button>
+                  <button className="btn btn-outline-secondary me-1" onClick={() => void source.gameCall?.("phaseContinue", { eventNumber: view.eventNumber })} title="Continue without waiting">Continue now</button>
                 )}
-                {canHold && <button className="btn btn-outline-secondary me-1" onClick={() => call("RequestPhaseHold")}>Hold</button>}
+                {canHold && <button className="btn btn-outline-secondary me-1" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
                 {(amWaitedFor || amHolding) && (
-                  <button className="btn btn-primary" onClick={() => call(amWaitedFor ? "RequestPhaseDone" : "RequestPhaseRelease")}>Done</button>
+                  <button className="btn btn-primary" onClick={() => void source.gameCall?.(amWaitedFor ? "phaseDone" : "phaseRelease", {})}>Done</button>
                 )}
               </div>
             </>
@@ -118,7 +117,7 @@ function TimeLimit({ view }: { view: GameView }) {
   const { source } = useGame();
   const [limit, setLimit] = useState(20);
   const set = view.timing.timer > 0;
-  const update = (value: number) => { void source.gameCall?.("SetTimer", value); };
+  const update = (value: number) => { void source.gameCall?.("setTimer", { value }); };
   const up = limit < 20 ? 5 : limit < 60 ? 10 : 30;
   const down = limit > 60 ? 30 : limit > 20 ? 10 : 5;
   const change = (v: number) => { const c = Math.min(600, Math.max(10, v)); setLimit(c); update(c); };

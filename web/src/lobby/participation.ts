@@ -1,14 +1,14 @@
 // The game's Participation as the C# client kept it (Shared/Model/Participation.cs), with the
-// changes Game_Participation.cs makes when the hub's notifications arrive (JoinGame, ObserveGame,
-// RemoveUser, SetOrUnsetHost, OpenOrCloseSeats, AssignSeats).
+// changes Game_Participation.cs makes when the server's notifications arrive (joinGame, observeGame,
+// removeUser, setOrUnsetHost, openOrCloseSeats, assignSeats).
 //
 // The lobby screens list users in dictionary order (JoinedPlayersPanel, SeatPlayersComponent), so
 // the dictionaries keep .NET's Dictionary order: insertion order, except that a key added after a
-// removal takes the removed key's slot. A participation received whole (GameInitInfo, LoadGame,
-// AssignSeats) comes as [key, value] pairs in the server's order. Known limit: the server's
+// removal takes the removed key's slot. A participation received whole (GameInitInfo, loadGame,
+// assignSeats) comes as [key, value] pairs in the server's order. Known limit: the server's
 // dictionary may have a free slot from an earlier removal, which the pairs don't show, so the
 // next user to join is listed last here and in that slot on the server.
-import type { IntDict, ParticipationJson } from "./types";
+import type { IntDict, ParticipationInfo } from "./types";
 
 /** A .NET `Dictionary<int, V>`: enumeration order with free-slot reuse. */
 export class NetDict<V> {
@@ -85,14 +85,14 @@ export class Participation {
   kicked: Set<number>;
   botsSpeed: number;
 
-  constructor(json: ParticipationJson | null | undefined) {
-    this.playerNames = NetDict.from(json?.PlayerNames);
-    this.seatedPlayers = NetDict.from(json?.SeatedPlayers);
-    this.observers = new Set(json?.Observers ?? []);
-    this.hosts = new Set(json?.Hosts ?? []);
-    this.availableSeats = new Set(json?.AvailableSeats ?? []);
-    this.kicked = new Set(json?.Kicked ?? []);
-    this.botsSpeed = json?.BotsSpeed ?? 1;
+  constructor(json: ParticipationInfo | null | undefined) {
+    this.playerNames = NetDict.from(json?.playerNames);
+    this.seatedPlayers = NetDict.from(json?.seatedPlayers);
+    this.observers = new Set(json?.observers ?? []);
+    this.hosts = new Set(json?.hosts ?? []);
+    this.availableSeats = new Set(json?.availableSeats ?? []);
+    this.kicked = new Set(json?.kicked ?? []);
+    this.botsSpeed = json?.botsSpeed ?? 1;
   }
 
   clone(): Participation {

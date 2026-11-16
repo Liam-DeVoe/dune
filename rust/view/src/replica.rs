@@ -175,8 +175,9 @@ impl ViewReplica {
 
 }
 
-/// One line of the undo list (`RequestUndoList`, protocol.md).
-#[derive(Clone, Debug, PartialEq, serde::Serialize)]
+/// One line of the undo list (`undoList`, protocol.md). Its TypeScript type is generated with
+/// the protocol's, in `web/src/protocol/`.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoEntry {
     pub event_number: i32,
@@ -186,5 +187,6 @@ pub struct UndoEntry {
     pub listed: bool,
     /// The turn and main phase the event happened in (0 and "None" for event 0).
     pub turn: i32,
+    #[ts(type = "MainPhase")]
     pub phase: String,
 }

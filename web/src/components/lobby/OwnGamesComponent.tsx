@@ -1,7 +1,7 @@
 // OtherComponents/OwnGamesComponent.razor: your games (started and scheduled), creating or
 // loading a game, scheduling one, and your account.
 import { useState } from "react";
-import type { Faction } from "../../generated/enums";
+import type { Faction, Ruleset } from "../../generated/enums";
 import { hashPassword } from "../../state/connection";
 import { useLobby } from "../../lobby/context";
 import { isNullOrEmpty, isNullOrWhiteSpace } from "../../lobby/text";
@@ -20,16 +20,15 @@ const MAX_SAVE_GAME_SIZE = 4194304;
 export function OwnGamesComponent() {
   const [client, lobbyState] = useLobby();
   const { lobby } = client;
-  const login = lobbyState.loginInfo!;
+  const login = lobbyState.account!;
   const allFactions = lobby.data.availableFactions as Faction[];
   const allRulesets = lobby.data.availableRulesets;
-  const faction = (f: number) => lobby.name<Faction>("Faction", f);
   useRedrawCycle(3200);
 
   const [state, setState] = useState<State>("List");
 
   const [createGameHasPassword, setCreateGameHasPassword] = useState(false);
-  const [createGameName, setCreateGameName] = useState(`${login.PlayerName}'s Game`);
+  const [createGameName, setCreateGameName] = useState(`${login.playerName}'s Game`);
   const [createGamePassword, setCreateGamePassword] = useState("");
   const [createError, setCreateError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -44,26 +43,25 @@ export function OwnGamesComponent() {
 
   const [editUser, setEditUser] = useState(false);
   const [deleteUser, setDeleteUser] = useState(false);
-  const [playerName, setPlayerName] = useState(login.PlayerName);
-  const [email, setEmail] = useState(login.Email ?? "");
+  const [playerName, setPlayerName] = useState(login.playerName);
+  const [email, setEmail] = useState(login.email ?? "");
   const [password1, setPassword1] = useState("");
   const [password2, setPassword2] = useState("");
   const [changeUserInfoMessage, setChangeUserInfoMessage] = useState<string | null>(null);
 
   const getUserInfoFromClient = () => {
-    const l = client.getState().loginInfo;
-    setPlayerName(l?.PlayerName ?? "");
-    setEmail(l?.Email ?? "");
+    const l = client.getState().account;
+    setPlayerName(l?.playerName ?? "");
+    setEmail(l?.email ?? "");
     setPassword1("");
     setPassword2("");
   };
 
-  const myGames = [...lobbyState.ownGames].sort((a, b) => Date.parse(b.LastActivity ?? "") - Date.parse(a.LastActivity ?? "") || 0);
-  const myScheduledGames = lobbyState.scheduledGames.filter((g) => g.CreatorUserId === client.userId).sort((a, b) => Date.parse(b.DateTime) - Date.parse(a.DateTime));
+  const myGames = [...lobbyState.ownGames].sort((a, b) => Date.parse(b.lastActivity ?? "") - Date.parse(a.lastActivity ?? "") || 0);
+  const myScheduledGames = lobbyState.scheduledGames.filter((g) => g.creatorId === client.userId).sort((a, b) => Date.parse(b.starts) - Date.parse(a.starts));
 
   const scheduleGame = async () => {
-    await client.requestScheduleGame(toDateTimeOffset(scheduleDate), lobby.value("Ruleset", scheduleRuleset), schedulePlayers, scheduleTurns,
-      scheduleFactions.map((f) => lobby.value("Faction", f)), scheduleAsync);
+    await client.requestScheduleGame(toDateTimeOffset(scheduleDate), scheduleRuleset as Ruleset, schedulePlayers, scheduleTurns, scheduleFactions, scheduleAsync);
     setScheduleDate(new Date());
     setScheduleRuleset("AllExpansionsAdvancedGame");
     setSchedulePlayers(6);
@@ -110,23 +108,23 @@ export function OwnGamesComponent() {
   };
 
   const active = (s: State) => (s === state ? "active" : "");
-  const factionIcons = (fs: number[]) => fs.map((f, i) => <FactionShown key={i} faction={faction(f)} width={18} noShadow />);
+  const factionIcons = (fs: Faction[]) => fs.map((f, i) => <FactionShown key={i} faction={f} width={18} noShadow />);
 
   const gameRow = (av: GameInfo) => (
-    <tr key={av.GameId} className="small table-dark">
-      <td className="w-25">{av.Name}</td>
+    <tr key={av.gameId} className="small table-dark">
+      <td className="w-25">{av.name}</td>
       <td className="w-25" style={activityColor(av, 20)}>
-        <div>{lobby.label("Ruleset", av.Ruleset)}, Turn {av.Turn}: {lobby.label("MainPhase", av.MainPhase)}
+        <div>{lobby.labelOf("Ruleset", av.ruleset)}, Turn {av.turn}: {lobby.labelOf("MainPhase", av.mainPhase)}
           <br />
-          {factionIcons((av.FactionsInPlay ?? []).filter((f) => f !== 0))}
+          {factionIcons(av.factionsInPlay.filter((f) => f !== "None"))}
         </div>
       </td>
-      <td className="w-25">{av.LastActivity ? shortDate(av.LastActivity) : ""}</td>
+      <td className="w-25">{av.lastActivity ? shortDate(av.lastActivity) : ""}</td>
       <td className="w-25" style={{ textAlign: "right" }}>
         {youAreIn(av, client.userId) && (
-          <CommandButton small onClick={() => client.requestJoinGame(av.GameId, "", yourCurrentSeat(av, client.userId))} marginClass="m-1" title="Resume game"><PlayIcon /></CommandButton>
+          <CommandButton small onClick={() => client.requestJoinGame(av.gameId, "", yourCurrentSeat(av, client.userId))} marginClass="m-1" title="Resume game"><PlayIcon /></CommandButton>
         )}
-        <CommandButton small onClick={async () => setCreateError(await client.requestCloseGame(av.GameId))} marginClass="m-1" title="Delete game"><TrashIcon /></CommandButton>
+        <CommandButton small onClick={async () => setCreateError(await client.requestCloseGame(av.gameId))} marginClass="m-1" title="Delete game"><TrashIcon /></CommandButton>
       </td>
     </tr>
   );
@@ -174,15 +172,15 @@ export function OwnGamesComponent() {
                     </thead>
                     <tbody>
                       {myScheduledGames.map((game) => (
-                        <tr key={game.ScheduledGameId} className="small table-dark">
-                          <td className="w-20">{shortDate(game.DateTime)}</td>
+                        <tr key={game.scheduledGameId} className="small table-dark">
+                          <td className="w-20">{shortDate(game.starts)}</td>
                           <td className="w-40">
-                            <div>{lobby.label("Ruleset", game.Ruleset)}, {game.NumberOfPlayers} players, {game.MaximumTurns} turns
-                              {" "}{game.AllowedFactionsInPlay.length === 12 ? <span>(all factions)</span> : factionIcons(game.AllowedFactionsInPlay)}
+                            <div>{lobby.labelOf("Ruleset", game.ruleset)}, {game.players} players, {game.maxTurns} turns
+                              {" "}{game.allowedFactions.length === 12 ? <span>(all factions)</span> : factionIcons(game.allowedFactions)}
                             </div>
                           </td>
                           <td className="w-20" style={{ textAlign: "right" }}><Subscribers game={game} size={18} /></td>
-                          <td className="w-20"><CommandButton small onClick={() => client.requestCancelGame(game.ScheduledGameId)}><CancelIcon /></CommandButton></td>
+                          <td className="w-20"><CommandButton small onClick={() => client.requestCancelGame(game.scheduledGameId)}><CancelIcon /></CommandButton></td>
                         </tr>
                       ))}
                     </tbody>
@@ -243,7 +241,7 @@ export function OwnGamesComponent() {
           <div className="row">
             <label htmlFor="userName" className="col-4 col-form-label">Username</label>
             <div className="col-8">
-              <input type="text" readOnly className="form-control-plaintext" id="userName" value={login.UserName} />
+              <input type="text" readOnly className="form-control-plaintext" id="userName" value={login.userName} />
             </div>
           </div>
           {deleteUser ? (

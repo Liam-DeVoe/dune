@@ -1,10 +1,9 @@
 // OtherComponents/RunningGamesComponent.razor: the active games (open ones first, then full ones)
 // and the scheduled games.
 import { useEffect, useState } from "react";
-import type { Faction } from "../../generated/enums";
 import { useLobby } from "../../lobby/context";
 import { HEARTBEAT_DELAY } from "../../lobby/client";
-import { dictGet, type GameInfo, youAreIn, yourCurrentSeat } from "../../lobby/types";
+import { type GameInfo, type ScheduledGameInfo, youAreIn, yourCurrentSeat } from "../../lobby/types";
 import { BotIcon, PlayIcon, UserIcon } from "./Icons";
 import { SubscribeComponent } from "./SubscribeComponent";
 import { CommandButton, FactionImage, FactionShown, shortDate } from "./widgets";
@@ -20,7 +19,7 @@ export function useRedrawCycle(interval: number): void {
 
 /** Games whose last action is longer ago than `minutes` are drawn in the faint text colour. */
 export function activityColor(g: GameInfo, minutes: number): React.CSSProperties {
-  const stale = g.LastActivity != null && (Date.now() - Date.parse(g.LastActivity)) / 60_000 > minutes;
+  const stale = g.lastActivity != null && (Date.now() - Date.parse(g.lastActivity)) / 60_000 > minutes;
   return { color: stale ? "var(--text-3)" : "var(--parchment)" };
 }
 
@@ -31,9 +30,6 @@ export function RunningGamesComponent() {
   const [joinErrors, setJoinErrors] = useState<Record<string, string>>({});
   useRedrawCycle(HEARTBEAT_DELAY);
 
-  const awaiting = lobby.value("Phase", "AwaitingPlayers");
-  const selectingFactions = lobby.value("Phase", "SelectingFactions");
-  const faction = (f: number) => lobby.name<Faction>("Faction", f);
   const userId = client.userId;
 
   const joinAsPlayer = async (gameId: string, password: string, seat: number) => {
@@ -48,30 +44,30 @@ export function RunningGamesComponent() {
   const open = state.activeGamesWithOpenSeats;
   const full = state.activeGamesWithoutOpenSeats;
 
-  const factionIcons = (g: GameInfo) => (g.FactionsInPlay ?? []).map((f, i) => <FactionShown key={i} faction={faction(f)} width={18} noShadow />);
+  const factionIcons = (g: GameInfo) => g.factionsInPlay.map((f, i) => <FactionShown key={i} faction={f} width={18} noShadow />);
 
   const openRow = (av: GameInfo) => {
     const style = activityColor(av, 15);
-    const password = passwords[av.GameId] ?? "";
+    const password = passwords[av.gameId] ?? "";
     return (
-      <tr key={av.GameId} className="small table-dark">
-        <td style={style}><span style={{ fontSize: "14px" }}>{av.Name}</span></td>
+      <tr key={av.gameId} className="small table-dark">
+        <td style={style}><span style={{ fontSize: "14px" }}>{av.name}</span></td>
         <td style={style}>
-          {av.Phase === awaiting ? (
-            <div><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.NrOfPlayers}/{av.MaxPlayers}</span></div>
+          {av.phase === "AwaitingPlayers" ? (
+            <div><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.players}/{av.maxPlayers}</span></div>
           ) : (
             <>
-              <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.NrOfPlayers}</span></div>
-              {av.NrOfBots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="me-1" /><span>{av.NrOfBots}</span></div>}
+              <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.players}</span></div>
+              {av.bots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="me-1" /><span>{av.bots}</span></div>}
             </>
           )}
         </td>
         <td style={style}>
-          {av.Phase === awaiting ? (
-            <div>{lobby.label("Ruleset", av.Ruleset)}, {av.MaxTurns} turns, not yet started</div>
+          {av.phase === "AwaitingPlayers" ? (
+            <div>{lobby.labelOf("Ruleset", av.ruleset)}, {av.maxTurns} turns, not yet started</div>
           ) : (
             <>
-              <div>{lobby.label("Ruleset", av.Ruleset)}, Turn {av.Turn}: {lobby.label("MainPhase", av.MainPhase)}</div>
+              <div>{lobby.labelOf("Ruleset", av.ruleset)}, Turn {av.turn}: {lobby.labelOf("MainPhase", av.mainPhase)}</div>
               <div>{factionIcons(av)}</div>
             </>
           )}
@@ -79,26 +75,26 @@ export function RunningGamesComponent() {
         <td>
           {!youAreIn(av, userId) ? (
             <>
-              {av.HasPassword && (
+              {av.hasPassword && (
                 <input className="form-inline form-control-sm" style={{ maxWidth: "80px" }} value={password} maxLength={24} placeholder="Password"
-                       onChange={(e) => setPasswords((p) => ({ ...p, [av.GameId]: e.target.value }))} />
+                       onChange={(e) => setPasswords((p) => ({ ...p, [av.gameId]: e.target.value }))} />
               )}
-              {av.Phase === awaiting ? (
-                <CommandButton small onClick={() => joinAsPlayer(av.GameId, password, -1)} title="Join game" marginClass="m-1">Join</CommandButton>
-              ) : av.Phase !== selectingFactions ? (
-                av.AvailableSeats.map((s) => (
-                  <CommandButton key={s.Seat} small onClick={() => joinAsPlayer(av.GameId, password, s.Seat)} marginClass="m-1" paddingClass="p-1"
-                                 title={`Join game as ${lobby.label("Faction", s.Faction)}`}>
-                    <FactionImage faction={faction(s.Faction)} diameter={20} />
+              {av.phase === "AwaitingPlayers" ? (
+                <CommandButton small onClick={() => joinAsPlayer(av.gameId, password, -1)} title="Join game" marginClass="m-1">Join</CommandButton>
+              ) : av.phase !== "SelectingFactions" ? (
+                av.availableSeats.map((s) => (
+                  <CommandButton key={s.seat} small onClick={() => joinAsPlayer(av.gameId, password, s.seat)} marginClass="m-1" paddingClass="p-1"
+                                 title={`Join game as ${lobby.labelOf("Faction", s.faction)}`}>
+                    <FactionImage faction={s.faction} diameter={20} />
                   </CommandButton>
                 ))
               ) : null}
-              <CommandButton small onClick={() => joinAsObserver(av.GameId, password)} title="Observe game" marginClass="m-1">👁</CommandButton>
+              <CommandButton small onClick={() => joinAsObserver(av.gameId, password)} title="Observe game" marginClass="m-1">👁</CommandButton>
             </>
           ) : (
-            <CommandButton small onClick={() => joinAsPlayer(av.GameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="m-1"><PlayIcon /></CommandButton>
+            <CommandButton small onClick={() => joinAsPlayer(av.gameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="m-1"><PlayIcon /></CommandButton>
           )}
-          <div className="text-danger">{joinErrors[av.GameId] ?? ""}</div>
+          <div className="text-danger">{joinErrors[av.gameId] ?? ""}</div>
         </td>
       </tr>
     );
@@ -106,20 +102,20 @@ export function RunningGamesComponent() {
 
   const fullRow = (av: GameInfo) => {
     const style = activityColor(av, 20);
-    const password = passwords[av.GameId] ?? "";
+    const password = passwords[av.gameId] ?? "";
     return (
-      <tr key={av.GameId} className="small table-dark">
-        <td style={style}><span style={{ fontSize: "14px" }}>{av.Name}</span></td>
+      <tr key={av.gameId} className="small table-dark">
+        <td style={style}><span style={{ fontSize: "14px" }}>{av.name}</span></td>
         <td style={style}>
-          <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.NrOfPlayers}</span></div>
-          {av.NrOfBots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="me-1" /><span>{av.NrOfBots}</span></div>}
+          <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.players}</span></div>
+          {av.bots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="me-1" /><span>{av.bots}</span></div>}
         </td>
         <td style={style}>
-          {av.Phase === awaiting ? (
-            <div>{lobby.label("Ruleset", av.Ruleset)}, {av.MaxTurns} turns</div>
+          {av.phase === "AwaitingPlayers" ? (
+            <div>{lobby.labelOf("Ruleset", av.ruleset)}, {av.maxTurns} turns</div>
           ) : (
             <div>
-              <div>{lobby.label("Ruleset", av.Ruleset)}, Turn {av.Turn}: {lobby.label("MainPhase", av.MainPhase)}</div>
+              <div>{lobby.labelOf("Ruleset", av.ruleset)}, Turn {av.turn}: {lobby.labelOf("MainPhase", av.mainPhase)}</div>
               <div>{factionIcons(av)}</div>
             </div>
           )}
@@ -128,12 +124,12 @@ export function RunningGamesComponent() {
           {!youAreIn(av, userId) ? (
             <>
               <span className="full-tag" title="No open seats">Full</span>
-              <CommandButton small onClick={() => joinAsObserver(av.GameId, password)} title="Observe game" marginClass="m-1">👁</CommandButton>
+              <CommandButton small onClick={() => joinAsObserver(av.gameId, password)} title="Observe game" marginClass="m-1">👁</CommandButton>
             </>
           ) : (
-            <CommandButton small onClick={() => joinAsPlayer(av.GameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="m-1"><PlayIcon /></CommandButton>
+            <CommandButton small onClick={() => joinAsPlayer(av.gameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="m-1"><PlayIcon /></CommandButton>
           )}
-          <div className="text-danger">{joinErrors[av.GameId] ?? ""}</div>
+          <div className="text-danger">{joinErrors[av.gameId] ?? ""}</div>
         </td>
       </tr>
     );
@@ -174,15 +170,15 @@ export function RunningGamesComponent() {
                   </thead>
                   <tbody>
                     {state.scheduledGames.map((game) => (
-                      <tr key={game.ScheduledGameId} className="small table-dark">
-                        <td><span style={{ fontSize: "18px" }}>{game.CreatorName}</span></td>
-                        <td>{shortDate(game.DateTime)}</td>
+                      <tr key={game.scheduledGameId} className="small table-dark">
+                        <td><span style={{ fontSize: "18px" }}>{game.creatorName}</span></td>
+                        <td>{shortDate(game.starts)}</td>
                         <td>
                           <div>
-                            {lobby.label("Ruleset", game.Ruleset)}, {game.NumberOfPlayers} players, {game.MaximumTurns} turns
-                            {game.AllowedFactionsInPlay.length === 12
+                            {lobby.labelOf("Ruleset", game.ruleset)}, {game.players} players, {game.maxTurns} turns
+                            {game.allowedFactions.length === 12
                               ? <span> (all factions)</span>
-                              : <div>{game.AllowedFactionsInPlay.map((f, i) => <FactionShown key={i} faction={faction(f)} width={18} noShadow />)}</div>}
+                              : <div>{game.allowedFactions.map((f, i) => <FactionShown key={i} faction={f} width={18} noShadow />)}</div>}
                           </div>
                         </td>
                         <td>
@@ -203,15 +199,14 @@ export function RunningGamesComponent() {
 }
 
 /** The subscribers of a scheduled game who take part, with their subscription. */
-export function Subscribers({ game, size }: { game: import("../../lobby/types").ScheduledGameInfo; size: number }) {
+export function Subscribers({ game, size }: { game: ScheduledGameInfo; size: number }) {
   const [client] = useLobby();
-  const dontParticipate = client.lobby.value("SubscriptionType", "DontParticipate");
   return (
     <>
-      {game.Subscribers.filter(([, s]) => s !== dontParticipate).map(([id, s]) => (
-        <div key={id} className="me-1">
-          <span style={{ fontSize: `${size}px` }}>{dictGet(game.SubscriberNames, id) ?? "?"}</span>{" "}
-          <span className="badge text-bg-primary ms-1">{client.lobby.label("SubscriptionType", s)}</span>
+      {game.subscribers.filter((s) => s.subscription !== "DontParticipate").map((s) => (
+        <div key={s.userId} className="me-1">
+          <span style={{ fontSize: `${size}px` }}>{s.userName}</span>{" "}
+          <span className="badge text-bg-primary ms-1">{client.lobby.labelOf("SubscriptionType", s.subscription)}</span>
         </div>
       ))}
     </>

@@ -1,5 +1,8 @@
 //! A server driven through the WebSocket protocol (rust/docs/protocol.md), without sockets.
 //!
+//! Calls are made as `s.ok(conn, "joinGame", json!({...}))`: the call's name and its
+//! arguments, as a client sends them.
+//!
 //! Tests send the JSON a client sends and read the JSON a client receives. The clock, the
 //! timers and the mail are fakes: [`TestServer::advance`] moves the clock and runs whatever
 //! came due, and [`TestServer::mails`] returns what the server sent. [`TestServer::restart`]
@@ -181,46 +184,50 @@ impl TestServer {
 
     /// The notifications the connection received since it was last read (replies are dropped).
     pub fn notifications(&mut self, connection: Conn) -> Vec<Value> {
-        self.received(connection).into_iter().filter(|m| m["type"] == "notify").collect()
+        self.received(connection).into_iter().filter(|m| m.get("notify").is_some()).collect()
     }
 
-    /// Sends a call and returns the reply message, and every message before it that the test
-    /// had not read yet.
-    pub async fn call_raw(&mut self, connection: Conn, method: &str, args: Value) -> (Value, Vec<Value>) {
+    /// Sends a call (`args` null for a call without arguments) and returns the reply message,
+    /// and every message before it that the test had not read yet.
+    pub async fn call_raw(&mut self, connection: Conn, call: &str, args: Value) -> (Value, Vec<Value>) {
         let earlier = self.received(connection);
         self.next_call += 1;
         let id = self.next_call;
-        let text = json!({"type": "call", "id": id, "method": method, "args": args}).to_string();
-        self.send_text(connection, &text).await;
+        let mut request = json!({"id": id, "call": call});
+        if !args.is_null() {
+            request["args"] = args;
+        }
+        self.send_text(connection, &request.to_string()).await;
         let mut received = self.received(connection);
-        let reply = received.pop().unwrap_or_else(|| panic!("{method}: no reply"));
-        assert_eq!(reply["type"], "reply", "{method}: the reply comes last: {received:?} {reply}");
+        let reply = received.pop().unwrap_or_else(|| panic!("{call}: no reply"));
+        assert!(reply.get("ok").is_some() || reply.get("err").is_some(), "{call}: the reply comes last: {received:?} {reply}");
         assert_eq!(reply["id"], id);
         let mut before = earlier;
         before.extend(received);
         (reply, before)
     }
 
-    /// Sends a call and returns its `Result` object. Panics if the call failed as a call.
-    pub async fn call(&mut self, connection: Conn, method: &str, args: Value) -> Value {
-        let (reply, before) = self.call_raw(connection, method, args).await;
-        assert!(reply.get("error").is_none(), "{method}: {reply}");
+    /// Sends a call and returns its reply, `{"id","ok"}` or `{"id","err"}`. Panics if the
+    /// server didn't understand the call or failed.
+    pub async fn call(&mut self, connection: Conn, call: &str, args: Value) -> Value {
+        let (reply, before) = self.call_raw(connection, call, args).await;
+        assert!(!["badCall", "serverError"].contains(&reply["err"]["code"].as_str().unwrap_or_default()), "{call}: {reply}");
         self.requeue(connection, before);
-        reply["result"].clone()
+        reply
     }
 
-    /// A call that must succeed: its `Contents`.
-    pub async fn ok(&mut self, connection: Conn, method: &str, args: Value) -> Value {
-        let result = self.call(connection, method, args).await;
-        assert_eq!(result["Success"], true, "{method}: {result}");
-        result["Contents"].clone()
+    /// A call that must succeed: its `ok`.
+    pub async fn ok(&mut self, connection: Conn, call: &str, args: Value) -> Value {
+        let reply = self.call(connection, call, args).await;
+        assert!(reply.get("ok").is_some(), "{call}: {reply}");
+        reply["ok"].clone()
     }
 
-    /// A call that must fail with an application error: its `Error` code.
-    pub async fn err(&mut self, connection: Conn, method: &str, args: Value) -> i64 {
-        let result = self.call(connection, method, args).await;
-        assert_eq!(result["Success"], false, "{method}: {result}");
-        result["Error"].as_i64().unwrap()
+    /// A call that must be refused: its error code.
+    pub async fn err(&mut self, connection: Conn, call: &str, args: Value) -> String {
+        let reply = self.call(connection, call, args).await;
+        assert!(reply.get("err").is_some(), "{call}: {reply}");
+        reply["err"]["code"].as_str().unwrap().to_string()
     }
 
     /// Puts messages back so the next `received` returns them first.
@@ -272,7 +279,7 @@ impl TestServer {
     }
 }
 
-/// A logged-in user: their connection, the token of its session, and their id.
+/// An authenticated user: their connection, the token of its session, and their id.
 #[derive(Clone, Debug)]
 pub struct User {
     pub conn: Conn,
@@ -282,48 +289,51 @@ pub struct User {
 }
 
 impl TestServer {
-    /// Opens a connection, calls `Connect`, and creates the account `name` (password
+    /// Opens a connection, calls `serverInfo`, and creates the account `name` (password
     /// `<name>-pw`, player name `<Name> Player`, mail `<name>@example.com`).
     pub async fn user(&mut self, name: &str) -> User {
         let conn = self.connect();
-        self.ok(conn, "Connect", json!([])).await;
+        self.ok(conn, "serverInfo", Value::Null).await;
         let player_name = format!("{} Player", capitalize(name));
-        let info = self.ok(conn, "RequestCreateUser", json!([name, format!("{name}-pw"), format!("{name}@example.com"), player_name])).await;
+        let session = self
+            .ok(conn, "createUser", json!({"userName": name, "passwordHash": format!("{name}-pw"), "email": format!("{name}@example.com"), "playerName": player_name}))
+            .await;
         self.mails();
-        User { conn, token: info["Token"].as_str().unwrap().to_string(), id: info["UserId"].as_i64().unwrap(), name: name.to_string() }
+        User { conn, token: session["token"].as_str().unwrap().to_string(), id: session["account"]["userId"].as_i64().unwrap(), name: name.to_string() }
     }
 
-    /// Opens a connection and resumes a session with its token.
+    /// Opens a connection and authenticates it with a session's token.
     pub async fn resume(&mut self, token: &str) -> User {
         let conn = self.connect();
-        let info = self.ok(conn, "RequestResumeSession", json!([token])).await;
-        User { conn, token: token.to_string(), id: info["UserId"].as_i64().unwrap(), name: info["UserName"].as_str().unwrap().to_string() }
+        let account = self.ok(conn, "authenticate", json!({"token": token})).await;
+        User { conn, token: token.to_string(), id: account["userId"].as_i64().unwrap(), name: account["userName"].as_str().unwrap().to_string() }
     }
 
     /// Opens a connection and logs in as an existing user.
     pub async fn login(&mut self, name: &str) -> User {
         let conn = self.connect();
-        self.ok(conn, "Connect", json!([])).await;
-        let info = self.ok(conn, "RequestLogin", json!([VERSION, name, format!("{name}-pw")])).await;
-        User { conn, token: info["Token"].as_str().unwrap().to_string(), id: info["UserId"].as_i64().unwrap(), name: name.to_string() }
+        self.ok(conn, "serverInfo", Value::Null).await;
+        let session = self.ok(conn, "login", json!({"version": VERSION, "userName": name, "passwordHash": format!("{name}-pw")})).await;
+        User { conn, token: session["token"].as_str().unwrap().to_string(), id: session["account"]["userId"].as_i64().unwrap(), name: name.to_string() }
     }
 
     /// `user` creates a new game (no savegame) and returns its id.
     pub async fn new_game(&mut self, user: &User, name: &str, password: &str) -> String {
-        let info = self.ok(user.conn, "RequestCreateGame", json!([name, password, "", ""])).await;
-        info["GameId"].as_str().unwrap().to_string()
+        let info = self.ok(user.conn, "createGame", json!({"name": name, "passwordHash": password, "savegame": null, "skin": null})).await;
+        info["gameId"].as_str().unwrap().to_string()
     }
 
     /// `user` creates a game from a fixture in scripts/fixtures.
     pub async fn fixture_game(&mut self, user: &User, fixture: &str) -> String {
-        let info = self.ok(user.conn, "RequestCreateGame", json!([fixture, "", fixture_text(fixture), ""])).await;
-        info["GameId"].as_str().unwrap().to_string()
+        let info = self.ok(user.conn, "createGame", json!({"name": fixture, "passwordHash": null, "savegame": fixture_text(fixture), "skin": null})).await;
+        info["gameId"].as_str().unwrap().to_string()
     }
 
-    /// The lobby as `user` sees it, after the lobby's refresh interval has passed.
-    pub async fn lobby(&mut self, user: &User, scope: i64) -> Value {
+    /// The lobby as `user` sees it, after the lobby's refresh interval has passed. `scope` is a
+    /// `GameListScope`.
+    pub async fn lobby(&mut self, user: &User, scope: &str) -> Value {
         self.advance(Duration::from_secs(7)).await;
-        self.ok(user.conn, "RequestHeartbeat", json!([scope])).await
+        self.ok(user.conn, "heartbeat", json!({"scope": scope})).await
     }
 
     /// The latest game view the connection received, reading everything it received.
@@ -331,8 +341,9 @@ impl TestServer {
         views(&self.received(conn)).last().cloned()
     }
 
+    /// Submits an event: the reply, `{"id","ok"}` or `{"id","err"}`.
     pub async fn submit(&mut self, user: &User, game: &str, event: Value) -> Value {
-        self.call(user.conn, "SubmitEvent", json!([game, event])).await
+        self.call(user.conn, "submitEvent", json!({"game": game, "event": event})).await
     }
 }
 
@@ -346,17 +357,27 @@ fn capitalize(s: &str) -> String {
 
 /// The game views among received messages, in order.
 pub fn views(messages: &[Value]) -> Vec<Value> {
-    messages.iter().filter(|m| m["type"] == "notify" && m["name"] == "GameView").map(|m| m["args"][0].clone()).collect()
+    messages.iter().filter(|m| m["notify"] == "gameView").map(|m| m["data"].clone()).collect()
 }
 
 /// The names of the notifications among received messages, in order.
 pub fn names(messages: &[Value]) -> Vec<String> {
-    messages.iter().filter(|m| m["type"] == "notify").map(|m| m["name"].as_str().unwrap().to_string()).collect()
+    messages.iter().filter_map(|m| m["notify"].as_str()).map(str::to_string).collect()
 }
 
-/// The notification `name` among received messages, if any.
+/// The data of the notification `name` among received messages, if there is one.
 pub fn find<'a>(messages: &'a [Value], name: &str) -> Option<&'a Value> {
-    messages.iter().find(|m| m["type"] == "notify" && m["name"] == name)
+    messages.iter().find(|m| m["notify"] == name).map(|m| &m["data"])
+}
+
+/// Whether a reply is a success.
+pub fn is_ok(reply: &Value) -> bool {
+    reply.get("ok").is_some()
+}
+
+/// The error code of a reply, or "" for a success.
+pub fn code(reply: &Value) -> &str {
+    reply["err"]["code"].as_str().unwrap_or_default()
 }
 
 pub fn fixture_text(name: &str) -> String {

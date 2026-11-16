@@ -10,9 +10,9 @@ async fn scene(s: &mut TestServer, fixture: &str, faction: &str) -> Value {
     let c = s.connect();
     let token = json["userToken"].as_str().unwrap().to_string();
     let game = json["gameId"].as_str().unwrap().to_string();
-    s.ok(c, "RequestResumeSession", json!([token])).await;
-    let (reply, received) = s.call_raw(c, "RequestReconnectGame", json!([game])).await;
-    assert_eq!(reply["result"]["Success"], true, "{reply}");
+    s.ok(c, "authenticate", json!({"token": token})).await;
+    let (reply, received) = s.call_raw(c, "reconnectGame", json!({"game": game})).await;
+    assert!(is_ok(&reply), "{reply}");
     views(&received).pop().unwrap()
 }
 

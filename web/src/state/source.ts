@@ -8,25 +8,24 @@
 //
 // Events, in drafts and submissions, are in the savegame format: PascalCase members, enums as
 // numbers (FactionValue and friends in generated/enums.ts). The server sets `Initiator` to the
-// faction of the logged-in user, so the client leaves it out.
+// faction of the authenticated user, so the client leaves it out.
 import type { DraftResult } from "../generated/DraftResult";
 import type { GameView } from "../generated/GameView";
 import type { ReportLines } from "../generated/ReportLines";
-import type { Part } from "../generated/Part";
-import { type CallResult, type Connection, type ConnectionStatus, ErrorType, type GameInitInfo, GameListScopeNone } from "./connection";
+import type { Call } from "../protocol/Call";
+import type { GameInitInfo } from "../protocol/GameInitInfo";
+import type { UndoEntry } from "../protocol/UndoEntry";
+import { type CallError, type CallName, type Connection, type ConnectionStatus, failed, type Reply } from "./connection";
+
+export type { UndoEntry };
 
 export type GameEventDraft = Record<string, unknown> & { $type: string };
 
-/** One entry of `RequestUndoList`. */
-export interface UndoEntry {
-  eventNumber: number;
-  text: Part[];
-  /** `UndoSession.IsListed`. */
-  listed: boolean;
-  /** The turn and main phase the event happened in (`UndoSession.MomentOf`). */
-  turn: number;
-  phase: string;
-}
+/** The calls about one game: those whose arguments name the game. */
+export type GameCallName = { [C in CallName]: Extract<Call, { call: C }> extends { args: { game: string } } ? C : never }[CallName];
+
+/** A game call's arguments other than the game. */
+export type GameCallArgs<C extends GameCallName> = Omit<Extract<Call, { call: C }> extends { args: infer A } ? A : never, "game">;
 
 export interface ViewSource {
   load(): Promise<GameView>;
@@ -36,19 +35,18 @@ export interface ViewSource {
   query(draft: GameEventDraft): Promise<DraftResult>;
   /** Submits an event. Resolves with the server's error text, or null when it was accepted. */
   submit(event: GameEventDraft): Promise<string | null>;
-  /** `RequestReport`: the lines of one report of `log.reports`, for the log's history. */
+  /** `report`: the lines of one report of `log.reports`, for the log's history. */
   report?(index: number): Promise<ReportLines>;
-  /** `RequestUndoList`, for hosts (the undo panel). */
+  /** `undoList`, for hosts (the undo panel). */
   undoList?(): Promise<UndoEntry[]>;
-  /** `RequestUndoPreview`, for hosts: the view at gap `gap` (just before event `gap`), without
+  /** `undoPreview`, for hosts: the view at gap `gap` (just before event `gap`), without
    * actions, for the undo timeline's preview. */
   undoPreview?(gap: number): Promise<GameView>;
-  /** `RequestSaveGame`, for hosts and the admin: the live game as a savegame. */
+  /** `saveGame`, for hosts and the admin: the live game as a savegame. */
   saveGame?(): Promise<string>;
-  /** A game method whose first argument is the gameId (`RequestUndo`,
-   * `RequestSetBotSpeed`, `SendChatMessage`, ...). Resolves with the server's error text, or
-   * null when it succeeded. */
-  gameCall?(method: string, ...args: unknown[]): Promise<string | null>;
+  /** A call about this game (`undo`, `setBotSpeed`, `chat`, ...), with its arguments other than
+   * the game. Resolves with the server's error text, or null when it succeeded. */
+  gameCall?<C extends GameCallName>(name: C, args: GameCallArgs<C>): Promise<string | null>;
   /** The server connection's status (`Client.IsConnected`), for the board's Disconnection
    * banner. A source without a server has none and counts as connected. */
   connectionStatus?(): ConnectionStatus;
@@ -96,8 +94,8 @@ export class StaticSource implements ViewSource {
   }
 }
 
-function errorText(r: CallResult): string {
-  return r.ErrorDetails || `error ${r.Error}`;
+function errorText(err: CallError): string {
+  return err.message || err.code;
 }
 
 /** Heartbeats keep the user in the server's user list and run its housekeeping (protocol.md). */
@@ -112,10 +110,11 @@ export class WebSocketSource implements ViewSource {
   private readonly unsubscribe: (() => void)[] = [];
   private heartbeat: number | undefined;
 
-  /** `conn` must be logged in, or have a session to resume (`Connection.setSession`). */
+  /** `conn` must be authenticated, or have a session to authenticate with
+   * (`Connection.setSession`). */
   constructor(private readonly conn: Connection, readonly gameId: string) {
     this.first = new Promise((resolve) => { this.resolveFirst = resolve; });
-    this.unsubscribe.push(conn.on("GameView", (v) => this.receive(v as GameView)));
+    this.unsubscribe.push(conn.on("gameView", (v) => this.receive(v)));
     // After a reconnection the socket is a new connection outside the game's group: rejoin it.
     this.unsubscribe.push(conn.onOpen(() => { if (this.view) this.rejoin().catch(() => {}); }));
   }
@@ -126,23 +125,23 @@ export class WebSocketSource implements ViewSource {
     this.listeners.forEach((l) => l(view));
   }
 
-  private async reconnect(): Promise<CallResult<GameInitInfo>> {
-    await this.conn.invoke("Connect");
-    // The connection logged the socket in when it opened; RequestReconnectGame adds it to the
+  private async reconnect(): Promise<Reply<"reconnectGame">> {
+    await this.conn.invoke("serverInfo");
+    // The connection authenticated the socket when it opened; reconnectGame adds it to the
     // game and sends the view.
-    return this.conn.call<GameInitInfo>("RequestReconnectGame", this.gameId);
+    return this.conn.call("reconnectGame", { game: this.gameId });
   }
 
   private async join(): Promise<void> {
     const r = await this.reconnect();
-    if (!r.Success) throw new Error(`RequestReconnectGame: ${errorText(r)}`);
+    if (failed(r)) throw new Error(`reconnectGame: ${errorText(r.err)}`);
   }
 
   private async rejoin(): Promise<void> {
     const r = await this.reconnect();
-    if (r.Success && r.Contents) this.rejoinListeners.forEach((l) => l(r.Contents));
+    if (!failed(r)) this.rejoinListeners.forEach((l) => l(r.ok));
     // The user left or was kicked while the socket was down, or the game was closed.
-    else if (r.Error === ErrorType.UserNotInGame || r.Error === ErrorType.GameNotFound) this.rejoinListeners.forEach((l) => l(null));
+    else if (r.err.code === "userNotInGame" || r.err.code === "gameNotFound") this.rejoinListeners.forEach((l) => l(null));
   }
 
   /** Joins the game's group and resolves with the first view. */
@@ -152,7 +151,7 @@ export class WebSocketSource implements ViewSource {
     await this.join();
     if (this.heartbeat === undefined) {
       this.heartbeat = window.setInterval(() => {
-        this.conn.call("RequestHeartbeat", GameListScopeNone).catch(() => {});
+        this.conn.call("heartbeat", { scope: "None" }).catch(() => {});
       }, HEARTBEAT_MS);
     }
     return this.first;
@@ -173,46 +172,48 @@ export class WebSocketSource implements ViewSource {
   }
 
   async query(draft: GameEventDraft): Promise<DraftResult> {
-    const r = await this.conn.call<DraftResult>("QueryDraft", this.gameId, this.view?.eventNumber ?? 0, draft);
-    if (r.Success) return r.Contents!;
+    const r = await this.conn.call("queryDraft", { game: this.gameId, eventNumber: this.view?.eventNumber ?? 0, draft });
+    if (!failed(r)) return r.ok;
     // A refused query leaves the form's options and shows why, as a validation message.
     const action = this.view?.actions.find((a) => a.eventType === draft.$type);
-    return { eventType: draft.$type, options: action?.options ?? null, validation: [{ t: "text", v: errorText(r) }] };
+    return { eventType: draft.$type, options: action?.options ?? null, validation: [{ t: "text", v: errorText(r.err) }] };
   }
 
   async submit(event: GameEventDraft): Promise<string | null> {
     try {
-      const r = await this.conn.call("SubmitEvent", this.gameId, event);
-      return r.Success ? null : errorText(r);
+      const r = await this.conn.call("submitEvent", { game: this.gameId, event });
+      return failed(r) ? errorText(r.err) : null;
     } catch (e) {
       return String(e);
     }
   }
 
-  /** `RequestReport`: the lines of an earlier report. */
+  /** `report`: the lines of an earlier report. */
   report(index: number): Promise<ReportLines> {
-    return this.conn.invoke<ReportLines>("RequestReport", this.gameId, index);
+    return this.conn.invoke("report", { game: this.gameId, index });
   }
 
-  /** `RequestUndoList`, for hosts. */
+  /** `undoList`, for hosts. */
   undoList(): Promise<UndoEntry[]> {
-    return this.conn.invoke<UndoEntry[]>("RequestUndoList", this.gameId);
+    return this.conn.invoke("undoList", { game: this.gameId });
   }
 
-  /** `RequestUndoPreview`, for hosts. */
+  /** `undoPreview`, for hosts. */
   undoPreview(gap: number): Promise<GameView> {
-    return this.conn.invoke<GameView>("RequestUndoPreview", this.gameId, gap);
+    return this.conn.invoke("undoPreview", { game: this.gameId, gap });
   }
 
-  /** `RequestSaveGame`, for hosts and the admin. */
+  /** `saveGame`, for hosts and the admin. */
   saveGame(): Promise<string> {
-    return this.conn.invoke<string>("RequestSaveGame", this.gameId);
+    return this.conn.invoke("saveGame", { game: this.gameId });
   }
 
-  async gameCall(method: string, ...args: unknown[]): Promise<string | null> {
+  async gameCall<C extends GameCallName>(name: C, args: GameCallArgs<C>): Promise<string | null> {
     try {
-      const r = await this.conn.call(method, this.gameId, ...args);
-      return r.Success ? null : errorText(r);
+      // TypeScript can't relate a generic call's arguments to its name, hence the cast.
+      const call = this.conn.call.bind(this.conn) as (name: C, args: unknown) => Promise<Reply<C>>;
+      const r = await call(name, { ...args, game: this.gameId });
+      return failed(r) ? errorText(r.err) : null;
     } catch (e) {
       return String(e);
     }

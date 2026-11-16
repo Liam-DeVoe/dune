@@ -33,7 +33,7 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
     if (session.gap === null) return;
     const g = session.gap;
     undoSession.close();
-    await source.gameCall?.("RequestUndo", g);
+    await source.gameCall?.("undo", { until: g });
     onClose();
   };
 

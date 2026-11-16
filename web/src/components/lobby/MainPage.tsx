@@ -56,7 +56,7 @@ function Centered({ children }: { children: ReactNode }) {
 export function MaintenanceBanner() {
   const [client, state] = useLobby();
   if (!client.inScheduledMaintenance() || !state.serverInfo) return null;
-  const start = new Date(state.serverInfo.ScheduledMaintenance);
+  const start = new Date(state.serverInfo.scheduledMaintenance);
   const end = new Date(start.getTime() + 15 * 60_000);
   return (
     <div className="alert alert-danger text-center p-0" role="alert">
@@ -75,7 +75,7 @@ function MainScreen() {
         <div className="d-flex justify-content-center">Not Connected</div>
       </div>
     );
-  } else if (!state.loginInfo) {
+  } else if (!state.account) {
     screen = <Centered><LoginComponent /></Centered>;
   } else if (!g) {
     screen = (

@@ -17,9 +17,8 @@ A call's notifications go out as the game thread produces them, then the game vi
 | `http.rs` | Starts the game thread and the HTTP server; saves and stops on Ctrl-C or SIGTERM |
 | `socket.rs` | One WebSocket: 4 MiB frames, a ping every 15 s, closed after 30 s of silence |
 | `server/` | The `Server`: state and every call. `accounts`, `lobby`, `games` (seats, hosts, undo), `play` (events, mail), `bots`, `pauses`, `admin`, `storage` (loading and saving), `scene` (dev scenes) |
-| `protocol.rs` | Decodes a frame into a `Request`, encodes replies and notifications |
+| `protocol.rs` | Decodes a frame into a `Call`, encodes replies and notifications. The messages themselves are the `treachery-protocol` crate (`rust/protocol`) |
 | `participation.rs` | Each game's `Participation`: seats, names, hosts, observers, open seats, kicked users, bot speed. It tells the game which seats users play, and the views their names |
-| `wire.rs` | The objects in replies and notifications |
 | `connections.rs` | Open sockets, the session each is logged in with, which connection follows which game, notifications |
 | `views.rs` | Each participant's `GameView`, built on a replica of the game (`rust/view`), and the view calls |
 | `pause_rules.rs` | What each pause between phases waits for |
@@ -34,9 +33,9 @@ Views never use the running game itself: building a view asks the engine questio
 
 The client sends the SHA-256 of a password, as the C# client did. The server stores an Argon2id hash of that value (`passwords.rs`: a random 16-byte salt, 19 MiB, 2 passes, 1 lane, OWASP's minimum), as a PHC string that names its own parameters. Hashing a password takes a few tens of milliseconds on the game thread, once per login, account or password change.
 
-Each connection is logged in with at most one session (`Connections::log_in`). The calls that log in bind one; every other call takes its user from there (`Server::caller`), and none carries a token. Session tokens are 32 random bytes from the operating system. The server keeps only their SHA-256, in memory and in the database. A session ends 90 days after it started or 30 days after its last login on a connection, and a user keeps at most 20. Logout, a new password and deleting the account end sessions (`end_session`), which sends `SessionEnded` to their connections, logs them out and stops them following games. A call on a connection whose session expired since it logged in ends it the same way.
+Each connection is logged in with at most one session (`Connections::log_in`). `authenticate` and the calls that start a session bind one; every other call takes its user from there (`Server::caller`), and none carries a token. Session tokens are 32 random bytes from the operating system. The server keeps only their SHA-256, in memory and in the database. A session ends 90 days after it started or 30 days after a connection last authenticated with it, and a user keeps at most 20. Logout, a new password and deleting the account end sessions (`end_session`), which sends `sessionEnded` to their connections, logs them out and stops them following games. A call on a connection whose session expired since it logged in ends it the same way.
 
-Async-play mails carry a login link instead of a session token: a token for `RequestLinkLogin` that works once, within 24 hours, and starts a new session. Like sessions, links are stored as digests and survive a restart.
+Async-play mails carry a login link instead of a session token: a token for `linkLogin` that works once, within 24 hours, and starts a new session. Like sessions, links are stored as digests and survive a restart.
 
 ## Who may do what
 
@@ -83,11 +82,13 @@ The server was first a line-by-line port of the C# `GameHub`. These differences 
 - Observers and users outside a game can't submit events, query drafts, chat in it, take part in pauses or nudge its bots; outsiders can't read its reports.
 - Chat messages carry the caller as their source, and a message to one user goes only to that user and the sender.
 - Settings are for hosts, not the creator alone. Hosts can only make players hosts, kick members of the game, open real seats and seat players on real seats, and set bot speeds of 0 to 4. A user joins a particular seat only once it is open, and a kicked user can't observe.
-- `RequestReconnectGame` returns the game's name.
+- `reconnectGame` returns the game's name.
 - Leaving a game or being kicked stops every connection of that user from following it, not only the last one.
 - Changes are saved within seconds and on shutdown, not every five minutes.
-- The admin's `AdminRestoreState` loads the saved games that aren't running and leaves running games alone. `AdminCloseGame` also deletes the game from the database.
+- The admin's `adminReloadAll` (C# `AdminRestoreState`) loads the saved games that aren't running and leaves running games alone. `adminCloseGame` also deletes the game from the database.
 - Deleting a user ends their sessions, and they leave every game they joined, as if they had left it themselves.
 - A mail to an address that doesn't parse is skipped with a log line. The call that sends it still succeeds.
 - The lobby is computed for each request instead of from a copy refreshed every 6 seconds.
 - A bot speed change is sent to the game's members only, not to every connection on the server.
+- The messages are typed and camelCase, enums go by name, and errors carry a code and a text (protocol.md). The C# hub's `Result` objects, PascalCase members and numbered `ErrorType` are gone.
+- The errors for too many games give the server's limits, 10 running and 3 scheduled games per user. The texts had the two numbers the other way round.

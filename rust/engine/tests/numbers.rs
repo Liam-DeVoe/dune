@@ -122,6 +122,7 @@ fn a_pass_offers_nothing() {
 #[test]
 fn bids_with_unoffered_emperor_spice_are_refused() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
+    g.enter_bidding(BiddingStep::Bidding);
     let atreides = g.get_player(Some(Faction::Atreides)).unwrap();
     let emperor = g.get_player(Some(Faction::Emperor)).unwrap();
     g.player_mut(atreides).resources = 5;

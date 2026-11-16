@@ -124,10 +124,9 @@ fn fill_placeholders(skin: &Skin, text: &str, parameters: &[ExpressionElement]) 
 pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
     let mut groups: Vec<(RuleGroup, Vec<String>)> = Vec::new();
     for r in game.rules.active.iter().copied() {
-        let g = Game::get_rule_group(r);
-        if g == RuleGroup::CoreBasic || g == RuleGroup::Bots || g == RuleGroup::None {
+        let Some(g) = Game::get_rule_group(r).filter(|g| *g != RuleGroup::CoreBasic && *g != RuleGroup::Bots) else {
             continue;
-        }
+        };
         let label = d.describe(&ExpressionElement::from(r));
         match groups.iter_mut().find(|(x, _)| *x == g) {
             Some((_, rules)) => rules.push(label),

@@ -74,7 +74,7 @@ impl Server {
                 creator_name: g.creator_player_name.clone(),
                 players: g.players,
                 max_turns: g.max_turns,
-                ruleset: g.ruleset.map(|r| enum_name(Ruleset(r))),
+                ruleset: g.ruleset.map(|r| Ruleset::INFO.format(r)),
                 async_play: g.async_play,
                 allowed_factions: g.factions.iter().map(|f| enum_name(Faction(*f))).collect(),
                 subscribers: g
@@ -107,9 +107,9 @@ impl Server {
                     let all: Vec<Faction> = game.players.iter().map(|p| p.faction).collect();
                     (all.iter().copied().filter(|f| *f != Faction::None).collect(), Game::determine_approximate_ruleset(&all, &game.rules.active, Game::EXPANSION_LEVEL))
                 };
-                (factions, ruleset, settings.number_of_players, settings.maximum_turns)
+                (factions, Some(ruleset), settings.number_of_players, settings.maximum_turns)
             }
-            None => (vec![], Default::default(), 0, 0),
+            None => (vec![], None, 0, 0),
         };
         let participation = &g.participation;
         GameInfo {
@@ -128,7 +128,7 @@ impl Server {
             bots: game.number_of_bots(),
             players: participation.seated_players.len() as i32,
             factions_in_play: factions_in_play.iter().map(|f| enum_name(*f)).collect(),
-            ruleset: enum_name(ruleset),
+            ruleset: treachery_engine::enum_type::name_or_absent(ruleset),
             seated_players: participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect(),
             available_seats: game
                 .players
@@ -156,7 +156,7 @@ impl Server {
         }
         let unknown = |name: &str| CallError::Refused(ErrorCode::BadCall, format!("unknown faction or ruleset {name}"));
         let ruleset = match ruleset {
-            Some(name) => Some(enum_value::<Ruleset>(name).ok_or_else(|| unknown(name))?.0),
+            Some(name) => Some(Ruleset::INFO.declared.iter().find(|(n, _)| *n == name).map(|(_, v)| *v).ok_or_else(|| unknown(name))?),
             None => None,
         };
         let factions = factions.iter().map(|name| enum_value::<Faction>(name).map(|f| f.0).ok_or_else(|| unknown(name))).collect::<Result<Vec<i32>, _>>()?;

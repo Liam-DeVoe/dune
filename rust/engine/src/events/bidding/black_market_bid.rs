@@ -67,8 +67,8 @@ impl BlackMarketBid {
         }
 
         match game.bidding.current_auction_type {
-            AuctionType::BlackMarketNormal => self.handle_black_market_normal_bid(game),
-            AuctionType::BlackMarketOnceAround | AuctionType::BlackMarketSilent => self.handle_black_market_special_bid(game),
+            Some(AuctionType::BlackMarketNormal) => self.handle_black_market_normal_bid(game),
+            Some(AuctionType::BlackMarketOnceAround) | Some(AuctionType::BlackMarketSilent) => self.handle_black_market_special_bid(game),
             _ => Ok(()),
         }
     }
@@ -113,13 +113,13 @@ impl BlackMarketBid {
 
     pub fn handle_black_market_special_bid(&self, game: &mut Game) -> GameResult {
         let players_with_room = || game.players.iter().filter(|p| p.has_room_for_cards(game)).count() as i32;
-        let is_last_bid = (game.bidding.current_auction_type == AuctionType::BlackMarketSilent && players_with_room() == game.bidding.bids.len() as i32)
-            || (game.bidding.current_auction_type == AuctionType::BlackMarketOnceAround && self.initiator() == Faction::Richese)
+        let is_last_bid = (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && players_with_room() == game.bidding.bids.len() as i32)
+            || (game.bidding.current_auction_type == Some(AuctionType::BlackMarketOnceAround) && self.initiator() == Faction::Richese)
             || (self.get_player(game, Some(Faction::Richese)).map(|w| game.player(w).has_room_for_cards(game)) == Some(false)
                 && game.bidding.bid_sequence.as_ref().required("bid sequence")?.has_passed_richese(game));
 
         if is_last_bid {
-            if game.bidding.current_auction_type == AuctionType::BlackMarketSilent {
+            if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) {
                 // A List<MessagePart> is one element of the params array.
                 let parts: Vec<MessagePart> = game.bidding.bids.iter().map(|(k, v)| express_part!(*k, Payment::of(v.bid_total_amount()), " ")).collect();
                 self.log_objects(game, vec![parts.into()]);
@@ -206,10 +206,10 @@ impl BlackMarketBid {
             return None;
         }
 
-        if game.bidding.current_auction_type != AuctionType::BlackMarketSilent && self.total_amount() < 1 {
+        if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) && self.total_amount() < 1 {
             return Some(express!("Bid must be higher than 0"));
         }
-        if game.bidding.current_auction_type != AuctionType::BlackMarketSilent {
+        if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) {
             if let Some(current_bid) = &game.bidding.current_bid {
                 if self.total_amount() <= current_bid.bid_total_amount() {
                     return Some(express!("Bid not high enough"));
@@ -227,7 +227,7 @@ impl BlackMarketBid {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
-        if game.bidding.current_auction_type == AuctionType::BlackMarketSilent && self.total_amount() > game.player(self.player()).resources {
+        if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && self.total_amount() > game.player(self.player()).resources {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -249,8 +249,8 @@ impl BlackMarketBid {
             None => either::Either::Right(std::iter::empty()),
         };
         match g.bidding.current_auction_type {
-            AuctionType::BlackMarketNormal | AuctionType::BlackMarketOnceAround => players_in_sequence.collect(),
-            AuctionType::BlackMarketSilent => g
+            Some(AuctionType::BlackMarketNormal) | Some(AuctionType::BlackMarketOnceAround) => players_in_sequence.collect(),
+            Some(AuctionType::BlackMarketSilent) => g
                 .players
                 .iter()
                 .enumerate()
@@ -261,8 +261,8 @@ impl BlackMarketBid {
     }
 
     pub fn may_be_played(game: &Game, player: PlayerIndex) -> bool {
-        (game.bidding.current_auction_type == AuctionType::BlackMarketSilent && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
-            || (game.bidding.current_auction_type != AuctionType::BlackMarketSilent && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
+        (game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && !game.bidding.bids.contains_key(&game.player(player).faction) && game.player(player).has_room_for_cards(game))
+            || (game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) && game.bidding.bid_sequence.as_ref().map(|s| s.current_player(game)) == Some(Some(player)))
     }
 }
 

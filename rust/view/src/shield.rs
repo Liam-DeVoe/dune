@@ -22,7 +22,7 @@ pub fn hero_ref(h: Hero) -> HeroRef {
 
 /// `Game.Skill(h)`, when there is one.
 fn skill_of(game: &Game, h: Hero) -> Option<String> {
-    Some(game.skill(Some(h))).filter(|s| *s != LeaderSkill::None).map(name)
+    game.skill(Some(h)).map(name)
 }
 
 fn hero_card(game: &Game, h: Hero, revealed: bool) -> HeroCard {

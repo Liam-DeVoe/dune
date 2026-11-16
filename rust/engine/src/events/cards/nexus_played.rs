@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct NexusPlayed {
     pub faction: Faction,
-    pub atreides_prescience_aspect: PrescienceAspect,
+    pub atreides_prescience_aspect: Option<PrescienceAspect>,
     pub tleilaxu_forces: i32,
     pub tleilaxu_special_forces: i32,
     pub tleilaxu_hero_id: i32,
@@ -122,7 +122,7 @@ impl NexusPlayed {
             Faction::None => return Some(express!("Invalid Nexus faction")),
 
             Faction::Atreides => {
-                if (self.is_cunning() || self.is_secret_ally(game)) && self.atreides_prescience_aspect == PrescienceAspect::None {
+                if (self.is_cunning() || self.is_secret_ally(game)) && self.atreides_prescience_aspect == None {
                     return Some(express!("Invalid battle plan element"));
                 }
             }
@@ -576,15 +576,13 @@ impl NexusPlayed {
 
             Faction::Moritani => {
                 if let Some(moritani_territory) = self.moritani_territory(game) {
-                    // TerrorIn iterates TerrorOnPlanet in .NET slot order. An empty
-                    // result gives default(TerrorType), which C# then removes and adds.
-                    let terror_to_remove = game
-                        .terror_in(moritani_territory)
-                        .into_iter()
-                        .random_item(game.random.as_ref().required("random")?)
-                        .unwrap_or_default();
-                    game.board.terror_on_planet.shift_remove(&terror_to_remove);
-                    game.board.unplaced_terror_tokens.push(terror_to_remove);
+                    // Validation only offers a territory with terror. C# took `default(TerrorType)`
+                    // (None) from an empty territory and added it to the unplaced tokens.
+                    let terror_to_remove = game.terror_in(moritani_territory).into_iter().random_item(game.random.as_ref().required("random")?);
+                    if let Some(terror_to_remove) = terror_to_remove {
+                        game.board.terror_on_planet.shift_remove(&terror_to_remove);
+                        game.board.unplaced_terror_tokens.push(terror_to_remove);
+                    }
                     let moritani_territory = self.moritani_territory(game);
                     game.play_nexus_card(
                         actor,

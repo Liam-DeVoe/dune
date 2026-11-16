@@ -193,14 +193,14 @@ impl EstablishPlayers {
         // A null InitialRules is stored, and the filter below panics.
         game.rules.all_rules = game.rules.settings.as_ref().required("settings")?.initial_rules.clone();
 
-        game.rules.active = game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != RuleGroup::Bots).collect();
+        game.rules.active = game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != Some(RuleGroup::Bots)).collect();
         game.rules.rules_for_bots =
-            game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == RuleGroup::Bots).collect();
-        let core_basic = Game::get_rules_in_group(RuleGroup::CoreBasic, Game::EXPANSION_LEVEL);
+            game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == Some(RuleGroup::Bots)).collect();
+        let core_basic = Game::get_rules_in_group(Some(RuleGroup::CoreBasic), Game::EXPANSION_LEVEL);
         game.rules.active.extend(core_basic);
 
         let allowed = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
-        game.rules.ruleset = Game::determine_approximate_ruleset(&allowed, &game.rules.active, Game::EXPANSION_LEVEL);
+        game.rules.ruleset = Some(Game::determine_approximate_ruleset(&allowed, &game.rules.active, Game::EXPANSION_LEVEL));
         let ruleset = game.rules.ruleset;
         self.log_objects(game, vec!["Ruleset: ".into(), ruleset.into()]);
 
@@ -241,7 +241,7 @@ impl EstablishPlayers {
         self.create_terror_tokens(game);
 
         game.decks.unassigned_ambassadors = Some(Deck::new(
-            Self::available_factions().into_iter().filter(|f| *f != Faction::Moritani).map(Game::ambassador_of),
+            Self::available_factions().into_iter().filter(|f| *f != Faction::Moritani).filter_map(Game::ambassador_of),
             game.random.clone(),
         ));
 

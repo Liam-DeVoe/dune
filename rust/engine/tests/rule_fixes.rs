@@ -239,7 +239,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     g.turn.current_phase = Phase::RicheseSpecifyingAuction;
     let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
     auction.set_card(Some(sold));
-    auction.auction_type = AuctionType::RicheseOnceAround;
+    auction.auction_type = Some(AuctionType::RicheseOnceAround);
     auction.direction = 1;
     assert!(GameEvent::RicheseSpecifiesAuction(Rc::new(auction)).execute(&mut g, false, false).is_none());
     assert!(!g.decks.richese_cache.contains(&sold));

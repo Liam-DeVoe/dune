@@ -84,7 +84,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineSkillAssigned" => ev(bot.determine_skill_assigned(game)),
         "DeterminePlanetology" => ev(bot.determine_planetology(game)),
         "IsWinningOrIsOpponentInBattle" => b(bot.is_winning_or_is_opponent_in_battle(game, Faction(n(0)))),
-        "OpponentMayNotUse" => b(bot.opponent_may_not_use(game, TreacheryCardType(n(0)), a[1] == "true")),
+        "OpponentMayNotUse" => b(bot.opponent_may_not_use(game, <TreacheryCardType as treachery_engine::enum_type::GameEnum>::from_value(n(0)).expect("a card type"), a[1] == "true")),
         "HeroRevivalPenalty" => bot.hero_revival_penalty(game, LeaderManager::hero_lookup().find(n(0)).unwrap()).to_string(),
         "BestRevivalLocation" => {
             let all: Vec<Location> = game.board.map.locations(false).collect();
@@ -126,7 +126,7 @@ fn setup(game: &mut Game, me: PlayerIndex, m: &str, a: &[String]) -> Setup {
             let initiator = Faction(a[0][1..].parse().unwrap());
             let mut cv = ClairVoyancePlayed::new(game, initiator);
             cv.target = game.player(me).faction;
-            cv.question = ClairvoyanceQuestion(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared));
+            cv.question = treachery_engine::enum_type::from_value_or_absent(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared)).unwrap();
             cv.question_parameter1 = if a[4] == "null1" { None } else { Some(a[2].clone()) };
             cv.question_parameter2 = if a[5] == "null2" { None } else { Some(a[3].clone()) };
             game.turn.latest_clairvoyance = Some(Rc::new(cv));

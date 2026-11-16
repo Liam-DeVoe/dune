@@ -93,7 +93,7 @@ fn state(g: &Game, me: PlayerIndex) -> String {
     for hw in &p.home_worlds {
         s += &format!(
             " w{}={}/{}/{}",
-            hw.world().0,
+            hw.world() as i32,
             b(p.has_high_threshold(g, hw.world())),
             b(p.has_low_threshold(g, hw.world())),
             p.get_homeworld_battle_contribution_and_lasgun_shield_limit(g, hw.location().territory())
@@ -288,11 +288,11 @@ fn sequence_lines() -> Vec<String> {
             if juice > 0 {
                 let f = g.players[r.below(count)].faction;
                 let mut j = JuicePlayed::new(&g, f);
-                j.type_ = match juice {
+                j.type_ = Some(match juice {
                     1 => JuiceType::GoFirst,
                     2 => JuiceType::GoLast,
                     _ => JuiceType::Aggressor,
-                };
+                });
                 g.turn.current_juice = Some(std::rc::Rc::new(j));
             }
             let skip = r.bool();

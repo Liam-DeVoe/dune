@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct HMSAdvantageChosen {
-    pub advantage: StrongholdAdvantage,
+    pub advantage: Option<StrongholdAdvantage>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -29,7 +29,7 @@ impl HMSAdvantageChosen {
 
     pub fn can_be_played(g: &Game, p: PlayerIndex) -> bool {
         let hms = g.board.map.hidden_mobile_stronghold();
-        g.battle.chosen_hms_advantage == Some(StrongholdAdvantage::None)
+        g.battle.chosen_hms_advantage == Some(None)
             && g.battle.current_battle.is_some()
             && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
             && g.battle.current_battle.as_ref().expect("current battle").territory(g) == Some(hms.location().territory())

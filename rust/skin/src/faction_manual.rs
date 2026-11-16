@@ -130,12 +130,12 @@ impl Skin {
             m.the_great_flat(),                                     //12
             TreacheryCardType::Mercenary,                           //13
             TreacheryCardType::Useless,                             //14
-            self.concept_str.index(Concept::Monster).clone(),       //15
-            self.concept_str.index(Concept::Resource).clone(),      //16
+            self.concept_str.index(Some(Concept::Monster)).clone(),       //15
+            self.concept_str.index(Some(Concept::Resource)).clone(),      //16
             TreacheryCardType::Shield,                              //17
             TreacheryCardType::Laser,                               //18
             TreacheryCardType::Karma,                               //19
-            self.concept_str.index(Concept::Messiah).clone(),       //20
+            self.concept_str.index(Some(Concept::Messiah)).clone(),       //20
             self.main_phase_str.index(MainPhase::ShipmentAndMove).clone(), //21
             m.habbanya_sietch(),                                    //22
             self.special_force_name_str.index(Faction::Fremen).clone(), //23

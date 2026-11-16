@@ -77,15 +77,14 @@ fn static_helpers_and_getters() {
     p("mustChooseSkills".into(), if SkillAssigned::players_must_choose_leader_skills(&g) { "True" } else { "False" }.into());
     p("nextCustomSetup".into(), g.next_faction_to_perform_custom_setup().to_string());
 
-    let mut rule_types: Vec<AutomationRuleType> = AutomationRuleType::ALL.to_vec();
-    rule_types.push(AutomationRuleType(999));
+    let rule_types: Vec<AutomationRuleType> = AutomationRuleType::ALL.to_vec();
     for faction in [Faction::Atreides, Faction::Ixian] {
         for rt in &rule_types {
             let mut e = AutomationConfigured::new(&g, faction);
             e.rule_type = *rt;
             e.bidding_above_amount = 7;
             e.bidding_winning_faction = Faction::BeneGesserit;
-            p(format!("description.{faction}.{}", rt.0), try_str(|| e.get_description(&g).map(|m| m.to_cs_string())));
+            p(format!("description.{faction}.{}", *rt as i32), try_str(|| e.get_description(&g).map(|m| m.to_cs_string())));
         }
     }
 

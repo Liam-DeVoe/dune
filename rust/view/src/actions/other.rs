@@ -22,7 +22,7 @@ use crate::expr::message;
 use crate::schema::*;
 
 use super::other_nexus;
-use super::widgets::{picker, required, faction_options, hero_options, card_ids, draft_json, describe};
+use super::widgets::{picker, required, required_opt, faction_options, hero_options, card_ids, draft_json, describe};
 
 /// The event types drawn as a simple confirm form (`ActionOptions::Simple`).
 pub const SIMPLE: [GameEventType; 19] = [
@@ -124,6 +124,14 @@ pub(super) fn enum_option<T: GameEnum + Into<ExpressionElement> + Copy + ToStrin
     EnumOption { name: v.to_string(), value: v.value(), label: describe(d, v) }
 }
 
+/// [`enum_option`] for an enum whose C# `None` member is `None` in Rust.
+pub(super) fn enum_option_opt<T: GameEnum>(d: &dyn Describer, v: Option<T>) -> EnumOption
+where
+    Option<T>: Into<ExpressionElement>,
+{
+    EnumOption { name: name_or_absent(v), value: value_or_absent(v), label: describe(d, v) }
+}
+
 fn labelled<T: GameEnum + Copy + ToString>(v: T, label: &str) -> EnumOption {
     EnumOption { name: v.to_string(), value: v.value(), label: label.to_string() }
 }
@@ -184,7 +192,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Faction, t: GameEventTyp
         }
         GameEventType::ChoamEconomics => {
             let mut e = ChoamEconomics::new(game, faction);
-            e.status = ChoamEconomicsStatus::Double;
+            e.status = Some(ChoamEconomicsStatus::Double);
             event(e)
         }
         GameEventType::DealOffered => {
@@ -224,13 +232,13 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Faction, t: GameEventTyp
         }
         GameEventType::RicheseAnnouncesBlackMarket => {
             let mut e = RicheseAnnouncesBlackMarket::new(game, faction);
-            e.auction_type = AuctionType::BlackMarketNormal;
+            e.auction_type = Some(AuctionType::BlackMarketNormal);
             e.direction = 1;
             event(e)
         }
         GameEventType::RicheseSpecifiesAuction => {
             let mut e = RicheseSpecifiesAuction::new(game, faction);
-            e.auction_type = AuctionType::RicheseOnceAround;
+            e.auction_type = Some(AuctionType::RicheseOnceAround);
             e.direction = 1;
             event(e)
         }
@@ -343,7 +351,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
             m.card_id = required(m.card_id, &card_ids(ChoamDiscarded::valid_cards(game, p)), none_card);
         }),
         GameEvent::ChoamEconomics(e) => adjust!(e, |m| {
-            m.status = required(m.status, &[ChoamEconomicsStatus::Double, ChoamEconomicsStatus::Cancel], ChoamEconomicsStatus::default());
+            m.status = required(m.status, &[Some(ChoamEconomicsStatus::Double), Some(ChoamEconomicsStatus::Cancel)], None);
         }),
         GameEvent::ChoamKarmaPrevention(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
@@ -419,7 +427,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::Karma(e) => adjust!(e, |m| {
             m.card_id = required(m.card_id, &card_ids(Karma::valid_karma_cards(game, p)), none_card);
-            m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), FactionAdvantage::default());
+            m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), None);
         }),
         GameEvent::KarmaChoamDiscard(e) => adjust!(e, |m| {
             let karma = card_ids(Karma::valid_karma_cards(game, p));
@@ -457,7 +465,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         }),
         GameEvent::SkillAssigned(e) => adjust!(e, |m| {
             m.passed = false;
-            m.skill = required(m.skill, &SkillAssigned::valid_skills(game, p), LeaderSkill::None);
+            m.skill = required_opt(m.skill, &SkillAssigned::valid_skills(game, p));
             let leaders: Vec<i32> = SkillAssigned::valid_leaders(game, p).into_iter().map(|l| l.map_or(-1, |l| l.id())).collect();
             m.leader_id = required(m.leader_id, &leaders, -1);
         }),
@@ -478,9 +486,9 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         GameEvent::RicheseAnnouncesBlackMarket(e) => adjust!(e, |m| {
             m.passed = false;
             m.card_id = required(m.card_id, &card_ids(RicheseAnnouncesBlackMarket::valid_cards(game, p)), none_card);
-            let types = [AuctionType::BlackMarketNormal, AuctionType::BlackMarketOnceAround, AuctionType::BlackMarketSilent];
-            m.auction_type = required(m.auction_type, &types, AuctionType::None);
-            if m.auction_type == AuctionType::BlackMarketOnceAround {
+            let types = [Some(AuctionType::BlackMarketNormal), Some(AuctionType::BlackMarketOnceAround), Some(AuctionType::BlackMarketSilent)];
+            m.auction_type = required(m.auction_type, &types, None);
+            if m.auction_type == Some(AuctionType::BlackMarketOnceAround) {
                 m.direction = required(m.direction, &[1, -1], 0);
             }
         }),
@@ -495,9 +503,9 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
                 m.card_id = required(m.card_id, &card_ids(RicheseSpecifiesAuction::valid_cards(game)), none_card);
             }
             if RicheseSpecifiesAuction::may_specify_type_of_auction(game, p) {
-                let types = [AuctionType::RicheseOnceAround, AuctionType::RicheseSilent];
-                m.auction_type = required(m.auction_type, &types, AuctionType::None);
-                if m.auction_type == AuctionType::RicheseOnceAround {
+                let types = [Some(AuctionType::RicheseOnceAround), Some(AuctionType::RicheseSilent)];
+                m.auction_type = required(m.auction_type, &types, None);
+                if m.auction_type == Some(AuctionType::RicheseOnceAround) {
                     m.direction = required(m.direction, &[1, -1], 0);
                 }
             }
@@ -649,7 +657,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
         GameEvent::IxianSwappedCardOnBid(_) => ActionOptions::IxianSwappedCardOnBid(cards(hand())),
         GameEvent::Karma(_) => ActionOptions::Karma(KarmaOptions {
             cards: card_ids(Karma::valid_karma_cards(game, p)),
-            advantages: Karma::valid_faction_advantages(game, p).into_iter().map(|a| enum_option(d, a)).collect(),
+            advantages: Karma::valid_faction_advantages(game, p).into_iter().map(|a| enum_option_opt(d, a)).collect(),
             draft: json.clone(),
         }),
         GameEvent::KarmaChoamDiscard(e) => ActionOptions::KarmaChoamDiscard(KarmaChoamDiscardOptions {

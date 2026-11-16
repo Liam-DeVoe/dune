@@ -22,8 +22,8 @@ fn value(game: &Game, kind: &str) -> ExpressionElement {
     let n = || v.parse::<i32>().unwrap();
     match k {
         "null" => ExpressionElement::Null,
-        "TreacheryCardType" => ExpressionElement::Enum(EnumValue::of(TreacheryCardType(n()))),
-        "Faction" => ExpressionElement::Enum(EnumValue::of(Faction(n()))),
+        "TreacheryCardType" => ExpressionElement::Enum(EnumValue { ty: &TreacheryCardType::INFO, value: n() }),
+        "Faction" => ExpressionElement::Enum(EnumValue { ty: &Faction::INFO, value: n() }),
         "int" => ExpressionElement::Int(n()),
         "float" => ExpressionElement::Float(v.parse().unwrap()),
         "double" => ExpressionElement::Double(v.parse().unwrap()),
@@ -47,8 +47,8 @@ fn unboxing_casts() {
         let (kind, cast, expected) = (case[0].as_str().unwrap(), case[1].as_str().unwrap(), case[2].as_str().unwrap());
         let o = value(&game, kind);
         let actual = catch_panic(|| match cast {
-            "TreacheryCardType" => format!("enum:{}", unbox_enum::<TreacheryCardType>(&o).0),
-            "Faction" => format!("enum:{}", unbox_enum::<Faction>(&o).0),
+            "TreacheryCardType" => format!("enum:{}", treachery_engine::enum_type::value_or_absent(unbox_enum::<TreacheryCardType>(&o))),
+            "Faction" => format!("enum:{}", treachery_engine::enum_type::value_or_absent(unbox_enum::<Faction>(&o))),
             "int" => format!("int:{}", unbox_int(&o)),
             "float" => format!("float:{}", dotnet_compat::fmt::f32_to_string(unbox_float(&o))),
             "IHero" => cast_hero(&o).map_or("null".to_string(), |h| format!("hero:{}", h.id())),

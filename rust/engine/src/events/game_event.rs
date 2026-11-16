@@ -111,7 +111,7 @@ pub trait GameEventMethods {
         game.turn.recent_milestones.clear();
         game.perform_pre_event_tasks(&this);
         self.execute_concrete_event(game)?;
-        let just_entered_start_of_phase = moment_just_before_event != MainPhaseMoment::Start && game.turn.current_moment == MainPhaseMoment::Start;
+        let just_entered_start_of_phase = moment_just_before_event != Some(MainPhaseMoment::Start) && game.turn.current_moment == Some(MainPhaseMoment::Start);
         game.perform_post_event_tasks(&this, just_entered_start_of_phase);
         Ok(None)
     }

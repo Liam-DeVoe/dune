@@ -110,7 +110,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
 
         Phase::BeginningOfBattle => with(vec![], amal),
         Phase::CancellingTraitor => with(vec![], true),
-        Phase::BattleReport if g.turn.current_moment != MainPhaseMoment::End => nothing(),
+        Phase::BattleReport if g.turn.current_moment != Some(MainPhaseMoment::End) => nothing(),
         Phase::BattleReport => end_of_phase(g, vec![]),
 
         Phase::BeginningOfCollection => with(present(&[moritani_removing_tokens(g)]), amal || g.is_playing(Faction::Ecaz)),
@@ -273,6 +273,6 @@ fn moritani_planting(g: &Game) -> Option<PlayerIndex> {
 /// In the Mentat phase CHOAM may play Inflation or, with cards, Trip to Gamont.
 fn choam_in_mentat(g: &Game) -> Option<PlayerIndex> {
     let p = g.get_player(Some(Faction::Choam))?;
-    let inflation = g.charity.economics_status == ChoamEconomicsStatus::None && !g.prevented(FactionAdvantage::ChoamEconomics);
+    let inflation = g.charity.economics_status == None && !g.prevented(FactionAdvantage::ChoamEconomics);
     (inflation || !g.player(p).treachery_cards.is_empty()).then_some(p)
 }

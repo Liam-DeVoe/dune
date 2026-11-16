@@ -52,8 +52,8 @@ fn null_reference() -> ! {
     panic!("Object reference not set to an instance of an object.")
 }
 
-/// `(E)o` for an enum type `E`.
-pub fn unbox_enum<E: GameEnum>(o: &ExpressionElement) -> E {
+/// `(E)o` for an enum type `E`: `None` for the absent value of a closed enum, or a number that names no member.
+pub fn unbox_enum<E: GameEnum>(o: &ExpressionElement) -> Option<E> {
     match o {
         ExpressionElement::Null => null_reference(),
         ExpressionElement::Enum(v) => E::from_value(v.value),

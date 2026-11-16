@@ -42,20 +42,22 @@ impl Config {
     pub fn randomize(rng: &mut Rng, fuzz: bool) -> Config {
         use RuleGroup as G;
         let group = Game::get_rule_group;
-        let house: Vec<Rule> = Rule::ALL.iter().copied().filter(|r| matches!(group(*r), G::House | G::CoreBasicExceptions | G::CoreAdvancedExceptions)).collect();
+        let house: Vec<Rule> = Rule::ALL.iter().copied().filter(|r| matches!(group(*r), Some(G::House | G::CoreBasicExceptions | G::CoreAdvancedExceptions))).collect();
         let expansion: Vec<Rule> = Rule::ALL
             .iter()
             .copied()
             .filter(|r| {
                 matches!(
                     group(*r),
-                    G::CoreAdvanced
+                    Some(
+                        G::CoreAdvanced
                         | G::ExpansionIxAndBtBasic
                         | G::ExpansionIxAndBtAdvanced
                         | G::ExpansionChoamAndRicheseBasic
                         | G::ExpansionChoamAndRicheseAdvanced
                         | G::ExpansionEcazAndMoritaniBasic
                         | G::ExpansionEcazAndMoritaniAdvanced
+                    )
                 )
             })
             .collect();
@@ -71,7 +73,7 @@ impl Config {
 
         let definitions = Game::ruleset_definition();
         let mut rulesets: Vec<Ruleset> = definitions.iter().map(|(k, _)| *k).collect();
-        rulesets.sort_by_key(|r| r.0);
+        rulesets.sort_by_key(|r| *r as i32);
         let ruleset = rulesets[rng.below(rulesets.len())];
         let mut rules: Vec<Rule> = definitions.iter().find(|(k, _)| **k == ruleset).map(|(_, v)| v.clone()).unwrap_or_default();
 
@@ -89,7 +91,7 @@ impl Config {
         // Fuzz games sometimes get a rule set drawn from every rule, ignoring rulesets.
         if fuzz && rng.chance(0.35) {
             let density = 0.15 + 0.5 * rng.f64();
-            for r in Rule::ALL.iter().copied().filter(|r| *r != Rule::None && group(*r) != G::Bots && *r != Rule::FillWithBots) {
+            for r in Rule::ALL.iter().copied().filter(|r| group(*r) != Some(G::Bots) && *r != Rule::FillWithBots) {
                 if rng.chance(density) {
                     toggle(&mut rules, r);
                 }
@@ -133,7 +135,7 @@ impl Config {
 
     /// The host's `EstablishPlayers`, in savegame JSON (without `Time`).
     pub fn establish_players(&self) -> Value {
-        let rules: Vec<i32> = self.rules.iter().map(|r| r.0).collect();
+        let rules: Vec<i32> = self.rules.iter().map(|r| *r as i32).collect();
         let factions: Vec<i32> = self.factions.iter().map(|f| f.0).collect();
         let names: Vec<String> = self.factions.iter().map(|f| f.to_string()).collect();
         json!({

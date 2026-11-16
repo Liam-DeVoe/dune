@@ -206,11 +206,11 @@ impl Game {
     }
 
     pub fn juice_forces_first_player(&self) -> bool {
-        self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoFirst)
+        self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::GoFirst))
     }
 
     pub fn juice_forces_last_player(&self) -> bool {
-        self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == JuiceType::GoLast)
+        self.turn.current_juice.as_ref().is_some_and(|j| j.type_ == Some(JuiceType::GoLast))
     }
 
 }

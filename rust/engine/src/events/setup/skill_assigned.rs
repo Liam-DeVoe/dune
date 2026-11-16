@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct SkillAssigned {
-    pub skill: LeaderSkill,
+    pub skill: Option<LeaderSkill>,
     pub leader_id: i32,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
@@ -70,7 +70,7 @@ impl SkillAssigned {
         game.set_skill(leader, self.skill);
         let me = self.player();
         let skills = &mut game.player_mut(me).skills_to_choose_from;
-        if let Some(i) = skills.iter().position(|s| *s == self.skill) {
+        if let Some(i) = skills.iter().position(|s| Some(*s) == self.skill) {
             skills.remove(i);
         }
         game.set_in_front_of_shield(leader, true);

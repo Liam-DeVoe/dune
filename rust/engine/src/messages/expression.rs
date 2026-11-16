@@ -36,9 +36,24 @@ impl EnumValue {
         EnumValue { ty: T::INFO, value: v.value() }
     }
 
-    /// Returns the value if it is of enum type `T`.
+    /// Returns the value if it is a member of enum type `T` (not its absent value).
     pub fn get<T: GameEnum>(&self) -> Option<T> {
-        if std::ptr::eq(self.ty, T::INFO) || self.ty.name == T::INFO.name { Some(T::from_value(self.value)) } else { None }
+        if self.is::<T>() { T::from_value(self.value) } else { None }
+    }
+
+    /// Returns the value if it is of enum type `T`: `Some(None)` for its absent value.
+    pub fn get_opt<T: GameEnum>(&self) -> Option<Option<T>> {
+        if !self.is::<T>() {
+            return None;
+        }
+        if self.value == 0 && T::INFO.absent {
+            return Some(None);
+        }
+        T::from_value(self.value).map(Some)
+    }
+
+    fn is<T: GameEnum>(&self) -> bool {
+        std::ptr::eq(self.ty, T::INFO) || self.ty.name == T::INFO.name
     }
 }
 
@@ -335,8 +350,25 @@ impl From<MessagePart> for ExpressionElement {
         ExpressionElement::MessagePart(Box::new(v))
     }
 }
+/// A type whose absence is [`ExpressionElement::Null`] in a message. An enum whose absent value
+/// is its C# `None` member doesn't have it: its `Option` logs that member (`game_enum!`).
+pub trait NullElement {}
+impl NullElement for &str {}
+impl NullElement for String {}
+impl NullElement for bool {}
+impl NullElement for i32 {}
+impl NullElement for Location {}
+impl NullElement for Territory {}
+impl NullElement for Hero {}
+impl NullElement for Leader {}
+impl NullElement for TreacheryCard {}
+impl NullElement for ResourceCard {}
+impl NullElement for Payment {}
+impl NullElement for Message {}
+impl NullElement for MessagePart {}
+
 /// `None` becomes [`ExpressionElement::Null`].
-impl<T: Into<ExpressionElement>> From<Option<T>> for ExpressionElement {
+impl<T: Into<ExpressionElement> + NullElement> From<Option<T>> for ExpressionElement {
     fn from(v: Option<T>) -> Self {
         match v {
             Some(v) => v.into(),

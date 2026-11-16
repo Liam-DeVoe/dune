@@ -178,7 +178,7 @@ pub fn static_data() -> StaticData {
                 orientation: l.orientation().to_string(),
                 sector: l.sector(map),
                 spice_blow_amount: l.spice_blow_amount(),
-                discovery_token_type: name(l.discovery_token_type()),
+                discovery_token_type: name_or_absent(l.discovery_token_type()),
                 kind: kind.to_string(),
                 discovery,
             }
@@ -195,7 +195,7 @@ pub fn static_data() -> StaticData {
             is_protected_from_storm: t.is_protected_from_storm(),
             is_protected_from_worm: t.is_protected_from_worm(),
             has_reduced_shipping_cost: t.has_reduced_shipping_cost(),
-            advantage: name(t.advantage()),
+            advantage: name_or_absent(t.advantage()),
             middle_location: t.middle_location().id(),
             locations: t.locations().iter().map(|l| l.id()).collect(),
         })
@@ -250,11 +250,16 @@ pub fn static_data() -> StaticData {
         .filter(|f| *f != Faction::None)
         .map(|f| {
             let p = Player::new(f);
-            FactionInfo { faction: name(f), force: name(p.force()), special_force: name(p.special_force()) }
+            FactionInfo { faction: name(f), force: name_or_absent(p.force()), special_force: name_or_absent(p.special_force()) }
         })
         .collect();
 
-    let rules = Rule::INFO.declared.iter().map(|(_, v)| Rule(*v)).map(|r| RuleInfo { rule: name(r), group: name(Game::get_rule_group(r)) }).collect();
+    let rules = Rule::INFO
+        .declared
+        .iter()
+        .map(|(_, v)| treachery_engine::enum_type::from_value_or_absent::<Rule>(*v).expect("a declared Rule"))
+        .map(|r| RuleInfo { rule: name_or_absent(r), group: name_or_absent(r.and_then(Game::get_rule_group)) })
+        .collect();
 
     StaticData {
         locations,

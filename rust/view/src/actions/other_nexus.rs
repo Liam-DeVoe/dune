@@ -12,7 +12,7 @@ use crate::expr::message;
 use crate::schema::*;
 
 use super::other::enum_option;
-use super::widgets::{card_ids, describe, faction_options, hero_options, picker, required};
+use super::widgets::{card_ids, describe, faction_options, hero_options, picker, required, required_opt};
 
 /// The case of the form that applies, chosen by the Nexus card the player holds.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -138,7 +138,7 @@ pub(super) fn normalize(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameE
     m.faction = game.player(p).nexus;
     match case(game, p) {
         Some(Case::AtreidesPrescience) => {
-            m.atreides_prescience_aspect = required(m.atreides_prescience_aspect, &Prescience::valid_aspects(game, p), PrescienceAspect::default());
+            m.atreides_prescience_aspect = required_opt(m.atreides_prescience_aspect, &Prescience::valid_aspects(game, p));
         }
         Some(Case::TleilaxuSecretAlly) => {
             let max = NexusPlayed::valid_tleilaxu_max_amount(game, p, false);

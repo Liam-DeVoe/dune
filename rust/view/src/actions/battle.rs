@@ -67,7 +67,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         GameEventType::Battle => return Some(Some(battle_default(game, p, faction))),
         GameEventType::BattleConcluded => {
             let mut e = BattleConcluded::new(game, faction);
-            e.set_decision_to_capture(CaptureDecision::Kill);
+            e.set_decision_to_capture(Some(CaptureDecision::Kill));
             e.set_traitor_to_replace(None);
             e.set_new_traitor(None);
             e.set_discarded_cards(&[]);
@@ -75,11 +75,11 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
                 if BattleConcluded::may_capture_or_kill(game, Some(p)) {
                     let decisions = BattleConcluded::valid_capture_decisions(game);
                     if !decisions.contains(&CaptureDecision::Kill) {
-                        e.set_decision_to_capture(decisions.first().copied().unwrap_or_default());
+                        e.set_decision_to_capture(decisions.first().copied());
                     }
                 }
                 if let Some(loser) = loser(game) {
-                    e.stolen_token = game.player(loser).tech_tokens.first().copied().unwrap_or(TechToken::None);
+                    e.stolen_token = game.player(loser).tech_tokens.first().copied();
                 }
             }
             event(e)
@@ -107,13 +107,13 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::ClairVoyanceAnswered => {
             let mut e = ClairVoyanceAnswered::new(game, faction);
-            e.answer = ClairVoyanceAnswer::Yes;
+            e.answer = Some(ClairVoyanceAnswer::Yes);
             event(e)
         }
         GameEventType::ClairVoyancePlayed => {
             let mut e = ClairVoyancePlayed::new(game, faction);
             e.target = ClairVoyancePlayed::valid_targets(game, p).next().unwrap_or_default();
-            e.question = ClairVoyancePlayed::valid_questions(game, e.target).next().unwrap_or_default();
+            e.question = ClairVoyancePlayed::valid_questions(game, e.target).next().flatten();
             let (a, b) = clairvoyance_defaults(game, e.question, d_none());
             e.question_parameter1 = a;
             e.question_parameter2 = b;
@@ -154,12 +154,12 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::HMSAdvantageChosen => {
             let mut e = HMSAdvantageChosen::new(game, faction);
-            e.advantage = HMSAdvantageChosen::valid_advantages(game, p).first().copied().unwrap_or_default();
+            e.advantage = HMSAdvantageChosen::valid_advantages(game, p).first().copied();
             event(e)
         }
         GameEventType::JuicePlayed => {
             let mut e = JuicePlayed::new(game, faction);
-            e.type_ = JuicePlayed::valid_types(game, p).first().copied().unwrap_or_default();
+            e.type_ = JuicePlayed::valid_types(game, p).first().copied();
             event(e)
         }
         GameEventType::LoserConcluded => {
@@ -176,7 +176,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         }
         GameEventType::Prescience => {
             let mut e = Prescience::new(game, faction);
-            e.aspect = Prescience::valid_aspects(game, p).first().copied().unwrap_or_default();
+            e.aspect = Prescience::valid_aspects(game, p).first().copied();
             event(e)
         }
         GameEventType::Retreat => {
@@ -213,7 +213,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Faction, t: GameE
         GameEventType::Voice => {
             let mut e = Voice::new(game, faction);
             e.must = true;
-            e.type_ = voice_types(game, &d_none()).first().map(|t| TreacheryCardType(t.value)).unwrap_or_default();
+            e.type_ = voice_types(game, &d_none()).first().and_then(|t| TreacheryCardType::from_value(t.value));
             event(e)
         }
         _ => return None,
@@ -468,7 +468,7 @@ fn clairvoyance_dials() -> Vec<String> {
     out
 }
 
-fn clairvoyance_defaults(game: &Game, q: ClairvoyanceQuestion, d: Option<&dyn Describer>) -> (Option<String>, Option<String>) {
+fn clairvoyance_defaults(game: &Game, q: Option<ClairvoyanceQuestion>, d: Option<&dyn Describer>) -> (Option<String>, Option<String>) {
     let fallback;
     let d: &dyn Describer = match d {
         Some(d) => d,
@@ -481,12 +481,12 @@ fn clairvoyance_defaults(game: &Game, q: ClairvoyanceQuestion, d: Option<&dyn De
     let first = |l: &[BattleFormParam]| l.first().map(|p| p.value.clone());
     use ClairvoyanceQuestion as Q;
     match q {
-        Q::CardTypeInBattle | Q::CardTypeAsWeaponInBattle | Q::CardTypeAsDefenseInBattle | Q::HasCardTypeInHand => (first(&card_types), None),
-        Q::LeaderAsFacedancer | Q::LeaderAsTraitor | Q::LeaderInBattle => (first(&leaders), None),
-        Q::Prediction => (first(&factions), first(&turns)),
-        Q::DialOfMoreThanXInBattle => (clairvoyance_dials().first().cloned(), None),
-        Q::WillAttackX => (first(&territories), None),
-        _ => (None, None),
+        Some(Q::CardTypeInBattle | Q::CardTypeAsWeaponInBattle | Q::CardTypeAsDefenseInBattle | Q::HasCardTypeInHand) => (first(&card_types), None),
+        Some(Q::LeaderAsFacedancer | Q::LeaderAsTraitor | Q::LeaderInBattle) => (first(&leaders), None),
+        Some(Q::Prediction) => (first(&factions), first(&turns)),
+        Some(Q::DialOfMoreThanXInBattle) => (clairvoyance_dials().first().cloned(), None),
+        Some(Q::WillAttackX) => (first(&territories), None),
+        None => (None, None),
     }
 }
 
@@ -497,7 +497,7 @@ fn clairvoyance_options(game: &Game, p: PlayerIndex, target: Faction, d: &dyn De
         questions: ClairVoyancePlayed::valid_questions(game, target)
             .map(|q| {
                 let label = d.describe(&ClairVoyancePlayed::express(q, ExpressionElement::Null, ExpressionElement::Null).into());
-                BattleFormEnum { value: q.value(), name: q.to_string(), label }
+                BattleFormEnum { value: value_or_absent(q), name: name_or_absent(q), label }
             })
             .collect(),
         card_types,
@@ -653,16 +653,16 @@ fn side(game: &Game, p: PlayerIndex, aggressor: Faction, groups: Vec<BattleForce
 }
 
 /// The note on the battle plan form saying what of `plan` prescience shows.
-fn seen_note(game: &Game, faction: Faction, aspect: PrescienceAspect, plan: &Battle, show_everything: bool, d: &dyn Describer) -> BattleNote {
+fn seen_note(game: &Game, faction: Faction, aspect: Option<PrescienceAspect>, plan: &Battle, show_everything: bool, d: &dyn Describer) -> BattleNote {
     let shown: Option<ExpressionElement> = match aspect {
-        PrescienceAspect::Defense => plan.defense().filter(|c| show_everything || c.is_defense()).map(Into::into),
-        PrescienceAspect::Weapon => plan.weapon().filter(|c| show_everything || c.is_weapon()).map(Into::into),
-        PrescienceAspect::Leader => plan.hero().map(Into::into),
+        Some(PrescienceAspect::Defense) => plan.defense().filter(|c| show_everything || c.is_defense()).map(Into::into),
+        Some(PrescienceAspect::Weapon) => plan.weapon().filter(|c| show_everything || c.is_weapon()).map(Into::into),
+        Some(PrescienceAspect::Leader) => plan.hero().map(Into::into),
         _ => None,
     };
     BattleNote::Seen {
         aspect: d.describe(&aspect.into()),
-        dial: (aspect == PrescienceAspect::Dial).then(|| dotnet_compat::fmt::f32_to_string(plan.dial(game, faction))),
+        dial: (aspect == Some(PrescienceAspect::Dial)).then(|| dotnet_compat::fmt::f32_to_string(plan.dial(game, faction))),
         shown: shown.map(|el| {
             let mut out = vec![];
             expr::element_into(&el, d, &mut out);
@@ -700,7 +700,7 @@ fn battle_notes(game: &Game, p: PlayerIndex, opponent: PlayerIndex, d: &dyn Desc
             match &opponent_plan {
                 Some(plan) => {
                     for aspect in [PrescienceAspect::Dial, PrescienceAspect::Weapon, PrescienceAspect::Defense, PrescienceAspect::Leader] {
-                        notes.push(seen_note(game, faction, aspect, plan, true, d));
+                        notes.push(seen_note(game, faction, Some(aspect), plan, true, d));
                     }
                 }
                 None => notes.push(BattleNote::Later { aspect: None }),
@@ -760,7 +760,7 @@ fn battle_options(game: &Game, p: PlayerIndex, draft: &Battle, d: &dyn Describer
     let special_tokens = Battle::max_forces(game, supplier, true);
     let hero = normalized.hero();
     let leader = hero.map(|h| {
-        let mut skill = LeaderSkill::None;
+        let mut skill = None;
         let bonus = Battle::determine_skill_bonus_of_parts(
             game,
             p,

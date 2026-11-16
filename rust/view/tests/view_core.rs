@@ -93,7 +93,7 @@ fn resource_deck_top_under_prescience() {
 /// own `Player.KnownCards` only), spice and victory points. Observers get none of it.
 #[test]
 fn notekeeping_shows_discard_piles_and_notes() {
-    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping.0]));
+    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping as i32]));
     assert!(r.game.applicable(Rule::AssistedNotekeeping));
     let mut known_somewhere = 0;
     let mut unknown_somewhere = 0;
@@ -206,7 +206,7 @@ fn ring() {
             let expected: Vec<(i32, String)> = g
                 .get_skilled_leaders(p)
                 .filter(|l| g.is_in_front_of_shield(Some(Hero::Leader(*l))))
-                .map(|l| (l.id(), name(g.skill(Some(Hero::Leader(l))))))
+                .map(|l| (l.id(), name_or_absent(g.skill(Some(Hero::Leader(l))))))
                 .collect();
             assert_eq!(pp.skilled_leaders.iter().map(|s| (s.id, s.skill.clone())).collect::<Vec<_>>(), expected);
             skilled += expected.len();
@@ -414,7 +414,7 @@ fn bids_on_the_ring() {
     let mut r = load("bid");
     let view = r.view(OBSERVER);
     let b = view.bidding.expect("bidding phase");
-    assert_eq!(b.auction_type, name(r.game.bidding.current_auction_type));
+    assert_eq!(b.auction_type, name_or_absent(r.game.bidding.current_auction_type));
     assert_eq!(b.bids.len(), r.game.bidding.bids.len());
     for (shown, (f, bid)) in b.bids.iter().zip(r.game.bidding.bids.iter()) {
         assert_eq!(shown.faction, name(*f));
@@ -428,7 +428,7 @@ fn bids_on_the_ring() {
 #[test]
 fn silent_bids_are_ready() {
     let mut r = first_bot_state("a silent auction with bids", |g| {
-        (g.bidding.current_auction_type == AuctionType::RicheseSilent || g.bidding.current_auction_type == AuctionType::BlackMarketSilent)
+        (g.bidding.current_auction_type == Some(AuctionType::RicheseSilent) || g.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent))
             && g.turn.current_main_phase == MainPhase::Bidding
             && !g.bidding.bids.is_empty()
     });
@@ -494,10 +494,10 @@ fn battle_plans_before_both_are_in() {
                             (PrescienceAspect::Defense, s.defense_shown),
                         ];
                         for (a, on) in shown_aspects {
-                            assert_eq!(on, a == aspect, "{fixture}: {a:?} for prescience of {aspect:?}");
+                            assert_eq!(on, Some(a) == aspect, "{fixture}: {a:?} for prescience of {aspect:?}");
                         }
                         let p = plan.as_ref().unwrap();
-                        if aspect == PrescienceAspect::Weapon {
+                        if aspect == Some(PrescienceAspect::Weapon) {
                             assert_eq!(s.weapon, p.weapon().filter(|w| w.is_weapon()).map(|w| w.id()));
                         }
                     }
@@ -683,9 +683,9 @@ fn timing() {
         assert_eq!(t.battle, g.time_spent(p.faction, MainPhase::Battle).ticks as f64 / 1e7);
     }
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
-    assert_eq!(view.ruleset, name(g.rules.ruleset));
+    assert_eq!(view.ruleset, name_or_absent(g.rules.ruleset));
     assert_eq!(view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
-    assert_eq!(view.economics_status, name(g.charity.economics_status));
+    assert_eq!(view.economics_status, name_or_absent(g.charity.economics_status));
 }
 
 /// The observer's view holds nothing that only a player may see, in any fixture.

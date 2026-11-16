@@ -93,7 +93,7 @@ fn automation_rules_are_described() {
 fn nexus_card_plays_name_the_card_type_once() {
     let mut g = game();
     let mut voice = Voice::default();
-    voice.type_ = TreacheryCardType::Laser;
+    voice.type_ = Some(TreacheryCardType::Laser);
     voice.initialize(&g, Faction::Atreides);
     Rc::new(voice).execute_concrete_event(&mut g).unwrap();
     let log = log(&g);

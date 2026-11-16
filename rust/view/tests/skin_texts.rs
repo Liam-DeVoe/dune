@@ -75,15 +75,15 @@ fn sheets_and_rules_equal_the_skin() {
         assert_eq!(v.rule_labels.ruleset, skin.describe(&ExpressionElement::from(g.rules.ruleset)));
         let mut groups: Vec<RuleGroup> = vec![];
         for r in &g.rules.active {
-            let gr = Game::get_rule_group(*r);
-            if ![RuleGroup::CoreBasic, RuleGroup::Bots, RuleGroup::None].contains(&gr) && !groups.contains(&gr) {
+            let Some(gr) = Game::get_rule_group(*r) else { continue };
+            if ![RuleGroup::CoreBasic, RuleGroup::Bots].contains(&gr) && !groups.contains(&gr) {
                 groups.push(gr);
             }
         }
         assert_eq!(v.rule_labels.groups.len(), groups.len(), "{name}");
         for (l, gr) in v.rule_labels.groups.iter().zip(&groups) {
             assert_eq!(l.group, skin.describe(&ExpressionElement::from(*gr)));
-            let rules: Vec<String> = g.rules.active.iter().filter(|r| Game::get_rule_group(**r) == *gr).map(|r| skin.describe(&ExpressionElement::from(*r))).collect();
+            let rules: Vec<String> = g.rules.active.iter().filter(|r| Game::get_rule_group(**r) == Some(*gr)).map(|r| skin.describe(&ExpressionElement::from(*r))).collect();
             assert_eq!(l.rules, rules, "{name}");
         }
         assert!(v.rule_labels.groups.iter().all(|gr| gr.rules.iter().all(|r| !r.is_empty())));

@@ -126,9 +126,9 @@ fn monster_targets_exclude_protected_territories() {
 fn charity_multiplier_and_cancellation() {
     let mut g = game_with(&[Faction::Emperor]);
     assert_eq!(g.current_charity_multiplier(), 1);
-    g.charity.economics_status = ChoamEconomicsStatus::DoubleFlipped;
+    g.charity.economics_status = Some(ChoamEconomicsStatus::DoubleFlipped);
     assert_eq!(g.current_charity_multiplier(), 2);
-    g.charity.economics_status = ChoamEconomicsStatus::Cancel;
+    g.charity.economics_status = Some(ChoamEconomicsStatus::Cancel);
     assert_eq!(g.current_charity_multiplier(), 0);
     assert!(g.charity_is_cancelled());
 }

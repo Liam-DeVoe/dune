@@ -108,8 +108,6 @@ impl DiscoveryRevealed {
                     game.collection.owner_of_flight_discovery = Some(self.initiator());
                     self.log_objects(game, elems![self.initiator(), " gain the ", discovery.token, " discovery token"]);
                 }
-
-                _ => {}
             }
         }
         Ok(())

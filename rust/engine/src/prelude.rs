@@ -11,6 +11,7 @@ pub use crate::shared::{RcKey, Shared};
 pub use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 pub use crate::cards::deck::Deck;
 pub use crate::enumerations::*;
+pub use crate::enum_type::{name_or_absent, value_or_absent};
 pub use crate::messages::expression::{Expression, ExpressionElement};
 pub use crate::identity::Fetcher;
 pub use crate::heroes::hero::Hero;

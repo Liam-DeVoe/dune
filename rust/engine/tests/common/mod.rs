@@ -386,7 +386,15 @@ pub fn en<T: GameEnum>(v: &Value) -> T {
     let s = tagged(v, "e:");
     let (name, value) = s.rsplit_once(':').unwrap();
     assert_eq!(name, T::INFO.name, "enum type of {v}");
-    T::from_value(value.parse().unwrap())
+    T::from_value(value.parse().unwrap()).unwrap_or_else(|| panic!("{v} names no member"))
+}
+
+/// `"e:Faction:0"` as an optional `T`: 0 is absent.
+pub fn en_opt<T: GameEnum>(v: &Value) -> Option<T> {
+    let s = tagged(v, "e:");
+    let (name, value) = s.rsplit_once(':').unwrap();
+    assert_eq!(name, T::INFO.name, "enum type of {v}");
+    treachery_engine::enum_type::from_value_or_absent(value.parse().unwrap()).unwrap()
 }
 
 /// `"o:Type#id"`: the type name and id.

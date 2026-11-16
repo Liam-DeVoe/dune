@@ -43,7 +43,6 @@ impl GameStatistics {
             WinMethod::Forfeit => "FORFEIT",
             WinMethod::FremenSpecial => "FREMEN_DEFAULT",
             WinMethod::GuildSpecial => "GUILD_DEFAULT",
-            _ => "None",
         }
         .to_string()
     }

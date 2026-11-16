@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct TerrorRevealed {
     pub alliance_offered: bool,
-    pub type_: TerrorType,
+    pub type_: Option<TerrorType>,
     pub forces_in_sneak_attack: i32,
     pub sneak_attack_to: i32,
     pub robbery_takes_card: bool,
@@ -83,23 +83,23 @@ impl TerrorRevealed {
         if self.passed || self.alliance_offered {
             return None;
         }
-        if !TerrorRevealed::get_types(game).any(|v| v == self.type_) {
+        if !TerrorRevealed::get_types(game).any(|v| Some(v) == self.type_) {
             return Some(express!("You cannot use this token"));
         }
         if self.initiator() != Faction::Moritani {
             return Some(express!("Your faction can't reveal terror tokens"));
         }
 
-        if self.type_ == TerrorType::SneakAttack && self.sneak_attack_to(game).is_none() && self.forces_in_sneak_attack > 0 {
+        if self.type_ == Some(TerrorType::SneakAttack) && self.sneak_attack_to(game).is_none() && self.forces_in_sneak_attack > 0 {
             return Some(express!("You cannot send forces there"));
         }
-        if self.type_ == TerrorType::SneakAttack
+        if self.type_ == Some(TerrorType::SneakAttack)
             && self.sneak_attack_to(game).is_some()
             && !TerrorRevealed::valid_sneak_attack_targets(game, self.player()).any(|v| v == self.sneak_attack_to(game).expect("sneak attack to"))
         {
             return Some(express!("Invalid location of sneak attack"));
         }
-        if self.type_ == TerrorType::SneakAttack
+        if self.type_ == Some(TerrorType::SneakAttack)
             && self.forces_in_sneak_attack > TerrorRevealed::max_amount_of_forces_in_sneak_attack(game, self.player())
         {
             return Some(express!("Too many forces selected"));
@@ -204,7 +204,9 @@ impl TerrorRevealed {
         } else {
             game.stone(Milestone::TerrorRevealed);
 
-            game.board.terror_on_planet.shift_remove(&self.type_);
+            if let Some(type_) = self.type_ {
+                game.board.terror_on_planet.shift_remove(&type_);
+            }
 
             // C# parity: Passed is always false here.
             if self.passed || TerrorRevealed::terror_in(game, territory).next().is_none() {
@@ -214,7 +216,7 @@ impl TerrorRevealed {
             game.ship_move.alliance_by_terror_was_offered = false;
 
             match self.type_ {
-                TerrorType::Assassination => {
+                Some(TerrorType::Assassination) => {
                     let victim_player = victim_player.required("victim player")?;
                     let random_leader = game
                         .player(victim_player)
@@ -241,7 +243,7 @@ impl TerrorRevealed {
                     }
                 }
 
-                TerrorType::Atomics => {
+                Some(TerrorType::Atomics) => {
                     game.kill_all_forces_in(territory.required("territory")?, false);
                     game.kill_ambassador_in(territory.required("territory")?);
                     game.board.atomics_aftermath = territory;
@@ -265,7 +267,7 @@ impl TerrorRevealed {
                     self.log_objects(game, elems![self.initiator(), " DETONATE ATOMICS in ", territory]);
                 }
 
-                TerrorType::Extortion => {
+                Some(TerrorType::Extortion) => {
                     self.log_objects(
                         game,
                         elems![self.initiator(), " will get ", Payment::of(5), " from ", self.type_, " during ", MainPhase::Contemplate],
@@ -274,7 +276,7 @@ impl TerrorRevealed {
                     p.extortion += 5;
                 }
 
-                TerrorType::Robbery => {
+                Some(TerrorType::Robbery) => {
                     if self.robbery_takes_card {
                         let card = game.draw_treachery_card();
                         game.player_mut(self.player()).treachery_cards.push(card.required("card")?);
@@ -294,7 +296,7 @@ impl TerrorRevealed {
                     }
                 }
 
-                TerrorType::Sabotage => {
+                Some(TerrorType::Sabotage) => {
                     let victim_player = victim_player.required("victim player")?;
                     let victim_faction = game.player(victim_player).faction;
                     self.log_objects(game, elems![self.initiator(), " sabotage ", victim_faction]);
@@ -323,7 +325,7 @@ impl TerrorRevealed {
                     }
                 }
 
-                TerrorType::SneakAttack => {
+                Some(TerrorType::SneakAttack) => {
                     if let Some(sneak_attack_to) = self.sneak_attack_to(game) {
                         let force = game.player(self.player()).force();
                         self.log_objects(
@@ -342,7 +344,7 @@ impl TerrorRevealed {
         }
 
         // C# parity: also runs when an alliance was offered (Passed is false then).
-        if !self.passed && self.type_ == TerrorType::Robbery && self.robbery_takes_card {
+        if !self.passed && self.type_ == Some(TerrorType::Robbery) && self.robbery_takes_card {
             let me = self.player();
             if game.player(me).treachery_cards.len() as i32 > game.player(me).maximum_number_of_cards(game) {
                 game.let_player_discard_treachery_card_of_choice(self.initiator());

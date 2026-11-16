@@ -24,7 +24,7 @@ use crate::describe::Describer;
 use crate::expr::message;
 use crate::schema::*;
 use crate::shield::hero_ref;
-use super::widgets::{draft_json, required};
+use super::widgets::{draft_json, required, required_opt};
 
 fn name<T: ToString>(v: T) -> String {
     v.to_string()
@@ -89,14 +89,14 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
             let mut e = AmbassadorActivated::new(game, faction);
             let ambassador = AmbassadorActivated::get_ambassador(game);
             // BeneGesserit: the required image choice picks the first ambassador.
-            let actual = if ambassador == Ambassador::BeneGesserit {
-                AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).first().copied().unwrap_or(Ambassador::None)
+            let actual = if ambassador == Some(Ambassador::BeneGesserit) {
+                AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).first().copied()
             } else {
                 ambassador
             };
             e.bene_gesserit_selected_ambassador = actual;
             e.set_choam_cards(&[]);
-            if actual == Ambassador::Ixian {
+            if actual == Some(Ambassador::Ixian) {
                 e.set_ixian_card(AmbassadorActivated::get_valid_ixian_cards(game, p).first().copied());
             } else {
                 e.set_ixian_card(None);
@@ -108,7 +108,7 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
         }
         GameEventType::AmbassadorPlaced => {
             let mut e = AmbassadorPlaced::new(game, faction);
-            e.ambassador = AmbassadorPlaced::valid_ambassadors(game, p).first().copied().unwrap_or(Ambassador::None);
+            e.ambassador = AmbassadorPlaced::valid_ambassadors(game, p).first().copied();
             e.set_stronghold(game, None);
             event(e)
         }
@@ -180,14 +180,14 @@ fn initial_draft(game: &Game, p: PlayerIndex, faction: Faction, t: GameEventType
             // Removing: the required select picks the first type. Placing: the type is
             // chosen in the pinned panel, which only shows once a stronghold is picked.
             if TerrorPlanted::may_remove_tokens(game, p) {
-                e.type_ = TerrorPlanted::valid_terror_types(game, true).next().unwrap_or(TerrorType::None);
+                e.type_ = TerrorPlanted::valid_terror_types(game, true).next();
             }
             e.set_stronghold(game, None);
             event(e)
         }
         GameEventType::TerrorRevealed => {
             let mut e = TerrorRevealed::new(game, faction);
-            e.type_ = TerrorRevealed::get_types(game).next().unwrap_or(TerrorType::None);
+            e.type_ = TerrorRevealed::get_types(game).next();
             e.set_card_to_give_in_sabotage(None);
             e.set_sneak_attack_to(game, None);
             event(e)
@@ -349,14 +349,14 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         GameEvent::AmbassadorActivated(e) => {
             let mut e = (**e).clone();
             let ambassador = AmbassadorActivated::get_ambassador(game);
-            let actual = if ambassador == Ambassador::BeneGesserit {
-                required(e.bene_gesserit_selected_ambassador, &AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game), Ambassador::None)
+            let actual = if ambassador == Some(Ambassador::BeneGesserit) {
+                required_opt(e.bene_gesserit_selected_ambassador, &AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game))
             } else {
                 ambassador
             };
             e.bene_gesserit_selected_ambassador = actual;
             match actual {
-                Ambassador::Ecaz => {
+                Some(Ambassador::Ecaz) => {
                     if !AmbassadorActivated::vidal_can_be_taken(game, p) {
                         e.ecaz_take_vidal = false;
                     }
@@ -369,19 +369,19 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
                         e.ecaz_give_vidal_to_ally = false;
                     }
                 }
-                Ambassador::Ixian => {
+                Some(Ambassador::Ixian) => {
                     let cards = AmbassadorActivated::get_valid_ixian_cards(game, p);
                     let card = e.ixian_card();
                     if !card.is_some_and(|c| cards.contains(&c)) {
                         e.set_ixian_card(cards.first().copied());
                     }
                 }
-                Ambassador::Guild => {
+                Some(Ambassador::Guild) => {
                     if AmbassadorActivated::valid_guild_targets(game, p).next().is_none() {
                         e.guild_force_amount = 0;
                     }
                 }
-                Ambassador::Tleilaxu => {
+                Some(Ambassador::Tleilaxu) => {
                     let max = AmbassadorActivated::valid_tleilaxu_max_amount(game, p);
                     e.tleilaxu_amount_of_forces = if max > 0 { e.tleilaxu_amount_of_forces.clamp(0, max) } else { 0 };
                     if !e.tleilaxu_hero().is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
@@ -394,7 +394,7 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
         }
         GameEvent::AmbassadorPlaced(e) => {
             let mut e = (**e).clone();
-            e.ambassador = required(e.ambassador, &AmbassadorPlaced::valid_ambassadors(game, p), Ambassador::None);
+            e.ambassador = required_opt(e.ambassador, &AmbassadorPlaced::valid_ambassadors(game, p));
             event(e)
         }
         // PinContent, drawn while a location is pinned.
@@ -439,24 +439,24 @@ fn normalize_once(game: &Game, p: PlayerIndex, draft: &GameEvent) -> GameEvent {
             let mut e = (**e).clone();
             if TerrorPlanted::may_remove_tokens(game, p) {
                 let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, true).collect();
-                e.type_ = required(e.type_, &types, TerrorType::None);
+                e.type_ = required_opt(e.type_, &types);
             } else if e.stronghold(game).is_some() {
                 let types: Vec<TerrorType> = TerrorPlanted::valid_terror_types(game, false).collect();
-                e.type_ = required(e.type_, &types, TerrorType::None);
+                e.type_ = required_opt(e.type_, &types);
             }
             event(e)
         }
         GameEvent::TerrorRevealed(e) => {
             let mut e = (**e).clone();
             let types: Vec<TerrorType> = TerrorRevealed::get_types(game).collect();
-            e.type_ = required(e.type_, &types, TerrorType::None);
-            if e.type_ != TerrorType::Robbery {
+            e.type_ = required_opt(e.type_, &types);
+            if e.type_ != Some(TerrorType::Robbery) {
                 e.robbery_takes_card = false;
             }
-            if e.type_ != TerrorType::Sabotage {
+            if e.type_ != Some(TerrorType::Sabotage) {
                 e.set_card_to_give_in_sabotage(None);
             }
-            if e.type_ != TerrorType::SneakAttack || TerrorRevealed::valid_sneak_attack_targets(game, p).next().is_none() {
+            if e.type_ != Some(TerrorType::SneakAttack) || TerrorRevealed::valid_sneak_attack_targets(game, p).next().is_none() {
                 e.forces_in_sneak_attack = 0;
             }
             event(e)
@@ -809,7 +809,7 @@ fn fremen_ride(game: &Game, p: PlayerIndex, e: &FremenRidesMonster, d: &dyn Desc
 fn ambassador_activated(game: &Game, p: PlayerIndex, e: &AmbassadorActivated) -> AmbassadorActivatedOptions {
     let pl = game.player(p);
     AmbassadorActivatedOptions { draft: Value::Null,
-        ambassador: name(AmbassadorActivated::get_ambassador(game)),
+        ambassador: name_or_absent(AmbassadorActivated::get_ambassador(game)),
         victim: name(AmbassadorActivated::get_victim(game)),
         bene_gesserit_ambassadors: AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game).into_iter().map(name).collect(),
         choam_cards: AmbassadorActivated::get_valid_choam_cards(game, p).iter().map(|c| c.id()).collect(),

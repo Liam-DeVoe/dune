@@ -31,7 +31,7 @@ fn factions(fs: impl IntoIterator<Item = Faction>) -> Vec<String> {
 
 fn targets(o: &[FactionOption]) -> Vec<String> {
     for f in o {
-        assert_eq!(Faction::from_value(f.value).to_string(), f.faction, "faction value of {}", f.faction);
+        assert_eq!(treachery_engine::enum_type::name_or_absent(Faction::from_value(f.value)), f.faction, "faction value of {}", f.faction);
     }
     o.iter().map(|f| f.faction.clone()).collect()
 }
@@ -118,7 +118,7 @@ fn check(game: &Game, p: PlayerIndex, v: &ResolvedViewer, o: &ActionOptions, at:
         }
         ActionOptions::Karma(o) => {
             assert_eq!(o.cards, ids(Karma::valid_karma_cards(game, p)), "{at}");
-            assert_eq!(option_names(&o.advantages), names(Karma::valid_faction_advantages(game, p)), "{at}");
+            assert_eq!(option_names(&o.advantages), Karma::valid_faction_advantages(game, p).into_iter().map(name_or_absent).collect::<Vec<_>>(), "{at}");
         }
         ActionOptions::KarmaChoamDiscard(o) => assert_eq!(o.karma_cards, ids(Karma::valid_karma_cards(game, p)), "{at}"),
         ActionOptions::KarmaHandSwap(o) => {

@@ -789,7 +789,7 @@ impl ClassicBot {
 
         let mut voice = Voice::new(game, game.player(p).faction);
         voice.must = command.must;
-        voice.type_ = command.type_;
+        voice.type_ = Some(command.type_);
         result.voice = Rc::new(voice);
 
         result
@@ -810,7 +810,7 @@ impl ClassicBot {
             return None;
         }
 
-        let existing_aspect = game.battle.current_prescience.as_ref().map_or(PrescienceAspect::None, |p| p.aspect);
+        let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
         let mut e = Prescience::new(game, self.faction(game));
         let territory = battle.territory(game).expect("territory");
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
@@ -819,7 +819,7 @@ impl ClassicBot {
     }
 
     /// Which aspect of `opponent`'s battle plan `p` should ask for, other than `earlier_prescience`.
-    pub fn best_prescience(&self, game: &Game, p: PlayerIndex, opponent: PlayerIndex, max_force_strength_in_battle: f32, earlier_prescience: PrescienceAspect, territory: Territory) -> PrescienceAspect {
+    pub fn best_prescience(&self, game: &Game, p: PlayerIndex, opponent: PlayerIndex, max_force_strength_in_battle: f32, earlier_prescience: Option<PrescienceAspect>, territory: Territory) -> Option<PrescienceAspect> {
         use TreacheryCardType as T;
         let known_cards = game.known_cards(p);
         let my_defenses: Vec<TreacheryCard> =
@@ -835,30 +835,30 @@ impl ClassicBot {
 
         // Knowing the weapon helps when I must pick a defense; a shield snooper makes it moot.
         let may_ask_weapon =
-            earlier_prescience != PrescienceAspect::Weapon && !weapon_is_certain && !i_have_defense(|d| d.type_() == T::ShieldAndAntidote);
+            earlier_prescience != Some(PrescienceAspect::Weapon) && !weapon_is_certain && !i_have_defense(|d| d.type_() == T::ShieldAndAntidote);
         // Knowing the defense helps when I must pick a weapon; a poison blade makes it moot.
         let may_ask_defense =
-            earlier_prescience != PrescienceAspect::Defense && !defense_is_certain && !i_have_weapon(|w| w.type_() == T::ProjectileAndPoison);
+            earlier_prescience != Some(PrescienceAspect::Defense) && !defense_is_certain && !i_have_weapon(|w| w.type_() == T::ProjectileAndPoison);
         let choice_of_defense = i_have_defense(|d| d.is_projectile_defense()) && i_have_defense(|d| d.is_poison_defense());
         let choice_of_weapon = i_have_weapon(|w| w.is_projectile_weapon()) && i_have_weapon(|w| w.is_poison_weapon());
 
         if may_ask_weapon && choice_of_defense {
-            PrescienceAspect::Weapon
+            Some(PrescienceAspect::Weapon)
         } else if may_ask_defense && choice_of_weapon {
-            PrescienceAspect::Defense
+            Some(PrescienceAspect::Defense)
         } else if may_ask_weapon && !my_defenses.is_empty() {
-            PrescienceAspect::Weapon
+            Some(PrescienceAspect::Weapon)
         } else if may_ask_defense && !my_weapons.is_empty() {
-            PrescienceAspect::Defense
-        } else if earlier_prescience != PrescienceAspect::Dial
+            Some(PrescienceAspect::Defense)
+        } else if earlier_prescience != Some(PrescienceAspect::Dial)
             && max_force_strength_in_battle > 2.0
             && Prescience::valid_aspects(game, p).contains(&PrescienceAspect::Dial)
         {
-            PrescienceAspect::Dial
-        } else if earlier_prescience != PrescienceAspect::Leader {
-            PrescienceAspect::Leader
+            Some(PrescienceAspect::Dial)
+        } else if earlier_prescience != Some(PrescienceAspect::Leader) {
+            Some(PrescienceAspect::Leader)
         } else {
-            PrescienceAspect::None
+            None
         }
     }
 
@@ -1063,7 +1063,7 @@ impl ClassicBot {
         };
 
         let mut e = ChoamEconomics::new(game, self.faction(game));
-        e.status = status;
+        e.status = Some(status);
         Some(Rc::new(e))
     }
 
@@ -1151,21 +1151,21 @@ impl ClassicBot {
         let type_ = if can_place(TerrorType::Robbery)
             && opponents.iter().map(|p| game.player(*p).resources).sum::<i32>() > opponents.len() as i32 * 10
         {
-            TerrorType::Robbery
+            Some(TerrorType::Robbery)
         } else if can_place(TerrorType::Atomics)
             && valid_strongholds
                 .iter()
                 .any(|t| t.forces_of_all(game, &opponents) > 12 && t.forces_of_all(game, &self.me_and_my_ally(game)) < 2)
         {
-            TerrorType::Atomics
+            Some(TerrorType::Atomics)
         } else if can_place(TerrorType::Extortion) && self.resources(game) < 5 {
-            TerrorType::Extortion
+            Some(TerrorType::Extortion)
         } else {
-            available_to_place.iter().copied().random_item(&self.random).unwrap_or_default()
+            available_to_place.iter().copied().random_item(&self.random)
         };
 
         let strongholds = || valid_strongholds.iter().copied();
-        let mut stronghold = if type_ == TerrorType::Atomics {
+        let mut stronghold = if type_ == Some(TerrorType::Atomics) {
             strongholds().random_highest(&self.random, |t| t.forces_of_all(game, &opponents))
         } else {
             strongholds().random_highest(&self.random, |t| t.forces_of(game, self.player))
@@ -1204,7 +1204,7 @@ impl ClassicBot {
             return Rc::new(e);
         }
 
-        let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random).unwrap_or_default();
+        let type_ = TerrorRevealed::get_types(game).filter(token_is_valid).random_item(&self.random);
         let card_in_sabotage = game.player(self.player).treachery_cards.iter().copied().find(|c| c.is_useless());
         let victim = game.get_player(Some(TerrorRevealed::get_victim(game)));
 
@@ -1249,38 +1249,38 @@ impl ClassicBot {
         let can_place = |a: Ambassador| available.contains(&a);
         let p = Some(self.player);
         let ambassador = if avoid_entering && can_place(Ambassador::Harkonnen) {
-            Ambassador::Harkonnen
+            Some(Ambassador::Harkonnen)
         } else if avoid_entering && can_place(Ambassador::Atreides) {
-            Ambassador::Atreides
+            Some(Ambassador::Atreides)
         } else if can_place(Ambassador::Tleilaxu)
             && me.leaders.iter().filter(|l| !game.is_alive(Hero::Leader(**l))).count() >= 2
             && me.forces_killed >= 4
         {
-            Ambassador::Tleilaxu
+            Some(Ambassador::Tleilaxu)
         } else if can_place(Ambassador::Guild)
             && me.treachery_cards.iter().any(|c| c.is_weapon())
             && me.treachery_cards.iter().any(|c| c.is_defense())
         {
-            Ambassador::Guild
+            Some(Ambassador::Guild)
         } else if can_place(Ambassador::Choam) && me.treachery_cards.iter().filter(|c| self.card_quality(game, **c, p) <= 1).count() >= 2 {
-            Ambassador::Choam
+            Some(Ambassador::Choam)
         } else if can_place(Ambassador::Ixian) && me.treachery_cards.iter().any(|c| self.card_quality(game, *c, p) <= 1) {
-            Ambassador::Ixian
+            Some(Ambassador::Ixian)
         } else if can_place(Ambassador::Richese) && me.has_room_for_cards(game) && me.resources > 6 {
-            Ambassador::Richese
+            Some(Ambassador::Richese)
         } else if can_place(Ambassador::Emperor) && self.resources(game) <= 4 {
-            Ambassador::Emperor
+            Some(Ambassador::Emperor)
         } else if can_place(Ambassador::Fremen) && self.determine_moved_battalion(game, false).is_some() {
-            Ambassador::Fremen
+            Some(Ambassador::Fremen)
         } else if can_place(Ambassador::Ecaz) && !me.has_ally() {
-            Ambassador::Ecaz
+            Some(Ambassador::Ecaz)
         } else if game.revival.ambassadors_placed_this_turn == 0 {
-            AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_item(&self.random).unwrap_or_default()
+            AmbassadorPlaced::valid_ambassadors(game, self.player).into_iter().random_item(&self.random)
         } else {
-            Ambassador::None
+            None
         };
 
-        if ambassador == Ambassador::None {
+        if ambassador == None {
             return None;
         }
         let mut e = AmbassadorPlaced::new(game, self.faction(game));
@@ -1292,14 +1292,13 @@ impl ClassicBot {
     pub fn determine_ambassador_activated(&mut self, game: &Game) -> Option<Rc<AmbassadorActivated>> {
         let victim_player = AmbassadorActivated::get_victim_player(game);
         let mut ambassador = AmbassadorActivated::get_ambassador(game);
-        let mut bene_gesserit_selected_ambassador = Ambassador::None;
+        let mut bene_gesserit_selected_ambassador = None;
 
-        if ambassador == Ambassador::BeneGesserit {
+        if ambassador == Some(Ambassador::BeneGesserit) {
             // For now this is random.
             bene_gesserit_selected_ambassador = AmbassadorActivated::get_valid_bene_gesserit_ambassadors(game)
                 .into_iter()
-                .random_item(&self.random)
-                .unwrap_or_default();
+                .random_item(&self.random);
             ambassador = bene_gesserit_selected_ambassador;
         }
 
@@ -1312,7 +1311,7 @@ impl ClassicBot {
         };
 
         match ambassador {
-            Ambassador::Choam => {
+            Some(Ambassador::Choam) => {
                 let to_discard: Vec<TreacheryCard> = AmbassadorActivated::get_valid_choam_cards(game, self.player)
                     .into_iter()
                     .filter(|c| self.card_quality(game, *c, p) < 2)
@@ -1324,7 +1323,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Ecaz => {
+            Some(Ambassador::Ecaz) => {
                 let offer_alliance = AmbassadorActivated::alliance_can_be_offered(game, self.player)
                     && self.player_standing(game, victim_player.expect("victim player")) as f64 > 0.33 * self.player_standing(game, self.player) as f64;
                 let take_vidal = !offer_alliance && AmbassadorActivated::vidal_can_be_taken(game, self.player);
@@ -1342,7 +1341,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Fremen => {
+            Some(Ambassador::Fremen) => {
                 let valid_locations: Vec<Location> = AmbassadorActivated::valid_fremen_targets(game, self.player).collect();
                 let target = self.vacant_stronghold_or_richest_spice(game, &valid_locations);
 
@@ -1361,7 +1360,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Ixian => {
+            Some(Ambassador::Ixian) => {
                 let to_replace =
                     AmbassadorActivated::get_valid_ixian_cards(game, self.player).into_iter().find(|c| self.card_quality(game, *c, p) < 2);
                 if to_replace.is_some() {
@@ -1371,13 +1370,13 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Richese => {
+            Some(Ambassador::Richese) => {
                 if self.resources(game) > 3 && game.player(self.player).has_room_for_cards(game) {
                     return Some(Rc::new(new_event()));
                 }
             }
 
-            Ambassador::Guild => {
+            Some(Ambassador::Guild) => {
                 let dangerous_opponents: Vec<PlayerIndex> =
                     self.opponents(game).into_iter().filter(|o| self.is_almost_winning_opponent(game, *o)).collect();
 
@@ -1411,7 +1410,7 @@ impl ClassicBot {
                 }
             }
 
-            Ambassador::Tleilaxu => {
+            Some(Ambassador::Tleilaxu) => {
                 let most_valuable = |filter: &dyn Fn(&Hero) -> bool| {
                     AmbassadorActivated::valid_tleilaxu_heroes(game, self.player)
                         .into_iter()
@@ -1463,7 +1462,7 @@ impl ClassicBot {
             e.passed = false;
             e.set_card(card);
             // The auction type is drawn before the direction.
-            e.auction_type = if self.d(1, 2) > 1 { AuctionType::BlackMarketSilent } else { AuctionType::BlackMarketOnceAround };
+            e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::BlackMarketSilent) } else { Some(AuctionType::BlackMarketOnceAround) };
             e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
             return Rc::new(e);
         }
@@ -1498,7 +1497,7 @@ impl ClassicBot {
         let mut e = RicheseSpecifiesAuction::new(game, self.faction(game));
         let card = if !to_auction.is_empty() { Some(to_auction.draw()) } else { None };
         e.set_card(card);
-        e.auction_type = if self.d(1, 2) > 1 { AuctionType::RicheseSilent } else { AuctionType::RicheseOnceAround };
+        e.auction_type = if self.d(1, 2) > 1 { Some(AuctionType::RicheseSilent) } else { Some(AuctionType::RicheseOnceAround) };
         e.direction = if self.d(1, 2) > 1 { 1 } else { -1 };
         Rc::new(e)
     }

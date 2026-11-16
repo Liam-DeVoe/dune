@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct ClairVoyanceAnswered {
-    pub answer: ClairVoyanceAnswer,
+    pub answer: Option<ClairVoyanceAnswer>,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -24,11 +24,11 @@ impl ClairVoyanceAnswered {
     }
 
     pub fn is_no(&self) -> bool {
-        self.answer == ClairVoyanceAnswer::No
+        self.answer == Some(ClairVoyanceAnswer::No)
     }
 
     pub fn is_yes(&self) -> bool {
-        self.answer == ClairVoyanceAnswer::Yes
+        self.answer == Some(ClairVoyanceAnswer::Yes)
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
@@ -71,7 +71,7 @@ impl ClairVoyanceAnswered {
         self.log_objects(game, vec![m.into()]);
         let latest = latest.required("latest")?;
 
-        if latest.question == ClairvoyanceQuestion::WillAttackX && self.is_no() {
+        if latest.question == Some(ClairvoyanceQuestion::WillAttackX) && self.is_no() {
             let mut deal = Deal::default();
             deal.type_ = DealType::DontShipOrMoveTo;
             deal.bound_faction = self.initiator();
@@ -79,7 +79,7 @@ impl ClairVoyanceAnswered {
             deal.deal_parameter1 = latest.question_parameter1.clone();
             deal.end = Phase::ShipmentAndMoveConcluded;
             game.start_deal(&deal);
-        } else if latest.question == ClairvoyanceQuestion::LeaderAsTraitor {
+        } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsTraitor) {
             if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
                 if self.is_yes() {
                     game.player_mut(self.player()).told_traitors.insert(hero);
@@ -87,7 +87,7 @@ impl ClairVoyanceAnswered {
                     game.player_mut(self.player()).told_non_traitors.insert(hero);
                 }
             }
-        } else if latest.question == ClairvoyanceQuestion::LeaderAsFacedancer {
+        } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsFacedancer) {
             if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
                 if self.is_yes() {
                     game.player_mut(self.player()).told_face_dancers.insert(hero);

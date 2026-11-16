@@ -753,8 +753,8 @@ impl Fuzzer {
                 }
             }
             if t == GameEventType::JuicePlayed && self.rng.chance(0.7) {
-                if pools.lists.iter().any(|(n, l, _)| n == "choice" && l.contains(&Value::from(JuiceType::Aggressor.0))) {
-                    candidate.insert("Type".into(), Value::from(JuiceType::Aggressor.0));
+                if pools.lists.iter().any(|(n, l, _)| n == "choice" && l.contains(&Value::from(JuiceType::Aggressor as i32))) {
+                    candidate.insert("Type".into(), Value::from(JuiceType::Aggressor as i32));
                 }
             }
             if !search {

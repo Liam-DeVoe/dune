@@ -130,7 +130,7 @@ pub fn pass_until_shipment_of(g: &mut Game, f: Faction) {
 
 pub fn host_ends_phase(g: &mut Game) {
     let e = GameEvent::EndPhase(Rc::new(EndPhase::new(g, Faction::None)));
-    assert_eq!(e.execute(g, true, true).map(|m| m.to_cs_string()), None, "EndPhase in {:?}", g.turn.current_phase);
+    assert_eq!(e.execute(g, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.turn.current_phase);
 }
 
 pub fn idx(g: &Game, f: Faction) -> PlayerIndex {
@@ -142,7 +142,7 @@ pub fn submit(g: &mut Game, event_json: &str) -> Option<String> {
     let text = format!("{},\"Time\":\"2026-11-15T00:00:00+00:00\"}}", event_json.trim_end().strip_suffix('}').expect("an object"));
     let e: GameEvent = json::deserialize(&text).unwrap_or_else(|e| panic!("{text}: {e:?}"));
     e.initialize_game(g);
-    e.execute(g, true, false).map(|m| m.to_cs_string())
+    e.execute(g, true, false).map(|m| m.plain_text())
 }
 
 /// Submits an event and fails the test if it's refused.
@@ -329,5 +329,5 @@ pub fn ally(g: &mut Game, a: Faction, b: Faction) {
 
 /// The texts logged in the current report.
 pub fn log(g: &Game) -> Vec<String> {
-    g.current_report().messages.iter().map(|m| m.to_cs_string()).collect()
+    g.current_report().messages.iter().map(|m| m.plain_text()).collect()
 }

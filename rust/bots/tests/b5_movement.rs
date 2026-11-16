@@ -14,7 +14,6 @@
 
 mod common;
 
-use treachery_bots::bot::EventKind;
 use treachery_bots::prelude::*;
 
 use common::{run_probes, Bots};
@@ -26,20 +25,14 @@ fn l(x: Option<Location>) -> String {
     }
 }
 
-fn state(b: &ClassicBot) -> String {
-    let s = match &b.decided_shipment {
-        None => "null".to_string(),
-        Some(s) => treachery_engine::json::serialize(&HistoryEntry::legacy(s.clone())),
-    };
+fn state(b: &ClassicBot, game: &Game) -> String {
+    let s = common::decision(b, game, b.decided_shipment.clone());
     format!("A{} {} {}", b.decided_shipment_action as i32, s, l(b.final_destination))
 }
 
-fn ev<T: EventKind>(b: &ClassicBot, e: Option<Rc<T>>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    let e = e.map_or_else(|| "null".to_string(), |e| treachery_engine::json::serialize(&HistoryEntry::legacy(e)));
-    format!("{e} {}", state(b))
+fn ev<R: treachery_bots::bot::IntoDecision>(b: &ClassicBot, game: &Game, e: R) -> String {
+    let e = common::decision(b, game, e);
+    format!("{e} {}", state(b, game))
 }
 
 fn reset(b: &mut ClassicBot) {
@@ -79,23 +72,23 @@ fn call(game: &Game, b: &mut ClassicBot, m: &str, a: &[String]) -> String {
         if let Some(plan) = plan {
             b.adopt_shipment(plan);
         }
-        return state(b);
+        return state(b, game);
     }
     match m {
         "DetermineShipment" => {
             let s = b.determine_shipment(game);
-            ev(b, Some(s))
+            ev(b, game, s)
         }
         "DetermineMove" => {
             let e = b.determine_move(game);
-            ev(b, e)
+            ev(b, game, e)
         }
         "DetermineCaravan" => {
             let e = b.determine_caravan(game);
-            ev(b, e)
+            ev(b, game, e)
         }
-        "DetermineFlightUsed" => ev(b, b.determine_flight_used(game)),
-        "DetermineFlightDiscoveryUsed" => ev(b, b.determine_flight_discovery_used(game)),
+        "DetermineFlightUsed" => ev(b, game, b.determine_flight_used(game)),
+        "DetermineFlightDiscoveryUsed" => ev(b, game, b.determine_flight_discovery_used(game)),
         "DetermineShortageForShipment" => {
             let p = game.player(b.player);
             let (fr, sfr) = (p.forces_in_reserve(), p.special_forces_in_reserve());

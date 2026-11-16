@@ -66,7 +66,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
             if to.is_homeworld() {
                 continue;
             }
-            let initiator = m.legacy_initiator().expect("faction");
+            let initiator = m.initiator;
             for origin in m.placement_force_locations(game).keys() {
                 let path = map.find_first_shortest_path(*origin, to, false, initiator, game);
                 match path {

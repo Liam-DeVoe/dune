@@ -172,7 +172,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::Planetology => {
-            let mut e = Planetology::new(game, faction);
+            let mut e = Planetology::default();
             e.add_one_to_movement = true;
             event(e)
         }

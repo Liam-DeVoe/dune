@@ -204,7 +204,7 @@ impl FremenRidesMonster {
             }
 
             let initiator = self.get_player(game, self.initiator());
-            game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
+            game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.to });
             for (from, value) in self.force_locations(game).iter() {
                 let from = *from;
                 let ini = initiator.required("initiator")?;

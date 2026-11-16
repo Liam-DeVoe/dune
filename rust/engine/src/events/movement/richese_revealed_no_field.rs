@@ -1,63 +1,19 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct RicheseRevealedNoField {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RicheseRevealedNoField {}
 
-impl Default for RicheseRevealedNoField {
-    fn default() -> Self {
-        RicheseRevealedNoField {
-            base: Default::default(),
-        }
-    }
-}
-
-impl RicheseRevealedNoField {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.reveal_current_no_field(self.player(), None)?;
+impl EventRules for RicheseRevealedNoField {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " reveal a ", FactionSpecialForce::Richese)
-    }
-}
-
-impl GameEventMethods for RicheseRevealedNoField {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.reveal_current_no_field(by.player(), None)?;
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::RicheseRevealedNoField
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " reveal a ", FactionSpecialForce::Richese)
     }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::RicheseRevealedNoField(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        RicheseRevealedNoField::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        RicheseRevealedNoField::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        RicheseRevealedNoField::get_message(self, game)
-    }
-
 }

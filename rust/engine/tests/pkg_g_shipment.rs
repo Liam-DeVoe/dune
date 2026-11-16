@@ -140,17 +140,16 @@ fn shipment_valid_no_field_values() {
 fn set_shipment_permission_messages_and_duplicates() {
     let g = game_with(&[Faction::Guild, Faction::Emperor]);
     let mut e = SetShipmentPermission::default();
-    e.base.initiator.set(Some(Faction::Guild));
-    e.base.player.set(Some(idx(&g, Faction::Guild)));
+    let by = By { faction: Some(Faction::Guild), player: Some(idx(&g, Faction::Guild)) };
     // No factions at all is refused (C# threw ArgumentNullException from `Any`).
     e.factions = None;
-    assert!(e.validate(&g).is_some());
+    assert!(e.validate(&g, by).is_err());
     e.factions = Some(vec![]);
-    assert!(e.validate(&g).is_some());
+    assert!(e.validate(&g, by).is_err());
     e.factions = Some(vec![Faction::Guild]);
-    assert!(e.validate(&g).is_some());
+    assert!(e.validate(&g, by).is_err());
     e.factions = Some(vec![Faction::Emperor, Faction::Emperor]);
-    assert!(e.validate(&g).is_none());
+    assert!(e.validate(&g, by).is_ok());
 }
 
 #[test]

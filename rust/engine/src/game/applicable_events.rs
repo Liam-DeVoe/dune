@@ -280,7 +280,7 @@ impl Game {
             if faction == Some(Faction::Ixian)
                 && ((!self.karma_prevented(faction) && !p.special_karma_power_used && p.has_karma(self)) || self.storm.karma_hms_moves_left == 1)
                 && self.turn.current_main_phase == MainPhase::ShipmentAndMove
-                && Some(player) == self.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(self)
+                && Some(player) == self.shipment_and_move_sequence().expect("shipment and move sequence").current_player(self)
                 && p.any_forces_in(Some(self.board.map.hidden_mobile_stronghold().location())) > 0
                 && self.applicable(Rule::AdvancedKarama)
             {
@@ -361,10 +361,7 @@ impl Game {
 
     /// Whether `player` is the current player of `ShipmentAndMoveSequence` (false if there is none).
     pub(crate) fn is_current_shipment_and_move_player(&self, player: PlayerId) -> bool {
-        match &self.ship_move.shipment_and_move_sequence {
-            Some(seq) => seq.current_player(self) == Some(player),
-            None => false,
-        }
+        self.current_shipment_and_move_player() == Some(player)
     }
 
     /// The actions shared by the `GuildMove` and `NonGuildMove` cases.

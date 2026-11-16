@@ -38,7 +38,7 @@ impl Move {
 
 impl EventRules for Move {
     fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
-        if !self.passed && game.ship_move.in_guild_cunning_shipment {
+        if !self.passed && game.in_guild_cunning_shipment() {
             return Err(Rejection(express!("You cannot move after Cunning shipment")));
         }
         if self.passed {
@@ -51,41 +51,36 @@ impl EventRules for Move {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         game.storm.storm_losses_to_take.clear();
 
-        game.ship_move.current_player_may_perform_extra_move = match &game.ship_move.current_flight_used {
+        let extra_move = match &game.turn.current_flight_used {
             Some(fu) => fu.by.faction == by.faction && fu.extra_move(),
             None => false,
         };
+        let state = game.ship_move_mut().required("the shipment and move phase")?;
+        state.current_player_may_perform_extra_move = extra_move;
+        let cunning = state.in_guild_cunning_shipment;
 
-        if !game.ship_move.current_player_may_perform_extra_move && !game.ship_move.in_guild_cunning_shipment {
+        if !extra_move && !cunning {
             game.turn.has_acted_or_passed.push(by.required_faction()?);
 
             if game.phase() == Phase::NonGuildMove {
-                let mut seq = game.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
-                seq.next_player(game);
-                game.ship_move.shipment_and_move_sequence = Some(seq);
-
-                let current_is_guild = game.ship_move.shipment_and_move_sequence.as_ref().required("shipment and move sequence")?.current_faction(game) == Faction::Guild;
-                if current_is_guild && game.guild_may_ship_out_of_turn_order() {
-                    let mut seq = game.ship_move.shipment_and_move_sequence.take().required("shipment and move sequence")?;
-                    seq.next_player(game);
-                    game.ship_move.shipment_and_move_sequence = Some(seq);
-                }
+                game.next_shipment_and_move_player();
+                game.skip_guild_in_turn_order();
             }
         }
 
-        if game.ship_move.in_guild_cunning_shipment {
+        if cunning {
             game.turn.current_guild_cunning = None;
-            game.ship_move.in_guild_cunning_shipment = false;
+            game.ship_move_mut().required("the shipment and move phase")?.in_guild_cunning_shipment = false;
         }
 
         if !self.passed {
             let force_locations = self.force_locations(game, by);
-            game.ship_move.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.to, force_locations: force_locations.clone() });
+            game.turn.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.to, force_locations: force_locations.clone() });
 
             let me = by.player();
             let to = self.to;
             if contains_conflicting_ally_opt(game, me, to)? {
-                game.ship_move.chosen_destinations_with_allies.push(to.required("to")?.territory());
+                game.turn.chosen_destinations_with_allies.push(to.required("to")?.territory());
             }
 
             let as_advisors = !by.is(Faction::BeneGesserit) || self.as_advisors;
@@ -108,8 +103,8 @@ impl EventRules for Move {
             game.allow(FactionAdvantage::IxianCyborgExtraMove);
         }
 
-        game.ship_move.current_flight_used = None;
-        game.ship_move.current_flight_discovery_used = None;
+        game.turn.current_flight_used = None;
+        game.turn.current_flight_discovery_used = None;
         game.turn.current_planetology = None;
         Ok(())
     }

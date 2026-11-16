@@ -5,11 +5,13 @@ use crate::prelude::*;
 pub struct Counters {
     /// The next leader death's `time_of_death`.
     pub leader_deaths: i32,
+    /// The moves logged so far, which number the move records.
+    pub moves_logged: i32,
 }
 
 impl Default for Counters {
     fn default() -> Self {
-        Counters { leader_deaths: 0 }
+        Counters { leader_deaths: 0, moves_logged: 0 }
     }
 }
 

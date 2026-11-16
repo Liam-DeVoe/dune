@@ -127,7 +127,7 @@ impl NexusPlayed {
             Some(Faction::Guild) if betrayal => {
                 g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.has_recent_payment_for(EventType::Shipment)
             }
-            Some(Faction::Guild) if cunning => g.phase() == Phase::GuildMove && !g.ship_move.in_guild_cunning_shipment,
+            Some(Faction::Guild) if cunning => g.phase() == Phase::GuildMove && !g.in_guild_cunning_shipment(),
             Some(Faction::Guild) if secret_ally => g.phase() == Phase::NonGuildShip,
 
             Some(Faction::BeneGesserit) if betrayal => game_is_in_battle && battle().is_involved_faction(g, Faction::BeneGesserit),

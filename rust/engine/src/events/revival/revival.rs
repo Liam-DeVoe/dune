@@ -761,7 +761,7 @@ impl EventRules for Revival {
                     " in ".into(),
                     to.into(),
                 ]);
-                game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
+                game.turn.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
             }
 
             if game.check_intrusion(&Event::from(self.clone()), by.faction.expect("faction"))? {

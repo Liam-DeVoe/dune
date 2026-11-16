@@ -91,6 +91,24 @@ pub struct TurnState {
     /// The intrusions waiting for an answer, the next first. The one being answered is also
     /// shown by an `Interrupt::Intrusion`.
     pub intrusions: Vec<Intrusion>,
+    /// Where the last shipment, move, revival or worm ride took forces, for the Bene Gesserit's
+    /// reaction to it. Cleared when the shipment and move phase starts.
+    pub last_shipment_or_movement: Option<ShipmentOrMovement>,
+    /// The moves of the latest shipment and move phase, for the arrows on the board.
+    pub recent_moves: Vec<RecentMove>,
+    /// Who occupied Arrakeen or Carthag when the shipment and move phase began, so may move
+    /// three territories.
+    pub factions_with_ornithopters_at_start_of_movement: Vec<Faction>,
+    /// Where the current shipper or mover took forces to a territory their ally is in.
+    pub chosen_destinations_with_allies: Vec<Territory>,
+    /// Bene Gesserit may accompany the latest shipment.
+    pub bene_gesserit_may_accompany: bool,
+    /// A Flight card played for the next move.
+    pub current_flight_used: Option<FlightUse>,
+    /// Who used the Flight discovery token for their next move.
+    pub current_flight_discovery_used: Option<By>,
+    /// The territories CHOAM closed to moves (`ChoamMovePrevention`), until the next shipment.
+    pub current_blocked_territories: Vec<Territory>,
 }
 
 impl TurnState {
@@ -128,6 +146,14 @@ impl TurnState {
             harkonnen_traitor_was_cancelled: Default::default(),
             facedancer_was_cancelled: Default::default(),
             intrusions: Vec::new(),
+            last_shipment_or_movement: None,
+            recent_moves: Vec::new(),
+            factions_with_ornithopters_at_start_of_movement: Vec::new(),
+            chosen_destinations_with_allies: Vec::new(),
+            bene_gesserit_may_accompany: false,
+            current_flight_used: None,
+            current_flight_discovery_used: None,
+            current_blocked_territories: Vec::new(),
         }
     }
 }

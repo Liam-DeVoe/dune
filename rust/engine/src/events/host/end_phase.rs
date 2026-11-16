@@ -136,17 +136,15 @@ impl EndPhase {
 
     pub fn enter_shipment_and_move_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::ShipmentAndMove, true);
-        game.ship_move.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
+        game.turn.factions_with_ornithopters_at_start_of_movement = (0..game.players.len())
             .map(|i| game.player_at(i))
             .filter(|p| game.occupies_arrakeen_or_carthag(*p))
             .filter_map(|p| game.player(p).faction)
             .collect();
-        game.ship_move.recent_moves.clear();
-        game.ship_move.beginning_of_shipment_and_move_phase = true;
+        game.turn.recent_moves.clear();
         game.revival.factions_with_increased_revival_limits = Some(Vec::new());
         game.revival.early_revivals_offers.clear();
 
-        game.ship_move.ships_tech_token_income = false;
         game.revival.current_free_revival_prevention = None;
         game.allow(FactionAdvantage::BeneGesseritAnnouncesBattle);
         game.allow(FactionAdvantage::EmperorLetAllyReviveExtraForces);
@@ -154,11 +152,9 @@ impl EndPhase {
         game.allow(FactionAdvantage::ChoamRevival);
 
         game.turn.has_acted_or_passed.clear();
-        game.ship_move.last_shipment_or_movement = None;
+        game.turn.last_shipment_or_movement = None;
 
-        game.ship_move.shipment_and_move_sequence = Some(PlayerSequence::starting_with_first_player(game));
-
-        game.enter(Phase::BeginningOfShipAndMove, true);
+        game.begin_ship_move();
     }
 
     pub fn enter_battle_phase(&self, game: &mut Game) {

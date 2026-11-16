@@ -40,7 +40,7 @@ impl BeneGesseritAccompanies {
     }
 
     pub fn valid_targets(g: &Game, p: PlayerId) -> Vec<Location> {
-        let last_to = g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g));
+        let last_to = g.turn.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g));
         let Some(last_to) = last_to else {
             panic!("LastShipmentOrMovement is null");
         };
@@ -67,7 +67,7 @@ impl BeneGesseritAccompanies {
 
         !g.applicable(Rule::AdvisorsDontConflictWithAlly)
             && ally.is_some_and(|a| {
-                let t = g.ship_move.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g)).map(|l| l.territory());
+                let t = g.turn.last_shipment_or_movement.as_ref().and_then(|e| e.to_location(g)).map(|l| l.territory());
                 g.player(a).any_forces_in_territory(t) != 0
             })
     }
@@ -107,7 +107,7 @@ impl EventRules for BeneGesseritAccompanies {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.ship_move.bene_gesserit_may_accompany = false;
+        game.turn.bene_gesserit_may_accompany = false;
 
         if self.accompanies {
             let me = by.player();
@@ -126,7 +126,7 @@ impl EventRules for BeneGesseritAccompanies {
                 .with_route(by.required_faction()?, Vec::<Location>::new(), Some(location))
                 .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
             game.log(parts![m]);
-            game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
+            game.turn.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
             game.check_intrusion(&Event::from(self.clone()), by.faction.expect("faction"))?;
         } else {
             let m = express!(by.faction, " don't accompany")

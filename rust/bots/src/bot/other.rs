@@ -267,7 +267,7 @@ impl ClassicBot {
                 let my_shipment_turn = (faction == Faction::Guild && game.phase() == Phase::GuildShip && !game.guild_may_delay())
                     || (faction != Faction::Guild
                         && game.phase() == Phase::NonGuildShip
-                        && game.ship_move.shipment_and_move_sequence.as_ref()?.current_player(game) == Some(self.player));
+                        && game.shipment_and_move_sequence()?.current_player(game) == Some(self.player));
                 my_shipment_turn && {
                     let territory = self.determine_shipment(game).to?.territory();
                     let has_terror = game.terror_in(territory).next().is_some();
@@ -549,7 +549,7 @@ impl ClassicBot {
             });
 
         let w = winning_opponent_that_can_ship_most?;
-        if game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(game) == Some(w) {
+        if game.shipment_and_move_sequence().expect("shipment and move sequence").current_player(game) == Some(w) {
             let mut e = KarmaShipmentPrevention::default();
             e.target = game.player(w).faction;
             return Some(e);
@@ -1205,7 +1205,7 @@ impl ClassicBot {
         let go_last_in_shipment = game.turn.current_main_phase == MainPhase::ShipmentAndMove
             && game.turn.current_moment == Some(MainPhaseMoment::Start)
             && self.faction(game) != Faction::Guild
-            && game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").get_players_in_sequence(game).last().and_then(|e| e.player) != Some(self.player);
+            && game.shipment_and_move_sequence().expect("shipment and move sequence").get_players_in_sequence(game).last().and_then(|e| e.player) != Some(self.player);
         let go_last_in_battle = || {
             game.turn.current_main_phase == MainPhase::Battle
                 && game.turn.current_moment == Some(MainPhaseMoment::Start)

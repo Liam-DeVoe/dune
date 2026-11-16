@@ -19,6 +19,7 @@ pub enum PhaseState {
     /// A phase that has no variant of its own yet: only its name. Its state is still in the
     /// per-phase struct on `Game`.
     Legacy(Phase),
+    ShipMove(ShipMoveState),
     Collection(CollectionState),
 }
 
@@ -27,6 +28,7 @@ impl PhaseState {
     pub fn phase(&self) -> Phase {
         match self {
             PhaseState::Legacy(phase) => *phase,
+            PhaseState::ShipMove(s) => s.step.phase(),
             PhaseState::Collection(c) => c.step.phase(),
         }
     }
@@ -35,7 +37,7 @@ impl PhaseState {
     /// by its own functions (`Game::enter_collection`), never by name with [`Game::enter`],
     /// because entering it by name can't build its state.
     pub fn is_converted(phase: Phase) -> bool {
-        CollectionStep::of(phase).is_some()
+        ShipMoveStep::of(phase).is_some() || CollectionStep::of(phase).is_some()
     }
 }
 

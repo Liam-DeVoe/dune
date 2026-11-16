@@ -23,9 +23,9 @@ impl Game {
             }
         }
 
-        self.ship_move.latest_revealed_no_field_value = self.ship_move.current_no_field_value;
+        self.board.latest_revealed_no_field_value = self.board.current_no_field_value;
         Player::special_forces_to_reserves(self, player, no_field_location, 1)?;
-        let nr_of_forces = self.player(player).forces_in_reserve().min(self.ship_move.current_no_field_value);
+        let nr_of_forces = self.player(player).forces_in_reserve().min(self.board.current_no_field_value);
         Player::ship_forces(self, player, no_field_location, nr_of_forces)?;
         let faction = self.player(player).faction;
         self.log(vec![
@@ -39,11 +39,11 @@ impl Game {
             no_field_location.into(),
         ]);
 
-        if self.ship_move.current_no_field_value == 0 {
+        if self.board.current_no_field_value == 0 {
             self.flip_bene_gesserit_advisors_when_alone()?;
         }
 
-        self.ship_move.current_no_field_value = -1;
+        self.board.current_no_field_value = -1;
         Ok(())
     }
 

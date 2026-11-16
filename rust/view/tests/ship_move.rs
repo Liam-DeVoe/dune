@@ -215,8 +215,8 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
         (Event::FremenSentMonster(_), ActionOptions::FremenSentMonster(o)) => assert_eq!(o.targets, sectors(FremenSentMonster::valid_targets(game))),
         (Event::SetShipmentPermission(_), ActionOptions::SetShipmentPermission(o)) => {
             assert_eq!(o.targets, names(SetShipmentPermission::valid_targets(game, p)));
-            assert_eq!(o.permissions.len(), game.ship_move.shipment_permissions.len());
-            for (row, (f, perm)) in o.permissions.iter().zip(game.ship_move.shipment_permissions.iter()) {
+            assert_eq!(o.permissions.len(), game.alliances.shipment_permissions.len());
+            for (row, (f, perm)) in o.permissions.iter().zip(game.alliances.shipment_permissions.iter()) {
                 assert_eq!(row.faction, f.to_string());
                 assert_eq!(row.cross, perm.value() & 1 != 0);
                 assert_eq!(row.to_homeworld, perm.value() & 2 != 0);

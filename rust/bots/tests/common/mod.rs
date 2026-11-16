@@ -85,7 +85,6 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
                 let game = game.as_mut().unwrap();
                 let e: GameEvent = treachery_engine::json::deserialize(o["event"].as_str().unwrap()).unwrap();
                 e.initialize_game(game);
-                game.board.map.mark_neighbour_cache_stale();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
                 let _ = catch_panic(|| e.execute(game, validate, is_host));
                 at_step(game, o["n"].as_i64().unwrap());
@@ -97,7 +96,6 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
 
 /// A fresh bot for a probe's player, with the probe's seed.
 pub fn bot_for(game: &Game, probe: &Value) -> ClassicBot {
-    game.board.map.mark_neighbour_cache_stale();
     let player = game.player_at(probe["p"].as_i64().unwrap() as usize);
     let faction = game.player(player).faction;
     let seed = probe["seed"].as_i64().unwrap() as i32;

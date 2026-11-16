@@ -152,7 +152,6 @@ impl Refit {
         let game = &mut self.game;
         let r = quiet(|| {
             e.initialize_game(game);
-            game.board.map.mark_neighbour_cache_stale();
             e.execute(game, validate, host)
         });
         match r {
@@ -174,7 +173,6 @@ impl Refit {
             let e: GameEvent = json::deserialize(&text).expect("a history event reads back");
             quiet(|| {
                 e.initialize_game(&game);
-                game.board.map.mark_neighbour_cache_stale();
                 e.execute(&mut game, false, true)
             });
         }

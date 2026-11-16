@@ -5,10 +5,11 @@
 //!
 //! - the `Neighbours` list of every location (`AttachedLocation.PointAt` adds
 //!   and removes the attached location from its host's list),
-//! - `AttachedToLocation` and `Game` of the six attached locations,
-//! - the `FindNeighbours` cache (keyed on `game.History.Count`; it can return a
-//!   stale result when the storm or forces change within one event, and that
-//!   is kept deliberately).
+//! - `AttachedToLocation` and `Game` of the six attached locations.
+//!
+//! Pathfinding keeps no state of its own. Every call works from the game as it
+//! is now: the storm, the forces, the blocked territories and the attached
+//! locations.
 //!
 //! `Map` derives `Clone`, so a cloned game gets an independent copy of the map.
 pub mod attached_location;
@@ -19,8 +20,6 @@ pub mod homeworld;
 pub mod location;
 pub mod point;
 pub mod territory;
-
-use std::cell::{Cell, RefCell};
 
 use crate::iter::IterExt;
 use crate::map::discovery::DiscoveredLocation;
@@ -91,7 +90,6 @@ pub struct HomeworldData {
 /// depend on the whole `Game` type, so the calls it makes are listed here.
 pub trait MapGame {
     fn sector_in_storm(&self) -> i32;
-    fn history_count(&self) -> i32;
     fn applicable(&self, rule: Rule) -> bool;
     /// `game.Forces()` (homeworlds excluded): every location with the
     /// `Faction` of each of its battalions, in dictionary enumeration order.
@@ -99,16 +97,6 @@ pub trait MapGame {
     fn player_ally(&self, f: Faction) -> Option<Faction>;
     fn nr_of_occupants_excluding_faction(&self, l: Location, f: Faction) -> i32;
     fn current_blocked_territories(&self) -> Vec<Territory>;
-}
-
-/// `Map.NeighbourCacheKey`. Equality as in its `IEquatable` implementation
-/// (which is what `Dictionary` uses).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct NeighbourCacheKey {
-    pub start: Location,
-    pub distance: i32,
-    pub faction: Faction,
-    pub ignore_storm: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -120,10 +108,6 @@ pub struct Map {
     attached_to: Vec<Option<Location>>,
     /// Whether `AttachedLocation.Game` is set, by location index. Set by `PointAt`.
     attached_to_game: Vec<bool>,
-    neighbour_cache_timestamp: Cell<i32>,
-    /// `_neighbourCache`. It is only cleared, added to and looked up, so a list
-    /// in insertion order serves as the dictionary.
-    neighbour_cache: RefCell<Vec<(NeighbourCacheKey, Vec<Location>)>>,
 }
 
 impl Default for Map {
@@ -140,8 +124,6 @@ impl Map {
             neighbours: vec![Vec::new(); LOCATION_COUNT],
             attached_to: vec![None; LOCATION_COUNT],
             attached_to_game: vec![false; LOCATION_COUNT],
-            neighbour_cache_timestamp: Cell::new(-1),
-            neighbour_cache: RefCell::new(Vec::new()),
         };
         map.initialize_location_neighbours();
         map
@@ -278,7 +260,9 @@ impl Map {
 
     // ---- pathfinding ----
 
-    /// Returns a copy of the cached list; callers only read it.
+    /// The locations `f` can reach from `start` within `distance` territories. With
+    /// `check_force_obstacles`, strongholds held by two other factions and blocked
+    /// territories can't be entered or passed through.
     pub fn find_neighbours(
         &self,
         start: Location,
@@ -288,17 +272,6 @@ impl Map {
         game: &impl MapGame,
         check_force_obstacles: bool,
     ) -> Vec<Location> {
-        let cache_key = NeighbourCacheKey { start, distance, faction: f, ignore_storm };
-
-        if check_force_obstacles {
-            if self.neighbour_cache_timestamp.get() != game.history_count() {
-                self.neighbour_cache.borrow_mut().clear();
-                self.neighbour_cache_timestamp.set(game.history_count());
-            } else if let Some((_, value)) = self.neighbour_cache.borrow().iter().find(|(k, _)| *k == cache_key) {
-                return value.clone();
-            }
-        }
-
         let mut force_obstacles = Vec::new();
         if check_force_obstacles {
             force_obstacles = Self::determine_force_obstacles(f, game);
@@ -317,10 +290,6 @@ impl Map {
 
         if let Some(pos) = neighbours.iter().position(|l| *l == start) {
             neighbours.remove(pos);
-        }
-
-        if check_force_obstacles {
-            self.neighbour_cache.borrow_mut().push((cache_key, neighbours.clone()));
         }
 
         neighbours
@@ -619,13 +588,6 @@ impl Map {
             self.find_neighbours_within_territory_rec(found, neighbour, Some(current), ignore_storm, sector_in_storm);
         }
     }
-
-    /// Sets the neighbour cache's timestamp to -1, so the next `find_neighbours` clears the
-    /// cache.
-    pub fn mark_neighbour_cache_stale(&self) {
-        self.neighbour_cache_timestamp.set(-1);
-    }
-
 }
 
 #[derive(Clone, Copy, Debug)]

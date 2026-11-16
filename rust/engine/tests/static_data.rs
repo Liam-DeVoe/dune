@@ -77,21 +77,17 @@ fn opt_id(l: Option<Location>) -> Value {
 /// A `Game` with no players: what MapGame needs for the static tests.
 struct StubGame {
     sector_in_storm: Cell<i32>,
-    history_count: Cell<i32>,
 }
 
 impl StubGame {
     fn new() -> Self {
-        StubGame { sector_in_storm: Cell::new(-1), history_count: Cell::new(0) }
+        StubGame { sector_in_storm: Cell::new(-1) }
     }
 }
 
 impl MapGame for StubGame {
     fn sector_in_storm(&self) -> i32 {
         self.sector_in_storm.get()
-    }
-    fn history_count(&self) -> i32 {
-        self.history_count.get()
     }
     fn applicable(&self, _rule: Rule) -> bool {
         false
@@ -387,19 +383,6 @@ fn pathfinding() {
         }
     }
 
-    // Stale cache within one History.Count.
-    let g2 = StubGame::new();
-    let m2 = Map::new();
-    let mut cache = Vec::new();
-    g2.sector_in_storm.set(-1);
-    cache.push(ids(m2.find_neighbours(m2.arrakeen(), 2, false, Faction::Atreides, &g2, true)));
-    g2.sector_in_storm.set(9);
-    cache.push(ids(m2.find_neighbours(m2.arrakeen(), 2, false, Faction::Atreides, &g2, true)));
-    cache.push(ids(m2.find_neighbours(m2.arrakeen(), 2, false, Faction::Atreides, &g2, false)));
-    cache.push(ids(m2.find_neighbours(m2.arrakeen(), 2, false, Faction::Harkonnen, &g2, true)));
-    g2.history_count.set(1);
-    cache.push(ids(m2.find_neighbours(m2.arrakeen(), 2, false, Faction::Atreides, &g2, true)));
-
     let actual = json!({
         "sectors": sectors,
         "within_territory": within,
@@ -408,7 +391,6 @@ fn pathfinding() {
         "first_shortest_path": shortest,
         "path_starts": starts,
         "find_paths": paths,
-        "cache": cache,
     });
     check("pathfinding", actual);
 }

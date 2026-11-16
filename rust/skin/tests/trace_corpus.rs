@@ -127,7 +127,6 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
             "step" => {
                 let ev: GameEvent = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
                 ev.initialize_game(g);
-                g.board.map.mark_neighbour_cache_stale();
                 let result = catch_any(|| {
                     ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())
                 });

@@ -294,7 +294,8 @@ impl Game {
                 {
                     result.push(GameEventType::SetIncreasedRevivalLimits);
                 }
-                if faction == Some(Faction::Emperor) && self.player(player).has_any_high_threshold(self) && self.player(player).resources >= 2 {
+                // Kaitain's high threshold. Salusa Secundus has no discard.
+                if faction == Some(Faction::Emperor) && self.player(player).has_high_threshold(self, World::Emperor) && self.player(player).resources >= 2 {
                     result.push(GameEventType::EmperorDiscarded);
                 }
             }
@@ -437,6 +438,10 @@ impl Game {
 
                 if Voice::may_use_voice(self, player) {
                     result.push(GameEventType::Voice);
+                }
+
+                if VoiceDeclined::may_decline(self, player) {
+                    result.push(GameEventType::VoiceDeclined);
                 }
 
                 if Thought::may_be_used(self, player) {

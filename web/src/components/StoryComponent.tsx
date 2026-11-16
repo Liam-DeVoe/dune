@@ -52,7 +52,7 @@ function CardImage({ id, width }: { id: number; width: number }) {
 
 function MessiahImage() {
   const { skin } = useGame();
-  return <img className="img-fluid p-1" width={60} src={skin.url(skin.str("Messiah_URL"))} title={skin.concept("Messiah")} />;
+  return <Image className="img-fluid p-1" width={60} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
 }
 
 // Skin.Describe(FactionForce) and Describe(FactionSpecialForce): the force's name for the faction.

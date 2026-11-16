@@ -7,10 +7,6 @@ export type VoiceOptions = {
  */
 types: Array<BattleFormEnum>, 
 /**
- * Atreides is in the battle: "Voice should be used before Prescience".
- */
-prescienceNote: boolean, 
-/**
  * The event the form sends with its current inputs, in savegame JSON: the default draft in
  * a view, the adjusted draft in a query answer.
  */

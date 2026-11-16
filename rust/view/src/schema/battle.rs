@@ -239,8 +239,6 @@ pub struct LoserConcludedOptions {
 pub struct PrescienceOptions {
     /// `Prescience.ValidAspects(Game, Player)`.
     pub aspects: Vec<BattleFormEnum>,
-    /// Bene Gesserit is in the battle: "Voice should be used before Prescience".
-    pub voice_note: bool,
     /// The event the form sends with its current inputs, in savegame JSON: the default draft in
     /// a view, the adjusted draft in a query answer.
     #[ts(type = "Record<string, unknown>")]
@@ -286,8 +284,6 @@ pub struct TakeLossesOptions {
 pub struct VoiceOptions {
     /// `Voice.ValidTypes(Game)` by name.
     pub types: Vec<BattleFormEnum>,
-    /// Atreides is in the battle: "Voice should be used before Prescience".
-    pub prescience_note: bool,
     /// The event the form sends with its current inputs, in savegame JSON: the default draft in
     /// a view, the adjusted draft in a query answer.
     #[ts(type = "Record<string, unknown>")]

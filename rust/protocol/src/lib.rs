@@ -370,10 +370,10 @@ mod tests {
         );
         assert_eq!(ServerMessage::Notify(Notification::SessionEnded).encode(), r#"{"notify":"sessionEnded"}"#);
         let t = time::parse("2026-11-20T19:00:00Z").unwrap();
-        let info = PhaseControlInfo { active: true, waiting_for: vec![1, 2], countdown: true, countdown_ends: Some(t), holding: vec![] };
+        let info = PhaseControlInfo { active: true, waiting_for: vec![1, 2], countdown: true, countdown_ends: Some(t), holding: vec![], reasons: vec![PauseWait { seat: 1, reasons: vec![PauseReason::KaramaSandworm] }] };
         assert_eq!(
             ServerMessage::Notify(Notification::PhaseControl(info)).encode(),
-            r#"{"notify":"phaseControl","data":{"active":true,"waitingFor":[1,2],"countdown":true,"countdownEnds":"2026-11-20T19:00:00.000000Z","holding":[]}}"#
+            r#"{"notify":"phaseControl","data":{"active":true,"waitingFor":[1,2],"countdown":true,"countdownEnds":"2026-11-20T19:00:00.000000Z","holding":[],"reasons":[{"seat":1,"reasons":["karamaSandworm"]}]}}"#
         );
     }
 }

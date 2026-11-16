@@ -610,7 +610,7 @@ impl ClassicBot {
         if let Some(battle) = self.battle_im_fighting(game) {
             let opponent = battle.opponent_of(game, self.player);
             let wait_for_prescience_or_voice = battle.plan_of(game, opponent).is_none()
-                && (Prescience::may_use_prescience_opt(game, opponent) || Voice::may_use_voice_opt(game, opponent));
+                && (Prescience::prescience_right_opt(game, opponent) || Voice::may_use_voice_opt(game, opponent));
             let asked_in_this_battle = game.turn.latest_clairvoyance_battle.as_ref().is_some_and(|b| Rc::ptr_eq(b, battle));
 
             if !wait_for_prescience_or_voice && !asked_in_this_battle {

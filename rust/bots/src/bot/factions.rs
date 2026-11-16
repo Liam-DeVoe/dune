@@ -702,6 +702,12 @@ impl ClassicBot {
         None
     }
 
+    /// Declines Voice when I won't use it (I only voice in battles I fight), so that Prescience,
+    /// which waits for Voice, can go ahead.
+    pub fn determine_voice_declined(&mut self, game: &Game) -> Option<Rc<VoiceDeclined>> {
+        Some(Rc::new(VoiceDeclined::new(game, self.faction(game))))
+    }
+
     /// The voice `p` should use against `opponent`, with the weapon and defense it is meant to
     /// support. `battle` is kept by reference: it is later compared with the current battle by
     /// identity.

@@ -162,7 +162,7 @@ impl BlackMarketBid {
         game.bidding.bids.clear();
         game.bidding.latest_bid_by_atreides_or_atreides_ally_was_passed = false;
 
-        let mut enter_replacing_card_just_won = game.player(winner).nexus != None;
+        let mut enter_replacing_card_just_won = game.winner_might_replace_with_nexus();
 
         if game.player(winner).ally == Some(Faction::Ixian) && game.alliances.ixian_allows_replacing_cards {
             if !game.prevented(FactionAdvantage::IxianAllyDiscardingCard) {

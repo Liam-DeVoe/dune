@@ -19,6 +19,7 @@ import { FactionChip } from "../FactionChip";
 import { ForceToken } from "../ForceToken";
 import { Image } from "../Image";
 import { PlaceChip } from "../PlaceChip";
+import { PopoverText } from "../PopoverText";
 import { RichText } from "../RichText";
 import { SimpleNumber } from "../SimpleNumber";
 import { SpiceComponent } from "../SpiceComponent";
@@ -235,7 +236,7 @@ export function Plan({ plan, facts }: { plan: PlanSummary; facts: BattleFact[] }
       <div className={`plan-leader ${killed || traitor ? "fallen" : ""}`}>
         {plan.leader != null ? <HeroImage hero={plan.leader} width={58} /> : <div className="empty" title="No leader"></div>}
         {plan.messiah && plan.leader != null && (
-          <span className="messiah" title={messiah}><img src={skin.url(skin.str("Messiah_URL"))} alt={messiah} />+2</span>
+          <PopoverText className="messiah" popover={messiahPopup(skin)}><img src={skin.url(skin.str("Messiah_URL"))} alt={messiah} />+2</PopoverText>
         )}
         {traitor
           ? <span className="traitor" title={`Traitor for ${skin.faction(traitor.faction)}`}>Traitor</span>

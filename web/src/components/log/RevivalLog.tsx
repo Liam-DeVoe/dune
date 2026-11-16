@@ -8,8 +8,10 @@ import { Fragment } from "react";
 import type { Faction } from "../../generated/enums";
 import type { LogLine } from "../../generated/LogLine";
 import { useGame } from "../../state/context";
+import { messiahPopup } from "../../popups";
 import { FactionChip } from "../FactionChip";
 import { ForceToken } from "../ForceToken";
+import { PopoverText } from "../PopoverText";
 import { SpiceComponent } from "../SpiceComponent";
 import { HeroImage, is, PartText, type PhaseLogProps, rec, samePart } from "./common";
 
@@ -31,7 +33,7 @@ export function RevivalLog({ lines, line }: PhaseLogProps) {
                     <div className={`cell ${edge}`}><FactionChip faction={row.faction} /></div>
                     <div className={`cell what ${edge}`}>
                       {row.hero?.t === "leader" && <HeroImage hero={row.hero} width={26} className="leader-disc" />}
-                      {row.hero?.t === "messiah" && <img className="kh" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} title={messiah} />}
+                      {row.hero?.t === "messiah" && <PopoverText className="" popover={messiahPopup(skin)}><img className="kh" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} /></PopoverText>}
                       {row.asGhola && <span className="note">as Ghola</span>}
                       {Array.from({ length: row.forces }, (_, n) => <ForceToken key={`f${n}`} faction={row.faction} size={18} />)}
                       {Array.from({ length: row.specialForces }, (_, n) => <ForceToken key={`s${n}`} faction={row.faction} special size={18} />)}

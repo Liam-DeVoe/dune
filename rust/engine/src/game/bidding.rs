@@ -530,7 +530,7 @@ impl Game {
             self.allow(FactionAdvantage::AtreidesBiddingPrescience);
         }
 
-        let mut enter_replacing_card_just_won = might_replace && self.player(winner.expect("winner")).nexus != None;
+        let mut enter_replacing_card_just_won = might_replace && self.winner_might_replace_with_nexus();
 
         if might_replace {
             let winner = winner.expect("winner");
@@ -696,6 +696,13 @@ impl Game {
 
     pub fn players_that_can_bid(&self) -> Vec<PlayerId> {
         self.player_indices().filter(|p| self.player(*p).has_room_for_cards(self)).collect()
+    }
+
+    /// Whether any winner might hold the Ixian Nexus as a secret ally, and so be able to replace
+    /// the card they won. Decided on public grounds only: entering `ReplacingCardJustWon` must not
+    /// tell anyone which Nexus the winner holds, or whether they hold one at all.
+    pub fn winner_might_replace_with_nexus(&self) -> bool {
+        self.applicable(Rule::NexusCards) && !self.is_playing(Faction::Ixian)
     }
 
     pub fn nexus_allows_replacing_bought_cards(&self, p: PlayerId) -> bool {

@@ -158,7 +158,7 @@ Creating, joining, observing and reconnecting to a game, and `gameState`, send t
 
 The event is a `GameEvent` in the savegame format, with `$type` set to the event class. The event is always the caller's own. The server sets `Initiator` to the caller's faction (none before factions are dealt, or for a host without a seat), whatever the client wrote, so the engine accepts it only as an action of that faction, or a host action when the caller is a host. It sets `Seat` and `InitiatorPlayerName` of `FactionSelected` to the caller's. `EstablishPlayers` is for hosts (`noHost` otherwise), and the server draws its `Seed`, which decides every deck. The server sets `Time`, validates and executes the event, and on success sends every participant a new view. A failed validation, or an event that doesn't decode, is `invalidGameEvent` with the reason in `message`, rendered with the default skin.
 
-Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`rust/server/src/pause_rules.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `phaseDone`, or, in the revival step, once they revive. After an undo or a loaded game the current pause waits for the host's `phaseContinue` or the next event. Games older than version 188 keep host-only control.
+Pauses between phases continue on their own. After each event the server works out who the current pause waits for and whether it runs a countdown that any player can hold (`rust/server/src/pause_rules.rs`). Once nobody is left to wait for and the countdown has run out or every holder has released it, the server submits `EndPhase` itself. A player waited for is done once they call `phaseDone`, or, in the revival step, once they revive. `PhaseControlInfo.reasons` says what each waited seat may do (`PauseReason`). Every reason is public; some need a secret card or spice, and the pause waits regardless, so the client words them as possibilities to everyone but the player concerned (`web/src/components/PauseReasons.tsx`). After an undo or a loaded game the current pause waits for the host's `phaseContinue` or the next event. Games older than version 188 keep host-only control.
 
 A valid `EstablishPlayers` event also seats the users on the players' seats, in the order they joined (`assignSeats` notification). Seats that no user takes become bots (see [Bots](#bots)).
 
@@ -280,6 +280,7 @@ The server sets a draft's `Initiator` to the caller's faction, so a client can't
 | `board` | `BoardView` | the map |
 | `status` | `StatusView` | the prompt: who is awaited and why |
 | `actions` | `ActionView[]` | the event types the viewer may submit now, in the engine's order |
+| `waitingActions` | `WaitingActionView[]` | actions the viewer will get but can't take yet, each with a header and the reason; only Prescience while it waits for Voice |
 | `log` | `LogView` | report headers and the latest phase's lines |
 | `ruleset`, `rules`, `rulesForBots` | enum names | a rule applies when it is in either list |
 | `economicsStatus` | enum name | CHOAM's charity status |

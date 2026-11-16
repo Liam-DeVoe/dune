@@ -111,6 +111,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
         board: board::board(game, &status, v),
         status: status_view(game, &status, v, d),
         actions: action_types.iter().map(|t| actions::action_view(game, v, s, *t, d)).collect(),
+        waiting_actions: me.map_or_else(Vec::new, |p| waiting_actions(game, p, d)),
         log: crate::log::log_view(game, v, d),
         ruleset: name_or_absent(game.rules.ruleset),
         rules: game.rules.active.iter().map(|r| name(*r)).collect(),
@@ -209,4 +210,23 @@ where
     GameEvent: From<Rc<E>>,
 {
     GameEvent::from(Rc::new(e))
+}
+
+/// Prescience waits while the Bene Gesserit (or their ally) may still use Voice, so a player who
+/// could otherwise use it sees why its form is missing.
+fn waiting_actions(game: &Game, p: PlayerId, d: &dyn Describer) -> Vec<WaitingActionView> {
+    let mut result = vec![];
+    if Prescience::prescience_right(game, p) && Voice::voice_pending(game) {
+        // The Bene Gesserit, and their ally when they share Voice: either may decide.
+        let mut deciders: Vec<Faction> =
+            game.player_indices().filter(|&q| Voice::voice_right(game, Some(q)) == Some(VoiceRight::Open)).filter_map(|q| game.player(q).faction).collect();
+        deciders.sort_by_key(|&f| f != Faction::BeneGesserit);
+        let reason = match deciders.as_slice() {
+            [a, b] => treachery_engine::express!("Available once ", *a, " or ", *b, " use or decline Voice."),
+            [a, ..] => treachery_engine::express!("Available once ", *a, " use or decline Voice."),
+            [] => return result,
+        };
+        result.push(WaitingActionView { event_type: "Prescience".into(), title: "Use Prescience".into(), reason: message(&reason, d) });
+    }
+    result
 }

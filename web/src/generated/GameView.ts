@@ -19,6 +19,7 @@ import type { TanksEntry } from "./TanksEntry";
 import type { TimingView } from "./TimingView";
 import type { TrackerView } from "./TrackerView";
 import type { ViewerInfo } from "./ViewerInfo";
+import type { WaitingActionView } from "./WaitingActionView";
 
 /**
  * The whole view of one game for one viewer, sent after every event.
@@ -41,7 +42,7 @@ players: Array<PublicPlayer>,
 /**
  * The viewer's own faction, if they hold a seat.
  */
-me: PrivatePlayer | null, board: BoardView, status: StatusView, actions: Array<ActionView>, log: LogView, ruleset: Ruleset, 
+me: PrivatePlayer | null, board: BoardView, status: StatusView, actions: Array<ActionView>, waitingActions: Array<WaitingActionView>, log: LogView, ruleset: Ruleset, 
 /**
  * `Game.Rules`. `Game.Applicable(rule)` is true for these and for `rulesForBots`.
  */

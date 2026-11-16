@@ -48,7 +48,20 @@ impl Prescience {
 
     /// [`may_use_prescience`](Self::may_use_prescience) for a player that may be missing. A
     /// missing player panics where the answer depends on it, after the checks that don't.
+    ///
+    /// Voice must be used before Prescience (rulebook FAQ), so Prescience waits while Voice is
+    /// pending: until the player who may use it does, or declines.
     pub fn may_use_prescience_opt(g: &Game, p: Option<PlayerId>) -> bool {
+        Self::prescience_right_opt(g, p) && !Voice::voice_pending(g)
+    }
+
+    /// Whether `p` could use Prescience now, Voice aside.
+    pub fn prescience_right(g: &Game, p: PlayerId) -> bool {
+        Self::prescience_right_opt(g, Some(p))
+    }
+
+    /// [`prescience_right`](Self::prescience_right) for a player that may be missing.
+    pub fn prescience_right_opt(g: &Game, p: Option<PlayerId>) -> bool {
         if let Some(battle) = g.battle.current_battle.as_ref() {
             if g.battle.current_prescience.is_none() && !g.prevented(FactionAdvantage::AtreidesBattlePlanPrescience) {
                 let p = p.expect("player");

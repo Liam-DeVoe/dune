@@ -23,6 +23,8 @@ pub struct BattleState {
     pub current_ecaz_or_ally_fighter: Option<Option<Faction>>,
     pub current_ecaz_battle_contribution: i32,
     pub current_voice: Option<Rc<Voice>>,
+    /// Someone who may use Voice declined it this battle (`VoiceDeclined`), so it is closed.
+    pub voice_declined: bool,
     pub current_prescience: Option<Rc<Prescience>>,
     /// The values are the live plan events, shared with `History` and the plan fields.
     pub prescience_seen_plans: IndexMap<Option<PrescienceAspect>, Rc<Battle>>,
@@ -71,6 +73,7 @@ impl BattleState {
             current_ecaz_or_ally_fighter: None,
             current_ecaz_battle_contribution: Default::default(),
             current_voice: None,
+            voice_declined: false,
             current_prescience: None,
             prescience_seen_plans: IndexMap::new(),
             current_thought: None,

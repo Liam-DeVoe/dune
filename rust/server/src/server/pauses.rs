@@ -11,13 +11,14 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use treachery_engine::enumerations::Phase;
+use treachery_engine::prelude::PlayerId;
 use treachery_engine::events::EndPhase;
 use treachery_engine::events::GameEvent;
 
 use super::{Answer, CallError, Server};
 use crate::protocol::{ErrorCode, Notification};
 use crate::timers::Timer;
-use treachery_protocol::PhaseControlInfo;
+use treachery_protocol::{PauseWait, PhaseControlInfo};
 use crate::pause_rules;
 
 #[derive(Clone, Debug, Default)]
@@ -156,12 +157,14 @@ impl Server {
             Some(requirements) => {
                 let any_bot = state.player_indices().any(|p| state.is_bot(p));
                 let bots_done = pause.bots_passed || bots_speed <= 0 || !any_bot;
-                let waiting_for: Vec<i32> = requirements
-                    .wait_for
-                    .iter()
-                    .filter(|&&p| !pause.done.contains(&state.player(p).seat) && !(state.is_bot(p) && bots_done))
-                    .map(|&p| state.player(p).seat)
+                let waited: Vec<PlayerId> = requirements
+                    .players()
+                    .into_iter()
+                    .filter(|&p| !pause.done.contains(&state.player(p).seat) && !(state.is_bot(p) && bots_done))
                     .collect();
+                let waiting_for: Vec<i32> = waited.iter().map(|&p| state.player(p).seat).collect();
+                let reasons: Vec<PauseWait> =
+                    waited.iter().map(|&p| PauseWait { seat: state.player(p).seat, reasons: requirements.reasons_of(p) }).collect();
                 if requirements.countdown && pause.countdown_ends.is_none() {
                     pause.countdown_ends = Some(now + chrono::Duration::milliseconds(i64::from(pause_rules::COUNTDOWN_MILLISECONDS)));
                     countdown_started = Some(pause.id);
@@ -178,6 +181,7 @@ impl Server {
                         countdown: requirements.countdown,
                         countdown_ends: if running { pause.countdown_ends } else { None },
                         holding: pause.holding.iter().copied().collect(),
+                        reasons,
                     };
                     send(&mut pause, info)
                 }

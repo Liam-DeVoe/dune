@@ -103,7 +103,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub const LATEST_VERSION: i32 = 189;
+    pub const LATEST_VERSION: i32 = 190;
 
     pub fn maximum_turns(&self) -> i32 {
         self.rules.settings.as_ref().expect("settings").maximum_turns

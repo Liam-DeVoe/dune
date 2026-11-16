@@ -289,6 +289,7 @@ impl EndPhase {
         game.battle.prescience_seen_plans.clear();
         game.battle.current_thought = None;
         game.battle.current_voice = None;
+        game.battle.voice_declined = false;
         game.turn.current_nexus_prescience = None;
         game.turn.current_bene_gesserit_cunning = None;
         game.turn.current_emperor_cunning = None;

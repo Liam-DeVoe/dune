@@ -13,40 +13,103 @@ pub struct NexusVote {
     pub passed: bool,
 }
 
-/// State of the spice blow phase, including the Nexus that a Shai-Hulud starts.
+/// The spice blow phase (`PhaseState::Blow`): its step, the cards set aside on the first turn,
+/// the Thumper, and the Nexus (votes, and who may draw a Nexus card). It is dropped when the
+/// phase ends. What outlives it is on the board: the latest spice cards, the worms and the
+/// sandtrout.
 pub struct BlowState {
-    pub latest_spice_card_a: Option<ResourceCard>,
-    pub latest_spice_card_b: Option<ResourceCard>,
+    pub step: BlowStep,
     pub ignored_monsters: Vec<ResourceCard>,
-    pub monsters: Vec<MonsterAppearance>,
-    pub number_of_monsters: i32,
-    pub nexus_votes: Vec<NexusVote>,
-    pub thumper_called_shai_hulud: bool,
     pub ignored_sandtrout: Option<ResourceCard>,
-    pub sand_trout: Option<ResourceCard>,
-    pub sand_trout_doubles_resources: bool,
+    pub thumper_called_shai_hulud: bool,
+    pub nexus_votes: Vec<NexusVote>,
+    pub nexus_has_occurred: bool,
     pub factions_that_may_draw_nexus_card: Vec<Faction>,
     pub factions_that_drew_nexus_card: Vec<Faction>,
-    pub nexus_has_occurred: bool,
 }
 
 impl BlowState {
-    pub fn new() -> Self {
+    pub fn new(step: BlowStep) -> Self {
         BlowState {
-            latest_spice_card_a: None,
-            latest_spice_card_b: None,
+            step,
             ignored_monsters: Vec::new(),
-            monsters: Vec::new(),
-            number_of_monsters: Default::default(),
-            nexus_votes: Vec::new(),
-            thumper_called_shai_hulud: Default::default(),
             ignored_sandtrout: None,
-            sand_trout: None,
-            sand_trout_doubles_resources: Default::default(),
+            thumper_called_shai_hulud: false,
+            nexus_votes: Vec::new(),
+            nexus_has_occurred: false,
             factions_that_may_draw_nexus_card: Vec::new(),
             factions_that_drew_nexus_card: Vec::new(),
-            nexus_has_occurred: Default::default(),
         }
+    }
+}
+
+/// Where the spice blow phase is. A and B are the two spice decks (B only with
+/// `IncreasedResourceFlow`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum BlowStep {
+    Thumper,
+    BlowA,
+    HarvesterA,
+    BlowB,
+    HarvesterB,
+    FremenSendingMonsterA,
+    VoteAllianceA,
+    AllianceA,
+    FremenRidingMonsterA,
+    FremenSendingMonsterB,
+    VoteAllianceB,
+    AllianceB,
+    FremenRidingMonsterB,
+    NexusCards,
+    Report,
+}
+
+impl BlowStep {
+    pub fn phase(self) -> Phase {
+        match self {
+            BlowStep::Thumper => Phase::Thumper,
+            BlowStep::BlowA => Phase::BlowA,
+            BlowStep::HarvesterA => Phase::HarvesterA,
+            BlowStep::BlowB => Phase::BlowB,
+            BlowStep::HarvesterB => Phase::HarvesterB,
+            BlowStep::FremenSendingMonsterA => Phase::FremenSendingMonsterA,
+            BlowStep::VoteAllianceA => Phase::VoteAllianceA,
+            BlowStep::AllianceA => Phase::AllianceA,
+            BlowStep::FremenRidingMonsterA => Phase::FremenRidingMonsterA,
+            BlowStep::FremenSendingMonsterB => Phase::FremenSendingMonsterB,
+            BlowStep::VoteAllianceB => Phase::VoteAllianceB,
+            BlowStep::AllianceB => Phase::AllianceB,
+            BlowStep::FremenRidingMonsterB => Phase::FremenRidingMonsterB,
+            BlowStep::NexusCards => Phase::NexusCards,
+            BlowStep::Report => Phase::BlowReport,
+        }
+    }
+
+    pub fn of(phase: Phase) -> Option<BlowStep> {
+        let step = match phase {
+            Phase::Thumper => BlowStep::Thumper,
+            Phase::BlowA => BlowStep::BlowA,
+            Phase::HarvesterA => BlowStep::HarvesterA,
+            Phase::BlowB => BlowStep::BlowB,
+            Phase::HarvesterB => BlowStep::HarvesterB,
+            Phase::FremenSendingMonsterA => BlowStep::FremenSendingMonsterA,
+            Phase::VoteAllianceA => BlowStep::VoteAllianceA,
+            Phase::AllianceA => BlowStep::AllianceA,
+            Phase::FremenRidingMonsterA => BlowStep::FremenRidingMonsterA,
+            Phase::FremenSendingMonsterB => BlowStep::FremenSendingMonsterB,
+            Phase::VoteAllianceB => BlowStep::VoteAllianceB,
+            Phase::AllianceB => BlowStep::AllianceB,
+            Phase::FremenRidingMonsterB => BlowStep::FremenRidingMonsterB,
+            Phase::NexusCards => BlowStep::NexusCards,
+            Phase::BlowReport => BlowStep::Report,
+            _ => return None,
+        };
+        Some(step)
+    }
+
+    /// The step for deck A if `a`, otherwise for deck B: `either(a, BlowStep::AllianceA, BlowStep::AllianceB)`.
+    pub fn either(a: bool, step_a: BlowStep, step_b: BlowStep) -> BlowStep {
+        if a { step_a } else { step_b }
     }
 }
 
@@ -56,20 +119,59 @@ macro_rules! elems {
 }
 
 impl Game {
+    /// The spice blow phase's state, while the game is in it (an interrupt may suspend it).
+    pub fn blow(&self) -> Option<&BlowState> {
+        match &self.phase {
+            PhaseState::Blow(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    pub fn blow_mut(&mut self) -> Option<&mut BlowState> {
+        match &mut self.phase {
+            PhaseState::Blow(b) => Some(b),
+            _ => None,
+        }
+    }
+
+    /// The spice blow phase's state, for code that only runs in the spice blow phase.
+    pub(crate) fn blow_state(&mut self) -> &mut BlowState {
+        self.blow_mut().expect("the spice blow phase")
+    }
+
+    /// Moves the spice blow phase to `step`, dropping any interrupt, as entering a phase did.
+    /// Starts the phase if the game isn't in it yet.
+    pub fn enter_blow(&mut self, step: BlowStep) {
+        match self.blow_mut() {
+            Some(b) => {
+                b.step = step;
+                self.interrupts.clear();
+                self.remove_ended_deals(step.phase());
+            }
+            None => self.enter_state(PhaseState::Blow(BlowState::new(step))),
+        }
+    }
+
+    /// Back to the spice blow step under the interrupts (a worm ride's intrusions), without
+    /// ending any deals.
+    fn resume_blow(&mut self, step: BlowStep) {
+        assert_eq!(self.blow().map(|b| b.step), Some(step), "resuming the spice blow phase");
+        self.interrupts.clear();
+    }
+
     pub fn enter_spice_blow_phase(&mut self) {
         self.main_phase_start(MainPhase::Blow, true);
-        self.blow.ignored_monsters.clear();
-        self.blow.ignored_sandtrout = None;
         self.turn.has_acted_or_passed.clear();
 
-        self.enter(Phase::Thumper, true);
+        // The new state has no ignored worms or sandtrout yet.
+        self.enter_blow(BlowStep::Thumper);
     }
 
     pub fn draw_resource_card(&mut self) -> GameResult {
         let mut drawn: Option<ResourceCard> = None;
         loop {
             // while (ThumperCalledShaiHulud || !(drawn = DrawAndDiscardResourceCard(CurrentDiscardPile!)).IsSpiceBlow)
-            let condition = if self.blow.thumper_called_shai_hulud {
+            let condition = if self.blow_state().thumper_called_shai_hulud {
                 true
             } else {
                 let d = self.draw_and_discard_resource_card(self.phase() == Phase::BlowA);
@@ -83,20 +185,20 @@ impl Game {
             if drawn.is_some_and(|d| d.is_shai_hulud() || d.is_great_maker()) && self.turn.current_turn == Turn::FIRST {
                 self.log_ignored_monster(drawn.expect("drawn").is_great_maker());
                 let c = self.current_discard_pile_mut().expect("current discard pile").draw();
-                self.blow.ignored_monsters.push(c);
-            } else if self.blow.thumper_called_shai_hulud
+                self.blow_state().ignored_monsters.push(c);
+            } else if self.blow_state().thumper_called_shai_hulud
                 || drawn.is_some_and(|d| d.is_shai_hulud())
                 || drawn.is_some_and(|d| d.is_great_maker())
             {
-                if !self.blow.thumper_called_shai_hulud {
+                if !self.blow_state().thumper_called_shai_hulud {
                     self.stone(if drawn.is_some_and(|d| d.is_shai_hulud()) { Milestone::Monster } else { Milestone::GreatMonster });
                 }
 
                 if !self.sand_trout_occurred() {
-                    self.blow.sand_trout_doubles_resources = false;
-                    self.blow.number_of_monsters += 1;
+                    self.board.sand_trout_doubles_resources = false;
+                    self.board.number_of_monsters += 1;
                     let t = self.previous_monster_territory();
-                    let is_great = !self.blow.thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
+                    let is_great = !self.blow_state().thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
                     self.let_monster_appear(t, is_great)?;
                     // C# parity: this break skips the `ThumperCalledShaiHulud = false` below.
                     if matches!(self.phase(), Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB) {
@@ -104,8 +206,8 @@ impl Game {
                     }
                 } else {
                     //Sandtrout triggers
-                    if self.blow.sand_trout.is_some() {
-                        let sand_trout = self.blow.sand_trout.expect("sand trout");
+                    if self.board.sand_trout.is_some() {
+                        let sand_trout = self.board.sand_trout.expect("sand trout");
                         let pile = self.current_discard_pile_mut().expect("current discard pile");
                         if let Some(d) = drawn {
                             if let Some(i) = pile.items.iter().position(|c| *c == d) {
@@ -118,8 +220,8 @@ impl Game {
                         }
                     }
 
-                    self.blow.sand_trout = None;
-                    self.blow.sand_trout_doubles_resources = true;
+                    self.board.sand_trout = None;
+                    self.board.sand_trout_doubles_resources = true;
                     self.log(elems![Concept::Monster, " is ignored due to ", Concept::BabyMonster]);
                 }
             } else if drawn.is_some_and(|d| d.is_sand_trout()) {
@@ -132,14 +234,15 @@ impl Game {
                     if let Some(i) = pile.items.iter().position(|c| *c == d) {
                         pile.items.remove(i);
                     }
-                    self.blow.sand_trout = Some(d);
+                    self.board.sand_trout = Some(d);
                 } else {
                     self.log(elems![Concept::BabyMonster, " on turn 1 was ignored"]);
-                    self.blow.ignored_sandtrout = Some(self.current_discard_pile_mut().expect("current discard pile").draw());
+                    let c = self.current_discard_pile_mut().expect("current discard pile").draw();
+                    self.blow_state().ignored_sandtrout = Some(c);
                 }
             }
 
-            self.blow.thumper_called_shai_hulud = false;
+            self.blow_state().thumper_called_shai_hulud = false;
         }
 
         if self.phase() != Phase::FremenSendingMonsterA && self.phase() != Phase::FremenSendingMonsterB {
@@ -275,15 +378,15 @@ impl Game {
             }
         }
 
-        let spice_factor = if self.blow.sand_trout_doubles_resources { 2 } else { 1 };
+        let spice_factor = if self.board.sand_trout_doubles_resources { 2 } else { 1 };
         let location = blow_card.location().expect("location");
         let spice_amount = spice_factor * location.spice_blow_amount();
 
         if !Sector::in_storm(location.sector(&self.board.map), self.board.sector_in_storm) {
-            let msg = express!(Payment::of(spice_amount), " detected in ", location, Game::sandtrout_message(self.blow.sand_trout_doubles_resources))
-                .with_log(BlowCardLog::new(blow_card, location, spice_amount, false, self.blow.sand_trout_doubles_resources));
+            let msg = express!(Payment::of(spice_amount), " detected in ", location, Game::sandtrout_message(self.board.sand_trout_doubles_resources))
+                .with_log(BlowCardLog::new(blow_card, location, spice_amount, false, self.board.sand_trout_doubles_resources));
             self.log(elems![msg]);
-            self.blow.sand_trout_doubles_resources = false;
+            self.board.sand_trout_doubles_resources = false;
             self.change_resources_on_planet(location, spice_amount)?;
         } else {
             // C# parity: SandTroutDoublesResources is not reset when the doubled blow is lost
@@ -293,10 +396,12 @@ impl Game {
             self.log(elems![msg]);
         }
 
-        let condition = self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
-        let phase = if self.phase() == Phase::BlowA { Phase::HarvesterA } else { Phase::HarvesterB };
-        self.enter_or_else_try(condition, phase, Game::move_to_next_phase_after_resource_blow)?;
-        Ok(())
+        if self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) {
+            self.enter_blow(BlowStep::either(self.phase() == Phase::BlowA, BlowStep::HarvesterA, BlowStep::HarvesterB));
+            Ok(())
+        } else {
+            self.move_to_next_phase_after_resource_blow()
+        }
     }
 
     pub fn sandtrout_message(sand_trout_doubles_resources: bool) -> MessagePart {
@@ -304,7 +409,7 @@ impl Game {
     }
 
     pub fn move_to_next_phase_after_resource_blow(&mut self) -> GameResult {
-        if self.blow.monsters.is_empty() {
+        if self.board.monsters.is_empty() {
             // Static `Enter(bool, Action, Action)`, inlined.
             if (self.phase() == Phase::BlowA || self.phase() == Phase::HarvesterA) && self.applicable(Rule::IncreasedResourceFlow) {
                 self.enter_blow_b()?;
@@ -319,9 +424,9 @@ impl Game {
             }
 
             let is_a = matches!(self.phase(), Phase::BlowA | Phase::HarvesterA);
-            if self.blow.monsters.len() == 1 && self.blow.monsters[0].is_great_monster {
-                self.blow.nexus_votes.clear();
-                self.enter_either(is_a, Phase::VoteAllianceA, Phase::VoteAllianceB);
+            if self.board.monsters.len() == 1 && self.board.monsters[0].is_great_monster {
+                self.blow_state().nexus_votes.clear();
+                self.enter_blow(BlowStep::either(is_a, BlowStep::VoteAllianceA, BlowStep::VoteAllianceB));
             } else {
                 self.enter_alliance_phase(is_a);
             }
@@ -334,14 +439,14 @@ impl Game {
             Some(t) if self.turn.current_turn != Turn::FIRST => {
                 let m = MonsterAppearance::new(t, is_great_monster);
 
-                let appeared = WormAppearedLog::new(m.territory, (self.blow.monsters.len() as i32) + 1);
+                let appeared = WormAppearedLog::new(m.territory, (self.board.monsters.len() as i32) + 1);
                 if m.is_great_monster {
                     self.log(elems![Concept::GreatMonster, " appears in ", m.territory]);
-                } else if !self.blow.monsters.is_empty() {
+                } else if !self.board.monsters.is_empty() {
                     let msg = express!(
                         Concept::Monster,
                         " appears a ",
-                        Game::natural((self.blow.monsters.len() as i32) + 1),
+                        Game::natural((self.board.monsters.len() as i32) + 1),
                         " time during this ",
                         MainPhase::Blow
                     )
@@ -352,23 +457,23 @@ impl Game {
                     self.log(elems![msg]);
                 }
 
-                if !self.blow.monsters.is_empty() {
+                if !self.board.monsters.is_empty() {
                     if self.is_playing(Faction::Fremen) && self.applicable(Rule::FremenSendingMonster) {
                         if !self.prevented(FactionAdvantage::FremenControlsMonster) {
                             let condition = self.phase() == Phase::BlowA;
-                            self.enter_either(condition, Phase::FremenSendingMonsterA, Phase::FremenSendingMonsterB);
+                            self.enter_blow(BlowStep::either(condition, BlowStep::FremenSendingMonsterA, BlowStep::FremenSendingMonsterB));
                         } else {
-                            self.blow.monsters.push(m);
+                            self.board.monsters.push(m);
                             self.log_prevention_by_karma(FactionAdvantage::FremenControlsMonster);
                             if !self.applicable(Rule::FullPhaseKarma) {
                                 self.allow(FactionAdvantage::FremenControlsMonster);
                             }
                         }
                     } else {
-                        self.blow.monsters.push(m);
+                        self.board.monsters.push(m);
                     }
-                } else if self.blow.monsters.is_empty() {
-                    self.blow.monsters.push(m.clone());
+                } else if self.board.monsters.is_empty() {
+                    self.board.monsters.push(m.clone());
                     self.perform_monster(&m)?;
                 }
             }
@@ -434,8 +539,8 @@ impl Game {
     }
 
     pub fn enter_blow_a(&mut self) -> GameResult {
-        self.blow.monsters.clear();
-        self.enter(Phase::BlowA, true);
+        self.board.monsters.clear();
+        self.enter_blow(BlowStep::BlowA);
         if self.applicable(Rule::IncreasedResourceFlow) {
             let msg = express!("Deck A").as_heading(Concept::Resource).with_log(BlowDeckLog::new("A".to_string()));
             self.log(elems![msg]);
@@ -446,8 +551,8 @@ impl Game {
     }
 
     pub fn enter_blow_b(&mut self) -> GameResult {
-        self.blow.monsters.clear();
-        self.enter(Phase::BlowB, true);
+        self.board.monsters.clear();
+        self.enter_blow(BlowStep::BlowB);
         let msg = express!("Deck B").as_heading(Concept::Resource).with_log(BlowDeckLog::new("B".to_string()));
         self.log(elems![msg]);
         self.draw_resource_card()?;
@@ -455,12 +560,13 @@ impl Game {
         Ok(())
     }
 
+    /// Ends a worm ride in `phase` (`FremenRidingMonsterA` or `B`), after any intrusion it caused.
     pub fn end_worm_ride_during_phase(&mut self, phase: Phase) -> GameResult {
-        self.enter(phase, false);
+        self.resume_blow(BlowStep::of(phase).expect("a worm ride step"));
 
         if FremenRidesMonster::is_applicable(self) {
             let condition = self.phase() == Phase::AllianceA || self.phase() == Phase::FremenRidingMonsterA;
-            self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
+            self.enter_blow(BlowStep::either(condition, BlowStep::FremenRidingMonsterA, BlowStep::FremenRidingMonsterB));
         } else if self.phase() == Phase::FremenRidingMonsterA && self.applicable(Rule::IncreasedResourceFlow) {
             self.enter_blow_b()?;
         } else {
@@ -472,16 +578,16 @@ impl Game {
     pub fn enter_alliance_phase(&mut self, is_a: bool) {
         // Every faction must pass or form an alliance before the phase ends.
         self.turn.has_acted_or_passed.clear();
-        self.enter_either(is_a, Phase::AllianceA, Phase::AllianceB);
+        self.enter_blow(BlowStep::either(is_a, BlowStep::AllianceA, BlowStep::AllianceB));
     }
 
     pub fn end_nexus(&mut self) -> GameResult {
-        self.blow.nexus_has_occurred = true;
+        self.blow_state().nexus_has_occurred = true;
         self.alliances.current_alliance_offers.clear();
 
         if FremenRidesMonster::is_applicable(self) {
             let condition = self.phase() == Phase::AllianceA;
-            self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
+            self.enter_blow(BlowStep::either(condition, BlowStep::FremenRidingMonsterA, BlowStep::FremenRidingMonsterB));
         } else {
             if self.phase() == Phase::AllianceA {
                 let condition = self.applicable(Rule::IncreasedResourceFlow);
@@ -501,7 +607,7 @@ impl Game {
     }
 
     pub fn start_nexus_card_phase(&mut self) {
-        if self.blow.nexus_has_occurred
+        if self.blow_state().nexus_has_occurred
             && self.applicable(Rule::NexusCards)
             && self.players.iter().any(|p| p.has_ally())
             && self.players.iter().any(|p| !p.has_ally())
@@ -511,13 +617,15 @@ impl Game {
             self.end_blow_phase();
         }
 
-        self.blow.nexus_has_occurred = false;
+        self.blow_state().nexus_has_occurred = false;
     }
 
     pub fn enter_nexus_card_phase(&mut self) {
-        self.blow.factions_that_may_draw_nexus_card = self.players.iter().filter(|p| !p.has_ally()).filter_map(|p| p.faction).collect();
-        self.blow.factions_that_drew_nexus_card.clear();
-        self.enter(Phase::NexusCards, true);
+        let may_draw = self.players.iter().filter(|p| !p.has_ally()).filter_map(|p| p.faction).collect();
+        let blow = self.blow_state();
+        blow.factions_that_may_draw_nexus_card = may_draw;
+        blow.factions_that_drew_nexus_card.clear();
+        self.enter_blow(BlowStep::NexusCards);
     }
 
     pub fn discard_nexus_card(&mut self, p: PlayerId) {
@@ -532,32 +640,33 @@ impl Game {
     }
 
     pub fn end_blow_phase(&mut self) {
-        self.blow.factions_that_may_draw_nexus_card.clear();
+        self.blow_state().factions_that_may_draw_nexus_card.clear();
         self.turn.current_fremen_secret_ally = None;
         self.turn.has_acted_or_passed.clear();
         self.reshuffle_ignored_monsters();
         self.main_phase_end();
-        self.enter(Phase::BlowReport, true);
+        self.enter_blow(BlowStep::Report);
     }
 
     pub fn reshuffle_ignored_monsters(&mut self) {
-        if !self.blow.ignored_monsters.is_empty() || self.blow.ignored_sandtrout.is_some() {
-            if !self.blow.ignored_monsters.is_empty() {
+        let ignored = self.blow_state().ignored_monsters.clone();
+        let ignored_sandtrout = self.blow_state().ignored_sandtrout;
+        if !ignored.is_empty() || ignored_sandtrout.is_some() {
+            if !ignored.is_empty() {
                 self.log(elems![
-                    self.blow.ignored_monsters.len() as i32,
+                    ignored.len() as i32,
                     " ignored ",
                     Concept::Monster,
                     " cards were shuffled back into the ",
                     Concept::Resource,
                     " deck"
                 ]);
-                let ignored = self.blow.ignored_monsters.clone();
                 for c in ignored {
                     self.decks.resource_card_deck.as_mut().expect("resource card deck").items.push(c);
                 }
             }
 
-            if let Some(sandtrout) = self.blow.ignored_sandtrout {
+            if let Some(sandtrout) = ignored_sandtrout {
                 self.log(elems![Concept::BabyMonster, " card was shuffled back into the ", Concept::Resource, " deck"]);
                 self.decks.resource_card_deck.as_mut().expect("resource card deck").items.push(sandtrout);
             }
@@ -568,7 +677,7 @@ impl Game {
     }
 
     pub fn sand_trout_occurred(&self) -> bool {
-        self.blow.sand_trout.is_some()
+        self.board.sand_trout.is_some()
     }
 
     pub fn natural(count: i32) -> String {
@@ -602,14 +711,14 @@ impl Game {
     }
 
     pub fn previous_blow_card(&self) -> Option<ResourceCard> {
-        if self.phase() == Phase::BlowA { self.blow.latest_spice_card_a } else { self.blow.latest_spice_card_b }
+        if self.phase() == Phase::BlowA { self.board.latest_spice_card_a } else { self.board.latest_spice_card_b }
     }
 
     pub fn set_previous_blow_card(&mut self, value: Option<ResourceCard>) {
         if self.phase() == Phase::BlowA {
-            self.blow.latest_spice_card_a = value;
+            self.board.latest_spice_card_a = value;
         } else {
-            self.blow.latest_spice_card_b = value;
+            self.board.latest_spice_card_b = value;
         }
     }
 
@@ -661,12 +770,12 @@ impl GameStatus {
             }
 
             Phase::BlowA | Phase::HarvesterA => {
-                let t = game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory();
+                let t = game.board.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory();
                 Self::status(express!("Factions may use a ", TreacheryCardType::Harvester, " to double the ", Concept::Resource, " blow in ", t, "..."), None)
             }
 
             Phase::BlowB | Phase::HarvesterB => {
-                let t = game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location").territory();
+                let t = game.board.latest_spice_card_b.expect("latest spice card b").location().expect("location").territory();
                 Self::status(express!("Factions may use a ", TreacheryCardType::Harvester, " to double the ", Concept::Resource, " blow in ", t, "..."), None)
             }
 
@@ -707,7 +816,7 @@ impl Game {
             }
 
             Phase::VoteAllianceA | Phase::VoteAllianceB => {
-                if self.blow.nexus_votes.iter().all(|v| v.initiator != faction) {
+                if self.blow().is_some_and(|b| b.nexus_votes.iter().all(|v| v.initiator != faction)) {
                     result.push(EventType::NexusVoted);
                 }
             }

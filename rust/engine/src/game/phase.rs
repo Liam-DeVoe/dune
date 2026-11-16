@@ -19,6 +19,11 @@ pub enum PhaseState {
     /// A phase that has no variant of its own yet: only its name. Its state is still in the
     /// per-phase struct on `Game`.
     Legacy(Phase),
+    /// Before the game starts: the host configures it and players join.
+    AwaitingPlayers,
+    Setup(SetupState),
+    Storm(StormState),
+    Blow(BlowState),
     Collection(CollectionState),
 }
 
@@ -27,6 +32,10 @@ impl PhaseState {
     pub fn phase(&self) -> Phase {
         match self {
             PhaseState::Legacy(phase) => *phase,
+            PhaseState::AwaitingPlayers => Phase::AwaitingPlayers,
+            PhaseState::Setup(s) => s.step.phase(),
+            PhaseState::Storm(s) => s.step.phase(),
+            PhaseState::Blow(b) => b.step.phase(),
             PhaseState::Collection(c) => c.step.phase(),
         }
     }
@@ -35,7 +44,11 @@ impl PhaseState {
     /// by its own functions (`Game::enter_collection`), never by name with [`Game::enter`],
     /// because entering it by name can't build its state.
     pub fn is_converted(phase: Phase) -> bool {
-        CollectionStep::of(phase).is_some()
+        phase == Phase::AwaitingPlayers
+            || SetupStep::of(phase).is_some()
+            || StormStep::of(phase).is_some()
+            || BlowStep::of(phase).is_some()
+            || CollectionStep::of(phase).is_some()
     }
 }
 
@@ -57,11 +70,14 @@ pub enum Interrupt {
     KarmaHandSwap,
     /// The Bureaucrat decides whether to apply Bureaucracy.
     Bureaucracy,
+    /// Fremen (or CHOAM) decide which forces a shipment or move into the storm lost
+    /// (`storm_losses_to_take`). Storm losses in the storm phase are a storm step instead.
+    StormLosses,
     /// A player chooses the skill of a revived leader.
     SkillAssignment,
     /// A suspension not converted yet, by the phase it shows: an intrusion (Bene Gesserit,
-    /// terror or ambassador), an alliance offered through terror or an ambassador, or storm
-    /// losses. The ship and move agent of wave 5 gives these their own variants.
+    /// terror or ambassador), or an alliance offered through terror or an ambassador. The ship
+    /// and move agent of wave 5 gives these their own variants.
     Legacy(Phase),
 }
 
@@ -76,6 +92,7 @@ impl Interrupt {
             Interrupt::CardTrade => Phase::TradingCards,
             Interrupt::KarmaHandSwap => Phase::PerformingKarmaHandSwap,
             Interrupt::Bureaucracy => Phase::Bureaucracy,
+            Interrupt::StormLosses => Phase::StormLosses,
             Interrupt::SkillAssignment => Phase::AssigningSkill,
             Interrupt::Legacy(phase) => phase,
         }
@@ -121,8 +138,7 @@ impl Interrupt {
             | Phase::AmbassadorTriggeredByFremenRidingMonsterA
             | Phase::AmbassadorTriggeredByFremenRidingMonsterB
             | Phase::AllianceByTerror
-            | Phase::AllianceByAmbassador
-            | Phase::StormLosses => Interrupt::Legacy(phase),
+            | Phase::AllianceByAmbassador => Interrupt::Legacy(phase),
             _ => return None,
         };
         Some(i)

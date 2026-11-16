@@ -348,7 +348,7 @@ impl ClassicBot {
 
             Some(Faction::Harkonnen) => game.phase() == Phase::ShipmentAndMoveConcluded && self.determine_worst_traitor(game).is_some(),
 
-            Some(Faction::Fremen) => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
+            Some(Faction::Fremen) => !game.board.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
             Some(Faction::Emperor) => {
                 let t = game.battle.current_battle.as_ref()?.territory;
@@ -594,8 +594,8 @@ impl ClassicBot {
 
     pub fn determine_harvester_played(&self, game: &Game) -> Option<HarvesterPlayed> {
         if game.turn.current_turn > Turn::FIRST
-            && ((game.phase() == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
-                || (game.phase() == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
+            && ((game.phase() == Phase::HarvesterA && self.resources_in(game, game.board.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
+                || (game.phase() == Phase::HarvesterB && self.resources_in(game, game.board.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
         {
             return Some(HarvesterPlayed::default());
         }
@@ -933,7 +933,7 @@ impl ClassicBot {
 
     pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<FactionTradeOffered> {
         let faction = self.faction(game);
-        let mut matching = game.setup.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
+        let mut matching = game.setup()?.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
         let m = matching.next()?;
         // No decision when two factions offer me a trade (C#'s SingleOrDefault threw).
         if matching.next().is_some() {

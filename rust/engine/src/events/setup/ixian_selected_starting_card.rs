@@ -24,10 +24,12 @@ impl EventRules for IxianSelectedStartingCard {
         // C# parity: Validate accepts the id of any card, not only one of the starting cards.
         let card = self.card.required("card")?;
         game.player_mut(me).treachery_cards.push(card);
-        crate::iter::remove_first(&mut game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
+        crate::iter::remove_first(&mut game.setup_state().starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
         let m = self.describe(game, by);
         game.log_event(m);
-        game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle(&mut game.rng);
+        let mut cards = game.setup_state().starting_treachery_cards.take().required("starting treachery cards")?;
+        cards.shuffle(&mut game.rng);
+        game.setup_state().starting_treachery_cards = Some(cards);
         game.stone(Milestone::Shuffled);
         game.deal_remaining_starting_treachery_cards_to_non_ixian()?;
         Ok(())

@@ -566,7 +566,7 @@ impl Game {
     }
 
     pub fn is_special_stronghold(&self, t: Territory) -> bool {
-        t == self.board.map.shield_wall() && self.applicable(Rule::Ssw) && self.blow.number_of_monsters >= 4
+        t == self.board.map.shield_wall() && self.applicable(Rule::Ssw) && self.board.number_of_monsters >= 4
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.

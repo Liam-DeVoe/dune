@@ -79,7 +79,7 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     l.p(&format!("{at}.offers"), offers.join(","));
     let allies: Vec<_> = g.players.iter().map(|p| format!("{}:{}", treachery_engine::enum_type::name_or_absent(p.faction), treachery_engine::enum_type::name_or_absent(p.ally))).collect();
     l.p(&format!("{at}.allies"), allies.join(","));
-    l.p(&format!("{at}.nexus_occured"), if g.blow.nexus_has_occurred { "True" } else { "False" });
+    l.p(&format!("{at}.nexus_occured"), if g.blow().is_some_and(|b| b.nexus_has_occurred) { "True" } else { "False" });
     let a = applicable(g);
     l.p(&format!("{at}.applicable"), a);
     for i in 0..g.players.len() {

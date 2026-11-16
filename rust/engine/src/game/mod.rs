@@ -59,7 +59,7 @@ pub use seats::{seat_or_minus_one, Seat};
 mod settings;
 pub use settings::*;
 mod setup;
-pub use setup::{SetupState, TradeOffer};
+pub use setup::{SetupState, SetupStep, TradeOffer};
 mod state;
 pub use state::*;
 mod statistics;
@@ -67,7 +67,7 @@ pub use statistics::*;
 mod status;
 pub use status::*;
 mod storm;
-pub use storm::StormState;
+pub use storm::{StormLossQueue, StormState, StormStep};
 mod turn;
 pub use turn::{JuiceUsed, KarmaPrevention, NexusCardPlayed, Step, Turn, TurnState};
 
@@ -102,9 +102,8 @@ pub struct Game {
 
     // The state of the phases that have no `PhaseState` variant yet (rewrite-plan.md, wave 5).
     // They are kept side by side, whatever the current phase.
-    pub setup: SetupState,
-    pub storm: StormState,
-    pub blow: BlowState,
+    /// Only the storm losses still to be taken (see [`StormLossQueue`]).
+    pub storm: StormLossQueue,
     pub charity: CharityState,
     pub bidding: BiddingState,
     pub revival: RevivalState,
@@ -166,11 +165,9 @@ impl Game {
             history: History::new(),
             log: Log::new(),
             counters: Counters::default(),
-            phase: PhaseState::Legacy(Phase::AwaitingPlayers),
+            phase: PhaseState::AwaitingPlayers,
             interrupts: Vec::new(),
-            setup: SetupState::new(),
-            storm: StormState::new(),
-            blow: BlowState::new(),
+            storm: StormLossQueue::new(),
             charity: CharityState::new(),
             bidding: BiddingState::new(),
             revival: RevivalState::new(),

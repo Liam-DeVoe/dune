@@ -406,7 +406,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.card = required_opt(m.card, &cards);
         }),
         Event::IxianSelectedStartingCard(e) => adjust!(e, |m| {
-            let cards: Vec<TreacheryCard> = game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
+            let cards: Vec<TreacheryCard> = game.setup().and_then(|s| s.starting_treachery_cards.as_ref()).map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
             m.card = required_opt(m.card, &cards);
         }),
         Event::IxianSwappedCardOnBid(e) => adjust!(e, |m| {
@@ -639,7 +639,7 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &Event, d: &dyn 
             ActionOptions::IxianRemovedCardFromAuction(cards(card_ids(game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
         }
         Event::IxianSelectedStartingCard(_) => {
-            ActionOptions::IxianSelectedStartingCard(cards(card_ids(game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default())))
+            ActionOptions::IxianSelectedStartingCard(cards(card_ids(game.setup().and_then(|s| s.starting_treachery_cards.as_ref()).map(|d| d.items.to_vec()).unwrap_or_default())))
         }
         Event::IxianSwappedCardOnBid(_) => ActionOptions::IxianSwappedCardOnBid(cards(hand())),
         Event::Karma(_) => ActionOptions::Karma(KarmaOptions {

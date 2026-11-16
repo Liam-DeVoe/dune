@@ -411,8 +411,7 @@ impl Game {
         }
 
         if !self.storm.storm_losses_to_take.is_empty() {
-            self.storm.phase_before_storm_loss = Some(self.phase());
-            self.enter(Phase::StormLosses, true);
+            self.interrupt(Interrupt::StormLosses);
         } else if !self.ship_move.intrusions.is_empty() {
             match self.ship_move.intrusions[0].type_ {
                 IntrusionType::BeneGesseritIntrusion => self.determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded()?,

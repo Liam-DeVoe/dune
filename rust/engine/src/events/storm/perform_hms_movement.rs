@@ -54,11 +54,11 @@ impl EventRules for PerformHmsMovement {
             let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
             game.collect_spice_from(by.faction.required("faction")?, target, collection_rate)?;
-            game.storm.hms_moves_left -= 1;
+            game.storm_state().hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
 
-        if self.passed || game.storm.hms_moves_left == 0 {
+        if self.passed || game.storm_state().hms_moves_left == 0 {
             game.determine_storm();
         }
         Ok(())

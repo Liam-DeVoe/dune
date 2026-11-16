@@ -93,7 +93,7 @@ fn prepare(trigger: Trigger) -> (Game, String, Location) {
             let mut g = at_blow(if matches!(trigger, Trigger::WormRideA) { Phase::FremenRidingMonsterA } else { Phase::FremenRidingMonsterB });
             let from = open_sand(&g, &[]);
             put_forces(&mut g, Faction::Fremen, from, 3);
-            g.blow.monsters.push(MonsterAppearance::new(from.territory(), false));
+            g.board.monsters.push(MonsterAppearance::new(from.territory(), false));
             let to = open_sand(&g, &[from.territory()]);
             let e = worm_ride(from, to, 3);
             (g, e, to)
@@ -232,7 +232,7 @@ intrusion!(ambassador_by_revival, Revival, Ambassador, AmbassadorTriggeredByRevi
 
 // The first worm ride, with no other worm to ride: the spice blow goes on with deck B.
 fn after_ride_a(g: &mut Game) {
-    assert!(g.blow.monsters.is_empty());
+    assert!(g.board.monsters.is_empty());
     let log = log(g);
     assert!(log.iter().any(|m| m.contains("Deck B")), "{log:?}");
 }
@@ -243,7 +243,7 @@ intrusion!(ambassador_by_worm_ride_a, WormRideA, Ambassador, AmbassadorTriggered
 
 // The second worm ride: the spice blow ends.
 fn after_ride_b(g: &mut Game) {
-    assert!(g.blow.monsters.is_empty());
+    assert!(g.board.monsters.is_empty());
     let log = log(g);
     assert!(!log.iter().any(|m| m.contains("Deck B")), "{log:?}");
 }

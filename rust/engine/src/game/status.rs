@@ -174,8 +174,8 @@ impl GameStatus {
 
             Phase::StormLosses => vec![Some(TakeLosses::losses_to_take(game).location.expect("location").territory())],
 
-            Phase::HarvesterA => vec![Some(game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory())],
-            Phase::HarvesterB => vec![Some(game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location").territory())],
+            Phase::HarvesterA => vec![Some(game.board.latest_spice_card_a.expect("latest spice card a").location().expect("location").territory())],
+            Phase::HarvesterB => vec![Some(game.board.latest_spice_card_b.expect("latest spice card b").location().expect("location").territory())],
 
             Phase::TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip
             | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip
@@ -421,7 +421,7 @@ impl GameStatus {
 
                 // Show Faction
                 Event::EstablishPlayers(_) if g.phase() != Phase::SelectingFactions && is_player => Self::flash_faction_played(&mut result, my_faction),
-                Event::FactionTradeOffered(fto) if (latest.by == my_faction || fto.target == my_faction) && g.setup.current_trade_offers.iter().all(|t| t.initiator != my_faction) => {
+                Event::FactionTradeOffered(fto) if (latest.by == my_faction || fto.target == my_faction) && g.setup().is_none_or(|s| s.current_trade_offers.iter().all(|t| t.initiator != my_faction)) => {
                     Self::flash_faction_played(&mut result, my_faction)
                 }
 
@@ -466,15 +466,15 @@ impl GameStatus {
 
                     if nr_of_spice_blows == 2 {
                         if !resource_card_already_added {
-                            card_to_show = g.blow.latest_spice_card_a;
+                            card_to_show = g.board.latest_spice_card_a;
                             resource_card_already_added = true;
                         } else {
-                            card_to_show = g.blow.latest_spice_card_b;
+                            card_to_show = g.board.latest_spice_card_b;
                         }
                     } else if g.applicable(Rule::IncreasedResourceFlow) && matches!(g.phase(), Phase::AllianceB | Phase::HarvesterB | Phase::BlowReport) {
-                        card_to_show = g.blow.latest_spice_card_b;
+                        card_to_show = g.board.latest_spice_card_b;
                     } else {
-                        card_to_show = g.blow.latest_spice_card_a;
+                        card_to_show = g.board.latest_spice_card_a;
                     }
 
                     if let Some(card) = card_to_show {

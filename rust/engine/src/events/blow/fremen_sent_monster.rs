@@ -43,10 +43,10 @@ impl EventRules for FremenSentMonster {
         let msg = msg.with_log(WormSentLog::new(by.faction.required("faction")?, territory));
         game.log(parts![msg]);
         let monster = MonsterAppearance::new(territory, false);
-        game.blow.monsters.push(monster.clone());
+        game.board.monsters.push(monster.clone());
         game.perform_monster(&monster)?;
         let condition = game.phase() == Phase::FremenSendingMonsterA;
-        game.enter_either(condition, Phase::BlowA, Phase::BlowB);
+        game.enter_blow(BlowStep::either(condition, BlowStep::BlowA, BlowStep::BlowB));
         game.draw_resource_card()?;
         game.let_factions_discard_surplus_cards();
         Ok(())

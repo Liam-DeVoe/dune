@@ -100,13 +100,14 @@ impl EventRules for TakeLosses {
             game.log(vec![message.into()]);
         }
 
-        if game.storm.phase_before_storm_loss == Some(Phase::BlowA) {
-            let condition = game.storm.storm_losses_to_take.len() > 0;
-            game.enter_or_else(condition, Phase::StormLosses, Game::end_storm_phase);
-        } else {
-            let phase = game.storm.phase_before_storm_loss.required("phase before storm loss")?;
-            game.enter(phase, true);
+        if game.is_interrupted_by(Interrupt::StormLosses) {
+            // Losses of a shipment or move: back to it, which asks for the next loss if any.
+            game.resume(Interrupt::StormLosses, true)?;
             game.determine_next_shipment_and_move_sub_phase()?;
+        } else if !game.storm.storm_losses_to_take.is_empty() {
+            game.enter_storm(StormStep::Losses);
+        } else {
+            game.end_storm_phase();
         }
 
         if must_discard {

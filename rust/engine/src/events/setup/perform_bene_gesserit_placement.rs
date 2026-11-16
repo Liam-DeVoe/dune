@@ -57,8 +57,14 @@ impl EventRules for PerformBeneGesseritPlacement {
         game.log_event(m);
         let c1 = game.is_playing(Faction::Moritani);
         let c2 = game.treachery_cards_before_traitors();
-        game.enter_first(&[(c1, Step::Enter(Phase::MoritaniSettingUp)), (c2, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards))?;
-        Ok(())
+        if c1 {
+            game.enter_setup(SetupStep::MoritaniSettingUp);
+            Ok(())
+        } else if c2 {
+            game.enter_storm_phase()
+        } else {
+            game.deal_starting_treachery_cards()
+        }
     }
 
     fn describe(&self, _game: &Game, by: By) -> Message {

@@ -20,18 +20,19 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 | Field | Type | File | Holds |
 |---|---|---|---|
 | `rules` | `Rules` | `rules.rs` | version, ruleset, the rules in effect (`active`), settings, factions in play, automation rules, hidden secrets |
-| `board` | `Board` | `board.rs` | the map, the storm sector, spice, terror tokens, ambassadors, discoveries, stronghold ownership, homeworld occupation |
+| `board` | `Board` | `board.rs` | the map, the storm sector and battle wheels, spice, the latest spice cards, worms and sandtrout, terror tokens, ambassadors, discoveries, stronghold ownership, homeworld occupation |
 | `decks` | `Decks` | `decks.rs` | every deck and discard pile, the Richese cache, recently discarded cards |
 | `leaders` | `Leaders` | `leaders.rs` | leader state, captured and assassinated leaders, Vidal |
 | `alliances` | `Alliances` | `alliances.rs` | alliance offers, card trades, what each faction allows its ally |
 | `deals` | `Deals` | `deals.rs` | `offers`, `responses` and the deals in force (`agreed`) |
 | `turn` | `TurnState` | `turn.rs` | turn and main phase, and what lasts for one turn or phase: payments, milestones, prevented advantages, cards and Nexus cards in effect |
-| `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state (`PhaseState::Collection(CollectionState)`), or `Legacy(phase)` for a phase not converted yet |
+| `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state (`PhaseState::Storm(StormState)`, ...), or `Legacy(phase)` for a phase not converted yet |
 | `interrupts` | `Vec<Interrupt>` | `phase.rs` | what suspends the phase until it is resolved (a discard, a Clairvoyance answer, ...), the latest last |
 | `history` | `History` | `history.rs` | the events (`entries`), undone events, the game before an undo, moments and timers |
 | `log` | `Log` | `log.rs` | the reports |
 | `counters` | `Counters` | `counters.rs` | numbers handed out in order: the leader deaths' `time_of_death` |
-| `setup`, `storm`, `blow`, `charity`, `bidding`, `revival`, `ship_move`, `battle`, `contemplate` | `SetupState` ... `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use, for the phases that have no `PhaseState` variant yet |
+| `charity`, `bidding`, `revival`, `ship_move`, `battle`, `contemplate` | `CharityState` ... `ContemplateState` | the phase's file (`movement.rs` for `ship_move`) | what the rules of that phase use, for the phases that have no `PhaseState` variant yet |
+| `storm` | `StormLossQueue` | `storm.rs` | the storm losses still to be taken, from the storm phase or a shipment or move (moves to `turn` after wave 5's ship and move conversion) |
 
 `game.phase()` is the flat `Phase`: the top interrupt's, or else the phase state's. Views, bots and the client key on it. Wave 5 of rewrite-plan.md moves the phases into `PhaseState` one at a time, and its Progress entry of 2026-11-16 ("wave 5 scaffolding") has the rules for entering, interrupting and resuming. The phase structs not converted yet are kept side by side whatever the current phase, and some of their fields last longer than the phase (`ship_move.shipment_permissions`, `revival.factions_with_increased_revival_limits`). Fields keep the names they had on `Game` (`game.battle.current_battle`), except where the old name would repeat the struct's: `rules.active`, `history.entries`, `deals.offers`, `deals.responses` and `deals.agreed`.
 

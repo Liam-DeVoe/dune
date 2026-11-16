@@ -277,7 +277,7 @@ fn status_ambassador_without_ecaz_throws() {
 #[test]
 fn status_highlights_fremen_setup() {
     let mut g = game_with(&[Faction::Fremen]);
-    g.enter(Phase::FremenSettingUp, false);
+    g.enter_setup(SetupStep::FremenSettingUp);
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.highlighted_territories.is_empty());
     let fremen = idx(&g, Faction::Fremen);

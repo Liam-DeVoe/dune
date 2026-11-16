@@ -40,8 +40,11 @@ impl StormDialled {
             game.board.next_storm_moves = game.determine_later_storm_with_storm_deck();
         }
 
-        let condition = game.is_playing(Faction::Ixian) || game.applicable(Rule::HmSwithoutIxian);
-        game.enter_or_else(condition, Phase::HmsPlacement, Game::end_storm_phase);
+        if game.is_playing(Faction::Ixian) || game.applicable(Rule::HmSwithoutIxian) {
+            game.enter_storm(StormStep::HmsPlacement);
+        } else {
+            game.end_storm_phase();
+        }
         Ok(())
     }
 
@@ -102,19 +105,19 @@ impl EventRules for StormDialled {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.storm.dials.push(i32::from(self.amount));
+        game.storm_state().dials.push(i32::from(self.amount));
         game.turn.has_acted_or_passed.push(by.faction.required("faction")?);
 
-        if game.storm.has_battle_wheel.iter().all(|f| game.turn.has_acted_or_passed.contains(f)) {
+        if game.board.has_battle_wheel.iter().all(|f| game.turn.has_acted_or_passed.contains(f)) {
             // Arguments are evaluated left to right; a one-player game throws at Dials[1].
-            let d0 = game.storm.dials[0];
+            let d0 = game.storm_state().dials[0];
             let f0 = game.turn.has_acted_or_passed[0];
-            let d1 = game.storm.dials[1];
+            let d1 = game.storm_state().dials[1];
             let f1 = game.turn.has_acted_or_passed[1];
             let msg = express!("Storm dial: ", d0, f0, " + ", d1, f1, " = ", d0 + d1)
                 .with_log(StormDials::new(f0, d0, f1, d1));
             game.log(parts![msg]);
-            game.board.next_storm_moves = game.storm.dials.iter().copied().sum::<i32>();
+            game.board.next_storm_moves = game.storm_state().dials.iter().copied().sum::<i32>();
 
             if game.turn.current_turn == Turn::FIRST {
                 self.position_first_storm(game)?;

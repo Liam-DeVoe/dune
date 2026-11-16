@@ -262,14 +262,14 @@ impl Game {
     }
 
     pub fn assign_battle_wheels(&mut self, player1: Option<PlayerId>, player2: Option<PlayerId>) {
-        self.storm.has_battle_wheel.clear();
+        self.board.has_battle_wheel.clear();
         if let Some(player1) = player1 {
             let f = self.player(player1).faction;
-            self.storm.has_battle_wheel.push(f.expect("faction"));
+            self.board.has_battle_wheel.push(f.expect("faction"));
         }
         if let Some(player2) = player2 {
             let f = self.player(player2).faction;
-            self.storm.has_battle_wheel.push(f.expect("faction"));
+            self.board.has_battle_wheel.push(f.expect("faction"));
         }
     }
 

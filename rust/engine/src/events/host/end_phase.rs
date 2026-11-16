@@ -25,8 +25,7 @@ impl EndPhase {
         }
 
         let condition = game.applicable(Rule::CustomDecks);
-        game.enter_or_else_try(condition, Phase::CustomizingDecks, Game::enter_setup_phase)?;
-        Ok(())
+        game.enter_setup_or_else(condition, SetupStep::CustomizingDecks, Game::enter_setup_phase)
     }
 
     pub fn enter_normal_storm_phase(&self, game: &mut Game) -> GameResult {
@@ -42,7 +41,7 @@ impl EndPhase {
     pub fn enter_charity_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Charity, true);
         game.turn.has_acted_or_passed.clear();
-        game.blow.monsters.clear();
+        game.board.monsters.clear();
         game.charity.resource_tech_token_income = false;
         game.allow(FactionAdvantage::FremenControlsMonster);
         game.allow(FactionAdvantage::FremenProtectedFromMonster);
@@ -167,8 +166,8 @@ impl EndPhase {
         game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
         game.turn.current_guild_cunning = None;
         game.turn.current_guild_secret_ally = None;
-        if game.storm.karma_hms_moves_left != 2 {
-            game.storm.karma_hms_moves_left = 0;
+        if game.board.karma_hms_moves_left != 2 {
+            game.board.karma_hms_moves_left = 0;
         }
         self.reset_battle(game);
         if game.advance_battle_sequence().is_none() {

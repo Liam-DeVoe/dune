@@ -15,7 +15,7 @@ impl EventRules for ThumperPlayed {
         let m = self.describe(game, by);
         game.log_event(m);
         game.stone(Milestone::Thumper);
-        game.blow.thumper_called_shai_hulud = game.turn.current_turn > Turn::FIRST;
+        game.blow_state().thumper_called_shai_hulud = game.turn.current_turn > Turn::FIRST;
         game.enter_blow_a()?;
         Ok(())
     }

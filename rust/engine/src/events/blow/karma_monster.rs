@@ -44,7 +44,7 @@ impl EventRules for KarmaMonster {
         game.play_karma(me, card, effect);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
-        game.blow.number_of_monsters += 1;
+        game.board.number_of_monsters += 1;
         let territory = self.territory;
         game.let_monster_appear(territory, false)?;
 

@@ -9,11 +9,11 @@ pub struct NexusCardDrawn {
 
 impl NexusCardDrawn {
     pub fn may_draw(g: &Game, p: PlayerId) -> bool {
-        !g.blow.factions_that_drew_nexus_card.contains_opt(g.player(p).faction) || g.player(p).faction == g.player(p).nexus
+        !g.blow().is_some_and(|b| b.factions_that_drew_nexus_card.contains_opt(g.player(p).faction)) || g.player(p).faction == g.player(p).nexus
     }
 
     pub fn applicable(g: &Game, p: PlayerId) -> bool {
-        g.blow.factions_that_may_draw_nexus_card.contains_opt(g.player(p).faction)
+        g.blow().is_some_and(|b| b.factions_that_may_draw_nexus_card.contains_opt(g.player(p).faction))
     }
 
     pub fn deal_nexus_card(&self, game: &mut Game, by: By) {
@@ -47,17 +47,17 @@ impl EventRules for NexusCardDrawn {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if !self.passed {
             self.deal_nexus_card(game, by);
-            game.blow.factions_that_drew_nexus_card.push(by.faction.required("faction")?);
+            game.blow_state().factions_that_drew_nexus_card.push(by.faction.required("faction")?);
         }
 
         if self.passed {
             let initiator = by.faction;
-            if let Some(i) = game.blow.factions_that_may_draw_nexus_card.iter().position(|f| Some(*f) == initiator) {
-                game.blow.factions_that_may_draw_nexus_card.remove(i);
+            if let Some(i) = game.blow_state().factions_that_may_draw_nexus_card.iter().position(|f| Some(*f) == initiator) {
+                game.blow_state().factions_that_may_draw_nexus_card.remove(i);
             }
         }
 
-        if game.blow.factions_that_may_draw_nexus_card.is_empty() {
+        if game.blow_state().factions_that_may_draw_nexus_card.is_empty() {
             game.end_blow_phase();
         }
         Ok(())

@@ -17,6 +17,7 @@ use crate::fuzz::{self, Fuzzer, Shadow};
 use crate::rng::{self, Rng};
 use crate::session::{Panicked, Session};
 use crate::trace::{self, Header, Line};
+use crate::view_hash::ViewHash;
 use crate::watch::{self, Budgets, Ending, Msg};
 
 /// Why a game stopped early.
@@ -525,6 +526,8 @@ pub struct RecordOptions {
     pub seed: u64,
     pub index: u64,
     pub full_views: bool,
+    /// How views are hashed ([`ViewHash::LATEST`] unless an old trace must be matched).
+    pub view_hash: ViewHash,
     pub budgets: Budgets,
     /// Write reach lines (`event`/`offered`/`end`, tab-separated, for `observe reach`) instead of
     /// the trace.
@@ -533,7 +536,7 @@ pub struct RecordOptions {
 
 /// Records one game and writes its trace to `out`. Returns the end reason.
 pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<String> {
-    let (mode, seed, index, full_views, reach) = (o.mode.clone(), o.seed, o.index, o.full_views, o.reach);
+    let (mode, seed, index, full_views, reach, view_hash) = (o.mode.clone(), o.seed, o.index, o.full_views, o.reach, o.view_hash);
     let mut reason = String::from("?");
     let mut error: Option<std::io::Error> = None;
     let mut write = |text: Option<String>, out: &mut dyn Write| {
@@ -557,7 +560,8 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
             let mut rng = Rng::new(game_seed);
             let fuzzing = mode == "fuzz";
             let cfg = Config::randomize(&mut rng, fuzzing);
-            let sess = Session::new(Game::LATEST_VERSION, &cfg.seated, full_views);
+            let mut sess = Session::new(Game::LATEST_VERSION, &cfg.seated, full_views);
+            sess.view_hash = view_hash;
             let header = Header {
                 format: trace::FORMAT,
                 mode: mode.clone(),
@@ -567,6 +571,7 @@ pub fn record_game(o: &RecordOptions, out: &mut dyn Write) -> std::io::Result<St
                 seated: cfg.seated.clone(),
                 config: cfg.to_json(),
                 full_views,
+                view_hash,
             };
             let _ = tx.send(Msg::Line(Line::Header(header)));
             let shadow = fuzzing.then(|| Shadow::new(&sess.game));

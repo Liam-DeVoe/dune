@@ -7,6 +7,7 @@ pub mod memory;
 pub mod rng;
 pub mod session;
 pub mod trace;
+pub mod view_hash;
 pub mod fuzz;
 pub mod record;
 pub mod watch;

@@ -7,6 +7,7 @@ use std::time::Duration;
 use observe::allow::Allow;
 use observe::record::{record_game, RecordOptions};
 use observe::replay::{self, Outcome};
+use observe::view_hash::ViewHash;
 use observe::watch::Budgets;
 use serde_json::Value;
 
@@ -15,8 +16,12 @@ fn budgets() -> Budgets {
 }
 
 fn record(mode: &str, index: u64, full_views: bool) -> Vec<Value> {
+    record_hashed(mode, index, full_views, ViewHash::LATEST)
+}
+
+fn record_hashed(mode: &str, index: u64, full_views: bool, view_hash: ViewHash) -> Vec<Value> {
     let mut out = Vec::new();
-    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views, budgets: budgets(), reach: false };
+    let o = RecordOptions { mode: mode.into(), seed: 7, index, full_views, budgets: budgets(), reach: false, view_hash };
     record_game(&o, &mut out).unwrap();
     String::from_utf8(out).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }
@@ -47,6 +52,24 @@ fn clean_replays_pass_and_recording_is_deterministic() {
         let o = replay_lines(&a, Allow::default());
         assert!(o.passed(), "{mode} game {index}: {o:?}");
     }
+}
+
+/// A trace says how its views are hashed, and the replay hashes them the same way. Traces from
+/// before the header said so use SHA-256.
+#[test]
+fn views_are_hashed_as_the_trace_says() {
+    let fast = record_hashed("bots", 1, false, ViewHash::Fold64);
+    let mut sha = record_hashed("bots", 1, false, ViewHash::Sha256);
+    let views = |t: &[Value]| t.iter().find(|l| l["views"].is_array()).unwrap()["views"].clone();
+    assert_ne!(views(&fast), views(&sha));
+    assert_eq!(fast[0]["viewHash"], "fold64");
+    assert!(replay_lines(&fast, Allow::default()).passed());
+    assert!(replay_lines(&sha, Allow::default()).passed());
+    sha[0].as_object_mut().unwrap().remove("viewHash");
+    assert!(replay_lines(&sha, Allow::default()).passed());
+    // A trace read with the other hash fails at its first views.
+    sha[0]["viewHash"] = Value::String("fold64".into());
+    assert_eq!(failure_key(&replay_lines(&sha, Allow::default())), "views");
 }
 
 #[test]

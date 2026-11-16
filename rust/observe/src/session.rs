@@ -11,7 +11,6 @@
 use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::messages::part::Part;
@@ -24,6 +23,7 @@ use treachery_view::build::{ResolvedViewer, Seating};
 use treachery_view::replica::ViewReplica;
 
 use crate::trace::{BotChoice, BotsResult, EventOutcome, Obs, QueryResult, SpecialOutcome};
+use crate::view_hash::ViewHash;
 
 /// The bot priority levels, in the order the server asks them.
 pub const LEVELS: [&str; 5] = ["Highest", "High", "Middle", "Low", "End"];
@@ -41,6 +41,9 @@ pub struct Session {
     /// Number of log messages already reported.
     log_seen: usize,
     pub full_views: bool,
+    /// How views are hashed: [`ViewHash::LATEST`] when recording, what the trace says when
+    /// replaying.
+    pub view_hash: ViewHash,
 }
 
 /// A call that failed in a way the trace can't describe further: the game ends there. The
@@ -71,11 +74,6 @@ pub fn parse_faction(name: &str) -> Option<Faction> {
     Faction::ALL.iter().copied().find(|f| f.to_string() == name)
 }
 
-fn short_hash(bytes: &[u8]) -> String {
-    let d = Sha256::digest(bytes);
-    d.iter().take(8).map(|b| format!("{b:02x}")).collect()
-}
-
 fn find_exception(m: &Message) -> bool {
     m.parts.iter().any(|e| matches!(e, Part::Error(_)))
 }
@@ -100,7 +98,7 @@ impl Session {
         let (human_seats, seating) = seats(seated);
         let mut game = Game::of_version(version);
         game.human_seats = human_seats;
-        Session { game, seating, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views }
+        Session { game, seating, replica: None, bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, view_hash: ViewHash::LATEST }
     }
 
     pub fn player_count(&self) -> usize {
@@ -311,10 +309,23 @@ impl Session {
         for (_, rv) in &viewers {
             // The replica's players are the game's players, by index.
             let rv = ResolvedViewer { player: rv.player.map(|p| replica.game.player_at(p.index())), ..*rv };
-            match guarded(|| serde_json::to_vec(&replica.view_as(&rv)).expect("views serialize"))? {
-                Ok(bytes) => {
-                    hashes.push(short_hash(&bytes));
-                    if self.full_views {
+            let (kind, full_views) = (self.view_hash, self.full_views);
+            // Without full views, the JSON goes straight into the hasher.
+            let built = guarded(|| {
+                let view = replica.view_as(&rv);
+                if full_views {
+                    let bytes = serde_json::to_vec(&view).expect("views serialize");
+                    (kind.of(&bytes), Some(bytes))
+                } else {
+                    let mut h = kind.hasher();
+                    serde_json::to_writer(&mut h, &view).expect("views serialize");
+                    (h.finish(), None)
+                }
+            })?;
+            match built {
+                Ok((hash, bytes)) => {
+                    hashes.push(hash);
+                    if let Some(bytes) = bytes {
                         full.push(serde_json::from_slice(&bytes).unwrap_or(Value::Null));
                     }
                 }

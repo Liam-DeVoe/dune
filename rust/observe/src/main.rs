@@ -12,6 +12,7 @@ use observe::live::{self, Game, LiveOptions};
 use observe::record::{self, RecordOptions};
 use observe::replay;
 use observe::report;
+use observe::view_hash::ViewHash;
 use observe::watch::Budgets;
 
 const USAGE: &str = "\
@@ -19,8 +20,10 @@ observe: records games with the reference build and replays them through the wor
 
 Usage:
   observe record --mode bots|fuzz --seed S --game I [--full-views] [--out FILE]
+                 [--view-hash sha256|fold64]
       Record one game and write its trace (JSON Lines) to FILE, or to stdout. This is the
-      command the reference binary runs.
+      command the reference binary runs. Views are hashed with fold64 unless --view-hash says
+      otherwise (sha256 makes a trace that an older recorder's traces compare with).
   observe live --mode bots|fuzz --seed S --games N [--start I] [--jobs J]
                [--reference BIN] [--allow FILE] [--keep-failures DIR] [-v]
       Record games with the reference binary and replay each one through the working tree as it
@@ -150,6 +153,10 @@ fn cmd_record(args: &Args) -> Result<bool, String> {
         seed: args.required("seed")?,
         index: args.required("game")?,
         full_views: args.has("full-views"),
+        view_hash: match args.get("view-hash") {
+            None => ViewHash::LATEST,
+            Some(name) => ViewHash::parse(name).ok_or_else(|| format!("--view-hash: sha256 or fold64, not {name}"))?,
+        },
         budgets: args.budgets()?,
         reach: args.has("reach"),
     };

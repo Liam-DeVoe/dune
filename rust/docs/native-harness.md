@@ -150,14 +150,16 @@ For game version 189 the `--old` files came from a throwaway test run in a check
 
 One game is one JSON Lines stream (`observe/src/trace.rs`). Every line has an `op`:
 
-- `header`: format version, mode, seed, game index, game version, seated humans, and the configuration (for information only, since the engine sees everything through events).
+- `header`: format version, mode, seed, game index, game version, seated humans, the configuration (for information only, since the engine sees everything through events) and `viewHash`, how views are hashed.
 - `query`: `GetApplicableEvents(p, host)` and the type names it returned, or that it threw.
 - `bots`: one round of asking the bots, as the server's `perform_bot_event` does it: levels Highest to Low (and End when bots act as host), players in `order`, first event wins. It lists the bots created in this round with their seeds, and the choice.
 - `event`: an event submitted with validation, with its source (`host`, `bot`, `human`, `fuzz`, `mutate`), its JSON, the result, the rendered message, and the observations.
 - `undo`, `restore`, `dismiss`: `Undo(until)`, `RestoreRecentlyUndone`, `DismissRecentlyUndone`, with observations.
 - `end`: why the game stopped (`gameEnded`, `cap`, `stalled`, `botException`, `panic`, `setupFailed`, `recorderPanic`, `hung`, `memoryLimit`). `recorderPanic` means the recorder's own reads of the game threw, for example a fuzzed state with a null card in a hand; the replay simply stops there. For `hung` and `memoryLimit`, `pending` holds the call that never returned.
 
-Observations are `log` (new messages as `[target, text]`), `logCut` (the log shrank, after undo), `views` (16-hex-digit SHA-256 prefixes of each view's JSON: players in order, then the host, then the observer) and, with `--full-views`, `full` (the views themselves). Views are built, as on the server, from a separate replica that executes accepted events without validation, so building them never changes the game.
+Observations are `log` (new messages as `[target, text]`), `logCut` (the log shrank, after undo), `views` (16-hex-digit hashes of each view's JSON: players in order, then the host, then the observer) and, with `--full-views`, `full` (the views themselves). Views are built, as on the server, from a separate replica that executes accepted events without validation, so building them never changes the game.
+
+The hash of a view is `fold64` (`observe/src/view_hash.rs`), a 64-bit multiply-and-fold hash defined in that file, so it never changes with a crate or compiler version. Traces recorded before 2026-11-16 have no `viewHash` and hold the first 8 bytes of each view's SHA-256. The replay hashes views the way the trace's header says, so those traces and the references that record them still work. `record --view-hash sha256` records the old way. `compare-refs` uses it when one recorder writes `fold64` and the other SHA-256: it records the newer one's game again with `--view-hash sha256`. The view JSON goes straight into the hasher, without a buffer.
 
 ## How games are made
 

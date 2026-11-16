@@ -10,9 +10,10 @@ use std::time::Instant;
 
 use crate::allow::Allow;
 use crate::compare::{self, show, Diff};
-use crate::live::{record_with_reference, Game, GameResult};
+use crate::live::{record_with_reference, record_with_reference_args, Game, GameResult};
 use crate::replay::{Mismatch, Outcome};
 use crate::trace::{self, Line};
+use crate::view_hash::ViewHash;
 use crate::watch::Budgets;
 
 /// How reports name the two sides.
@@ -35,6 +36,15 @@ pub struct Options {
 fn parse(trace: &[u8]) -> Result<Vec<Line>, String> {
     let text = std::str::from_utf8(trace).map_err(|e| e.to_string())?;
     text.lines().enumerate().filter(|(_, l)| !l.trim().is_empty()).map(|(i, l)| serde_json::from_str(l).map_err(|e| format!("line {}: {e}", i + 1))).collect()
+}
+
+/// How the views of a trace are hashed, from its header.
+fn view_hash(trace: &[u8]) -> Option<ViewHash> {
+    let first = trace.split(|b| *b == b'\n').next()?;
+    match serde_json::from_slice(first) {
+        Ok(Line::Header(h)) => Some(h.view_hash),
+        _ => None,
+    }
 }
 
 /// Names the viewers of `n` views: the players, then the host, then an observer (session.rs).
@@ -63,6 +73,9 @@ fn compare_line(a: &Line, b: &Line, allow: &Allow) -> Result<(), Diff> {
             let key = |h: &trace::Header| show(&(&h.mode, h.seed, h.index, h.version, &h.seated));
             if key(x) != key(y) {
                 return Err(Diff::new("header", format!("mode, seed, game, version, seated: {}", key(x)), key(y)));
+            }
+            if x.view_hash != y.view_hash {
+                return Err(Diff::new("header", format!("view hash {}", x.view_hash.name()), format!("view hash {}", y.view_hash.name())));
             }
             Ok(())
         }
@@ -147,8 +160,20 @@ fn check_game(o: &Options, g: &Game) -> (GameResult, Option<(Vec<u8>, Vec<u8>)>)
     let start = Instant::now();
     let done = |outcome, traces| (GameResult { game: g.clone(), outcome, trace: None, seconds: start.elapsed().as_secs_f64() }, traces);
     let record = |full| -> Result<(Vec<u8>, Vec<u8>), String> {
-        let a = record_with_reference(&o.a, g, full, &o.budgets).map_err(|e| format!("A: {e}"))?;
-        let b = record_with_reference(&o.b, g, full, &o.budgets).map_err(|e| format!("B: {e}"))?;
+        let mut a = record_with_reference(&o.a, g, full, &o.budgets).map_err(|e| format!("A: {e}"))?;
+        let mut b = record_with_reference(&o.b, g, full, &o.budgets).map_err(|e| format!("B: {e}"))?;
+        // A recorder from before `--view-hash` hashes views with SHA-256. A newer one is asked
+        // to do the same, so their view hashes compare.
+        let (ha, hb) = (view_hash(&a), view_hash(&b));
+        if ha != hb {
+            let sha = ["--view-hash", ViewHash::Sha256.name()];
+            if ha != Some(ViewHash::Sha256) {
+                a = record_with_reference_args(&o.a, g, full, &sha, &o.budgets).map_err(|e| format!("A: {e}"))?;
+            }
+            if hb != Some(ViewHash::Sha256) {
+                b = record_with_reference_args(&o.b, g, full, &sha, &o.budgets).map_err(|e| format!("B: {e}"))?;
+            }
+        }
         Ok((a, b))
     };
     let (a, b) = match record(false) {

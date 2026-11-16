@@ -48,12 +48,18 @@ pub struct GameResult {
 
 /// Runs the reference recorder for one game and returns its trace.
 pub fn record_with_reference(reference: &Path, g: &Game, full_views: bool, budgets: &Budgets) -> Result<Vec<u8>, String> {
+    record_with_reference_args(reference, g, full_views, &[], budgets)
+}
+
+/// [`record_with_reference`] with more arguments for `record`.
+pub fn record_with_reference_args(reference: &Path, g: &Game, full_views: bool, extra: &[&str], budgets: &Budgets) -> Result<Vec<u8>, String> {
     let mut c = Command::new(reference);
     c.args(["record", "--mode", &g.mode, "--seed", &g.seed.to_string(), "--game", &g.index.to_string()])
         .args(["--hang-seconds", &budgets.hang.as_secs().to_string(), "--memory-mb", &(budgets.memory >> 20).to_string()]);
     if full_views {
         c.arg("--full-views");
     }
+    c.args(extra);
     let out = c.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).output().map_err(|e| format!("cannot run the reference {}: {e}", reference.display()))?;
     if !out.status.success() {
         let err = String::from_utf8_lossy(&out.stderr);

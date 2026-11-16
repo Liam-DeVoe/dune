@@ -2,8 +2,8 @@ use crate::prelude::*;
 
 /// Alliance offers, card trades between allies, and what each faction allows its ally.
 pub struct Alliances {
-    pub current_alliance_offers: Vec<Rc<AllianceOffered>>,
-    pub current_card_trade_offer: Option<Rc<CardTraded>>,
+    pub current_alliance_offers: Vec<AllianceOffer>,
+    pub current_card_trade_offer: Option<CardTradeOffer>,
     pub phase_before_card_trade: Option<Phase>,
     pub last_turn_card_was_traded: Option<Turn>,
     pub permitted_use_of_ally_spice: IndexMap<Faction, i32>,
@@ -23,6 +23,40 @@ pub struct Alliances {
     pub richese_allows_use_of_no_field: bool,
     pub moritani_allows_keeping_cards: bool,
     pub ecaz_shares_ambassadors: bool,
+}
+
+/// An open alliance offer (`AllianceOffered`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct AllianceOffer {
+    pub initiator: Option<Faction>,
+    pub player: Option<PlayerId>,
+    pub target: Option<Faction>,
+}
+
+impl AllianceOffer {
+    /// The offering player; panics for an offer without one.
+    #[track_caller]
+    pub fn player(&self) -> PlayerId {
+        self.player.expect("the offer has a player")
+    }
+}
+
+/// The card one ally offers the other (`CardTraded`), until the other answers.
+#[derive(Clone, Debug, PartialEq)]
+pub struct CardTradeOffer {
+    pub initiator: Option<Faction>,
+    pub player: Option<PlayerId>,
+    pub target: Option<Faction>,
+    pub card: Option<TreacheryCard>,
+    pub requested_card: Option<TreacheryCard>,
+}
+
+impl CardTradeOffer {
+    /// The offering player; panics for an offer without one.
+    #[track_caller]
+    pub fn player(&self) -> PlayerId {
+        self.player.expect("the offer has a player")
+    }
 }
 
 impl Alliances {

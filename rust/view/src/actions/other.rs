@@ -179,7 +179,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
             event(e)
         }
         EventType::CardTraded => {
-            let mut e = CardTraded::new(game, faction);
+            let mut e = CardTraded::default();
             e.target = pl.ally;
             event(e)
         }
@@ -189,7 +189,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
             event(e)
         }
         EventType::DealOffered => {
-            let mut e = DealOffered::new(game, faction);
+            let mut e = DealOffered::default();
             // Every target picked: the offer goes to everyone (To is empty).
             e.to = Some(vec![]);
             e.text = Some(String::new());
@@ -335,7 +335,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.to_win = required_opt(m.to_win, &targets);
             m.turn = Turn::new(picker(m.turn.number().into(), 1, game.maximum_turns().number().into()) as u8);
         }),
-        Event::CardTraded(e) => adjust!(e, |m| {
+        Event::CardTraded(e) => adjust!(@plain e, |m| {
             m.target = pl.ally;
             let cards: Vec<TreacheryCard> = CardTraded::valid_cards(game, p).into_iter().collect();
             m.card = required_opt(m.card, &cards);
@@ -355,7 +355,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let targets: Vec<Faction> = game.players_other_than(p).collect();
             m.target = required_opt(m.target, &targets);
         }),
-        Event::DealOffered(e) => adjust!(e, |m| {
+        Event::DealOffered(e) => adjust!(@plain e, |m| {
             let types = DealOffered::get_standard_deal_types(game, p);
             m.type_ = required(m.type_, &types, DealType::None);
             m.end_phase = required(m.end_phase, &deal_end_phases(m.type_), None);

@@ -66,7 +66,7 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Opt
     Some(match t {
         EventType::AllianceOffered => {
             // A required image choice starts at the first target.
-            let mut e = AllianceOffered::new(game, faction);
+            let mut e = AllianceOffered::default();
             if let Some(p) = _v.player {
                 e.target = AllianceOffered::valid_targets(game, p).next();
             }

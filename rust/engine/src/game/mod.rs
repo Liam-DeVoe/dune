@@ -3,7 +3,7 @@
 
 mod alliances;
 pub mod amounts;
-pub use alliances::Alliances;
+pub use alliances::{AllianceOffer, Alliances, CardTradeOffer};
 mod applicable_events;
 mod battalion;
 pub use battalion::*;

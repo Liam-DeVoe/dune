@@ -159,7 +159,7 @@ impl Session {
                     let g = &mut self.game;
                     let evt = bot.decide(g, Priority::ALL[level], &events);
                     if let Some(e) = evt {
-                        return Ok(Some((i, level, HistoryEntry::decided(faction, e))));
+                        return Ok(Some((i, level, e)));
                     }
                 }
             }

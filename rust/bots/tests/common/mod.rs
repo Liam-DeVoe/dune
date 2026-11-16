@@ -25,11 +25,12 @@ use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 
 /// A decision method's result as the goldens write it, for a converted event (returned by value)
-/// or a legacy one: the entry of the bot's faction, "null" for no event.
+/// or a legacy one: the entry of the bot's faction (or the entry a `Resubmitted` decision
+/// names), "null" for no event.
 #[allow(dead_code)]
 pub fn decision<R: treachery_bots::bot::IntoDecision>(bot: &ClassicBot, game: &Game, e: R) -> String {
-    match e.into_event() {
-        Some(e) => treachery_engine::json::serialize(&HistoryEntry::decided(bot.by(game).faction, e)),
+    match e.into_entry(bot.by(game).faction) {
+        Some(e) => treachery_engine::json::serialize(&e),
         None => "null".to_string(),
     }
 }

@@ -1,7 +1,6 @@
 //! Focused tests for alliances, deals, discards and the game status. The comments say which
 //! behavior each test pins down.
 
-use std::rc::Rc;
 use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
@@ -103,11 +102,8 @@ fn resources_your_ally_can_pay_is_capped_by_ally_resources() {
 
 // ---------------------------------------------------------------- Game_Deals / deal events
 
-fn offer(g: &Game, by: Faction, to: Vec<Faction>, price: u16) -> Rc<DealOffered> {
-    let mut o = DealOffered::new(g, by);
-    o.to = Some(to);
-    o.price = price;
-    Rc::new(o)
+fn offer(g: &Game, by: Faction, to: Vec<Faction>, price: u16) -> DealOffer {
+    DealOffer { initiator: Some(by), player: g.get_player(Some(by)), to: Some(to), price, ..Default::default() }
 }
 
 /// Recipients exclude the initiator and the initiator's ally, and respect `To`.
@@ -121,20 +117,20 @@ fn deal_recipients_in_seat_order() {
     assert_eq!(g.deal_recipients(&targeted).collect::<Vec<_>>(), vec![Faction::Fremen]);
 }
 
-/// DealResponses is keyed by the offer object, not its contents.
+/// DealResponses is keyed by the offer (its id), not its contents.
 #[test]
 fn deal_responses_are_keyed_by_identity() {
     let g0 = game_with(&[Faction::Atreides, Faction::Emperor]);
-    let a = offer(&g0, Faction::Atreides, vec![], 1);
-    let b = offer(&g0, Faction::Atreides, vec![], 1);
+    let a = DealOffer { id: DealId(1), ..offer(&g0, Faction::Atreides, vec![], 1) };
+    let b = DealOffer { id: DealId(2), ..offer(&g0, Faction::Atreides, vec![], 1) };
     let mut g = g0;
-    assert!(a.same(&b));
-    g.record_deal_response(&a, Faction::Emperor, false);
-    assert_eq!(g.deal_response(&a, Faction::Emperor), Some(false));
-    assert_eq!(g.deal_response(&b, Faction::Emperor), None);
-    g.record_deal_response(&a, Faction::Emperor, true); // indexer set: overwrites
-    assert!(g.has_responded_to_deal(&a, Faction::Emperor));
-    assert_eq!(g.deal_response(&a, Faction::Emperor), Some(true));
+    assert!(a.same(&b.event()));
+    g.record_deal_response(a.id, Faction::Emperor, false);
+    assert_eq!(g.deal_response(a.id, Faction::Emperor), Some(false));
+    assert_eq!(g.deal_response(b.id, Faction::Emperor), None);
+    g.record_deal_response(a.id, Faction::Emperor, true); // indexer set: overwrites
+    assert!(g.has_responded_to_deal(a.id, Faction::Emperor));
+    assert_eq!(g.deal_response(a.id, Faction::Emperor), Some(true));
 }
 
 /// `Same` compares `To` with SequenceEqual. Under C# 14 that binds to the span
@@ -143,7 +139,7 @@ fn deal_responses_are_keyed_by_identity() {
 fn deal_same_with_null_to_matches_empty_to() {
     let g = game_with(&[Faction::Atreides]);
     let a = offer(&g, Faction::Atreides, vec![], 1);
-    let mut b = DealOffered::new(&g, Faction::Atreides);
+    let mut b = DealOffered::default();
     b.price = 1;
     b.to = None;
     assert!(a.same(&b));
@@ -153,13 +149,18 @@ fn deal_same_with_null_to_matches_empty_to() {
 #[test]
 fn deal_cancellation_removes_matching_offer() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    let a = offer(&g, Faction::Atreides, vec![], 2);
-    a.execute_concrete_event(&mut g).unwrap();
-    g.record_deal_response(&a, Faction::Emperor, false);
+    let a = offer(&g, Faction::Atreides, vec![], 2).event();
+    let by = By::new(&g, Faction::Atreides);
+    a.apply(&mut g, by).unwrap();
+    let id = g.deals.offers[0].id;
+    g.record_deal_response(id, Faction::Emperor, false);
     assert_eq!(g.deals.offers.len(), 1);
-    let c = a.cancellation().unwrap();
+    let c = g.deals.offers[0].cancellation(&g);
+    assert_eq!(c.by, Some(Faction::Atreides));
+    let Event::DealOffered(c) = c.event else { panic!("a cancellation is a DealOffered") };
     assert!(c.cancel);
-    c.execute_concrete_event(&mut g).unwrap();
+    let by = By::new(&g, Faction::Emperor);
+    c.apply(&mut g, by).unwrap();
     assert!(g.deals.offers.is_empty());
     assert!(g.deals.responses.is_empty());
 }
@@ -301,12 +302,10 @@ fn card_trade_offer_must_name_the_ally() {
 
     let offer = |target: Faction| {
         let mut e = CardTraded::default();
-        e.base().initiator.set(Some(Faction::Choam));
-        e.base().player.set(g.get_player(Some(Faction::Choam)));
         e.target = Some(target);
         e.card = Some(cards[0]);
         e.requested_card = None;
-        e.validate(&g).map(|m| m.plain_text())
+        e.validate(&g, By::new(&g, Faction::Choam)).err().map(|m| m.0.plain_text())
     };
     assert_eq!(offer(Faction::Atreides), None);
     assert_eq!(offer(Faction::Guild).as_deref(), Some("You can only trade cards with your ally"));

@@ -1,37 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AllianceOffered {
     pub target: Option<Faction>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for AllianceOffered {
-    fn default() -> Self {
-        AllianceOffered {
-            target: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl AllianceOffered {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // ValidTargets dereferences a null Player only inside its lazy predicate, per element.
-        if !AllianceOffered::valid_targets(game, self.player()).any(|v| Some(v) == self.target) {
-            return Some(express!("Invalid faction"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         (0..g.players.len())
@@ -45,28 +19,29 @@ impl AllianceOffered {
     fn has_passed_in_alliance_phase(g: &Game, p: PlayerId) -> bool {
         matches!(g.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && g.turn.has_acted_or_passed.contains_opt(g.player(p).faction)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let initiator = self.initiator();
-        let matching_offer =
-            game.alliances.current_alliance_offers.iter().find(|x| x.initiator() == self.target && x.target == initiator).cloned();
-        if matching_offer.is_some() {
+impl EventRules for AllianceOffered {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        // ValidTargets dereferences a null Player only inside its lazy predicate, per element.
+        if !AllianceOffered::valid_targets(game, by.player()).any(|v| Some(v) == self.target) {
+            return Err(Rejection(express!("Invalid faction")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let initiator = by.faction;
+        let matching_offer = game.alliances.current_alliance_offers.iter().any(|x| x.initiator == self.target && x.target == initiator);
+        if matching_offer {
             game.make_alliance(initiator.required("initiator")?, self.target.required("target")?);
 
-            loop {
-                let invalid_offer = game.alliances.current_alliance_offers.iter().position(|x| x.by(initiator) || x.initiator() == self.target);
-                let Some(i) = invalid_offer else { break };
-                // List.Remove(invalidOffer): the first occurrence of that object, which is at i.
-                game.alliances.current_alliance_offers.remove(i);
-            }
+            // The new allies' own offers lapse.
+            game.alliances.current_alliance_offers.retain(|x| x.initiator != initiator && x.initiator != self.target);
 
             // Offers to the new allies lapse too; otherwise their makers would wait for an answer that never comes.
-            loop {
-                let lapsed_offer =
-                    game.alliances.current_alliance_offers.iter().position(|x| x.target == initiator || x.target == self.target);
-                let Some(i) = lapsed_offer else { break };
-                game.alliances.current_alliance_offers.remove(i);
-            }
+            game.alliances.current_alliance_offers.retain(|x| x.target != initiator && x.target != self.target);
 
             game.turn.has_acted_or_passed.push(initiator.required("faction")?);
             game.turn.has_acted_or_passed.push(self.target.required("faction")?);
@@ -74,43 +49,15 @@ impl AllianceOffered {
             game.end_nexus_if_everyone_is_done()?;
         } else {
             let m = self
-                .get_message(game)
+                .describe(game, by)
                 .with_log(NexusLog::new(None, Some(NexusAlliance::new(NexusAllianceChange::Offered, initiator, self.target))));
-            self.log_objects(game, vec![m.into()]);
-            game.alliances.current_alliance_offers.push(self.clone());
+            game.log(parts![m]);
+            game.alliances.current_alliance_offers.push(AllianceOffer { initiator, player: by.player, target: self.target });
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " offer an alliance to ", self.target)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " offer an alliance to ", self.target)
     }
-
-}
-
-impl GameEventMethods for AllianceOffered {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AllianceOffered
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AllianceOffered(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AllianceOffered::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AllianceOffered::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AllianceOffered::get_message(self, game)
-    }
-
 }

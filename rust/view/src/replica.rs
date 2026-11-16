@@ -26,7 +26,7 @@ pub struct ViewReplica {
     pub game: Game,
     /// The applicable event types of each viewer (by user id) in the last view built for them.
     /// A draft query must be for one of these.
-    actions: BTreeMap<i32, Vec<GameEventType>>,
+    actions: BTreeMap<i64, Vec<GameEventType>>,
     /// The game's skin, for the text of log lines and prompts: `DefaultSkin.Default` until the
     /// server replaces it with the host's skin (`RequestSetSkin`).
     pub describer: Box<dyn Describer>,
@@ -63,14 +63,14 @@ impl ViewReplica {
     /// named "Scene", seated as `faction` and made host. The other seats have no user, so they
     /// count as bots.
     pub fn scene(savegame: &str, faction: Faction) -> Result<(ViewReplica, Viewer), String> {
-        const SCENE_USER_ID: i32 = 1;
+        const SCENE_USER_ID: i64 = 1;
         let mut replica = ViewReplica::load(savegame)?;
         let player = replica.game.get_player(Some(faction)).ok_or_else(|| format!("{faction} is not in this game"))?;
-        let seat = replica.game.player(player).seat;
+        let seat = replica.game.player(player).seated();
         replica.game.human_seats.insert(seat);
         replica.seating.names.insert(seat, "Scene".to_string());
         replica.seating.seated_users = 1;
-        Ok((replica, Viewer { user_id: SCENE_USER_ID, seat, is_host: true, is_observer: false }))
+        Ok((replica, Viewer { user_id: SCENE_USER_ID, seat: Some(seat), is_host: true, is_observer: false }))
     }
 
     /// Executes an event that the server has accepted, without validating it again.

@@ -1,5 +1,6 @@
 //! What the admin (the user named in `TREACHERY_ADMIN`) may do, and deleting accounts.
 
+use treachery_protocol::UserId;
 use super::{refuse, Answer, CallError, Server};
 use crate::protocol::ErrorCode;
 use crate::time::Time;
@@ -11,7 +12,7 @@ fn message(text: String) -> Answer<String> {
 }
 
 impl Server {
-    fn check_admin(&self, user: i32) -> Result<(), CallError> {
+    fn check_admin(&self, user: UserId) -> Result<(), CallError> {
         if self.is_admin(user) {
             Ok(())
         } else {
@@ -19,14 +20,14 @@ impl Server {
         }
     }
 
-    pub(super) fn set_maintenance(&mut self, user: i32, starts: Time) -> Answer<String> {
+    pub(super) fn set_maintenance(&mut self, user: UserId, starts: Time) -> Answer<String> {
         self.check_admin(user)?;
         self.maintenance = Some(starts);
         message("Maintenance window updated".into())
     }
 
     /// Saves every game with unsaved changes now.
-    pub(super) async fn save_all(&mut self, user: i32) -> Answer<String> {
+    pub(super) async fn save_all(&mut self, user: UserId) -> Answer<String> {
         self.check_admin(user)?;
         let saved = self.save_unsaved().await?;
         message(format!("Saved {saved} of {} running games.", self.games.len()))
@@ -34,25 +35,25 @@ impl Server {
 
     /// Loads the saved games that aren't running (games added to the database by hand, for
     /// example). Running games are kept as they are.
-    pub(super) async fn reload_all(&mut self, user: i32) -> Answer<String> {
+    pub(super) async fn reload_all(&mut self, user: UserId) -> Answer<String> {
         self.check_admin(user)?;
         let (loaded, dropped) = self.load_games(true).await?;
         message(format!("Loaded {loaded} saved games that were not running; {dropped} no longer load. {} games are running.", self.games.len()))
     }
 
-    pub(super) async fn admin_close_game(&mut self, user: i32, game: &str) -> Answer<String> {
+    pub(super) async fn admin_close_game(&mut self, user: UserId, game: &str) -> Answer<String> {
         self.check_admin(user)?;
         self.end_game(game).await?;
         message("Game removed".into())
     }
 
-    pub(super) fn download_game(&self, user: i32, game: &str) -> Answer<String> {
+    pub(super) fn download_game(&self, user: UserId, game: &str) -> Answer<String> {
         self.check_admin(user)?;
         let g = self.games.get(game).ok_or(refuse(ErrorCode::GameNotFound))?;
         Ok(super::storage::savegame(&g.game))
     }
 
-    pub(super) async fn admin_cancel_scheduled_game(&mut self, user: i32, id: &str) -> Answer<String> {
+    pub(super) async fn admin_cancel_scheduled_game(&mut self, user: UserId, id: &str) -> Answer<String> {
         self.check_admin(user)?;
         self.scheduled.remove(id);
         self.services.db.delete_scheduled_game(id).await?;
@@ -61,7 +62,7 @@ impl Server {
 
     /// Users may delete themselves; the admin anyone. The games they created close, they leave
     /// the others, and all their sessions end, which logs out their connections.
-    pub(super) async fn delete_user(&mut self, caller: i32, user: i32) -> Answer<String> {
+    pub(super) async fn delete_user(&mut self, caller: UserId, user: UserId) -> Answer<String> {
         if caller != user && !self.is_admin(caller) {
             return Err(refuse(ErrorCode::NotAdmin));
         }
@@ -81,7 +82,7 @@ impl Server {
         message("User deleted".into())
     }
 
-    pub(super) fn admin_info(&self, user: i32) -> Answer<AdminInfo> {
+    pub(super) fn admin_info(&self, user: UserId) -> Answer<AdminInfo> {
         self.check_admin(user)?;
         Ok(AdminInfo {
             users: self

@@ -19,6 +19,7 @@ mod play;
 mod scene;
 mod storage;
 
+use treachery_protocol::UserId;
 use std::collections::BTreeMap;
 use std::panic::AssertUnwindSafe;
 use std::rc::Rc;
@@ -117,7 +118,7 @@ fn reply<T: serde::Serialize>(answer: Answer<T>) -> Reply {
 /// A session, kept by the digest of its token (`ids::digest`).
 #[derive(Clone, Debug)]
 pub struct Session {
-    pub user: i32,
+    pub user: UserId,
     pub created: Time,
     pub last_used: Time,
 }
@@ -139,7 +140,7 @@ pub struct Presence {
 pub struct RunningGame {
     pub id: String,
     pub name: String,
-    pub creator: i32,
+    pub creator: UserId,
     pub password_hash: Option<String>,
     pub created: Time,
     pub last_activity: Time,
@@ -171,7 +172,7 @@ pub struct RunningGame {
 }
 
 impl RunningGame {
-    fn new(id: String, name: String, creator: i32, game: Game, participation: Participation, now: Time) -> Self {
+    fn new(id: String, name: String, creator: UserId, game: Game, participation: Participation, now: Time) -> Self {
         RunningGame {
             id,
             name,
@@ -202,12 +203,12 @@ pub struct Server {
     services: Services,
     connections: Connections,
     views: GameViews,
-    users: BTreeMap<i32, UserRow>,
+    users: BTreeMap<UserId, UserRow>,
     /// By the digest of the session token.
     sessions: BTreeMap<String, Session>,
     /// The login links of async-play mails, by the digest of their token.
     login_links: BTreeMap<String, LoginLinkRow>,
-    presence: BTreeMap<i32, Presence>,
+    presence: BTreeMap<UserId, Presence>,
     games: BTreeMap<String, RunningGame>,
     scheduled: BTreeMap<String, ScheduledGameRow>,
     /// When the admin announced maintenance.
@@ -384,7 +385,7 @@ impl Server {
             Subscribe { scheduled_game, subscription } => reply::<r::Subscribe>(self.subscribe(user, &scheduled_game, subscription).await),
 
             JoinGame { game, password_hash, seat } => {
-                reply::<r::JoinGame>(self.join_game(connection, user, &game, password_hash.as_deref(), seat.unwrap_or(-1)))
+                reply::<r::JoinGame>(self.join_game(connection, user, &game, password_hash.as_deref(), seat))
             }
             ObserveGame { game, password_hash } => reply::<r::ObserveGame>(self.observe_game(connection, user, &game, password_hash.as_deref())),
             ReconnectGame { game } => reply::<r::ReconnectGame>(self.reconnect_game(connection, user, &game)),
@@ -445,7 +446,7 @@ impl Server {
     }
 
     /// The user the connection is logged in as. A session that expired since ends here.
-    async fn caller(&mut self, connection: ConnectionId) -> Result<i32, CallError> {
+    async fn caller(&mut self, connection: ConnectionId) -> Result<UserId, CallError> {
         let Some((digest, user)) = self.connections.login(connection).map(|(d, u)| (d.to_string(), u)) else {
             return Err(refuse(ErrorCode::NotLoggedIn));
         };
@@ -467,7 +468,7 @@ impl Server {
     }
 
     /// A running game the user takes part in, as a player or an observer.
-    fn participant_of(&self, user: i32, game: &str) -> Result<String, CallError> {
+    fn participant_of(&self, user: UserId, game: &str) -> Result<String, CallError> {
         let game = self.running(game)?;
         if !self.games[&game].participation.is_participant(user) {
             return Err(refuse(ErrorCode::UserNotInGame));
@@ -476,7 +477,7 @@ impl Server {
     }
 
     /// A running game the user plays in. Observers may watch and nothing more.
-    fn player_of(&self, user: i32, game: &str) -> Result<String, CallError> {
+    fn player_of(&self, user: UserId, game: &str) -> Result<String, CallError> {
         let game = self.participant_of(user, game)?;
         if !self.games[&game].participation.is_player(user) {
             return Err(CallError::Refused(ErrorCode::UserNotInGame, "Observers can't do this".into()));
@@ -485,7 +486,7 @@ impl Server {
     }
 
     /// A running game the user hosts.
-    fn host_of(&self, user: i32, game: &str) -> Result<String, CallError> {
+    fn host_of(&self, user: UserId, game: &str) -> Result<String, CallError> {
         let game = self.running(game)?;
         if !self.games[&game].participation.is_host(user) {
             return Err(refuse(ErrorCode::NoHost));
@@ -493,11 +494,11 @@ impl Server {
         Ok(game)
     }
 
-    fn player_name(&self, user: i32) -> String {
+    fn player_name(&self, user: UserId) -> String {
         self.users.get(&user).map(|u| u.player_name.clone()).unwrap_or_default()
     }
 
-    fn is_admin(&self, user: i32) -> bool {
+    fn is_admin(&self, user: UserId) -> bool {
         match (&self.services.settings.admin, self.users.get(&user)) {
             (Some(admin), Some(u)) => *admin == u.name,
             _ => false,

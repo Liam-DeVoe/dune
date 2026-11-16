@@ -1,7 +1,7 @@
 //! Edge cases of alliances, deals, discards and the game status.
 
 use treachery_engine::events::GameEvent;
-use treachery_engine::game::Game;
+use treachery_engine::game::{Game, Seat};
 use treachery_engine::json;
 
 // ReviewA.Establish with AllowedFactionsInPlay [Choam, Atreides, Richese] (same text as ReviewJ.cs).
@@ -11,7 +11,7 @@ const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlay
 fn new_game() -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::of_version(Game::LATEST_VERSION);
-    g.human_seats.insert(2);
+    g.human_seats.insert(Seat::new(2));
     let e = ev(&g, ESTABLISH);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
     g

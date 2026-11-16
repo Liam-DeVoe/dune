@@ -355,7 +355,7 @@ fn dependent_inputs() {
     // Donated: giving from the bank (host only) offers every player and -99..99.
     let mut r = common::load("alliance-allied");
     // `load` makes seat 0's user the host, whichever player sits there.
-    let host_faction = r.game.players.iter().find(|p| p.seat == 0).expect("a player in seat 0").faction;
+    let host_faction = r.game.players.iter().find(|p| p.seat == Some(Seat::new(0))).expect("a player in seat 0").faction;
     let host = common::viewer_of(&r, host_faction.expect("faction"));
     let view = r.view(host);
     let donated = view.actions.iter().find(|a| a.event_type == "Donated").expect("Donated applicable");

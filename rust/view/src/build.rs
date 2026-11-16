@@ -17,12 +17,12 @@ use crate::expr::{self, message};
 pub use crate::log::report_lines;
 use crate::schema::*;
 
-/// Who a view is for, as the server knows them: a user, their seat (-1 for none), and whether
-/// they are a host or an observer.
+/// Who a view is for, as the server knows them: a user (the server's user id), their seat if
+/// they have one, and whether they are a host or an observer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Viewer {
-    pub user_id: i32,
-    pub seat: i32,
+    pub user_id: i64,
+    pub seat: Option<Seat>,
     pub is_host: bool,
     pub is_observer: bool,
 }
@@ -38,7 +38,7 @@ pub struct ResolvedViewer {
 
 impl Viewer {
     pub fn resolve(self, game: &Game) -> ResolvedViewer {
-        let player = game.get_player_by_seat(self.seat);
+        let player = self.seat.and_then(|s| game.get_player_by_seat(s));
         ResolvedViewer { player, faction: player.and_then(|p| game.player(p).faction), is_host: self.is_host, is_observer: self.is_observer }
     }
 }
@@ -48,7 +48,7 @@ impl Viewer {
 #[derive(Clone, Debug)]
 pub struct Seating {
     /// The name of the user in each seat, of the first one when two share a seat.
-    pub names: BTreeMap<i32, String>,
+    pub names: BTreeMap<Seat, String>,
     /// How many users hold a seat or wait for one.
     pub seated_users: i32,
     pub bots_speed: i32,
@@ -67,7 +67,7 @@ impl Seating {
         if game.is_bot(p) {
             "Bot".to_string()
         } else {
-            self.names.get(&game.player(p).seat).cloned().unwrap_or_else(|| "?".to_string())
+            game.player(p).seat.and_then(|s| self.names.get(&s)).cloned().unwrap_or_else(|| "?".to_string())
         }
     }
 }
@@ -138,7 +138,7 @@ fn public_player(game: &Game, s: &Seating, p: PlayerId) -> PublicPlayer {
     let pl = game.player(p);
     let mut out = PublicPlayer {
         faction: name_or_absent(pl.faction),
-        seat: pl.seat,
+        seat: pl.seated(),
         name: s.player_name(game, p),
         is_bot: game.is_bot(p),
         ally: name_or_absent(pl.ally),

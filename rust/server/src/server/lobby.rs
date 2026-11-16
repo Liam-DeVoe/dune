@@ -1,5 +1,6 @@
 //! The lobby: who is around, the running and scheduled games, and chat.
 
+use treachery_protocol::UserId;
 use treachery_engine::enumerations::{Faction, Phase, Ruleset};
 use treachery_engine::enum_type::name_or_absent;
 use treachery_engine::game::Game;
@@ -26,7 +27,7 @@ impl Server {
         }
     }
 
-    pub(super) fn heartbeat(&mut self, user: i32, scope: GameListScope) -> Lobby {
+    pub(super) fn heartbeat(&mut self, user: UserId, scope: GameListScope) -> Lobby {
         let now = self.now();
         self.presence.entry(user).or_insert(Presence { status: UserStatus::Online, last_seen: None }).last_seen = Some(now);
         self.lobby_status(scope, user)
@@ -34,7 +35,7 @@ impl Server {
 
     /// The lobby as `user` sees it. `Active` lists games with recent activity and the user's
     /// own; `All` every game; `None` no games.
-    pub(super) fn lobby_status(&self, scope: GameListScope, user: i32) -> Lobby {
+    pub(super) fn lobby_status(&self, scope: GameListScope, user: UserId) -> Lobby {
         let now = self.now();
         let recently_seen_users = self
             .presence
@@ -134,8 +135,8 @@ impl Server {
             available_seats: game
                 .players
                 .iter()
-                .filter(|p| participation.seat_is_available(p.seat))
-                .map(|p| AvailableSeat { seat: p.seat, faction: name_or_absent(p.faction), is_bot: p.is_bot(game) })
+                .filter(|p| participation.seat_is_available(p.seated()))
+                .map(|p| AvailableSeat { seat: p.seated(), faction: name_or_absent(p.faction), is_bot: p.is_bot(game) })
                 .collect(),
         }
     }
@@ -143,7 +144,7 @@ impl Server {
     #[allow(clippy::too_many_arguments)]
     pub(super) async fn schedule_game(
         &mut self,
-        user: i32,
+        user: UserId,
         starts: Time,
         ruleset: Option<&str>,
         players: i32,
@@ -178,7 +179,7 @@ impl Server {
         Ok(self.lobby_status(GameListScope::Active, user))
     }
 
-    pub(super) async fn cancel_scheduled_game(&mut self, user: i32, id: &str) -> Answer<Lobby> {
+    pub(super) async fn cancel_scheduled_game(&mut self, user: UserId, id: &str) -> Answer<Lobby> {
         let Some(game) = self.scheduled.get(id) else {
             return Err(refuse(ErrorCode::ScheduledGameNotFound));
         };
@@ -190,7 +191,7 @@ impl Server {
         Ok(self.lobby_status(GameListScope::Active, user))
     }
 
-    pub(super) async fn subscribe(&mut self, user: i32, id: &str, subscription: SubscriptionType) -> Answer<Lobby> {
+    pub(super) async fn subscribe(&mut self, user: UserId, id: &str, subscription: SubscriptionType) -> Answer<Lobby> {
         let Some(game) = self.scheduled.get_mut(id) else {
             return Err(refuse(ErrorCode::GameNotFound));
         };
@@ -205,7 +206,7 @@ impl Server {
 
     /// A player's message to everyone in the game, or to one other user in it. A message to
     /// one user goes only to that user and the sender.
-    pub(super) fn chat(&mut self, user: i32, game: &str, to: Option<i32>, body: String) -> Answer<()> {
+    pub(super) fn chat(&mut self, user: UserId, game: &str, to: Option<UserId>, body: String) -> Answer<()> {
         let game = self.player_of(user, game)?;
         let message = ChatMessage { from: user, to, body };
         match to {
@@ -220,7 +221,7 @@ impl Server {
         Ok(())
     }
 
-    pub(super) fn global_chat(&mut self, user: i32, body: String) {
+    pub(super) fn global_chat(&mut self, user: UserId, body: String) {
         self.connections.notify_all(Notification::GlobalChatMessage(GlobalChatMessage { from: user, body }));
     }
 }

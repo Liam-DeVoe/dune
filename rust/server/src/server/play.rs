@@ -1,13 +1,14 @@
 //! Events: validating and executing them, and what follows an event (views, seats, mail,
 //! saving, the bots' next turn, the pause between phases).
 
+use treachery_protocol::UserId;
 use std::time::Duration;
 
 use serde_json::{json, Value};
 use treachery_engine::enumerations::MainPhase;
 use treachery_engine::enum_type::value_or_absent;
 use treachery_engine::events::GameEvent;
-use treachery_engine::game::GameStatus;
+use treachery_engine::game::{GameStatus, Seat};
 use treachery_engine::json::FromJson;
 
 use super::{refuse, Answer, CallError, Server};
@@ -25,7 +26,7 @@ impl Server {
     /// the engine validates it as an action of that player and no other. Starting the game is
     /// for hosts, and the server draws the new game's seed, which decides every deck: a seed
     /// chosen by a player would tell them the cards to come.
-    pub(super) async fn submit_event(&mut self, user: i32, game: &str, mut event: serde_json::Map<String, Value>) -> Answer<()> {
+    pub(super) async fn submit_event(&mut self, user: UserId, game: &str, mut event: serde_json::Map<String, Value>) -> Answer<()> {
         let game = self.player_of(user, game)?;
         let running = &self.games[&game];
         let (g, participation) = (&running.game, &running.participation);
@@ -41,7 +42,7 @@ impl Server {
                 event.insert("Seed".into(), json!((self.services.seeds)()));
             }
             Some("FactionSelected") => {
-                event.insert("Seat".into(), json!(participation.seat_of(user)));
+                event.insert("Seat".into(), json!(Seat::number_or_minus_one(participation.seat_of(user))));
                 event.insert("InitiatorPlayerName".into(), json!(participation.name_of(user)));
             }
             _ => {}
@@ -80,7 +81,7 @@ impl Server {
 
         // Starting the game seats the users, in the order they joined, on the players' seats.
         let seats = matches!(event, GameEvent::EstablishPlayers(_)).then(|| {
-            let mut seats: Vec<(i32, i32)> = g.participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect();
+            let mut seats: Vec<(UserId, Option<Seat>)> = g.participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect();
             for ((_, seat), player) in seats.iter_mut().zip(&g.game.players) {
                 *seat = player.seat;
             }
@@ -157,7 +158,7 @@ impl Server {
             render::format_turn_and_phase(g.game.turn.current_turn.into(), g.game.turn.current_phase)
         };
 
-        let seated: Vec<i32> = g.participation.seated_players.keys().copied().collect();
+        let seated: Vec<UserId> = g.participation.seated_players.keys().copied().collect();
         let mut mails = Vec::new();
         let name = g.name.clone();
         for user in seated {
@@ -200,8 +201,8 @@ impl Server {
         let Some((from, to)) = self.services.settings.stats_mail.clone() else { return };
         let g = &self.games[game];
         let info = self.game_info(g);
-        let players: Vec<(String, i32, i32)> =
-            g.game.players.iter().map(|p| (render::describe_faction(p.faction), p.seat, g.participation.user_in_seat(p.seat))).collect();
+        let players: Vec<(String, Seat, i64)> =
+            g.game.players.iter().map(|p| (render::describe_faction(p.faction), p.seated(), g.participation.user_in_seat(p.seated()).map_or(-1, |u| u.0))).collect();
         let mut body = String::from("<h1>Player table in HTML format</h1>\n<table>\n<thead>\n<tr><th>Faction</th><th>Seat</th><th>UserId</th>\n</thead>\n<tbody>\n");
         for (faction, seat, user) in &players {
             body += &format!("<tr><td>{faction}</td><td>{seat}</td><td>{user}</td></tr>\n");

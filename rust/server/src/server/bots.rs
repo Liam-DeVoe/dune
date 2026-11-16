@@ -1,5 +1,6 @@
 //! The bots that play the seats without a user (protocol.md, Bots).
 
+use treachery_protocol::UserId;
 use std::time::Duration;
 
 use treachery_bots::{BotParameters, ClassicBot, Priority};
@@ -56,7 +57,7 @@ impl Server {
     }
 
     /// Runs the bots' turn now, at any speed but 0. For the game's players.
-    pub(super) async fn nudge_bots(&mut self, user: i32, game: &str) -> Answer<()> {
+    pub(super) async fn nudge_bots(&mut self, user: UserId, game: &str) -> Answer<()> {
         let game = self.player_of(user, game)?;
         match self.bot_turn(&game).await {
             Ok(()) | Err(CallError::Refused(..)) => Ok(()),

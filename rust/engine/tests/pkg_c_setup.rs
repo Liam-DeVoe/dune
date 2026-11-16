@@ -8,7 +8,7 @@ fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
         let mut p = Player::new(Some(*f));
-        p.seat = seat as i32;
+        p.seat = Seat::from_number(seat);
         g.players.push(p);
     }
     g
@@ -183,7 +183,7 @@ fn establish_players_is_deterministic() {
         ev.settings = Some(s);
         Rc::new(ev).execute(&mut g, false, true);
         let factions: Vec<Option<Faction>> = g.players.iter().map(|p| p.faction).collect();
-        let seats: Vec<i32> = g.players.iter().map(|p| p.seat).collect();
+        let seats: Vec<Option<Seat>> = g.players.iter().map(|p| p.seat).collect();
         (factions, seats, g.turn.current_phase)
     };
     let (f1, s1, p1) = run();
@@ -191,7 +191,7 @@ fn establish_players_is_deterministic() {
     assert_eq!((f1.clone(), s1.clone(), p1), (f2, s2, p2));
     let mut sorted = s1.clone();
     sorted.sort();
-    assert_eq!(sorted, vec![0, 1, 2, 3]);
+    assert_eq!(sorted, (0..4).map(Seat::from_number).collect::<Vec<_>>());
     assert!(f1.iter().all(|f| *f != None));
     assert_eq!(p1, Phase::TradingFactions);
 }

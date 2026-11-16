@@ -767,13 +767,13 @@ impl ClassicBot {
         let Some(opponent) = opponent else {
             return false;
         };
-        let first_player_position = game.player(PlayerSequence::determine_first_player(game)).seat;
+        let first_player_position = game.player(PlayerSequence::determine_first_player(game)).seated().number();
         for i in 0..game.maximum_players() {
             let position = (first_player_position + i) % game.maximum_players();
-            if position == game.player(player).seat {
+            if position == game.player(player).seated().number() {
                 return true;
             }
-            if position == game.player(opponent).seat {
+            if position == game.player(opponent).seated().number() {
                 return false;
             }
         }

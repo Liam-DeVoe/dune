@@ -9,6 +9,7 @@
 //! replaced by another object (`RunningGame::generation`), and when it can't be the same game
 //! any more.
 
+use treachery_protocol::UserId;
 use std::collections::{BTreeMap, BTreeSet};
 use std::panic::AssertUnwindSafe;
 
@@ -85,14 +86,14 @@ impl GameViews {
             if p.rebuild {
                 entry.replica = None;
             }
-            let mut targets: BTreeMap<ConnectionId, i32> = if p.all { connections.members(&id) } else { BTreeMap::new() };
+            let mut targets: BTreeMap<ConnectionId, UserId> = if p.all { connections.members(&id) } else { BTreeMap::new() };
             targets.extend(p.callers);
             if targets.is_empty() {
                 continue;
             }
             let built = caught(|| -> Result<Vec<(ConnectionId, String)>, String> {
                 let replica = entry.sync(g)?;
-                let mut by_user: BTreeMap<i32, String> = BTreeMap::new();
+                let mut by_user: BTreeMap<UserId, String> = BTreeMap::new();
                 Ok(targets
                     .into_iter()
                     .map(|(connection, user_id)| {
@@ -140,7 +141,7 @@ impl GameViews {
     }
 
     /// The options and validation of a draft of one of the user's actions.
-    pub fn query_draft(&mut self, g: &RunningGame, user_id: i32, draft: &str) -> Answer<DraftResult> {
+    pub fn query_draft(&mut self, g: &RunningGame, user_id: UserId, draft: &str) -> Answer<DraftResult> {
         let viewer = g.participation.viewer(user_id);
         self.with_replica(g, |replica| {
             if !replica.has_view_for(viewer) {
@@ -156,7 +157,7 @@ impl GameViews {
     }
 
     /// The lines of a report, as the user may see them.
-    pub fn report(&mut self, g: &RunningGame, user_id: i32, index: i32) -> Answer<ReportLines> {
+    pub fn report(&mut self, g: &RunningGame, user_id: UserId, index: i32) -> Answer<ReportLines> {
         self.with_replica(g, |replica| match usize::try_from(index).ok().and_then(|i| replica.report(g.participation.viewer(user_id), i)) {
             Some(lines) => Ok(lines),
             None => Err(CallError::Refused(ErrorCode::InvalidGameEvent, format!("There is no report {index}"))),
@@ -164,7 +165,7 @@ impl GameViews {
     }
 
     /// The events a host can undo to.
-    pub fn undo_list(&mut self, g: &RunningGame, user_id: i32) -> Answer<Vec<UndoEntry>> {
+    pub fn undo_list(&mut self, g: &RunningGame, user_id: UserId) -> Answer<Vec<UndoEntry>> {
         if !g.participation.is_host(user_id) {
             return Err(refuse(ErrorCode::NoHost));
         }
@@ -172,7 +173,7 @@ impl GameViews {
     }
 
     /// The host's view just before event `gap`, without actions.
-    pub fn undo_preview(&mut self, g: &RunningGame, user_id: i32, gap: i32) -> Answer<GameView> {
+    pub fn undo_preview(&mut self, g: &RunningGame, user_id: UserId, gap: i32) -> Answer<GameView> {
         if !g.participation.is_host(user_id) {
             return Err(refuse(ErrorCode::NoHost));
         }

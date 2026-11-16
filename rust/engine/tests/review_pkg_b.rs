@@ -45,7 +45,7 @@ fn new_game(version: i32) -> Game {
     g.rules.active.push(Rule::FremenSpecialForces);
     for (i, f) in FACTIONS.iter().enumerate() {
         let mut p = Player::new(Some(*f));
-        p.seat = i as i32;
+        p.seat = Seat::from_number(i);
         g.players.push(p);
     }
     for i in 0..g.players.len() {
@@ -187,12 +187,12 @@ fn rust_lines() -> Vec<String> {
                     continue;
                 }
                 let mut p = Player::new(Some(FACTIONS[(i as usize) % FACTIONS.len()]));
-                p.seat = i;
+                p.seat = Seat::from_number(i);
                 g.players.push(p);
             }
             g.board.sector_in_storm = (sector >= 0).then(|| Sector::new(sector as u8));
             let res = match catch(|| PlayerSequence::determine_first_player(&g)) {
-                Ok(fp) => g.player(fp).seat.to_string(),
+                Ok(fp) => g.player(fp).seated().to_string(),
                 Err(()) => "exception".to_string(),
             };
             out.push(format!("first {} {} {}", players, sector, res));
@@ -234,7 +234,7 @@ fn determine_first_player() {
 
 fn seat(g: &Game, p: Option<PlayerId>) -> String {
     match p {
-        Some(p) => g.player(p).seat.to_string(),
+        Some(p) => g.player(p).seated().to_string(),
         None => "null".to_string(),
     }
 }
@@ -277,7 +277,7 @@ fn sequence_lines() -> Vec<String> {
             let factions = [Faction::Atreides, Faction::Richese, Faction::Harkonnen, Faction::Emperor, Faction::Choam, Faction::BeneGesserit, Faction::Tleilaxu];
             for i in 0..count {
                 let mut p = Player::new(Some(factions[(i + seed as usize) % factions.len()]));
-                p.seat = if r.below(4) == 0 { r.below(count + 1) as i32 } else { i as i32 };
+                p.seat = Seat::from_number(if r.below(4) == 0 { r.below(count + 1) } else { i });
                 let full = if r.below(3) == 0 { 8 } else { r.below(5) };
                 for c in 0..full {
                     p.treachery_cards.push(cards[c]);

@@ -439,7 +439,7 @@ pub fn seat_in_fixture(fixture: &str, faction: i64) -> i64 {
     use treachery_engine::game::{Game, GameState};
     let state = GameState::load(&fixture_text(fixture)).unwrap();
     let game = Game::load(&state, &Default::default(), false, true).unwrap();
-    game.players.iter().find(|p| treachery_engine::enum_type::value_or_absent(p.faction) as i64 == faction).map(|p| p.seat as i64).expect("the faction plays in the fixture")
+    game.players.iter().find(|p| treachery_engine::enum_type::value_or_absent(p.faction) as i64 == faction).map(|p| i64::from(p.seated().number())).expect("the faction plays in the fixture")
 }
 
 /// The seats of the Emperor and the Atreides in the alliance fixture.

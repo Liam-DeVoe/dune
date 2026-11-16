@@ -6,12 +6,13 @@
 //! Pauses live in memory only: after a restart, an undo or a load, the current pause waits for
 //! the host or for the next event.
 
+use treachery_protocol::UserId;
 use std::collections::BTreeSet;
 use std::rc::Rc;
 use std::time::Duration;
 
 use treachery_engine::enumerations::Phase;
-use treachery_engine::prelude::PlayerId;
+use treachery_engine::prelude::{PlayerId, Seat};
 use treachery_engine::events::EndPhase;
 use treachery_engine::events::GameEvent;
 
@@ -31,9 +32,9 @@ pub struct Pause {
     /// After an undo or a load, until the next event: the host continues.
     pub suspended: bool,
     /// Seats of the players who said they are done.
-    pub done: BTreeSet<i32>,
+    pub done: BTreeSet<Seat>,
     /// Seats of the players holding the countdown.
-    pub holding: BTreeSet<i32>,
+    pub holding: BTreeSet<Seat>,
     pub was_held: bool,
     pub countdown_ends: Option<crate::time::Time>,
     pub countdown_expired: bool,
@@ -47,7 +48,7 @@ pub struct Pause {
 pub type PauseChange = Box<dyn FnOnce(&mut Pause)>;
 
 impl Server {
-    pub(super) async fn phase_done(&mut self, user: i32, game: &str) -> Answer<()> {
+    pub(super) async fn phase_done(&mut self, user: UserId, game: &str) -> Answer<()> {
         self.change_pause(user, game, |pause, seat| {
             pause.done.insert(seat);
             pause.holding.remove(&seat);
@@ -56,7 +57,7 @@ impl Server {
     }
 
     /// Holds the running countdown; does nothing when none is running.
-    pub(super) async fn phase_hold(&mut self, user: i32, game: &str) -> Answer<()> {
+    pub(super) async fn phase_hold(&mut self, user: UserId, game: &str) -> Answer<()> {
         self.change_pause(user, game, |pause, seat| {
             if pause.countdown_ends.is_some() && !pause.countdown_expired {
                 pause.holding.insert(seat);
@@ -66,7 +67,7 @@ impl Server {
         .await
     }
 
-    pub(super) async fn phase_release(&mut self, user: i32, game: &str) -> Answer<()> {
+    pub(super) async fn phase_release(&mut self, user: UserId, game: &str) -> Answer<()> {
         self.change_pause(user, game, |pause, seat| {
             pause.holding.remove(&seat);
         })
@@ -75,7 +76,7 @@ impl Server {
 
     /// The host's Continue: ends the pause the host saw, at `event_number` events. If the game
     /// has moved on since, it does nothing.
-    pub(super) async fn phase_continue(&mut self, user: i32, game: &str, event_number: i32) -> Answer<()> {
+    pub(super) async fn phase_continue(&mut self, user: UserId, game: &str, event_number: i32) -> Answer<()> {
         let game = self.host_of(user, game)?;
         let event = {
             let running = &self.games[&game];
@@ -88,11 +89,11 @@ impl Server {
         Ok(())
     }
 
-    async fn change_pause(&mut self, user: i32, game: &str, change: impl FnOnce(&mut Pause, i32) + 'static) -> Answer<()> {
+    async fn change_pause(&mut self, user: UserId, game: &str, change: impl FnOnce(&mut Pause, Seat) + 'static) -> Answer<()> {
         let game = self.player_of(user, game)?;
         let running = &self.games[&game];
         let g = &running.game;
-        let Some(seat) = running.participation.player_of(g, user).map(|p| g.player(p).seat) else {
+        let Some(seat) = running.participation.player_of(g, user).map(|p| g.player(p).seated()) else {
             return Err(CallError::Refused(ErrorCode::InvalidGameEvent, "Only players with a faction can do this".into()));
         };
         self.update_pause(&game, None, Some(Box::new(move |pause: &mut Pause| change(pause, seat)))).await?;
@@ -137,7 +138,7 @@ impl Server {
                 pause.suspended = false;
                 pause.bots_passed = false;
                 if let Some(p) = executed.player_opt() {
-                    let seat = state.player(p).seat;
+                    let seat = state.player(p).seated();
                     pause.holding.remove(&seat);
                     if pause_rules::finishes_pause(state, executed) {
                         pause.done.insert(seat);
@@ -160,11 +161,11 @@ impl Server {
                 let waited: Vec<PlayerId> = requirements
                     .players()
                     .into_iter()
-                    .filter(|&p| !pause.done.contains(&state.player(p).seat) && !(state.is_bot(p) && bots_done))
+                    .filter(|&p| !pause.done.contains(&state.player(p).seated()) && !(state.is_bot(p) && bots_done))
                     .collect();
-                let waiting_for: Vec<i32> = waited.iter().map(|&p| state.player(p).seat).collect();
+                let waiting_for: Vec<Seat> = waited.iter().map(|&p| state.player(p).seated()).collect();
                 let reasons: Vec<PauseWait> =
-                    waited.iter().map(|&p| PauseWait { seat: state.player(p).seat, reasons: requirements.reasons_of(p) }).collect();
+                    waited.iter().map(|&p| PauseWait { seat: state.player(p).seated(), reasons: requirements.reasons_of(p) }).collect();
                 if requirements.countdown && pause.countdown_ends.is_none() {
                     pause.countdown_ends = Some(now + chrono::Duration::milliseconds(i64::from(pause_rules::COUNTDOWN_MILLISECONDS)));
                     countdown_started = Some(pause.id);

@@ -1,7 +1,8 @@
 //! Creating, loading and closing games; joining, observing and leaving them; seats, hosts and
 //! the host's other controls.
 
-use treachery_engine::game::Game;
+use treachery_protocol::UserId;
+use treachery_engine::game::{Game, Seat};
 use treachery_engine::game::GameSettings;
 use treachery_engine::json::FromJson;
 use treachery_engine::game::GameState;
@@ -35,7 +36,7 @@ impl Server {
     }
 
     /// The connection follows the game, and gets its view after this call.
-    fn follow(&mut self, game: &str, connection: ConnectionId, user: i32) {
+    fn follow(&mut self, game: &str, connection: ConnectionId, user: UserId) {
         self.connections.follow(game, connection, user);
         self.connections.view_for(game, connection, user);
     }
@@ -43,7 +44,7 @@ impl Server {
     pub(super) async fn create_game(
         &mut self,
         connection: ConnectionId,
-        user: i32,
+        user: UserId,
         name: Option<&str>,
         password_hash: Option<&str>,
         savegame: Option<&str>,
@@ -67,7 +68,7 @@ impl Server {
         running.password_hash = password_hash.filter(|p| !p.is_empty()).map(str::to_string);
         running.skin = skin.filter(|s| !s.is_empty()).map(str::to_string);
         running.generation = self.new_generation();
-        running.participation.add_player(&mut running.game, user, &player_name, -1);
+        running.participation.add_player(&mut running.game, user, &player_name, None);
         running.participation.set_or_unset_host(user);
         self.games.insert(id.clone(), running);
         self.follow(&id, connection, user);
@@ -80,7 +81,7 @@ impl Server {
         Ok(info)
     }
 
-    pub(super) async fn load_game(&mut self, user: i32, game: &str, savegame: &str, skin: Option<&str>) -> Answer<()> {
+    pub(super) async fn load_game(&mut self, user: UserId, game: &str, savegame: &str, skin: Option<&str>) -> Answer<()> {
         let game = self.host_of(user, game)?;
         let generation = self.new_generation();
         let g = self.games.get_mut(&game).expect("checked");
@@ -107,8 +108,8 @@ impl Server {
     }
 
     /// Seats the game's players. Only users who play in the game can be seated, each on a seat
-    /// of the game's players or on none (-1), and no two on the same seat.
-    pub(super) fn assign_seats(&mut self, user: i32, game: &str, seats: Vec<(i32, i32)>) -> Answer<()> {
+    /// of the game's players or on none, and no two on the same seat.
+    pub(super) fn assign_seats(&mut self, user: UserId, game: &str, seats: Vec<(UserId, Option<Seat>)>) -> Answer<()> {
         let game = self.host_of(user, game)?;
         {
             let g = &self.games[&game];
@@ -117,10 +118,10 @@ impl Server {
                 if !g.participation.is_player(*user) {
                     return Err(refuse(ErrorCode::UserNotInGame));
                 }
-                if *seat != -1 && !g.game.players.iter().any(|p| p.seat == *seat) {
+                if let Some(seat) = seat.filter(|s| g.game.get_player_by_seat(*s).is_none()) {
                     return bad(format!("There is no seat {seat}"));
                 }
-                if seats[..i].iter().any(|(u, s)| u == user || (*s == *seat && *seat != -1)) {
+                if seats[..i].iter().any(|(u, s)| u == user || (s.is_some() && s == seat)) {
                     return bad("Each user and each seat may be assigned once".into());
                 }
             }
@@ -138,7 +139,7 @@ impl Server {
     /// A user who already plays in the game only follows it again. Others need the password, an
     /// open seat (or none in particular before the game starts) and not to have been kicked.
     /// Taking a seat that another user holds removes that user.
-    pub(super) fn join_game(&mut self, connection: ConnectionId, user: i32, game: &str, password_hash: Option<&str>, seat: i32) -> Answer<GameInitInfo> {
+    pub(super) fn join_game(&mut self, connection: ConnectionId, user: UserId, game: &str, password_hash: Option<&str>, seat: Option<Seat>) -> Answer<GameInitInfo> {
         let game = self.running(game)?;
         let player_name = self.player_name(user);
         let g = self.games.get_mut(&game).expect("checked");
@@ -150,15 +151,14 @@ impl Server {
             }
             // A particular seat must be one the host opened; before the game starts, users join
             // without one.
-            if !g.participation.is_open(&g.game, seat) || (seat >= 0 && !g.participation.seat_is_available(seat)) {
+            if !g.participation.is_open(&g.game, seat) || seat.is_some_and(|s| !g.participation.seat_is_available(s)) {
                 return Err(refuse(ErrorCode::SeatNotAvailableNotOpen));
             }
             if g.participation.was_kicked(user) {
                 return Err(refuse(ErrorCode::SeatNotAvailableKicked));
             }
-            if seat >= 0 {
-                let previous = g.participation.user_in_seat(seat);
-                if previous >= 0 {
+            if let Some(seat) = seat {
+                if let Some(previous) = g.participation.user_in_seat(seat) {
                     g.participation.remove_user(&mut g.game, previous, false);
                     self.connections.notify(&game, Notification::RemoveUser { user: previous, kick: false });
                 }
@@ -182,7 +182,7 @@ impl Server {
         Ok(self.init_info(&game))
     }
 
-    pub(super) fn observe_game(&mut self, connection: ConnectionId, user: i32, game: &str, _password_hash: Option<&str>) -> Answer<GameInitInfo> {
+    pub(super) fn observe_game(&mut self, connection: ConnectionId, user: UserId, game: &str, _password_hash: Option<&str>) -> Answer<GameInitInfo> {
         let game = self.running(game)?;
         let player_name = self.player_name(user);
         let g = self.games.get_mut(&game).expect("checked");
@@ -204,19 +204,19 @@ impl Server {
     }
 
     /// A new connection of a player or observer follows the game again.
-    pub(super) fn reconnect_game(&mut self, connection: ConnectionId, user: i32, game: &str) -> Answer<GameInitInfo> {
+    pub(super) fn reconnect_game(&mut self, connection: ConnectionId, user: UserId, game: &str) -> Answer<GameInitInfo> {
         let game = self.participant_of(user, game)?;
         self.follow(&game, connection, user);
         Ok(self.init_info(&game))
     }
 
-    pub(super) fn game_state(&mut self, connection: ConnectionId, user: i32, game: &str) -> Answer<GameInitInfo> {
+    pub(super) fn game_state(&mut self, connection: ConnectionId, user: UserId, game: &str) -> Answer<GameInitInfo> {
         let game = self.participant_of(user, game)?;
         self.connections.view_for(&game, connection, user);
         Ok(self.init_info(&game))
     }
 
-    pub(super) fn leave_game(&mut self, user: i32, game: &str) -> Answer<Lobby> {
+    pub(super) fn leave_game(&mut self, user: UserId, game: &str) -> Answer<Lobby> {
         let game = self.participant_of(user, game)?;
         self.remove_from_game(&game, user);
         Ok(self.lobby_status(GameListScope::Active, user))
@@ -224,11 +224,11 @@ impl Server {
 
     /// Takes a user out of a running game. When the last host leaves, every other seated
     /// player becomes a host.
-    pub(super) fn remove_from_game(&mut self, game: &str, user: i32) {
+    pub(super) fn remove_from_game(&mut self, game: &str, user: UserId) {
         let game = game.to_string();
         let g = self.games.get_mut(&game).expect("running game");
         if g.participation.is_host(user) && g.participation.number_of_hosts() == 1 {
-            let others: Vec<i32> = g.participation.seated_players.keys().copied().filter(|u| *u != user).collect();
+            let others: Vec<UserId> = g.participation.seated_players.keys().copied().filter(|u| *u != user).collect();
             for other in others {
                 let g = self.games.get_mut(&game).expect("checked");
                 g.participation.set_or_unset_host(other);
@@ -244,7 +244,7 @@ impl Server {
     }
 
     /// Removes another user of the game for good.
-    pub(super) fn kick(&mut self, host: i32, game: &str, user: i32) -> Answer<()> {
+    pub(super) fn kick(&mut self, host: UserId, game: &str, user: UserId) -> Answer<()> {
         let game = self.host_of(host, game)?;
         if user == host || !self.games[&game].participation.is_participant(user) {
             return Err(refuse(ErrorCode::UserNotInGame));
@@ -259,7 +259,7 @@ impl Server {
     }
 
     /// Makes a player of the game a host, or no longer one.
-    pub(super) fn set_or_unset_host(&mut self, host: i32, game: &str, user: i32) -> Answer<()> {
+    pub(super) fn set_or_unset_host(&mut self, host: UserId, game: &str, user: UserId) -> Answer<()> {
         let game = self.host_of(host, game)?;
         let g = self.games.get_mut(&game).expect("checked");
         if !g.participation.is_player(user) {
@@ -275,9 +275,9 @@ impl Server {
     }
 
     /// Opens or closes the seat of one of the game's players.
-    pub(super) fn open_or_close_seat(&mut self, user: i32, game: &str, seat: i32) -> Answer<()> {
+    pub(super) fn open_or_close_seat(&mut self, user: UserId, game: &str, seat: Seat) -> Answer<()> {
         let game = self.host_of(user, game)?;
-        if !self.games[&game].game.players.iter().any(|p| p.seat == seat) {
+        if self.games[&game].game.get_player_by_seat(seat).is_none() {
             return Err(CallError::Refused(ErrorCode::InvalidGameEvent, format!("There is no seat {seat}")));
         }
         self.games.get_mut(&game).expect("checked").participation.open_or_close_seat(seat);
@@ -287,7 +287,7 @@ impl Server {
     }
 
     /// The settings the host is choosing before the game starts, in the savegame format.
-    pub(super) fn update_settings(&mut self, user: i32, game: &str, settings: &serde_json::Value) -> Answer<()> {
+    pub(super) fn update_settings(&mut self, user: UserId, game: &str, settings: &serde_json::Value) -> Answer<()> {
         let game = self.host_of(user, game)?;
         let settings = GameSettings::from_json(settings).map_err(|e| CallError::Refused(ErrorCode::BadCall, format!("settings: {}", e.message)))?;
         let g = self.games.get_mut(&game).expect("checked");
@@ -301,7 +301,7 @@ impl Server {
     /// Removes everyone from a game and forgets it.
     pub(super) async fn end_game(&mut self, game: &str) -> Result<(), CallError> {
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
-        let users: Vec<i32> = g.participation.player_names.keys().copied().collect();
+        let users: Vec<UserId> = g.participation.player_names.keys().copied().collect();
         for user in users {
             let g = self.games.get_mut(game).expect("present");
             g.participation.remove_user(&mut g.game, user, true);
@@ -313,7 +313,7 @@ impl Server {
         Ok(())
     }
 
-    pub(super) async fn close_game(&mut self, user: i32, game: &str) -> Answer<Lobby> {
+    pub(super) async fn close_game(&mut self, user: UserId, game: &str) -> Answer<Lobby> {
         let game = self.running(game)?;
         if self.games[&game].creator != user {
             return Err(refuse(ErrorCode::NoCreator));
@@ -322,14 +322,14 @@ impl Server {
         Ok(self.lobby_status(GameListScope::Active, user))
     }
 
-    pub(super) fn set_skin(&mut self, user: i32, game: &str, skin: String) -> Answer<()> {
+    pub(super) fn set_skin(&mut self, user: UserId, game: &str, skin: String) -> Answer<()> {
         let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").skin = Some(skin.clone());
         self.connections.notify(&game, Notification::SetSkin { skin });
         Ok(())
     }
 
-    pub(super) fn set_timer(&mut self, user: i32, game: &str, value: i32) -> Answer<()> {
+    pub(super) fn set_timer(&mut self, user: UserId, game: &str, value: i32) -> Answer<()> {
         let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").timer = value;
         self.connections.notify(&game, Notification::SetTimer { value });
@@ -338,7 +338,7 @@ impl Server {
 
     /// The game's members hear of the new speed. A speed is 0 (paused) to [`MAX_BOT_SPEED`]: a
     /// faster one would have the bots take the game thread from every other game.
-    pub(super) fn set_bot_speed(&mut self, user: i32, game: &str, speed: i32) -> Answer<()> {
+    pub(super) fn set_bot_speed(&mut self, user: UserId, game: &str, speed: i32) -> Answer<()> {
         let game = self.host_of(user, game)?;
         if !(0..=MAX_BOT_SPEED).contains(&speed) {
             return Err(CallError::Refused(ErrorCode::InvalidGameEvent, format!("The bot speed must be 0 to {MAX_BOT_SPEED}")));
@@ -350,7 +350,7 @@ impl Server {
         Ok(())
     }
 
-    pub(super) async fn undo(&mut self, user: i32, game: &str, until: i32) -> Answer<()> {
+    pub(super) async fn undo(&mut self, user: UserId, game: &str, until: i32) -> Answer<()> {
         let game = self.host_of(user, game)?;
         if until < 0 {
             return Err(CallError::Refused(ErrorCode::InvalidGameEvent, format!("can't undo to event {until}")));
@@ -360,14 +360,14 @@ impl Server {
         Ok(())
     }
 
-    pub(super) async fn restore_undone(&mut self, user: i32, game: &str) -> Answer<()> {
+    pub(super) async fn restore_undone(&mut self, user: UserId, game: &str) -> Answer<()> {
         let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").game.restore_recently_undone();
         self.after_undo(&game);
         Ok(())
     }
 
-    pub(super) async fn dismiss_undone(&mut self, user: i32, game: &str) -> Answer<()> {
+    pub(super) async fn dismiss_undone(&mut self, user: UserId, game: &str) -> Answer<()> {
         let game = self.host_of(user, game)?;
         self.games.get_mut(&game).expect("checked").game.dismiss_recently_undone();
         self.after_undo(&game);

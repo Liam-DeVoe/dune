@@ -21,7 +21,7 @@ use treachery_engine::prelude::*;
 use treachery_view::build::Viewer;
 use treachery_view::replica::ViewReplica;
 
-const SCENE_USER_ID: i32 = 1;
+const SCENE_USER_ID: i64 = 1;
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -130,5 +130,5 @@ fn client_auto_pass(replica: &mut ViewReplica, viewer: Option<Faction>, view: &t
 /// The observer scene: user 1, named "Scene", observing, not host.
 fn observer_scene(savegame: &str) -> Result<(ViewReplica, Viewer), String> {
     let replica = ViewReplica::load(savegame)?;
-    Ok((replica, Viewer { user_id: SCENE_USER_ID, seat: -1, is_host: false, is_observer: true }))
+    Ok((replica, Viewer { user_id: SCENE_USER_ID, seat: None, is_host: false, is_observer: true }))
 }

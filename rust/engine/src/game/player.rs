@@ -4,7 +4,8 @@ use crate::prelude::*;
 pub struct Player {
     /// `None` until the player has a faction.
     pub faction: Option<Faction>,
-    pub seat: i32,
+    /// `None` until `EstablishPlayers` draws the seats, right after it creates the players.
+    pub seat: Option<Seat>,
     pub resources: i32,
     pub extortion: i32,
     pub bribes: i32,
@@ -48,7 +49,7 @@ impl Player {
     pub fn new(faction: Option<Faction>) -> Self {
         Player {
             faction,
-            seat: -1,
+            seat: None,
             resources: 0,
             extortion: 0,
             bribes: 0,

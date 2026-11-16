@@ -214,7 +214,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Game
             // Named and seated as the player.
             let mut e = FactionSelected::new(game);
             e.initiator_player_name = Some(s.player_name(game, p));
-            e.seat = pl.seat;
+            e.seat = pl.seated().number();
             event(e)
         }
         GameEventType::NexusPlayed => other_nexus::default_draft(game, faction),
@@ -398,7 +398,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         GameEvent::FactionSelected(e) => adjust!(e, |m| {
             let fs: Vec<Faction> = FactionSelected::valid_factions(game).collect();
             m.faction = required_opt(m.faction, &fs);
-            m.seat = pl.seat;
+            m.seat = pl.seated().number();
             m.initiator_player_name = Some(s.player_name(game, p));
         }),
         GameEvent::FactionTradeOffered(e) => adjust!(e, |m| {

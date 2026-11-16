@@ -400,7 +400,7 @@ fn flash() {
 #[test]
 fn prompt_continue() {
     let mut r = load("blow");
-    let host = r.game.players.iter().find(|p| p.seat == 0).unwrap().faction;
+    let host = r.game.players.iter().find(|p| p.seat == Some(Seat::new(0))).unwrap().faction;
     let view = r.view(viewer_of(&r, host.expect("faction")));
     let end = view.actions.iter().find(|a| a.event_type == "EndPhase").expect("the host may end the blow report");
     assert_eq!(end.options, Some(ActionOptions::Simple { title: None, confirm_label: "Continue".into(), alert: false, allow_auto_confirm: false }));

@@ -7,6 +7,7 @@ description = "Every message between the web client and the server: calls, repli
 
 [dependencies]
 # The game view, draft results and reports that some replies and notifications carry.
+treachery-engine = { path = "../engine" }
 treachery-view = { path = "../view" }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }

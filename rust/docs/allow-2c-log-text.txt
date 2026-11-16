@@ -1,0 +1,49 @@
+# Allow rules for reviewing the log text fixes of rewrite-plan.md 2c with `observe live --allow`
+# (native-harness.md, "Deliberate behavior changes"). Each fix lists its old and its new text.
+# Views also show the log and the status texts, so view differences remain and are attributed by
+# replaying with the fixes reverted. Drop this file once the reference is rebuilt with 2c.
+
+# "A en B"
+log * discard piles A en B into a new deck.
+log * discard piles A and B into a new deck.
+log Discovery were removed from the game
+log Discovery cards were removed from the game
+# Karama played as a card: doubled space
+log * play  a Karama card
+log * play a Karama card
+# Ornithopter: doubled spaces and a trailing space
+log * to  move an additional group of forces
+log * to move an additional group of forces
+log * to  gain movement speed
+log * to gain movement speed
+log * discovert token to gain movement speed
+log * discovery token to gain movement speed
+# Richese auction type
+log * put select a * auction*
+log * select a * auction*
+# Guild Nexus card: the player object printed as "Treachery.Shared.Player" with no space
+log Treachery.Shared.Playerget *
+log * get * from *
+# Card won: "(7 Spice)  →" and the empty card number of a Black Market sale
+log * get card *
+# Deal text "top Spicecard"
+log * Share prescience of the top Spicecard*
+log * Share prescience of the top Spice card*
+# Suk Graduate: " and " with nothing before it
+log * rescues *
+log * to reveal amount of weapons, defenses and *
+log * to reveal the amount of weapons, defenses and *
+log * forces by their own
+log * forces with their own
+log * be able to flip advisor to fighters during *
+log * be able to flip advisors to fighters during *
+# The house rule "Alliances are  broken at the start of each alliance phase"
+log House rules: *
+
+# Rejection messages
+message Place * or less forces
+message Place * or fewer forces
+message Invalid decision*
+message You need to decide to either force keeping or discarding cards*
+message Select the source of in total *
+message Select the sources of * in total

@@ -5,24 +5,27 @@ use crate::messages::part::Part;
 /// and ambassadors offer during it, and the Guild's shipment permissions.
 pub struct ShipMoveState {
     pub shipment_and_move_sequence: Option<PlayerSequence>,
-    pub last_shipment_or_movement: Option<Event>,
+    /// Where the last shipment or move took forces, for the Bene Gesserit's reaction to it.
+    pub last_shipment_or_movement: Option<ShipmentOrMovement>,
     pub intrusions: Vec<Intrusion>,
     pub ships_tech_token_income: bool,
-    pub recent_moves: Vec<Event>,
+    /// The moves of this phase, for the arrows on the board.
+    pub recent_moves: Vec<RecentMove>,
     pub current_no_field_value: i32,
     pub latest_revealed_no_field_value: i32,
     // In the order the Guild granted them.
     pub shipment_permissions: IndexMap<Faction, ShipmentPermission>,
     pub factions_with_ornithopters_at_start_of_movement: Vec<Faction>,
     pub beginning_of_shipment_and_move_phase: bool,
-    pub current_karma_shipment_prevention: Option<Rc<KarmaShipmentPrevention>>,
+    pub current_karma_shipment_prevention: Option<ShipmentPrevention>,
     pub chosen_destinations_with_allies: Vec<Territory>,
     pub current_player_may_perform_extra_move: bool,
     pub bene_gesserit_may_accompany: bool,
     pub phase_before_caravan_caused_intrusion: Option<Phase>,
     pub phase_before_revival_caused_intrusion: Option<Phase>,
-    pub current_flight_used: Option<Rc<FlightUsed>>,
-    pub current_flight_discovery_used: Option<Rc<FlightDiscoveryUsed>>,
+    pub current_flight_used: Option<FlightUse>,
+    /// Who used the Flight discovery token for their next move.
+    pub current_flight_discovery_used: Option<By>,
     pub current_ambassador_activated: Option<Rc<AmbassadorActivated>>,
     pub alliance_by_ambassador_offered_to: Option<Faction>,
     pub paused_ambassador_phase: Option<Phase>,
@@ -67,6 +70,68 @@ impl ShipMoveState {
             choam_has_extra_move: Default::default(),
             moves_logged: Default::default(),
         }
+    }
+}
+
+/// Where the last shipment or move took forces (`LocationEvent.To` of the event C# kept).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ShipmentOrMovement {
+    pub to: Option<Location>,
+}
+
+impl ShipmentOrMovement {
+    pub fn to_location(&self, _game: &Game) -> Option<Location> {
+        self.to
+    }
+}
+
+/// A move of this phase: who moved which forces where.
+#[derive(Clone, Debug)]
+pub struct RecentMove {
+    pub initiator: Faction,
+    pub to: Option<Location>,
+    pub force_locations: IndexMap<Location, Battalion>,
+}
+
+impl RecentMove {
+    pub fn placement_to(&self, _game: &Game) -> Option<Location> {
+        self.to
+    }
+
+    pub fn placement_force_locations(&self, _game: &Game) -> IndexMap<Location, Battalion> {
+        self.force_locations.clone()
+    }
+}
+
+/// A Karama that prevents a faction from shipping this phase.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ShipmentPrevention {
+    pub target: Option<Faction>,
+}
+
+/// A Flight card played for the next move.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FlightUse {
+    pub by: By,
+    pub move_three_territories: bool,
+}
+
+impl FlightUse {
+    pub fn extra_move(&self) -> bool {
+        !self.move_three_territories
+    }
+}
+
+/// A Planetologist used for the next move.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PlanetologyUse {
+    pub initiator: Option<Faction>,
+    pub add_one_to_movement: bool,
+}
+
+impl PlanetologyUse {
+    pub fn move_from_two_territories(&self) -> bool {
+        !self.add_one_to_movement
     }
 }
 
@@ -115,7 +180,7 @@ impl Game {
     pub fn perform_move_from_locations(&mut self, initiator: PlayerId, force_locations: &IndexMap<Location, Battalion>, evt: &Event, as_advisors: bool, by_caravan: bool) -> GameResult {
         let Some(to) = evt.to_location(self) else { return Ok(()) };
 
-        self.ship_move.last_shipment_or_movement = Some(evt.clone());
+        self.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: Some(to) });
         let was_occupied_before_move = self.is_occupied_territory(to.territory());
         let values: Vec<Battalion> = force_locations.values().cloned().collect();
         let dist = self.determine_maximum_move_distance(initiator, &values);

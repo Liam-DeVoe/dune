@@ -64,12 +64,12 @@ impl EventRules for DiscoveryEntered {
         game.log_event(m);
 
         if !self.passed {
-            let from_territories = self.force_locations(game, by.player()).keys().map(|l| l.territory()).distinct();
+            let from_territories = self.force_locations(game, by).keys().map(|l| l.territory()).distinct();
             for from_territory in from_territories {
                 let mut total_number_of_forces = 0;
                 let mut total_number_of_special_forces = 0;
 
-                for (key, value) in self.force_locations(game, by.player()).iter().filter(|(k, _)| k.territory() == from_territory) {
+                for (key, value) in self.force_locations(game, by).iter().filter(|(k, _)| k.territory() == from_territory) {
                     if value.total_amount_of_forces() > 0 {
                         let me = by.player();
                         let to = self.to.required("to")?;
@@ -78,7 +78,7 @@ impl EventRules for DiscoveryEntered {
                 }
 
                 if total_number_of_forces > 0 || total_number_of_special_forces > 0 {
-                    let from_locations: Vec<Location> = self.force_locations(game, by.player())
+                    let from_locations: Vec<Location> = self.force_locations(game, by)
                         .iter()
                         .filter(|(k, v)| k.territory() == from_territory && v.total_amount_of_forces() > 0)
                         .map(|(k, _)| *k)
@@ -103,13 +103,13 @@ impl EventRules for DiscoveryEntered {
 
 /// The force list, as placement events read it (`PlacementEvent` in C#).
 impl DiscoveryEntered {
-    /// The battalions in the force list, of player `p`, the submitter.
-    pub fn force_locations(&self, game: &Game, p: PlayerId) -> IndexMap<Location, Battalion> {
-        PlacedForces::of(game, p, &self.force_locations)
+    /// The battalions in the force list, of the submitter `by`.
+    pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        PlacementEvent::force_locations_by(game, by, &self.force_locations)
     }
 
     pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
-        self.force_locations = PlacedForces::text(game, value);
+        self.force_locations = Some(PlacementEvent::force_locations_string(game, value));
     }
 }
 
@@ -119,15 +119,15 @@ impl crate::events::location_event::LocationEvent for DiscoveryEntered {
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        let (forces, special_forces) = PlacedForces::amounts(game, &self.force_locations);
+        let (forces, special_forces) = PlacementEvent::force_amounts(game, &self.force_locations);
         forces + special_forces
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        PlacedForces::amounts(game, &self.force_locations).0
+        PlacementEvent::force_amounts(game, &self.force_locations).0
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        PlacedForces::amounts(game, &self.force_locations).1
+        PlacementEvent::force_amounts(game, &self.force_locations).1
     }
 }

@@ -1,77 +1,36 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Planetology {
     pub add_one_to_movement: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for Planetology {
-    fn default() -> Self {
-        Planetology {
-            add_one_to_movement: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl Planetology {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn move_from_two_territories(&self) -> bool {
         !self.add_one_to_movement
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
     }
 
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.has_skill_in_front_of_shield(p, LeaderSkill::Planetologist) && g.turn.current_planetology.is_none()
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.turn.current_planetology = Some(self.clone());
+impl EventRules for Planetology {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.turn.current_planetology = Some(PlanetologyUse { initiator: by.faction, add_one_to_movement: self.add_one_to_movement });
+        Ok(())
+    }
+
+    fn describe(&self, _game: &Game, _by: By) -> Message {
         if self.add_one_to_movement {
             return express!(LeaderSkill::Planetologist, " adds ", 1, " to force movement");
         }
         express!(LeaderSkill::Planetologist, " allows movement from ", 2, " different territories")
     }
-}
-
-impl GameEventMethods for Planetology {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Planetology
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Planetology(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Planetology::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Planetology::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Planetology::get_message(self, game)
-    }
-
 }

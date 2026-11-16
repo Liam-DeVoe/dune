@@ -26,10 +26,10 @@ fn submit(g: &mut Game, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     g.play_for_message(HistoryEntry::legacy(e), true, false).map(|m| m.plain_text())
 }
 
-/// Submits a converted event `e` by `by` with validation; the refusal, if any.
-fn submit_by(g: &mut Game, by: Faction, make: impl FnOnce(&Game) -> Event) -> Option<String> {
+/// Submits `e` by `faction` with validation; the refusal, if any.
+fn submit_by(g: &mut Game, faction: Faction, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     let e = make(g);
-    g.play_for_message(HistoryEntry::new(by, e), true, false).map(|m| m.plain_text())
+    g.play_for_message(HistoryEntry::new(faction, e), true, false).map(|m| m.plain_text())
 }
 
 fn idx(g: &Game, f: Faction) -> PlayerId {
@@ -76,8 +76,8 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
         let pl = g.player(emperor);
         (pl.forces_in_reserve(), pl.special_forces_in_reserve(), i32::from(pl.resources))
     };
-    let shipment = |forces: i32, specials: i32, g: &Game| {
-        let mut s = Shipment::new(g, Faction::Emperor);
+    let shipment = |forces: i32, specials: i32, _g: &Game| {
+        let mut s = Shipment::default();
         s.shipment_type = ShipmentType::ShipmentBack;
         s.karma_card = None;
         s.set_no_field_value(-1);
@@ -85,15 +85,15 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
         s.to = Some(sand);
         s.force_amount = forces;
         s.special_force_amount = specials;
-        Event::Shipment(Rc::new(s))
+        Event::Shipment(s)
     };
 
     // More than there are, or amounts with the wrong sign, are refused.
-    assert_eq!(submit(&mut g, |g| shipment(-3, -3, g)).as_deref(), Some("Not enough Emperor to ship back to reserves"));
-    assert_eq!(submit(&mut g, |g| shipment(-4, 0, g)).as_deref(), Some("Not enough Emperor to ship back to reserves"));
-    assert_eq!(submit(&mut g, |g| shipment(2, -2, g)).as_deref(), Some("Can't ship forces from reserves when shipping back to reserves"));
+    assert_eq!(submit_by(&mut g, Faction::Emperor, |g| shipment(-3, -3, g)).as_deref(), Some("Not enough Emperor to ship back to reserves"));
+    assert_eq!(submit_by(&mut g, Faction::Emperor, |g| shipment(-4, 0, g)).as_deref(), Some("Not enough Emperor to ship back to reserves"));
+    assert_eq!(submit_by(&mut g, Faction::Emperor, |g| shipment(2, -2, g)).as_deref(), Some("Can't ship forces from reserves when shipping back to reserves"));
 
-    assert_eq!(submit(&mut g, |g| shipment(-3, -2, g)), None);
+    assert_eq!(submit_by(&mut g, Faction::Emperor, |g| shipment(-3, -2, g)), None);
     let pl = g.player(emperor);
     assert_eq!(pl.any_forces_in(Some(sand)), 0, "nothing stays behind");
     assert_eq!(pl.forces_in_reserve(), reserve + 3);
@@ -119,18 +119,13 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
     let (intruded, n_intruded) = advisors[0];
     let (elsewhere, n_elsewhere) = *advisors.iter().find(|(l, _)| l.territory() != intruded.territory()).expect("advisors in two territories");
 
-    let mv = |to: Location, g: &Game| {
-        let mut m = Move::new(g, Faction::Emperor);
-        m.to = Some(to);
-        Event::Move(Rc::new(m))
-    };
     g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: Some(intruded), type_: IntrusionType::BeneGesseritIntrusion });
-    g.ship_move.last_shipment_or_movement = Some(mv(elsewhere, &g));
+    g.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: Some(elsewhere) });
     g.turn.current_phase = Phase::BeneGesseritIntrudedByNonGuildMove;
 
-    let mut flip = BeneGesseritFlip::new(&g, Faction::BeneGesserit);
+    let mut flip = BeneGesseritFlip::default();
     flip.as_advisors = false;
-    assert_eq!(submit(&mut g, |_| Event::BeneGesseritFlip(Rc::new(flip))), None);
+    assert_eq!(submit_by(&mut g, Faction::BeneGesserit, |_| Event::BeneGesseritFlip(flip)), None);
     let log = g.current_report().messages.iter().map(|m| m.plain_text()).collect::<Vec<_>>();
     assert!(log.iter().any(|m| m.contains("become")), "{log:?}");
     let pl = g.player(bg);
@@ -287,7 +282,7 @@ fn a_karama_bid_needs_a_karama_card_and_no_pass() {
 #[test]
 fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     let mut g = fixture("bene_gesserit");
-    let mut m = Move::new(&g, Faction::Emperor);
+    let mut m = Move::default();
     m.to = Some(location(&g, 5));
     g.ship_move.intrusions.push(Intrusion { initiator: Faction::Emperor, to: m.to, type_: IntrusionType::BeneGesseritIntrusion });
     g.main_phase_start(MainPhase::Battle, false);
@@ -306,8 +301,8 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     ally(&mut g, f, other);
     let pally = idx(&g, other);
     let to = Shipment::valid_shipment_locations(&g, shipper, false, false).find(|l| l.territory().is_stronghold()).expect("a stronghold to ship to");
-    let shipment = |g: &Game, contribution: u16| {
-        let mut s = Shipment::new(g, f);
+    let shipment = |_g: &Game, contribution: u16| {
+        let mut s = Shipment::default();
         s.shipment_type = ShipmentType::ShipmentNormal;
         s.karma_card = None;
         s.set_no_field_value(-1);
@@ -324,14 +319,14 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     // The ally offered enough but has less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
     g.player_mut(pally).resources = (cost - 1) as u16;
-    assert_eq!(submit(&mut g, |g| Event::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
+    assert_eq!(submit_by(&mut g, f, |g| Event::Shipment(shipment(g, cost as u16))).as_deref(), Some("Your ally won't pay that much"));
     // The ally has enough but offered less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost - 1);
     g.player_mut(pally).resources = cost as u16;
-    assert_eq!(submit(&mut g, |g| Event::Shipment(Rc::new(shipment(g, cost as u16)))).as_deref(), Some("Your ally won't pay that much"));
+    assert_eq!(submit_by(&mut g, f, |g| Event::Shipment(shipment(g, cost as u16))).as_deref(), Some("Your ally won't pay that much"));
 
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
-    assert_eq!(submit(&mut g, |g| Event::Shipment(Rc::new(shipment(g, cost as u16)))), None);
+    assert_eq!(submit_by(&mut g, f, |g| Event::Shipment(shipment(g, cost as u16))), None);
     assert_eq!(i32::from(g.player(pally).resources), 0);
     assert_eq!(i32::from(g.player(shipper).resources), 0);
     assert_eq!(g.alliances.permitted_use_of_ally_spice[&f], 0);

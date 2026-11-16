@@ -425,7 +425,7 @@ impl AmbassadorActivated {
                 let force_locations = self.fremen_force_locations(game);
                 let this = self.clone().into_event();
                 game.perform_move_from_locations(self.player(), &force_locations, &this, false, false)?;
-                game.ship_move.recent_moves.push(this.clone());
+                game.ship_move.recent_moves.push(RecentMove { initiator: self.initiator().expect("faction"), to: self.fremen_or_guild_to, force_locations: force_locations.clone() });
                 game.check_intrusion(&this, self.initiator().expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
@@ -484,7 +484,7 @@ impl AmbassadorActivated {
                     Player::ship_forces(game, self.player(), to, i32::from(self.guild_force_amount))?;
                 }
                 let this = self.clone().into_event();
-                game.ship_move.last_shipment_or_movement = Some(this.clone());
+                game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.fremen_or_guild_to });
                 game.check_intrusion(&this, self.initiator().expect("faction"))?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }

@@ -1,49 +1,13 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SetShipmentPermission {
     pub factions: Option<Vec<Faction>>,
     pub permission: ShipmentPermission,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for SetShipmentPermission {
-    fn default() -> Self {
-        SetShipmentPermission {
-            factions: Default::default(),
-            permission: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl SetShipmentPermission {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        self.try_validate(game).unwrap_or_else(|e| Some(express!(e.to_string())))
-    }
-
-    /// Fails without factions (C#: ArgumentNullException from Enumerable.Any on a null array).
-    pub fn try_validate(&self, game: &Game) -> GameResult<Option<Message>> {
-        let factions = self.factions.as_ref().required("factions")?;
-        if factions.is_empty() {
-            return Ok(Some(express!("Select one or more factions")));
-        }
-        // ValidTargets is re-evaluated for every faction.
-        if factions.iter().any(|f| !SetShipmentPermission::valid_targets(game, self.player()).any(|v| v == *f)) {
-            return Ok(Some(express!("Invalid faction")));
-        }
-
-        Ok(None)
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Faction> {
         // `p.Faction` is read inside the predicate, per element.
@@ -53,9 +17,30 @@ impl SetShipmentPermission {
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.player(p).is(Faction::Guild) && g.player(p).has_any_high_threshold(g)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for SetShipmentPermission {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        self.try_validate(game, by).unwrap_or_else(|e| Err(Rejection(express!(e.to_string()))))
+    }
+
+    /// Fails without factions (C#: ArgumentNullException from Enumerable.Any on a null array).
+    fn try_validate(&self, game: &Game, by: By) -> GameResult<Result<(), Rejection>> {
+        let factions = self.factions.as_ref().required("factions")?;
+        if factions.is_empty() {
+            return Ok(Err(Rejection(express!("Select one or more factions"))));
+        }
+        // ValidTargets is re-evaluated for every faction.
+        if factions.iter().any(|f| !SetShipmentPermission::valid_targets(game, by.player()).any(|v| v == *f)) {
+            return Ok(Err(Rejection(express!("Invalid faction"))));
+        }
+
+        Ok(Ok(()))
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         let factions = self.factions.as_ref().required("factions")?;
         for f in factions {
@@ -71,7 +56,7 @@ impl SetShipmentPermission {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         // A Faction[] is one message element (a value-type array is not spread).
         let factions: Part = match &self.factions {
             Some(f) => Part::list(f.iter().copied()),
@@ -79,10 +64,10 @@ impl SetShipmentPermission {
             None => Part::Null,
         };
         if self.permission == ShipmentPermission::NONE {
-            return express!(self.initiator(), " → ", factions, ": all permissions revoked");
+            return express!(by.faction, " → ", factions, ": all permissions revoked");
         }
-                express!(
-            self.initiator(),
+        express!(
+            by.faction,
             " → ",
             factions,
             ": ",
@@ -94,36 +79,4 @@ impl SetShipmentPermission {
             if self.permission.guild_rate { "yes" } else { "no" }
         )
     }
-
-}
-
-impl GameEventMethods for SetShipmentPermission {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::SetShipmentPermission
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::SetShipmentPermission(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        SetShipmentPermission::validate(self, game)
-    }
-
-    fn try_validate(&self, game: &Game) -> GameResult<Option<Message>> {
-        SetShipmentPermission::try_validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        SetShipmentPermission::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        SetShipmentPermission::get_message(self, game)
-    }
-
 }

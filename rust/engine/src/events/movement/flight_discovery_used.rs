@@ -1,70 +1,28 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct FlightDiscoveryUsed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for FlightDiscoveryUsed {
-    fn default() -> Self {
-        FlightDiscoveryUsed {
-            base: Default::default(),
-        }
-    }
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FlightDiscoveryUsed {}
 
 impl FlightDiscoveryUsed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn is_available(g: &Game, p: PlayerId) -> bool {
         g.collection.owner_of_flight_discovery == Some(g.player(p).faction)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.collection.owner_of_flight_discovery = Some(None);
-        game.ship_move.current_flight_discovery_used = Some(self.clone());
+impl EventRules for FlightDiscoveryUsed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use the ", DiscoveryToken::Flight, " discovery token to gain movement speed")
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.collection.owner_of_flight_discovery = Some(None);
+        game.ship_move.current_flight_discovery_used = Some(by);
+        Ok(())
     }
 
-}
-
-impl GameEventMethods for FlightDiscoveryUsed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use the ", DiscoveryToken::Flight, " discovery token to gain movement speed")
     }
-
-    fn event_type(&self) -> EventType {
-        EventType::FlightDiscoveryUsed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::FlightDiscoveryUsed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        FlightDiscoveryUsed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        FlightDiscoveryUsed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        FlightDiscoveryUsed::get_message(self, game)
-    }
-
 }

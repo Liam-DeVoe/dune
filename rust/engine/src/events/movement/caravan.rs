@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Caravan {
     pub as_advisors: bool,
     // ---- inherited from PlacementEvent ----
@@ -8,8 +8,6 @@ pub struct Caravan {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Caravan {
@@ -19,38 +17,43 @@ impl Default for Caravan {
             to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl Caravan {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+    /// `ForceLocations`, parsed for the faction of `by`.
+    pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        PlacementEvent::force_locations_by(game, by, &self.force_locations)
     }
 
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+    pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
+        self.force_locations = Some(PlacementEvent::force_locations_string(game, value));
+    }
+}
+
+impl EventRules for Caravan {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         // A pass skipped every check, but `execute` still made the move: from anywhere, with
         // forces the player didn't have (escapes.md, "Forces below zero"). Nobody passes a
         // Caravan: the client offers no pass and the card is simply not played.
         if self.passed {
-            return Some(express!("You can't pass a ", TreacheryCardType::Caravan));
+            return Err(Rejection(express!("You can't pass a ", TreacheryCardType::Caravan)));
         }
-        self.validate_move(game, self.as_advisors)
+        PlacementEvent::validate_move(game, by, self.to, &self.force_locations(game, by), self.as_advisors)
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.ship_move.recent_moves.push(self.clone().into_event());
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let force_locations = self.force_locations(game, by);
+        game.ship_move.recent_moves.push(RecentMove { initiator: by.faction.expect("faction"), to: self.to, force_locations: force_locations.clone() });
 
         game.storm.storm_losses_to_take.clear();
 
-        let me = self.player();
+        let me = by.player();
         game.discard(me, TreacheryCardType::Caravan)?;
-        let force_locations = PlacementEventMethods::force_locations(&**self, game);
-        let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
-        game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, true)?;
+        let as_advisors = !by.is(Faction::BeneGesserit) || self.as_advisors;
+        let event = Event::from(self.clone());
+        game.perform_move_from_locations(me, &force_locations, &event, as_advisors, true)?;
 
         let to = self.to;
         if crate::events::contains_conflicting_ally_opt(game, me, to)? {
@@ -67,7 +70,7 @@ impl Caravan {
             game.allow(FactionAdvantage::IxianCyborgExtraMove);
         }
 
-        if game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))? {
+        if game.check_intrusion(&event, by.faction.expect("faction"))? {
             game.ship_move.phase_before_caravan_caused_intrusion = Some(game.turn.current_phase);
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
@@ -76,66 +79,12 @@ impl Caravan {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " pass ", TreacheryCardType::Caravan);
+            return express!(by.faction, " pass ", TreacheryCardType::Caravan);
         }
-        express!(self.initiator(), " move to ", self.to, " by ", TreacheryCardType::Caravan)
+        express!(by.faction, " move to ", self.to, " by ", TreacheryCardType::Caravan)
     }
-
-}
-
-impl GameEventMethods for Caravan {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Caravan
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Caravan(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Caravan::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Caravan::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Caravan::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for Caravan {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
-}
-
-impl PlacementEventMethods for Caravan {
-    fn field_to(&self) -> &Option<Location> {
-        &self.to
-    }
-
-    fn field_force_locations(&self) -> &Option<String> {
-        &self.force_locations
-    }
-
-    fn field_to_mut(&mut self) -> &mut Option<Location> {
-        &mut self.to
-    }
-
-    fn field_force_locations_mut(&mut self) -> &mut Option<String> {
-        &mut self.force_locations
-    }
-
 }
 
 impl crate::events::location_event::LocationEvent for Caravan {
@@ -144,26 +93,14 @@ impl crate::events::location_event::LocationEvent for Caravan {
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::total_amount_of_forces_added_to_location(self, game)
+        self.forces_added_to_location(game) + self.special_forces_added_to_location(game)
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.force_locations).0
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::special_forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.force_locations).1
     }
-
-}
-
-impl crate::events::placement::Placement for Caravan {
-    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        <Self as PlacementEventMethods>::force_locations(self, game)
-    }
-
-    fn to(&self, _game: &Game) -> Option<Location> {
-        self.to
-    }
-
 }

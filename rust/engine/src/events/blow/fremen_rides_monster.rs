@@ -27,7 +27,7 @@ impl Default for FremenRidesMonster {
 impl FremenRidesMonster {
     pub fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         // base.TotalAmountOfForcesAddedToLocation is ForcesAddedToLocation + SpecialForcesAddedToLocation.
-        let base = { let (forces, special_forces) = PlacedForces::amounts(game, &self.force_locations); forces + special_forces };
+        let base = { let (forces, special_forces) = PlacementEvent::force_amounts(game, &self.force_locations); forces + special_forces };
         (base + i32::from(self.forces_from_reserves)) + i32::from(self.special_forces_from_reserves)
     }
 
@@ -148,14 +148,14 @@ impl EventRules for FremenRidesMonster {
             return Err(Rejection(express!("Invalid target location")));
         }
 
-        let too_many_forces = self.force_locations(game, by.player())
+        let too_many_forces = self.force_locations(game, by)
             .iter()
             .any(|(l, b)| b.forces() > game.player(by.player()).forces_in(Some(*l)));
         if too_many_forces {
             return Err(Rejection(express!("Invalid amount of forces")));
         }
 
-        let too_many_special_forces = self.force_locations(game, by.player())
+        let too_many_special_forces = self.force_locations(game, by)
             .iter()
             .any(|(l, b)| b.special_forces() > game.player(by.player()).special_forces_in(Some(*l)));
         if too_many_special_forces {
@@ -182,14 +182,14 @@ impl EventRules for FremenRidesMonster {
         }
 
         if !self.passed {
-            if self.force_locations(game, by.player()).keys().any(|l| l.territory() != to_ride.as_ref().expect("to ride").territory) {
+            if self.force_locations(game, by).keys().any(|l| l.territory() != to_ride.as_ref().expect("to ride").territory) {
                 let me = by.player();
                 game.play_nexus_card(me, parts!["ride from any territory on the planet"]);
             }
 
             let initiator = game.get_player(by.faction);
-            game.ship_move.last_shipment_or_movement = Some(Event::from(self.clone()));
-            for (from, value) in self.force_locations(game, by.player()).iter() {
+            game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.to });
+            for (from, value) in self.force_locations(game, by).iter() {
                 let from = *from;
                 let ini = initiator.required("initiator")?;
                 let to = self.to.required("to")?;
@@ -258,10 +258,10 @@ impl EventRules for FremenRidesMonster {
             return express!(by.faction, " don't ride");
         }
 
-        let from = self.force_locations(game, by.player()).keys().next().map(|l| l.territory());
+        let from = self.force_locations(game, by).keys().next().map(|l| l.territory());
         if let Some(from) = from {
             return express!(by.faction, " ride from ", from, " to ", self.to)
-                .with_route(by.faction.expect("faction"), self.force_locations(game, by.player()).keys().copied(), self.to);
+                .with_route(by.faction.expect("faction"), self.force_locations(game, by).keys().copied(), self.to);
         }
         express!(by.faction, " ride from reserves to ", self.to)
     }
@@ -269,13 +269,13 @@ impl EventRules for FremenRidesMonster {
 
 /// The force list, as placement events read it (`PlacementEvent` in C#).
 impl FremenRidesMonster {
-    /// The battalions in the force list, of player `p`, the submitter.
-    pub fn force_locations(&self, game: &Game, p: PlayerId) -> IndexMap<Location, Battalion> {
-        PlacedForces::of(game, p, &self.force_locations)
+    /// The battalions in the force list, of the submitter `by`.
+    pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        PlacementEvent::force_locations_by(game, by, &self.force_locations)
     }
 
     pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
-        self.force_locations = PlacedForces::text(game, value);
+        self.force_locations = Some(PlacementEvent::force_locations_string(game, value));
     }
 }
 
@@ -289,10 +289,10 @@ impl crate::events::location_event::LocationEvent for FremenRidesMonster {
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        PlacedForces::amounts(game, &self.force_locations).0
+        PlacementEvent::force_amounts(game, &self.force_locations).0
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        PlacedForces::amounts(game, &self.force_locations).1
+        PlacementEvent::force_amounts(game, &self.force_locations).1
     }
 }

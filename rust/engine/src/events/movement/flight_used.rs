@@ -1,82 +1,40 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FlightUsed {
     pub move_three_territories: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for FlightUsed {
-    fn default() -> Self {
-        FlightUsed {
-            move_three_territories: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl FlightUsed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn extra_move(&self) -> bool {
         !self.move_three_territories
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
     }
 
     pub fn is_available(game: &Game, p: PlayerId) -> bool {
         game.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Flight)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        game.discard(self.player(), TreacheryCardType::Flight)?;
-        game.ship_move.current_flight_used = Some(self.clone());
+impl EventRules for FlightUsed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        game.discard(by.player(), TreacheryCardType::Flight)?;
+        game.ship_move.current_flight_used = Some(FlightUse { by, move_three_territories: self.move_three_territories });
+        Ok(())
+    }
+
+    fn describe(&self, _game: &Game, by: By) -> Message {
         express!(
-            self.initiator(),
+            by.faction,
             " use an ",
             TreacheryCardType::Flight,
             " to ",
             if self.extra_move() { "move an additional group of forces" } else { "gain movement speed" }
         )
     }
-
-}
-
-impl GameEventMethods for FlightUsed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::FlightUsed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::FlightUsed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        FlightUsed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        FlightUsed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        FlightUsed::get_message(self, game)
-    }
-
 }

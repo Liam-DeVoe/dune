@@ -38,6 +38,11 @@ fn sectors_of(ts: impl IntoIterator<Item = Territory>) -> Vec<i32> {
     ts.into_iter().flat_map(|t| t.locations().iter().map(|l| l.id())).collect()
 }
 
+/// `p` as the submitter of the draft.
+fn by(game: &Game, p: PlayerId) -> By {
+    By::new(game, game.player(p).faction)
+}
+
 fn forces_at(game: &Game, p: PlayerId, l: Location) -> ForcesAt {
     let pl = game.player(p);
     ForcesAt { location: l.id(), forces: pl.forces_in(Some(l)), special_forces: pl.special_forces_in(Some(l)) }
@@ -54,7 +59,7 @@ pub fn default_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: Even
 fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventType) -> Option<Event> {
     Some(match t {
         EventType::Shipment => {
-            let mut e = Shipment::new(game, faction);
+            let mut e = Shipment::default();
             e.shipment_type = ShipmentType::ShipmentNormal;
             e.set_no_field_value(-1);
             e.set_cunning_no_field_value(-1);
@@ -64,12 +69,12 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::Move => {
-            let mut e = Move::new(game, faction);
+            let mut e = Move::default();
             e.to = None;
             event(e)
         }
         EventType::Caravan => {
-            let mut e = Caravan::new(game, faction);
+            let mut e = Caravan::default();
             e.to = None;
             event(e)
         }
@@ -112,12 +117,12 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::BeneGesseritAccompanies => {
-            let mut e = BeneGesseritAccompanies::new(game, faction);
+            let mut e = BeneGesseritAccompanies::default();
             e.location = None;
             e.accompanies = true;
             event(e)
         }
-        EventType::BeneGesseritFlip => event(BeneGesseritFlip::new(game, faction)),
+        EventType::BeneGesseritFlip => event(BeneGesseritFlip::default()),
         EventType::ChoamMovePrevention => {
             let mut e = ChoamMovePrevention::new(game, faction);
             e.territory = None;
@@ -135,7 +140,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::FlightUsed => {
-            let mut e = FlightUsed::new(game, faction);
+            let mut e = FlightUsed::default();
             e.move_three_territories = true;
             event(e)
         }
@@ -145,7 +150,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::KarmaShipmentPrevention => {
-            let mut e = KarmaShipmentPrevention::new(game, faction);
+            let mut e = KarmaShipmentPrevention::default();
             e.target = KarmaShipmentPrevention::get_valid_targets(game, p).next();
             event(e)
         }
@@ -170,7 +175,7 @@ fn initial_draft(game: &Game, p: PlayerId, faction: Option<Faction>, t: EventTyp
             event(e)
         }
         EventType::SetShipmentPermission => {
-            let mut e = SetShipmentPermission::new(game, faction);
+            let mut e = SetShipmentPermission::default();
             e.factions = Some(vec![]);
             event(e)
         }
@@ -279,7 +284,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         // The pinned panel, drawn while the shipment has a destination or goes back to reserves
         // (and Karama does not stop it).
         Event::Shipment(s) => {
-            let mut s = (**s).clone();
+            let mut s = s.clone();
             let cross = Shipment::may_ship_cross_planet(game, p);
             let prevented = faction != Some(Faction::Fremen) && game.prevented_from_shipping(faction) && !cross;
             let ty = s.shipment_type;
@@ -317,16 +322,16 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         }
         // The pinned panel, drawn while there is a destination.
         Event::Move(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             if let Some(to) = e.to {
-                e.as_advisors = as_advisors(game, p, &e.force_locations(game), to, e.as_advisors);
+                e.as_advisors = as_advisors(game, p, &e.force_locations(game, by(game, p)), to, e.as_advisors);
             }
             event(e)
         }
         Event::Caravan(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             if let Some(to) = e.to {
-                e.as_advisors = as_advisors(game, p, &e.force_locations(game), to, e.as_advisors);
+                e.as_advisors = as_advisors(game, p, &e.force_locations(game, by(game, p)), to, e.as_advisors);
             }
             event(e)
         }
@@ -334,7 +339,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         // of them when first picked. The client clears them when it pins another stronghold.
         Event::DiscoveryEntered(e) => {
             let mut e = e.clone();
-            let current = e.force_locations(game, p);
+            let current = e.force_locations(game, by(game, p));
             let mut forces = IndexMap::new();
             if let Some(ds) = e.to.and_then(|l| l.as_discovered_location()) {
                 for l in DiscoveryEntered::valid_sources(game, p, ds) {
@@ -398,7 +403,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         }
         // PinContent, drawn while a location is pinned.
         Event::BeneGesseritAccompanies(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             if let Some(l) = e.location {
                 if !BeneGesseritAccompanies::may_send_extra_advisor(game, p, l) {
                     e.extra_advisor = false;
@@ -427,7 +432,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::KarmaShipmentPrevention(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, p).collect();
             e.target = required_opt(e.target, &targets);
             event(e)
@@ -519,14 +524,14 @@ fn build(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOp
     match draft {
         Event::Shipment(s) => O::Shipment(shipment(game, p, s, d)),
         Event::Move(e) => {
-            let forces = e.force_locations(game);
+            let forces = e.force_locations(game, by(game, p));
             let to = e.to;
             let mut o = placement(game, p, &forces, to, PlacementEvent::valid_movement_sources(game, p));
             o.inform_about_caravan = game.player(p).has_treachery_card_type(TreacheryCardType::Caravan);
             O::Move(o)
         }
         Event::Caravan(e) => {
-            let forces = e.force_locations(game);
+            let forces = e.force_locations(game, by(game, p));
             O::Caravan(placement(game, p, &forces, e.to, PlacementEvent::valid_movement_sources(game, p)))
         }
         Event::FremenRidesMonster(e) => O::FremenRidesMonster(fremen_ride(game, p, e, d)),
@@ -745,7 +750,7 @@ fn placement(game: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>, t
         title: None,
         sources,
         targets,
-        may_move_from_two_territories: planetology.is_some_and(|pl| pl.move_from_two_territories() && pl.initiator() == game.player(p).faction),
+        may_move_from_two_territories: planetology.is_some_and(|pl| pl.move_from_two_territories() && pl.initiator == game.player(p).faction),
         inform_about_caravan: false,
         from_reserves: false,
         max_from_reserves: 0,
@@ -778,7 +783,7 @@ fn fremen_ride(game: &Game, p: PlayerId, e: &FremenRidesMonster, d: &dyn Describ
     let max_from_reserves = FremenRidesMonster::max_forces_from_reserves(game, p, false);
     let max_special_from_reserves = FremenRidesMonster::max_forces_from_reserves(game, p, true);
     let from_reserves = ride_sources.is_empty() && (max_from_reserves > 0 || max_special_from_reserves > 0);
-    let forces = e.force_locations(game, p);
+    let forces = e.force_locations(game, by(game, p));
     let title = match to_ride {
         None => treachery_engine::express!("Ride ", Concept::Monster, "?"),
         Some(m) if m.is_great_monster => treachery_engine::express!("Ride the ", Concept::GreatMonster, " with forces from your reserves?"),

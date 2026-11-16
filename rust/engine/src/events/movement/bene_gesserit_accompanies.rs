@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BeneGesseritAccompanies {
     pub location: Option<Location>,
     pub accompanies: bool,
     pub extra_advisor: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for BeneGesseritAccompanies {
@@ -15,18 +13,11 @@ impl Default for BeneGesseritAccompanies {
             location: Location::from_id(0),
             accompanies: Default::default(),
             extra_advisor: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl BeneGesseritAccompanies {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn to(&self, _game: &Game) -> Option<Location> {
         self.location
     }
@@ -41,72 +32,6 @@ impl BeneGesseritAccompanies {
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
         (if self.accompanies { 1 } else { 0 }) + (if self.extra_advisor { 1 } else { 0 })
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.ship_move.bene_gesserit_may_accompany = false;
-
-        if self.accompanies {
-            let me = self.player();
-            let location = self.location.required("location")?;
-            let amount = self.special_forces_added_to_location(game);
-            if game.player(me).occupies_territory(game, Some(location.territory()))
-                || !game.is_occupied_territory(location.territory())
-                || !game.applicable(Rule::BeneGesseritAdvisors)
-            {
-                Player::ship_forces(game, me, location, amount)?;
-            } else {
-                Player::ship_advisors(game, me, location, amount)?;
-            }
-
-            let m = express!(self.initiator(), " accompany to ", location)
-                .with_route(self.initiator().required("faction")?, Vec::<Location>::new(), Some(location))
-                .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
-            self.log_objects(game, vec![m.into()]);
-            game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
-            game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))?;
-        } else {
-            let m = express!(self.initiator(), " don't accompany")
-                .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::DontAccompany, Option::<Location>::None.into(), false));
-            self.log_objects(game, vec![m.into()]);
-        }
-
-        game.determine_next_shipment_and_move_sub_phase()?;
-        Ok(())
-    }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        if self.accompanies {
-            return express!(self.initiator(), " accompany shipment to ", self.location);
-        }
-        express!(self.initiator(), " don't accompany shipment")
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.accompanies {
-            if game.player(self.player()).forces_in_reserve() <= 0 {
-                return Some(express!("You don't have forces in reserve"));
-            }
-            let location = self.location;
-            if !location.is_some_and(|l| BeneGesseritAccompanies::valid_targets(game, self.player()).contains(&l)) {
-                return Some(express!("You can't accompany there"));
-            }
-            if self.initiator() != Some(Faction::BeneGesserit) {
-                return Some(express!("You can't accompany shipments"));
-            }
-            let Some(location) = location else {
-                return Some(express!("To not selected"));
-            };
-            // C# parity: unreachable, the first check already returned.
-            if self.accompanies && game.player(self.player()).forces_in_reserve() == 0 {
-                return Some(express!("No forces available"));
-            }
-            if self.extra_advisor && !BeneGesseritAccompanies::may_send_extra_advisor(game, self.player(), location) {
-                return Some(express!("You cannot send an extra advisor"));
-            }
-        }
-
-        None
     }
 
     pub fn bene_gesserit_may_accompany_to_shipment_location(g: &Game) -> bool {
@@ -150,34 +75,74 @@ impl BeneGesseritAccompanies {
         let pl = g.player(p);
         pl.has_any_high_threshold(g) && l == g.board.map.polar_sink() && pl.forces_in_reserve() >= 2
     }
-
 }
 
-impl GameEventMethods for BeneGesseritAccompanies {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for BeneGesseritAccompanies {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if self.accompanies {
+            if game.player(by.player()).forces_in_reserve() <= 0 {
+                return Err(Rejection(express!("You don't have forces in reserve")));
+            }
+            let location = self.location;
+            if !location.is_some_and(|l| BeneGesseritAccompanies::valid_targets(game, by.player()).contains(&l)) {
+                return Err(Rejection(express!("You can't accompany there")));
+            }
+            if !by.is(Faction::BeneGesserit) {
+                return Err(Rejection(express!("You can't accompany shipments")));
+            }
+            let Some(location) = location else {
+                return Err(Rejection(express!("To not selected")));
+            };
+            // C# parity: unreachable, the first check already returned.
+            if self.accompanies && game.player(by.player()).forces_in_reserve() == 0 {
+                return Err(Rejection(express!("No forces available")));
+            }
+            if self.extra_advisor && !BeneGesseritAccompanies::may_send_extra_advisor(game, by.player(), location) {
+                return Err(Rejection(express!("You cannot send an extra advisor")));
+            }
+        }
+
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::BeneGesseritAccompanies
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.ship_move.bene_gesserit_may_accompany = false;
+
+        if self.accompanies {
+            let me = by.player();
+            let location = self.location.required("location")?;
+            let amount = self.special_forces_added_to_location(game);
+            if game.player(me).occupies_territory(game, Some(location.territory()))
+                || !game.is_occupied_territory(location.territory())
+                || !game.applicable(Rule::BeneGesseritAdvisors)
+            {
+                Player::ship_forces(game, me, location, amount)?;
+            } else {
+                Player::ship_advisors(game, me, location, amount)?;
+            }
+
+            let m = express!(by.faction, " accompany to ", location)
+                .with_route(by.required_faction()?, Vec::<Location>::new(), Some(location))
+                .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::Accompany, location.into(), false));
+            game.log(parts![m]);
+            game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
+            game.check_intrusion(&Event::from(self.clone()), by.faction.expect("faction"))?;
+        } else {
+            let m = express!(by.faction, " don't accompany")
+                .with_log(BeneGesseritReaction::new(BeneGesseritReactionKind::DontAccompany, Option::<Location>::None.into(), false));
+            game.log(parts![m]);
+        }
+
+        game.determine_next_shipment_and_move_sub_phase()?;
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::BeneGesseritAccompanies(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        if self.accompanies {
+            return express!(by.faction, " accompany shipment to ", self.location);
+        }
+        express!(by.faction, " don't accompany shipment")
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        BeneGesseritAccompanies::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        BeneGesseritAccompanies::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        BeneGesseritAccompanies::get_message(self, game)
-    }
-
 }
 
 impl crate::events::location_event::LocationEvent for BeneGesseritAccompanies {

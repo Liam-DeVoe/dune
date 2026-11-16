@@ -723,7 +723,7 @@ impl Revival {
                     " in ".into(),
                     to.into(),
                 ]);
-                game.ship_move.last_shipment_or_movement = Some(self.clone().into_event());
+                game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
             }
 
             if game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))? {

@@ -568,7 +568,7 @@ fn recent_moves() {
             let to = m.placement_to(g).unwrap();
             if !to.is_homeworld() {
                 for _ in m.placement_force_locations(g).keys() {
-                    expected_ends.push((name(m.legacy_initiator().expect("faction")), to.id()));
+                    expected_ends.push((name(m.initiator), to.id()));
                 }
             }
         }

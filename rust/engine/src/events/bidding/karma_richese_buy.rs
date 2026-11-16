@@ -1,41 +1,30 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct KarmaRicheseBuy {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for KarmaRicheseBuy {
     fn default() -> Self {
-        KarmaRicheseBuy {
-            card: TreacheryCardManager::get(0),
-            base: Default::default(),
-        }
+        KarmaRicheseBuy { card: TreacheryCardManager::get(0) }
     }
 }
 
-impl KarmaRicheseBuy {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if i32::from(game.player(self.player()).resources) < 3 {
-            return Some(express!("You can't pay ", Payment::of(3)));
+impl EventRules for KarmaRicheseBuy {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if i32::from(game.player(by.player()).resources) < 3 {
+            return Err(Rejection(express!("You can't pay ", Payment::of(3))));
         }
         if !game.decks.richese_cache.iter().any(|c| Some(*c) == self.card) {
-            return Some(express!("Invalid card"));
+            return Err(Rejection(express!("Invalid card")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         let karma_card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, karma_card, vec!["buy a card from their cache for ".into(), Payment::of(3).into()]);
         let card = self.card;
@@ -50,35 +39,7 @@ impl KarmaRicheseBuy {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::Karma, " to buy a card from their cache for ", Payment::of(3))
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", TreacheryCardType::Karma, " to buy a card from their cache for ", Payment::of(3))
     }
-
-}
-
-impl GameEventMethods for KarmaRicheseBuy {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::KarmaRicheseBuy
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::KarmaRicheseBuy(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        KarmaRicheseBuy::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        KarmaRicheseBuy::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        KarmaRicheseBuy::get_message(self, game)
-    }
-
 }

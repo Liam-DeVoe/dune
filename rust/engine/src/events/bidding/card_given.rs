@@ -1,43 +1,28 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CardGiven {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for CardGiven {
-    fn default() -> Self {
-        CardGiven {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl CardGiven {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
     pub fn is_applicable(game: &Game, p: PlayerId) -> bool {
         game.player(p).has(game.bidding.card_that_must_be_kept_or_given_to_ally)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for CardGiven {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
+    }
 
-        if !self.passed && game.bidding.card_that_must_be_kept_or_given_to_ally.is_some() && game.player(self.player()).allied_player(game).is_some() {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+
+        if !self.passed && game.bidding.card_that_must_be_kept_or_given_to_ally.is_some() && game.player(by.player()).allied_player(game).is_some() {
             let card = game.bidding.card_that_must_be_kept_or_given_to_ally;
-            let me = self.player();
+            let me = by.player();
             crate::game::remove_card(&mut game.player_mut(me).treachery_cards, card);
             let ally = game.player(me).allied_player(game).required("allied player")?;
             game.player_mut(ally).treachery_cards.push(card.required("card")?);
@@ -47,45 +32,10 @@ impl CardGiven {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " don't give the card to their ally");
+            return express!(by.faction, " don't give the card to their ally");
         }
-        express!(self.initiator(), " give the card to their ally")
+        express!(by.faction, " give the card to their ally")
     }
-
-}
-
-impl GameEventMethods for CardGiven {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::CardGiven
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::CardGiven(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        CardGiven::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        CardGiven::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        CardGiven::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for CardGiven {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

@@ -11,21 +11,7 @@ pub struct Bid {
     pub passed: bool,
 }
 
-/// Lets code outside bidding that still builds a bid the legacy way compile: `X::new` and
-/// `Rc<X>` (distrans_used.rs). Goes when those callers build `Bid::default()`.
-impl From<Rc<Bid>> for Event {
-    fn from(e: Rc<Bid>) -> Self {
-        Event::Bid(Rc::unwrap_or_clone(e))
-    }
-}
-
 impl Bid {
-    /// A default bid. The submitter goes on the history entry; kept so callers outside bidding
-    /// compile unchanged until they write `Bid::default()`.
-    pub fn new(_game: &Game, _initiator: impl Into<Option<Faction>>) -> Self {
-        Self::default()
-    }
-
     /// The bid as the auction keeps it, numbered as the game's next bid.
     pub fn placed(&self, game: &mut Game, by: By) -> PlacedBid {
         PlacedBid {

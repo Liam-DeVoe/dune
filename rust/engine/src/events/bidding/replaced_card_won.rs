@@ -1,53 +1,36 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReplacedCardWon {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for ReplacedCardWon {
-    fn default() -> Self {
-        ReplacedCardWon {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-impl ReplacedCardWon {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for ReplacedCardWon {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if !self.passed {
             let card_just_won = game.bidding.card_just_won;
             game.discard_card(card_just_won, true)?;
-            let initiator = self.get_player(game, self.initiator());
+            let initiator = game.get_player(by.faction);
             let new_card = game.draw_treachery_card();
             let initiator = initiator.required("initiator")?;
             game.player_mut(initiator).treachery_cards.push(new_card.required("new_card")?);
             game.stone(Milestone::CardWonSwapped);
 
             if game.bidding.replacing_bought_card_using_nexus {
-                game.play_nexus_card(self.player(), vec!["replace the card they just bought".into()]);
+                game.play_nexus_card(by.player(), vec!["replace the card they just bought".into()]);
                 game.bidding.replacing_bought_card_using_nexus = false;
             } else {
-                self.log(game);
+                let m = self.describe(game, by);
+                game.log_event(m);
             }
 
             let initiator_faction = game.player(initiator).faction;
             let card_just_won = game.bidding.card_just_won;
-            self.log_to(game, initiator_faction.required("faction")?, vec!["You replaced your ".into(), card_just_won.into(), " with a ".into(), new_card.into()]);
+            game.log_to(initiator_faction.required("faction")?, vec!["You replaced your ".into(), card_just_won.into(), " with a ".into(), new_card.into()]);
         }
 
         if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
@@ -58,45 +41,10 @@ impl ReplacedCardWon {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if self.passed {
-            return express!(self.initiator(), " keep the card they just won");
+            return express!(by.faction, " keep the card they just won");
         }
-        express!(self.initiator(), " discard the card they just won and draw a new card")
+        express!(by.faction, " discard the card they just won and draw a new card")
     }
-
-}
-
-impl GameEventMethods for ReplacedCardWon {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::ReplacedCardWon
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::ReplacedCardWon(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        ReplacedCardWon::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        ReplacedCardWon::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        ReplacedCardWon::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for ReplacedCardWon {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

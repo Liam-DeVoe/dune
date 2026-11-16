@@ -136,9 +136,9 @@ fn emperor_bid_support_message_without_amounts_fails() {
     let g = game_with(&[Faction::Emperor]);
     let mut e2 = EmperorBidSupport::default();
     e2.amounts = None;
-    let e2 = as_player(e2, &g, Faction::Emperor);
+    let by = By::new(&g, Faction::Emperor);
     // Missing amounts (fuzz seed 2 recorded this in C#, where `Amounts.Sum(...)` threw).
-    assert_eq!(outcome(|| e2.get_message(&g).plain_text()).unwrap_err(), "amounts");
+    assert_eq!(outcome(|| e2.describe(&g, by).plain_text()).unwrap_err(), "amounts");
 }
 
 #[test]

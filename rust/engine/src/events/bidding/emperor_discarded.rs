@@ -1,42 +1,32 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EmperorDiscarded {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for EmperorDiscarded {
     fn default() -> Self {
-        EmperorDiscarded {
-            card: TreacheryCardManager::get(0),
-            base: Default::default(),
-        }
+        EmperorDiscarded { card: TreacheryCardManager::get(0) }
     }
 }
 
-impl EmperorDiscarded {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
+impl EventRules for EmperorDiscarded {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         if self.card.is_none() {
-            return Some(express!("Choose a card to discard"));
+            return Err(Rejection(express!("Choose a card to discard")));
         }
-        if !game.player(self.player()).has(self.card) {
-            return Some(express!("Invalid card"));
+        if !game.player(by.player()).has(self.card) {
+            return Err(Rejection(express!("Invalid card")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-        let me = self.player();
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
+        let me = by.player();
         {
             let p = game.player_mut(me);
             p.resources -= 2;
@@ -45,35 +35,7 @@ impl EmperorDiscarded {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " pay ", Payment::of(2), " to discard ", self.card)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " pay ", Payment::of(2), " to discard ", self.card)
     }
-
-}
-
-impl GameEventMethods for EmperorDiscarded {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::EmperorDiscarded
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::EmperorDiscarded(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        EmperorDiscarded::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        EmperorDiscarded::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        EmperorDiscarded::get_message(self, game)
-    }
-
 }

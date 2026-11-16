@@ -1,43 +1,26 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RicheseKeepsUnsoldCard {
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for RicheseKeepsUnsoldCard {
-    fn default() -> Self {
-        RicheseKeepsUnsoldCard {
-            passed: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-impl RicheseKeepsUnsoldCard {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for RicheseKeepsUnsoldCard {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
         let card = game.bidding.cards_on_auction.as_mut().required("cards on auction")?.try_draw()?;
         game.register_won_card_as_known(card);
 
         if !self.passed {
-            let me = self.player();
+            let me = by.player();
             game.player_mut(me).treachery_cards.push(card);
-            self.log_to(game, self.initiator().required("faction")?, vec!["You get: ".into(), card.into()]);
-            game.finish_bid(self.player_opt(), None, card, false);
+            game.log_to(by.required_faction()?, vec!["You get: ".into(), card.into()]);
+            game.finish_bid(by.player, None, card, false);
         } else {
             game.decks.removed_treachery_cards.push(card);
             game.finish_bid(None, None, card, false);
@@ -45,45 +28,10 @@ impl RicheseKeepsUnsoldCard {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         if !self.passed {
-            return express!(self.initiator(), " keep the card no faction bid on");
+            return express!(by.faction, " keep the card no faction bid on");
         }
-        express!(self.initiator(), " remove the card no faction bid on from the game")
+        express!(by.faction, " remove the card no faction bid on from the game")
     }
-
-}
-
-impl GameEventMethods for RicheseKeepsUnsoldCard {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::RicheseKeepsUnsoldCard
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::RicheseKeepsUnsoldCard(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        RicheseKeepsUnsoldCard::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        RicheseKeepsUnsoldCard::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        RicheseKeepsUnsoldCard::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for RicheseKeepsUnsoldCard {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

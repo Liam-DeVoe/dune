@@ -243,11 +243,11 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     // Sold from the cache: it leaves the deck.
     g.bidding.cards_on_auction = Some(Deck::empty(None));
     g.turn.current_phase = Phase::RicheseSpecifyingAuction;
-    let mut auction = RicheseSpecifiesAuction::new(&g, Faction::Richese);
+    let mut auction = RicheseSpecifiesAuction::default();
     auction.card = Some(sold);
     auction.auction_type = Some(AuctionType::RicheseOnceAround);
     auction.direction = 1;
-    assert!(g.play_for_message(HistoryEntry::new(Faction::Richese, Rc::new(auction)), false, false).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(Faction::Richese, auction), false, false).is_none());
     assert!(!g.decks.richese_cache.contains(&sold));
     assert!(!in_deck(&g, sold));
 }

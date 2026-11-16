@@ -93,13 +93,14 @@ fn spending_more_spice_than_there_is_fails_and_changes_nothing() {
 #[test]
 fn the_emperor_supports_only_other_bidders() {
     let g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    let mut e = EmperorBidSupport::new(&g, Faction::Emperor);
+    let by = By::new(&g, Faction::Emperor);
+    let mut e = EmperorBidSupport::default();
     e.amounts = Some(IndexMap::from([(Faction::Atreides, 3)]));
-    assert_eq!(refusal(e.validate(&g)), None);
+    assert_eq!(rejected(e.validate(&g, by)), None);
     e.amounts = Some(IndexMap::from([(Faction::Emperor, 3)]));
-    assert_eq!(refusal(e.validate(&g)).as_deref(), Some("You can't support your own bids"));
+    assert_eq!(rejected(e.validate(&g, by)).as_deref(), Some("You can't support your own bids"));
     e.amounts = Some(IndexMap::from([(Faction::Atreides, -3)]));
-    assert_eq!(refusal(e.validate(&g)).as_deref(), Some("Invalid amount"));
+    assert_eq!(rejected(e.validate(&g, by)).as_deref(), Some("Invalid amount"));
 }
 
 /// A pass offers nothing. In silent and once-around auctions the highest bid wins, and a pass

@@ -51,7 +51,12 @@ impl Donated {
         if self.card.is_none() && self.resources <= 0 {
             return Some(express!("Invalid amount"));
         }
-        if game.player(self.player()).resources < self.resources {
+        // Not in C#, where giving a card with a negative amount took that spice from the target
+        // (behavior-changes.md, "Turns, sectors and amounts out of range").
+        if !self.from_bank && self.resources < 0 {
+            return Some(express!("Invalid amount"));
+        }
+        if i32::from(game.player(self.player()).resources) < self.resources {
             return Some(express!("You can't give that much"));
         }
         if self.initiator() != Some(Faction::Emperor) && self.target == game.player(self.player()).ally {
@@ -94,13 +99,13 @@ impl Donated {
 
     pub fn min_amount(g: &Game, p: PlayerId) -> i32 {
         if !g.applicable(Rule::CardsCanBeTraded) {
-            return g.player(p).resources.min(1);
+            return i32::from(g.player(p).resources).min(1);
         }
         0
     }
 
     pub fn max_amount(game: &Game, p: PlayerId) -> i32 {
-        game.player(p).resources
+        i32::from(game.player(p).resources)
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -109,12 +114,12 @@ impl Donated {
 
         if !self.from_bank {
             match target {
-                Some(target) => game.exchange_resources_in_bribe(self.player(), target, self.resources),
+                Some(target) => game.exchange_resources_in_bribe(self.player(), target, self.resources)?,
                 None => {
                     // ExchangeResourcesInBribe(Player, null, Resources): the payer pays first.
                     let me = self.player();
                     let from = game.player_mut(me);
-                    from.resources -= self.resources;
+                    crate::game::amounts::spend(&mut from.resources, self.resources, "spice")?;
                     let _ = game.bribes_during_mentat();
                     game_error!("A required value is missing");
                 }
@@ -149,7 +154,7 @@ impl Donated {
             game.stone(Milestone::Bribe);
         } else if self.resources < 0 {
             let abs = self.resources.abs();
-            let resources_to_take = abs.min(game.player(target.required("target")?).resources);
+            let resources_to_take = abs.min(i32::from(game.player(target.required("target")?).resources));
             let target = target.required("target")?;
             self.log_objects(
                 game,
@@ -164,7 +169,7 @@ impl Donated {
                 ],
             );
             let t = game.player_mut(target);
-            t.resources -= resources_to_take;
+            crate::game::amounts::spend(&mut t.resources, resources_to_take, "spice")?;
         } else {
             self.log_objects(
                 game,
@@ -178,7 +183,7 @@ impl Donated {
                 ],
             );
             let t = game.player_mut(target.required("target")?);
-            t.resources += self.resources;
+            crate::game::amounts::gain(&mut t.resources, self.resources, "spice")?;
         }
         Ok(())
     }

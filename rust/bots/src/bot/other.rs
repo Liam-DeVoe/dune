@@ -523,7 +523,7 @@ impl ClassicBot {
         let valid_targets: Vec<Faction> = KarmaShipmentPrevention::get_valid_targets(game, self.player).collect();
         let reserves = |pl: &Player| pl.forces_in_reserve() + pl.special_forces_in_reserve();
         // The spice an opponent can ship with: their own and their ally's.
-        let resources = |pl: &Player| pl.resources + pl.allied_resources(game);
+        let resources = |pl: &Player| i32::from(pl.resources) + pl.allied_resources(game);
 
         let winning_opponent_that_can_ship_most = self
             .opponents_to_ship_and_move(game)
@@ -841,7 +841,7 @@ impl ClassicBot {
     }
 
     pub fn determine_amal_played(&self, game: &Game) -> Option<Rc<AmalPlayed>> {
-        let opponents_resources = || self.opponents(game).into_iter().map(|p| game.player(p).resources).sum::<i32>();
+        let opponents_resources = || self.opponents(game).into_iter().map(|p| i32::from(game.player(p).resources)).sum::<i32>();
         let ally_resources = if self.ally(game) != None { game.player(self.player).allied_resources(game) } else { 0 };
         let our_resources = self.resources(game) + ally_resources;
 
@@ -1117,7 +1117,7 @@ impl ClassicBot {
         while special_forces + 1 <= pl.special_forces_killed
             && special_forces + 1 <= max_special_forces
             && special_forces + 1 <= potential_maximum_by_emperor
-            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), 0, special_forces + 1) <= g.player(emperor).resources
+            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), 0, special_forces + 1) <= i32::from(g.player(emperor).resources)
         {
             special_forces += 1;
         }
@@ -1128,7 +1128,7 @@ impl ClassicBot {
         while forces + 1 <= pl.forces_killed
             && forces + 1 <= max_forces
             && special_forces + forces + 1 <= potential_maximum_by_emperor
-            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), forces + 1, special_forces) <= g.player(emperor).resources
+            && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), forces + 1, special_forces) <= i32::from(g.player(emperor).resources)
         {
             forces += 1;
         }

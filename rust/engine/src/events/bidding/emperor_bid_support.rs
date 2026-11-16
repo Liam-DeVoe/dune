@@ -25,6 +25,17 @@ impl EmperorBidSupport {
     }
 
     pub fn validate(&self, _game: &Game) -> Option<Message> {
+        // Not in C#, which accepted any amounts. Support for the Emperor's own bids let the
+        // Emperor bid their spice twice, and paying left them with less than zero
+        // (behavior-changes.md, "Turns, sectors and amounts out of range").
+        if let Some(amounts) = &self.amounts {
+            if amounts.get_opt(self.initiator()).is_some() {
+                return Some(express!("You can't support your own bids"));
+            }
+            if amounts.values().any(|v| *v < 0) {
+                return Some(express!("Invalid amount"));
+            }
+        }
         None
     }
 

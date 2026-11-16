@@ -236,7 +236,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
 
     // Mixes: each is Battle.Dial and Battle.Cost of its forces, and they are every affordable one.
     let opponent = game.player(battle.opponent_of(game, p).unwrap()).faction;
-    let available = game.player(p).resources + o.ally_cap;
+    let available = i32::from(game.player(p).resources) + o.ally_cap;
     let mut expected = 0;
     for fs in 0..=o.special_tokens {
         for fn_ in 0..=o.normal_tokens {

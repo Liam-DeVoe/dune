@@ -68,8 +68,7 @@ impl Game {
             .with_log(SpiceCollected::new(faction, from, amount, field, income));
         self.log(elems![msg]);
         if let Some(player) = self.get_player(Some(faction)) {
-            let r = &mut self.player_mut(player).resources;
-            *r += amount;
+            crate::game::amounts::gain(&mut self.player_mut(player).resources, amount, "spice").expect("collected spice");
         }
         if faction == Faction::Fremen {
             self.collection.resources_collected_by_fremen += amount;
@@ -89,14 +88,14 @@ impl Game {
             let occupied_or_emperor_or_guild = || occupier.is_some() || fp.is(Faction::Emperor) || fp.is(Faction::Guild);
             let half_is_lost = occupied_or_emperor_or_guild() && fp.has_low_threshold(self, homeworld.world());
 
-            let amount_lost = if half_is_lost { (0.5f32 * *received_amount as f32) as i32 } else { 0 };
+            // Half, rounded towards zero.
+            let amount_lost = if half_is_lost { *received_amount / 2 } else { 0 };
 
             *received_amount -= amount_lost;
 
             let Some(occupier) = occupier else { return };
 
-            let r = &mut self.player_mut(occupier).resources;
-            *r += amount_lost;
+            crate::game::amounts::gain(&mut self.player_mut(occupier).resources, amount_lost, "spice").expect("income lost to the occupier");
             // C# parity: logs "0 ... goes to occupier" whenever there is an occupier.
             let from_faction = self.player(from).faction;
             let occupier_faction = self.player(occupier).faction;
@@ -120,8 +119,7 @@ impl Game {
             if let Some(occupier) = self.occupier_of(homeworld.world()) {
                 let faction = self.player(occupier).faction;
                 self.gain_collected_resources(faction.expect("faction"), homeworld.territory(), homeworld.resource_amount(), None, true);
-                let r = &mut self.player_mut(occupier).transferable_resources;
-                *r += homeworld.resource_amount();
+                crate::game::amounts::gain(&mut self.player_mut(occupier).transferable_resources, homeworld.resource_amount(), "spice").expect("homeworld income");
             }
         }
     }
@@ -234,8 +232,7 @@ impl Game {
             self.modify_income_because_of_low_threshold_or_occupation(fremen, &mut received_amount_by_fremen_after_taking_into_account_occupation);
 
             let lost = self.collection.resources_collected_by_fremen - received_amount_by_fremen_after_taking_into_account_occupation;
-            let r = &mut self.player_mut(fremen).resources;
-            *r -= lost;
+            crate::game::amounts::spend(&mut self.player_mut(fremen).resources, lost, "spice").expect("the Fremen's income lost to the occupier");
         }
 
         let harkonnen = self.get_player(Some(Faction::Harkonnen));

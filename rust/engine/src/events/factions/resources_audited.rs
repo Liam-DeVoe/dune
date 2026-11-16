@@ -50,7 +50,7 @@ impl ResourcesAudited {
         let target = self.get_player(game, self.target);
         self.log(game);
         let t = game.player(target.required("target")?);
-        let resources = t.resources;
+        let resources = i32::from(t.resources);
         let weapons = t.treachery_cards.iter().filter(|tc| tc.is_weapon()).count() as i32;
         let defenses = t.treachery_cards.iter().filter(|tc| tc.is_defense()).count() as i32;
         self.log_to(

@@ -159,7 +159,7 @@ impl EndPhase {
             if let Some(choam) = choam {
                 let to_collect = (game.players.len() as i32) * 2 * game.current_charity_multiplier();
                 let b = game.player_mut(choam);
-                b.resources += to_collect;
+                crate::game::amounts::gain(&mut b.resources, to_collect, "spice").expect("CHOAM's charity");
                 self.log_objects(game, vec![Faction::Choam.into(), " collect ".into(), Payment::of(to_collect).into()]);
             }
         } else {

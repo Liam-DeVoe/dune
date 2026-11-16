@@ -250,7 +250,7 @@ impl LoserConcluded {
                         ],
                     );
                     let pl = game.player_mut(self.player());
-                    pl.resources += reward;
+                    crate::game::amounts::gain(&mut pl.resources, reward, "spice")?;
                     game.kill_hero(Hero::Leader(assassinated));
                 }
             }

@@ -484,3 +484,19 @@ C# had the same cache. None of 200 bots and 200 fuzz games (seed 1) got a wrong 
 **What catches the class now.**
 - `engine/tests/rule_fixes.rs::only_a_dead_leader_can_be_revived` and `a_living_ghola_can_be_taken_back`.
 - Nothing checks in general that a dead leader has a death. A check after every event in `observe` recordings would find any other event that kills a leader without `LeaderState::kill`.
+
+## Bids paid with spice nobody had (2026-11)
+
+**Bugs.** Making a player's spice a `u16` (rewrite-plan.md change 2d) turned every payment below zero into a Game Error, and fuzz seed 1 games 4 and 7 hit one each when an auction closed. Both came from bids that validation never checked properly:
+- A pass offered its amounts. `Bid::validate` accepts any pass without looking at its amounts, but silent and once-around auctions pick the highest of all bids, passes included. In game 4 the Emperor passed with 2 spice of their own and an Emperor contribution of 2, holding 2, won the card for 4 and ended at -2.
+- An Emperor contribution was checked against the Emperor's spice, not against what the Emperor offered the bidder. In game 7 the Emperor bid 2 with an Emperor contribution of 11 to themselves, holding 11: both checks passed, and paying left -2.
+- `EmperorBidSupport` had no validation at all, so the Emperor could support their own bids, and the bots then used that support.
+
+Reading every payment for the change found more of the same kind, none of which the 12 fuzz games reached: a negative amount or contribution in `Bid`, `BlackMarketBid`, `Battle` and `Shipment`, a negative `ResourcesTransferred`, and a card given with a negative amount of spice (`Donated`) all paid by receiving spice from the other side. A normal Black Market bid could be more than the bidder had. behavior-changes.md, "Turns, sectors and amounts out of range", lists the refusals.
+
+**Why the tests missed them.** Spice was an `i32`, and nothing checked that it stays at zero or above, as the entry "An ally paying for a shipment with spice it didn't have" already noted. The web form and the bots only offer amounts within what a player has and was offered, so only the fuzzer's mutated events reached these paths, and the reference accepted them the same way.
+
+**What catches the class now.**
+- A player's spice can't go below zero: `game::amounts::spend` fails the event instead, so the harness shows any such payment as a difference from the reference.
+- `engine/tests/numbers.rs`: `a_pass_offers_nothing`, `the_emperor_supports_only_other_bidders`, `bids_with_negative_amounts_or_unoffered_emperor_spice_are_refused`, `spice_given_away_is_never_negative`.
+- Forces and spice on the board are still `i32` (2d, milestone 4). The same change for them should find the force counts that go below zero.

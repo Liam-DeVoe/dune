@@ -27,7 +27,7 @@ impl DiscardedSearchedAnnounced {
 
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         !g.current_phase_cannot_be_interrupted()
-            && g.player(p).resources >= 2
+            && i32::from(g.player(p).resources) >= 2
             && g.player(p).has_treachery_card_type(TreacheryCardType::SearchDiscarded)
             && DiscardedSearched::valid_cards(g).len() > 0
     }

@@ -328,7 +328,7 @@ impl Game {
         let mut paid_to = None;
         {
             let p = self.player_mut(initiator);
-            p.resources -= bid_amount;
+            crate::game::amounts::spend(&mut p.resources, bid_amount, "spice")?;
         }
 
         let mut receiver_profit = 0;
@@ -337,7 +337,7 @@ impl Game {
             let ally = self.player(initiator).allied_player(self).required("The ally")?;
             {
                 let a = self.player_mut(ally);
-                a.resources -= bid_ally_contribution_amount;
+                crate::game::amounts::spend(&mut a.resources, bid_ally_contribution_amount, "spice")?;
             }
             let initiator_faction = self.player(initiator).faction;
             self.decrease_permitted_use_of_ally_spice(initiator_faction.required("faction")?, bid_ally_contribution_amount);
@@ -346,7 +346,7 @@ impl Game {
         if bid_emperor_contribution_amount > 0 {
             let emperor = self.get_player(Some(Faction::Emperor)).required("The Emperor player")?;
             let r = self.player_mut(emperor);
-            r.resources -= bid_emperor_contribution_amount;
+            crate::game::amounts::spend(&mut r.resources, bid_emperor_contribution_amount, "spice")?;
         }
 
         let receiver = self.get_player(Some(payment_receiver));
@@ -368,7 +368,7 @@ impl Game {
             self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
             {
                 let r = self.player_mut(emperor);
-                r.resources += total_amount_received_by_emperor_instead_of_richese;
+                crate::game::amounts::gain(&mut r.resources, total_amount_received_by_emperor_instead_of_richese, "spice")?;
             }
             emperor_received_instead_message = express_part!(" and ", Faction::Emperor, " get ", Payment::of(total_amount_received_by_emperor_instead_of_richese));
 
@@ -395,8 +395,8 @@ impl Game {
                 self.modify_income_because_of_low_threshold_or_occupation(receiver, &mut receiver_profit);
                 {
                     let r = self.player_mut(receiver);
-                    r.resources += receiver_profit;
-                    r.resources_after_bidding += bid_emperor_contribution_amount;
+                    crate::game::amounts::gain(&mut r.resources, receiver_profit, "spice")?;
+                    crate::game::amounts::gain(&mut r.resources_after_bidding, bid_emperor_contribution_amount, "spice")?;
                 }
                 let receiver_faction = self.player(receiver).faction;
                 paid_to = receiver_faction;
@@ -682,7 +682,7 @@ impl Game {
         self.turn.current_ixian_cunning = None;
         if let Some(emperor) = self.get_player(Some(Faction::Emperor)) {
             let r = self.player_mut(emperor);
-            r.resources += r.resources_after_bidding;
+            crate::game::amounts::gain(&mut r.resources, i32::from(r.resources_after_bidding), "spice").expect("the Emperor's spice after bidding");
             r.resources_after_bidding = 0;
         }
 

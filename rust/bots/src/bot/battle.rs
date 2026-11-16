@@ -1019,7 +1019,7 @@ impl ClassicBot {
                         Some(h),
                         weapon,
                         defense,
-                        if p.resources > 3 { 3 } else { 0 },
+                        if i32::from(p.resources) > 3 { 3 } else { 0 },
                         &mut used_skill,
                     )
             }
@@ -1144,7 +1144,7 @@ impl ClassicBot {
         }
 
         let banker_boost = if game.skill(hero) == Some(LeaderSkill::Banker) && !i_assume_my_leader_will_die {
-            game.player(player).resources.min(3)
+            i32::from(game.player(player).resources).min(3)
         } else {
             0
         };

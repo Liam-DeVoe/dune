@@ -24,7 +24,7 @@ impl KarmaRicheseBuy {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if game.player(self.player()).resources < 3 {
+        if i32::from(game.player(self.player()).resources) < 3 {
             return Some(express!("You can't pay ", Payment::of(3)));
         }
         if !game.decks.richese_cache.iter().any(|c| Some(*c) == self.card) {

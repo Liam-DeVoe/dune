@@ -34,7 +34,13 @@ impl BlackMarketBid {
         false
     }
 
+    /// What the bid offers: nothing for a pass. Not in C#, where a pass in a silent or once-around
+    /// auction counted its amounts, which validation never checks, so a pass could win and pay
+    /// more than the bidder had (behavior-changes.md, "Turns, sectors and amounts out of range").
     pub fn total_amount(&self) -> i32 {
+        if self.passed {
+            return 0;
+        }
         (self.amount + self.ally_contribution_amount) + self.emperor_contribution_amount
     }
 
@@ -206,6 +212,11 @@ impl BlackMarketBid {
             return None;
         }
 
+        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
+        // sectors and amounts out of range").
+        if self.amount < 0 || self.ally_contribution_amount < 0 || self.emperor_contribution_amount < 0 {
+            return Some(express!("Invalid amount"));
+        }
         if game.bidding.current_auction_type != Some(AuctionType::BlackMarketSilent) && self.total_amount() < 1 {
             return Some(express!("Bid must be higher than 0"));
         }
@@ -222,12 +233,19 @@ impl BlackMarketBid {
             return Some(express!("your ally won't pay that much"));
         }
 
-        let emperor = game.get_player(Some(Faction::Emperor));
-        if self.emperor_contribution_amount > 0 && self.emperor_contribution_amount > emperor.map_or(0, |r| game.player(r).resources) {
+        // Not in C#, which checked only the Emperor's spice, not what the Emperor offered
+        // (behavior-changes.md, "Turns, sectors and amounts out of range").
+        if self.emperor_contribution_amount > 0 && self.emperor_contribution_amount > self.initiator().map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
-        if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && self.total_amount() > game.player(self.player()).resources {
+        // Not in C#, where a normal Black Market bid could be more than the bidder had, and
+        // paying it left them with less than zero (behavior-changes.md, "Turns, sectors and
+        // amounts out of range"). `Bid` checks the same.
+        if self.amount > i32::from(game.player(self.player()).resources) {
+            return Some(express!("You can't pay ", Payment::of(self.amount)));
+        }
+        if game.bidding.current_auction_type == Some(AuctionType::BlackMarketSilent) && self.total_amount() > i32::from(game.player(self.player()).resources) {
             return Some(express!("In a Silent auction, you can't bid more than you have"));
         }
 
@@ -235,7 +253,7 @@ impl BlackMarketBid {
     }
 
     pub fn valid_max_amount(game: &Game, p: PlayerId) -> i32 {
-        game.player(p).resources
+        i32::from(game.player(p).resources)
     }
 
     pub fn valid_max_ally_amount(g: &Game, p: PlayerId) -> i32 {

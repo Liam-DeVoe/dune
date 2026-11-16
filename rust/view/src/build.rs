@@ -148,10 +148,10 @@ fn public_player(game: &Game, s: &Seating, p: PlayerId) -> PublicPlayer {
         special_forces_killed: pl.special_forces_killed,
         card_count: pl.treachery_cards.len() as i32,
         // Public: the map ring shows these for everyone.
-        bribes: pl.bribes,
-        resources_after_bidding: pl.resources_after_bidding,
-        extortion: pl.extortion,
-        banked_resources: pl.banked_resources,
+        bribes: i32::from(pl.bribes),
+        resources_after_bidding: i32::from(pl.resources_after_bidding),
+        extortion: i32::from(pl.extortion),
+        banked_resources: i32::from(pl.banked_resources),
         tech_tokens: pl.tech_tokens.iter().map(|t| name(*t)).collect(),
         // Ecaz's unplaced ambassadors are on the map ring for everyone.
         ambassadors: pl.ambassadors.iter().map(|a| name(*a)).collect(),

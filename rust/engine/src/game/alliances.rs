@@ -162,7 +162,7 @@ impl Game {
         let ally = self.get_player(self.player(p).ally);
         match ally {
             None => 0,
-            Some(ally) => value.min(self.player(ally).resources),
+            Some(ally) => value.min(i32::from(self.player(ally).resources)),
         }
     }
 
@@ -172,7 +172,7 @@ impl Game {
         let emperor = self.get_player(Some(Faction::Emperor));
         match emperor {
             None => 0,
-            Some(emperor) => value.min(self.player(emperor).resources),
+            Some(emperor) => value.min(i32::from(self.player(emperor).resources)),
         }
     }
 
@@ -198,7 +198,7 @@ impl Game {
 
         let value = self.alliances.permitted_use_of_ally_spice.get_opt(f).copied();
         match (value, ally) {
-            (Some(value), Some(ally)) => value.min(self.player(ally).resources),
+            (Some(value), Some(ally)) => value.min(i32::from(self.player(ally).resources)),
             _ => 0,
         }
     }

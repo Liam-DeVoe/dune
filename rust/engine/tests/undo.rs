@@ -39,7 +39,7 @@ fn dump(g: &mut Game) -> String {
             "player {i}: {} seat {} spice {} cards [{}] traitors [{}] leaders [{}] forces [{}] ally {} may: {}",
             treachery_engine::enum_type::name_or_absent(p.faction),
             Seat::number_or_minus_one(p.seat),
-            p.resources,
+            i32::from(p.resources),
             ids(&mut p.treachery_cards.iter().map(|c| c.id())),
             ids(&mut p.traitors.iter().map(|h| h.id())),
             ids(&mut p.leaders.iter().map(|l| l.id())),

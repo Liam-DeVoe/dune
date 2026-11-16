@@ -172,7 +172,7 @@ impl AmbassadorActivated {
                 }
 
                 Some(Ambassador::Richese) => {
-                    if game.player(player()).resources < 3 {
+                    if i32::from(game.player(player()).resources) < 3 {
                         return Some(express!("You don't have enough ", Concept::Resource, " to buy a card"));
                     }
                     if !game.player(player()).has_room_for_cards(game) {
@@ -389,7 +389,7 @@ impl AmbassadorActivated {
 
                 self.log_objects(game, elems![self.initiator(), " get ", Payment::of(total_earned)]);
                 let p = game.player_mut(self.player());
-                p.resources += total_earned;
+                crate::game::amounts::gain(&mut p.resources, total_earned, "spice")?;
                 game.determine_next_shipment_and_move_sub_phase()?;
             }
 

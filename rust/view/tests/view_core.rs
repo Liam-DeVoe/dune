@@ -117,7 +117,7 @@ fn notekeeping_shows_discard_piles_and_notes() {
         for n in &notes.players {
             let other = g.get_player(Some(Faction::ALL.iter().copied().find(|x| x.to_string() == n.faction).unwrap())).unwrap();
             let pl = g.player(other);
-            assert_eq!((n.resources, n.bribes, n.resources_after_bidding), (pl.resources, pl.bribes, pl.resources_after_bidding));
+            assert_eq!((n.resources, n.bribes, n.resources_after_bidding), (i32::from(pl.resources), i32::from(pl.bribes), i32::from(pl.resources_after_bidding)));
             assert_eq!(n.victory_points, g.number_of_victory_points(other, true));
             let cards = g.cards_owned_by(other);
             assert_eq!(n.cards.len(), cards.len());

@@ -267,7 +267,7 @@ impl ClassicBot {
     }
 
     pub fn ally_resources(&self, game: &Game) -> i32 {
-        self.allied_player(game).map(|a| game.player(a).resources).unwrap_or(0)
+        self.allied_player(game).map(|a| i32::from(game.player(a).resources)).unwrap_or(0)
     }
 
     pub fn resources_in(&self, game: &Game, l: Location) -> i32 {
@@ -715,7 +715,7 @@ impl ClassicBot {
 
         Self::max_dial_of_forces(
             game,
-            if ignore_spice_dialing { 99 } else { p.resources },
+            if ignore_spice_dialing { 99 } else { i32::from(p.resources) },
             p.forces_in_territory(Some(t)) + count_forces_for_richese,
             if p.faction != Some(Faction::Richese) { p.special_forces_in_territory(Some(t)) } else { 0 },
             player,
@@ -797,7 +797,7 @@ impl ClassicBot {
         }
 
         let o = game.player(opponent);
-        let opponent_resources = o.resources + o.allied_resources(game);
+        let opponent_resources = i32::from(o.resources) + o.allied_resources(game);
 
         let opponent_may_use_worthless_as_karma = o.faction == Some(Faction::BeneGesserit) && game.applicable(Rule::BeneGesseritWorthlessAsKarma);
         let has_karma = Self::known_cards_held_by_other_player(game, player, opponent).into_iter().any(|c| {

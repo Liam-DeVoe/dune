@@ -316,7 +316,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             }
         }),
         GameEvent::AllyPermission(e) => adjust!(e, |m| {
-            m.permitted_resources = picker(m.permitted_resources, 0, pl.resources);
+            m.permitted_resources = picker(m.permitted_resources, 0, i32::from(pl.resources));
             if !Karma::can_karma(game, p) {
                 m.permitted_karma_card = None;
             }
@@ -388,7 +388,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         GameEvent::EmperorBidSupport(e) => adjust!(e, |m| {
             if let Some(amounts) = m.amounts.as_mut() {
                 for (_, a) in amounts.iter_mut() {
-                    *a = picker(*a, 0, pl.resources);
+                    *a = picker(*a, 0, i32::from(pl.resources));
                 }
             }
         }),
@@ -626,7 +626,7 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &GameEvent, d: &
         }
         GameEvent::EmperorBidSupport(_) => ActionOptions::EmperorBidSupport(EmperorBidSupportOptions {
             targets: faction_options(opponents_but_ally(game, p)),
-            max: pl.resources,
+            max: i32::from(pl.resources),
             draft: json.clone(),
         }),
         GameEvent::EmperorDiscarded(_) => ActionOptions::EmperorDiscarded(cards(hand())),
@@ -736,7 +736,7 @@ fn ally_permission(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_jso
             owns_weapon: al.treachery_cards.iter().any(|c| c.is_weapon()),
             owns_defense: al.treachery_cards.iter().any(|c| c.is_defense()),
             safe_leaders: hero_options(safe),
-            resources: al.resources,
+            resources: i32::from(al.resources),
         }
     });
     let mut current = AllyPermission::new(game, pl.faction);
@@ -745,7 +745,7 @@ fn ally_permission(game: &Game, p: PlayerId, d: &dyn Describer, draft: serde_jso
     AllyPermissionOptions {
         ally: name_or_absent(ally),
         bot_claims,
-        max_resources: pl.resources,
+        max_resources: i32::from(pl.resources),
         current_resources: game.get_permitted_use_of_ally_resources(ally),
         karma_cards: Karma::can_karma(game, p).then(|| card_ids(Karma::valid_karma_cards(game, p))),
         current_karma_card: game.get_permitted_use_of_ally_karma(ally).map(|c| c.id()),

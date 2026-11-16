@@ -142,8 +142,8 @@ fn charity_paid_even_when_choam_cannot_pay() {
     g.player_mut(emperor).resources = 0;
     g.player_mut(choam).resources = 1;
     g.claim_charity(emperor);
-    assert_eq!(g.player(emperor).resources, 2);
-    assert_eq!(g.player(choam).resources, 1);
+    assert_eq!(i32::from(g.player(emperor).resources), 2);
+    assert_eq!(i32::from(g.player(choam).resources), 1);
     assert!(g.turn.has_acted_or_passed.contains(&Faction::Emperor));
 }
 

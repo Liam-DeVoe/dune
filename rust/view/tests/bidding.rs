@@ -37,7 +37,7 @@ fn expected_defaults(game: &Game, p: PlayerId, max_amount: i32, max_ally: i32) -
             None => 1,
         };
         ally = bid_to_do.min(ally_resources);
-        amount = (bid_to_do - ally).min(pl.resources);
+        amount = (bid_to_do - ally).min(i32::from(pl.resources));
     }
     let clamp = |v: i32, max: i32| if v < 0 { 0 } else if v > max { max } else { v };
     amount = clamp(amount, max_amount);
@@ -258,9 +258,9 @@ fn karma_card_lifts_the_limit_in_a_draft_query() {
     let view = r.view(viewer);
     let a = view.actions.iter().find(|a| a.event_type == "Bid").expect("Bid applicable");
     let Some(ActionOptions::Bid { max_amount, karma_cards, .. }) = &a.options else { panic!() };
-    assert_eq!(*max_amount, r.game.player(p).resources);
+    assert_eq!(*max_amount, i32::from(r.game.player(p).resources));
     let card = karma_cards[0];
-    let over = r.game.player(p).resources + 5;
+    let over = i32::from(r.game.player(p).resources) + 5;
     let draft = |karma: i32| {
         format!(r#"{{"$type":"Bid","Amount":{over},"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":{karma},"Passed":false,"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#)
     };

@@ -7,7 +7,7 @@ impl ClassicBot {
             .player_indices()
             .filter(|&p| p != me && game.player(p).has_room_for_cards(game))
             .filter(|&p| (game.player(p).treachery_cards.len() as i32) < game.player(p).maximum_number_of_cards(game))
-            .map(|p| game.player(p).resources)
+            .map(|p| i32::from(game.player(p).resources))
             .max()
             .unwrap_or(0);
 

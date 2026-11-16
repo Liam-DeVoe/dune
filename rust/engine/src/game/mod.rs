@@ -2,6 +2,7 @@
 //! topic, plus the state types it uses; see docs/engine.md.
 
 mod alliances;
+pub mod amounts;
 pub use alliances::Alliances;
 mod applicable_events;
 mod battalion;

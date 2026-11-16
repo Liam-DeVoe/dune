@@ -36,7 +36,7 @@ fn starting_amounts(game: &Game, p: PlayerId) -> (i32, i32) {
     }
     let pl = game.player(p);
     let ally_resources = if pl.ally == None { 0 } else { game.get_permitted_use_of_ally_resources(pl.faction.expect("faction")) };
-    let player_resources = pl.resources;
+    let player_resources = i32::from(pl.resources);
     let bid_to_do = game.bidding.current_bid.as_ref().map_or(1, |b| b.bid_total_amount() + 1);
     let ally = bid_to_do.min(ally_resources);
     let amount = (bid_to_do - ally).min(player_resources);

@@ -102,7 +102,7 @@ impl NexusPlayed {
                     if self.tleilaxu_special_forces > NexusPlayed::valid_tleilaxu_max_amount(game, me, true) {
                         return Some(express!("You can't revive that many ", game.player(me).special_force()));
                     }
-                    if self.determine_tleilaxu_cost() > game.player(me).resources {
+                    if self.determine_tleilaxu_cost() > i32::from(game.player(me).resources) {
                         return Some(express!("You can't pay that much"));
                     }
                     if (self.tleilaxu_forces + self.tleilaxu_special_forces) > 5 {
@@ -419,12 +419,12 @@ impl NexusPlayed {
                         let get_from = self.get_player(game, p.to);
                         if let Some(get_from) = get_from {
                             let gf = game.player_mut(get_from);
-                            gf.resources -= p.amount;
+                            crate::game::amounts::spend(&mut gf.resources, p.amount, "spice")?;
                         }
                     }
 
                     let me = game.player_mut(actor);
-                    me.resources += p.amount;
+                    crate::game::amounts::gain(&mut me.resources, p.amount, "spice")?;
                 }
 
                 if game.turn.target_of_bureaucracy == Some(Faction::Guild) {
@@ -487,7 +487,7 @@ impl NexusPlayed {
                     );
                     if let Some(richese) = richese {
                         let w = game.player_mut(richese);
-                        w.resources -= amount_received;
+                        crate::game::amounts::spend(&mut w.resources, amount_received, "spice")?;
                     }
                 } else if richese.is_some() && game.bidding.card_just_won.is_some() && game.player(richese.required("richese")?).has(game.bidding.card_just_won) {
                     let richese = richese.required("richese")?;
@@ -501,19 +501,19 @@ impl NexusPlayed {
                     if let Some(winning_bid) = winning_bid {
                         if !winning_bid.bid_karma_bid() && winning_bid.bid_initiator() == Faction::Richese {
                             let w = game.player_mut(richese);
-                            w.resources += winning_bid.bid_amount();
+                            crate::game::amounts::gain(&mut w.resources, winning_bid.bid_amount(), "spice")?;
                             let richese_ally = game.player(richese).allied_player(game);
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.bid_ally_contribution_amount() > 0 {
                                     let a = game.player_mut(richese_ally);
-                                    a.resources += winning_bid.bid_ally_contribution_amount();
+                                    crate::game::amounts::gain(&mut a.resources, winning_bid.bid_ally_contribution_amount(), "spice")?;
                                 }
                             }
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.bid_emperor_contribution_amount() > 0 {
                                     // C# parity: Emperor's contribution is refunded to Richese's ally.
                                     let a = game.player_mut(richese_ally);
-                                    a.resources += winning_bid.bid_emperor_contribution_amount();
+                                    crate::game::amounts::gain(&mut a.resources, winning_bid.bid_emperor_contribution_amount(), "spice")?;
                                 }
                             }
                         }

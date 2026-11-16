@@ -51,7 +51,7 @@ impl AmbassadorPlaced {
     }
 
     pub fn is_applicable(g: &Game, p: PlayerId) -> bool {
-        g.player(p).resources > g.revival.ambassadors_placed_this_turn
+        i32::from(g.player(p).resources) > g.revival.ambassadors_placed_this_turn
             && g.turn.current_phase == Phase::ResurrectionReport
             && !g.prevented(FactionAdvantage::EcazAmbassadors)
             && !AmbassadorPlaced::valid_ambassadors(g, p).is_empty()
@@ -67,7 +67,7 @@ impl AmbassadorPlaced {
         let me = self.player();
         let placed = game.revival.ambassadors_placed_this_turn;
         let p = game.player_mut(me);
-        p.resources -= placed;
+        crate::game::amounts::spend(&mut p.resources, placed, "spice")?;
         self.log_objects(
             game,
             vec![

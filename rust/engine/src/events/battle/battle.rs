@@ -539,6 +539,11 @@ impl Battle {
         if (self.special_forces + self.special_forces_at_half_strength) > Battle::max_forces(game, p, true) {
             return Some(express!("Too many ", pl.special_force(), " selected"));
         }
+        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
+        // sectors and amounts out of range").
+        if self.ally_contribution_amount < 0 || self.banker_bonus < 0 {
+            return Some(express!("Invalid amount"));
+        }
         let mut _paid = 0;
         let cost = Battle::cost_of_forces(game, p, self.forces, self.special_forces, &mut _paid);
         if self.ally_contribution_amount > cost {
@@ -547,7 +552,7 @@ impl Battle {
         if self.ally_contribution_amount > Battle::max_ally_resources(game, p, self.forces, self.special_forces) {
             return Some(express!("Your ally won't pay that much"));
         }
-        if cost > (pl.resources + self.ally_contribution_amount) {
+        if cost > (i32::from(pl.resources) + self.ally_contribution_amount) {
             return Some(express!(
                 "You can't pay ",
                 Payment::of(cost),
@@ -608,7 +613,7 @@ impl Battle {
         if self.banker_bonus > Battle::max_banker_boost(game, self.player(), self.hero) {
             return Some(express!("You cannot boost your leader this much"));
         }
-        if (cost + self.banker_bonus) > (pl.resources + self.ally_contribution_amount) {
+        if (cost + self.banker_bonus) > (i32::from(pl.resources) + self.ally_contribution_amount) {
             return Some(express!("You can't pay this ", LeaderSkill::Banker, " bonus"));
         }
 
@@ -808,7 +813,7 @@ impl Battle {
     }
 
     pub fn max_resources(g: &Game, p: PlayerId, forces: i32, special_forces: i32) -> i32 {
-        g.player(p).resources.min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
+        i32::from(g.player(p).resources).min(0.max(forces + special_forces - Battle::cost_reduction(g, p)))
     }
 
     pub fn max_ally_resources(g: &Game, p: PlayerId, forces: i32, special_forces: i32) -> i32 {
@@ -1050,7 +1055,7 @@ impl Battle {
 
     pub fn max_banker_boost(g: &Game, p: PlayerId, hero: Option<Hero>) -> i32 {
         if hero.is_some_and(|h| g.skilled_as(h, LeaderSkill::Banker)) {
-            g.player(p).resources.min(3)
+            i32::from(g.player(p).resources).min(3)
         } else {
             0
         }

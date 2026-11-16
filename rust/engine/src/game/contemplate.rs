@@ -34,14 +34,14 @@ impl Game {
 
         for i in 0..self.players.len() {
             let p = self.player_at(i);
-            if self.player(p).banked_resources > 0 {
-                let banked = self.player(p).banked_resources;
+            if i32::from(self.player(p).banked_resources) > 0 {
+                let banked = i32::from(self.player(p).banked_resources);
                 {
                     let pl = self.player_mut(p);
-                    pl.resources += banked;
+                    crate::game::amounts::gain(&mut pl.resources, banked, "spice").expect("banked");
                 }
                 let faction = self.player(p).faction;
-                let banked = self.player(p).banked_resources;
+                let banked = i32::from(self.player(p).banked_resources);
                 self.log(vec![
                     faction.into(),
                     " add ".into(),
@@ -83,7 +83,7 @@ impl Game {
 
     pub fn enter_contemplate_pause(&mut self) {
         self.determine_if_moritani_draws_new_traitor();
-        self.contemplate.extortion_to_be_returned = self.players.iter().any(|p| p.extortion > 0);
+        self.contemplate.extortion_to_be_returned = self.players.iter().any(|p| i32::from(p.extortion) > 0);
         self.gain_extortions();
 
         if self.turn.harkonnen_traitor_was_cancelled {
@@ -137,15 +137,15 @@ impl Game {
 
     pub fn gain_extortions(&mut self) {
         let players: Vec<PlayerId> =
-            self.player_indices().filter(|p| self.player(*p).extortion > 0).collect();
+            self.player_indices().filter(|p| i32::from(self.player(*p).extortion) > 0).collect();
         for p in players {
-            let extortion = self.player(p).extortion;
+            let extortion = i32::from(self.player(p).extortion);
             {
                 let pl = self.player_mut(p);
-                pl.resources += extortion;
+                crate::game::amounts::gain(&mut pl.resources, extortion, "spice").expect("extortion");
             }
             let faction = self.player(p).faction;
-            let extortion = self.player(p).extortion;
+            let extortion = i32::from(self.player(p).extortion);
             self.log(vec![
                 faction.into(),
                 " add ".into(),
@@ -192,14 +192,14 @@ impl Game {
     pub fn add_bribes_to_player_resources(&mut self) {
         for i in 0..self.players.len() {
             let p = self.player_at(i);
-            if self.player(p).bribes > 0 {
-                let bribes = self.player(p).bribes;
+            if i32::from(self.player(p).bribes) > 0 {
+                let bribes = i32::from(self.player(p).bribes);
                 {
                     let pl = self.player_mut(p);
-                    pl.resources += bribes;
+                    crate::game::amounts::gain(&mut pl.resources, bribes, "spice").expect("bribes");
                 }
                 let faction = self.player(p).faction;
-                let bribes = self.player(p).bribes;
+                let bribes = i32::from(self.player(p).bribes);
                 self.log(vec![express!(faction, " add ", Payment::of(bribes), " from bribes to their reserves")
                     .with_log(BribesCollected::new(faction.expect("faction"), bribes))
                     .into()]);

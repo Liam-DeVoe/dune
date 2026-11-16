@@ -268,7 +268,7 @@ impl ClassicBot {
     }
 
     pub fn resources(&self, game: &Game) -> i32 {
-        game.player(self.player).resources
+        i32::from(game.player(self.player).resources)
     }
 
     /// The event the bot wants to submit in this round, if any. `allowed` lists the event types

@@ -1,0 +1,33 @@
+//! Amounts of spice, which a player holds as `u16` (`Player.resources` and the five other spice
+//! fields). The rules compute with `i32` (event fields, costs, bonuses), so a change to a player's
+//! spice goes through these helpers. A result below zero, or a negative gain, means validation
+//! let through something it shouldn't have, so the event fails with a Game Error. Where the
+//! caller can't return one, it panics with `expect`. Where a player could cause it, validation
+//! refuses the event instead (rewrite-plan.md, section 4, risk 5). Where the rules say to take
+//! "as much as possible", the caller takes `min(amount, have)` first, as the host taking spice
+//! into the bank does (`Donated`).
+
+use crate::error::{GameError, GameResult};
+
+/// `have - amount`. A Game Error if `have` holds less than `amount`, or if `amount` is negative.
+pub fn spend(have: &mut u16, amount: i32, what: &str) -> GameResult {
+    match u16::try_from(amount).ok().and_then(|a| have.checked_sub(a)) {
+        Some(left) => {
+            *have = left;
+            Ok(())
+        }
+        None => Err(GameError::new(format!("Can't take {amount} {what} from {have}"))),
+    }
+}
+
+/// `have + amount`. A Game Error if `amount` is negative or the result doesn't fit.
+pub fn gain(have: &mut u16, amount: i32, what: &str) -> GameResult {
+    match u16::try_from(amount).ok().and_then(|a| have.checked_add(a)) {
+        Some(sum) => {
+            *have = sum;
+            Ok(())
+        }
+        None => Err(GameError::new(format!("Can't add {amount} {what} to {have}"))),
+    }
+}
+

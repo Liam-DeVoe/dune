@@ -103,6 +103,17 @@ let n: i32 = Sector::number_or_none(l.sector(map));   // -1 for none, as views w
 
 Views and the log write both as numbers, and -1 for a missing sector, as before.
 
+## Amounts of spice
+
+A player's spice is a `u16` (`resources` and the other spice fields of `Player`). The rules still compute with `i32`, so read it as `i32::from(p.resources)` and change it with `game::amounts`:
+
+```rust
+amounts::spend(&mut game.player_mut(me).resources, cost, "spice")?;     // Game Error if short
+amounts::gain(&mut game.player_mut(p).resources, income, "spice").expect("income");  // outside GameResult
+```
+
+A payment that would go below zero is a Game Error, never a negative amount. If a player can cause it, refuse the event in `validate` instead. Forces, spice on the board and the amounts in events are still `i32` (rewrite-plan.md, change 2d).
+
 ## Static game data: handles
 
 Territories, locations, leaders, the Messiah, treachery cards and resource cards are created once per process or once per game, and C# compares them by reference or by `Id`. Within one game those agree. In Rust each is a small `Copy` handle into a static table. Its `==` matches the C# `Equals`/`==`.

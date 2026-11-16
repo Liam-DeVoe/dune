@@ -27,7 +27,7 @@ impl ExtortionPrevented {
 
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         g.player(p).faction != Some(Faction::Moritani)
-            && g.player(p).resources >= 3
+            && i32::from(g.player(p).resources) >= 3
             && g.contemplate.extortion_to_be_returned
     }
 

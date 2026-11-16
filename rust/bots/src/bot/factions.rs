@@ -221,7 +221,7 @@ impl ClassicBot {
 
     pub fn determine_emperor_discarded(&self, game: &Game) -> Option<Rc<EmperorDiscarded>> {
         let me = game.player(self.player);
-        if !(me.resources >= 10 && !me.has_room_for_cards(game)) {
+        if !(i32::from(me.resources) >= 10 && !me.has_room_for_cards(game)) {
             return None;
         }
 
@@ -1051,7 +1051,7 @@ impl ClassicBot {
         game.player_indices()
             .map(|p| game.player(p))
             .filter(|p| p.faction != ally)
-            .filter(|p| p.resources < 2 || (game.applicable(Rule::BeneGesseritAutoCharity) && p.faction == Some(Faction::BeneGesserit)))
+            .filter(|p| i32::from(p.resources) < 2 || (game.applicable(Rule::BeneGesseritAutoCharity) && p.faction == Some(Faction::BeneGesserit)))
             .count() as i32
     }
 
@@ -1151,7 +1151,7 @@ impl ClassicBot {
         let can_place = |t: TerrorType| available_to_place.contains(&t);
 
         let type_ = if can_place(TerrorType::Robbery)
-            && opponents.iter().map(|p| game.player(*p).resources).sum::<i32>() > opponents.len() as i32 * 10
+            && opponents.iter().map(|p| i32::from(game.player(*p).resources)).sum::<i32>() > opponents.len() as i32 * 10
         {
             Some(TerrorType::Robbery)
         } else if can_place(TerrorType::Atomics)
@@ -1268,7 +1268,7 @@ impl ClassicBot {
             Some(Ambassador::Choam)
         } else if can_place(Ambassador::Ixian) && me.treachery_cards.iter().any(|c| self.card_quality(game, *c, p) <= 1) {
             Some(Ambassador::Ixian)
-        } else if can_place(Ambassador::Richese) && me.has_room_for_cards(game) && me.resources > 6 {
+        } else if can_place(Ambassador::Richese) && me.has_room_for_cards(game) && i32::from(me.resources) > 6 {
             Some(Ambassador::Richese)
         } else if can_place(Ambassador::Emperor) && self.resources(game) <= 4 {
             Some(Ambassador::Emperor)

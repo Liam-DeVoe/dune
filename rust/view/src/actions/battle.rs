@@ -557,7 +557,7 @@ fn normalize_battle(game: &Game, p: PlayerId, e: &mut Battle) {
     // The spice the ally pays, between what the player can't pay and what the ally can.
     let cost = Battle::cost_of_forces(game, p, e.forces, e.special_forces, &mut 0);
     let ally_cap = ally_cap(game, p);
-    let ally_min = 0.max(cost - pl.resources);
+    let ally_min = 0.max(cost - i32::from(pl.resources));
     let ally_max = cost.min(ally_cap);
     e.ally_contribution_amount = if ally_max < ally_min { ally_max } else { e.ally_contribution_amount.clamp(ally_min, ally_max) };
 
@@ -612,7 +612,7 @@ fn half_allowed(game: &Game, p: PlayerId, special: bool) -> bool {
 fn mixes(game: &Game, p: PlayerId, opponent: Faction, normal: i32, special: i32) -> Vec<(i32, i32, i32, i32, f32, i32)> {
     let half_s = half_allowed(game, p, true);
     let half_n = half_allowed(game, p, false);
-    let available = game.player(p).resources + ally_cap(game, p);
+    let available = i32::from(game.player(p).resources) + ally_cap(game, p);
     let mut result = vec![];
     for fs in 0..=special {
         for fn_ in 0..=normal {
@@ -791,7 +791,7 @@ fn battle_options(game: &Game, p: PlayerId, draft: &Battle, d: &dyn Describer) -
         half_normal: half_allowed(game, p, false),
         half_special: half_allowed(game, p, true),
         must_pay: Battle::must_pay_for_any_forces_in_battle(game, p),
-        resources: pl.resources,
+        resources: i32::from(pl.resources),
         ally_cap: ally_cap(game, p),
         ally: name_or_absent(pl.ally),
         mixes: mixes(game, p, game.player(opponent).faction.expect("faction"), normal_tokens, special_tokens),

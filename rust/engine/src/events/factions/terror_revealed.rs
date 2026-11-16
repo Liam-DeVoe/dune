@@ -221,7 +221,7 @@ impl TerrorRevealed {
                             elems![self.initiator(), " gain ", Payment::of(price), " from assassinating ", random_leader, " in ", territory],
                         );
                         let p = game.player_mut(self.player());
-                        p.resources += price;
+                        crate::game::amounts::gain(&mut p.resources, price, "spice")?;
                         game.kill_hero(Hero::Leader(random_leader));
                     } else {
                         self.log_objects(game, elems![self.initiator(), " fail to assassinate a leader in ", territory]);
@@ -268,12 +268,13 @@ impl TerrorRevealed {
                         self.log_objects(game, elems![self.initiator(), " draw a Treachery Card"]);
                     } else {
                         let victim_player = victim_player.required("victim player")?;
-                        // (int)Math.Ceiling(0.5f * resources): the product is a float.
-                        let amount_stolen = ((0.5f32 * game.player(victim_player).resources as f32) as f64).ceil() as i32;
-                        let p = game.player_mut(self.player());
-                        p.resources += amount_stolen;
+                        // Half, rounded up.
+                        let amount_stolen = game.player(victim_player).resources.div_ceil(2);
                         let v = game.player_mut(victim_player);
                         v.resources -= amount_stolen;
+                        let amount_stolen = i32::from(amount_stolen);
+                        let p = game.player_mut(self.player());
+                        crate::game::amounts::gain(&mut p.resources, amount_stolen, "spice")?;
                         self.log_objects(
                             game,
                             elems![self.initiator(), " steal ", Payment::of(amount_stolen), " by ", self.type_, " in ", territory],

@@ -29,7 +29,7 @@ impl AuditCancelled {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.cancelled && game.player(self.player()).resources < Self::get_number_of_cards_that_may_be_audited(game) {
+        if self.cancelled && i32::from(game.player(self.player()).resources) < Self::get_number_of_cards_that_may_be_audited(game) {
             return Some(express!("You can't pay enough to prevent the audit"));
         }
         None
@@ -77,11 +77,11 @@ impl AuditCancelled {
         if self.cancelled {
             let me = self.player();
             let cost = self.cost(game);
-            game.player_mut(me).resources = game.player(me).resources - cost;
+            crate::game::amounts::spend(&mut game.player_mut(me).resources, cost, "spice")?;
             let choam = self.get_player(game, Some(Faction::Choam));
             if let Some(choam) = choam {
                 let cost = self.cost(game);
-                game.player_mut(choam).resources = game.player(choam).resources + cost;
+                crate::game::amounts::gain(&mut game.player_mut(choam).resources, cost, "spice")?;
             }
         }
 

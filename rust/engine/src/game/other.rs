@@ -55,24 +55,25 @@ impl Game {
         }
     }
 
-    pub fn exchange_resources_in_bribe(&mut self, from: PlayerId, target: PlayerId, amount: i32) {
+    pub fn exchange_resources_in_bribe(&mut self, from: PlayerId, target: PlayerId, amount: i32) -> GameResult {
         {
             let p = self.player_mut(from);
-            p.resources -= amount;
+            crate::game::amounts::spend(&mut p.resources, amount, "spice")?;
         }
 
         if self.bribes_during_mentat() {
             if self.player(from).faction == Some(Faction::Emperor) && self.player(target).faction == self.player(from).ally {
                 let t = self.player_mut(target);
-                t.resources += amount;
+                crate::game::amounts::gain(&mut t.resources, amount, "spice")?;
             } else {
                 let t = self.player_mut(target);
-                t.bribes += amount;
+                crate::game::amounts::gain(&mut t.bribes, amount, "spice")?;
             }
         } else {
             let t = self.player_mut(target);
-            t.resources += amount;
+            crate::game::amounts::gain(&mut t.resources, amount, "spice")?;
         }
+        Ok(())
     }
 
     pub fn revoke_plan_if_needed(&mut self, f: Faction) {

@@ -186,7 +186,7 @@ impl Game {
                     }
 
                     let pl = self.player_mut(initiator);
-                    pl.resources += most_spice;
+                    crate::game::amounts::gain(&mut pl.resources, most_spice, "spice").expect("spice income");
                     let f = self.player(initiator).faction;
                     self.log(elems![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(most_spice), " along the way"]);
                 }
@@ -747,7 +747,7 @@ impl Game {
             if let Some(owner) = tech_token_owner {
                 let amount = self.player(owner).tech_tokens.len() as i32;
                 let pl = self.player_mut(owner);
-                pl.resources += amount;
+                crate::game::amounts::gain(&mut pl.resources, amount, "spice").expect("spice income");
                 let f = self.player(owner).faction;
                 self.log(elems![f, " receive ", Payment::of(amount), " from ", TechToken::Ships]);
             }

@@ -431,7 +431,7 @@ impl Game {
                     self.log(le![f, LeaderSkill::Smuggler, " collects ", Payment::of(collected), " from ", territory]);
                     self.change_resources_on_planet(location_with_resources, -collected);
                     let pl = self.player_mut(player);
-                    pl.resources += collected;
+                    crate::game::amounts::gain(&mut pl.resources, collected, "spice").expect("collected spice");
                 }
             }
         }
@@ -509,7 +509,7 @@ impl Game {
         let tabr = self.board.map.sietch_tabr();
         self.log(le![tabr, " stronghold advantage: ", winner_plan.initiator(), " collect ", Payment::of(collected), " from enemy force dial"]);
         let pl = self.player_mut(winner_plan.player());
-        pl.resources += collected;
+        crate::game::amounts::gain(&mut pl.resources, collected, "spice").expect("collected spice");
     }
 
     pub fn resolve_effect_of_occupied_jacurutu(&mut self, winner_plan: &Battle, opponent_undialed_forces: i32) {
@@ -524,7 +524,7 @@ impl Game {
 
         self.log(le![winner_plan.initiator(), " get ", Payment::of(opponent_undialed_forces), " from winning a fight in ", jacurutu]);
         let pl = self.player_mut(winner_plan.player());
-        pl.resources += opponent_undialed_forces;
+        crate::game::amounts::gain(&mut pl.resources, opponent_undialed_forces, "spice").expect("spice from Jacurutu");
     }
 
     pub fn determine_how_to_proceed_after_revealing_battle_plans(&mut self) -> GameResult {
@@ -885,20 +885,20 @@ impl Game {
 
             if cost_for_player > 0 {
                 let pl = self.player_mut(p);
-                pl.resources -= cost_for_player;
+                crate::game::amounts::spend(&mut pl.resources, cost_for_player, "spice").expect("spice dialled in battle");
 
                 if self.dialled_resources_are_refunded(p) {
                     self.log(le![Payment::of(cost_for_player), " dialled in battle will be refunded in the ", MainPhase::Contemplate, " phase"]);
                     refunded_resources = cost_for_player;
                     let pl = self.player_mut(p);
-                    pl.bribes += cost_for_player;
+                    crate::game::amounts::gain(&mut pl.bribes, cost_for_player, "spice").expect("refunded spice");
                 }
             }
 
             if plan.ally_contribution_amount > 0 {
                 if let Some(allied_player) = self.player(p).allied_player(self) {
                     let ap = self.player_mut(allied_player);
-                    ap.resources -= plan.ally_contribution_amount;
+                    crate::game::amounts::spend(&mut ap.resources, plan.ally_contribution_amount, "spice").expect("the ally's spice dialled in battle");
                     let f = self.player(p).faction;
                     self.decrease_permitted_use_of_ally_spice(f.expect("faction"), plan.ally_contribution_amount);
                 }
@@ -916,7 +916,7 @@ impl Game {
 
         if plan.banker_bonus > 0 {
             let pl = self.player_mut(p);
-            pl.resources -= plan.banker_bonus;
+            crate::game::amounts::spend(&mut pl.resources, plan.banker_bonus, "spice").expect("spice paid for the Banker");
             let f = self.player(p).faction;
             self.log(le![f, " paid ", Payment::of(plan.banker_bonus), " as ", LeaderSkill::Banker]);
         }
@@ -928,13 +928,13 @@ impl Game {
         let choam = self.get_player(Some(Faction::Choam));
         if let Some(choam) = choam {
             if self.player(paid_by).faction != Some(Faction::Choam) && !traitor_was_revealed {
-                // (int)Math.Floor(0.5f * int): float multiply, then widened to double.
-                result = ((0.5f32 * costs_excluding_payment_by_choam_ally as f32) as f64).floor() as i32;
+                // Half, rounded down.
+                result = costs_excluding_payment_by_choam_ally.div_euclid(2);
 
                 if result > 0 {
                     if !self.prevented(FactionAdvantage::ChoamReceiveForcePayment) {
                         let b = self.player_mut(choam);
-                        b.resources += result;
+                        crate::game::amounts::gain(&mut b.resources, result, "spice").expect("CHOAM's income");
                         self.log(le![Faction::Choam, " get ", Payment::of(result), " from supported forces"]);
 
                         if result >= 5 {
@@ -1065,7 +1065,7 @@ impl Game {
             self.kill_hero(killed_hero);
         }
         let pl = self.player_mut(winner);
-        pl.resources += hero_value;
+        crate::game::amounts::gain(&mut pl.resources, hero_value, "spice").expect("the killed leader's value");
     }
 
     pub fn log_all_forces_lost(&mut self, player: PlayerId, territory: Territory) {
@@ -1186,7 +1186,7 @@ impl Game {
             self.log(le![message]);
             self.kill_hero(traitor);
             let pl = self.player_mut(winner);
-            pl.resources += traitor_value;
+            crate::game::amounts::gain(&mut pl.resources, traitor_value, "spice")?;
         }
 
         self.battle.battle_winner = Some(self.player(winner).faction);

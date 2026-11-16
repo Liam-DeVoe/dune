@@ -61,7 +61,7 @@ fn check(game: &Game, p: PlayerId, v: &ResolvedViewer, o: &ActionOptions, at: &s
         ActionOptions::YesNo(o) => assert!(!o.title.is_empty(), "{at}"),
         ActionOptions::AllyPermission(o) => {
             assert_eq!(o.ally, name_or_absent(pl.ally), "{at}");
-            assert_eq!(o.max_resources, pl.resources, "{at}");
+            assert_eq!(o.max_resources, i32::from(pl.resources), "{at}");
             assert_eq!(o.current_resources, game.get_permitted_use_of_ally_resources(pl.ally.expect("faction")), "{at}");
             assert_eq!(o.karma_cards, Karma::can_karma(game, p).then(|| ids(Karma::valid_karma_cards(game, p))), "{at}");
             assert_eq!(o.current_karma_card, game.get_permitted_use_of_ally_karma(pl.ally.expect("faction")).map(|c| c.id()), "{at}");
@@ -106,7 +106,7 @@ fn check(game: &Game, p: PlayerId, v: &ResolvedViewer, o: &ActionOptions, at: &s
         }
         ActionOptions::EmperorBidSupport(o) => {
             assert_eq!(targets(&o.targets), factions(game.players_other_than(p).filter(|f| Some(*f) != pl.ally)), "{at}");
-            assert_eq!(o.max, pl.resources, "{at}");
+            assert_eq!(o.max, i32::from(pl.resources), "{at}");
         }
         ActionOptions::FactionSelected(o) => assert_eq!(targets(&o.targets), factions(FactionSelected::valid_factions(game)), "{at}"),
         ActionOptions::FactionTradeOffered(o) => assert_eq!(targets(&o.targets), factions(FactionTradeOffered::valid_targets(game, p)), "{at}"),

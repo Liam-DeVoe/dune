@@ -109,8 +109,7 @@ impl Game {
         let collected = value.min(maximum_amount);
         self.change_resources_on_planet(l, -collected);
         let Some(collector) = self.get_player(Some(faction)) else { return };
-        let r = &mut self.player_mut(collector).resources;
-        *r += collected;
+        crate::game::amounts::gain(&mut self.player_mut(collector).resources, collected, "spice").expect("collected spice");
         self.log(elems![faction, " collect ", Payment::of(collected), " from ", l]);
     }
 

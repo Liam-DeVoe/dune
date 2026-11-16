@@ -68,7 +68,7 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
 
     let (reserve, special_reserve, spice) = {
         let pl = g.player(emperor);
-        (pl.forces_in_reserve(), pl.special_forces_in_reserve(), pl.resources)
+        (pl.forces_in_reserve(), pl.special_forces_in_reserve(), i32::from(pl.resources))
     };
     let shipment = |forces: i32, specials: i32, g: &Game| {
         let mut s = Shipment::new(g, Faction::Emperor);
@@ -92,7 +92,7 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
     assert_eq!(pl.any_forces_in(Some(sand)), 0, "nothing stays behind");
     assert_eq!(pl.forces_in_reserve(), reserve + 3);
     assert_eq!(pl.special_forces_in_reserve(), special_reserve + 2);
-    assert_eq!(pl.resources, spice - 3, "half of 5 forces, rounded up");
+    assert_eq!(i32::from(pl.resources), spice - 3, "half of 5 forces, rounded up");
 }
 
 /// A Bene Gesserit intrusion waits in one territory while the latest move went elsewhere (a
@@ -317,17 +317,17 @@ fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
 
     // The ally offered enough but has less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
-    g.player_mut(pally).resources = cost - 1;
+    g.player_mut(pally).resources = (cost - 1) as u16;
     assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
     // The ally has enough but offered less.
     g.alliances.permitted_use_of_ally_spice.insert(f, cost - 1);
-    g.player_mut(pally).resources = cost;
+    g.player_mut(pally).resources = cost as u16;
     assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))).as_deref(), Some("Your ally won't pay that much"));
 
     g.alliances.permitted_use_of_ally_spice.insert(f, cost);
     assert_eq!(submit(&mut g, |g| GameEvent::Shipment(Rc::new(shipment(g, cost)))), None);
-    assert_eq!(g.player(pally).resources, 0);
-    assert_eq!(g.player(shipper).resources, 0);
+    assert_eq!(i32::from(g.player(pally).resources), 0);
+    assert_eq!(i32::from(g.player(shipper).resources), 0);
     assert_eq!(g.alliances.permitted_use_of_ally_spice[&f], 0);
 }
 

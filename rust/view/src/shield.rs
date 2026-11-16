@@ -94,7 +94,7 @@ pub fn private_player(game: &Game, p: PlayerId, actions: &[GameEventType]) -> Pr
         && !game.turn.has_acted_or_passed.contains_opt(pl.faction);
     PrivatePlayer {
         faction: name_or_absent(pl.faction),
-        resources: pl.resources,
+        resources: i32::from(pl.resources),
         hand: pl.treachery_cards.iter().map(|c| HandCard { id: c.id(), playable_with: playable_with(game, p, *c, actions) }).collect(),
         card_set_aside: game.get_card_set_aside_for_bid(p).map(|c| c.id()),
         leaders: pl
@@ -136,9 +136,9 @@ pub fn notes(game: &Game, me: PlayerId) -> Option<NotesView> {
             let pl = game.player(p);
             NotesPlayer {
                 faction: name_or_absent(pl.faction),
-                resources: pl.resources,
-                bribes: pl.bribes,
-                resources_after_bidding: pl.resources_after_bidding,
+                resources: i32::from(pl.resources),
+                bribes: i32::from(pl.bribes),
+                resources_after_bidding: i32::from(pl.resources_after_bidding),
                 cards: game.cards_owned_by(p).iter().map(|c| known.contains(c).then(|| c.id())).collect(),
                 revealed_traitors: pl.revealed_traitors.iter().map(|h| hero_ref(*h)).collect(),
                 revealed_face_dancers: pl.revealed_face_dancers.iter().map(|h| hero_ref(*h)).collect(),

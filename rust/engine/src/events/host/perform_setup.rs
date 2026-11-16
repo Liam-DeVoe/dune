@@ -59,7 +59,7 @@ impl PerformSetup {
             Player::ship_special_forces(game, player.required("player")?, location, battalion.amount_of_special_forces);
         }
 
-        game.player_mut(player.required("player")?).resources = self.resources;
+        game.player_mut(player.required("player")?).resources = u16::try_from(self.resources).ok().required("an amount of spice from 0 to 65535")?;
 
         self.log_objects(
             game,

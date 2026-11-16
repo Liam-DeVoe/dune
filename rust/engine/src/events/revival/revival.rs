@@ -121,7 +121,7 @@ impl Revival {
             self.extra_special_forces_paid_by_emperor,
             self.uses_emperor_secret_ally,
         );
-        if cost_of_revival.total_cost_for_player() > game.player(p).resources {
+        if cost_of_revival.total_cost_for_player() > i32::from(game.player(p).resources) {
             return Some(express!("You can't pay that many"));
         }
 
@@ -201,7 +201,7 @@ impl Revival {
         result.number_of_forces_revived_for_free = number_of_forces_revived_for_free;
 
         result.cost_to_revive_hero = Self::get_price_of_hero_revival(g, initiator, hero);
-        result.can_be_paid = ip.resources >= result.total_cost_for_player();
+        result.can_be_paid = i32::from(ip.resources) >= result.total_cost_for_player();
 
         result
     }
@@ -493,7 +493,7 @@ impl Revival {
         // Counting loops kept as loops, with wrapping arithmetic.
         let mut special_forces_paid_by_emperor: i32 = 0;
         while ((special_forces_paid_by_emperor + 1) * price_of_special_forces)
-            <= g.player(emperor.expect("emperor")).resources
+            <= i32::from(g.player(emperor.expect("emperor")).resources)
             && (special_forces_paid_by_emperor + 1) <= potential_maximum
         {
             special_forces_paid_by_emperor += 1;
@@ -501,7 +501,7 @@ impl Revival {
 
         let mut forces_paid_by_emperor: i32 = 0;
         while ((special_forces_paid_by_emperor * price_of_special_forces) + ((forces_paid_by_emperor + 1) * 2))
-            <= g.player(emperor.expect("emperor")).resources
+            <= i32::from(g.player(emperor.expect("emperor")).resources)
             && (special_forces_paid_by_emperor + forces_paid_by_emperor + 1) <= potential_maximum
         {
             forces_paid_by_emperor += 1;
@@ -572,12 +572,10 @@ impl Revival {
         );
         if cost.cost_for_emperor > 0 {
             let emperor = game.get_player(Some(Faction::Emperor)).required("get player")?;
-            let r = &mut game.player_mut(emperor).resources;
-            *r -= cost.cost_for_emperor;
+            crate::game::amounts::spend(&mut game.player_mut(emperor).resources, cost.cost_for_emperor, "spice")?;
         }
         {
-            let r = &mut game.player_mut(me).resources;
-            *r -= cost.total_cost_for_player();
+            crate::game::amounts::spend(&mut game.player_mut(me).resources, cost.total_cost_for_player(), "spice")?;
         }
 
         let high_threshold_extra_suboids = if initiator == Some(Faction::Ixian)
@@ -652,8 +650,7 @@ impl Revival {
             }
 
             {
-                let r = &mut game.player_mut(tleilaxu).resources;
-                *r += total_profits_for_tleilaxu;
+                crate::game::amounts::gain(&mut game.player_mut(tleilaxu).resources, total_profits_for_tleilaxu, "spice")?;
             }
 
             if total_profits_for_tleilaxu >= 5 {

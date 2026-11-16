@@ -6,12 +6,12 @@ pub struct Player {
     pub faction: Option<Faction>,
     /// `None` until `EstablishPlayers` draws the seats, right after it creates the players.
     pub seat: Option<Seat>,
-    pub resources: i32,
-    pub extortion: i32,
-    pub bribes: i32,
-    pub resources_after_bidding: i32,
-    pub banked_resources: i32,
-    pub transferable_resources: i32,
+    pub resources: u16,
+    pub extortion: u16,
+    pub bribes: u16,
+    pub resources_after_bidding: u16,
+    pub banked_resources: u16,
+    pub transferable_resources: u16,
     pub treachery_cards: Vec<TreacheryCard>,
     // In the order the player learned of them.
     pub known_cards: IndexSet<TreacheryCard>,
@@ -607,7 +607,7 @@ impl Player {
 
     pub fn allied_resources(&self, game: &Game) -> i32 {
         match self.allied_player(game) {
-            Some(a) => game.player(a).resources,
+            Some(a) => i32::from(game.player(a).resources),
             None => 0,
         }
     }

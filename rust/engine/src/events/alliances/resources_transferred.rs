@@ -24,6 +24,11 @@ impl ResourcesTransferred {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
+        // Not in C#, where a negative amount took spice from the ally (behavior-changes.md,
+        // "Turns, sectors and amounts out of range").
+        if self.resources < 0 {
+            return Some(express!("Invalid amount"));
+        }
         if self.resources > ResourcesTransferred::max_amount(game, self.player()) {
             return Some(express!("You can't transfer more than ", Payment::of(ResourcesTransferred::max_amount(game, self.player()))));
         }
@@ -44,7 +49,7 @@ impl ResourcesTransferred {
 
     pub fn max_amount(game: &Game, p: PlayerId) -> i32 {
         let pl = game.player(p);
-        pl.transferable_resources.min(pl.resources)
+        i32::from(pl.transferable_resources).min(i32::from(pl.resources))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -52,12 +57,12 @@ impl ResourcesTransferred {
         let me = self.player();
         {
             let p = game.player_mut(me);
-            p.resources -= self.resources;
-            p.transferable_resources -= self.resources;
+            crate::game::amounts::spend(&mut p.resources, self.resources, "spice")?;
+            crate::game::amounts::spend(&mut p.transferable_resources, self.resources, "transferable spice")?;
         }
         let ally = game.player(me).allied_player(game).required("allied player")?;
         let a = game.player_mut(ally);
-        a.resources += self.resources;
+        crate::game::amounts::gain(&mut a.resources, self.resources, "spice")?;
         Ok(())
     }
 

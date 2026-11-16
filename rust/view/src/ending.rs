@@ -473,7 +473,7 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
                 row.tech_tokens = p.tech_tokens.iter().map(|t| name(*t)).collect();
             }
             if c.show_resources {
-                row.resources = Some(p.resources);
+                row.resources = Some(i32::from(p.resources));
             }
             if c.show_forces {
                 let mut locations: Vec<Location> =

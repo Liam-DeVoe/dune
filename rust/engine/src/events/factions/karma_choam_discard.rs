@@ -70,7 +70,7 @@ impl KarmaChoamDiscard {
 
         let gain = self.cards().len() as i32 * 3;
         let p = game.player_mut(me);
-        p.resources += gain;
+        crate::game::amounts::gain(&mut p.resources, gain, "spice")?;
         p.special_karma_power_used = true;
         Ok(())
     }

@@ -240,8 +240,13 @@ impl Shipment {
             }
         }
 
+        // Not in C#, which paid a negative amount by giving spice (behavior-changes.md, "Turns,
+        // sectors and amounts out of range").
+        if self.ally_contribution_amount < 0 {
+            return Some(express!("Invalid amount"));
+        }
         let cost = Shipment::determine_cost(game, p(), self);
-        if cost > (game.player(p()).resources + self.ally_contribution_amount) {
+        if cost > (i32::from(game.player(p()).resources) + self.ally_contribution_amount) {
             return Some(express!("You can't pay that much"));
         }
         if cost < self.ally_contribution_amount {
@@ -825,7 +830,7 @@ impl Shipment {
         let cost_to_initiator = self.determine_cost_to_initiator(game);
         let me = self.player();
         let pl = game.player_mut(me);
-        pl.resources -= cost_to_initiator;
+        crate::game::amounts::spend(&mut pl.resources, cost_to_initiator, "spice")?;
 
         if self.is_using_karma() {
             let karma_card = self.karma_card;
@@ -837,7 +842,7 @@ impl Shipment {
             let ally = game.player(self.player()).ally;
             if let Some(a) = game.get_player(ally) {
                 let ap = game.player_mut(a);
-                ap.resources -= self.ally_contribution_amount;
+                crate::game::amounts::spend(&mut ap.resources, self.ally_contribution_amount, "spice")?;
             }
             game.decrease_permitted_use_of_ally_spice(self.initiator().required("faction")?, self.ally_contribution_amount);
         }
@@ -859,7 +864,7 @@ impl Shipment {
                     if !game.prevented(FactionAdvantage::GuildReceiveShipment) {
                         game.modify_income_because_of_low_threshold_or_occupation(guild, &mut receiver_profit);
                         let op = game.player_mut(guild);
-                        op.resources += receiver_profit;
+                        crate::game::amounts::gain(&mut op.resources, receiver_profit, "spice").expect("the Guild's profit");
 
                         if receiver_profit > 0 {
                             *profit_message = express_part!(" → ", Faction::Guild, " get ", Payment::of(receiver_profit));

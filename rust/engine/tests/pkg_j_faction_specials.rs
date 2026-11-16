@@ -82,7 +82,7 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     assert!(!hand.contains(&k1));
     assert!(hand.contains(&k2));
     assert!(!hand.contains(&useless));
-    assert_eq!(g.player(choam).resources, 3);
+    assert_eq!(i32::from(g.player(choam).resources), 3);
     assert!(g.player(choam).special_karma_power_used);
 }
 
@@ -158,7 +158,7 @@ fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
     assert_eq!(e.determine_tleilaxu_cost(), 2);
     let _ = outcome(|| e.execute_concrete_event(&mut g));
     // C# parity: validated against resources, never deducted.
-    assert_eq!(g.player(atreides).resources, 10);
+    assert_eq!(i32::from(g.player(atreides).resources), 10);
     assert_eq!(g.player(atreides).forces_killed, 1);
 }
 
@@ -167,7 +167,7 @@ fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn terror_robbery_rounds_in_float() {
+fn terror_robbery_takes_half_rounded_up() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     g.random = Some(SharedRandom::from_seed(1));
     let t = a_stronghold(&g);
@@ -175,16 +175,15 @@ fn terror_robbery_rounds_in_float() {
     trigger_terror(&mut g, Faction::Atreides, t);
     let atreides = idx(&g, Faction::Atreides);
     let moritani = idx(&g, Faction::Moritani);
-    // 16777217 is not a float: (int)Math.Ceiling(0.5f * 16777217) is 8388608, not 8388609.
-    g.player_mut(atreides).resources = 16_777_217;
+    g.player_mut(atreides).resources = 7;
 
     let mut e = TerrorRevealed::new(&g, Faction::Moritani);
     e.type_ = Some(TerrorType::Robbery);
     let e = Rc::new(e);
     assert!(e.validate(&g).is_none());
     let _ = outcome(|| e.execute_concrete_event(&mut g));
-    assert_eq!(g.player(moritani).resources, 8_388_608);
-    assert_eq!(g.player(atreides).resources, 16_777_217 - 8_388_608);
+    assert_eq!(g.player(moritani).resources, 4);
+    assert_eq!(g.player(atreides).resources, 3);
     assert!(!g.board.terror_on_planet.contains_key(&TerrorType::Robbery));
 }
 
@@ -244,7 +243,7 @@ fn ambassador_placed_twice_in_a_stronghold_fails_after_paying() {
     let e = second.execute_concrete_event(&mut g).unwrap_err();
     assert_eq!(e.message(), "There already is an ambassador in Treachery.Shared.Territory");
     // Paid 1, then 2, before the failure; the BeneGesserit ambassador stays in supply.
-    assert_eq!(g.player(ecaz).resources, 7);
+    assert_eq!(i32::from(g.player(ecaz).resources), 7);
     assert_eq!(g.revival.ambassadors_placed_this_turn, 2);
     assert_eq!(g.player(ecaz).ambassadors, vec![Ambassador::BeneGesserit]);
 }
@@ -349,16 +348,15 @@ fn bene_gesserit_prediction_valid_turns() {
 }
 
 #[test]
-fn amal_rounds_up_in_double() {
+fn amal_takes_half_rounded_up() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let atreides = idx(&g, Faction::Atreides);
     let emperor = idx(&g, Faction::Emperor);
     g.player_mut(atreides).treachery_cards.push(card_of(TreacheryCardType::Amal, 0));
-    g.player_mut(atreides).resources = 16_777_217;
-    g.player_mut(emperor).resources = -3;
+    g.player_mut(atreides).resources = u16::MAX;
+    g.player_mut(emperor).resources = 3;
     let e = Rc::new(AmalPlayed::new(&g, Faction::Atreides));
     e.execute_concrete_event(&mut g).unwrap();
-    // ceil(8388608.5) = 8388609 in double; ceil(-1.5) = -1.
-    assert_eq!(g.player(atreides).resources, 16_777_217 - 8_388_609);
-    assert_eq!(g.player(emperor).resources, -2);
+    assert_eq!(g.player(atreides).resources, u16::MAX - 32_768);
+    assert_eq!(g.player(emperor).resources, 1);
 }

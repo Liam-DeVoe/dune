@@ -23,7 +23,7 @@ impl CharityClaimed {
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player();
-        if game.player(p).resources > 1 {
+        if i32::from(game.player(p).resources) > 1 {
             return Some(express!("You cannot claim charity"));
         }
 
@@ -31,7 +31,7 @@ impl CharityClaimed {
     }
 
     pub fn can_be_played(game: &Game, player: PlayerId) -> bool {
-        game.player(player).resources <= 1
+        i32::from(game.player(player).resources) <= 1
             && !game.turn.has_acted_or_passed.contains_opt(game.player(player).faction)
             && !game.charity_is_cancelled()
     }

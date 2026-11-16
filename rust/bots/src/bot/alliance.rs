@@ -168,7 +168,7 @@ impl ClassicBot {
     pub fn player_standing(&self, game: &Game, p: PlayerId) -> i32 {
         let p = game.player(p);
         2 * p.treachery_cards.len() as i32
-            + p.resources
+            + i32::from(p.resources)
             + 6 * p.locations_with_any_forces().iter().filter(|l| l.territory().is_stronghold()).count() as i32
             + p.forces_on_planet().values().map(|b| b.total_amount_of_forces()).sum::<i32>()
             + p.forces_in_reserve()

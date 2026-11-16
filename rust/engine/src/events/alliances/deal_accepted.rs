@@ -47,12 +47,12 @@ impl DealAccepted {
         if bound_player.is_some() && !DealAccepted::may_deal(game, bound_player, self.benefit) {
             return Some(express!(self.bound_faction, " currently have an outstanding bid"));
         }
-        if self.price > game.player(self.player()).resources {
+        if self.price > i32::from(game.player(self.player()).resources) {
             return Some(express!("You can't pay that much"));
         }
 
         if let Some(bound_player) = bound_player {
-            if self.benefit > game.player(bound_player).resources {
+            if self.benefit > i32::from(game.player(bound_player).resources) {
                 return Some(express!("Offer is not valid (anymore)"));
             }
         }
@@ -153,7 +153,7 @@ impl DealAccepted {
             if let Some(offer_initiator) = offer_initiator {
                 if self.price > 0 {
                     // Player is `from`: a null Player throws before anything changes.
-                    game.exchange_resources_in_bribe(self.player(), offer_initiator, self.price);
+                    game.exchange_resources_in_bribe(self.player(), offer_initiator, self.price)?;
                     game.stone(Milestone::Bribe);
                 }
             }
@@ -161,12 +161,12 @@ impl DealAccepted {
             if let Some(offer_initiator) = offer_initiator {
                 if self.benefit > 0 {
                     match self.player_opt() {
-                        Some(me) => game.exchange_resources_in_bribe(offer_initiator, me, self.benefit),
+                        Some(me) => game.exchange_resources_in_bribe(offer_initiator, me, self.benefit)?,
                         None => {
                             // ExchangeResourcesInBribe(offerInitiator, null, Benefit): `from` pays,
                             // then dereferencing the null target throws.
                             let from = game.player_mut(offer_initiator);
-                            from.resources -= self.benefit;
+                            crate::game::amounts::spend(&mut from.resources, self.benefit, "spice")?;
                             let _ = game.bribes_during_mentat();
                             game_error!("A required value is missing");
                         }

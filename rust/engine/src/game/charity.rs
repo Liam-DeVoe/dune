@@ -31,8 +31,7 @@ impl Game {
         let tech_token_owner = self.player_indices().find(|p| self.player(*p).tech_tokens.contains(&token));
         if let Some(owner) = tech_token_owner {
             let amount = self.player(owner).tech_tokens.len() as i32;
-            let r = &mut self.player_mut(owner).resources;
-            *r += amount;
+            crate::game::amounts::gain(&mut self.player_mut(owner).resources, amount, "spice").expect("tech token income");
             let faction = self.player(owner).faction;
             self.log(elems![faction, " receive ", Payment::of(amount), " from ", token]);
         }
@@ -52,7 +51,7 @@ impl Game {
         let faction = self.player(player).faction;
         self.turn.has_acted_or_passed.push(faction.expect("faction"));
 
-        let basic_amount = (2i32 - self.player(player).resources) * self.current_charity_multiplier();
+        let basic_amount = (2i32 - i32::from(self.player(player).resources)) * self.current_charity_multiplier();
         self.give_charity(player, basic_amount);
 
         if !self.player(player).is(Faction::BeneGesserit) {
@@ -71,13 +70,11 @@ impl Game {
         let choam = self.get_player(Some(Faction::Choam));
 
         let to_faction = self.player(to).faction;
-        let r = &mut self.player_mut(to).resources;
-        *r += basic_amount + homeworld_bonus;
+        crate::game::amounts::gain(&mut self.player_mut(to).resources, basic_amount + homeworld_bonus, "spice").expect("charity");
         match choam {
             Some(choam) if !self.prevented(FactionAdvantage::ChoamControllingCharity) => {
-                if self.player(choam).resources >= basic_amount {
-                    let r = &mut self.player_mut(choam).resources;
-                    *r -= basic_amount;
+                if i32::from(self.player(choam).resources) >= basic_amount {
+                    crate::game::amounts::spend(&mut self.player_mut(choam).resources, basic_amount, "spice").expect("charity paid by CHOAM");
                     self.log(elems![
                         to_faction,
                         " get ",

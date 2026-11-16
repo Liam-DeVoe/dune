@@ -391,7 +391,7 @@ impl ClassicBot {
 
             Some(Faction::Harkonnen) => self.determine_worst_traitor(game).is_some(),
 
-            Some(Faction::Fremen) => game.turn.current_main_phase == MainPhase::Resurrection && game.player(self.player).forces_killed >= 3,
+            Some(Faction::Fremen) => game.turn.current_main_phase == MainPhase::Resurrection && i32::from(game.player(self.player).forces_killed) >= 3,
 
             Some(Faction::Guild) => {
                 let shipment = self.determine_shipment(game);
@@ -491,7 +491,7 @@ impl ClassicBot {
 
     pub fn determine_karma_free_revival(&self, game: &Game) -> Option<Rc<KarmaFreeRevival>> {
         let special_forces_that_can_be_revived = std::cmp::min(3, Revival::valid_max_revivals(game, self.player, true, false));
-        let forces_killed = game.player(self.player).forces_killed;
+        let forces_killed = i32::from(game.player(self.player).forces_killed);
 
         if self.last_turn(game) || forces_killed + special_forces_that_can_be_revived >= 6 {
             let forces = std::cmp::max(0, std::cmp::min(3, forces_killed) - special_forces_that_can_be_revived);
@@ -806,10 +806,10 @@ impl ClassicBot {
 
         let nr_of_living_leaders = me.leaders.iter().filter(|l| game.is_alive(Hero::Leader(**l))).count() as i32;
         let special_forces_that_can_be_revived = std::cmp::min(5, Revival::valid_max_revivals(game, self.player, true, false));
-        let revivable = me.forces_killed + special_forces_that_can_be_revived;
+        let revivable = i32::from(me.forces_killed) + special_forces_that_can_be_revived;
 
         if (revivable >= 7 && nr_of_living_leaders > 1) || (revivable >= 17 && nr_of_living_leaders > 0) {
-            let forces = std::cmp::max(0, std::cmp::min(5, me.forces_killed) - special_forces_that_can_be_revived);
+            let forces = std::cmp::max(0, std::cmp::min(5, i32::from(me.forces_killed)) - special_forces_that_can_be_revived);
             let special_forces_to_planet =
                 Revival::number_of_special_forces_that_may_be_placed_on_planet(game, self.player, special_forces_that_can_be_revived);
             let (target_of_forces, special_forces_to_planet) = self.revival_target(game, special_forces_to_planet);
@@ -859,7 +859,7 @@ impl ClassicBot {
 
     pub fn determine_recruits_played(&self, game: &Game) -> Option<Rc<RecruitsPlayed>> {
         let me = game.player(self.player);
-        let killed = me.forces_killed + me.special_forces_killed;
+        let killed = i32::from(me.forces_killed) + i32::from(me.special_forces_killed);
         if (killed >= 6 && self.resources(game) >= 14) || (killed >= 4 && game.free_revivals(self.player, false) >= 2) {
             return Some(Rc::new(RecruitsPlayed::new(game, self.faction(game))));
         }
@@ -995,7 +995,7 @@ impl ClassicBot {
             },
         );
 
-        let use_secret_ally = Revival::may_use_emperor_secret_ally(game, self.player) && me.forces_killed - game.free_revivals(self.player, false) >= 3;
+        let use_secret_ally = Revival::may_use_emperor_secret_ally(game, self.player) && i32::from(me.forces_killed) - game.free_revivals(self.player, false) >= 3;
 
         let (forces_revived_by_emperor, special_forces_revived_by_emperor) =
             Self::determine_optimal_use_of_emperor_revivals(game, self.player, use_secret_ally);
@@ -1016,7 +1016,7 @@ impl ClassicBot {
         // Revive as many special forces as allowed, killed and affordable, then normal forces.
         let mut special_forces_to_revive = 0;
         while special_forces_revived_by_emperor + special_forces_to_revive + 1 <= Revival::valid_max_revivals(game, self.player, true, use_secret_ally)
-            && special_forces_revived_by_emperor + special_forces_to_revive + 1 <= me.special_forces_killed
+            && special_forces_revived_by_emperor + special_forces_to_revive + 1 <= i32::from(me.special_forces_killed)
             && cost(0, special_forces_to_revive + 1) <= resources
         {
             special_forces_to_revive += 1;
@@ -1024,7 +1024,7 @@ impl ClassicBot {
 
         let mut normal_forces_to_revive = 0;
         while special_forces_to_revive + normal_forces_to_revive + 1 <= Revival::valid_max_revivals(game, self.player, false, use_secret_ally)
-            && forces_revived_by_emperor + normal_forces_to_revive + 1 <= me.forces_killed
+            && forces_revived_by_emperor + normal_forces_to_revive + 1 <= i32::from(me.forces_killed)
             && cost(normal_forces_to_revive + 1, special_forces_to_revive) <= resources
         {
             normal_forces_to_revive += 1;
@@ -1114,7 +1114,7 @@ impl ClassicBot {
         }
 
         let mut special_forces = 0;
-        while special_forces + 1 <= pl.special_forces_killed
+        while special_forces + 1 <= i32::from(pl.special_forces_killed)
             && special_forces + 1 <= max_special_forces
             && special_forces + 1 <= potential_maximum_by_emperor
             && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), 0, special_forces + 1) <= i32::from(g.player(emperor).resources)
@@ -1125,7 +1125,7 @@ impl ClassicBot {
         let max_forces = std::cmp::max(Revival::valid_max_revivals(g, p, false, use_cunning) - free_revivals, 0);
 
         let mut forces = 0;
-        while forces + 1 <= pl.forces_killed
+        while forces + 1 <= i32::from(pl.forces_killed)
             && forces + 1 <= max_forces
             && special_forces + forces + 1 <= potential_maximum_by_emperor
             && Revival::determine_cost_of_forces_for_emperor(g, emperor, pl.faction.expect("faction"), forces + 1, special_forces) <= i32::from(g.player(emperor).resources)

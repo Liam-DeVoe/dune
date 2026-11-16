@@ -35,6 +35,11 @@ impl ResourcesTransferred {
         if !ResourcesTransferred::may_transfer(game, self.player()) {
             return Some(express!("You currently can't transfer ", Concept::Resource));
         }
+        // Not in C#, which let a player give away spice they still had to pay for a bid
+        // (escapes.md, "Forces below zero").
+        if !game.may_give_away_spice(self.player(), self.resources) {
+            return Some(express!("You need that spice to pay your bid"));
+        }
 
         None
     }

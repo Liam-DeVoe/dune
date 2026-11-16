@@ -338,7 +338,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &GameEvent) -> GameEvent {
             let mut forces = IndexMap::new();
             if let Some(ds) = e.to.and_then(|l| l.as_discovered_location()) {
                 for l in DiscoveryEntered::valid_sources(game, p, ds) {
-                    let b = current.get(&l).cloned().unwrap_or_else(|| Battalion::new(faction.expect("faction"), pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+                    let b = current.get(&l).cloned().unwrap_or_else(|| pl.battalion_in_location(l).expect("battalion"));
                     forces.insert_new(l, b);
                 }
             }
@@ -738,7 +738,7 @@ fn placement(game: &Game, p: PlayerId, forces: &IndexMap<Location, Battalion>, t
         .filter(|l| pl.any_forces_in(Some(*l)) > 0 && !game.is_in_storm(*l))
         .map(|l| forces_at(game, p, l))
         .collect();
-    let any_forces = forces.values().map(|b| b.amount_of_forces + b.amount_of_special_forces).sum::<i32>() > 0;
+    let any_forces = forces.values().map(|b| b.total_amount_of_forces()).sum::<i32>() > 0;
     let targets = if any_forces { ids(PlacementEvent::valid_targets_for_forces(game, p, forces)) } else { vec![] };
     let planetology = game.turn.current_planetology.as_ref();
     let mut o = PlacementOptions { draft: Value::Null,

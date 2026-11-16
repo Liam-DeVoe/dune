@@ -144,8 +144,8 @@ fn public_player(game: &Game, s: &Seating, p: PlayerId) -> PublicPlayer {
         ally: name_or_absent(pl.ally),
         forces_in_reserve: pl.forces_in_reserve(),
         special_forces_in_reserve: pl.special_forces_in_reserve(),
-        forces_killed: pl.forces_killed,
-        special_forces_killed: pl.special_forces_killed,
+        forces_killed: i32::from(pl.forces_killed),
+        special_forces_killed: i32::from(pl.special_forces_killed),
         card_count: pl.treachery_cards.len() as i32,
         // Public: the map ring shows these for everyone.
         bribes: i32::from(pl.bribes),

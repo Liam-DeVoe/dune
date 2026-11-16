@@ -76,6 +76,11 @@ impl Donated {
         if self.card.is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
             return Some(express!("Target faction's hand is full"));
         }
+        // Not in C#, which let a player give away spice they still had to pay for a bid
+        // (escapes.md, "Forces below zero").
+        if !game.may_give_away_spice(self.player(), self.resources) {
+            return Some(express!("You need that spice to pay your bid"));
+        }
 
         None
     }

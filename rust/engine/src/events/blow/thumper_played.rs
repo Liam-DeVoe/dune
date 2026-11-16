@@ -30,7 +30,7 @@ impl ThumperPlayed {
         self.log(game);
         game.stone(Milestone::Thumper);
         game.blow.thumper_called_shai_hulud = game.turn.current_turn > Turn::FIRST;
-        game.enter_blow_a();
+        game.enter_blow_a()?;
         Ok(())
     }
 

@@ -2,9 +2,9 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 
 impl Game {
-    pub fn reveal_current_no_field(&mut self, player: PlayerId, in_location: Option<Location>) {
+    pub fn reveal_current_no_field(&mut self, player: PlayerId, in_location: Option<Location>) -> GameResult {
         if self.player(player).faction != Some(Faction::Richese) {
-            return;
+            return Ok(());
         }
 
         // FirstOrDefault(...).Key: the default KeyValuePair has a null key.
@@ -15,18 +15,18 @@ impl Game {
             .find(|(_, v)| v.amount_of_special_forces > 0)
             .map(|(k, _)| *k);
 
-        let Some(no_field_location) = no_field_location else { return };
+        let Some(no_field_location) = no_field_location else { return Ok(()) };
 
         if let Some(in_location) = in_location {
             if in_location != no_field_location {
-                return;
+                return Ok(());
             }
         }
 
         self.ship_move.latest_revealed_no_field_value = self.ship_move.current_no_field_value;
-        Player::special_forces_to_reserves(self, player, no_field_location, 1);
+        Player::special_forces_to_reserves(self, player, no_field_location, 1)?;
         let nr_of_forces = self.player(player).forces_in_reserve().min(self.ship_move.current_no_field_value);
-        Player::ship_forces(self, player, no_field_location, nr_of_forces);
+        Player::ship_forces(self, player, no_field_location, nr_of_forces)?;
         let faction = self.player(player).faction;
         self.log(vec![
             faction.into(),
@@ -40,19 +40,21 @@ impl Game {
         ]);
 
         if self.ship_move.current_no_field_value == 0 {
-            self.flip_bene_gesserit_advisors_when_alone();
+            self.flip_bene_gesserit_advisors_when_alone()?;
         }
 
         self.ship_move.current_no_field_value = -1;
+        Ok(())
     }
 
-    pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerId, in_territory: Territory) {
+    pub fn reveal_current_no_field_in_territory(&mut self, player: PlayerId, in_territory: Territory) -> GameResult {
         if !self.player(player).is(Faction::Richese) {
-            return;
+            return Ok(());
         }
         for l in in_territory.locations().iter().copied() {
-            self.reveal_current_no_field(player, Some(l));
+            self.reveal_current_no_field(player, Some(l))?;
         }
+        Ok(())
     }
 
     pub fn exchange_resources_in_bribe(&mut self, from: PlayerId, target: PlayerId, amount: i32) -> GameResult {
@@ -143,8 +145,7 @@ impl Game {
                         " at ".into(),
                         MainPhase::Collection.into(),
                     ]);
-                    let b = self.player_mut(banker);
-                    b.banked_resources += 1;
+                    crate::game::amounts::gain(&mut self.player_mut(banker).banked_resources, 1, "spice").expect("banked spice");
                 }
             }
         }

@@ -51,7 +51,7 @@ impl TraitorsSelected {
         self.log(game);
 
         if game.everyone_acted_or_passed() {
-            game.assign_face_dancers();
+            game.assign_face_dancers()?;
         }
         Ok(())
     }

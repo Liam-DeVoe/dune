@@ -48,9 +48,9 @@ impl AllianceByAmbassador {
             if game.turn.has_acted_or_passed.contains_opt(self.initiator())
                 && game.turn.has_acted_or_passed.contains_opt(activated.initiator())
             {
-                game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
+                game.check_if_forces_should_be_destroyed_by_ally_presence(self.player())?;
             }
-            game.flip_bene_gesserit_advisors_when_alone();
+            game.flip_bene_gesserit_advisors_when_alone()?;
         } else {
             let activated = game.ship_move.current_ambassador_activated.clone().required("current ambassador activated")?;
             self.log_objects(game, elems![self.initiator(), " don't ally with ", activated.initiator()]);

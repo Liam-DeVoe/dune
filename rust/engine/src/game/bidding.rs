@@ -720,6 +720,39 @@ impl Game {
         }
     }
 
+    /// The most spice `p` may still have to pay for a bid of the current auction: as the bidder,
+    /// as the bidder's ally, or as the Emperor supporting it. A silent auction has every bid made
+    /// so far to pay, the others only the highest. A bid made with Karama to lift the limit pays
+    /// no spice. Spice given away in between was paid anyway,
+    /// which left the winner below zero (escapes.md, "Forces below zero").
+    pub fn spice_committed_to_bids(&self, p: PlayerId) -> i32 {
+        if !matches!(self.turn.current_phase, Phase::Bidding | Phase::BlackMarketBidding) {
+            return 0;
+        }
+        let pending: Vec<&GameEvent> = match self.bidding.current_auction_type {
+            Some(AuctionType::RicheseSilent | AuctionType::BlackMarketSilent) => self.bidding.bids.values().collect(),
+            _ => self.bidding.current_bid.iter().collect(),
+        };
+        let me = self.player(p);
+        pending
+            .into_iter()
+            .filter(|bid| !bid.bid_passed() && !bid.bid_using_karma_to_remove_bid_limit())
+            .map(|bid| {
+                let bidder = Some(bid.bid_initiator());
+                let own = if bidder == me.faction { bid.bid_amount() } else { 0 };
+                let as_ally = if bidder == me.ally && me.ally.is_some() { bid.bid_ally_contribution_amount() } else { 0 };
+                let as_emperor = if me.faction == Some(Faction::Emperor) { bid.bid_emperor_contribution_amount() } else { 0 };
+                own + as_ally + as_emperor
+            })
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// Whether `p` can give away `amount` spice and still pay their bids.
+    pub fn may_give_away_spice(&self, p: PlayerId, amount: i32) -> bool {
+        amount <= 0 || i32::from(self.player(p).resources) - amount >= self.spice_committed_to_bids(p)
+    }
+
     pub fn ixian_may_swap_card_on_bid(&self) -> bool {
         // `GetPlayer(Faction.Ixian)?.TreacheryCards.Count > 0`: null > 0 is false.
         self.get_player(Some(Faction::Ixian)).map_or(false, |g| self.player(g).treachery_cards.len() > 0)

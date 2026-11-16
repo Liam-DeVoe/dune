@@ -80,7 +80,7 @@ impl SkillAssigned {
                 game.enter(phase, true);
             } else {
                 let c2 = game.treachery_cards_before_traitors();
-                game.enter_first(&[(c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces));
+                game.enter_first(&[(c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces))?;
             }
         }
         Ok(())

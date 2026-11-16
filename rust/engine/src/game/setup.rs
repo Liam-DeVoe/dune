@@ -69,7 +69,7 @@ impl Game {
         self.enter(Phase::TradingFactions, true);
     }
 
-    pub fn enter_setup_phase(&mut self) {
+    pub fn enter_setup_phase(&mut self) -> GameResult {
         self.setup.current_trade_offers.clear();
 
         // Players.OrderBy(p => p.Seat) is a stable sort.
@@ -98,10 +98,11 @@ impl Game {
 
         let c1 = self.is_playing(Faction::BeneGesserit);
         let c2 = self.treachery_cards_before_traitors();
-        self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritPredicting)), (c2, Step::Run(Game::deal_starting_treachery_cards))], Step::Run(Game::deal_traitors));
+        self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritPredicting)), (c2, Step::Run(Game::deal_starting_treachery_cards))], Step::Run(Game::deal_traitors))?;
+        Ok(())
     }
 
-    pub fn deal_traitors(&mut self) {
+    pub fn deal_traitors(&mut self) -> GameResult {
         self.stone(Milestone::Shuffled);
         let random = self.random.clone();
         self.decks.traitor_deck = Some(self.create_and_shuffle_traitor_deck(random));
@@ -119,8 +120,9 @@ impl Game {
                 }
             }
 
-            self.enter_select_traitors();
+            self.enter_select_traitors()?;
         }
+        Ok(())
     }
 
     /// `random` is `Option` because `Game.Random` may be null; only the
@@ -159,7 +161,7 @@ impl Game {
         }
     }
 
-    pub fn enter_select_traitors(&mut self) {
+    pub fn enter_select_traitors(&mut self) -> GameResult {
         self.turn.has_acted_or_passed.clear();
 
         if self.is_playing(Faction::Harkonnen) {
@@ -171,10 +173,11 @@ impl Game {
         }
 
         let condition = self.players.iter().any(|p| !(p.is(Faction::Harkonnen) || p.is(Faction::Tleilaxu)));
-        self.enter_or_else(condition, Phase::SelectingTraitors, Game::assign_face_dancers);
+        self.enter_or_else_try(condition, Phase::SelectingTraitors, Game::assign_face_dancers)?;
+        Ok(())
     }
 
-    pub fn assign_face_dancers(&mut self) {
+    pub fn assign_face_dancers(&mut self) -> GameResult {
         let tleilaxu = self.get_player(Some(Faction::Tleilaxu));
         if let Some(tleilaxu) = tleilaxu {
             self.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
@@ -186,13 +189,14 @@ impl Game {
         }
 
         if self.treachery_cards_before_traitors() {
-            self.setup_spice_and_forces();
+            self.setup_spice_and_forces()?;
         } else {
-            self.assign_leader_skills();
+            self.assign_leader_skills()?;
         }
+        Ok(())
     }
 
-    pub fn assign_leader_skills(&mut self) {
+    pub fn assign_leader_skills(&mut self) -> GameResult {
         if self.applicable(Rule::LeaderSkills) {
             self.decks.skill_deck = Some(Deck::new(get_values::<LeaderSkill>().collect::<Vec<_>>(), self.random.clone()));
             self.decks.skill_deck.as_mut().expect("skill deck").shuffle();
@@ -211,16 +215,17 @@ impl Game {
             // C# parity: TreacheryCardsBeforeTraitors requires LeaderSkills, so
             // this always calls SetupSpiceAndForces. Game.Enter(bool, Action, Action) inlined.
             if self.treachery_cards_before_traitors() {
-                self.deal_traitors();
+                self.deal_traitors()?;
             } else {
-                self.setup_spice_and_forces();
+                self.setup_spice_and_forces()?;
             }
         }
+        Ok(())
     }
 
-    pub fn setup_spice_and_forces(&mut self) {
+    pub fn setup_spice_and_forces(&mut self) -> GameResult {
         for p in 0..self.players.len() {
-            self.setup_player_homeworld(self.player_at(p));
+            self.setup_player_homeworld(self.player_at(p))?;
         }
 
         if self.applicable(Rule::CustomInitialForcesAndResources) {
@@ -228,10 +233,10 @@ impl Game {
             self.enter(Phase::PerformCustomSetup, true);
         } else {
             for p in 0..self.players.len() {
-                self.setup_player_spice_and_forces_on_planet(self.player_at(p));
+                self.setup_player_spice_and_forces_on_planet(self.player_at(p))?;
             }
 
-            let method_after_setting_up: fn(&mut Game) = if self.treachery_cards_before_traitors() {
+            let method_after_setting_up: fn(&mut Game) -> GameResult = if self.treachery_cards_before_traitors() {
                 Game::enter_storm_phase
             } else {
                 Game::deal_starting_treachery_cards
@@ -241,11 +246,12 @@ impl Game {
             let c1 = self.is_playing(Faction::Fremen);
             let c2 = self.is_playing(Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(self);
             let c3 = self.is_playing(Faction::Moritani);
-            self.enter_first(&[(c1, Step::Enter(Phase::FremenSettingUp)), (c2, Step::Enter(Phase::BeneGesseritSettingUp)), (c3, Step::Enter(Phase::MoritaniSettingUp))], Step::Run(method_after_setting_up));
+            self.enter_first(&[(c1, Step::Enter(Phase::FremenSettingUp)), (c2, Step::Enter(Phase::BeneGesseritSettingUp)), (c3, Step::Enter(Phase::MoritaniSettingUp))], Step::Run(method_after_setting_up))?;
         }
+        Ok(())
     }
 
-    pub fn setup_player_homeworld(&mut self, p: PlayerId) {
+    pub fn setup_player_homeworld(&mut self, p: PlayerId) -> GameResult {
         let faction = self.player(p).faction;
         let normal_force_world = self
             .board.map
@@ -256,24 +262,24 @@ impl Game {
             Some(Faction::Fremen) => {
                 let normal = if self.applicable(Rule::FremenSpecialForces) { 17 } else { 20 };
                 let special = if self.applicable(Rule::FremenSpecialForces) { 3 } else { 0 };
-                Player::initialize_homeworld(self, p, normal_force_world, normal, special);
+                Player::initialize_homeworld(self, p, normal_force_world, normal, special)?;
             }
 
             Some(Faction::Emperor) => {
                 let normal = if self.applicable(Rule::EmperorSpecialForces) { 15 } else { 20 };
-                Player::initialize_homeworld(self, p, normal_force_world, normal, 0);
+                Player::initialize_homeworld(self, p, normal_force_world, normal, 0)?;
                 if self.applicable(Rule::EmperorSpecialForces) {
                     let faction = self.player(p).faction;
                     let special_world = self
                         .board.map
                         .homeworlds()
                         .find(|w| Some(w.faction()) == faction && w.is_home_of_special_forces()).expect("a special force homeworld");
-                    Player::initialize_homeworld(self, p, special_world, 0, 5);
+                    Player::initialize_homeworld(self, p, special_world, 0, 5)?;
                 }
             }
 
             Some(Faction::Ixian) => {
-                Player::initialize_homeworld(self, p, normal_force_world, 13, 7);
+                Player::initialize_homeworld(self, p, normal_force_world, 13, 7)?;
             }
 
             Some(Faction::Atreides)
@@ -285,14 +291,15 @@ impl Game {
             | Some(Faction::Richese)
             | Some(Faction::Ecaz)
             | Some(Faction::Moritani) => {
-                Player::initialize_homeworld(self, p, normal_force_world, 20, 0);
+                Player::initialize_homeworld(self, p, normal_force_world, 20, 0)?;
             }
 
             _ => {}
         }
+        Ok(())
     }
 
-    pub fn setup_player_spice_and_forces_on_planet(&mut self, p: PlayerId) {
+    pub fn setup_player_spice_and_forces_on_planet(&mut self, p: PlayerId) -> GameResult {
         match self.player(p).faction {
             Some(Faction::Fremen) => {
                 self.player_mut(p).resources = 3;
@@ -301,13 +308,13 @@ impl Game {
             Some(Faction::Atreides) => {
                 self.player_mut(p).resources = 10;
                 let l = self.board.map.arrakeen();
-                Player::add_forces(self, p, l, 10, true);
+                Player::add_forces(self, p, l, 10, true)?;
             }
 
             Some(Faction::Harkonnen) => {
                 self.player_mut(p).resources = 10;
                 let l = self.board.map.carthag();
-                Player::add_forces(self, p, l, 10, true);
+                Player::add_forces(self, p, l, 10, true)?;
             }
 
             Some(Faction::Emperor) => {
@@ -317,22 +324,22 @@ impl Game {
             Some(Faction::Guild) => {
                 self.player_mut(p).resources = 5;
                 let l = self.board.map.tueks_sietch();
-                Player::add_forces(self, p, l, 5, true);
+                Player::add_forces(self, p, l, 5, true)?;
             }
 
             Some(Faction::BeneGesserit) => {
                 self.player_mut(p).resources = 5;
                 if !PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(self) {
                     let l = self.board.map.polar_sink();
-                    Player::add_forces(self, p, l, 1, true);
+                    Player::add_forces(self, p, l, 1, true)?;
                 }
             }
 
             Some(Faction::Ixian) => {
                 self.player_mut(p).resources = 10;
                 let l: Location = self.board.map.hidden_mobile_stronghold().into();
-                Player::add_forces(self, p, l, 3, true);
-                Player::add_special_forces(self, p, l, 3, true);
+                Player::add_forces(self, p, l, 3, true)?;
+                Player::add_special_forces(self, p, l, 3, true)?;
             }
 
             Some(Faction::Tleilaxu) => {
@@ -350,7 +357,7 @@ impl Game {
             Some(Faction::Ecaz) => {
                 self.player_mut(p).resources = 12;
                 let l = self.board.map.imperial_basin().middle_location();
-                Player::add_forces(self, p, l, 6, true);
+                Player::add_forces(self, p, l, 6, true)?;
             }
 
             Some(Faction::Moritani) => {
@@ -359,6 +366,7 @@ impl Game {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn assign_initial_ambassadors(&mut self, p: PlayerId) {
@@ -389,7 +397,7 @@ impl Game {
         }
     }
 
-    pub fn deal_starting_treachery_cards(&mut self) {
+    pub fn deal_starting_treachery_cards(&mut self) -> GameResult {
         self.setup.starting_treachery_cards = Some(Deck::empty(self.random.clone()));
         for p in 0..self.players.len() {
             let card = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
@@ -404,14 +412,11 @@ impl Game {
         }
 
         let condition = self.is_playing(Faction::Ixian);
-        self.enter_or_else(
-            condition,
-            Phase::IxianSelectingCard,
-            Game::deal_remaining_starting_treachery_cards_to_non_ixian,
-        );
+        self.enter_or_else_try(condition, Phase::IxianSelectingCard, Game::deal_remaining_starting_treachery_cards_to_non_ixian)?;
+        Ok(())
     }
 
-    pub fn deal_remaining_starting_treachery_cards_to_non_ixian(&mut self) {
+    pub fn deal_remaining_starting_treachery_cards_to_non_ixian(&mut self) -> GameResult {
         for i in 0..self.players.len() {
             if self.players[i].faction == Some(Faction::Ixian) {
                 continue;
@@ -431,10 +436,11 @@ impl Game {
         }
 
         if self.treachery_cards_before_traitors() {
-            self.assign_leader_skills();
+            self.assign_leader_skills()?;
         } else {
-            self.enter_storm_phase();
+            self.enter_storm_phase()?;
         }
+        Ok(())
     }
 
     pub fn treachery_cards_before_traitors(&self) -> bool {

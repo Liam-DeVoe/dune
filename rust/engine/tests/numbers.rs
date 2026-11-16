@@ -158,3 +158,131 @@ fn spice_given_away_is_never_negative() {
     transfer.resources = -3;
     assert_eq!(refusal(transfer.validate(&g)).as_deref(), Some("Invalid amount"));
 }
+
+fn home(g: &Game, w: World) -> Homeworld {
+    g.board.map.homeworlds().find(|h| h.world() == w).unwrap()
+}
+
+/// Forces never go below zero. C# ignored a change that would, so a move from a location with
+/// too few forces still added them at the destination.
+#[test]
+fn forces_below_zero_are_a_game_error_and_change_nothing() {
+    let mut g = game_with(&[Faction::Atreides]);
+    let me = g.get_player(Some(Faction::Atreides)).unwrap();
+    let from = g.board.map.arrakeen();
+    let to = g.board.map.the_great_flat();
+    Player::add_forces(&mut g, me, from, 2, false).unwrap();
+    assert!(Player::move_forces(&mut g, me, from, to, 3).is_err());
+    assert_eq!((g.player(me).forces_in(Some(from)), g.player(me).forces_in(Some(to))), (2, 0));
+    assert!(Player::kill_forces(&mut g, me, from, 3, 0, false).is_err());
+    assert_eq!(g.player(me).forces_killed, 0);
+    assert!(Player::revive_forces(&mut g, me, 1).is_err());
+}
+
+/// Spice on the board never goes below zero either.
+#[test]
+fn spice_on_the_board_below_zero_is_a_game_error() {
+    let mut g = Game::new();
+    let l = g.board.map.the_great_flat();
+    g.change_resources_on_planet(l, 6).unwrap();
+    assert!(g.change_resources_on_planet(l, -7).is_err());
+    assert_eq!(g.resources_in(l), 6);
+    g.change_resources_on_planet(l, -6).unwrap();
+    assert!(!g.board.resources_on_planet.contains_key(&l));
+}
+
+/// Reinforcements kill forces in reserve wherever they are. C# took them only from the homeworld
+/// of normal forces, and counted them in the tanks even when it held fewer.
+#[test]
+fn reinforcements_come_from_every_homeworld() {
+    let mut g = game_with(&[Faction::Emperor]);
+    let me = g.get_player(Some(Faction::Emperor)).unwrap();
+    let kaitain = home(&g, World::Emperor);
+    let salusa = home(&g, World::SalusaSecundus);
+    Player::initialize_homeworld(&mut g, me, kaitain, 1, 0).unwrap();
+    Player::initialize_homeworld(&mut g, me, salusa, 0, 5).unwrap();
+    Player::change_forces(&mut g, me, salusa.location(), 4).unwrap();
+    Player::kill_forces_in_reserves(&mut g, me, 3, false).unwrap();
+    let p = g.player(me);
+    assert_eq!((p.forces_in(Some(kaitain.location())), p.forces_in(Some(salusa.location()))), (0, 2));
+    assert_eq!(p.forces_killed, 3);
+    assert!(Player::kill_forces_in_reserves(&mut g, me, 3, false).is_err());
+}
+
+/// A pass skipped every check of a Caravan, but the move was still made: from anywhere, with
+/// forces the player didn't have.
+#[test]
+fn a_caravan_cant_be_passed() {
+    let g = game_with(&[Faction::Atreides]);
+    let mut e = Caravan::new(&g, Faction::Atreides);
+    e.passed = true;
+    assert_eq!(refusal(e.validate(&g)).as_deref(), Some("You can't pass a Caravan"));
+}
+
+/// Negative amounts in events that place, kill or revive forces moved forces the wrong way: out
+/// of reserves into the tanks, or onto the board instead of into the tanks.
+#[test]
+fn negative_force_amounts_are_refused() {
+    let g = game_with(&[Faction::Atreides, Faction::Emperor]);
+
+    let mut losses = TakeLosses::new(&g, Faction::Atreides);
+    losses.force_amount = -1;
+    losses.special_force_amount = 5;
+    assert_eq!(refusal(losses.validate(&g)).as_deref(), Some("Invalid amount of forces"));
+
+    let mut free = KarmaFreeRevival::new(&g, Faction::Atreides);
+    free.amount_of_forces = -2;
+    assert_eq!(refusal(free.validate(&g)).as_deref(), Some("Invalid amount"));
+
+    let mut revival = Revival::new(&g, Faction::Atreides);
+    revival.hero = Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap()));
+    revival.amount_of_forces = -2;
+    assert_eq!(refusal(revival.validate(&g)).as_deref(), Some("Invalid amount"));
+
+    let mut shipment = Shipment::new(&g, Faction::Atreides);
+    shipment.from = None;
+    shipment.force_amount = 2;
+    shipment.smuggled_amount = -1;
+    assert_eq!(refusal(shipment.validate(&g)).as_deref(), Some("Invalid amount"));
+
+    // Tleilaxu isn't playing, so this is its secret ally card.
+    let mut nexus = NexusPlayed::new(&g, Faction::Atreides);
+    nexus.faction = Some(Faction::Tleilaxu);
+    nexus.tleilaxu_forces = -1;
+    assert_eq!(refusal(nexus.validate(&g)).as_deref(), Some("Invalid amount"));
+}
+
+/// A force list (`_forceLocations`) with an amount outside 0 to 65535 doesn't decode.
+#[test]
+fn a_force_list_out_of_range_doesnt_decode() {
+    let mv = |list: &str| decode(&format!(r#"{{"$type":"Move","_toId":5,"_forceLocations":"{list}"}}"#));
+    assert!(mv("12:3|1,14:2|0").is_ok());
+    assert_eq!(mv("12:-3|1").unwrap_err(), "-3 is not a valid amount of forces");
+    assert_eq!(mv("12:3|65536").unwrap_err(), "65536 is not a valid amount of forces");
+    let face_danced = decode(r#"{"$type":"FaceDanced","_targetForceLocations":"12:-1|0"}"#);
+    assert_eq!(face_danced.unwrap_err(), "-1 is not a valid amount of forces");
+}
+
+/// Spice a player bid in a silent auction can't be given away before the auction ends. It was
+/// paid anyway, and the winner ended below zero (fuzz seed 1 game 58).
+#[test]
+fn spice_bid_in_a_silent_auction_cant_be_given_away() {
+    let mut g = game_with(&[Faction::Fremen, Faction::Emperor]);
+    let fremen = g.get_player(Some(Faction::Fremen)).unwrap();
+    g.player_mut(fremen).resources = 3;
+    g.turn.current_phase = Phase::Bidding;
+    g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
+    let mut bid = Bid::new(&g, Faction::Fremen);
+    bid.amount = 2;
+    g.bidding.bids.insert(Faction::Fremen, std::rc::Rc::new(bid).into_event());
+    assert_eq!(g.spice_committed_to_bids(fremen), 2);
+
+    let gift = |g: &Game, amount: i32| {
+        let mut e = Donated::new(g, Faction::Fremen);
+        e.target = Some(Faction::Emperor);
+        e.resources = amount;
+        refusal(e.validate(g))
+    };
+    assert_eq!(gift(&g, 1), None);
+    assert_eq!(gift(&g, 2).as_deref(), Some("You need that spice to pay your bid"));
+}

@@ -61,7 +61,7 @@ impl BeneGesseritBattleAnnouncement {
         let initiator = self.get_player(game, self.initiator());
         let Some(initiator) = initiator else { return Ok(()) };
         let Some(territory) = self.territory else { return Ok(()) };
-        Player::flip_forces_in_territory(game, initiator, territory, false);
+        Player::flip_forces_in_territory(game, initiator, territory, false)?;
         self.log(game);
         Ok(())
     }

@@ -181,7 +181,7 @@ fn karama_shipment_prevention_blocks_a_winning_opponent_without_ally() {
     assert_ne!(game.player(shipper).faction, Some(Faction::Fremen));
     let strongholds = [game.board.map.arrakeen(), game.board.map.carthag(), game.board.map.sietch_tabr(), game.board.map.habbanya_sietch()];
     for s in strongholds {
-        Player::add_forces(&mut game, shipper, s, 1, true);
+        Player::add_forces(&mut game, shipper, s, 1, true).unwrap();
     }
     game.player_mut(shipper).resources = 5;
     assert!(game.player(shipper).forces_in_reserve() + game.player(shipper).special_forces_in_reserve() > 2);
@@ -278,11 +278,11 @@ fn a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight() {
     for p in game.player_indices().collect::<Vec<_>>() {
         for l in [arrakeen, carthag] {
             let (n, s) = (game.player(p).forces_in(Some(l)), game.player(p).special_forces_in(Some(l)));
-            Player::remove_forces(&mut game, p, l, n);
-            Player::remove_special_forces(&mut game, p, l, s);
+            Player::remove_forces(&mut game, p, l, n).unwrap();
+            Player::remove_special_forces(&mut game, p, l, s).unwrap();
         }
     }
-    Player::add_forces(&mut game, weak, arrakeen, 1, false);
+    Player::add_forces(&mut game, weak, arrakeen, 1, false).unwrap();
     game.player_mut(me).resources = 0;
     // Both opponents have shipped this turn, so neither can reinforce.
     game.turn.has_acted_or_passed.extend([Faction::Emperor, Faction::Guild]);
@@ -292,14 +292,14 @@ fn a_weak_stronghold_is_judged_against_the_opponent_picked_to_fight() {
     let battalion = loop {
         forces += 1;
         assert!(forces <= 10, "Emperor alone is beatable");
-        Player::add_forces(&mut game, me, carthag, 1, false);
+        Player::add_forces(&mut game, me, carthag, 1, false).unwrap();
         let battalion = Battalion::new(Faction::Harkonnen, forces, 0, carthag);
         if bot(&game, me).winnable_nearby_stronghold(&game, carthag, &battalion) == Some(arrakeen) {
             break battalion;
         }
     };
 
-    Player::add_forces(&mut game, strong, arrakeen, 15, false);
+    Player::add_forces(&mut game, strong, arrakeen, 15, false).unwrap();
     let b = bot(&game, me);
     assert_eq!(b.winnable_nearby_stronghold(&game, carthag, &battalion), None);
 }
@@ -350,7 +350,7 @@ fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
     let mut game = load("ship-guild");
     let guild = player_of(&game, Faction::Guild);
     for l in game.player(guild).forces_on_planet().keys().copied().collect::<Vec<_>>() {
-        Player::forces_to_reserves(&mut game, guild, l);
+        Player::forces_to_reserves(&mut game, guild, l).unwrap();
     }
     // Enough spice to pay for shipping them back.
     game.player_mut(guild).resources = 10;
@@ -358,10 +358,10 @@ fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
     let plan = sand
         .into_iter()
         .find_map(|l| {
-            Player::add_forces(&mut game, guild, l, 4, false);
+            Player::add_forces(&mut game, guild, l, 4, false).unwrap();
             let plan = bot(&game, guild).plan_back_to_reserves(&game);
             if plan.is_none() {
-                Player::remove_forces(&mut game, guild, l, 4);
+                Player::remove_forces(&mut game, guild, l, 4).unwrap();
             }
             plan
         })
@@ -394,7 +394,7 @@ fn the_testing_station_counts_the_bots_own_storm_losses() {
     game.board.next_storm_moves = (sector - Sector::number_or_none(game.board.sector_in_storm) + N) % N;
     let home = game.player(me).home_worlds[0].location();
     let sand = open(&game, sector)[0];
-    Player::move_forces(&mut game, me, home, sand, 10);
+    Player::move_forces(&mut game, me, home, sand, 10).unwrap();
 
     let e = bot(&game, me).determine_testing_station_used(&game).expect("a Testing Station decision");
     assert_eq!(e.value_added, -1);

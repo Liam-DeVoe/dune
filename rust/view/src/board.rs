@@ -36,8 +36,8 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
             forces.push(ForcesInLocation {
                 location: location.id(),
                 faction: name(b.faction),
-                forces: b.amount_of_forces,
-                special_forces: b.amount_of_special_forces,
+                forces: b.forces(),
+                special_forces: b.special_forces(),
                 threatened,
             });
         }
@@ -95,7 +95,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         sector_in_storm: Sector::number_or_none(game.board.sector_in_storm),
         shield_wall_destroyed: game.board.shield_wall_destroyed,
         forces,
-        spice: game.board.resources_on_planet.iter().map(|(l, a)| SpiceInLocation { location: l.id(), amount: *a }).collect(),
+        spice: game.board.resources_on_planet.iter().map(|(l, a)| SpiceInLocation { location: l.id(), amount: i32::from(*a) }).collect(),
         highlighted_territories: status.highlighted_territories.iter().flatten().map(|t| t.id()).collect(),
         strongholds: game.board.stronghold_ownership.iter().map(|(l, f)| StrongholdOwner { location: l.id(), owner: name(*f) }).collect(),
         terror: game
@@ -210,8 +210,8 @@ pub fn tanks(game: &Game, v: &ResolvedViewer) -> Vec<TanksEntry> {
             corpses.sort_by_key(|(_, t, _)| *t);
             TanksEntry {
                 faction: name_or_absent(pl.faction),
-                forces_killed: pl.forces_killed,
-                special_forces_killed: pl.special_forces_killed,
+                forces_killed: i32::from(pl.forces_killed),
+                special_forces_killed: i32::from(pl.special_forces_killed),
                 leaders: corpses
                     .into_iter()
                     .map(|(l, _, face_down)| DeadLeader { id: (!face_down || may_identify(l)).then(|| l.id()), face_down })

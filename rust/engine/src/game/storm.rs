@@ -36,7 +36,7 @@ macro_rules! elems {
 }
 
 impl Game {
-    pub fn enter_storm_phase(&mut self) {
+    pub fn enter_storm_phase(&mut self) -> GameResult {
         self.turn.current_turn = self.turn.current_turn.next().expect("a game has at most 255 turns");
         self.main_phase_start(MainPhase::Storm, true);
         self.revival.factions_that_revived_special_forces_this_turn.clear();
@@ -54,6 +54,7 @@ impl Game {
         }
 
         self.determine_occupation_at_start_or_end_of_turn();
+        Ok(())
     }
 
     pub fn move_hms_before_dialling_storm(&mut self) {
@@ -103,25 +104,26 @@ impl Game {
         self.enter(Phase::MetheorAndStormSpell, true);
     }
 
-    pub fn collect_spice_from(&mut self, faction: Faction, l: Location, maximum_amount: i32) {
-        let Some(value) = self.board.resources_on_planet.get(&l).copied() else { return };
+    pub fn collect_spice_from(&mut self, faction: Faction, l: Location, maximum_amount: i32) -> GameResult {
+        let Some(value) = self.board.resources_on_planet.get(&l).copied() else { return Ok(()) };
 
-        let collected = value.min(maximum_amount);
-        self.change_resources_on_planet(l, -collected);
-        let Some(collector) = self.get_player(Some(faction)) else { return };
-        crate::game::amounts::gain(&mut self.player_mut(collector).resources, collected, "spice").expect("collected spice");
+        let collected = i32::from(value).min(maximum_amount);
+        self.change_resources_on_planet(l, -collected)?;
+        let Some(collector) = self.get_player(Some(faction)) else { return Ok(()) };
+        crate::game::amounts::gain(&mut self.player_mut(collector).resources, collected, "spice")?;
         self.log(elems![faction, " collect ", Payment::of(collected), " from ", l]);
+        Ok(())
     }
 
-    pub fn move_storm_and_determine_next(&mut self, amount: i32) {
+    pub fn move_storm_and_determine_next(&mut self, amount: i32) -> GameResult {
         if amount == 0 {
-            self.perform_storm();
+            self.perform_storm()?;
         }
 
         for _ in 0..amount.max(0) {
             // Before the first storm (which the rules never move) the storm starts from sector 0.
             self.board.sector_in_storm = Some(self.board.sector_in_storm.map_or(Sector::new(0), |s| s.moved(1)));
-            self.perform_storm();
+            self.perform_storm()?;
         }
 
         if self.use_storm_deck() {
@@ -129,9 +131,10 @@ impl Game {
         }
 
         self.stone(Milestone::Storm);
+        Ok(())
     }
 
-    pub fn perform_storm(&mut self) {
+    pub fn perform_storm(&mut self) -> GameResult {
         // `Forces()` builds a new dictionary, so it is a snapshot of locations. Its
         // battalions are the players' live objects, but every field read
         // from one below is read before anything changes that battalion (only its
@@ -155,14 +158,14 @@ impl Game {
                     if !self.prevented(FactionAdvantage::FremenProtectedFromStorm) {
                         let mut loss = LossToTake::new();
                         loss.location = Some(key);
-                        loss.amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
+                        loss.amount = TakeLosses::half_of(battalion.forces(), battalion.special_forces());
                         loss.faction = Some(battalion.faction);
                         self.storm.storm_losses_to_take.push(loss);
                     } else {
                         kill_count += self.player(player).any_forces_in(Some(key));
                         killed_forces += self.player(player).forces_in(Some(key));
                         killed_special_forces += self.player(player).special_forces_in(Some(key));
-                        Player::kill_all_forces(self, player, key, false);
+                        Player::kill_all_forces(self, player, key, false)?;
                         if !self.applicable(Rule::FullPhaseKarma) {
                             self.allow(FactionAdvantage::FremenProtectedFromStorm);
                         }
@@ -176,11 +179,11 @@ impl Game {
                     loss.faction = Some(battalion.faction);
                     self.storm.storm_losses_to_take.push(loss);
                 } else {
-                    self.reveal_current_no_field(player, Some(key));
+                    self.reveal_current_no_field(player, Some(key))?;
                     kill_count += self.player(player).any_forces_in(Some(key));
                     killed_forces += self.player(player).forces_in(Some(key));
                     killed_special_forces += self.player(player).special_forces_in(Some(key));
-                    Player::kill_all_forces(self, player, key, false);
+                    Player::kill_all_forces(self, player, key, false)?;
                 }
 
                 if kill_count > 0 {
@@ -191,7 +194,7 @@ impl Game {
             }
         }
 
-        self.flip_bene_gesserit_advisors_when_alone();
+        self.flip_bene_gesserit_advisors_when_alone()?;
 
         // `Strongholds` and the predicate only read static data, SectorInStorm and
         // ShieldWallDestroyed, none of which the body changes.
@@ -218,6 +221,7 @@ impl Game {
                 self.log(elems![msg]);
             }
         }
+        Ok(())
     }
 
     pub fn end_storm_phase(&mut self) {

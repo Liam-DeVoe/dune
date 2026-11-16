@@ -348,9 +348,9 @@ impl Game {
         result
     }
 
-    pub fn flip_bene_gesserit_advisors_when_alone(&mut self) {
+    pub fn flip_bene_gesserit_advisors_when_alone(&mut self) -> GameResult {
         if self.turn.current_main_phase >= MainPhase::Battle && self.applicable(Rule::DisableNovaFlipping) {
-            return;
+            return Ok(());
         }
 
         let bg = self.get_player(Some(Faction::BeneGesserit));
@@ -365,12 +365,13 @@ impl Game {
                     continue;
                 }
 
-                Player::flip_forces_in_territory(self, bg, t, false);
+                Player::flip_forces_in_territory(self, bg, t, false)?;
                 self.log(vec![express!(Faction::BeneGesserit, " are alone and flip to ", FactionForce::BeneGesserit, " in ", t)
                     .with_log(BeneGesseritFlipped::new(t))
                     .into()]);
             }
         }
+        Ok(())
     }
 
     pub fn check_if_shipment_permissions_should_be_revoked(&mut self) {

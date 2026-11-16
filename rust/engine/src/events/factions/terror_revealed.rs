@@ -229,7 +229,7 @@ impl TerrorRevealed {
                 }
 
                 Some(TerrorType::Atomics) => {
-                    game.kill_all_forces_in(territory.required("territory")?, false);
+                    game.kill_all_forces_in(territory.required("territory")?, false)?;
                     game.kill_ambassador_in(territory.required("territory")?);
                     game.board.atomics_aftermath = territory;
 
@@ -318,7 +318,7 @@ impl TerrorRevealed {
                             game,
                             elems![self.initiator(), " sneak attack ", territory, " with ", self.forces_in_sneak_attack, force],
                         );
-                        Player::ship_forces(game, self.player(), sneak_attack_to, self.forces_in_sneak_attack);
+                        Player::ship_forces(game, self.player(), sneak_attack_to, self.forces_in_sneak_attack)?;
                         game.check_intrusion(&self.clone().into_event())?;
                     }
                 }

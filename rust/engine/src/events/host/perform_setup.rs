@@ -35,13 +35,13 @@ impl PerformSetup {
         let faction = game.next_faction_to_perform_custom_setup();
         let p = game.get_player(faction);
         let number_of_special_forces =
-            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
+            self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>();
         let Some(p) = p else { return Some(express!("No faction is setting up")) };
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("Too many ", game.player(p).special_force()));
         }
 
-        let number_of_forces = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
+        let number_of_forces = self.force_locations(game).values().map(|b| b.forces()).sum::<i32>();
         if number_of_forces > game.player(p).forces_in_reserve() {
             return Some(express!("Too many ", game.player(p).force()));
         }
@@ -55,8 +55,8 @@ impl PerformSetup {
 
         for (location, battalion) in self.force_locations(game).iter() {
             let location = *location;
-            Player::ship_forces(game, player.required("player")?, location, battalion.amount_of_forces);
-            Player::ship_special_forces(game, player.required("player")?, location, battalion.amount_of_special_forces);
+            Player::ship_forces(game, player.required("player")?, location, battalion.forces())?;
+            Player::ship_special_forces(game, player.required("player")?, location, battalion.special_forces())?;
         }
 
         game.player_mut(player.required("player")?).resources = u16::try_from(self.resources).ok().required("an amount of spice from 0 to 65535")?;
@@ -69,9 +69,9 @@ impl PerformSetup {
 
         if game.players.len() == game.turn.has_acted_or_passed.len() {
             if game.treachery_cards_before_traitors() {
-                game.enter_storm_phase();
+                game.enter_storm_phase()?;
             } else {
-                game.deal_starting_treachery_cards();
+                game.deal_starting_treachery_cards()?;
             }
         }
         Ok(())

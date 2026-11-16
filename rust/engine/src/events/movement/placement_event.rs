@@ -38,12 +38,12 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
     fn forces_added_to_location(&self, game: &Game) -> i32 {
         // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice)
         let _ = self.force_locations(game);
-        self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
+        self.force_locations(game).values().map(|b| b.forces()).sum::<i32>()
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
         let _ = self.force_locations(game);
-        self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>()
+        self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>()
     }
 
     fn validate_move(&self, game: &Game, as_advisors: bool) -> Option<Message> {
@@ -60,14 +60,14 @@ pub trait PlacementEventMethods: PassableGameEventMethods {
         // kept only where the first read happens.
         let force_locations = self.force_locations(game);
 
-        let force_amount = force_locations.values().map(|b| b.amount_of_forces).sum::<i32>();
-        let too_many_forces = force_locations.iter().any(|(l, b)| b.amount_of_forces > pl().forces_in(Some(*l)));
+        let force_amount = force_locations.values().map(|b| b.forces()).sum::<i32>();
+        let too_many_forces = force_locations.iter().any(|(l, b)| b.forces() > pl().forces_in(Some(*l)));
         if too_many_forces {
             return Some(express!("Invalid number of ", pl().force()));
         }
 
-        let special_force_amount = force_locations.values().map(|b| b.amount_of_special_forces).sum::<i32>();
-        let too_many_special_forces = force_locations.iter().any(|(l, b)| b.amount_of_special_forces > pl().special_forces_in(Some(*l)));
+        let special_force_amount = force_locations.values().map(|b| b.special_forces()).sum::<i32>();
+        let too_many_special_forces = force_locations.iter().any(|(l, b)| b.special_forces() > pl().special_forces_in(Some(*l)));
         if too_many_special_forces {
             return Some(express!("Invalid number of ", pl().special_force()));
         }
@@ -137,6 +137,13 @@ impl PlacementEvent {
             .join(",")
     }
 
+    /// An amount in a force list. Panics on text that isn't a number, as C# threw. The JSON
+    /// reader has refused amounts outside 0 to 65535 (`json::read_force_locations`).
+    pub fn parse_force_amount(s: &str) -> u16 {
+        let n = dotnet_compat::parse::convert_to_int32(Some(s));
+        u16::try_from(n).expect("an amount of forces the event JSON reader accepted")
+    }
+
     pub fn parse_force_locations(g: &Game, f: Faction, force_locations: &str) -> IndexMap<Location, Battalion> {
         let mut result: IndexMap<Location, Battalion> = IndexMap::new();
         // forceLocations.Length <= 0 (null is handled by the caller, which throws there)
@@ -148,8 +155,8 @@ impl PlacementEvent {
             let location = g.board.map.location_lookup().find(dotnet_compat::parse::convert_to_int32(Some(location_and_amounts[0])));
             let Some(location) = location else { continue };
             let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
-            let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
-            let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
+            let amount_of_normal_forces = PlacementEvent::parse_force_amount(amounts[0]);
+            let amount_of_normal_special_forces = PlacementEvent::parse_force_amount(amounts[1]);
             result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
         }
 

@@ -116,30 +116,30 @@ impl ChoamRemoveForce {
         let location = self.location;
         if self.special_force {
             match location {
-                Some(location) => Player::special_forces_to_reserves(game, target, location, 1),
+                Some(location) => Player::special_forces_to_reserves(game, target, location, 1)?,
                 None => {
                     // The reserves part of `Player::special_forces_to_reserves`.
                     let faction = game.player(target).faction;
                     if faction == Some(Faction::BeneGesserit) {
-                        Player::add_forces_to_reserves(game, target, 1);
+                        Player::add_forces_to_reserves(game, target, 1)?;
                     } else if faction != Some(Faction::Richese) {
-                        Player::add_special_forces_to_reserves(game, target, 1);
+                        Player::add_special_forces_to_reserves(game, target, 1)?;
                     }
                     game_error!("No location to remove a force from");
                 }
             }
         } else {
             match location {
-                Some(location) => Player::some_forces_to_reserves(game, target, location, 1),
+                Some(location) => Player::some_forces_to_reserves(game, target, location, 1)?,
                 None => {
                     // The reserves part of `Player::some_forces_to_reserves`.
-                    Player::add_forces_to_reserves(game, target, 1);
+                    Player::add_forces_to_reserves(game, target, 1)?;
                     game_error!("No location to remove a force from");
                 }
             }
         }
 
-        game.flip_bene_gesserit_advisors_when_alone();
+        game.flip_bene_gesserit_advisors_when_alone()?;
         game.stone(Milestone::SpecialUselessPlayed);
         Ok(())
     }

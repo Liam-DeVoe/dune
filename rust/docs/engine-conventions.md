@@ -103,16 +103,20 @@ let n: i32 = Sector::number_or_none(l.sector(map));   // -1 for none, as views w
 
 Views and the log write both as numbers, and -1 for a missing sector, as before.
 
-## Amounts of spice
+## Amounts of spice and forces
 
-A player's spice is a `u16` (`resources` and the other spice fields of `Player`). The rules still compute with `i32`, so read it as `i32::from(p.resources)` and change it with `game::amounts`:
+Amounts the game holds are `u16`: a player's spice (`resources` and the other spice fields of `Player`), spice on the board (`board.resources_on_planet`), the forces in a `Battalion`, and the forces in the tanks (`forces_killed`, `special_forces_killed`, `total_forces_killed_in_battle`). The rules still compute with `i32`, so reads widen: `i32::from(p.resources)`, `battalion.forces()`, `game.resources_in(l)`, `player.forces_in(Some(l))`. Changes go through `game::amounts`:
 
 ```rust
 amounts::spend(&mut game.player_mut(me).resources, cost, "spice")?;     // Game Error if short
 amounts::gain(&mut game.player_mut(p).resources, income, "spice").expect("income");  // outside GameResult
+Player::move_forces(game, me, from, to, n)?;     // Battalion::change_forces, then amounts::change
+game.change_resources_on_planet(l, -collected)?;
 ```
 
-A payment that would go below zero is a Game Error, never a negative amount. If a player can cause it, refuse the event in `validate` instead. Forces, spice on the board and the amounts in events are still `i32` (rewrite-plan.md, change 2d).
+A change that would go below zero is a Game Error, never a negative amount, and C#'s habit of ignoring such a change silently is gone. So every `Player` function that moves, kills or revives forces returns `GameResult`. If a player can cause the error, refuse the event in `validate` instead. Where the rules take "as much as possible", take `min(amount, have)` first, as `some_forces_in_territory_to_reserves` and the collection of spice do. Don't write `+=` or `-=` on these fields: in a release build a `u16` wraps silently.
+
+Event fields stay `i32` (rewrite-plan.md, change 2d), except the force lists (`_forceLocations` and the like), whose amounts the JSON reader checks (`json::read_force_locations`) so that they fit a `Battalion`.
 
 ## Static game data: handles
 

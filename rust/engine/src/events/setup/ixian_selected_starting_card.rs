@@ -36,7 +36,7 @@ impl IxianSelectedStartingCard {
         self.log(game);
         game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle();
         game.stone(Milestone::Shuffled);
-        game.deal_remaining_starting_treachery_cards_to_non_ixian();
+        game.deal_remaining_starting_treachery_cards_to_non_ixian()?;
         Ok(())
     }
 

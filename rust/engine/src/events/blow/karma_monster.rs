@@ -52,7 +52,7 @@ impl KarmaMonster {
         game.stone(Milestone::Karma);
         game.blow.number_of_monsters += 1;
         let territory = self.territory;
-        game.let_monster_appear(territory, false);
+        game.let_monster_appear(territory, false)?;
 
         if game.turn.current_phase == Phase::BlowReport {
             game.enter_alliance_phase(false);

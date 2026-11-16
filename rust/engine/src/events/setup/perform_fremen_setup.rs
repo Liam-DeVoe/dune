@@ -32,13 +32,13 @@ impl PerformFremenSetup {
     pub fn validate(&self, game: &Game) -> Option<Message> {
         let p = self.player_opt();
         let number_of_special_forces =
-            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
+            self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>();
         let p = p.expect("player");
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
             return Some(express!("You only have ", game.player(p).special_forces_in_reserve(), " ", FactionSpecialForce::Fremen));
         }
 
-        let number_of_forces = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
+        let number_of_forces = self.force_locations(game).values().map(|b| b.forces()).sum::<i32>();
         if (number_of_forces + number_of_special_forces) != 10 {
             return Some(express!("Distribute 10 forces"));
         }
@@ -49,8 +49,8 @@ impl PerformFremenSetup {
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         for (location, battalion) in self.force_locations(game).iter() {
             let location = *location;
-            Player::ship_forces(game, self.player(), location, battalion.amount_of_forces);
-            Player::ship_special_forces(game, self.player(), location, battalion.amount_of_special_forces);
+            Player::ship_forces(game, self.player(), location, battalion.forces())?;
+            Player::ship_special_forces(game, self.player(), location, battalion.special_forces())?;
         }
 
         self.log(game);
@@ -59,7 +59,7 @@ impl PerformFremenSetup {
         let c1 = self.is_playing(game, Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(game);
         let c2 = self.is_playing(game, Faction::Moritani);
         let c3 = game.treachery_cards_before_traitors();
-        game.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritSettingUp)), (c2, Step::Enter(Phase::MoritaniSettingUp)), (c3, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards));
+        game.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritSettingUp)), (c2, Step::Enter(Phase::MoritaniSettingUp)), (c3, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards))?;
         Ok(())
     }
 

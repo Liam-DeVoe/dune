@@ -53,16 +53,16 @@ impl PerformBeneGesseritPlacement {
         if condition {
             // Player is read before Target.
             let me = self.player();
-            Player::ship_advisors(game, me, self.target.required("target")?, 1);
+            Player::ship_advisors(game, me, self.target.required("target")?, 1)?;
         } else {
             let me = self.player();
-            Player::ship_forces(game, me, self.target.required("target")?, 1);
+            Player::ship_forces(game, me, self.target.required("target")?, 1)?;
         }
 
         self.log(game);
         let c1 = self.is_playing(game, Faction::Moritani);
         let c2 = game.treachery_cards_before_traitors();
-        game.enter_first(&[(c1, Step::Enter(Phase::MoritaniSettingUp)), (c2, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards));
+        game.enter_first(&[(c1, Step::Enter(Phase::MoritaniSettingUp)), (c2, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards))?;
         Ok(())
     }
 

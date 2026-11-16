@@ -4,7 +4,7 @@ use crate::prelude::*;
 #[derive(Clone, Copy)]
 pub enum Step {
     Enter(Phase),
-    Run(fn(&mut Game)),
+    Run(fn(&mut Game) -> GameResult),
 }
 
 /// A turn of the game, numbered from 1. Turn 0 is [`Turn::BEFORE_START`]: the setup, before
@@ -203,6 +203,16 @@ impl Game {
         }
     }
 
+    /// As [`Game::enter_or_else`], for a method that can fail.
+    pub fn enter_or_else_try(&mut self, condition: bool, phase_if_true: Phase, method_otherwise: fn(&mut Game) -> GameResult) -> GameResult {
+        if condition {
+            self.enter(phase_if_true, true);
+            Ok(())
+        } else {
+            method_otherwise(self)
+        }
+    }
+
     /// The game is passed to the actions.
     pub fn run_either(game: &mut Game, condition: bool, method_if_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
         if condition {
@@ -213,10 +223,13 @@ impl Game {
     }
 
     /// Takes the step of the first choice whose condition holds, or `otherwise`.
-    pub fn enter_first(&mut self, choices: &[(bool, Step)], otherwise: Step) {
+    pub fn enter_first(&mut self, choices: &[(bool, Step)], otherwise: Step) -> GameResult {
         let step = choices.iter().find(|(condition, _)| *condition).map_or(otherwise, |(_, step)| *step);
         match step {
-            Step::Enter(phase) => self.enter(phase, true),
+            Step::Enter(phase) => {
+                self.enter(phase, true);
+                Ok(())
+            }
             Step::Run(method) => method(self),
         }
     }

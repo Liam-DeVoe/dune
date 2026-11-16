@@ -147,9 +147,9 @@ impl Battle {
             let battle_territory = current_battle.territory;
             if let Some(battle_territory) = battle_territory {
                 let supplier = Battle::determine_force_supplier(game, aggressor_plan.player());
-                game.reveal_current_no_field_in_territory(supplier, battle_territory);
+                game.reveal_current_no_field_in_territory(supplier, battle_territory)?;
                 let supplier = Battle::determine_force_supplier(game, defender_plan.player());
-                game.reveal_current_no_field_in_territory(supplier, battle_territory);
+                game.reveal_current_no_field_in_territory(supplier, battle_territory)?;
             }
 
             let m = express!(aggressor_plan.try_get_battle_plan_message(game)?, "; ", defender_plan.try_get_battle_plan_message(game)?)

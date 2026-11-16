@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::game::amounts;
 
 #[derive(Clone, Debug)]
 pub struct Player {
@@ -32,9 +33,9 @@ pub struct Player {
     pub ambassadors: Vec<Ambassador>,
     pub predicted_faction: Option<Faction>,
     pub predicted_turn: Option<Turn>,
-    pub forces_killed: i32,
-    pub special_forces_killed: i32,
-    pub total_forces_killed_in_battle: i32,
+    pub forces_killed: u16,
+    pub special_forces_killed: u16,
+    pub total_forces_killed_in_battle: u16,
     pub ally: Option<Faction>,
     pub special_karma_power_used: bool,
     pub tech_tokens: Vec<TechToken>,
@@ -88,15 +89,15 @@ impl Player {
     }
 
     pub fn forces_in_reserve(&self) -> i32 {
-                self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))).sum::<i32>()
+        self.home_worlds.iter().map(|hw| self.forces_in(Some(hw.location()))).sum::<i32>()
     }
 
     pub fn special_forces_in_reserve(&self) -> i32 {
-                self.home_worlds.iter().map(|hw| self.special_forces_in(Some(hw.location()))).sum::<i32>()
+        self.home_worlds.iter().map(|hw| self.special_forces_in(Some(hw.location()))).sum::<i32>()
     }
 
     pub fn any_forces_in_reserves(&self) -> i32 {
-                self.forces_in_reserve() + self.special_forces_in_reserve()
+        self.forces_in_reserve() + self.special_forces_in_reserve()
     }
 
     pub fn forces_on_planet(&self) -> IndexMap<Location, Battalion> {
@@ -104,7 +105,7 @@ impl Player {
     }
 
     pub fn no_field_is_active(&self) -> bool {
-                self.faction == Some(Faction::Richese) && self.forces_in_locations.values().any(|b| b.amount_of_special_forces > 0)
+        self.faction == Some(Faction::Richese) && self.forces_in_locations.values().any(|b| b.amount_of_special_forces > 0)
     }
 
     /// Returns the live battalion, not a copy.
@@ -113,53 +114,70 @@ impl Player {
         self.forces_in_locations.entry(location).or_insert_with(|| Battalion::new(faction.expect("faction"), 0, 0, location))
     }
 
-    pub fn change_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
+    /// Adds `nr_of_forces` (negative to remove) at `location`. A Game Error if fewer than zero
+    /// would be left, a change C# ignored.
+    pub fn change_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) -> GameResult {
         let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
-        result.change_forces(nr_of_forces);
+        let changed = result.change_forces(nr_of_forces);
         if result.total_amount_of_forces() == 0 {
             me_.forces_in_locations.remove(&location);
         }
+        changed
     }
 
-    pub fn change_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
+    /// Adds `nr_of_forces` special forces (negative to remove) at `location`. A Game Error if
+    /// fewer than zero would be left, a change C# ignored.
+    pub fn change_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) -> GameResult {
         let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
-        result.change_special_forces(nr_of_forces);
+        let changed = result.change_special_forces(nr_of_forces);
         if result.total_amount_of_forces() == 0 {
             me_.forces_in_locations.remove(&location);
         }
+        changed?;
         Player::check_if_emperor_star_threshold_was_passed(game, me);
+        Ok(())
     }
 
-    pub fn add_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) {
+    /// From reserves, the forces come from the first homeworld that holds all of them. A Game
+    /// Error if none does, where C# placed nothing.
+    pub fn add_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) -> GameResult {
         if from_reserves {
             let p = game.player(me);
             let source_world = p.home_worlds.iter().copied().find(|w| p.forces_in(Some(w.location())) >= nr_of_forces);
-            if let Some(source_world) = source_world {
-                Player::move_forces(game, me, source_world.location(), location, nr_of_forces);
+            match source_world {
+                Some(source_world) => Player::move_forces(game, me, source_world.location(), location, nr_of_forces),
+                None => game_error!("No homeworld holds {nr_of_forces} forces"),
             }
         } else {
-            Player::change_forces(game, me, location, nr_of_forces);
+            Player::change_forces(game, me, location, nr_of_forces)
         }
     }
 
-    pub fn add_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) {
+    /// As [`Player::add_forces`], for special forces.
+    pub fn add_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) -> GameResult {
         if from_reserves {
             let p = game.player(me);
             let source_world = p.home_worlds.iter().copied().find(|w| p.special_forces_in(Some(w.location())) >= nr_of_forces);
-            if let Some(source_world) = source_world {
-                Player::move_special_forces(game, me, source_world.location(), location, nr_of_forces);
+            match source_world {
+                Some(source_world) => Player::move_special_forces(game, me, source_world.location(), location, nr_of_forces),
+                None => game_error!("No homeworld holds {nr_of_forces} special forces"),
             }
         } else {
-            Player::change_special_forces(game, me, location, nr_of_forces);
+            Player::change_special_forces(game, me, location, nr_of_forces)
         }
     }
 
-    pub fn add_forces_to_reserves(game: &mut Game, me: PlayerId, nr_of_forces: i32) {
+    /// Adds `nr_of_forces` (negative to remove) to the homeworld of the player's normal forces.
+    /// A Game Error if it holds fewer than it should give up, or if the player has no such
+    /// homeworld and the amount isn't 0.
+    pub fn add_forces_to_reserves(game: &mut Game, me: PlayerId, nr_of_forces: i32) -> GameResult {
         let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_normal_forces());
-        if let Some(source_world) = source_world {
-            Player::change_forces(game, me, source_world.location(), nr_of_forces);
+        match source_world {
+            Some(source_world) => Player::change_forces(game, me, source_world.location(), nr_of_forces),
+            None if nr_of_forces == 0 => Ok(()),
+            None => game_error!("No homeworld for forces"),
         }
     }
 
@@ -182,135 +200,124 @@ impl Player {
         }
     }
 
-    pub fn add_special_forces_to_reserves(game: &mut Game, me: PlayerId, nr_of_forces: i32) {
+    /// As [`Player::add_forces_to_reserves`], for the homeworld of the special forces.
+    pub fn add_special_forces_to_reserves(game: &mut Game, me: PlayerId, nr_of_forces: i32) -> GameResult {
         let source_world = game.player(me).home_worlds.iter().copied().find(|w| w.is_home_of_special_forces());
-        if let Some(source_world) = source_world {
-            Player::change_special_forces(game, me, source_world.location(), nr_of_forces);
+        match source_world {
+            Some(source_world) => Player::change_special_forces(game, me, source_world.location(), nr_of_forces),
+            None if nr_of_forces == 0 => Ok(()),
+            None => game_error!("No homeworld for special forces"),
         }
     }
 
-    pub fn remove_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
-        Player::change_forces(game, me, location, -nr_of_forces);
+    pub fn remove_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) -> GameResult {
+        Player::change_forces(game, me, location, -nr_of_forces)
     }
 
-    pub fn remove_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) {
-        Player::change_special_forces(game, me, location, -nr_of_forces);
+    pub fn remove_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) -> GameResult {
+        Player::change_special_forces(game, me, location, -nr_of_forces)
     }
 
     pub fn forces_in(&self, location: Option<Location>) -> i32 {
-                if let Some(location) = location {
-            if let Some(battalion) = self.forces_in_locations.get(&location) {
-                return battalion.amount_of_forces;
-            }
-        }
-
-        0
+        location.and_then(|l| self.forces_in_locations.get(&l)).map_or(0, |b| b.forces())
     }
 
     pub fn special_forces_in(&self, location: Option<Location>) -> i32 {
-                if let Some(location) = location {
-            if let Some(battalion) = self.forces_in_locations.get(&location) {
-                return battalion.amount_of_special_forces;
-            }
-        }
-
-        0
+        location.and_then(|l| self.forces_in_locations.get(&l)).map_or(0, |b| b.special_forces())
     }
 
     pub fn any_forces_in(&self, location: Option<Location>) -> i32 {
-                if let Some(location) = location {
-            if let Some(battalion) = self.forces_in_locations.get(&location) {
-                return battalion.total_amount_of_forces();
-            }
-        }
-
-        0
+        location.and_then(|l| self.forces_in_locations.get(&l)).map_or(0, |b| b.total_amount_of_forces())
     }
 
     pub fn occupying_forces_in(&self, t: Option<Territory>) -> i32 {
-                match t {
+        match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.occupying_forces_in_location(*l)).sum::<i32>(),
         }
     }
 
     pub fn forces_in_territory(&self, t: Option<Territory>) -> i32 {
-                match t {
+        match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
     pub fn special_forces_in_territory(&self, t: Option<Territory>) -> i32 {
-                match t {
+        match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.special_forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
     pub fn any_forces_in_territory(&self, t: Option<Territory>) -> i32 {
-                match t {
+        match t {
             None => 0,
             Some(t) => t.locations().iter().map(|l| self.any_forces_in(Some(*l))).sum::<i32>(),
         }
     }
 
-    pub fn forces_to_reserves(game: &mut Game, me: PlayerId, location: Location) {
-        let amount_of_forces = game.player(me).forces_in_locations[&location].amount_of_forces;
+    pub fn forces_to_reserves(game: &mut Game, me: PlayerId, location: Location) -> GameResult {
+        let amount_of_forces = game.player(me).forces_in_locations[&location].forces();
 
-        Player::add_forces_to_reserves(game, me, amount_of_forces);
+        Player::add_forces_to_reserves(game, me, amount_of_forces)?;
 
-        let live_special = |game: &Game| game.player(me).forces_in_locations.get(&location).map_or(0, |b| b.amount_of_special_forces);
+        let live_special = |game: &Game| game.player(me).special_forces_in(Some(location));
         let faction = game.player(me).faction;
         if faction == Some(Faction::BeneGesserit) {
             let n = live_special(game);
-            Player::add_forces_to_reserves(game, me, n);
+            Player::add_forces_to_reserves(game, me, n)?;
         } else if faction != Some(Faction::Richese) {
             let n = live_special(game);
-            Player::add_special_forces_to_reserves(game, me, n);
+            Player::add_special_forces_to_reserves(game, me, n)?;
         }
 
         game.player_mut(me).forces_in_locations.remove(&location);
         Player::check_if_emperor_star_threshold_was_passed(game, me);
+        Ok(())
     }
 
-    pub fn some_forces_to_reserves(game: &mut Game, me: PlayerId, location: Location, amount: i32) {
-        Player::add_forces_to_reserves(game, me, amount);
-        Player::change_forces(game, me, location, -amount);
+    pub fn some_forces_to_reserves(game: &mut Game, me: PlayerId, location: Location, amount: i32) -> GameResult {
+        Player::add_forces_to_reserves(game, me, amount)?;
+        Player::change_forces(game, me, location, -amount)
     }
 
-    pub fn special_forces_to_reserves(game: &mut Game, me: PlayerId, location: Location, amount: i32) {
+    pub fn special_forces_to_reserves(game: &mut Game, me: PlayerId, location: Location, amount: i32) -> GameResult {
         let faction = game.player(me).faction;
         if faction == Some(Faction::BeneGesserit) {
-            Player::add_forces_to_reserves(game, me, amount);
+            Player::add_forces_to_reserves(game, me, amount)?;
         } else if faction != Some(Faction::Richese) {
-            Player::add_special_forces_to_reserves(game, me, amount);
+            Player::add_special_forces_to_reserves(game, me, amount)?;
         }
 
-        Player::change_special_forces(game, me, location, -amount);
+        Player::change_special_forces(game, me, location, -amount)
     }
 
     /// Special forces shipped from `location` back to the reserves on `homeworld`. Bene Gesserit
     /// advisors return as fighters, as in [`Player::special_forces_to_reserves`]. Richese's
     /// special force is its No-Field token: it leaves the planet unrevealed.
-    pub fn special_forces_back_to_reserves(game: &mut Game, me: PlayerId, location: Location, homeworld: Homeworld, amount: i32) {
+    pub fn special_forces_back_to_reserves(game: &mut Game, me: PlayerId, location: Location, homeworld: Homeworld, amount: i32) -> GameResult {
         if amount <= 0 {
-            return;
+            return Ok(());
         }
         match game.player(me).faction {
             Some(Faction::BeneGesserit) => {
-                Player::change_special_forces(game, me, location, -amount);
-                Player::change_forces(game, me, homeworld.location(), amount);
+                Player::change_special_forces(game, me, location, -amount)?;
+                Player::change_forces(game, me, homeworld.location(), amount)
             }
             Some(Faction::Richese) => {
-                Player::change_special_forces(game, me, location, -amount);
+                Player::change_special_forces(game, me, location, -amount)?;
                 game.ship_move.current_no_field_value = -1;
+                Ok(())
             }
             _ => Player::move_special_forces(game, me, location, homeworld.location(), amount),
         }
     }
 
-    pub fn some_forces_in_territory_to_reserves(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool) {
+    /// Up to `amount` forces (or special forces) in `t` back to reserves, from the locations
+    /// with the least spice first. If `t` holds fewer, all of them go.
+    pub fn some_forces_in_territory_to_reserves(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool) -> GameResult {
         if amount > 0 {
             let mut to_remove_in_total = amount;
             let mut locations: Vec<Location> = t.locations().to_vec();
@@ -321,20 +328,19 @@ impl Player {
                 if forces_in > 0 {
                     let to_remove_in_this_location = std::cmp::min(forces_in, to_remove_in_total);
 
-                    // C# parity: uses toRemoveInTotal where toRemoveInThisLocation was meant
-                    //: the whole remaining amount goes to reserves at every
-                    // location, and the removal below is refused when it exceeds the forces there.
+                    // C# sent all of `to_remove_in_total` to the reserves here, and skipped the
+                    // removal when this location held fewer (escapes.md, "Forces below zero").
                     let faction = game.player(me).faction;
                     if special && faction != Some(Faction::BeneGesserit) {
-                        Player::add_special_forces_to_reserves(game, me, to_remove_in_total);
+                        Player::add_special_forces_to_reserves(game, me, to_remove_in_this_location)?;
                     } else if !special || faction != Some(Faction::Richese) {
-                        Player::add_forces_to_reserves(game, me, to_remove_in_total);
+                        Player::add_forces_to_reserves(game, me, to_remove_in_this_location)?;
                     }
 
                     if special {
-                        Player::change_special_forces(game, me, l, -to_remove_in_total);
+                        Player::change_special_forces(game, me, l, -to_remove_in_this_location)?;
                     } else {
-                        Player::change_forces(game, me, l, -to_remove_in_total);
+                        Player::change_forces(game, me, l, -to_remove_in_this_location)?;
                     }
 
                     to_remove_in_total -= to_remove_in_this_location;
@@ -345,77 +351,71 @@ impl Player {
                 }
             }
         }
+        Ok(())
     }
 
-    pub fn forces_in_territory_to_reserves(game: &mut Game, me: PlayerId, t: Territory) {
+    pub fn forces_in_territory_to_reserves(game: &mut Game, me: PlayerId, t: Territory) -> GameResult {
         // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
-                Player::forces_to_reserves(game, me, l);
+                Player::forces_to_reserves(game, me, l)?;
             }
         }
+        Ok(())
     }
 
-    pub fn kill_all_forces(game: &mut Game, me: PlayerId, location: Location, in_battle: bool) -> i32 {
+    /// Kills every force at `location` and returns how many died.
+    pub fn kill_all_forces(game: &mut Game, me: PlayerId, location: Location, in_battle: bool) -> GameResult<i32> {
         let p = game.player(me);
         if let Some(battalion) = p.forces_in_locations.get(&location) {
-            let kill_count = battalion.amount_of_forces;
-            let special_kill_count = battalion.amount_of_special_forces;
-            let faction = p.faction;
-
-            let p = game.player_mut(me);
-            p.forces_killed += kill_count;
-
-            if faction == Some(Faction::BeneGesserit) {
-                p.forces_killed += special_kill_count;
-            } else {
-                p.special_forces_killed += special_kill_count;
-            }
-
-            p.forces_in_locations.remove(&location);
+            let kill_count = battalion.forces();
+            let special_kill_count = battalion.special_forces();
+            Player::to_tanks(game, me, kill_count, special_kill_count, in_battle)?;
+            game.player_mut(me).forces_in_locations.remove(&location);
             Player::check_if_emperor_star_threshold_was_passed(game, me);
-
-            if in_battle {
-                let p = game.player_mut(me);
-                p.total_forces_killed_in_battle += kill_count + special_kill_count;
-            }
-
-            return kill_count + special_kill_count;
+            return Ok(kill_count + special_kill_count);
         }
 
-        0
+        Ok(0)
     }
 
-    pub fn kill_all_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, in_battle: bool) {
+    pub fn kill_all_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, in_battle: bool) -> GameResult {
         // Lazy Where: the filter is re-checked after each body ran.
         for &l in t.locations() {
             if game.player(me).any_forces_in(Some(l)) > 0 {
-                Player::kill_all_forces(game, me, l, in_battle);
+                Player::kill_all_forces(game, me, l, in_battle)?;
             }
         }
+        Ok(())
     }
 
-    pub fn kill_forces(game: &mut Game, me: PlayerId, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> i32 {
-        Player::change_forces(game, me, location, -amount_of_forces);
-        Player::change_special_forces(game, me, location, -amount_of_special_forces);
+    /// Kills forces at `location` and returns how many died. A Game Error if `location` holds
+    /// fewer, where C# put them in the tanks without taking them off the board.
+    pub fn kill_forces(game: &mut Game, me: PlayerId, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> GameResult<i32> {
+        Player::change_forces(game, me, location, -amount_of_forces)?;
+        Player::change_special_forces(game, me, location, -amount_of_special_forces)?;
+        Player::to_tanks(game, me, amount_of_forces, amount_of_special_forces, in_battle)?;
+        Ok(amount_of_forces + amount_of_special_forces)
+    }
 
+    /// Counts forces that died in the tanks. Bene Gesserit advisors die as fighters.
+    fn to_tanks(game: &mut Game, me: PlayerId, forces: i32, special_forces: i32, in_battle: bool) -> GameResult {
         let p = game.player_mut(me);
-        p.forces_killed += amount_of_forces;
+        amounts::gain(&mut p.forces_killed, forces, "forces killed")?;
 
         if p.faction == Some(Faction::BeneGesserit) {
-            p.forces_killed += amount_of_special_forces;
+            amounts::gain(&mut p.forces_killed, special_forces, "forces killed")?;
         } else {
-            p.special_forces_killed += amount_of_special_forces;
+            amounts::gain(&mut p.special_forces_killed, special_forces, "special forces killed")?;
         }
 
         if in_battle {
-            p.total_forces_killed_in_battle += amount_of_forces + amount_of_special_forces;
+            amounts::gain(&mut p.total_forces_killed_in_battle, forces + special_forces, "forces killed in battle")?;
         }
-
-        amount_of_forces + amount_of_special_forces
+        Ok(())
     }
 
-    pub fn kill_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool, in_battle: bool) {
+    pub fn kill_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool, in_battle: bool) -> GameResult {
         let mut to_kill = amount;
         let mut locations: Vec<Location> = t.locations().to_vec();
         locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
@@ -425,9 +425,9 @@ impl Player {
             if forces_in > 0 {
                 let to_be_killed = std::cmp::min(forces_in, to_kill);
                 if special {
-                    Player::kill_forces(game, me, l, 0, to_be_killed, in_battle);
+                    Player::kill_forces(game, me, l, 0, to_be_killed, in_battle)?;
                 } else {
-                    Player::kill_forces(game, me, l, to_be_killed, 0, in_battle);
+                    Player::kill_forces(game, me, l, to_be_killed, 0, in_battle)?;
                 }
                 to_kill -= to_be_killed;
             }
@@ -436,79 +436,115 @@ impl Player {
                 break;
             }
         }
+        Ok(())
     }
 
-    pub fn revive_forces(game: &mut Game, me: PlayerId, amount: i32) {
-        let p = game.player_mut(me);
-        p.forces_killed -= amount;
-        Player::add_forces_to_reserves(game, me, amount);
+    /// Kills `amount` forces (or special forces) in reserve: first on the homeworld of that kind
+    /// of force, then on the other homeworlds in order. A Game Error if the reserves hold fewer.
+    /// C# took them only from the first homeworld, and put them in the tanks even when it held
+    /// fewer.
+    pub fn kill_forces_in_reserves(game: &mut Game, me: PlayerId, amount: i32, special: bool) -> GameResult {
+        let p = game.player(me);
+        let mut worlds: Vec<Homeworld> = p.home_worlds.iter().copied().filter(|w| if special { w.is_home_of_special_forces() } else { w.is_home_of_normal_forces() }).collect();
+        worlds.extend(p.home_worlds.iter().copied().filter(|w| !worlds.contains(w)).collect::<Vec<_>>());
+        let mut left = amount;
+        for w in worlds {
+            let p = game.player(me);
+            let here = if special { p.special_forces_in(Some(w.location())) } else { p.forces_in(Some(w.location())) };
+            let n = here.min(left);
+            if n > 0 {
+                if special {
+                    Player::kill_forces(game, me, w.location(), 0, n, false)?;
+                } else {
+                    Player::kill_forces(game, me, w.location(), n, 0, false)?;
+                }
+                left -= n;
+            }
+        }
+        if left > 0 {
+            game_error!("Can't kill {amount} forces in reserve");
+        }
+        Ok(())
     }
 
-    pub fn revive_special_forces(game: &mut Game, me: PlayerId, amount: i32) {
-        let p = game.player_mut(me);
-        p.special_forces_killed -= amount;
-        Player::add_special_forces_to_reserves(game, me, amount);
+    /// Forces from the tanks to reserves. A Game Error if fewer are in the tanks.
+    pub fn revive_forces(game: &mut Game, me: PlayerId, amount: i32) -> GameResult {
+        amounts::spend(&mut game.player_mut(me).forces_killed, amount, "forces killed")?;
+        Player::add_forces_to_reserves(game, me, amount)
     }
 
-    pub fn ship_forces(game: &mut Game, me: PlayerId, to: Location, amount: i32) {
-        Player::add_forces(game, me, to, amount, true);
+    /// Special forces from the tanks to reserves. A Game Error if fewer are in the tanks.
+    pub fn revive_special_forces(game: &mut Game, me: PlayerId, amount: i32) -> GameResult {
+        amounts::spend(&mut game.player_mut(me).special_forces_killed, amount, "special forces killed")?;
+        Player::add_special_forces_to_reserves(game, me, amount)
     }
 
-    pub fn ship_forces_from_homeworld(game: &mut Game, me: PlayerId, to: Location, from: Homeworld, amount: i32) {
-        Player::move_forces(game, me, from.location(), to, amount);
+    pub fn ship_forces(game: &mut Game, me: PlayerId, to: Location, amount: i32) -> GameResult {
+        Player::add_forces(game, me, to, amount, true)
     }
 
-    pub fn ship_special_forces(game: &mut Game, me: PlayerId, to: Location, amount: i32) {
+    pub fn ship_forces_from_homeworld(game: &mut Game, me: PlayerId, to: Location, from: Homeworld, amount: i32) -> GameResult {
+        Player::move_forces(game, me, from.location(), to, amount)
+    }
+
+    /// Richese's special force is its No-Field token, which comes from no reserves.
+    pub fn ship_special_forces(game: &mut Game, me: PlayerId, to: Location, amount: i32) -> GameResult {
         if game.player(me).faction == Some(Faction::Richese) {
-            Player::change_special_forces(game, me, to, amount);
+            Player::change_special_forces(game, me, to, amount)
         } else {
-            Player::add_special_forces(game, me, to, amount, true);
+            Player::add_special_forces(game, me, to, amount, true)
         }
     }
 
-    pub fn ship_special_forces_from_homeworld(game: &mut Game, me: PlayerId, to: Location, from: Homeworld, amount: i32) {
+    pub fn ship_special_forces_from_homeworld(game: &mut Game, me: PlayerId, to: Location, from: Homeworld, amount: i32) -> GameResult {
         if game.player(me).faction == Some(Faction::Richese) {
-            Player::change_special_forces(game, me, to, amount);
+            Player::change_special_forces(game, me, to, amount)
         } else {
-            Player::move_special_forces(game, me, from.location(), to, amount);
+            Player::move_special_forces(game, me, from.location(), to, amount)
         }
     }
 
-    pub fn ship_advisors(game: &mut Game, me: PlayerId, l: Location, amount: i32) {
-        Player::add_forces_to_reserves(game, me, -amount);
-        Player::change_special_forces(game, me, l, amount);
+    /// Bene Gesserit forces from reserves to `l` as advisors. A Game Error if the reserves hold
+    /// fewer, where C# placed the advisors anyway.
+    pub fn ship_advisors(game: &mut Game, me: PlayerId, l: Location, amount: i32) -> GameResult {
+        Player::add_forces_to_reserves(game, me, -amount)?;
+        Player::change_special_forces(game, me, l, amount)
     }
 
-    pub fn move_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) {
-        Player::change_forces(game, me, from, -amount);
-        Player::change_forces(game, me, to, amount);
+    /// A Game Error if `from` holds fewer than `amount`, where C# added them to `to` anyway.
+    pub fn move_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) -> GameResult {
+        Player::change_forces(game, me, from, -amount)?;
+        Player::change_forces(game, me, to, amount)
     }
 
-    pub fn move_special_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) {
-        Player::change_special_forces(game, me, from, -amount);
-        Player::change_special_forces(game, me, to, amount);
+    /// As [`Player::move_forces`], for special forces.
+    pub fn move_special_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) -> GameResult {
+        Player::change_special_forces(game, me, from, -amount)?;
+        Player::change_special_forces(game, me, to, amount)
     }
 
-    pub fn flip_forces(game: &mut Game, me: PlayerId, l: Location, as_advisors: bool) {
+    pub fn flip_forces(game: &mut Game, me: PlayerId, l: Location, as_advisors: bool) -> GameResult {
         if game.player(me).faction == Some(Faction::BeneGesserit) {
             if as_advisors {
                 let number_of_forces = game.player(me).forces_in(Some(l));
-                Player::change_forces(game, me, l, -number_of_forces);
-                Player::change_special_forces(game, me, l, number_of_forces);
+                Player::change_forces(game, me, l, -number_of_forces)?;
+                Player::change_special_forces(game, me, l, number_of_forces)?;
             } else {
                 let number_of_special_forces = game.player(me).special_forces_in(Some(l));
-                Player::change_forces(game, me, l, number_of_special_forces);
-                Player::change_special_forces(game, me, l, -number_of_special_forces);
+                Player::change_forces(game, me, l, number_of_special_forces)?;
+                Player::change_special_forces(game, me, l, -number_of_special_forces)?;
             }
         }
+        Ok(())
     }
 
-    pub fn flip_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, as_advisors: bool) {
+    pub fn flip_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, as_advisors: bool) -> GameResult {
         // `t.Locations` are objects of t's map: after an undo, t can come from an event of
         // the other game, and a battalion created for such a location keeps it as its key.
         for l in t.locations().iter().copied() {
-            Player::flip_forces(game, me, l, as_advisors);
+            Player::flip_forces(game, me, l, as_advisors)?;
         }
+        Ok(())
     }
 
     pub fn occupying_forces_in_location(&self, l: Location) -> i32 {
@@ -756,18 +792,19 @@ impl Player {
         crate::events::Karma::valid_karma_cards(g, g.index_of(self).expect("a player of this game")).next().is_some()
     }
 
-    pub fn initialize_homeworld(game: &mut Game, me: PlayerId, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) {
+    pub fn initialize_homeworld(game: &mut Game, me: PlayerId, world: Homeworld, initial_normal_forces: i32, initial_special_forces: i32) -> GameResult {
         if initial_normal_forces > 0 {
-            Player::add_forces(game, me, world.location(), initial_normal_forces, false);
+            Player::add_forces(game, me, world.location(), initial_normal_forces, false)?;
         }
         if initial_special_forces > 0 {
-            Player::add_special_forces(game, me, world.location(), initial_special_forces, false);
+            Player::add_special_forces(game, me, world.location(), initial_special_forces, false)?;
         }
 
         let p = game.player_mut(me);
         p.salusa_secundus_homeworld_is_on_low_threshold = world.world() == World::SalusaSecundus && initial_special_forces < world.threshold();
 
         p.home_worlds.push(world);
+        Ok(())
     }
 
     pub fn has_high_threshold(&self, game: &Game, w: World) -> bool {

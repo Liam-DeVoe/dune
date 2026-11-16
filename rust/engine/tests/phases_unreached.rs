@@ -14,7 +14,7 @@ fn moritani_to_low_threshold(g: &mut Game) {
     let moritani = idx(g, Faction::Moritani);
     let home = g.player(moritani).home_worlds[0];
     let above = g.player(moritani).forces_in(Some(home.location())) - home.threshold() + 1;
-    Player::kill_forces(g, moritani, home.location(), above, 0, false);
+    Player::kill_forces(g, moritani, home.location(), above, 0, false).unwrap();
     assert!(g.has_low_threshold(Faction::Moritani));
 }
 

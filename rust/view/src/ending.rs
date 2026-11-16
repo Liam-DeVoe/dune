@@ -500,8 +500,8 @@ fn table(g: &Game, finished: &Game, s: &Seating, mut columns: StoryTable) -> Sto
                     && g.is_alive(Hero::Messiah);
             }
             if c.show_tanks {
-                row.forces_killed = p.forces_killed;
-                row.special_forces_killed = p.special_forces_killed;
+                row.forces_killed = i32::from(p.forces_killed);
+                row.special_forces_killed = i32::from(p.special_forces_killed);
                 row.dead_leaders = p.leaders.iter().filter(|l| !g.is_alive(Hero::Leader(**l))).map(|l| hero_ref(Hero::Leader(*l))).collect();
                 row.messiah_dead = p.faction == Some(Faction::Atreides) && g.applicable(Rule::AtreidesMessiah) && !g.messiah_is_alive();
             }
@@ -540,7 +540,7 @@ fn strongholds(g: &Game) -> StoryBlock {
             battalions: g
                 .battalions_in(sh)
                 .iter()
-                .map(|b| StoryBattalion { faction: name(b.faction), forces: b.amount_of_forces, special_forces: b.amount_of_special_forces })
+                .map(|b| StoryBattalion { faction: name(b.faction), forces: b.forces(), special_forces: b.special_forces() })
                 .collect(),
             owner: if owner_column { g.owner_of_location(sh).map(|p| name_or_absent(g.player(p).faction)) } else { None },
             ambassador: if terror_column {

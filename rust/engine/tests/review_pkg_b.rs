@@ -55,7 +55,7 @@ fn new_game(version: i32) -> Game {
             let normal = if hw.is_home_of_normal_forces() { 10 } else { 0 };
             let special = if hw.is_home_of_special_forces() { 4 } else { 0 };
             let me = g.player_at(i);
-            Player::initialize_homeworld(&mut g, me, hw, normal, special);
+            Player::initialize_homeworld(&mut g, me, hw, normal, special).unwrap();
         }
     }
     g
@@ -135,7 +135,7 @@ fn rust_lines() -> Vec<String> {
                 let res = match catch(|| {
                     let g = &mut g;
                     let mut ret: Option<i32> = None;
-                    match op {
+                    let done = match op {
                         0 => Player::add_forces(g, me, l, n, bb),
                         1 => Player::add_special_forces(g, me, l, n, bb),
                         2 => Player::add_forces_to_reserves(g, me, n),
@@ -146,9 +146,9 @@ fn rust_lines() -> Vec<String> {
                         7 => Player::special_forces_to_reserves(g, me, l, n),
                         8 => Player::some_forces_in_territory_to_reserves(g, me, t, n, bb),
                         9 => Player::forces_in_territory_to_reserves(g, me, t),
-                        10 => ret = Some(Player::kill_all_forces(g, me, l, bb)),
+                        10 => Player::kill_all_forces(g, me, l, bb).map(|v| ret = Some(v)),
                         11 => Player::kill_all_forces_in_territory(g, me, t, bb),
-                        12 => ret = Some(Player::kill_forces(g, me, l, n, m, bb)),
+                        12 => Player::kill_forces(g, me, l, n, m, bb).map(|v| ret = Some(v)),
                         13 => {
                             let ib = r.bool();
                             Player::kill_forces_in_territory(g, me, t, n, bb, ib)
@@ -165,11 +165,13 @@ fn rust_lines() -> Vec<String> {
                         23 => Player::flip_forces(g, me, l, bb),
                         24 => Player::flip_forces_in_territory(g, me, t, bb),
                         _ => unreachable!(),
-                    }
-                    ret
+                    };
+                    done.map(|()| ret)
                 }) {
-                    Ok(Some(v)) => v.to_string(),
-                    Ok(None) => "-".to_string(),
+                    Ok(Ok(Some(v))) => v.to_string(),
+                    Ok(Ok(None)) => "-".to_string(),
+                    // A change below zero, which C# ignored.
+                    Ok(Err(_)) => "error".to_string(),
                     Err(()) => "exception".to_string(),
                 };
                 out.push(format!("{} {} {} op{} {} {}", version, seed, step, op, res, state(&g, me)));

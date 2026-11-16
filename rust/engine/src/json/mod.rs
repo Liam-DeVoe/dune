@@ -453,6 +453,24 @@ fn read_bounded<T: TryFrom<i32>>(v: &JsonValue, name: &str) -> Result<T, JsonErr
     T::try_from(n).map_err(|_| JsonError::new("JsonException", format!("{n} is not a valid {name}")))
 }
 
+/// Reads a force list (`_forceLocations` and the like: `location:forces|special,...`) and refuses
+/// one with an amount outside 0 to 65535. Text that isn't a list of numbers is left for the
+/// event to fail on, as before.
+pub fn read_force_locations(v: &JsonValue) -> Result<Option<String>, JsonError> {
+    let s: Option<String> = FromJson::from_json(v)?;
+    for pair in s.as_deref().unwrap_or("").split(',') {
+        let Some((_, amounts)) = pair.split_once(':') else { continue };
+        for amount in amounts.split('|') {
+            if let Ok(n) = dotnet_compat::parse::try_convert_to_int32(Some(amount)) {
+                if u16::try_from(n).is_err() {
+                    return Err(JsonError::new("JsonException", format!("{n} is not a valid amount of forces")));
+                }
+            }
+        }
+    }
+    Ok(s)
+}
+
 impl ToJson for crate::game::Turn {
     fn write_json(&self, w: &mut JsonWriter) {
         w.int(self.number() as i64)

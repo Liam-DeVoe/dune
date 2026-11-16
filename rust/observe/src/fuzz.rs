@@ -451,7 +451,7 @@ fn bounded(max: i64, rng: &mut Rng) -> i64 {
 /// a few forces at locations the form offers.
 fn force_locations(game: &Game, player: Option<usize>, pools: &Pools, rng: &mut Rng) -> Option<String> {
     let me = &game.players[player.filter(|i| *i < game.players.len())?];
-    let own: Vec<(i32, i32, i32)> = me.forces_in_locations.iter().map(|(l, b)| (l.id(), b.amount_of_forces, b.amount_of_special_forces)).collect();
+    let own: Vec<(i32, i32, i32)> = me.forces_in_locations.iter().map(|(l, b)| (l.id(), b.forces(), b.special_forces())).collect();
     // Forces sent where they intrude mostly go all together: a terror token needs at least three.
     let all = if pools.intrusions.is_empty() { 0.4 } else { 0.8 };
     let part = |n: i32, rng: &mut Rng| if n <= 0 { 0 } else if rng.chance(all) { n } else { rng.range(0, n + 1) };

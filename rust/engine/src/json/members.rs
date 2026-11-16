@@ -212,7 +212,7 @@ impl JsonObject for AmbassadorActivated {
             "TleilaxuAssignSkill" => self.tleilaxu_assign_skill = FromJson::from_json(value)?,
             "_choamCardIds" => self.choam_card_ids = FromJson::from_json(value)?,
             "_fremenOrGuildToId" => self.fremen_or_guild_to = FromJson::from_json(value)?,
-            "_fremenForceLocations" => self.fremen_force_locations = FromJson::from_json(value)?,
+            "_fremenForceLocations" => self.fremen_force_locations = crate::json::read_force_locations(value)?,
             "_ixianCardId" => self.ixian_card = FromJson::from_json(value)?,
             "_tleilaxuHeroId" => self.tleilaxu_hero = FromJson::from_json(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
@@ -608,7 +608,7 @@ impl JsonObject for Caravan {
         match key {
             "AsAdvisors" => self.as_advisors = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1062,7 +1062,7 @@ impl JsonObject for DiscoveryEntered {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1288,9 +1288,9 @@ impl JsonObject for FaceDanced {
         match key {
             "ForcesFromReserve" => self.forces_from_reserve = FromJson::from_json(value)?,
             "FaceDancerCalled" => self.face_dancer_called = FromJson::from_json(value)?,
-            "_targetForceLocations" => self.target_force_locations = FromJson::from_json(value)?,
+            "_targetForceLocations" => self.target_force_locations = crate::json::read_force_locations(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1428,7 +1428,7 @@ impl JsonObject for FremenRidesMonster {
             "ForcesFromReserves" => self.forces_from_reserves = FromJson::from_json(value)?,
             "SpecialForcesFromReserves" => self.special_forces_from_reserves = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -1876,7 +1876,7 @@ impl JsonObject for Move {
         match key {
             "AsAdvisors" => self.as_advisors = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2010,7 +2010,7 @@ impl JsonObject for PerformFremenSetup {
     fn read_member(&mut self, key: &str, value: &JsonValue) -> Result<bool, JsonError> {
         match key {
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2090,7 +2090,7 @@ impl JsonObject for PerformSetup {
         match key {
             "Resources" => self.resources = FromJson::from_json(value)?,
             "_toId" => self.to = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,
@@ -2582,7 +2582,7 @@ impl JsonObject for Shipment {
             "_noFieldValue" => self.no_field_value = FromJson::from_json(value)?,
             "_cunningNoFieldValue" => self.cunning_no_field_value = FromJson::from_json(value)?,
             "_karmaCardId" => self.karma_card = FromJson::from_json(value)?,
-            "_forceLocations" => self.force_locations = FromJson::from_json(value)?,
+            "_forceLocations" => self.force_locations = crate::json::read_force_locations(value)?,
             "Passed" => self.passed = FromJson::from_json(value)?,
             "Initiator" => self.base.initiator = FromJson::from_json(value)?,
             "Time" => self.base.time = FromJson::from_json(value)?,

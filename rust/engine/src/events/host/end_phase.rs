@@ -29,19 +29,19 @@ impl EndPhase {
         match game.turn.current_phase {
             Phase::SelectingFactions => game.assign_factions_and_enter_faction_trade(),
 
-            Phase::TradingFactions => self.establish_decks(game),
+            Phase::TradingFactions => self.establish_decks(game)?,
 
             Phase::BeginningOfStorm => game.move_hms_before_dialling_storm(),
 
-            Phase::MetheorAndStormSpell => self.enter_normal_storm_phase(game),
+            Phase::MetheorAndStormSpell => self.enter_normal_storm_phase(game)?,
 
             Phase::StormReport => game.enter_spice_blow_phase(),
 
-            Phase::Thumper => game.enter_blow_a(),
+            Phase::Thumper => game.enter_blow_a()?,
 
-            Phase::HarvesterA | Phase::HarvesterB => game.move_to_next_phase_after_resource_blow(),
+            Phase::HarvesterA | Phase::HarvesterB => game.move_to_next_phase_after_resource_blow()?,
 
-            Phase::AllianceA | Phase::AllianceB => game.end_nexus(),
+            Phase::AllianceA | Phase::AllianceB => game.end_nexus()?,
 
             Phase::BlowReport => {
                 if game.applicable(Rule::HasCharityPhase) {
@@ -71,13 +71,13 @@ impl EndPhase {
 
             Phase::BiddingReport => self.enter_revival_phase(game),
 
-            Phase::BeginningOfResurrection => self.continue_to_revivals(game),
+            Phase::BeginningOfResurrection => self.continue_to_revivals(game)?,
 
             Phase::Resurrection => self.end_resurrection_phase(game),
 
             Phase::ResurrectionReport => self.enter_shipment_and_move_phase(game),
 
-            Phase::BeginningOfShipAndMove => game.start_ship_and_move_sequence(),
+            Phase::BeginningOfShipAndMove => game.start_ship_and_move_sequence()?,
 
             Phase::ShipmentAndMoveConcluded => self.enter_battle_phase(game),
 
@@ -103,8 +103,8 @@ impl EndPhase {
             Phase::Contemplate => game.continue_contemplate_phase(),
 
             Phase::TurnConcluded => {
-                game.enter_storm_phase();
-                game.flip_bene_gesserit_advisors_when_alone();
+                game.enter_storm_phase()?;
+                game.flip_bene_gesserit_advisors_when_alone()?;
             }
 
             _ => {}
@@ -112,34 +112,37 @@ impl EndPhase {
         Ok(())
     }
 
-    pub fn continue_to_revivals(&self, game: &mut Game) {
+    pub fn continue_to_revivals(&self, game: &mut Game) -> GameResult {
         game.enter(Phase::Resurrection, true);
 
         // foreach over a lazy Where: the filter runs right before each body
         for i in 0..game.players.len() {
             let p = game.player_at(i);
             if game.is_automated(AutomationRuleType::RevivalAutoClaimFreeRevival, p) {
-                game.claim_free_revival(p);
+                game.claim_free_revival(p)?;
             }
         }
+        Ok(())
     }
 
-    pub fn establish_decks(&self, game: &mut Game) {
+    pub fn establish_decks(&self, game: &mut Game) -> GameResult {
         if game.is_playing(Faction::Richese) {
             game.decks.richese_cache = TreacheryCardManager::get_richese_cards();
         }
 
         let condition = game.applicable(Rule::CustomDecks);
-        game.enter_or_else(condition, Phase::CustomizingDecks, Game::enter_setup_phase);
+        game.enter_or_else_try(condition, Phase::CustomizingDecks, Game::enter_setup_phase)?;
+        Ok(())
     }
 
-    pub fn enter_normal_storm_phase(&self, game: &mut Game) {
+    pub fn enter_normal_storm_phase(&self, game: &mut Game) -> GameResult {
         let m = express!("The storm moves ", game.board.next_storm_moves, " sectors")
             .with_log(StormMoved::new(game.board.sector_in_storm, game.board.next_storm_moves, None, None));
         self.log_objects(game, vec![m.into()]);
         let moves = game.board.next_storm_moves;
-        game.move_storm_and_determine_next(moves);
+        game.move_storm_and_determine_next(moves)?;
         game.end_storm_phase();
+        Ok(())
     }
 
     pub fn enter_charity_phase(&self, game: &mut Game) {

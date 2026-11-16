@@ -82,10 +82,10 @@ impl MetheorPlayed {
                     continue;
                 }
 
-                game.reveal_current_no_field(p, Some(location));
+                game.reveal_current_no_field(p, Some(location))?;
                 forces += game.player(p).forces_in(Some(location));
                 special_forces += game.player(p).special_forces_in(Some(location));
-                Player::kill_all_forces(game, p, location, false);
+                Player::kill_all_forces(game, p, location, false)?;
             }
 
             if (forces + special_forces) > 0 {

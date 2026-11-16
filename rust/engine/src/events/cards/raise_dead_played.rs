@@ -57,10 +57,10 @@ impl RaiseDeadPlayed {
         }
         let p = p_opt.expect("player");
         let pl = game.player(p);
-        if self.amount_of_forces > pl.forces_killed {
+        if self.amount_of_forces > i32::from(pl.forces_killed) {
             return Some(express!("You can't revive that many"));
         }
-        if self.amount_of_special_forces > pl.special_forces_killed {
+        if self.amount_of_special_forces > i32::from(pl.special_forces_killed) {
             return Some(express!("You can't revive that many"));
         }
         if (self.amount_of_forces + self.amount_of_special_forces) > 5 {
@@ -164,8 +164,8 @@ impl RaiseDeadPlayed {
                 game.prepare_skill_assignment_to_revived_leader(me, hero.as_leader());
             }
         } else {
-            Player::revive_forces(game, me, self.amount_of_forces);
-            Player::revive_special_forces(game, me, self.amount_of_special_forces);
+            Player::revive_forces(game, me, self.amount_of_forces)?;
+            Player::revive_special_forces(game, me, self.amount_of_special_forces)?;
 
             if self.amount_of_special_forces > 0 {
                 game.revival.factions_that_revived_special_forces_this_turn.push(initiator.required("faction")?);
@@ -174,7 +174,7 @@ impl RaiseDeadPlayed {
 
         if self.location.is_some() && initiator == Some(Faction::Fremen) {
             let to = self.location.required("location")?;
-            Player::ship_special_forces(game, me, to, 1);
+            Player::ship_special_forces(game, me, to, 1)?;
             let location = self.location;
             self.log_objects(
                 game,
@@ -219,13 +219,13 @@ impl RaiseDeadPlayed {
                 if g.revival.factions_that_revived_special_forces_this_turn.contains_opt(pl.faction) {
                     return 0;
                 }
-                return std::cmp::min(pl.special_forces_killed, 1);
+                return std::cmp::min(i32::from(pl.special_forces_killed), 1);
             }
 
-            return std::cmp::min(pl.special_forces_killed, 5);
+            return std::cmp::min(i32::from(pl.special_forces_killed), 5);
         }
 
-        std::cmp::min(pl.forces_killed, 5)
+        std::cmp::min(i32::from(pl.forces_killed), 5)
     }
 
 }

@@ -51,13 +51,7 @@ impl BeneGesseritPrediction {
         game.player_mut(me).predicted_turn = Some(self.turn);
         self.log(game);
         let condition = game.treachery_cards_before_traitors();
-        Game::run_either(
-            game,
-            condition,
-            |g: &mut Game| g.deal_starting_treachery_cards(),
-            |g: &mut Game| g.deal_traitors(),
-        );
-        Ok(())
+        if condition { game.deal_starting_treachery_cards() } else { game.deal_traitors() }
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {

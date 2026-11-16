@@ -149,7 +149,7 @@ fn tanks() {
             assert_eq!(view.tanks.len(), g.players.len());
             for (row, pl) in view.tanks.iter().zip(&g.players) {
                 assert_eq!(row.faction, name_or_absent(pl.faction));
-                assert_eq!((row.forces_killed, row.special_forces_killed), (pl.forces_killed, pl.special_forces_killed));
+                assert_eq!((row.forces_killed, row.special_forces_killed), (i32::from(pl.forces_killed), i32::from(pl.special_forces_killed)));
                 let dead: Vec<Leader> = pl.leaders.iter().copied().filter(|l| !g.is_alive(Hero::Leader(*l))).collect();
                 assert_eq!(row.leaders.len(), dead.len(), "{fixture}");
                 let mut times: Vec<i32> = vec![];
@@ -325,7 +325,7 @@ fn faction_panel_extras() {
         let me = view.me.unwrap();
         let pl = r.game.player(player(&r, f));
         if f == Faction::Atreides {
-            assert_eq!(me.messiah, Some(MessiahState { forces_killed_in_battle: pl.total_forces_killed_in_battle, available: pl.messiah_available(&r.game) }));
+            assert_eq!(me.messiah, Some(MessiahState { forces_killed_in_battle: i32::from(pl.total_forces_killed_in_battle), available: pl.messiah_available(&r.game) }));
         } else {
             assert!(me.messiah.is_none());
         }

@@ -143,7 +143,7 @@ impl Game {
         let find_thief = |g: &Game| g.player_indices().find(|p| g.player(*p).occupies(g, Some(processing_station)));
 
         // `.ToList()`: a snapshot of the pairs, in dictionary order.
-        let snapshot: Vec<(Location, i32)> = self.board.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, *v)).collect();
+        let snapshot: Vec<(Location, i32)> = self.board.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, i32::from(*v))).collect();
         for (key, value) in snapshot {
             let mut thief = find_thief(self);
 
@@ -160,14 +160,13 @@ impl Game {
                 let forces_collecting3_spice = if pl.is(Faction::Ixian) { pl.special_forces_in(Some(key)) } else { 0 };
                 let maximum_spice_that_can_be_collected = (forces_collecting_default_amount_of_spice * collection_rate) + (forces_collecting3_spice * 3);
                 let mut collected_amount_by_this_player = spice_left.min(maximum_spice_that_can_be_collected);
-                self.change_resources_on_planet(key, -collected_amount_by_this_player);
+                self.change_resources_on_planet(key, -collected_amount_by_this_player).expect("at most the spice there");
                 spice_left -= collected_amount_by_this_player;
 
                 if let Some(t) = thief {
                     if collected_amount_by_this_player > 0 && p != t {
                         collected_amount_by_this_player -= 1;
-                        let r = &mut self.player_mut(t).resources;
-                        *r += 1;
+                        crate::game::amounts::gain(&mut self.player_mut(t).resources, 1, "spice").expect("stolen spice");
                         let thief_faction = self.player(t).faction;
                         let p_faction = self.player(p).faction;
                         self.log(elems![

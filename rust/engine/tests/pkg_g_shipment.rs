@@ -108,7 +108,7 @@ fn shipment_no_field_values_are_offset_by_one() {
 fn shipment_parse_force_locations() {
     let g = game_with(&[Faction::Emperor]);
     let d = Shipment::parse_force_locations(&g, Faction::Emperor, Some("5:2|1,-1:7|7,3:0|4"));
-    let items: Vec<(i32, i32, i32)> = d.iter().map(|(k, v)| (k.id(), v.amount_of_forces, v.amount_of_special_forces)).collect();
+    let items: Vec<(i32, i32, i32)> = d.iter().map(|(k, v)| (k.id(), v.forces(), v.special_forces())).collect();
     assert_eq!(items, vec![(5, 2, 1), (3, 0, 4)]);
 
     assert_eq!(Shipment::parse_force_locations(&g, Faction::Emperor, None).len(), 0);

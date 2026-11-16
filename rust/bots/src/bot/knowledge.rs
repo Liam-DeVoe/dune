@@ -271,7 +271,7 @@ impl ClassicBot {
     }
 
     pub fn resources_in(&self, game: &Game, l: Location) -> i32 {
-        game.board.resources_on_planet.get(&l).copied().unwrap_or(0)
+        i32::from(game.board.resources_on_planet.get(&l).copied().unwrap_or(0))
     }
 
     pub fn has_resources(&self, game: &Game, l: Location) -> bool {
@@ -682,8 +682,8 @@ impl ClassicBot {
                     dial_needed,
                     opponent.expect("faction"),
                     to.territory(),
-                    battalion.amount_of_forces + me.forces_in(Some(to)),
-                    battalion.amount_of_special_forces + me.special_forces_in(Some(to)),
+                    battalion.forces() + me.forces_in(Some(to)),
+                    battalion.special_forces() + me.special_forces_in(Some(to)),
                     resources_for_battle,
                 ) <= 0.0
             {
@@ -727,8 +727,8 @@ impl ClassicBot {
         Self::max_dial_of_forces(
             game,
             resources,
-            battalion.amount_of_forces,
-            battalion.amount_of_special_forces,
+            battalion.forces(),
+            battalion.special_forces(),
             game.get_player(Some(battalion.faction)).expect("player"),
             opponent,
         )

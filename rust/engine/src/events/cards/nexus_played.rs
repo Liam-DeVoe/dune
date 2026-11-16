@@ -96,6 +96,10 @@ impl NexusPlayed {
                     {
                         return Some(express!("Invalid leader"));
                     }
+                    // Not in C#: a negative amount went from reserves into the tanks.
+                    if self.tleilaxu_forces < 0 || self.tleilaxu_special_forces < 0 {
+                        return Some(express!("Invalid amount"));
+                    }
                     if self.tleilaxu_forces > NexusPlayed::valid_tleilaxu_max_amount(game, me, false) {
                         return Some(express!("You can't revive that many ", game.player(me).force()));
                     }
@@ -277,13 +281,13 @@ impl NexusPlayed {
                 if g.revival.factions_that_revived_special_forces_this_turn.contains_opt(p.faction) {
                     return 0;
                 }
-                return std::cmp::min(p.special_forces_killed, 1);
+                return std::cmp::min(i32::from(p.special_forces_killed), 1);
             }
 
-            return std::cmp::min(p.special_forces_killed, 5);
+            return std::cmp::min(i32::from(p.special_forces_killed), 5);
         }
 
-        std::cmp::min(p.forces_killed, 5)
+        std::cmp::min(i32::from(p.forces_killed), 5)
     }
 
     pub fn valid_tleilaxu_heroes(game: &Game, player: PlayerId) -> Vec<Hero> {
@@ -345,7 +349,7 @@ impl NexusPlayed {
         if self.is_cunning() {
             self.handle_cunning(game);
         } else if self.is_secret_ally(game) {
-            self.handle_secret_ally(game);
+            self.handle_secret_ally(game)?;
         } else {
             self.handle_betrayal(game)?;
         }
@@ -524,14 +528,14 @@ impl NexusPlayed {
             Some(Faction::Ecaz) => {
                 let ecazs_ally = game.get_player(Some(Faction::Ecaz)).and_then(|p| game.player(p).allied_player(game));
                 if let (Some(ecazs_ally), Some(ecaz_territory)) = (ecazs_ally, self.ecaz_territory) {
-                    Player::forces_in_territory_to_reserves(game, ecazs_ally, ecaz_territory);
+                    Player::forces_in_territory_to_reserves(game, ecazs_ally, ecaz_territory)?;
                     let ally_faction = game.player(ecazs_ally).faction;
                     let ecaz_territory = self.ecaz_territory;
                     game.play_nexus_card(
                         actor,
                         elems!["return all ", ally_faction, " forces in ", ecaz_territory, " to reserves"],
                     );
-                    game.flip_bene_gesserit_advisors_when_alone();
+                    game.flip_bene_gesserit_advisors_when_alone()?;
                 }
             }
 
@@ -658,8 +662,8 @@ impl NexusPlayed {
         }
     }
 
-    pub fn handle_secret_ally(self: &Rc<Self>, game: &mut Game) {
-        let Some(actor) = self.player_opt() else { return };
+    pub fn handle_secret_ally(self: &Rc<Self>, game: &mut Game) -> GameResult {
+        let Some(actor) = self.player_opt() else { return Ok(()) };
 
         match self.faction {
             Some(Faction::Atreides) => {
@@ -669,7 +673,7 @@ impl NexusPlayed {
 
             Some(Faction::Harkonnen) => {
                 if game.decks.traitor_deck.is_none() {
-                    return;
+                    return Ok(());
                 }
                 game.turn.phase_before_discarding_traitor = Some(game.turn.current_phase);
                 game.turn.faction_that_must_discard_traitor = self.initiator();
@@ -701,10 +705,10 @@ impl NexusPlayed {
 
             Some(Faction::Tleilaxu) => {
                 game.stone(Milestone::RaiseDead);
-                let Some(player) = self.get_player(game, self.initiator()) else { return };
+                let Some(player) = self.get_player(game, self.initiator()) else { return Ok(()) };
 
-                Player::revive_forces(game, player, self.tleilaxu_forces);
-                Player::revive_special_forces(game, player, self.tleilaxu_special_forces);
+                Player::revive_forces(game, player, self.tleilaxu_forces)?;
+                Player::revive_special_forces(game, player, self.tleilaxu_special_forces)?;
 
                 if self.tleilaxu_special_forces > 0 {
                     game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator().expect("faction"));
@@ -737,7 +741,7 @@ impl NexusPlayed {
 
                 if let Some(tleilaxu_location) = self.tleilaxu_location {
                     if self.initiator() == Some(Faction::Fremen) {
-                        Player::ship_special_forces(game, player, tleilaxu_location, 1);
+                        Player::ship_special_forces(game, player, tleilaxu_location, 1)?;
                         let tleilaxu_location = self.tleilaxu_location;
                         self.log_objects(
                             game,
@@ -753,16 +757,16 @@ impl NexusPlayed {
                         actor,
                         elems!["discard a ", TreacheryCardType::Useless, " card to get ", Payment::of(2)],
                     );
-                    let Some(choam_card) = self.choam_card else { return };
+                    let Some(choam_card) = self.choam_card else { return Ok(()) };
                     // C# parity: the card is not validated here.
                     game.discard_card_of(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
                     me.resources += 2;
                 } else if game.turn.current_phase == Phase::BattleConclusion {
-                    let Some(current_battle) = game.battle.current_battle.clone() else { return };
+                    let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
 
-                    let Some(auditee) = current_battle.opponent_of_faction(game, self.initiator()) else { return };
-                    let Some(recent_battle_plan) = current_battle.plan_of(game, Some(auditee)) else { return };
+                    let Some(auditee) = current_battle.opponent_of_faction(game, self.initiator()) else { return Ok(()) };
+                    let Some(recent_battle_plan) = current_battle.plan_of(game, Some(auditee)) else { return Ok(()) };
                     let weapon = recent_battle_plan.weapon();
                     let defense = recent_battle_plan.defense();
                     let hero = recent_battle_plan.hero;
@@ -834,6 +838,7 @@ impl NexusPlayed {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {

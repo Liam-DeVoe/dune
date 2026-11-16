@@ -34,11 +34,11 @@ impl HarvesterPlayed {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
         if let Some(current_amount_of_spice) = game.board.resources_on_planet.get(&location).copied() {
-            game.change_resources_on_planet(location, current_amount_of_spice);
+            game.change_resources_on_planet(location, i32::from(current_amount_of_spice))?;
         }
 
         self.log(game);
-        game.move_to_next_phase_after_resource_blow();
+        game.move_to_next_phase_after_resource_blow()?;
         game.stone(Milestone::Harvester);
         Ok(())
     }

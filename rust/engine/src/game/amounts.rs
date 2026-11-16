@@ -1,6 +1,7 @@
-//! Amounts of spice, which a player holds as `u16` (`Player.resources` and the five other spice
-//! fields). The rules compute with `i32` (event fields, costs, bonuses), so a change to a player's
-//! spice goes through these helpers. A result below zero, or a negative gain, means validation
+//! Amounts of spice and forces, which the game holds as `u16`: a player's spice
+//! (`Player.resources` and the five other spice fields), spice on the board, forces in a
+//! battalion and forces in the tanks. The rules compute with `i32` (event fields, costs,
+//! bonuses), so a change to any of them goes through these helpers. A result below zero, or a negative gain, means validation
 //! let through something it shouldn't have, so the event fails with a Game Error. Where the
 //! caller can't return one, it panics with `expect`. Where a player could cause it, validation
 //! refuses the event instead (rewrite-plan.md, section 4, risk 5). Where the rules say to take
@@ -31,3 +32,8 @@ pub fn gain(have: &mut u16, amount: i32, what: &str) -> GameResult {
     }
 }
 
+
+/// `have + delta`, for a change that may go either way: [`gain`] or [`spend`].
+pub fn change(have: &mut u16, delta: i32, what: &str) -> GameResult {
+    if delta >= 0 { gain(have, delta, what) } else { spend(have, delta.checked_neg().unwrap_or(i32::MAX), what) }
+}

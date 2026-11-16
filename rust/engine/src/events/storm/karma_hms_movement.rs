@@ -62,12 +62,12 @@ impl KarmaHmsMovement {
         }
 
         let current_location = hms.attached_to_location(&game.board.map).required("the location of the HMS")?;
-        game.collect_spice_from(self.initiator().required("faction")?, current_location, collection_rate);
+        game.collect_spice_from(self.initiator().required("faction")?, current_location, collection_rate)?;
 
         if !self.passed {
             let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
-            game.collect_spice_from(self.initiator().required("faction")?, target, collection_rate);
+            game.collect_spice_from(self.initiator().required("faction")?, target, collection_rate)?;
             game.storm.karma_hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }

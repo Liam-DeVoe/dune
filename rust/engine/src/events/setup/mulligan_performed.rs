@@ -51,7 +51,7 @@ impl MulliganPerformed {
             game.enter(Phase::HarkonnenMulligan, true);
         } else {
             self.deal_non_harkonnen_traitor_cards(game);
-            game.enter_select_traitors();
+            game.enter_select_traitors()?;
         }
 
         self.log(game);

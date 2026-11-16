@@ -80,7 +80,7 @@ impl DiscoveryEntered {
                     if value.total_amount_of_forces() > 0 {
                         let me = self.player();
                         let to = self.to.required("to")?;
-                        game.perform_move_from_location(me, *key, value, to, &mut total_number_of_forces, &mut total_number_of_special_forces, true);
+                        game.perform_move_from_location(me, *key, value, to, &mut total_number_of_forces, &mut total_number_of_special_forces, true)?;
                     }
                 }
 
@@ -94,7 +94,7 @@ impl DiscoveryEntered {
                     let me = self.player();
                     let to = self.to.required("to")?;
                     game.log_move(me, from_territory, &from_locations, to, total_number_of_forces, total_number_of_special_forces, false, false, None);
-                    game.flip_bene_gesserit_advisors_when_alone();
+                    game.flip_bene_gesserit_advisors_when_alone()?;
                 }
             }
         }

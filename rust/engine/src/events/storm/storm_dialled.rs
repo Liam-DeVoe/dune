@@ -69,7 +69,7 @@ impl StormDialled {
             game.board.next_storm_moves = game.storm.dials.iter().copied().sum::<i32>();
 
             if game.turn.current_turn == Turn::FIRST {
-                self.position_first_storm(game);
+                self.position_first_storm(game)?;
             } else {
                 game.reveal_storm();
             }
@@ -77,14 +77,14 @@ impl StormDialled {
         Ok(())
     }
 
-    pub fn position_first_storm(&self, game: &mut Game) {
+    pub fn position_first_storm(&self, game: &mut Game) -> GameResult {
         // The dials are validated, so their sum isn't negative.
         let moves = u32::try_from(game.board.next_storm_moves).expect("storm moves");
         let sector = Sector::first_storm(moves);
         game.board.sector_in_storm = Some(sector);
         let msg = express!("The first storm moves ", sector, " sectors").with_log(StormPlaced::new(sector));
         self.log_objects(game, elems![msg]);
-        game.perform_storm();
+        game.perform_storm()?;
 
         if game.applicable(Rule::TechTokens) {
             self.assign_tech_tokens(game);
@@ -96,6 +96,7 @@ impl StormDialled {
 
         let condition = self.is_playing(game, Faction::Ixian) || game.applicable(Rule::HmSwithoutIxian);
         game.enter_or_else(condition, Phase::HmsPlacement, Game::end_storm_phase);
+        Ok(())
     }
 
     pub fn assign_tech_tokens(&self, game: &mut Game) {

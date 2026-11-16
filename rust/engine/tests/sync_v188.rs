@@ -200,7 +200,7 @@ fn prescience(l: &mut Lines, v: i32) {
     let leader1 = g.player(choam).leaders[1];
     l.p(&format!("{at}.leaders"), format!("{},{}", leader0.id(), leader1.id()));
     let arrakeen = g.board.map.arrakeen();
-    Player::add_forces(&mut g, choam, arrakeen.into(), 3, false);
+    Player::add_forces(&mut g, choam, arrakeen.into(), 3, false).unwrap();
     let mut battle = BattleInitiated::new(&g, Faction::Atreides);
     battle.target = Some(Faction::Choam);
     let territory = g.board.map.arrakeen().territory();

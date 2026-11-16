@@ -32,6 +32,12 @@ impl Caravan {
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
+        // A pass skipped every check, but `execute` still made the move: from anywhere, with
+        // forces the player didn't have (escapes.md, "Forces below zero"). Nobody passes a
+        // Caravan: the client offers no pass and the card is simply not played.
+        if self.passed {
+            return Some(express!("You can't pass a ", TreacheryCardType::Caravan));
+        }
         self.validate_move(game, self.as_advisors)
     }
 
@@ -44,7 +50,7 @@ impl Caravan {
         game.discard(me, TreacheryCardType::Caravan)?;
         let force_locations = PlacementEventMethods::force_locations(&**self, game);
         let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
-        game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, true);
+        game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, true)?;
 
         let to = self.to;
         if crate::events::contains_conflicting_ally_opt(game, me, to)? {
@@ -65,7 +71,7 @@ impl Caravan {
             game.ship_move.phase_before_caravan_caused_intrusion = Some(game.turn.current_phase);
             let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
             let terror = game.last_terror_trigger().is_some();
-            game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByCaravan)), (terror, Step::Enter(Phase::TerrorTriggeredByCaravan))], Step::Enter(Phase::AmbassadorTriggeredByCaravan));
+            game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByCaravan)), (terror, Step::Enter(Phase::TerrorTriggeredByCaravan))], Step::Enter(Phase::AmbassadorTriggeredByCaravan))?;
         }
         Ok(())
     }

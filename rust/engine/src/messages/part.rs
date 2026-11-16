@@ -220,6 +220,12 @@ impl From<i32> for Part {
         Part::Number(v)
     }
 }
+/// An amount of forces or spice.
+impl From<u16> for Part {
+    fn from(v: u16) -> Self {
+        Part::Number(v.into())
+    }
+}
 impl From<crate::map::sector::Sector> for Part {
     fn from(v: crate::map::sector::Sector) -> Self {
         Part::Number(v.into())
@@ -323,6 +329,7 @@ impl NullPart for &str {}
 impl NullPart for String {}
 impl NullPart for bool {}
 impl NullPart for i32 {}
+impl NullPart for u16 {}
 impl NullPart for Location {}
 impl NullPart for Territory {}
 impl NullPart for Hero {}

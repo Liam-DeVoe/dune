@@ -430,8 +430,8 @@ fn hms_battle_state() -> ViewReplica {
     hms.point_at(&mut g.board.map, flat);
     let (a, b) = (g.player_at(0), g.player_at(1));
     let (fa, fb) = (g.player(a).faction, g.player(b).faction);
-    Player::add_forces(g, a, hms.location(), 3, false);
-    Player::add_forces(g, b, hms.location(), 2, false);
+    Player::add_forces(g, a, hms.location(), 3, false).unwrap();
+    Player::add_forces(g, b, hms.location(), 2, false).unwrap();
     g.board.stronghold_ownership.insert(hms.location(), fa.expect("faction"));
     g.board.stronghold_ownership.insert(g.board.map.arrakeen(), fa.expect("faction"));
     let mut battle = BattleInitiated::new(g, fa);

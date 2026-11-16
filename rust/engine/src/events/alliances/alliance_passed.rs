@@ -37,7 +37,7 @@ impl AlliancePassed {
         }
 
         game.turn.has_acted_or_passed.push(initiator.required("faction")?);
-        game.end_nexus_if_everyone_is_done();
+        game.end_nexus_if_everyone_is_done()?;
         Ok(())
     }
 

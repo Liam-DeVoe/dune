@@ -163,8 +163,8 @@ impl Shipment {
                     let Some(location) = location else { continue };
 
                     let amounts: Vec<&str> = location_and_amounts[1].split('|').collect();
-                    let amount_of_normal_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[0]));
-                    let amount_of_normal_special_forces = dotnet_compat::parse::convert_to_int32(Some(amounts[1]));
+                    let amount_of_normal_forces = PlacementEvent::parse_force_amount(amounts[0]);
+                    let amount_of_normal_special_forces = PlacementEvent::parse_force_amount(amounts[1]);
                     result.insert_new(location, Battalion::new(f, amount_of_normal_forces, amount_of_normal_special_forces, location));
                 }
             }
@@ -218,6 +218,11 @@ impl Shipment {
 
         if !self.is_back_to_reserves() && (self.force_amount < 0 || self.special_force_amount < 0) {
             return Some(express!("Can't ship less than zero forces"));
+        }
+        // Not in C#: a negative smuggled amount took forces from the destination and put them in
+        // reserves, or made them out of nothing where the destination had too few.
+        if self.smuggled_amount < 0 || self.smuggled_special_amount < 0 {
+            return Some(express!("Invalid amount"));
         }
         if self.force_amount == 0 && self.special_force_amount == 0 {
             return Some(express!("Select forces to ship"));
@@ -348,7 +353,7 @@ impl Shipment {
         }
 
         // Sum is checked: OverflowException.
-        let number_of_forces_selected = self.force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>();
+        let number_of_forces_selected = self.force_locations(game).values().map(|b| b.forces()).sum::<i32>();
         if self.forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), false).len() > 1
             && number_of_forces_selected <= 0
@@ -360,7 +365,7 @@ impl Shipment {
         }
 
         let number_of_special_forces_selected =
-            self.force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>();
+            self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>();
         if self.special_forces_added_to_location(game) > 0
             && Shipment::homeworlds_to_ship_from(game, p(), true).len() > 1
             && number_of_special_forces_selected <= 0
@@ -730,14 +735,14 @@ impl Shipment {
                 let richese = self.get_player(game, Some(Faction::Richese)).required("get player")?;
 
                 if self.cunning_no_field_value() >= 0 {
-                    game.reveal_current_no_field(richese, None);
-                    Player::ship_special_forces(game, richese, self.to.required("to")?, 1);
+                    game.reveal_current_no_field(richese, None)?;
+                    Player::ship_special_forces(game, richese, self.to.required("to")?, 1)?;
                     game.ship_move.current_no_field_value = self.cunning_no_field_value();
                     let me = self.player();
                     game.play_nexus_card(me, elems!["ship and reveal a second ", FactionSpecialForce::Richese]);
                 }
 
-                game.reveal_current_no_field(richese, None);
+                game.reveal_current_no_field(richese, None)?;
                 game.ship_move.current_no_field_value = self.no_field_value();
 
                 if self.initiator() != Some(Faction::Richese) {
@@ -762,7 +767,7 @@ impl Shipment {
             };
 
             if self.is_site_to_site() {
-                self.perform_site_to_site_shipment(game);
+                self.perform_site_to_site_shipment(game)?;
             } else if self.is_back_to_reserves() {
                 if let Some(source) = self.source_location_for_shipment_to_reserves() {
                     let me = self.player();
@@ -771,12 +776,12 @@ impl Shipment {
                         None => game.player(me).home_worlds[0],
                     };
                     // The amounts are negative, so the forces move from `source` to `target`.
-                    Player::move_forces(game, me, source, target.location(), -self.force_amount);
-                    Player::special_forces_back_to_reserves(game, me, source, target, -self.special_force_amount);
+                    Player::move_forces(game, me, source, target.location(), -self.force_amount)?;
+                    Player::special_forces_back_to_reserves(game, me, source, target, -self.special_force_amount)?;
                 }
             } else if self.is_no_field() && self.initiator() == Some(Faction::Richese) && self.to.is_some() {
                 let to = self.to.required("to")?;
-                self.perform_normal_shipment(game, self.player(), to, self.force_amount + self.smuggled_amount, 1);
+                self.perform_normal_shipment(game, self.player(), to, self.force_amount + self.smuggled_amount, 1)?;
             } else if let Some(to) = self.to {
                 self.perform_normal_shipment(
                     game,
@@ -784,7 +789,7 @@ impl Shipment {
                     to,
                     self.force_amount + self.smuggled_amount,
                     self.special_force_amount + self.smuggled_special_amount,
-                );
+                )?;
             }
 
             if self.use_richese_secret_ally {
@@ -796,7 +801,7 @@ impl Shipment {
             }
 
             if let Some(to) = self.to {
-                Player::flip_forces(game, self.player(), to, must_be_advisors);
+                Player::flip_forces(game, self.player(), to, must_be_advisors)?;
             }
 
             if !self.is_back_to_reserves() {
@@ -815,7 +820,7 @@ impl Shipment {
                 game.activate_banker(self.player());
             }
 
-            game.flip_bene_gesserit_advisors_when_alone();
+            game.flip_bene_gesserit_advisors_when_alone()?;
             let to = self.to;
             game.determine_occupation_location(to);
         } else {
@@ -892,14 +897,14 @@ impl Shipment {
         receiver_profit
     }
 
-    pub fn perform_site_to_site_shipment(&self, game: &mut Game) {
-        let (Some(from), Some(to)) = (self.from, self.to) else { return };
+    pub fn perform_site_to_site_shipment(&self, game: &mut Game) -> GameResult {
+        let (Some(from), Some(to)) = (self.from, self.to) else { return Ok(()) };
 
-        Player::move_forces(game, self.player(), from, to, self.force_amount);
-        Player::move_special_forces(game, self.player(), from, to, self.special_force_amount);
+        Player::move_forces(game, self.player(), from, to, self.force_amount)?;
+        Player::move_special_forces(game, self.player(), from, to, self.special_force_amount)
     }
 
-    pub fn perform_normal_shipment(&self, game: &mut Game, initiator: PlayerId, to: Location, force_amount: i32, special_force_amount: i32) {
+    pub fn perform_normal_shipment(&self, game: &mut Game, initiator: PlayerId, to: Location, force_amount: i32, special_force_amount: i32) -> GameResult {
         let initiator_faction = game.player(initiator).faction;
         game.ship_move.bene_gesserit_may_accompany =
             (force_amount > 0 || special_force_amount > 0) && initiator_faction != Some(Faction::Fremen) && initiator_faction != Some(Faction::BeneGesserit);
@@ -914,11 +919,11 @@ impl Shipment {
                 .collect();
             for fl in fls {
                 if let Some(hw) = fl.0.as_homeworld() {
-                    Player::ship_forces_from_homeworld(game, initiator, to, hw, fl.1.amount_of_forces);
+                    Player::ship_forces_from_homeworld(game, initiator, to, hw, fl.1.forces())?;
                 }
             }
         } else {
-            Player::ship_forces(game, initiator, to, force_amount);
+            Player::ship_forces(game, initiator, to, force_amount)?;
         }
 
         if Shipment::homeworlds_to_ship_from(game, self.player(), true).len() > 1 && self.force_locations(game).len() > 0 {
@@ -930,11 +935,11 @@ impl Shipment {
                 .collect();
             for fl in fls {
                 if let Some(hw) = fl.0.as_homeworld() {
-                    Player::ship_special_forces_from_homeworld(game, initiator, to, hw, fl.1.amount_of_special_forces);
+                    Player::ship_special_forces_from_homeworld(game, initiator, to, hw, fl.1.special_forces())?;
                 }
             }
         } else {
-            Player::ship_special_forces(game, initiator, to, special_force_amount);
+            Player::ship_special_forces(game, initiator, to, special_force_amount)?;
         }
 
         if game.player(initiator).is(Faction::Fremen) && game.is_in_storm(to) {
@@ -947,7 +952,7 @@ impl Shipment {
                     faction: Some(Faction::Fremen),
                 });
             } else {
-                kill_count = Player::kill_forces(game, initiator, to, force_amount, special_force_amount, false);
+                kill_count = Player::kill_forces(game, initiator, to, force_amount, special_force_amount, false)?;
             }
 
             if kill_count > 0 {
@@ -967,6 +972,7 @@ impl Shipment {
         if f != Some(Faction::Fremen) && f != Some(Faction::Guild) && !self.is_site_to_site() {
             game.ship_move.ships_tech_token_income = true;
         }
+        Ok(())
     }
 
     pub fn get_message(&self, _game: &Game) -> Message {

@@ -66,6 +66,14 @@ impl DealAccepted {
         if self.open_offer(game).is_none() {
             return Some(express!("You already answered this offer"));
         }
+        // Not in C#, which let a player give away spice they still had to pay for a bid
+        // (escapes.md, "Forces below zero").
+        if !game.may_give_away_spice(self.player(), self.price) {
+            return Some(express!("You need that spice to pay your bid"));
+        }
+        if bound_player.is_some_and(|b| !game.may_give_away_spice(b, self.benefit)) {
+            return Some(express!(self.bound_faction, " need that spice to pay their bid"));
+        }
 
         None
     }

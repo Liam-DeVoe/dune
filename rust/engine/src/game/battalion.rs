@@ -4,12 +4,12 @@ use crate::prelude::*;
 pub struct Battalion {
     pub faction: Faction,
     pub location: Location,
-    pub amount_of_forces: i32,
-    pub amount_of_special_forces: i32,
+    pub amount_of_forces: u16,
+    pub amount_of_special_forces: u16,
 }
 
 impl Battalion {
-    pub fn new(faction: Faction, amount_of_forces: i32, amount_of_special_forces: i32, location: Location) -> Self {
+    pub fn new(faction: Faction, amount_of_forces: u16, amount_of_special_forces: u16, location: Location) -> Self {
         Battalion { faction, amount_of_forces, amount_of_special_forces, location }
     }
 
@@ -22,20 +22,28 @@ impl Battalion {
         self.amount_of_forces > 0 || (self.faction != Faction::BeneGesserit && self.amount_of_special_forces > 0)
     }
 
+    /// The forces as `i32`, the type the rules compute with.
+    pub fn forces(&self) -> i32 {
+        i32::from(self.amount_of_forces)
+    }
+
+    /// The special forces as `i32`, the type the rules compute with.
+    pub fn special_forces(&self) -> i32 {
+        i32::from(self.amount_of_special_forces)
+    }
+
     pub fn total_amount_of_forces(&self) -> i32 {
-        self.amount_of_forces + self.amount_of_special_forces
+        self.forces() + self.special_forces()
     }
 
-    pub fn change_forces(&mut self, amount: i32) {
-        if (self.amount_of_forces + amount) >= 0 {
-            self.amount_of_forces += amount;
-        }
+    /// A Game Error if the battalion would have fewer than zero forces. C# ignored such a change.
+    pub fn change_forces(&mut self, amount: i32) -> GameResult {
+        crate::game::amounts::change(&mut self.amount_of_forces, amount, "forces")
     }
 
-    pub fn change_special_forces(&mut self, amount: i32) {
-        if (self.amount_of_special_forces + amount) >= 0 {
-            self.amount_of_special_forces += amount;
-        }
+    /// A Game Error if the battalion would have fewer than zero special forces. C# ignored such a change.
+    pub fn change_special_forces(&mut self, amount: i32) -> GameResult {
+        crate::game::amounts::change(&mut self.amount_of_special_forces, amount, "special forces")
     }
 
     pub fn clear(&mut self) {
@@ -46,16 +54,19 @@ impl Battalion {
     pub fn take_half(&self) -> Battalion {
         Battalion::new(
             self.faction,
-            (0.5f64 * self.amount_of_forces as f64).ceil() as i32,
-            (0.5f64 * self.amount_of_special_forces as f64).ceil() as i32,
+            self.amount_of_forces.div_ceil(2),
+            self.amount_of_special_forces.div_ceil(2),
             self.location,
         )
     }
 
+    /// At most `amount` forces of the battalion. A negative `amount` takes none.
     pub fn take(&self, amount: i32, prefer_special: bool) -> Battalion {
         if amount >= self.total_amount_of_forces() {
             return self.clone();
         }
+        // Each kind is a u16, so taking u16::MAX of a kind takes all of it.
+        let amount = u16::try_from(amount.max(0)).unwrap_or(u16::MAX);
 
         if prefer_special {
             let mut to_take = amount;

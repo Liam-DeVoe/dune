@@ -499,4 +499,22 @@ Reading every payment for the change found more of the same kind, none of which 
 **What catches the class now.**
 - A player's spice can't go below zero: `game::amounts::spend` fails the event instead, so the harness shows any such payment as a difference from the reference.
 - `engine/tests/numbers.rs`: `a_pass_offers_nothing`, `the_emperor_supports_only_other_bidders`, `bids_with_negative_amounts_or_unoffered_emperor_spice_are_refused`, `spice_given_away_is_never_negative`.
-- Forces and spice on the board are still `i32` (2d, milestone 4). The same change for them should find the force counts that go below zero.
+- Forces and spice on the board followed in the next entry.
+
+## Forces below zero (2026-11)
+
+**Bugs.** Making forces and spice on the board `u16` (rewrite-plan.md change 2d) turned every change below zero into a Game Error. C# ignored a change to a battalion that would leave fewer than zero forces, so a move from a location with too few forces still added them at the destination, and a kill still counted them in the tanks. Reading every caller for the change found these:
+- A passed `Caravan` skipped validation, but `execute` still made the move: from anywhere, with forces the player didn't have. Fuzz seed 1 games 0, 2, 11, 13 and 28 pass Caravans this way, and in games 11, 13 and 28 forces appeared out of nothing.
+- `Player::some_forces_in_territory_to_reserves` (forces saved from battle losses, Harass and Withdraw) sent everything left to save to the reserves at every location of the territory, and skipped the removal where a location held fewer. A test, `forces_to_reserves_territory_bug`, pinned this as C# behavior.
+- Reinforcements took 3 forces from the homeworld of normal forces, counted against the reserves of all homeworlds. With forces shipped back to another homeworld, the removal was skipped, but the forces still went into the tanks.
+- `FaceDanced` didn't check the forces it took from reserves or from the planet against what the player had.
+- Negative amounts in `TakeLosses`, `Revival`, `KarmaFreeRevival`, the Tleilaxu secret ally's `NexusPlayed` and a `Shipment`'s smuggled forces moved forces the wrong way: from reserves into the tanks, or onto the board instead of into the tanks.
+- Spice bid in a silent auction could be given away (`Donated`, `ResourcesTransferred`, the price of a deal) before the auction ended. `has_bid_to_pay` looked only at the highest bid of a normal auction. The winner then paid with spice they no longer had: fuzz seed 1 game 58 failed with "Can't take 1 spice from 0" once player spice was a `u16`, and every later bid in that auction failed the same way.
+
+behavior-changes.md, "Turns, sectors and amounts out of range", lists the refusals.
+
+**Why the tests missed them.** Forces and spice on the board were `i32`, and nothing checked that they stay at zero or above. Most of these need a hand-made event. The fuzzer did reach the passed Caravan and the gift during a silent auction, but the reference accepted them the same way, so the harness saw no difference.
+
+**What catches the class now.**
+- Forces in a battalion, in the tanks, and spice on the board can't go below zero: `game::amounts::change` fails the event instead, so the harness shows any such change as a difference from the reference.
+- `engine/tests/numbers.rs`: `forces_below_zero_are_a_game_error_and_change_nothing`, `spice_on_the_board_below_zero_is_a_game_error`, `reinforcements_come_from_every_homeworld`, `a_caravan_cant_be_passed`, `negative_force_amounts_are_refused`, `a_force_list_out_of_range_doesnt_decode`, `spice_bid_in_a_silent_auction_cant_be_given_away`. `engine/tests/pkg_b_players.rs`: `forces_to_reserves_territory_takes_what_each_location_holds`.

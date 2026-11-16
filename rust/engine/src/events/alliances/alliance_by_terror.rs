@@ -56,7 +56,7 @@ impl AllianceByTerror {
             game.make_alliance(self.initiator().required("faction")?, Faction::Moritani);
 
             if game.turn.has_acted_or_passed.contains_opt(self.initiator()) && game.turn.has_acted_or_passed.contains(&Faction::Moritani) {
-                game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
+                game.check_if_forces_should_be_destroyed_by_ally_presence(self.player())?;
             }
 
             let territory = game.last_terror_trigger().required("last terror trigger")?.territory(game);

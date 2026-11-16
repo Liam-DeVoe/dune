@@ -33,10 +33,14 @@ impl KarmaFreeRevival {
         let p = self.player_opt();
         let pl = game.player(p.expect("player"));
 
-        if self.amount_of_forces > pl.forces_killed {
+        // Not in C#: a negative amount sent forces from reserves to the tanks.
+        if self.amount_of_forces < 0 || self.amount_of_special_forces < 0 {
+            return Some(express!("Invalid amount"));
+        }
+        if self.amount_of_forces > i32::from(pl.forces_killed) {
             return Some(express!("You can't revive that many"));
         }
-        if self.amount_of_special_forces > pl.special_forces_killed {
+        if self.amount_of_special_forces > i32::from(pl.special_forces_killed) {
             return Some(express!("You can't revive that many"));
         }
         if (self.amount_of_forces + self.amount_of_special_forces) > 3 {
@@ -60,9 +64,9 @@ impl KarmaFreeRevival {
 
     pub fn valid_max_amount(game: &Game, p: PlayerId, special_forces: bool) -> i32 {
         if special_forces {
-            return std::cmp::min(1, game.player(p).special_forces_killed);
+            return std::cmp::min(1, i32::from(game.player(p).special_forces_killed));
         }
-        std::cmp::min(3, game.player(p).forces_killed)
+        std::cmp::min(3, i32::from(game.player(p).forces_killed))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
@@ -97,8 +101,8 @@ impl KarmaFreeRevival {
                 game.prepare_skill_assignment_to_revived_leader(me, hero.as_leader());
             }
         } else {
-            Player::revive_forces(game, me, self.amount_of_forces);
-            Player::revive_special_forces(game, me, self.amount_of_special_forces);
+            Player::revive_forces(game, me, self.amount_of_forces)?;
+            Player::revive_special_forces(game, me, self.amount_of_special_forces)?;
 
             if self.amount_of_special_forces > 0 {
                 game.revival.factions_that_revived_special_forces_this_turn.push(self.initiator().required("faction")?);

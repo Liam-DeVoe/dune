@@ -76,7 +76,7 @@ macro_rules! elems {
 }
 
 impl Game {
-    pub fn start_ship_and_move_sequence(&mut self) {
+    pub fn start_ship_and_move_sequence(&mut self) -> GameResult {
         let current_is_guild = match &self.ship_move.shipment_and_move_sequence {
             Some(seq) => seq.current_faction(self) == Faction::Guild,
             None => false,
@@ -90,7 +90,8 @@ impl Game {
         // Every argument is evaluated before Enter runs, including the call that may log.
         let condition1 = self.juice_forces_first_player() && self.turn.current_juice.clone().expect("current juice").initiator() != Some(Faction::Guild);
         let condition2 = self.check_if_guild_acts_or_auto_delays();
-        self.enter_first(&[(condition1, Step::Enter(Phase::NonGuildShip)), (condition2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip));
+        self.enter_first(&[(condition1, Step::Enter(Phase::NonGuildShip)), (condition2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip))?;
+        Ok(())
     }
 
     pub fn check_if_guild_acts_or_auto_delays(&mut self) -> bool {
@@ -111,8 +112,8 @@ impl Game {
         guild_has_to_act && !(guild_is_on_auto_delay && guild_may_delay)
     }
 
-    pub fn perform_move_from_locations(&mut self, initiator: PlayerId, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) {
-        let Some(to) = evt.to_location(self) else { return };
+    pub fn perform_move_from_locations(&mut self, initiator: PlayerId, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) -> GameResult {
+        let Some(to) = evt.to_location(self) else { return Ok(()) };
 
         self.ship_move.last_shipment_or_movement = Some(evt.clone());
         let was_occupied_before_move = self.is_occupied_territory(to.territory());
@@ -138,14 +139,14 @@ impl Game {
                 .collect();
             for fl in in_territory {
                 if fl.1.total_amount_of_forces() > 0 {
-                    self.perform_move_from_location(initiator, fl.0, &fl.1, to, &mut total_number_of_forces, &mut total_number_of_special_forces, false);
+                    self.perform_move_from_location(initiator, fl.0, &fl.1, to, &mut total_number_of_forces, &mut total_number_of_special_forces, false)?;
                     // C# parity: Sandmaster is applied per source location.
-                    self.check_sandmaster(initiator, to, dist, fl);
+                    self.check_sandmaster(initiator, to, dist, fl)?;
                 }
             }
 
             if self.player(initiator).is(Faction::BeneGesserit) {
-                Player::flip_forces(self, initiator, to, was_occupied_before_move && as_advisors);
+                Player::flip_forces(self, initiator, to, was_occupied_before_move && as_advisors)?;
             }
 
             if total_number_of_forces > 0 || total_number_of_special_forces > 0 {
@@ -159,10 +160,11 @@ impl Game {
         }
 
         self.stone(Milestone::Move);
-        self.flip_bene_gesserit_advisors_when_alone();
+        self.flip_bene_gesserit_advisors_when_alone()?;
+        Ok(())
     }
 
-    pub fn check_sandmaster(&mut self, initiator: PlayerId, to: Location, dist: i32, fl: (Location, Battalion)) {
+    pub fn check_sandmaster(&mut self, initiator: PlayerId, to: Location, dist: i32, fl: (Location, Battalion)) -> GameResult {
         if self.has_skill_in_front_of_shield(initiator, LeaderSkill::Sandmaster) {
             let faction = self.player(initiator).faction;
             let ignore_storm = faction == Some(Faction::Fremen) && self.applicable(Rule::FremenMayMoveIntoStorm);
@@ -181,7 +183,7 @@ impl Game {
                 if most_spice > 0 {
                     for loc in path {
                         if self.board.resources_on_planet.contains_key(&loc) {
-                            self.change_resources_on_planet(loc, -1);
+                            self.change_resources_on_planet(loc, -1)?;
                         }
                     }
 
@@ -192,21 +194,22 @@ impl Game {
                 }
             }
         }
+        Ok(())
     }
 
-    pub fn perform_move_from_location(&mut self, initiator: PlayerId, from: Location, battalion: &Battalion, to: Location, total_number_of_forces: &mut i32, total_number_of_special_forces: &mut i32, ignore_storm: bool) {
+    pub fn perform_move_from_location(&mut self, initiator: PlayerId, from: Location, battalion: &Battalion, to: Location, total_number_of_forces: &mut i32, total_number_of_special_forces: &mut i32, ignore_storm: bool) -> GameResult {
         let must_move_through_storm = self.must_move_through_storm(initiator, from, to, battalion);
         if !ignore_storm && (self.is_in_storm(to) || must_move_through_storm) {
             let kill_count;
             if self.player(initiator).is(Faction::Fremen) && !self.prevented(FactionAdvantage::FremenProtectedFromStorm) && self.applicable(Rule::FremenStormLosses) {
                 kill_count = 0;
-                Player::move_forces(self, initiator, from, to, battalion.amount_of_forces);
-                Player::move_special_forces(self, initiator, from, to, battalion.amount_of_special_forces);
-                let amount = TakeLosses::half_of(battalion.amount_of_forces, battalion.amount_of_special_forces);
+                Player::move_forces(self, initiator, from, to, battalion.forces())?;
+                Player::move_special_forces(self, initiator, from, to, battalion.special_forces())?;
+                let amount = TakeLosses::half_of(battalion.forces(), battalion.special_forces());
                 self.storm.storm_losses_to_take.push(LossToTake { location: Some(to), amount, faction: Some(battalion.faction) });
             } else {
-                kill_count = battalion.amount_of_forces + battalion.amount_of_special_forces;
-                Player::kill_forces(self, initiator, from, battalion.amount_of_forces, battalion.amount_of_special_forces, false);
+                kill_count = battalion.total_amount_of_forces();
+                Player::kill_forces(self, initiator, from, battalion.forces(), battalion.special_forces(), false)?;
             }
 
             if kill_count > 0 {
@@ -216,12 +219,13 @@ impl Game {
                 self.log(elems![m]);
             }
         } else {
-            Player::move_forces(self, initiator, from, to, battalion.amount_of_forces);
-            Player::move_special_forces(self, initiator, from, to, battalion.amount_of_special_forces);
+            Player::move_forces(self, initiator, from, to, battalion.forces())?;
+            Player::move_special_forces(self, initiator, from, to, battalion.special_forces())?;
         }
 
-        *total_number_of_forces += battalion.amount_of_forces;
-        *total_number_of_special_forces += battalion.amount_of_special_forces;
+        *total_number_of_forces += battalion.forces();
+        *total_number_of_special_forces += battalion.special_forces();
+        Ok(())
     }
 
     pub fn must_move_through_storm(&self, initiator: PlayerId, from: Location, to: Location, moved: &Battalion) -> bool {
@@ -381,8 +385,8 @@ impl Game {
         self.log(elems![m]);
 
         self.determine_next_shipment_and_move_sub_phase()?;
-        self.check_if_forces_should_be_destroyed_by_ally_presence(player);
-        self.flip_bene_gesserit_advisors_when_alone();
+        self.check_if_forces_should_be_destroyed_by_ally_presence(player)?;
+        self.flip_bene_gesserit_advisors_when_alone()?;
 
         if !self.applicable(Rule::FullPhaseKarma) {
             self.allow(FactionAdvantage::FremenExtraMove);
@@ -434,20 +438,20 @@ impl Game {
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
             | Phase::TerrorTriggeredByFremenRidingMonsterA
             | Phase::AmbassadorTriggeredByFremenRidingMonsterA => {
-                self.end_worm_ride_during_phase(Phase::FremenRidingMonsterA);
+                self.end_worm_ride_during_phase(Phase::FremenRidingMonsterA)?;
             }
 
             Phase::FremenRidingMonsterB
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterB
             | Phase::TerrorTriggeredByFremenRidingMonsterB
             | Phase::AmbassadorTriggeredByFremenRidingMonsterB => {
-                self.end_worm_ride_during_phase(Phase::FremenRidingMonsterB);
+                self.end_worm_ride_during_phase(Phase::FremenRidingMonsterB)?;
             }
 
             Phase::GuildShip | Phase::BeneGesseritIntrudedByGuildShip | Phase::TerrorTriggeredByGuildShip | Phase::AmbassadorTriggeredByGuildShip => {
                 let c1 = self.is_playing(Faction::BeneGesserit) && self.ship_move.bene_gesserit_may_accompany;
                 let c2 = !self.ship_move.in_guild_cunning_shipment;
-                self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritAccompaniesGuildShip)), (c2, Step::Enter(Phase::GuildMove))], Step::Enter(Phase::NonGuildMove));
+                self.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritAccompaniesGuildShip)), (c2, Step::Enter(Phase::GuildMove))], Step::Enter(Phase::NonGuildMove))?;
             }
 
             Phase::BeneGesseritAccompaniesGuildShip | Phase::TerrorTriggeredByBeneGesseritAccompaniesGuildShip | Phase::AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip => {
@@ -465,11 +469,11 @@ impl Game {
             }
 
             Phase::GuildMove | Phase::BeneGesseritIntrudedByGuildMove | Phase::TerrorTriggeredByGuildMove | Phase::AmbassadorTriggeredByGuildMove => {
-                self.determine_next_sub_phase_after_guild_ship_and_move();
+                self.determine_next_sub_phase_after_guild_ship_and_move()?;
             }
 
             Phase::NonGuildMove | Phase::BeneGesseritIntrudedByNonGuildMove | Phase::TerrorTriggeredByNonGuildMove | Phase::AmbassadorTriggeredByNonGuildMove => {
-                self.determine_next_sub_phase_after_non_guild_move();
+                self.determine_next_sub_phase_after_non_guild_move()?;
             }
 
             Phase::BeneGesseritIntrudedByCaravan | Phase::TerrorTriggeredByCaravan | Phase::AmbassadorTriggeredByCaravan => {
@@ -603,7 +607,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerId) {
+    pub fn check_if_forces_should_be_destroyed_by_ally_presence(&mut self, p: PlayerId) -> GameResult {
         let (p_ally, p_faction) = (self.player(p).ally, self.player(p).faction);
         if p_ally != None && p_faction != Some(Faction::Ecaz) && p_ally != Some(Faction::Ecaz) {
             let special_forces_are_allowed = self.player(p).is(Faction::BeneGesserit) && self.applicable(Rule::AdvisorsDontConflictWithAlly);
@@ -617,8 +621,8 @@ impl Game {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
                         .with_log(ShipMoveLoss::new(p_faction.expect("faction"), false, false, 0, Some(t)));
                     self.log(elems![m]);
-                    self.reveal_current_no_field_in_territory(p, t);
-                    Player::kill_all_forces_in_territory(self, p, t, false);
+                    self.reveal_current_no_field_in_territory(p, t)?;
+                    Player::kill_all_forces_in_territory(self, p, t, false)?;
                 }
             }
 
@@ -651,11 +655,12 @@ impl Game {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
                         .with_log(ShipMoveLoss::new(p_faction.expect("faction"), false, false, 0, Some(t)));
                     self.log(elems![m]);
-                    self.reveal_current_no_field_in_territory(p, t);
-                    Player::kill_all_forces_in_territory(self, p, t, false);
+                    self.reveal_current_no_field_in_territory(p, t)?;
+                    Player::kill_all_forces_in_territory(self, p, t, false)?;
                 }
             }
         }
+        Ok(())
     }
 
     pub fn threatened_by_ally_presence(&self, p: PlayerId, t: Territory) -> bool {
@@ -683,18 +688,19 @@ impl Game {
         self.player(ally).any_forces_in_territory(Some(t)) > 0
     }
 
-    pub fn determine_next_sub_phase_after_non_guild_move(&mut self) {
+    pub fn determine_next_sub_phase_after_non_guild_move(&mut self) -> GameResult {
         if self.ship_move.current_player_may_perform_extra_move {
             self.ship_move.current_player_may_perform_extra_move = false;
             self.enter(Phase::NonGuildMove, true);
         } else {
             let c1 = self.everyone_acted_or_passed();
             let c2 = self.check_if_guild_acts_or_auto_delays();
-            self.enter_first(&[(c1, Step::Run(Game::conclude_shipment_and_move)), (c2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip));
+            self.enter_first(&[(c1, Step::Run(Game::conclude_shipment_and_move)), (c2, Step::Enter(Phase::GuildShip))], Step::Enter(Phase::NonGuildShip))?;
         }
+        Ok(())
     }
 
-    pub fn determine_next_sub_phase_after_guild_ship_and_move(&mut self) {
+    pub fn determine_next_sub_phase_after_guild_ship_and_move(&mut self) -> GameResult {
         if self.ship_move.current_player_may_perform_extra_move {
             self.ship_move.current_player_may_perform_extra_move = false;
             self.enter(Phase::GuildMove, true);
@@ -703,11 +709,12 @@ impl Game {
             self.enter(Phase::GuildShip, true);
         } else {
             let c = !self.everyone_acted_or_passed();
-            self.enter_or_else(c, Phase::NonGuildShip, Game::conclude_shipment_and_move);
+            self.enter_or_else_try(c, Phase::NonGuildShip, Game::conclude_shipment_and_move)?;
         }
+        Ok(())
     }
 
-    pub fn conclude_shipment_and_move(&mut self) {
+    pub fn conclude_shipment_and_move(&mut self) -> GameResult {
         self.check_if_moritani_gains_vidal();
         self.ship_move.current_karma_shipment_prevention = None;
         self.main_phase_end();
@@ -715,6 +722,7 @@ impl Game {
         self.receive_ships_tech_income();
         self.ship_move.choam_has_extra_move = false;
         self.turn.current_bene_gesserit_cunning = None;
+        Ok(())
     }
 
     pub fn check_if_moritani_gains_vidal(&mut self) {

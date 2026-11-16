@@ -93,7 +93,7 @@ impl Retreat {
             }
             let to_move_from_here = std::cmp::min(forces_to_move, game.player(me).forces_in(Some(l)));
             let to = self.location.required("location")?;
-            Player::move_forces(game, me, l, to, to_move_from_here);
+            Player::move_forces(game, me, l, to, to_move_from_here)?;
             forces_to_move -= to_move_from_here;
         }
 
@@ -107,13 +107,13 @@ impl Retreat {
             }
             let to_move_from_here = std::cmp::min(special_forces_to_move, game.player(me).special_forces_in(Some(l)));
             let to = self.location.required("location")?;
-            Player::move_special_forces(game, me, l, to, to_move_from_here);
+            Player::move_special_forces(game, me, l, to, to_move_from_here)?;
             special_forces_to_move -= to_move_from_here;
         }
 
         self.log(game);
         game.handle_losses()?;
-        game.flip_bene_gesserit_advisors_when_alone();
+        game.flip_bene_gesserit_advisors_when_alone()?;
         game.determine_how_to_proceed_after_revealing_battle_plans()?;
         Ok(())
     }

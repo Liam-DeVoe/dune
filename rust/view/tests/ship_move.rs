@@ -375,7 +375,7 @@ fn check_placement(game: &Game, p: PlayerId, o: &PlacementOptions, t: GameEventT
     let d = default_describer();
     for l in sources {
         let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
-        forces.insert(l, Battalion::new(f.expect("faction"), pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+        forces.insert(l, pl.battalion_in_location(l).expect("battalion"));
         let expected = ids(PlacementEvent::valid_targets_for_forces(game, p, &forces));
         let draft = placement_draft(game, f.expect("faction"), t, &forces, None);
         let o = placement_options(opts(game, p, &draft, &*d));
@@ -444,7 +444,7 @@ fn check_ride(game: &Game, p: PlayerId, o: &PlacementOptions, d: &dyn Describer)
     assert!(o.title.is_some());
     for l in sources {
         let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
-        forces.insert(l, Battalion::new(pl.faction.expect("faction"), pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+        forces.insert(l, pl.battalion_in_location(l).expect("battalion"));
         let o = placement_options(opts(game, p, &placement_draft(game, pl.faction.expect("faction"), GameEventType::FremenRidesMonster, &forces, None), d));
         assert_eq!(o.targets, valid_targets);
     }
@@ -569,7 +569,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Descri
                 .collect();
             for l in sources {
                 let mut forces: IndexMap<Location, Battalion> = IndexMap::new();
-                forces.insert(l, Battalion::new(f.expect("faction"), pl.forces_in(Some(l)), pl.special_forces_in(Some(l)), l));
+                forces.insert(l, pl.battalion_in_location(l).expect("battalion"));
                 let targets: Vec<Location> = PlacementEvent::valid_targets_for_forces(game, p, &forces);
                 for to in targets.into_iter().take(4) {
                     for start in [false, true] {
@@ -603,7 +603,7 @@ fn check_adjustments(game: &Game, p: PlayerId, draft: &GameEvent, d: &dyn Descri
                 assert_eq!(got.keys().copied().collect::<Vec<_>>(), sources);
                 for l in &sources {
                     let b = got.get(l).unwrap();
-                    assert_eq!((b.amount_of_forces, b.amount_of_special_forces), (pl.forces_in(Some(*l)), pl.special_forces_in(Some(*l))));
+                    assert_eq!((b.forces(), b.special_forces()), (pl.forces_in(Some(*l)), pl.special_forces_in(Some(*l))));
                 }
                 // SetAmount: a lowered amount stays.
                 if let Some(l) = sources.first() {

@@ -105,7 +105,7 @@ impl BattleConcluded {
             let territory = current_battle.territory;
             let to = territory.and_then(|t| t.locations().iter().copied().find(|l| game.player(self.player()).any_forces_in(Some(*l)) > 0));
             if let Some(to) = to {
-                Player::ship_forces(game, self.player(), to, 1);
+                Player::ship_forces(game, self.player(), to, 1)?;
             }
 
             if let Some(territory) = territory {
@@ -134,7 +134,7 @@ impl BattleConcluded {
 
         self.decide_fate_of_captured_leader(game);
         self.take_tech_token(game);
-        self.process_ixian_force_losses_and_substitutions(game);
+        self.process_ixian_force_losses_and_substitutions(game)?;
 
         let loser = self.get_player(game, game.battle.battle_loser.flatten());
         if !LoserConcluded::is_applicable(game, loser) {
@@ -226,15 +226,15 @@ impl BattleConcluded {
         }
     }
 
-    pub fn process_ixian_force_losses_and_substitutions(&self, game: &mut Game) {
+    pub fn process_ixian_force_losses_and_substitutions(&self, game: &mut Game) -> GameResult {
         if game.battle.ixian_special_force_losses_to_take > 0 {
-            let Some(current_battle) = game.battle.current_battle.clone() else { return };
+            let Some(current_battle) = game.battle.current_battle.clone() else { return Ok(()) };
 
             let plan = current_battle.plan_of(game, Some(self.player()));
             let territory = current_battle.territory;
-            let (Some(plan), Some(territory)) = (plan, territory) else { return };
+            let (Some(plan), Some(territory)) = (plan, territory) else { return Ok(()) };
 
-            let Some(winner_gambit) = game.winner_battle_action() else { return };
+            let Some(winner_gambit) = game.winner_battle_action() else { return Ok(()) };
             let forces_to_lose = winner_gambit
                 .forces + winner_gambit.forces_at_half_strength + self.special_force_losses_replaced;
             let special_forces_to_lose = winner_gambit
@@ -285,11 +285,11 @@ impl BattleConcluded {
 
             if special_forces_to_save_in_territory + forces_to_save_in_territory + special_forces_to_save_to_reserves + forces_to_save_to_reserves > 0 {
                 if special_forces_to_save_to_reserves > 0 {
-                    Player::some_forces_in_territory_to_reserves(game, force_supplier_of_winner, territory, special_forces_to_save_to_reserves, true);
+                    Player::some_forces_in_territory_to_reserves(game, force_supplier_of_winner, territory, special_forces_to_save_to_reserves, true)?;
                 }
 
                 if forces_to_save_to_reserves > 0 {
-                    Player::some_forces_in_territory_to_reserves(game, force_supplier_of_winner, territory, forces_to_save_to_reserves, false);
+                    Player::some_forces_in_territory_to_reserves(game, force_supplier_of_winner, territory, forces_to_save_to_reserves, false)?;
                 }
 
                 let force = game.player(force_supplier_of_winner).force();
@@ -315,8 +315,9 @@ impl BattleConcluded {
                 force_supplier_of_winner,
                 (forces_to_lose - forces_to_save_to_reserves) - forces_to_save_in_territory,
                 (special_forces_to_lose - special_forces_to_save_to_reserves) - special_forces_to_save_in_territory,
-            );
+            )?;
         }
+        Ok(())
     }
 
     pub fn capture_or_assassinate_leader(&self, game: &mut Game, harkonnen: PlayerId, target: PlayerId) {

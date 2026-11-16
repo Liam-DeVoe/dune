@@ -68,7 +68,7 @@ macro_rules! rank_key_ord {
         }
     )*};
 }
-rank_key_ord!(i32, i64, u32, usize, bool);
+rank_key_ord!(u16, i32, i64, u32, usize, bool);
 
 impl RankKey for f32 {
     fn rank(&self, other: &Self) -> Ordering {

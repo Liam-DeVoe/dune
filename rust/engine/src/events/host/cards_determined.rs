@@ -58,7 +58,7 @@ impl CardsDetermined {
         game.decks.richese_cache = self.richese_cards();
         let message = self.get_verbose_message();
         self.log_objects(game, vec![message.into()]);
-        game.enter_setup_phase();
+        game.enter_setup_phase()?;
         Ok(())
     }
 

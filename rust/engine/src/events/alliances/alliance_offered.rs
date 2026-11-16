@@ -71,7 +71,7 @@ impl AllianceOffered {
             game.turn.has_acted_or_passed.push(initiator.required("faction")?);
             game.turn.has_acted_or_passed.push(self.target.required("faction")?);
 
-            game.end_nexus_if_everyone_is_done();
+            game.end_nexus_if_everyone_is_done()?;
         } else {
             let m = self
                 .get_message(game)

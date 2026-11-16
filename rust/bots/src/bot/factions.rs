@@ -25,6 +25,11 @@ impl ForcesIn for Territory {
 }
 
 /// Whether Arrakeen or Carthag holds no forces at all.
+/// An amount of forces a bot places, which is never negative.
+fn force_amount(n: i32) -> u16 {
+    u16::try_from(n).expect("an amount of forces from 0 to 65535")
+}
+
 fn arrakeen_or_carthag_is_empty(game: &Game) -> bool {
     let forces_in = |l: Location| game.battalions_in(l).iter().map(|b| b.total_amount_of_forces()).sum::<i32>();
     forces_in(game.board.map.arrakeen()) == 0 || forces_in(game.board.map.carthag()) == 0
@@ -420,13 +425,13 @@ impl ClassicBot {
         let south = game.board.map.false_wall_south().middle_location();
         let forces = 3 + self.d(1, 4);
         let special = if special_forces_in_reserve > 0 { 1 } else { 0 };
-        force_locations.insert_new(south, Battalion::new(faction, forces, special, south));
+        force_locations.insert_new(south, Battalion::new(faction, force_amount(forces), special, south));
 
-        let forces_left = 10 - (forces + special);
+        let forces_left = 10 - (forces + i32::from(special));
         if forces_left > 0 {
             let special = if special_forces_in_reserve > 1 { 1 } else { 0 };
             let west = game.board.map.false_wall_west().middle_location();
-            force_locations.insert_new(west, Battalion::new(faction, forces_left - special, special, west));
+            force_locations.insert_new(west, Battalion::new(faction, force_amount(forces_left - i32::from(special)), special, west));
         }
 
         let mut e = PerformFremenSetup::new(game, faction);
@@ -471,7 +476,7 @@ impl ClassicBot {
         let special_forces_from_reserves = std::cmp::min(FremenRidesMonster::max_forces_from_reserves(game, self.player, true), 2);
 
         let target = self.vacant_stronghold_or_richest_spice(game, &valid_locations).or_else(|| {
-            let strength = battalions_to_move.values().map(|b| b.amount_of_forces + 2 * b.amount_of_special_forces).sum::<i32>()
+            let strength = battalions_to_move.values().map(|b| b.forces() + 2 * b.special_forces()).sum::<i32>()
                 + forces_from_reserves
                 + 2 * special_forces_from_reserves;
             let can_take = |l: &Location| self.total_max_dial_of_opponents(game, l.territory()) < strength as f32;
@@ -925,7 +930,7 @@ impl ClassicBot {
         };
 
         let mut target_locations: IndexMap<Location, Battalion> = IndexMap::new();
-        target_locations.insert_new(target_location, Battalion::new(faction, to_take.amount_of_forces + from_reserves, to_take.amount_of_special_forces, target_location));
+        target_locations.insert_new(target_location, Battalion::new(faction, force_amount(to_take.forces() + from_reserves), to_take.amount_of_special_forces, target_location));
         let mut forces_from_planet: IndexMap<Location, Battalion> = IndexMap::new();
         forces_from_planet.insert_new(biggest.location, to_take);
 
@@ -1256,7 +1261,7 @@ impl ClassicBot {
             Some(Ambassador::Atreides)
         } else if can_place(Ambassador::Tleilaxu)
             && me.leaders.iter().filter(|l| !game.is_alive(Hero::Leader(**l))).count() >= 2
-            && me.forces_killed >= 4
+            && i32::from(me.forces_killed) >= 4
         {
             Some(Ambassador::Tleilaxu)
         } else if can_place(Ambassador::Guild)

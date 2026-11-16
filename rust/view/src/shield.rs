@@ -79,7 +79,7 @@ pub fn playable_with(game: &Game, p: PlayerId, card: TreacheryCard, actions: &[G
 fn messiah_state(game: &Game, p: PlayerId) -> Option<MessiahState> {
     let pl = game.player(p);
     (pl.faction == Some(Faction::Atreides) && game.applicable(Rule::AtreidesMessiah))
-        .then(|| MessiahState { forces_killed_in_battle: pl.total_forces_killed_in_battle, available: pl.messiah_available(game) })
+        .then(|| MessiahState { forces_killed_in_battle: i32::from(pl.total_forces_killed_in_battle), available: pl.messiah_available(game) })
 }
 
 /// The faction panel of the viewer's own seat. `actions` are the viewer's applicable events.

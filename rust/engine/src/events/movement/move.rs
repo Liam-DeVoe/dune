@@ -80,7 +80,7 @@ impl Move {
 
             let force_locations = PlacementEventMethods::force_locations(&**self, game);
             let as_advisors = self.initiator() != Some(Faction::BeneGesserit) || self.as_advisors;
-            game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, false);
+            game.perform_move_from_locations(me, &force_locations, &self.clone().into_event(), as_advisors, false)?;
             game.check_intrusion(&self.clone().into_event())?;
         } else {
             let m = express!(self.initiator(), " pass movement").with_log(MovePassed { faction: self.initiator().required("faction")? });
@@ -88,8 +88,8 @@ impl Move {
         }
 
         game.determine_next_shipment_and_move_sub_phase()?;
-        game.check_if_forces_should_be_destroyed_by_ally_presence(self.player());
-        game.flip_bene_gesserit_advisors_when_alone();
+        game.check_if_forces_should_be_destroyed_by_ally_presence(self.player())?;
+        game.flip_bene_gesserit_advisors_when_alone()?;
 
         if !game.applicable(Rule::FullPhaseKarma) {
             game.allow(FactionAdvantage::FremenExtraMove);

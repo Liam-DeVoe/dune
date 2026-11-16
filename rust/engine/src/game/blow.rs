@@ -59,7 +59,7 @@ impl Game {
         self.enter(Phase::Thumper, true);
     }
 
-    pub fn draw_resource_card(&mut self) {
+    pub fn draw_resource_card(&mut self) -> GameResult {
         let mut drawn: Option<ResourceCard> = None;
         loop {
             // while (ThumperCalledShaiHulud || !(drawn = DrawAndDiscardResourceCard(CurrentDiscardPile!)).IsSpiceBlow)
@@ -91,7 +91,7 @@ impl Game {
                     self.blow.number_of_monsters += 1;
                     let t = self.previous_monster_territory();
                     let is_great = !self.blow.thumper_called_shai_hulud && drawn.is_some_and(|d| d.is_great_maker());
-                    self.let_monster_appear(t, is_great);
+                    self.let_monster_appear(t, is_great)?;
                     // C# parity: this break skips the `ThumperCalledShaiHulud = false` below.
                     if matches!(self.turn.current_phase, Phase::FremenSendingMonsterA | Phase::FremenSendingMonsterB) {
                         break;
@@ -139,9 +139,10 @@ impl Game {
         if self.turn.current_phase != Phase::FremenSendingMonsterA && self.turn.current_phase != Phase::FremenSendingMonsterB {
             if let Some(d) = drawn {
                 self.set_previous_blow_card(Some(d));
-                self.process_blow_card(d);
+                self.process_blow_card(d)?;
             }
         }
+        Ok(())
     }
 
     fn previous_monster_territory(&self) -> Option<Territory> {
@@ -230,13 +231,13 @@ impl Game {
         self.stone(Milestone::Shuffled);
     }
 
-    pub fn process_blow_card(&mut self, blow_card: ResourceCard) {
+    pub fn process_blow_card(&mut self, blow_card: ResourceCard) -> GameResult {
         self.stone(Milestone::Resource);
 
         if blow_card.is_discovery() {
             let territory = blow_card.territory().expect("territory");
             if self.any_forces_in(territory) {
-                self.kill_all_forces_in(territory, false);
+                self.kill_all_forces_in(territory, false)?;
             }
 
             let devoured_resources = self.remove_resources_territory(territory);
@@ -277,7 +278,7 @@ impl Game {
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, false, self.blow.sand_trout_doubles_resources));
             self.log(elems![msg]);
             self.blow.sand_trout_doubles_resources = false;
-            self.change_resources_on_planet(location, spice_amount);
+            self.change_resources_on_planet(location, spice_amount)?;
         } else {
             // C# parity: SandTroutDoublesResources is not reset when the doubled blow is lost
             // to the storm.
@@ -288,18 +289,19 @@ impl Game {
 
         let condition = self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
         let phase = if self.turn.current_phase == Phase::BlowA { Phase::HarvesterA } else { Phase::HarvesterB };
-        self.enter_or_else(condition, phase, Game::move_to_next_phase_after_resource_blow);
+        self.enter_or_else_try(condition, phase, Game::move_to_next_phase_after_resource_blow)?;
+        Ok(())
     }
 
     pub fn sandtrout_message(sand_trout_doubles_resources: bool) -> MessagePart {
         express_part_if!(sand_trout_doubles_resources; ", doubled by ", Concept::BabyMonster)
     }
 
-    pub fn move_to_next_phase_after_resource_blow(&mut self) {
+    pub fn move_to_next_phase_after_resource_blow(&mut self) -> GameResult {
         if self.blow.monsters.is_empty() {
             // Static `Enter(bool, Action, Action)`, inlined.
             if (self.turn.current_phase == Phase::BlowA || self.turn.current_phase == Phase::HarvesterA) && self.applicable(Rule::IncreasedResourceFlow) {
-                self.enter_blow_b();
+                self.enter_blow_b()?;
             } else {
                 self.start_nexus_card_phase();
             }
@@ -318,9 +320,10 @@ impl Game {
                 self.enter_alliance_phase(is_a);
             }
         }
+        Ok(())
     }
 
-    pub fn let_monster_appear(&mut self, t: Option<Territory>, is_great_monster: bool) {
+    pub fn let_monster_appear(&mut self, t: Option<Territory>, is_great_monster: bool) -> GameResult {
         match t {
             Some(t) if self.turn.current_turn != Turn::FIRST => {
                 let m = MonsterAppearance::new(t, is_great_monster);
@@ -360,20 +363,21 @@ impl Game {
                     }
                 } else if self.blow.monsters.is_empty() {
                     self.blow.monsters.push(m.clone());
-                    self.perform_monster(&m);
+                    self.perform_monster(&m)?;
                 }
             }
             _ => self.log_ignored_monster(is_great_monster),
         }
+        Ok(())
     }
 
-    pub fn perform_monster(&mut self, m: &MonsterAppearance) {
+    pub fn perform_monster(&mut self, m: &MonsterAppearance) -> GameResult {
         for &l in m.territory.locations() {
             for p in 0..self.players.len() {
                 let p = self.player_at(p);
                 if self.player(p).any_forces_in(Some(l)) > 0 {
                     if !self.protected_from_monster(p) {
-                        self.reveal_current_no_field(p, None);
+                        self.reveal_current_no_field(p, None)?;
 
                         let faction = self.player(p).faction;
                         let mut devoured =
@@ -387,7 +391,7 @@ impl Game {
                             ));
                         }
                         self.log(elems![devoured]);
-                        Player::kill_all_forces(self, p, l, false);
+                        Player::kill_all_forces(self, p, l, false)?;
 
                         if self.player(p).is(Faction::Fremen) {
                             if !self.applicable(Rule::FullPhaseKarma) {
@@ -419,40 +423,44 @@ impl Game {
             self.log(elems![devoured]);
         }
 
-        self.flip_bene_gesserit_advisors_when_alone();
+        self.flip_bene_gesserit_advisors_when_alone()?;
+        Ok(())
     }
 
-    pub fn enter_blow_a(&mut self) {
+    pub fn enter_blow_a(&mut self) -> GameResult {
         self.blow.monsters.clear();
         self.enter(Phase::BlowA, true);
         if self.applicable(Rule::IncreasedResourceFlow) {
             let msg = express!("Deck A").as_heading(Concept::Resource).with_log(BlowDeckLog::new("A".to_string()));
             self.log(elems![msg]);
         }
-        self.draw_resource_card();
+        self.draw_resource_card()?;
         self.let_factions_discard_surplus_cards();
+        Ok(())
     }
 
-    pub fn enter_blow_b(&mut self) {
+    pub fn enter_blow_b(&mut self) -> GameResult {
         self.blow.monsters.clear();
         self.enter(Phase::BlowB, true);
         let msg = express!("Deck B").as_heading(Concept::Resource).with_log(BlowDeckLog::new("B".to_string()));
         self.log(elems![msg]);
-        self.draw_resource_card();
+        self.draw_resource_card()?;
         self.let_factions_discard_surplus_cards();
+        Ok(())
     }
 
-    pub fn end_worm_ride_during_phase(&mut self, phase: Phase) {
+    pub fn end_worm_ride_during_phase(&mut self, phase: Phase) -> GameResult {
         self.turn.current_phase = phase;
 
         if FremenRidesMonster::is_applicable(self) {
             let condition = self.turn.current_phase == Phase::AllianceA || self.turn.current_phase == Phase::FremenRidingMonsterA;
             self.enter_either(condition, Phase::FremenRidingMonsterA, Phase::FremenRidingMonsterB);
         } else if self.turn.current_phase == Phase::FremenRidingMonsterA && self.applicable(Rule::IncreasedResourceFlow) {
-            self.enter_blow_b();
+            self.enter_blow_b()?;
         } else {
             self.start_nexus_card_phase();
         }
+        Ok(())
     }
 
     pub fn enter_alliance_phase(&mut self, is_a: bool) {
@@ -461,7 +469,7 @@ impl Game {
         self.enter_either(is_a, Phase::AllianceA, Phase::AllianceB);
     }
 
-    pub fn end_nexus(&mut self) {
+    pub fn end_nexus(&mut self) -> GameResult {
         self.blow.nexus_has_occurred = true;
         self.alliances.current_alliance_offers.clear();
 
@@ -471,17 +479,19 @@ impl Game {
         } else {
             if self.turn.current_phase == Phase::AllianceA {
                 let condition = self.applicable(Rule::IncreasedResourceFlow);
-                Game::run_either(self, condition, Game::enter_blow_b, Game::start_nexus_card_phase);
+                if condition { self.enter_blow_b()? } else { self.start_nexus_card_phase() }
             } else if self.turn.current_phase == Phase::AllianceB {
                 self.start_nexus_card_phase();
             }
         }
+        Ok(())
     }
 
-    pub fn end_nexus_if_everyone_is_done(&mut self) {
+    pub fn end_nexus_if_everyone_is_done(&mut self) -> GameResult {
         if matches!(self.turn.current_phase, Phase::AllianceA | Phase::AllianceB) && self.everyone_acted_or_passed() {
-            self.end_nexus();
+            self.end_nexus()?;
         }
+        Ok(())
     }
 
     pub fn start_nexus_card_phase(&mut self) {

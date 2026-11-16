@@ -35,6 +35,12 @@ impl TakeLosses {
             return None;
         }
 
+        // Not in C#: a negative amount of one kind made up for more of the other, and put forces
+        // on the board instead of killing them.
+        if self.force_amount < 0 || self.special_force_amount < 0 {
+            return Some(express!("Invalid amount of forces"));
+        }
+
         let value_to_be_killed = TakeLosses::losses_to_take(game).amount;
         if (self.force_amount + self.special_force_amount) < value_to_be_killed {
             return Some(express!("Select a total value of at least ", value_to_be_killed, " to be killed"));
@@ -109,7 +115,7 @@ impl TakeLosses {
             let Some(kill_location) = location else {
                 game_error!("Value cannot be null. (Parameter 'key')");
             };
-            Player::kill_forces(game, player, kill_location, self.force_amount, self.special_force_amount, false);
+            Player::kill_forces(game, player, kill_location, self.force_amount, self.special_force_amount, false)?;
             game.storm.storm_losses_to_take.remove(0);
             let message = self.get_message(game).with_log(StormKilled::new(self.initiator().required("faction")?, kill_location, self.force_amount, self.special_force_amount));
             game.log(vec![message.into()]);

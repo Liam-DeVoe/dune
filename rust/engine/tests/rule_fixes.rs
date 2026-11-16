@@ -60,9 +60,9 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
         })
         .unwrap();
     let home = g.player(emperor).home_worlds[0];
-    Player::move_forces(&mut g, emperor, home.location(), sand, 3);
+    Player::move_forces(&mut g, emperor, home.location(), sand, 3).unwrap();
     let sardaukar_home = g.player(emperor).home_worlds.iter().copied().find(|hw| g.player(emperor).special_forces_in(Some(hw.location())) > 0).unwrap();
-    Player::move_special_forces(&mut g, emperor, sardaukar_home.location(), sand, 2);
+    Player::move_special_forces(&mut g, emperor, sardaukar_home.location(), sand, 2).unwrap();
     // As if the Guild had given Emperor the permission (SetShipmentPermission).
     g.ship_move.shipment_permissions.insert(Faction::Emperor, ShipmentPermission::TO_HOMEWORLD);
 
@@ -108,7 +108,7 @@ fn bene_gesserit_flip_happens_in_the_intruded_territory() {
         .forces_on_planet()
         .iter()
         .filter(|(_, b)| b.amount_of_forces == 0 && b.amount_of_special_forces > 0)
-        .map(|(l, b)| (*l, b.amount_of_special_forces))
+        .map(|(l, b)| (*l, b.special_forces()))
         .collect();
     let (intruded, n_intruded) = advisors[0];
     let (elsewhere, n_elsewhere) = *advisors.iter().find(|(l, _)| l.territory() != intruded.territory()).expect("advisors in two territories");

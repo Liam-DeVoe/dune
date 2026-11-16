@@ -54,9 +54,9 @@ impl BeneGesseritAccompanies {
                 || !game.is_occupied_territory(location.territory())
                 || !game.applicable(Rule::BeneGesseritAdvisors)
             {
-                Player::ship_forces(game, me, location, amount);
+                Player::ship_forces(game, me, location, amount)?;
             } else {
-                Player::ship_advisors(game, me, location, amount);
+                Player::ship_advisors(game, me, location, amount)?;
             }
 
             let m = express!(self.initiator(), " accompany to ", location)

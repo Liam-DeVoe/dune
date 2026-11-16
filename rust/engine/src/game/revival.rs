@@ -152,11 +152,11 @@ impl Game {
         self.board.ambassadors_on_planet.get(&t).copied()
     }
 
-    pub fn claim_free_revival(&mut self, player: PlayerId) {
+    pub fn claim_free_revival(&mut self, player: PlayerId) -> GameResult {
         let max_free_revivals = self.free_revivals(player, false);
 
         if max_free_revivals <= 0 {
-            return;
+            return Ok(());
         }
 
         let mut free_revived_special_forces: i32 = 0;
@@ -176,15 +176,15 @@ impl Game {
         }
 
         if free_revived_normal_forces + free_revived_special_forces <= 0 {
-            return;
+            return Ok(());
         }
 
         if free_revived_normal_forces > 0 {
-            Player::revive_forces(self, player, free_revived_normal_forces);
+            Player::revive_forces(self, player, free_revived_normal_forces)?;
         }
 
         if free_revived_special_forces > 0 {
-            Player::revive_special_forces(self, player, free_revived_special_forces);
+            Player::revive_special_forces(self, player, free_revived_special_forces)?;
         }
 
         let faction = self.player(player).faction;
@@ -230,6 +230,7 @@ impl Game {
         self.log(vec![message.into()]);
 
         self.stone(Milestone::Revival);
+        Ok(())
     }
 }
 

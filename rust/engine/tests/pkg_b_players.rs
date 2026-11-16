@@ -31,14 +31,17 @@ fn exception_text<R>(f: impl FnOnce() -> R) -> String {
 
 // ---------------------------------------------------------------- Battalion
 
+/// A change that would leave fewer than zero forces, or more than a u16 holds, is a Game Error
+/// and changes nothing. C# ignored such a change silently.
 #[test]
-fn battalion_change_ignores_negative_results() {
+fn battalion_change_below_zero_is_an_error() {
     let l = Location::from_id(1).unwrap();
     let mut b = Battalion::new(Faction::Emperor, 2, 1, l);
-    b.change_forces(-3); // would go negative: no change, no clamp
-    b.change_special_forces(-1);
+    assert!(b.change_forces(-3).is_err());
+    b.change_special_forces(-1).unwrap();
     assert_eq!((b.amount_of_forces, b.amount_of_special_forces), (2, 0));
-    b.change_forces(i32::MAX); // wraps negative: no change
+    assert!(b.change_forces(i32::MAX).is_err());
+    assert!(b.change_forces(i32::MIN).is_err());
     assert_eq!(b.amount_of_forces, 2);
 }
 
@@ -64,36 +67,37 @@ fn change_forces_zero_leaves_a_hole() {
     let a = Location::from_id(1).unwrap();
     let b = Location::from_id(2).unwrap();
     let c = Location::from_id(3).unwrap();
-    Player::add_forces(&mut g, me, a, 1, false);
-    Player::add_forces(&mut g, me, b, 1, false);
-    Player::remove_forces(&mut g, me, a, 1); // frees slot 0
-    Player::add_forces(&mut g, me, c, 0, false); // takes slot 0, then frees it again
-    Player::add_forces(&mut g, me, a, 2, false); // slot 0
+    Player::add_forces(&mut g, me, a, 1, false).unwrap();
+    Player::add_forces(&mut g, me, b, 1, false).unwrap();
+    Player::remove_forces(&mut g, me, a, 1).unwrap(); // frees slot 0
+    Player::add_forces(&mut g, me, c, 0, false).unwrap(); // takes slot 0, then frees it again
+    Player::add_forces(&mut g, me, a, 2, false).unwrap(); // slot 0
     assert_eq!(g.player(me).locations_with_any_forces(), vec![a, b]);
 }
 
-/// `ForcesToReserves(Territory, amount, special)` sends `toRemoveInTotal` to reserves at
-/// every location and skips the removal when it exceeds the forces there.
+/// `some_forces_in_territory_to_reserves` takes from each location what it holds, up to what is
+/// left to take. C# sent everything left to the reserves at every location and skipped the
+/// removal where the location held fewer, which made forces out of nothing (escapes.md, "Forces
+/// below zero").
 #[test]
-fn forces_to_reserves_territory_bug() {
+fn forces_to_reserves_territory_takes_what_each_location_holds() {
     let mut g = game_with(&[Faction::Atreides]);
     let me = idx(&g, Faction::Atreides);
     let hw = homeworld(&g, World::Atreides);
-    Player::initialize_homeworld(&mut g, me, hw, 10, 0);
+    Player::initialize_homeworld(&mut g, me, hw, 10, 0).unwrap();
     let t = g.board.map.territories(false).find(|t| t.locations().len() >= 2).unwrap();
     let mut locs = t.locations().to_vec();
     locs.sort_by_key(|l| l.spice_blow_amount());
-    Player::add_forces(&mut g, me, locs[0], 1, false);
-    Player::add_forces(&mut g, me, locs[1], 5, false);
+    Player::add_forces(&mut g, me, locs[0], 1, false).unwrap();
+    Player::add_forces(&mut g, me, locs[1], 5, false).unwrap();
 
-    Player::some_forces_in_territory_to_reserves(&mut g, me, t, 3, false);
+    Player::some_forces_in_territory_to_reserves(&mut g, me, t, 3, false).unwrap();
 
     let p = g.player(me);
-    // First location: 3 to reserves, removal of 3 from 1 is refused. Second location:
-    // toRemoveInTotal is now 2, so 2 more to reserves and 2 removed.
-    assert_eq!(p.forces_in(Some(locs[0])), 1);
+    // 1 from the first location and 2 from the second.
+    assert_eq!(p.forces_in(Some(locs[0])), 0);
     assert_eq!(p.forces_in(Some(locs[1])), 3);
-    assert_eq!(p.forces_in_reserve(), 15);
+    assert_eq!(p.forces_in_reserve(), 13);
 }
 
 #[test]
@@ -101,11 +105,11 @@ fn richese_special_forces_to_reserves_vanish() {
     let mut g = game_with(&[Faction::Richese]);
     let me = idx(&g, Faction::Richese);
     let hw = homeworld(&g, World::Richese);
-    Player::initialize_homeworld(&mut g, me, hw, 10, 0);
+    Player::initialize_homeworld(&mut g, me, hw, 10, 0).unwrap();
     let l = Location::from_id(1).unwrap();
-    Player::ship_special_forces(&mut g, me, l, 1); // Richese: placed without leaving reserves
+    Player::ship_special_forces(&mut g, me, l, 1).unwrap(); // Richese: placed without leaving reserves
     assert_eq!(g.player(me).special_forces_in(Some(l)), 1);
-    Player::special_forces_to_reserves(&mut g, me, l, 1);
+    Player::special_forces_to_reserves(&mut g, me, l, 1).unwrap();
     assert_eq!(g.player(me).special_forces_in(Some(l)), 0);
     assert_eq!(g.player(me).any_forces_in_reserves(), 10);
 }
@@ -117,17 +121,17 @@ fn salusa_secundus_threshold_tracks_special_forces() {
     let me = idx(&g, Faction::Emperor);
     let emperor = homeworld(&g, World::Emperor);
     let star = homeworld(&g, World::SalusaSecundus);
-    Player::initialize_homeworld(&mut g, me, emperor, 15, 0);
-    Player::initialize_homeworld(&mut g, me, star, 0, 5);
+    Player::initialize_homeworld(&mut g, me, emperor, 15, 0).unwrap();
+    Player::initialize_homeworld(&mut g, me, star, 0, 5).unwrap();
     g.rules.active.push(Rule::Homeworlds);
     let low_at_start = g.player(me).has_low_threshold(&g, World::SalusaSecundus);
     let l = Location::from_id(1).unwrap();
     // The threshold is 2 (Map.cs:1273). Shipping 3 of 5 leaves 2, which is not below it;
     // shipping one more leaves 1, which is.
     assert_eq!(star.threshold(), 2);
-    Player::ship_special_forces(&mut g, me, l, 3);
+    Player::ship_special_forces(&mut g, me, l, 3).unwrap();
     let low_at_threshold = g.player(me).has_low_threshold(&g, World::SalusaSecundus);
-    Player::ship_special_forces(&mut g, me, l, 1);
+    Player::ship_special_forces(&mut g, me, l, 1).unwrap();
     let low_after = g.player(me).has_low_threshold(&g, World::SalusaSecundus);
     assert!(!low_at_start);
     assert!(!low_at_threshold);
@@ -139,9 +143,9 @@ fn forces_on_planet_skips_homeworlds() {
     let mut g = game_with(&[Faction::Atreides]);
     let me = idx(&g, Faction::Atreides);
     let hw = homeworld(&g, World::Atreides);
-    Player::initialize_homeworld(&mut g, me, hw, 10, 0);
+    Player::initialize_homeworld(&mut g, me, hw, 10, 0).unwrap();
     let l = Location::from_id(1).unwrap();
-    Player::ship_forces(&mut g, me, l, 4);
+    Player::ship_forces(&mut g, me, l, 4).unwrap();
     let on_planet: Vec<Location> = g.player(me).forces_on_planet().keys().copied().collect();
     assert_eq!(on_planet, vec![l]);
     assert_eq!(g.player(me).forces_in_reserve(), 6);

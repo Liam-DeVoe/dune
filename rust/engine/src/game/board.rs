@@ -10,7 +10,7 @@ pub struct Board {
     // Spice, discoveries and stronghold owners are in map order (by location id), so the board lists
     // them the same way every time. Terror tokens, ambassadors and occupied homeworlds are in the
     // order they were placed or taken, which a sort by token, territory or world wouldn't improve.
-    pub resources_on_planet: BTreeMap<Location, i32>,
+    pub resources_on_planet: BTreeMap<Location, u16>,
     pub terror_on_planet: IndexMap<TerrorType, Territory>,
     pub unplaced_terror_tokens: Vec<TerrorType>,
     pub atomics_aftermath: Option<Territory>,
@@ -41,26 +41,26 @@ impl Board {
 
 impl Game {
     pub fn resources_in(&self, l: Location) -> i32 {
-        self.board.resources_on_planet.get(&l).copied().unwrap_or(0)
+        self.board.resources_on_planet.get(&l).copied().map_or(0, i32::from)
     }
 
-    pub fn change_resources_on_planet(&mut self, location: Location, amount: i32) {
-        if self.board.resources_on_planet.contains_key(&location) {
-            let current = self.board.resources_on_planet[&location];
-            if (current + amount) == 0 {
-                self.board.resources_on_planet.remove(&location);
-            } else {
-                self.board.resources_on_planet.insert(location, current + amount);
-            }
-        } else if amount != 0 {
-            self.board.resources_on_planet.insert_new(location, amount);
+    /// Adds `amount` spice (negative to take some) at `location`, and drops the location when
+    /// none is left. A Game Error if less than zero would be left.
+    pub fn change_resources_on_planet(&mut self, location: Location, amount: i32) -> GameResult {
+        let mut current = self.board.resources_on_planet.get(&location).copied().unwrap_or(0);
+        crate::game::amounts::change(&mut current, amount, "spice")?;
+        if current == 0 {
+            self.board.resources_on_planet.remove(&location);
+        } else {
+            self.board.resources_on_planet.insert(location, current);
         }
+        Ok(())
     }
 
     pub fn remove_resources(&mut self, location: Location) -> i32 {
         let mut result = 0;
         if self.board.resources_on_planet.contains_key(&location) {
-            result = self.board.resources_on_planet[&location];
+            result = i32::from(self.board.resources_on_planet[&location]);
             self.board.resources_on_planet.remove(&location);
         }
 

@@ -80,11 +80,11 @@ impl AmbassadorActivated {
     }
 
     pub fn forces_added_to_location(&self, game: &Game) -> i32 {
-        self.fremen_force_locations(game).values().map(|b| b.amount_of_forces).sum::<i32>()
+        self.fremen_force_locations(game).values().map(|b| b.forces()).sum::<i32>()
     }
 
     pub fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.fremen_force_locations(game).values().map(|b| b.amount_of_special_forces).sum::<i32>()
+        self.fremen_force_locations(game).values().map(|b| b.special_forces()).sum::<i32>()
     }
 
     pub fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
@@ -143,14 +143,14 @@ impl AmbassadorActivated {
                     if self
                         .fremen_force_locations(game)
                         .iter()
-                        .any(|(k, v)| game.player(player()).forces_in(Some(*k)) < v.amount_of_forces)
+                        .any(|(k, v)| game.player(player()).forces_in(Some(*k)) < v.forces())
                     {
                         return Some(express!("Invalid amount of ", game.player(self.player()).force()));
                     }
                     if self
                         .fremen_force_locations(game)
                         .iter()
-                        .any(|(k, v)| game.player(player()).special_forces_in(Some(*k)) < v.amount_of_special_forces)
+                        .any(|(k, v)| game.player(player()).special_forces_in(Some(*k)) < v.special_forces())
                     {
                         return Some(express!("Invalid amount of ", game.player(self.player()).special_force()));
                     }
@@ -304,7 +304,7 @@ impl AmbassadorActivated {
     }
 
     pub fn valid_tleilaxu_max_amount(game: &Game, p: PlayerId) -> i32 {
-        std::cmp::min(game.player(p).forces_killed, 4)
+        std::cmp::min(i32::from(game.player(p).forces_killed), 4)
     }
 
     pub fn valid_tleilaxu_heroes(game: &Game, player: PlayerId) -> Vec<Hero> {
@@ -427,7 +427,7 @@ impl AmbassadorActivated {
             Ambassador::Fremen => {
                 let force_locations = self.fremen_force_locations(game);
                 let this = self.clone().into_event();
-                game.perform_move_from_locations(self.player(), &force_locations, &this, false, false);
+                game.perform_move_from_locations(self.player(), &force_locations, &this, false, false)?;
                 game.ship_move.recent_moves.push(this.clone());
                 game.check_intrusion(&this)?;
                 game.determine_next_shipment_and_move_sub_phase()?;
@@ -484,7 +484,7 @@ impl AmbassadorActivated {
                 let to = self.fremen_or_guild_to;
                 self.log_objects(game, elems![self.initiator(), " send ", self.guild_force_amount, force, " to ", to]);
                 if let Some(to) = self.fremen_or_guild_to {
-                    Player::ship_forces(game, self.player(), to, self.guild_force_amount);
+                    Player::ship_forces(game, self.player(), to, self.guild_force_amount)?;
                 }
                 let this = self.clone().into_event();
                 game.ship_move.last_shipment_or_movement = Some(this.clone());
@@ -509,7 +509,7 @@ impl AmbassadorActivated {
                 } else {
                     let force = game.player(self.player()).force();
                     self.log_objects(game, elems![self.initiator(), " revive ", self.tleilaxu_amount_of_forces, " ", force]);
-                    Player::revive_forces(game, self.player(), self.tleilaxu_amount_of_forces);
+                    Player::revive_forces(game, self.player(), self.tleilaxu_amount_of_forces)?;
                 }
             }
 

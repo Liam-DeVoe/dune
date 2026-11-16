@@ -100,8 +100,8 @@ pub fn seated_with(factions: &[Faction], change_rules: impl FnOnce(&mut Vec<Rule
     // The rest of setup by hand: forces on the homeworlds, starting spice, and the Guild's,
     // Ecaz's and Bene Gesserit's starting forces on the planet. Then everyone gets 20 spice.
     for p in g.player_indices().collect::<Vec<_>>() {
-        g.setup_player_homeworld(p);
-        g.setup_player_spice_and_forces_on_planet(p);
+        g.setup_player_homeworld(p).unwrap();
+        g.setup_player_spice_and_forces_on_planet(p).unwrap();
         g.player_mut(p).resources = 20;
     }
     g.board.sector_in_storm = Some(STORM);
@@ -194,7 +194,7 @@ pub fn open_sand(g: &Game, avoid: &[Territory]) -> Location {
 /// Somewhere `f`'s forces at `from` may move to, one territory away, that nobody occupies.
 pub fn open_neighbour(g: &Game, f: Faction, from: Location, forces: i32) -> Location {
     let p = idx(g, f);
-    let b = Battalion::new(f, forces, 0, from);
+    let b = Battalion::new(f, u16::try_from(forces).expect("forces"), 0, from);
     PlacementEvent::valid_targets(g, p, from, &b)
         .into_iter()
         .find(|l| {
@@ -215,7 +215,7 @@ pub fn open_neighbour(g: &Game, f: Faction, from: Location, forces: i32) -> Loca
 /// Puts forces of `f` from its reserves at `l`.
 pub fn put_forces(g: &mut Game, f: Faction, l: Location, n: i32) {
     let p = idx(g, f);
-    Player::add_forces(g, p, l, n, true);
+    Player::add_forces(g, p, l, n, true).unwrap();
     assert_eq!(g.player(p).forces_in(Some(l)), n, "{f:?} forces at {l:?}");
 }
 

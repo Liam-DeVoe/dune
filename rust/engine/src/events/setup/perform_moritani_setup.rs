@@ -43,12 +43,12 @@ impl PerformMoritaniSetup {
         let me = self.player();
         // `Target` may be null without validation: ShipForces passes it on.
         let target = self.target.required("target")?;
-        Player::ship_forces(game, me, target, 6);
+        Player::ship_forces(game, me, target, 6)?;
         self.log(game);
         if game.treachery_cards_before_traitors() {
-            game.enter_storm_phase();
+            game.enter_storm_phase()?;
         } else {
-            game.deal_starting_treachery_cards();
+            game.deal_starting_treachery_cards()?;
         }
         Ok(())
     }

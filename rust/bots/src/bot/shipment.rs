@@ -76,7 +76,7 @@ impl ClassicBot {
             faction != Faction::Emperor && self.resources_including_ally_contribution(game) < 15 + self.d(1, 20);
         let has_weapons = p.treachery_cards.iter().any(|c| c.is_weapon());
         let has_cards = !p.treachery_cards.is_empty();
-        let feeling_confident = self.resources(game) >= 20 && p.forces_killed + p.special_forces_killed < 10;
+        let feeling_confident = self.resources(game) >= 20 && i32::from(p.forces_killed) + i32::from(p.special_forces_killed) < 10;
 
         let maximum_challenged_strongholds = if self.last_turn(game) && will_do_everything_to_prevent_normal_win {
             20
@@ -294,7 +294,7 @@ impl ClassicBot {
     /// For the Guild: take a stranded battalion back to reserves.
     pub fn plan_back_to_reserves(&self, game: &Game) -> Option<PlannedShipment> {
         let b = self.biggest_battalion_in_spiceless_non_stronghold_location_not_near_stronghold_and_spice(game)?;
-        let size = ShipmentSize::of(-b.battalion.amount_of_forces, -b.battalion.amount_of_special_forces);
+        let size = ShipmentSize::of(-b.battalion.forces(), -b.battalion.special_forces());
         self.planned(game, ShipmentDecision::BackToReserves, b.location, &size, None, Funding::WithAlly)
     }
 

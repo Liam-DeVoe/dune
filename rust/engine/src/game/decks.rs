@@ -113,8 +113,7 @@ impl Game {
                 " from the discarded ".into(),
                 card.into(),
             ]);
-            let p = self.player_mut(ecaz);
-            p.resources += 3;
+            crate::game::amounts::gain(&mut self.player_mut(ecaz).resources, 3, "spice").expect("Ecaz spice");
         }
     }
 }

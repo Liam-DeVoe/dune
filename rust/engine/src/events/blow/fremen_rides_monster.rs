@@ -65,7 +65,7 @@ impl FremenRidesMonster {
         let too_many_forces = self
             .force_locations(game)
             .iter()
-            .any(|(l, b)| b.amount_of_forces > game.player(self.player()).forces_in(Some(*l)));
+            .any(|(l, b)| b.forces() > game.player(self.player()).forces_in(Some(*l)));
         if too_many_forces {
             return Some(express!("Invalid amount of forces"));
         }
@@ -73,7 +73,7 @@ impl FremenRidesMonster {
         let too_many_special_forces = self
             .force_locations(game)
             .iter()
-            .any(|(l, b)| b.amount_of_special_forces > game.player(self.player()).special_forces_in(Some(*l)));
+            .any(|(l, b)| b.special_forces() > game.player(self.player()).special_forces_in(Some(*l)));
         if too_many_special_forces {
             return Some(express!("Invalid amount of special forces"));
         }
@@ -209,9 +209,9 @@ impl FremenRidesMonster {
                 let from = *from;
                 let ini = initiator.required("initiator")?;
                 let to = self.to.required("to")?;
-                Player::move_forces(game, ini, from, to, value.amount_of_forces);
+                Player::move_forces(game, ini, from, to, value.forces())?;
                 let to = self.to.required("to")?;
-                Player::move_special_forces(game, ini, from, to, value.amount_of_special_forces);
+                Player::move_special_forces(game, ini, from, to, value.special_forces())?;
                 let msg = express!(
                     self.initiator(),
                     " ride ",
@@ -224,7 +224,7 @@ impl FremenRidesMonster {
                 )
                 .with_route(self.initiator().required("faction")?, [from], self.to)
                 .with_log(NexusLog::new(
-                    Some(NexusRide::new(self.initiator().required("faction")?, value.amount_of_forces, value.amount_of_special_forces, Some(from), self.to.required("to")?)),
+                    Some(NexusRide::new(self.initiator().required("faction")?, value.forces(), value.special_forces(), Some(from), self.to.required("to")?)),
                     None,
                 ));
                 self.log_objects(game, elems![msg]);
@@ -234,12 +234,12 @@ impl FremenRidesMonster {
                 if self.forces_from_reserves > 0 {
                     let ini = initiator.required("initiator")?;
                     let to = self.to.required("to")?;
-                    Player::ship_forces(game, ini, to, self.forces_from_reserves);
+                    Player::ship_forces(game, ini, to, self.forces_from_reserves)?;
                 }
                 if self.special_forces_from_reserves > 0 {
                     let ini = initiator.required("initiator")?;
                     let to = self.to.required("to")?;
-                    Player::ship_special_forces(game, ini, to, self.special_forces_from_reserves);
+                    Player::ship_special_forces(game, ini, to, self.special_forces_from_reserves)?;
                 }
                 let ini = initiator.required("initiator")?;
                 let msg = express!(
@@ -258,7 +258,7 @@ impl FremenRidesMonster {
                 self.log_objects(game, elems![msg]);
             }
 
-            game.flip_bene_gesserit_advisors_when_alone();
+            game.flip_bene_gesserit_advisors_when_alone()?;
             game.check_intrusion(&self.clone().into_event())?;
         } else {
             let msg = express!(self.initiator(), " pass a ride on ", Concept::Monster).with_log(NexusLog::new(None, None));

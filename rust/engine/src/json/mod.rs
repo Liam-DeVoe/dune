@@ -216,6 +216,15 @@ pub trait FromJson: Sized {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError>;
 }
 
+/// A type whose `Option` is written as `null` when absent. An enum whose absent value is its C#
+/// `None` member doesn't have it: its `Option` is written as 0 (`game_enum!`).
+pub trait JsonNullable {}
+impl JsonNullable for String {}
+impl<T> JsonNullable for Vec<T> {}
+impl<K, V> JsonNullable for IndexMap<K, V> {}
+impl JsonNullable for GameEvent {}
+impl JsonNullable for crate::game::GameSettings {}
+
 /// A C# class serialized as a JSON object (events, `GameSettings`).
 pub trait JsonObject: Default {
     fn write_members(&self, w: &mut JsonWriter);
@@ -464,7 +473,8 @@ impl<T: GameEnum> ToJson for T {
 
 impl<T: GameEnum> FromJson for T {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        i32::from_json(v).map(T::from_value)
+        let n = i32::from_json(v)?;
+        T::from_value(n).ok_or_else(|| JsonError::new("JsonException", crate::enum_type::undefined_value::<T>(n)))
     }
 }
 
@@ -482,7 +492,7 @@ impl FromJson for DateTimeOffset {
 
 // ---- wrappers ----
 
-impl<T: ToJson> ToJson for Option<T> {
+impl<T: ToJson + JsonNullable> ToJson for Option<T> {
     fn write_json(&self, w: &mut JsonWriter) {
         match self {
             Some(v) => v.write_json(w),
@@ -491,7 +501,7 @@ impl<T: ToJson> ToJson for Option<T> {
     }
 }
 
-impl<T: FromJson> FromJson for Option<T> {
+impl<T: FromJson + JsonNullable> FromJson for Option<T> {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         if v.is_null() { Ok(None) } else { T::from_json(v).map(Some) }
     }
@@ -568,9 +578,9 @@ impl<K: GameEnum, V: FromJson> FromJson for IndexMap<K, V> {
 fn parse_enum_key<K: GameEnum>(s: &str) -> Option<K> {
     let t = s.trim();
     if let Ok(i) = t.parse::<i32>() {
-        return Some(K::from_value(i));
+        return K::from_value(i);
     }
-    K::INFO.declared.iter().find(|(n, _)| n.eq_ignore_ascii_case(t)).map(|(_, v)| K::from_value(*v))
+    K::INFO.declared.iter().find(|(n, _)| n.eq_ignore_ascii_case(t)).and_then(|(_, v)| K::from_value(*v))
 }
 
 // ---- objects ----

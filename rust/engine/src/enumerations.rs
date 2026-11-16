@@ -870,7 +870,7 @@ game_enum! {
 }
 
 game_enum! {
-    ItemAction {
+    closed ItemAction {
         Create = 0,
         Update = 1,
         Delete = 2,
@@ -879,7 +879,7 @@ game_enum! {
 }
 
 game_enum! {
-    AsideKind {
+    closed AsideKind {
         Aside = 0,
         Answer = 1,
         After = 2,
@@ -888,7 +888,7 @@ game_enum! {
 }
 
 game_enum! {
-    NexusAllianceChange {
+    closed NexusAllianceChange {
         Offered = 0,
         Made = 1,
         Ended = 2,
@@ -897,7 +897,7 @@ game_enum! {
 }
 
 game_enum! {
-    ShipKind {
+    closed ShipKind {
         Passed = 0,
         Normal = 1,
         SiteToSite = 2,
@@ -907,7 +907,7 @@ game_enum! {
 }
 
 game_enum! {
-    BeneGesseritReactionKind {
+    closed BeneGesseritReactionKind {
         Accompany = 0,
         DontAccompany = 1,
         Become = 2,

@@ -33,13 +33,13 @@ pub(crate) fn parse_int_key(text: &str) -> Option<i32> {
 /// in any case, or a number.
 pub(crate) fn parse_enum_key<T: GameEnum>(text: &str) -> Option<T> {
     if let Some((_, v)) = T::INFO.declared.iter().find(|(n, _)| *n == text) {
-        return Some(T::from_value(*v));
+        return T::from_value(*v);
     }
     // Then ignoring case, as `Enum.TryParse(ignoreCase: true)`.
     if let Some((_, v)) = T::INFO.declared.iter().find(|(n, _)| n.eq_ignore_ascii_case(text)) {
-        return Some(T::from_value(*v));
+        return T::from_value(*v);
     }
-    parse_int_key(text).map(T::from_value)
+    parse_int_key(text).and_then(T::from_value)
 }
 
 /// One member of the serialized `Skin`.

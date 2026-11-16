@@ -265,7 +265,7 @@ impl PartialEq for PlanSummary {
 
 game_enum! {
     /// What a [`BattleFact`] records.
-    BattleFactKind {
+    closed BattleFactKind {
         Strength = 0,
         Winner = 1,
         Killed = 2,

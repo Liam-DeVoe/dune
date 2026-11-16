@@ -894,7 +894,7 @@ impl ClassicBot {
                 ClairVoyancePlayed::is_in_scope_of(
                     as_weapon,
                     card_type,
-                    unbox_enum::<TreacheryCardType>(&cv.question.as_ref().expect("question").parameter1(game)),
+                    unbox_enum::<TreacheryCardType>(&cv.question.as_ref().expect("question").parameter1(game)).expect("card type"),
                 )
             }
             _ => false,

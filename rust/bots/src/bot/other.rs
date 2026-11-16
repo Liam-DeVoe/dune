@@ -720,7 +720,7 @@ impl ClassicBot {
         let question = clairvoyance.question;
 
         let p1 = || clairvoyance.parameter1(game);
-        let card_type = || unbox_enum::<TreacheryCardType>(&p1());
+        let card_type = || unbox_enum::<TreacheryCardType>(&p1()).expect("card type");
         let in_battle = || game.battle.current_battle.as_ref().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
         let my_plan = || match game.battle.current_battle.as_ref().expect("current battle").plan_of(game, Some(self.player)) {
             Some(plan) => plan,
@@ -761,7 +761,7 @@ impl ClassicBot {
                 ClairvoyanceQuestion::LeaderAsTraitor => yes_no(me.traitors.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_traitor(h)))),
 
                 ClairvoyanceQuestion::Prediction => yes_no(
-                    me.predicted_faction == unbox_enum::<Faction>(&p1()) && me.predicted_turn == unbox_int(&clairvoyance.parameter2()),
+                    me.predicted_faction == unbox_enum::<Faction>(&p1()).expect("faction") && me.predicted_turn == unbox_int(&clairvoyance.parameter2()),
                 ),
 
                 ClairvoyanceQuestion::WillAttackX => ClairVoyanceAnswer::No,

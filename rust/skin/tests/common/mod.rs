@@ -70,7 +70,7 @@ fn is_dotnet_exception(message: &str) -> bool {
 macro_rules! enum_by_name {
     ($name:expr, $v:expr; $($t:ident),* $(,)?) => {
         match $name {
-            $(stringify!($t) => Some(EnumValue::of($t($v))),)*
+            $(stringify!($t) => Some(EnumValue { ty: &$t::INFO, value: $v }),)*
             _ => None,
         }
     };

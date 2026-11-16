@@ -31,7 +31,7 @@ fn factions(fs: impl IntoIterator<Item = Faction>) -> Vec<String> {
 
 fn targets(o: &[FactionOption]) -> Vec<String> {
     for f in o {
-        assert_eq!(Faction::from_value(f.value).to_string(), f.faction, "faction value of {}", f.faction);
+        assert_eq!(treachery_engine::enum_type::name_or_absent(Faction::from_value(f.value)), f.faction, "faction value of {}", f.faction);
     }
     o.iter().map(|f| f.faction.clone()).collect()
 }

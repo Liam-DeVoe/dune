@@ -64,7 +64,6 @@ impl AutomationConfigured {
                 // C# parity: Update does nothing.
             }
 
-            _ => {}
         }
         Ok(())
     }

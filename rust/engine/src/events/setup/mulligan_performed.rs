@@ -37,6 +37,10 @@ impl EventRules for MulliganPerformed {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         if !self.passed {
             let me = by.player();
             // TraitorDeck is dereferenced before Player.Traitors is read.

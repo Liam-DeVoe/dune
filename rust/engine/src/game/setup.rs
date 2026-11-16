@@ -8,12 +8,11 @@ pub struct TradeOffer {
 }
 
 /// The setup (`PhaseState::Setup`), from choosing factions until the first storm: its step, the
-/// faction trade offers and the starting treachery cards. It is dropped when the first storm
-/// phase starts.
+/// faction trade offers and the extra starting card of Harkonnen. It is dropped when the first
+/// storm phase starts.
 pub struct SetupState {
     pub step: SetupStep,
     pub current_trade_offers: Vec<TradeOffer>,
-    pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
     pub extra_starting_card_for_harkonnen: Option<TreacheryCard>,
 }
 
@@ -22,7 +21,6 @@ impl SetupState {
         SetupState {
             step,
             current_trade_offers: Vec::new(),
-            starting_treachery_cards: None,
             extra_starting_card_for_harkonnen: None,
         }
     }
@@ -515,11 +513,11 @@ impl Game {
     }
 
     pub fn deal_starting_treachery_cards(&mut self) -> GameResult {
-        self.setup_state().starting_treachery_cards = Some(Deck::empty());
+        self.decks.starting_treachery_cards = Some(Deck::empty());
         for p in 0..self.players.len() {
             let card = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
             self.drop_copy_in_richese_cache(card);
-            self.setup_state().starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
+            self.decks.starting_treachery_cards.as_mut().expect("starting treachery cards").items.push(card);
 
             if self.players[p].is(Faction::Harkonnen) {
                 let extra = self.decks.treachery_deck.as_mut().expect("treachery deck").draw();
@@ -538,7 +536,7 @@ impl Game {
                 continue;
             }
             let p = self.player_at(i);
-            let card = self.setup_state().starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
+            let card = self.decks.starting_treachery_cards.as_mut().expect("starting treachery cards").draw();
             self.player_mut(p).treachery_cards.push(card);
             let faction = self.player(p).faction;
             self.log_to(faction.expect("faction"), vec!["Your starting treachery card is: ".into(), card.into()]);

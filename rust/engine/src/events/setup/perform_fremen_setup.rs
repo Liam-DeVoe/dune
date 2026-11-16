@@ -41,6 +41,10 @@ impl EventRules for PerformFremenSetup {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         for (location, battalion) in self.force_locations(game, by).iter() {
             let location = *location;
             Player::ship_forces(game, by.player(), location, battalion.forces())?;

@@ -24,6 +24,10 @@ impl EventRules for TraitorsSelected {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         let me = by.player();
         let selected = self.selected_traitor;
         // Snapshot (ToList).

@@ -605,7 +605,7 @@ fn build(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> ActionOp
             O::KarmaHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(KarmaHmsMovement::valid_locations(game)), moves_left: game.board.karma_hms_moves_left })
         }
         Event::PerformHmsMovement(_) => {
-            O::PerformHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(PerformHmsMovement::valid_locations(game)), moves_left: game.storm().map_or(0, |s| s.hms_moves_left) })
+            O::PerformHmsMovement(HmsMovementOptions { draft: Value::Null, targets: ids(PerformHmsMovement::valid_locations(game)), moves_left: game.board.hms_moves_left })
         }
         Event::KarmaShipmentPrevention(_) => O::KarmaShipmentPrevention(FactionTargetsOptions { draft: Value::Null,
             targets: KarmaShipmentPrevention::get_valid_targets(game, p).map(name).collect(),

@@ -45,6 +45,10 @@ impl EventRules for NexusCardDrawn {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.blow().is_none() {
+            game_error!("Not in the spice blow phase");
+        }
         if !self.passed {
             self.deal_nexus_card(game, by);
             game.blow_state().factions_that_drew_nexus_card.push(by.faction.required("faction")?);

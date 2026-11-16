@@ -5,18 +5,17 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 use crate::random::Rng;
 
-/// The storm phase (`PhaseState::Storm`): its step, the dials, and the moves left to the Hidden
-/// Mobile Stronghold. It is dropped when the phase ends.
+/// The storm phase (`PhaseState::Storm`): its step, the dials and whether the Testing Station
+/// was used. It is dropped when the phase ends.
 pub struct StormState {
     pub step: StormStep,
-    pub hms_moves_left: i32,
     pub dials: Vec<i32>,
     pub current_testing_station_used: bool,
 }
 
 impl StormState {
     pub fn new(step: StormStep) -> Self {
-        StormState { step, hms_moves_left: 0, dials: Vec::new(), current_testing_station_used: false }
+        StormState { step, dials: Vec::new(), current_testing_station_used: false }
     }
 }
 
@@ -161,7 +160,7 @@ impl Game {
                 self.determine_storm();
             } else {
                 self.enter_storm(StormStep::HmsMovement);
-                self.storm_state().hms_moves_left = 3;
+                self.board.hms_moves_left = 3;
             }
         } else {
             self.determine_storm();

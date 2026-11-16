@@ -5,6 +5,9 @@ pub struct Decks {
     pub treachery_deck: Option<Deck<TreacheryCard>>,
     pub treachery_discard_pile: Option<Deck<TreacheryCard>>,
     pub removed_treachery_cards: Vec<TreacheryCard>,
+    /// The starting treachery cards dealt in the setup, of which the Ixian chooses one. What is
+    /// left stays here for the rest of the game (the bots' Ixian choice reads it).
+    pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
     // In the order the cards were discarded.
     pub recently_discarded: IndexMap<TreacheryCard, Faction>,
     pub resource_card_deck: Option<Deck<ResourceCard>>,
@@ -27,6 +30,7 @@ impl Decks {
             treachery_deck: None,
             treachery_discard_pile: None,
             removed_treachery_cards: Vec::new(),
+            starting_treachery_cards: None,
             recently_discarded: Default::default(),
             resource_card_deck: None,
             resource_card_discard_pile_a: None,

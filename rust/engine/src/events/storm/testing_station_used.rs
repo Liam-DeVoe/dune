@@ -24,6 +24,10 @@ impl EventRules for TestingStationUsed {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.storm().is_none() {
+            game_error!("Not in the storm phase");
+        }
         game.stone(Milestone::WeatherControlled);
         game.storm_state().current_testing_station_used = true;
         game.board.next_storm_moves += self.value_added;

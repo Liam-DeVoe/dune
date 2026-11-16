@@ -36,6 +36,10 @@ impl EventRules for PerformHmsPlacement {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.storm().is_none() {
+            game_error!("Not in the storm phase");
+        }
         let target = self.target.required("target")?;
         let hms = game.board.map.hidden_mobile_stronghold();
         hms.point_at(&mut game.board.map, target);

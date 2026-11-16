@@ -20,16 +20,18 @@ impl EventRules for IxianSelectedStartingCard {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         let me = game.get_player(by.faction).required("get player")?;
         // C# parity: Validate accepts the id of any card, not only one of the starting cards.
         let card = self.card.required("card")?;
         game.player_mut(me).treachery_cards.push(card);
-        crate::iter::remove_first(&mut game.setup_state().starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
+        crate::iter::remove_first(&mut game.decks.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
         let m = self.describe(game, by);
         game.log_event(m);
-        let mut cards = game.setup_state().starting_treachery_cards.take().required("starting treachery cards")?;
-        cards.shuffle(&mut game.rng);
-        game.setup_state().starting_treachery_cards = Some(cards);
+        game.decks.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle(&mut game.rng);
         game.stone(Milestone::Shuffled);
         game.deal_remaining_starting_treachery_cards_to_non_ixian()?;
         Ok(())

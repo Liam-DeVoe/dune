@@ -13,6 +13,10 @@ impl EventRules for NexusVoted {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.blow().is_none() {
+            game_error!("Not in the spice blow phase");
+        }
         let m = self.describe(game, by);
         game.log_event(m);
         game.blow_state().nexus_votes.push(NexusVote { initiator: by.faction, passed: self.passed });

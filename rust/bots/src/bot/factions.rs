@@ -310,7 +310,7 @@ impl ClassicBot {
     /// No decision without starting cards to choose from.
     pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> Option<IxianSelectedStartingCard> {
         use TreacheryCardType as T;
-        let starting_cards = game.setup()?.starting_treachery_cards.as_ref()?;
+        let starting_cards = game.decks.starting_treachery_cards.as_ref()?;
         let cards = || starting_cards.items.iter().copied();
         let any = |f: fn(&TreacheryCard) -> bool| cards().any(|c| f(&c));
 
@@ -361,7 +361,7 @@ impl ClassicBot {
         }
 
         let reachable_from_current_location =
-            game.board.map.find_neighbours(current_location.expect("location"), game.storm().map_or(0, |s| s.hms_moves_left), false, faction, game, false);
+            game.board.map.find_neighbours(current_location.expect("location"), game.board.hms_moves_left, false, faction, game, false);
 
         let richest_reachable_spice_location = reachable_from_current_location
             .iter()

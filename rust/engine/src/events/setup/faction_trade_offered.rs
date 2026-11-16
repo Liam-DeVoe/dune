@@ -33,6 +33,10 @@ impl EventRules for FactionTradeOffered {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         if !game.is_playing(self.target) {
             game.log(vec![by.faction.into(), " switch to ".into(), self.target.into()]);
 

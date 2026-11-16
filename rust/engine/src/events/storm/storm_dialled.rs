@@ -105,6 +105,10 @@ impl EventRules for StormDialled {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.storm().is_none() {
+            game_error!("Not in the storm phase");
+        }
         game.storm_state().dials.push(i32::from(self.amount));
         game.turn.has_acted_or_passed.push(by.faction.required("faction")?);
 

@@ -11,6 +11,10 @@ impl EventRules for HarvesterPlayed {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.blow().is_none() {
+            game_error!("Not in the spice blow phase");
+        }
         game.discard(by.player(), TreacheryCardType::Harvester)?;
         let last_resource_card = if game.phase() == Phase::HarvesterA { game.board.latest_spice_card_a } else { game.board.latest_spice_card_b };
         // lastResourceCard!.Location!: a null card is a NullReferenceException; a null Location

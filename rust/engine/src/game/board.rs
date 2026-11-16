@@ -28,6 +28,9 @@ pub struct Board {
     /// The factions whose battle wheels dial the storm: first and last at the table, then those
     /// of the latest battle.
     pub has_battle_wheel: Vec<Faction>,
+    /// Sectors the Ixian may still move the Hidden Mobile Stronghold in the storm phase: 3 when
+    /// it starts moving, kept after the phase.
+    pub hms_moves_left: i32,
     /// Sectors the Ixian may still move the Hidden Mobile Stronghold with Karama: 2 until they
     /// use it, then 0 from the next battle phase on.
     pub karma_hms_moves_left: i32,
@@ -67,6 +70,7 @@ impl Board {
             owner_of_flight_discovery: None,
             just_revealed_discovery_strongholds: Vec::new(),
             has_battle_wheel: Vec::new(),
+            hms_moves_left: 0,
             karma_hms_moves_left: 2,
             latest_spice_card_a: None,
             latest_spice_card_b: None,

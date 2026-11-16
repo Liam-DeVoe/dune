@@ -41,6 +41,10 @@ impl EventRules for PerformBeneGesseritPlacement {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        // Only reached outside the phase when events are replayed without validation.
+        if game.setup().is_none() {
+            game_error!("Not in the setup phase");
+        }
         // A null Target (only without validation) is passed on as in C#: IsOccupied(null)
         // is false, ShipForces(null, 1) finds no homeworld to ship from, and `Target.Territory` throws.
         let condition = game.is_occupied_territory(self.target.required("target")?.territory());

@@ -17,7 +17,7 @@
 use std::path::PathBuf;
 
 use serde_json::{json, Value};
-use treachery_engine::events::{GameEvent, GameEventType};
+use treachery_engine::events::{Event, EventType};
 use treachery_engine::game::GameState;
 use treachery_engine::json;
 use treachery_engine::json::utilities::Utilities;
@@ -46,7 +46,7 @@ fn events_round_trip() {
     for (i, case) in cases.iter_mut().enumerate() {
         let input = case["json"].as_str().unwrap().to_string();
         let result = match case["kind"].as_str().unwrap() {
-            "event" => json::deserialize::<GameEvent>(&input).map(|e| json::serialize(&e)),
+            "event" => json::deserialize::<Event>(&input).map(|e| json::serialize(&e)),
             "state" => json::deserialize::<GameState>(&input).map(|s| json::serialize(&s)),
             k => panic!("unknown kind {k}"),
         };
@@ -78,7 +78,7 @@ fn events_round_trip() {
     let accepted: std::collections::BTreeSet<String> =
         cases.iter().filter(|c| c["kind"] == "event" && c["ok"] == json!(true)).filter_map(event_type).collect();
     let unaccepted: Vec<&str> =
-        GameEventType::ALL.iter().filter_map(|t| t.json_discriminator()).filter(|t| !accepted.contains(*t)).collect();
+        EventType::ALL.iter().filter_map(|t| t.json_discriminator()).filter(|t| !accepted.contains(*t)).collect();
     assert!(unaccepted.is_empty(), "no accepted case left for {unaccepted:?}: add one to events.jsonl");
     if updating() {
         write("events.jsonl", &cases);
@@ -99,14 +99,14 @@ fn unknown_event_types_fail() {
         // The paths the server reads savegames and events through.
         let result = match kind.as_str() {
             "state" => GameState::load(&input).map(drop),
-            "event" => Utilities::deserialize::<GameEvent>(&input).map(drop),
+            "event" => Utilities::deserialize::<Event>(&input).map(drop),
             k => panic!("unknown kind {k}"),
         };
         let error = result.err().map(|e| format!("{}: {}", e.kind, e.message)).unwrap_or_default();
         // json::deserialize reports the same error.
         let result = match kind.as_str() {
             "state" => json::deserialize::<GameState>(&input).map(|_| ()),
-            _ => json::deserialize::<GameEvent>(&input).map(|_| ()),
+            _ => json::deserialize::<Event>(&input).map(|_| ()),
         };
         let e = result.unwrap_err();
         assert_eq!(format!("{}: {}", e.kind, e.message), error, "input: {input}");

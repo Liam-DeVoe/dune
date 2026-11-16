@@ -12,7 +12,7 @@ pub struct DealOffered {
     pub price: u16,
     pub benefit: u16,
     pub cancel: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -226,12 +226,12 @@ impl GameEventMethods for DealOffered {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DealOffered
+    fn event_type(&self) -> EventType {
+        EventType::DealOffered
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DealOffered(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::DealOffered(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

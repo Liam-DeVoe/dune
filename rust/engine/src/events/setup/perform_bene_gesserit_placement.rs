@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct PerformBeneGesseritPlacement {
     pub target: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -77,12 +77,12 @@ impl GameEventMethods for PerformBeneGesseritPlacement {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::PerformBeneGesseritPlacement
+    fn event_type(&self) -> EventType {
+        EventType::PerformBeneGesseritPlacement
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::PerformBeneGesseritPlacement(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::PerformBeneGesseritPlacement(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

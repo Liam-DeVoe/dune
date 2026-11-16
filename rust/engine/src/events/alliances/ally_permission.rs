@@ -17,7 +17,7 @@ pub struct AllyPermission {
     pub ecaz_shares_ambassadors: bool,
     pub permitted_resources: u16,
     pub permitted_karma_card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -121,12 +121,12 @@ impl GameEventMethods for AllyPermission {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AllyPermission
+    fn event_type(&self) -> EventType {
+        EventType::AllyPermission
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AllyPermission(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AllyPermission(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

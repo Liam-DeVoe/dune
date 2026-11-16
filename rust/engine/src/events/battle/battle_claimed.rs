@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct BattleClaimed {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -69,12 +69,12 @@ impl GameEventMethods for BattleClaimed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BattleClaimed
+    fn event_type(&self) -> EventType {
+        EventType::BattleClaimed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BattleClaimed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BattleClaimed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -14,7 +14,7 @@ use std::time::Duration;
 use treachery_engine::enumerations::Phase;
 use treachery_engine::prelude::{PlayerId, Seat};
 use treachery_engine::events::EndPhase;
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 
 use super::{Answer, CallError, Server};
 use crate::protocol::{ErrorCode, Notification};
@@ -82,7 +82,7 @@ impl Server {
             let running = &self.games[&game];
             let g = &running.game;
             let faction = running.participation.player_of(g, user).map_or(None, |p| g.player(p).faction);
-            GameEvent::EndPhase(Rc::new(EndPhase::new(g, faction)))
+            Event::EndPhase(Rc::new(EndPhase::new(g, faction)))
         };
         let Ok(expected) = usize::try_from(event_number) else { return Ok(()) };
         self.execute(&game, event, true, Some(expected), false).await?;
@@ -121,7 +121,7 @@ impl Server {
 
     /// Brings the game's pause up to date after `executed` (or a change), tells the players if
     /// what it waits for changed, and continues it when it waits for nothing.
-    pub(super) async fn update_pause(&mut self, game: &str, executed: Option<&GameEvent>, change: Option<PauseChange>) -> Result<(), CallError> {
+    pub(super) async fn update_pause(&mut self, game: &str, executed: Option<&Event>, change: Option<PauseChange>) -> Result<(), CallError> {
         let now = self.now();
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
         let mut counter = g.pause_count;
@@ -132,7 +132,7 @@ impl Server {
             pause = new_pause(&mut counter, state, None, true);
         }
         if let Some(executed) = executed {
-            if matches!(executed, GameEvent::EndPhase(_)) || pause.phase != Some(state.turn.current_phase) || pause.turn != i32::from(state.turn.current_turn) {
+            if matches!(executed, Event::EndPhase(_)) || pause.phase != Some(state.turn.current_phase) || pause.turn != i32::from(state.turn.current_turn) {
                 pause = new_pause(&mut counter, state, Some(&pause), false);
             } else {
                 pause.suspended = false;
@@ -201,7 +201,7 @@ impl Server {
             );
         }
         if let Some(events) = continue_at {
-            let event = GameEvent::EndPhase(Rc::new(EndPhase::new(&self.games[game].game, None)));
+            let event = Event::EndPhase(Rc::new(EndPhase::new(&self.games[game].game, None)));
             match Box::pin(self.execute(game, event, true, Some(events), false)).await {
                 Err(CallError::Refused(_, reason)) => println!("game {game}: the pause could not be ended: {reason}"),
                 r => r?,

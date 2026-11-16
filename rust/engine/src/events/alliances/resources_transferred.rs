@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct ResourcesTransferred {
     pub resources: u16,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -77,12 +77,12 @@ impl GameEventMethods for ResourcesTransferred {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::ResourcesTransferred
+    fn event_type(&self) -> EventType {
+        EventType::ResourcesTransferred
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::ResourcesTransferred(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::ResourcesTransferred(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

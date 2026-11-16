@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct KarmaHandSwap {
     pub card_ids: Option<String>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -24,11 +24,11 @@ impl KarmaHandSwap {
     }
 
     pub fn returned_cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
 
     pub fn set_returned_cards(&mut self, value: &[TreacheryCard]) {
-        self.card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -75,12 +75,12 @@ impl GameEventMethods for KarmaHandSwap {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::KarmaHandSwap
+    fn event_type(&self) -> EventType {
+        EventType::KarmaHandSwap
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::KarmaHandSwap(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::KarmaHandSwap(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

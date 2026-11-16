@@ -7,7 +7,7 @@ pub struct DiscoveryEntered {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -115,12 +115,12 @@ impl GameEventMethods for DiscoveryEntered {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DiscoveryEntered
+    fn event_type(&self) -> EventType {
+        EventType::DiscoveryEntered
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DiscoveryEntered(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::DiscoveryEntered(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

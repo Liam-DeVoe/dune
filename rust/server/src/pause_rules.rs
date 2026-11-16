@@ -12,7 +12,7 @@
 use treachery_engine::events::DiscoveryEntered;
 use treachery_engine::events::TerrorPlanted;
 use treachery_engine::events::TestingStationUsed;
-use treachery_engine::events::{GameEvent, GameEventType};
+use treachery_engine::events::{Event, EventType};
 use treachery_engine::prelude::*;
 
 use treachery_protocol::PauseReason as R;
@@ -156,8 +156,8 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
 }
 
 /// A revival counts as its player being done with the revival pause.
-pub fn finishes_pause(g: &Game, e: &GameEvent) -> bool {
-    g.turn.current_phase == Phase::Resurrection && matches!(e, GameEvent::Revival(_))
+pub fn finishes_pause(g: &Game, e: &Event) -> bool {
+    g.turn.current_phase == Phase::Resurrection && matches!(e, Event::Revival(_))
 }
 
 fn players(g: &Game, can_act: impl Fn(&Game, PlayerId) -> bool) -> Vec<PlayerId> {
@@ -201,7 +201,7 @@ fn end_of_phase(g: &mut Game, others: Vec<(PlayerId, R)>) -> PauseRequirements {
         })
         .collect();
     for p in candidates {
-        if g.get_applicable_events(Some(p), false).contains(&GameEventType::CardTraded) {
+        if g.get_applicable_events(Some(p), false).contains(&EventType::CardTraded) {
             result.push((p, R::TradeCard));
         }
     }
@@ -212,7 +212,7 @@ fn end_of_phase(g: &mut Game, others: Vec<(PlayerId, R)>) -> PauseRequirements {
 /// Players who may revive, ask Tleilaxu for a revival or answer such a request, or (for
 /// Tleilaxu) still set revival limits.
 fn revivers(g: &mut Game) -> Vec<(PlayerId, R)> {
-    let revival_actions = [GameEventType::Revival, GameEventType::RequestTleilaxuRevival, GameEventType::AcceptOrCancelTleilaxuRevival];
+    let revival_actions = [EventType::Revival, EventType::RequestTleilaxuRevival, EventType::AcceptOrCancelTleilaxuRevival];
     let limits = tleilaxu_limits(g);
 
     let mut result = vec![];

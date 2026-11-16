@@ -16,7 +16,7 @@ use std::path::Path;
 use common::*;
 use serde_json::Value;
 use treachery_engine::enumerations::*;
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::game::Game;
 use treachery_engine::prelude::{IndexMap, IndexSet};
 use treachery_engine::game::GameStatus;
@@ -124,7 +124,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
 
         match kind {
             "step" => {
-                let ev: GameEvent = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
+                let ev: Event = treachery_engine::json::deserialize(&line["event"].to_string()).expect("event JSON");
                 ev.initialize_game(g);
                 let result = catch_any(|| {
                     ev.execute(g, line["validate"].as_bool().unwrap(), line["isHost"].as_bool().unwrap())

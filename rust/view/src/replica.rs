@@ -12,7 +12,7 @@
 
 use std::collections::BTreeMap;
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::game::GameState;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -26,7 +26,7 @@ pub struct ViewReplica {
     pub game: Game,
     /// The applicable event types of each viewer (by user id) in the last view built for them.
     /// A draft query must be for one of these.
-    actions: BTreeMap<i64, Vec<GameEventType>>,
+    actions: BTreeMap<i64, Vec<EventType>>,
     /// The game's skin, for the text of log lines and prompts: `DefaultSkin.Default` until the
     /// server replaces it with the host's skin (`RequestSetSkin`).
     pub describer: Box<dyn Describer>,
@@ -75,7 +75,7 @@ impl ViewReplica {
 
     /// Executes an event that the server has accepted, without validating it again.
     pub fn apply(&mut self, event_json: &str) -> Result<(), String> {
-        let e: GameEvent = json::deserialize(event_json).map_err(|e| format!("{e:?}"))?;
+        let e: Event = json::deserialize(event_json).map_err(|e| format!("{e:?}"))?;
         e.initialize_game(&self.game);
         match e.execute(&mut self.game, false, false) {
             None => Ok(()),
@@ -86,7 +86,7 @@ impl ViewReplica {
     /// Builds the view of `viewer` and remembers their applicable actions for queries.
     pub fn view(&mut self, viewer: Viewer) -> GameView {
         let view = build::build_view(&mut self.game, viewer, &self.seating, self.describer.as_ref(), self.timer);
-        let types = view.actions.iter().filter_map(|a| GameEventType::ALL.iter().copied().find(|t| t.name() == a.event_type)).collect();
+        let types = view.actions.iter().filter_map(|a| EventType::ALL.iter().copied().find(|t| t.name() == a.event_type)).collect();
         self.actions.insert(viewer.user_id, types);
         view
     }
@@ -131,7 +131,7 @@ impl ViewReplica {
                 UndoEntry {
                     event_number: i as i32,
                     text: crate::expr::message(&e.get_short_message(&self.game), &d),
-                    listed: !matches!(e, GameEvent::AllyPermission(_) | GameEvent::BattleRevision(_) | GameEvent::AutomationConfigured(_)),
+                    listed: !matches!(e, Event::AllyPermission(_) | Event::BattleRevision(_) | Event::AutomationConfigured(_)),
                     turn: moment.map_or(treachery_engine::game::Turn::BEFORE_START, |m| m.turn),
                     phase: moment.map_or_else(|| "None".to_string(), |m| m.phase.to_string()),
                 }
@@ -149,7 +149,7 @@ impl ViewReplica {
         let mut game = self.game.new_like();
         for (nr, e) in self.game.history.entries.iter().take(gap).enumerate() {
             // A copy of the event, so the replica's history stays bound to the replica's game.
-            let copy: GameEvent = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
+            let copy: Event = json::deserialize(&json::serialize(e)).map_err(|e| format!("event {nr}: {e:?}"))?;
             copy.initialize_game(&game);
             if let Some(m) = copy.execute(&mut game, false, false) {
                 return Err(format!("event {nr} ({}) failed: {:?}", copy.event_type().name(), treachery_skin::default_skin().render(&m)));

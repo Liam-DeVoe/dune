@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct CardsDetermined {
     pub treachery_card_ids: Option<String>,
     pub richese_card_ids: Option<String>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -26,19 +26,19 @@ impl CardsDetermined {
     }
 
     pub fn treachery_cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(self.treachery_card_ids.as_deref(), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(self.treachery_card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
 
     pub fn set_treachery_cards(&mut self, value: &[TreacheryCard]) {
-        self.treachery_card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.treachery_card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     pub fn richese_cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(self.richese_card_ids.as_deref(), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(self.richese_card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
 
     pub fn set_richese_cards(&mut self, value: &[TreacheryCard]) {
-        self.richese_card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.richese_card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     pub fn validate(&self, game: &Game) -> Option<Message> {
@@ -80,12 +80,12 @@ impl GameEventMethods for CardsDetermined {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::CardsDetermined
+    fn event_type(&self) -> EventType {
+        EventType::CardsDetermined
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::CardsDetermined(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::CardsDetermined(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

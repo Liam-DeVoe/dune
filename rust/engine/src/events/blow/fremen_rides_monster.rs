@@ -17,7 +17,7 @@ pub struct FremenRidesMonster {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -289,12 +289,12 @@ impl GameEventMethods for FremenRidesMonster {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FremenRidesMonster
+    fn event_type(&self) -> EventType {
+        EventType::FremenRidesMonster
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FremenRidesMonster(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FremenRidesMonster(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

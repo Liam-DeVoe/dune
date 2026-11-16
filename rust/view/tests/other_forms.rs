@@ -11,7 +11,7 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
@@ -21,7 +21,7 @@ use treachery_view::describe::{default_describer, Describer, InGame};
 use treachery_view::replica::ViewReplica;
 use treachery_view::schema::*;
 
-fn mine(t: GameEventType) -> bool {
+fn mine(t: EventType) -> bool {
     other::SIMPLE.contains(&t) || other::YES_NO.contains(&t) || other::FORMS.contains(&t)
 }
 
@@ -205,7 +205,7 @@ fn check_state(game: &mut Game, d: &dyn Describer, at: &str, seen: &mut Seen) {
             let options = view.options.as_ref().unwrap_or_else(|| panic!("{at}: no options"));
             check(game, p, &v, options, &at);
             if let Some(draft) = draft_of(options) {
-                let e: GameEvent = json::deserialize(&draft.to_string()).unwrap_or_else(|e| panic!("{at}: draft {draft}: {e:?}"));
+                let e: Event = json::deserialize(&draft.to_string()).unwrap_or_else(|e| panic!("{at}: draft {draft}: {e:?}"));
                 assert_eq!(e.event_type(), t, "{at}");
                 e.initialize(game, game.player(p).faction);
                 assert_eq!(validate(game, e, &in_game), view.validation, "{at}: validation is the draft's");
@@ -335,7 +335,7 @@ fn fixture_forms_and_queries() {
         for f in factions {
             let viewer = common::viewer_of(&r2, f);
             let view = r2.view(viewer);
-            for a in view.actions.iter().filter(|a| GameEventType::ALL.iter().any(|t| t.name() == a.event_type && mine(*t))) {
+            for a in view.actions.iter().filter(|a| EventType::ALL.iter().any(|t| t.name() == a.event_type && mine(*t))) {
                 let Some(draft) = a.options.as_ref().and_then(draft_of) else { continue };
                 let answer = r2.query(viewer, &draft.to_string()).unwrap_or_else(|e| panic!("{name} {f} {}: {e:?}", a.event_type));
                 assert_eq!(answer.options, a.options, "{name} {f} {}: query of the form's own draft", a.event_type);

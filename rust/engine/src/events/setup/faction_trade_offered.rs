@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct FactionTradeOffered {
     pub target: Option<Faction>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -105,12 +105,12 @@ impl GameEventMethods for FactionTradeOffered {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FactionTradeOffered
+    fn event_type(&self) -> EventType {
+        EventType::FactionTradeOffered
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FactionTradeOffered(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FactionTradeOffered(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct BeneGesseritFlip {
     pub as_advisors: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -93,12 +93,12 @@ impl GameEventMethods for BeneGesseritFlip {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BeneGesseritFlip
+    fn event_type(&self) -> EventType {
+        EventType::BeneGesseritFlip
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BeneGesseritFlip(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BeneGesseritFlip(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

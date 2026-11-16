@@ -18,7 +18,7 @@ use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
-use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, GameEvent, GameEventType, PerformHmsPlacement, PerformSetup};
+use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, Event, EventType, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -117,12 +117,12 @@ fn quiet<R>(f: impl FnOnce() -> R) -> Option<R> {
     r
 }
 
-fn type_of(event: &Map<String, Value>) -> Option<GameEventType> {
+fn type_of(event: &Map<String, Value>) -> Option<EventType> {
     let name = event.get("$type")?.as_str()?;
-    GameEventType::ALL.iter().copied().find(|t| t.name() == name)
+    EventType::ALL.iter().copied().find(|t| t.name() == name)
 }
 
-fn to_object(e: &GameEvent) -> Map<String, Value> {
+fn to_object(e: &Event) -> Map<String, Value> {
     match serde_json::from_str(&json::serialize(e)) {
         Ok(Value::Object(m)) => m,
         _ => Map::new(),
@@ -149,7 +149,7 @@ impl Refit {
     /// Executes an event; true if it was accepted (it joined the history).
     fn execute(&mut self, event: &Map<String, Value>, validate: bool, host: bool) -> bool {
         let text = Value::Object(event.clone()).to_string();
-        let Ok(e) = json::deserialize::<GameEvent>(&text) else { return false };
+        let Ok(e) = json::deserialize::<Event>(&text) else { return false };
         let before = self.game.history.entries.len();
         let game = &mut self.game;
         let r = quiet(|| {
@@ -168,11 +168,11 @@ impl Refit {
 
     /// Replays the first `n` events of the history into a new game.
     fn rebuild(&mut self, n: usize) {
-        let events: Vec<GameEvent> = self.game.history.entries.iter().take(n).cloned().collect();
+        let events: Vec<Event> = self.game.history.entries.iter().take(n).cloned().collect();
         let mut game = self.game.new_like();
         for e in events {
             let text = json::serialize(&e);
-            let e: GameEvent = json::deserialize(&text).expect("a history event reads back");
+            let e: Event = json::deserialize(&text).expect("a history event reads back");
             quiet(|| {
                 e.initialize_game(&game);
                 e.execute(&mut game, false, true)
@@ -198,7 +198,7 @@ impl Refit {
 
     /// An event of type `t` for `faction` that passes validation now: the bot's, else one built
     /// from the form's choices.
-    fn replacement(&mut self, t: GameEventType, faction: Option<Faction>) -> Option<Map<String, Value>> {
+    fn replacement(&mut self, t: EventType, faction: Option<Faction>) -> Option<Map<String, Value>> {
         if let Some(b) = Self::bot(&mut self.bots, &self.game, faction) {
             let (bot, game) = (&mut self.bots[b].1, &self.game);
             for level in Priority::ALL {
@@ -215,7 +215,7 @@ impl Refit {
             let text = Value::Object(candidate.clone()).to_string();
             let game = &self.game;
             let valid = quiet(|| {
-                let e: GameEvent = json::deserialize(&text).ok()?;
+                let e: Event = json::deserialize(&text).ok()?;
                 e.initialize_game(game);
                 Some(e.validate(game).is_none())
             })
@@ -257,7 +257,7 @@ impl Refit {
                     continue;
                 }
                 let allowed = quiet(|| self.game.get_applicable_events(Some(p), false)).unwrap_or_default();
-                if allowed.contains(&GameEventType::AlliancePassed) {
+                if allowed.contains(&EventType::AlliancePassed) {
                     let e = Rc::new(AlliancePassed::new(&self.game, faction)).into_event();
                     if self.add(to_object(&e), false, time) {
                         return true;
@@ -268,8 +268,8 @@ impl Refit {
         // What the host does when no bot acts.
         let host = quiet(|| self.game.get_applicable_events(None, true)).unwrap_or_default();
         let game = &self.game;
-        let mut candidates: Vec<GameEvent> = Vec::new();
-        if host.contains(&GameEventType::CardsDetermined) {
+        let mut candidates: Vec<Event> = Vec::new();
+        if host.contains(&EventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
             let mut e = CardsDetermined::new(game, None);
@@ -277,14 +277,14 @@ impl Refit {
             e.set_richese_cards(&richese);
             candidates.push(Rc::new(e).into_event());
         }
-        if host.contains(&GameEventType::PerformSetup) {
+        if host.contains(&EventType::PerformSetup) {
             if let Some(mut e) = quiet(|| PerformSetup::new(game, game.next_faction_to_perform_custom_setup())) {
                 e.resources = 10;
                 e.force_locations = Some(String::new());
                 candidates.push(Rc::new(e).into_event());
             }
         }
-        if host.contains(&GameEventType::PerformHmsPlacement) && !game.players.is_empty() {
+        if host.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
             let p = game.player_at(0);
             if let Some(l) = PerformHmsPlacement::valid_locations(game, p).next() {
                 let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
@@ -292,7 +292,7 @@ impl Refit {
                 candidates.push(Rc::new(e).into_event());
             }
         }
-        if host.contains(&GameEventType::EndPhase) {
+        if host.contains(&EventType::EndPhase) {
             candidates.push(Rc::new(EndPhase::new(game, None)).into_event());
         }
         for e in candidates {

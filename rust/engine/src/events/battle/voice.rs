@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct Voice {
     pub must: bool,
     pub type_: Option<TreacheryCardType>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -245,12 +245,12 @@ impl GameEventMethods for Voice {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Voice
+    fn event_type(&self) -> EventType {
+        EventType::Voice
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Voice(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Voice(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

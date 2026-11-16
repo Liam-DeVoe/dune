@@ -17,7 +17,7 @@ pub struct AmbassadorActivated {
     pub tleilaxu_assign_skill: bool,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -54,11 +54,11 @@ impl AmbassadorActivated {
     }
 
     pub fn choam_cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(self.choam_card_ids.as_deref(), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(self.choam_card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
 
     pub fn set_choam_cards(&mut self, value: &[TreacheryCard]) {
-        self.choam_card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.choam_card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     pub fn to(&self, _game: &Game) -> Option<Location> {
@@ -525,12 +525,12 @@ impl GameEventMethods for AmbassadorActivated {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AmbassadorActivated
+    fn event_type(&self) -> EventType {
+        EventType::AmbassadorActivated
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AmbassadorActivated(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AmbassadorActivated(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -20,7 +20,7 @@ pub struct Shipment {
     pub guild_income_prevented: Cell<bool>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -1122,12 +1122,12 @@ impl GameEventMethods for Shipment {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Shipment
+    fn event_type(&self) -> EventType {
+        EventType::Shipment
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Shipment(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Shipment(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

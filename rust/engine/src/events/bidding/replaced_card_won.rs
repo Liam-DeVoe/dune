@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct ReplacedCardWon {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -72,12 +72,12 @@ impl GameEventMethods for ReplacedCardWon {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::ReplacedCardWon
+    fn event_type(&self) -> EventType {
+        EventType::ReplacedCardWon
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::ReplacedCardWon(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::ReplacedCardWon(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

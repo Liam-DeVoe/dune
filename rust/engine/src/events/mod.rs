@@ -1,6 +1,6 @@
-//! Every game event, grouped by the phase or topic it belongs to, and the polymorphic `GameEvent`.
+//! Every game event, grouped by the phase or topic it belongs to, and the polymorphic `Event`.
 //!
-//! A [`GameEvent`] value is an enum with one variant per concrete event, each holding an `Rc` to
+//! A [`Event`] value is an enum with one variant per concrete event, each holding an `Rc` to
 //! the event struct. Cloning shares the object and `==` is reference equality. Game fields typed
 //! as a concrete event hold `Rc<ThatEvent>`.
 
@@ -37,7 +37,7 @@ mod storm;
 pub use storm::*;
 
 // Interfaces shared by several events. Not glob-exported: their method names clash with
-// the `GameEventMethods` ones, so `GameEvent` has a dispatching method for each member.
+// the `GameEventMethods` ones, so `Event` has a dispatching method for each member.
 pub use bidding::bid_trait;
 pub use movement::{location_event, placement};
 
@@ -48,147 +48,147 @@ use crate::messages::part::Part;
 macro_rules! dispatch {
     ($self:expr, $e:ident => $body:expr) => {
         match $self {
-            GameEvent::AcceptOrCancelTleilaxuRevival($e) => $body,
-            GameEvent::AllianceBroken($e) => $body,
-            GameEvent::AllianceByAmbassador($e) => $body,
-            GameEvent::AllianceByTerror($e) => $body,
-            GameEvent::AllianceOffered($e) => $body,
-            GameEvent::AlliancePassed($e) => $body,
-            GameEvent::AllyPermission($e) => $body,
-            GameEvent::AmalPlayed($e) => $body,
-            GameEvent::AmbassadorActivated($e) => $body,
-            GameEvent::AmbassadorPlaced($e) => $body,
-            GameEvent::AuditCancelled($e) => $body,
-            GameEvent::Audited($e) => $body,
-            GameEvent::AutomationConfigured($e) => $body,
-            GameEvent::Battle($e) => $body,
-            GameEvent::BattleClaimed($e) => $body,
-            GameEvent::BattleConcluded($e) => $body,
-            GameEvent::BattleInitiated($e) => $body,
-            GameEvent::BattleRevision($e) => $body,
-            GameEvent::BeneGesseritAccompanies($e) => $body,
-            GameEvent::BeneGesseritBattleAnnouncement($e) => $body,
-            GameEvent::BeneGesseritFlip($e) => $body,
-            GameEvent::BeneGesseritPrediction($e) => $body,
-            GameEvent::Bid($e) => $body,
-            GameEvent::BlackMarketBid($e) => $body,
-            GameEvent::Bureaucracy($e) => $body,
-            GameEvent::Captured($e) => $body,
-            GameEvent::Caravan($e) => $body,
-            GameEvent::CardGiven($e) => $body,
-            GameEvent::CardTraded($e) => $body,
-            GameEvent::CardsDetermined($e) => $body,
-            GameEvent::CharityClaimed($e) => $body,
-            GameEvent::ChoamDiscarded($e) => $body,
-            GameEvent::ChoamEconomics($e) => $body,
-            GameEvent::ChoamExtraMove($e) => $body,
-            GameEvent::ChoamFreeRevivalPrevention($e) => $body,
-            GameEvent::ChoamKarmaPrevention($e) => $body,
-            GameEvent::ChoamMovePrevention($e) => $body,
-            GameEvent::ChoamRemoveForce($e) => $body,
-            GameEvent::ClairVoyanceAnswered($e) => $body,
-            GameEvent::ClairVoyancePlayed($e) => $body,
-            GameEvent::DealAccepted($e) => $body,
-            GameEvent::DealOffered($e) => $body,
-            GameEvent::DealRejected($e) => $body,
-            GameEvent::Diplomacy($e) => $body,
-            GameEvent::Discarded($e) => $body,
-            GameEvent::DiscardedSearched($e) => $body,
-            GameEvent::DiscardedSearchedAnnounced($e) => $body,
-            GameEvent::DiscardedTaken($e) => $body,
-            GameEvent::DiscoveryEntered($e) => $body,
-            GameEvent::DiscoveryRevealed($e) => $body,
-            GameEvent::DistransUsed($e) => $body,
-            GameEvent::DivideResources($e) => $body,
-            GameEvent::DivideResourcesAccepted($e) => $body,
-            GameEvent::Donated($e) => $body,
-            GameEvent::EmperorBidSupport($e) => $body,
-            GameEvent::EmperorDiscarded($e) => $body,
-            GameEvent::EndPhase($e) => $body,
-            GameEvent::EstablishPlayers($e) => $body,
-            GameEvent::ExtortionPrevented($e) => $body,
-            GameEvent::FaceDanced($e) => $body,
-            GameEvent::FaceDancerReplaced($e) => $body,
-            GameEvent::FaceDancerRevealed($e) => $body,
-            GameEvent::FactionSelected($e) => $body,
-            GameEvent::FactionTradeOffered($e) => $body,
-            GameEvent::FlightDiscoveryUsed($e) => $body,
-            GameEvent::FlightUsed($e) => $body,
-            GameEvent::FremenRidesMonster($e) => $body,
-            GameEvent::FremenSentMonster($e) => $body,
-            GameEvent::GuildDelay($e) => $body,
-            GameEvent::HMSAdvantageChosen($e) => $body,
-            GameEvent::HarvesterPlayed($e) => $body,
-            GameEvent::HideSecrets($e) => $body,
-            GameEvent::IxianRemovedCardFromAuction($e) => $body,
-            GameEvent::IxianSelectedStartingCard($e) => $body,
-            GameEvent::IxianSwappedCardOnBid($e) => $body,
-            GameEvent::JuicePlayed($e) => $body,
-            GameEvent::Karma($e) => $body,
-            GameEvent::KarmaChoamDiscard($e) => $body,
-            GameEvent::KarmaEcazDial($e) => $body,
-            GameEvent::KarmaFreeRevival($e) => $body,
-            GameEvent::KarmaHandSwap($e) => $body,
-            GameEvent::KarmaHandSwapInitiated($e) => $body,
-            GameEvent::KarmaHmsMovement($e) => $body,
-            GameEvent::KarmaMonster($e) => $body,
-            GameEvent::KarmaPrescience($e) => $body,
-            GameEvent::KarmaRevivalPrevention($e) => $body,
-            GameEvent::KarmaRicheseBuy($e) => $body,
-            GameEvent::KarmaShipmentPrevention($e) => $body,
-            GameEvent::LoserConcluded($e) => $body,
-            GameEvent::MetheorPlayed($e) => $body,
-            GameEvent::Move($e) => $body,
-            GameEvent::MulliganPerformed($e) => $body,
-            GameEvent::NexusCardDrawn($e) => $body,
-            GameEvent::NexusPlayed($e) => $body,
-            GameEvent::NexusVoted($e) => $body,
-            GameEvent::PerformBeneGesseritPlacement($e) => $body,
-            GameEvent::PerformFremenSetup($e) => $body,
-            GameEvent::PerformHmsMovement($e) => $body,
-            GameEvent::PerformHmsPlacement($e) => $body,
-            GameEvent::PerformMoritaniSetup($e) => $body,
-            GameEvent::PerformSetup($e) => $body,
-            GameEvent::Planetology($e) => $body,
-            GameEvent::PlayerReplaced($e) => $body,
-            GameEvent::PoisonToothCancelled($e) => $body,
-            GameEvent::PortableAntidoteUsed($e) => $body,
-            GameEvent::Prescience($e) => $body,
-            GameEvent::RaiseDeadPlayed($e) => $body,
-            GameEvent::RecruitsPlayed($e) => $body,
-            GameEvent::ReplacedCardWon($e) => $body,
-            GameEvent::RequestTleilaxuRevival($e) => $body,
-            GameEvent::ResidualPlayed($e) => $body,
-            GameEvent::ResourcesAudited($e) => $body,
-            GameEvent::ResourcesTransferred($e) => $body,
-            GameEvent::Retreat($e) => $body,
-            GameEvent::Revival($e) => $body,
-            GameEvent::RicheseAnnouncesAuction($e) => $body,
-            GameEvent::RicheseAnnouncesBlackMarket($e) => $body,
-            GameEvent::RicheseGaveCard($e) => $body,
-            GameEvent::RicheseKeepsUnsoldCard($e) => $body,
-            GameEvent::RicheseRevealedNoField($e) => $body,
-            GameEvent::RicheseSpecifiesAuction($e) => $body,
-            GameEvent::RockWasMelted($e) => $body,
-            GameEvent::SetIncreasedRevivalLimits($e) => $body,
-            GameEvent::SetShipmentPermission($e) => $body,
-            GameEvent::Shipment($e) => $body,
-            GameEvent::SkillAssigned($e) => $body,
-            GameEvent::StormDialled($e) => $body,
-            GameEvent::StormSpellPlayed($e) => $body,
-            GameEvent::SwitchedSkilledLeader($e) => $body,
-            GameEvent::TakeLosses($e) => $body,
-            GameEvent::TerrorPlanted($e) => $body,
-            GameEvent::TerrorRevealed($e) => $body,
-            GameEvent::TestingStationUsed($e) => $body,
-            GameEvent::Thought($e) => $body,
-            GameEvent::ThoughtAnswered($e) => $body,
-            GameEvent::ThumperPlayed($e) => $body,
-            GameEvent::TraitorDiscarded($e) => $body,
-            GameEvent::TraitorsSelected($e) => $body,
-            GameEvent::TreacheryCalled($e) => $body,
-            GameEvent::Voice($e) => $body,
-            GameEvent::VoiceDeclined($e) => $body,
+            Event::AcceptOrCancelTleilaxuRevival($e) => $body,
+            Event::AllianceBroken($e) => $body,
+            Event::AllianceByAmbassador($e) => $body,
+            Event::AllianceByTerror($e) => $body,
+            Event::AllianceOffered($e) => $body,
+            Event::AlliancePassed($e) => $body,
+            Event::AllyPermission($e) => $body,
+            Event::AmalPlayed($e) => $body,
+            Event::AmbassadorActivated($e) => $body,
+            Event::AmbassadorPlaced($e) => $body,
+            Event::AuditCancelled($e) => $body,
+            Event::Audited($e) => $body,
+            Event::AutomationConfigured($e) => $body,
+            Event::Battle($e) => $body,
+            Event::BattleClaimed($e) => $body,
+            Event::BattleConcluded($e) => $body,
+            Event::BattleInitiated($e) => $body,
+            Event::BattleRevision($e) => $body,
+            Event::BeneGesseritAccompanies($e) => $body,
+            Event::BeneGesseritBattleAnnouncement($e) => $body,
+            Event::BeneGesseritFlip($e) => $body,
+            Event::BeneGesseritPrediction($e) => $body,
+            Event::Bid($e) => $body,
+            Event::BlackMarketBid($e) => $body,
+            Event::Bureaucracy($e) => $body,
+            Event::Captured($e) => $body,
+            Event::Caravan($e) => $body,
+            Event::CardGiven($e) => $body,
+            Event::CardTraded($e) => $body,
+            Event::CardsDetermined($e) => $body,
+            Event::CharityClaimed($e) => $body,
+            Event::ChoamDiscarded($e) => $body,
+            Event::ChoamEconomics($e) => $body,
+            Event::ChoamExtraMove($e) => $body,
+            Event::ChoamFreeRevivalPrevention($e) => $body,
+            Event::ChoamKarmaPrevention($e) => $body,
+            Event::ChoamMovePrevention($e) => $body,
+            Event::ChoamRemoveForce($e) => $body,
+            Event::ClairVoyanceAnswered($e) => $body,
+            Event::ClairVoyancePlayed($e) => $body,
+            Event::DealAccepted($e) => $body,
+            Event::DealOffered($e) => $body,
+            Event::DealRejected($e) => $body,
+            Event::Diplomacy($e) => $body,
+            Event::Discarded($e) => $body,
+            Event::DiscardedSearched($e) => $body,
+            Event::DiscardedSearchedAnnounced($e) => $body,
+            Event::DiscardedTaken($e) => $body,
+            Event::DiscoveryEntered($e) => $body,
+            Event::DiscoveryRevealed($e) => $body,
+            Event::DistransUsed($e) => $body,
+            Event::DivideResources($e) => $body,
+            Event::DivideResourcesAccepted($e) => $body,
+            Event::Donated($e) => $body,
+            Event::EmperorBidSupport($e) => $body,
+            Event::EmperorDiscarded($e) => $body,
+            Event::EndPhase($e) => $body,
+            Event::EstablishPlayers($e) => $body,
+            Event::ExtortionPrevented($e) => $body,
+            Event::FaceDanced($e) => $body,
+            Event::FaceDancerReplaced($e) => $body,
+            Event::FaceDancerRevealed($e) => $body,
+            Event::FactionSelected($e) => $body,
+            Event::FactionTradeOffered($e) => $body,
+            Event::FlightDiscoveryUsed($e) => $body,
+            Event::FlightUsed($e) => $body,
+            Event::FremenRidesMonster($e) => $body,
+            Event::FremenSentMonster($e) => $body,
+            Event::GuildDelay($e) => $body,
+            Event::HMSAdvantageChosen($e) => $body,
+            Event::HarvesterPlayed($e) => $body,
+            Event::HideSecrets($e) => $body,
+            Event::IxianRemovedCardFromAuction($e) => $body,
+            Event::IxianSelectedStartingCard($e) => $body,
+            Event::IxianSwappedCardOnBid($e) => $body,
+            Event::JuicePlayed($e) => $body,
+            Event::Karma($e) => $body,
+            Event::KarmaChoamDiscard($e) => $body,
+            Event::KarmaEcazDial($e) => $body,
+            Event::KarmaFreeRevival($e) => $body,
+            Event::KarmaHandSwap($e) => $body,
+            Event::KarmaHandSwapInitiated($e) => $body,
+            Event::KarmaHmsMovement($e) => $body,
+            Event::KarmaMonster($e) => $body,
+            Event::KarmaPrescience($e) => $body,
+            Event::KarmaRevivalPrevention($e) => $body,
+            Event::KarmaRicheseBuy($e) => $body,
+            Event::KarmaShipmentPrevention($e) => $body,
+            Event::LoserConcluded($e) => $body,
+            Event::MetheorPlayed($e) => $body,
+            Event::Move($e) => $body,
+            Event::MulliganPerformed($e) => $body,
+            Event::NexusCardDrawn($e) => $body,
+            Event::NexusPlayed($e) => $body,
+            Event::NexusVoted($e) => $body,
+            Event::PerformBeneGesseritPlacement($e) => $body,
+            Event::PerformFremenSetup($e) => $body,
+            Event::PerformHmsMovement($e) => $body,
+            Event::PerformHmsPlacement($e) => $body,
+            Event::PerformMoritaniSetup($e) => $body,
+            Event::PerformSetup($e) => $body,
+            Event::Planetology($e) => $body,
+            Event::PlayerReplaced($e) => $body,
+            Event::PoisonToothCancelled($e) => $body,
+            Event::PortableAntidoteUsed($e) => $body,
+            Event::Prescience($e) => $body,
+            Event::RaiseDeadPlayed($e) => $body,
+            Event::RecruitsPlayed($e) => $body,
+            Event::ReplacedCardWon($e) => $body,
+            Event::RequestTleilaxuRevival($e) => $body,
+            Event::ResidualPlayed($e) => $body,
+            Event::ResourcesAudited($e) => $body,
+            Event::ResourcesTransferred($e) => $body,
+            Event::Retreat($e) => $body,
+            Event::Revival($e) => $body,
+            Event::RicheseAnnouncesAuction($e) => $body,
+            Event::RicheseAnnouncesBlackMarket($e) => $body,
+            Event::RicheseGaveCard($e) => $body,
+            Event::RicheseKeepsUnsoldCard($e) => $body,
+            Event::RicheseRevealedNoField($e) => $body,
+            Event::RicheseSpecifiesAuction($e) => $body,
+            Event::RockWasMelted($e) => $body,
+            Event::SetIncreasedRevivalLimits($e) => $body,
+            Event::SetShipmentPermission($e) => $body,
+            Event::Shipment($e) => $body,
+            Event::SkillAssigned($e) => $body,
+            Event::StormDialled($e) => $body,
+            Event::StormSpellPlayed($e) => $body,
+            Event::SwitchedSkilledLeader($e) => $body,
+            Event::TakeLosses($e) => $body,
+            Event::TerrorPlanted($e) => $body,
+            Event::TerrorRevealed($e) => $body,
+            Event::TestingStationUsed($e) => $body,
+            Event::Thought($e) => $body,
+            Event::ThoughtAnswered($e) => $body,
+            Event::ThumperPlayed($e) => $body,
+            Event::TraitorDiscarded($e) => $body,
+            Event::TraitorsSelected($e) => $body,
+            Event::TreacheryCalled($e) => $body,
+            Event::Voice($e) => $body,
+            Event::VoiceDeclined($e) => $body,
         }
     };
 }
@@ -196,7 +196,7 @@ pub(crate) use dispatch;
 
 /// A reference to any concrete event.
 #[derive(Clone)]
-pub enum GameEvent {
+pub enum Event {
     AcceptOrCancelTleilaxuRevival(Rc<AcceptOrCancelTleilaxuRevival>),
     AllianceBroken(Rc<AllianceBroken>),
     AllianceByAmbassador(Rc<AllianceByAmbassador>),
@@ -340,855 +340,855 @@ pub enum GameEvent {
     VoiceDeclined(Rc<VoiceDeclined>),
 }
 
-impl From<Rc<AcceptOrCancelTleilaxuRevival>> for GameEvent {
+impl From<Rc<AcceptOrCancelTleilaxuRevival>> for Event {
     fn from(e: Rc<AcceptOrCancelTleilaxuRevival>) -> Self {
-        GameEvent::AcceptOrCancelTleilaxuRevival(e)
+        Event::AcceptOrCancelTleilaxuRevival(e)
     }
 }
 
-impl From<Rc<AllianceBroken>> for GameEvent {
+impl From<Rc<AllianceBroken>> for Event {
     fn from(e: Rc<AllianceBroken>) -> Self {
-        GameEvent::AllianceBroken(e)
+        Event::AllianceBroken(e)
     }
 }
 
-impl From<Rc<AllianceByAmbassador>> for GameEvent {
+impl From<Rc<AllianceByAmbassador>> for Event {
     fn from(e: Rc<AllianceByAmbassador>) -> Self {
-        GameEvent::AllianceByAmbassador(e)
+        Event::AllianceByAmbassador(e)
     }
 }
 
-impl From<Rc<AllianceByTerror>> for GameEvent {
+impl From<Rc<AllianceByTerror>> for Event {
     fn from(e: Rc<AllianceByTerror>) -> Self {
-        GameEvent::AllianceByTerror(e)
+        Event::AllianceByTerror(e)
     }
 }
 
-impl From<Rc<AllianceOffered>> for GameEvent {
+impl From<Rc<AllianceOffered>> for Event {
     fn from(e: Rc<AllianceOffered>) -> Self {
-        GameEvent::AllianceOffered(e)
+        Event::AllianceOffered(e)
     }
 }
 
-impl From<Rc<AlliancePassed>> for GameEvent {
+impl From<Rc<AlliancePassed>> for Event {
     fn from(e: Rc<AlliancePassed>) -> Self {
-        GameEvent::AlliancePassed(e)
+        Event::AlliancePassed(e)
     }
 }
 
-impl From<Rc<AllyPermission>> for GameEvent {
+impl From<Rc<AllyPermission>> for Event {
     fn from(e: Rc<AllyPermission>) -> Self {
-        GameEvent::AllyPermission(e)
+        Event::AllyPermission(e)
     }
 }
 
-impl From<Rc<AmalPlayed>> for GameEvent {
+impl From<Rc<AmalPlayed>> for Event {
     fn from(e: Rc<AmalPlayed>) -> Self {
-        GameEvent::AmalPlayed(e)
+        Event::AmalPlayed(e)
     }
 }
 
-impl From<Rc<AmbassadorActivated>> for GameEvent {
+impl From<Rc<AmbassadorActivated>> for Event {
     fn from(e: Rc<AmbassadorActivated>) -> Self {
-        GameEvent::AmbassadorActivated(e)
+        Event::AmbassadorActivated(e)
     }
 }
 
-impl From<Rc<AmbassadorPlaced>> for GameEvent {
+impl From<Rc<AmbassadorPlaced>> for Event {
     fn from(e: Rc<AmbassadorPlaced>) -> Self {
-        GameEvent::AmbassadorPlaced(e)
+        Event::AmbassadorPlaced(e)
     }
 }
 
-impl From<Rc<AuditCancelled>> for GameEvent {
+impl From<Rc<AuditCancelled>> for Event {
     fn from(e: Rc<AuditCancelled>) -> Self {
-        GameEvent::AuditCancelled(e)
+        Event::AuditCancelled(e)
     }
 }
 
-impl From<Rc<Audited>> for GameEvent {
+impl From<Rc<Audited>> for Event {
     fn from(e: Rc<Audited>) -> Self {
-        GameEvent::Audited(e)
+        Event::Audited(e)
     }
 }
 
-impl From<Rc<AutomationConfigured>> for GameEvent {
+impl From<Rc<AutomationConfigured>> for Event {
     fn from(e: Rc<AutomationConfigured>) -> Self {
-        GameEvent::AutomationConfigured(e)
+        Event::AutomationConfigured(e)
     }
 }
 
-impl From<Rc<Battle>> for GameEvent {
+impl From<Rc<Battle>> for Event {
     fn from(e: Rc<Battle>) -> Self {
-        GameEvent::Battle(e)
+        Event::Battle(e)
     }
 }
 
-impl From<Rc<BattleClaimed>> for GameEvent {
+impl From<Rc<BattleClaimed>> for Event {
     fn from(e: Rc<BattleClaimed>) -> Self {
-        GameEvent::BattleClaimed(e)
+        Event::BattleClaimed(e)
     }
 }
 
-impl From<Rc<BattleConcluded>> for GameEvent {
+impl From<Rc<BattleConcluded>> for Event {
     fn from(e: Rc<BattleConcluded>) -> Self {
-        GameEvent::BattleConcluded(e)
+        Event::BattleConcluded(e)
     }
 }
 
-impl From<Rc<BattleInitiated>> for GameEvent {
+impl From<Rc<BattleInitiated>> for Event {
     fn from(e: Rc<BattleInitiated>) -> Self {
-        GameEvent::BattleInitiated(e)
+        Event::BattleInitiated(e)
     }
 }
 
-impl From<Rc<BattleRevision>> for GameEvent {
+impl From<Rc<BattleRevision>> for Event {
     fn from(e: Rc<BattleRevision>) -> Self {
-        GameEvent::BattleRevision(e)
+        Event::BattleRevision(e)
     }
 }
 
-impl From<Rc<BeneGesseritAccompanies>> for GameEvent {
+impl From<Rc<BeneGesseritAccompanies>> for Event {
     fn from(e: Rc<BeneGesseritAccompanies>) -> Self {
-        GameEvent::BeneGesseritAccompanies(e)
+        Event::BeneGesseritAccompanies(e)
     }
 }
 
-impl From<Rc<BeneGesseritBattleAnnouncement>> for GameEvent {
+impl From<Rc<BeneGesseritBattleAnnouncement>> for Event {
     fn from(e: Rc<BeneGesseritBattleAnnouncement>) -> Self {
-        GameEvent::BeneGesseritBattleAnnouncement(e)
+        Event::BeneGesseritBattleAnnouncement(e)
     }
 }
 
-impl From<Rc<BeneGesseritFlip>> for GameEvent {
+impl From<Rc<BeneGesseritFlip>> for Event {
     fn from(e: Rc<BeneGesseritFlip>) -> Self {
-        GameEvent::BeneGesseritFlip(e)
+        Event::BeneGesseritFlip(e)
     }
 }
 
-impl From<Rc<BeneGesseritPrediction>> for GameEvent {
+impl From<Rc<BeneGesseritPrediction>> for Event {
     fn from(e: Rc<BeneGesseritPrediction>) -> Self {
-        GameEvent::BeneGesseritPrediction(e)
+        Event::BeneGesseritPrediction(e)
     }
 }
 
-impl From<Rc<Bid>> for GameEvent {
+impl From<Rc<Bid>> for Event {
     fn from(e: Rc<Bid>) -> Self {
-        GameEvent::Bid(e)
+        Event::Bid(e)
     }
 }
 
-impl From<Rc<BlackMarketBid>> for GameEvent {
+impl From<Rc<BlackMarketBid>> for Event {
     fn from(e: Rc<BlackMarketBid>) -> Self {
-        GameEvent::BlackMarketBid(e)
+        Event::BlackMarketBid(e)
     }
 }
 
-impl From<Rc<Bureaucracy>> for GameEvent {
+impl From<Rc<Bureaucracy>> for Event {
     fn from(e: Rc<Bureaucracy>) -> Self {
-        GameEvent::Bureaucracy(e)
+        Event::Bureaucracy(e)
     }
 }
 
-impl From<Rc<Captured>> for GameEvent {
+impl From<Rc<Captured>> for Event {
     fn from(e: Rc<Captured>) -> Self {
-        GameEvent::Captured(e)
+        Event::Captured(e)
     }
 }
 
-impl From<Rc<Caravan>> for GameEvent {
+impl From<Rc<Caravan>> for Event {
     fn from(e: Rc<Caravan>) -> Self {
-        GameEvent::Caravan(e)
+        Event::Caravan(e)
     }
 }
 
-impl From<Rc<CardGiven>> for GameEvent {
+impl From<Rc<CardGiven>> for Event {
     fn from(e: Rc<CardGiven>) -> Self {
-        GameEvent::CardGiven(e)
+        Event::CardGiven(e)
     }
 }
 
-impl From<Rc<CardTraded>> for GameEvent {
+impl From<Rc<CardTraded>> for Event {
     fn from(e: Rc<CardTraded>) -> Self {
-        GameEvent::CardTraded(e)
+        Event::CardTraded(e)
     }
 }
 
-impl From<Rc<CardsDetermined>> for GameEvent {
+impl From<Rc<CardsDetermined>> for Event {
     fn from(e: Rc<CardsDetermined>) -> Self {
-        GameEvent::CardsDetermined(e)
+        Event::CardsDetermined(e)
     }
 }
 
-impl From<Rc<CharityClaimed>> for GameEvent {
+impl From<Rc<CharityClaimed>> for Event {
     fn from(e: Rc<CharityClaimed>) -> Self {
-        GameEvent::CharityClaimed(e)
+        Event::CharityClaimed(e)
     }
 }
 
-impl From<Rc<ChoamDiscarded>> for GameEvent {
+impl From<Rc<ChoamDiscarded>> for Event {
     fn from(e: Rc<ChoamDiscarded>) -> Self {
-        GameEvent::ChoamDiscarded(e)
+        Event::ChoamDiscarded(e)
     }
 }
 
-impl From<Rc<ChoamEconomics>> for GameEvent {
+impl From<Rc<ChoamEconomics>> for Event {
     fn from(e: Rc<ChoamEconomics>) -> Self {
-        GameEvent::ChoamEconomics(e)
+        Event::ChoamEconomics(e)
     }
 }
 
-impl From<Rc<ChoamExtraMove>> for GameEvent {
+impl From<Rc<ChoamExtraMove>> for Event {
     fn from(e: Rc<ChoamExtraMove>) -> Self {
-        GameEvent::ChoamExtraMove(e)
+        Event::ChoamExtraMove(e)
     }
 }
 
-impl From<Rc<ChoamFreeRevivalPrevention>> for GameEvent {
+impl From<Rc<ChoamFreeRevivalPrevention>> for Event {
     fn from(e: Rc<ChoamFreeRevivalPrevention>) -> Self {
-        GameEvent::ChoamFreeRevivalPrevention(e)
+        Event::ChoamFreeRevivalPrevention(e)
     }
 }
 
-impl From<Rc<ChoamKarmaPrevention>> for GameEvent {
+impl From<Rc<ChoamKarmaPrevention>> for Event {
     fn from(e: Rc<ChoamKarmaPrevention>) -> Self {
-        GameEvent::ChoamKarmaPrevention(e)
+        Event::ChoamKarmaPrevention(e)
     }
 }
 
-impl From<Rc<ChoamMovePrevention>> for GameEvent {
+impl From<Rc<ChoamMovePrevention>> for Event {
     fn from(e: Rc<ChoamMovePrevention>) -> Self {
-        GameEvent::ChoamMovePrevention(e)
+        Event::ChoamMovePrevention(e)
     }
 }
 
-impl From<Rc<ChoamRemoveForce>> for GameEvent {
+impl From<Rc<ChoamRemoveForce>> for Event {
     fn from(e: Rc<ChoamRemoveForce>) -> Self {
-        GameEvent::ChoamRemoveForce(e)
+        Event::ChoamRemoveForce(e)
     }
 }
 
-impl From<Rc<ClairVoyanceAnswered>> for GameEvent {
+impl From<Rc<ClairVoyanceAnswered>> for Event {
     fn from(e: Rc<ClairVoyanceAnswered>) -> Self {
-        GameEvent::ClairVoyanceAnswered(e)
+        Event::ClairVoyanceAnswered(e)
     }
 }
 
-impl From<Rc<ClairVoyancePlayed>> for GameEvent {
+impl From<Rc<ClairVoyancePlayed>> for Event {
     fn from(e: Rc<ClairVoyancePlayed>) -> Self {
-        GameEvent::ClairVoyancePlayed(e)
+        Event::ClairVoyancePlayed(e)
     }
 }
 
-impl From<Rc<DealAccepted>> for GameEvent {
+impl From<Rc<DealAccepted>> for Event {
     fn from(e: Rc<DealAccepted>) -> Self {
-        GameEvent::DealAccepted(e)
+        Event::DealAccepted(e)
     }
 }
 
-impl From<Rc<DealOffered>> for GameEvent {
+impl From<Rc<DealOffered>> for Event {
     fn from(e: Rc<DealOffered>) -> Self {
-        GameEvent::DealOffered(e)
+        Event::DealOffered(e)
     }
 }
 
-impl From<Rc<DealRejected>> for GameEvent {
+impl From<Rc<DealRejected>> for Event {
     fn from(e: Rc<DealRejected>) -> Self {
-        GameEvent::DealRejected(e)
+        Event::DealRejected(e)
     }
 }
 
-impl From<Rc<Diplomacy>> for GameEvent {
+impl From<Rc<Diplomacy>> for Event {
     fn from(e: Rc<Diplomacy>) -> Self {
-        GameEvent::Diplomacy(e)
+        Event::Diplomacy(e)
     }
 }
 
-impl From<Rc<Discarded>> for GameEvent {
+impl From<Rc<Discarded>> for Event {
     fn from(e: Rc<Discarded>) -> Self {
-        GameEvent::Discarded(e)
+        Event::Discarded(e)
     }
 }
 
-impl From<Rc<DiscardedSearched>> for GameEvent {
+impl From<Rc<DiscardedSearched>> for Event {
     fn from(e: Rc<DiscardedSearched>) -> Self {
-        GameEvent::DiscardedSearched(e)
+        Event::DiscardedSearched(e)
     }
 }
 
-impl From<Rc<DiscardedSearchedAnnounced>> for GameEvent {
+impl From<Rc<DiscardedSearchedAnnounced>> for Event {
     fn from(e: Rc<DiscardedSearchedAnnounced>) -> Self {
-        GameEvent::DiscardedSearchedAnnounced(e)
+        Event::DiscardedSearchedAnnounced(e)
     }
 }
 
-impl From<Rc<DiscardedTaken>> for GameEvent {
+impl From<Rc<DiscardedTaken>> for Event {
     fn from(e: Rc<DiscardedTaken>) -> Self {
-        GameEvent::DiscardedTaken(e)
+        Event::DiscardedTaken(e)
     }
 }
 
-impl From<Rc<DiscoveryEntered>> for GameEvent {
+impl From<Rc<DiscoveryEntered>> for Event {
     fn from(e: Rc<DiscoveryEntered>) -> Self {
-        GameEvent::DiscoveryEntered(e)
+        Event::DiscoveryEntered(e)
     }
 }
 
-impl From<Rc<DiscoveryRevealed>> for GameEvent {
+impl From<Rc<DiscoveryRevealed>> for Event {
     fn from(e: Rc<DiscoveryRevealed>) -> Self {
-        GameEvent::DiscoveryRevealed(e)
+        Event::DiscoveryRevealed(e)
     }
 }
 
-impl From<Rc<DistransUsed>> for GameEvent {
+impl From<Rc<DistransUsed>> for Event {
     fn from(e: Rc<DistransUsed>) -> Self {
-        GameEvent::DistransUsed(e)
+        Event::DistransUsed(e)
     }
 }
 
-impl From<Rc<DivideResources>> for GameEvent {
+impl From<Rc<DivideResources>> for Event {
     fn from(e: Rc<DivideResources>) -> Self {
-        GameEvent::DivideResources(e)
+        Event::DivideResources(e)
     }
 }
 
-impl From<Rc<DivideResourcesAccepted>> for GameEvent {
+impl From<Rc<DivideResourcesAccepted>> for Event {
     fn from(e: Rc<DivideResourcesAccepted>) -> Self {
-        GameEvent::DivideResourcesAccepted(e)
+        Event::DivideResourcesAccepted(e)
     }
 }
 
-impl From<Rc<Donated>> for GameEvent {
+impl From<Rc<Donated>> for Event {
     fn from(e: Rc<Donated>) -> Self {
-        GameEvent::Donated(e)
+        Event::Donated(e)
     }
 }
 
-impl From<Rc<EmperorBidSupport>> for GameEvent {
+impl From<Rc<EmperorBidSupport>> for Event {
     fn from(e: Rc<EmperorBidSupport>) -> Self {
-        GameEvent::EmperorBidSupport(e)
+        Event::EmperorBidSupport(e)
     }
 }
 
-impl From<Rc<EmperorDiscarded>> for GameEvent {
+impl From<Rc<EmperorDiscarded>> for Event {
     fn from(e: Rc<EmperorDiscarded>) -> Self {
-        GameEvent::EmperorDiscarded(e)
+        Event::EmperorDiscarded(e)
     }
 }
 
-impl From<Rc<EndPhase>> for GameEvent {
+impl From<Rc<EndPhase>> for Event {
     fn from(e: Rc<EndPhase>) -> Self {
-        GameEvent::EndPhase(e)
+        Event::EndPhase(e)
     }
 }
 
-impl From<Rc<EstablishPlayers>> for GameEvent {
+impl From<Rc<EstablishPlayers>> for Event {
     fn from(e: Rc<EstablishPlayers>) -> Self {
-        GameEvent::EstablishPlayers(e)
+        Event::EstablishPlayers(e)
     }
 }
 
-impl From<Rc<ExtortionPrevented>> for GameEvent {
+impl From<Rc<ExtortionPrevented>> for Event {
     fn from(e: Rc<ExtortionPrevented>) -> Self {
-        GameEvent::ExtortionPrevented(e)
+        Event::ExtortionPrevented(e)
     }
 }
 
-impl From<Rc<FaceDanced>> for GameEvent {
+impl From<Rc<FaceDanced>> for Event {
     fn from(e: Rc<FaceDanced>) -> Self {
-        GameEvent::FaceDanced(e)
+        Event::FaceDanced(e)
     }
 }
 
-impl From<Rc<FaceDancerReplaced>> for GameEvent {
+impl From<Rc<FaceDancerReplaced>> for Event {
     fn from(e: Rc<FaceDancerReplaced>) -> Self {
-        GameEvent::FaceDancerReplaced(e)
+        Event::FaceDancerReplaced(e)
     }
 }
 
-impl From<Rc<FaceDancerRevealed>> for GameEvent {
+impl From<Rc<FaceDancerRevealed>> for Event {
     fn from(e: Rc<FaceDancerRevealed>) -> Self {
-        GameEvent::FaceDancerRevealed(e)
+        Event::FaceDancerRevealed(e)
     }
 }
 
-impl From<Rc<FactionSelected>> for GameEvent {
+impl From<Rc<FactionSelected>> for Event {
     fn from(e: Rc<FactionSelected>) -> Self {
-        GameEvent::FactionSelected(e)
+        Event::FactionSelected(e)
     }
 }
 
-impl From<Rc<FactionTradeOffered>> for GameEvent {
+impl From<Rc<FactionTradeOffered>> for Event {
     fn from(e: Rc<FactionTradeOffered>) -> Self {
-        GameEvent::FactionTradeOffered(e)
+        Event::FactionTradeOffered(e)
     }
 }
 
-impl From<Rc<FlightDiscoveryUsed>> for GameEvent {
+impl From<Rc<FlightDiscoveryUsed>> for Event {
     fn from(e: Rc<FlightDiscoveryUsed>) -> Self {
-        GameEvent::FlightDiscoveryUsed(e)
+        Event::FlightDiscoveryUsed(e)
     }
 }
 
-impl From<Rc<FlightUsed>> for GameEvent {
+impl From<Rc<FlightUsed>> for Event {
     fn from(e: Rc<FlightUsed>) -> Self {
-        GameEvent::FlightUsed(e)
+        Event::FlightUsed(e)
     }
 }
 
-impl From<Rc<FremenRidesMonster>> for GameEvent {
+impl From<Rc<FremenRidesMonster>> for Event {
     fn from(e: Rc<FremenRidesMonster>) -> Self {
-        GameEvent::FremenRidesMonster(e)
+        Event::FremenRidesMonster(e)
     }
 }
 
-impl From<Rc<FremenSentMonster>> for GameEvent {
+impl From<Rc<FremenSentMonster>> for Event {
     fn from(e: Rc<FremenSentMonster>) -> Self {
-        GameEvent::FremenSentMonster(e)
+        Event::FremenSentMonster(e)
     }
 }
 
-impl From<Rc<GuildDelay>> for GameEvent {
+impl From<Rc<GuildDelay>> for Event {
     fn from(e: Rc<GuildDelay>) -> Self {
-        GameEvent::GuildDelay(e)
+        Event::GuildDelay(e)
     }
 }
 
-impl From<Rc<HMSAdvantageChosen>> for GameEvent {
+impl From<Rc<HMSAdvantageChosen>> for Event {
     fn from(e: Rc<HMSAdvantageChosen>) -> Self {
-        GameEvent::HMSAdvantageChosen(e)
+        Event::HMSAdvantageChosen(e)
     }
 }
 
-impl From<Rc<HarvesterPlayed>> for GameEvent {
+impl From<Rc<HarvesterPlayed>> for Event {
     fn from(e: Rc<HarvesterPlayed>) -> Self {
-        GameEvent::HarvesterPlayed(e)
+        Event::HarvesterPlayed(e)
     }
 }
 
-impl From<Rc<HideSecrets>> for GameEvent {
+impl From<Rc<HideSecrets>> for Event {
     fn from(e: Rc<HideSecrets>) -> Self {
-        GameEvent::HideSecrets(e)
+        Event::HideSecrets(e)
     }
 }
 
-impl From<Rc<IxianRemovedCardFromAuction>> for GameEvent {
+impl From<Rc<IxianRemovedCardFromAuction>> for Event {
     fn from(e: Rc<IxianRemovedCardFromAuction>) -> Self {
-        GameEvent::IxianRemovedCardFromAuction(e)
+        Event::IxianRemovedCardFromAuction(e)
     }
 }
 
-impl From<Rc<IxianSelectedStartingCard>> for GameEvent {
+impl From<Rc<IxianSelectedStartingCard>> for Event {
     fn from(e: Rc<IxianSelectedStartingCard>) -> Self {
-        GameEvent::IxianSelectedStartingCard(e)
+        Event::IxianSelectedStartingCard(e)
     }
 }
 
-impl From<Rc<IxianSwappedCardOnBid>> for GameEvent {
+impl From<Rc<IxianSwappedCardOnBid>> for Event {
     fn from(e: Rc<IxianSwappedCardOnBid>) -> Self {
-        GameEvent::IxianSwappedCardOnBid(e)
+        Event::IxianSwappedCardOnBid(e)
     }
 }
 
-impl From<Rc<JuicePlayed>> for GameEvent {
+impl From<Rc<JuicePlayed>> for Event {
     fn from(e: Rc<JuicePlayed>) -> Self {
-        GameEvent::JuicePlayed(e)
+        Event::JuicePlayed(e)
     }
 }
 
-impl From<Rc<Karma>> for GameEvent {
+impl From<Rc<Karma>> for Event {
     fn from(e: Rc<Karma>) -> Self {
-        GameEvent::Karma(e)
+        Event::Karma(e)
     }
 }
 
-impl From<Rc<KarmaChoamDiscard>> for GameEvent {
+impl From<Rc<KarmaChoamDiscard>> for Event {
     fn from(e: Rc<KarmaChoamDiscard>) -> Self {
-        GameEvent::KarmaChoamDiscard(e)
+        Event::KarmaChoamDiscard(e)
     }
 }
 
-impl From<Rc<KarmaEcazDial>> for GameEvent {
+impl From<Rc<KarmaEcazDial>> for Event {
     fn from(e: Rc<KarmaEcazDial>) -> Self {
-        GameEvent::KarmaEcazDial(e)
+        Event::KarmaEcazDial(e)
     }
 }
 
-impl From<Rc<KarmaFreeRevival>> for GameEvent {
+impl From<Rc<KarmaFreeRevival>> for Event {
     fn from(e: Rc<KarmaFreeRevival>) -> Self {
-        GameEvent::KarmaFreeRevival(e)
+        Event::KarmaFreeRevival(e)
     }
 }
 
-impl From<Rc<KarmaHandSwap>> for GameEvent {
+impl From<Rc<KarmaHandSwap>> for Event {
     fn from(e: Rc<KarmaHandSwap>) -> Self {
-        GameEvent::KarmaHandSwap(e)
+        Event::KarmaHandSwap(e)
     }
 }
 
-impl From<Rc<KarmaHandSwapInitiated>> for GameEvent {
+impl From<Rc<KarmaHandSwapInitiated>> for Event {
     fn from(e: Rc<KarmaHandSwapInitiated>) -> Self {
-        GameEvent::KarmaHandSwapInitiated(e)
+        Event::KarmaHandSwapInitiated(e)
     }
 }
 
-impl From<Rc<KarmaHmsMovement>> for GameEvent {
+impl From<Rc<KarmaHmsMovement>> for Event {
     fn from(e: Rc<KarmaHmsMovement>) -> Self {
-        GameEvent::KarmaHmsMovement(e)
+        Event::KarmaHmsMovement(e)
     }
 }
 
-impl From<Rc<KarmaMonster>> for GameEvent {
+impl From<Rc<KarmaMonster>> for Event {
     fn from(e: Rc<KarmaMonster>) -> Self {
-        GameEvent::KarmaMonster(e)
+        Event::KarmaMonster(e)
     }
 }
 
-impl From<Rc<KarmaPrescience>> for GameEvent {
+impl From<Rc<KarmaPrescience>> for Event {
     fn from(e: Rc<KarmaPrescience>) -> Self {
-        GameEvent::KarmaPrescience(e)
+        Event::KarmaPrescience(e)
     }
 }
 
-impl From<Rc<KarmaRevivalPrevention>> for GameEvent {
+impl From<Rc<KarmaRevivalPrevention>> for Event {
     fn from(e: Rc<KarmaRevivalPrevention>) -> Self {
-        GameEvent::KarmaRevivalPrevention(e)
+        Event::KarmaRevivalPrevention(e)
     }
 }
 
-impl From<Rc<KarmaRicheseBuy>> for GameEvent {
+impl From<Rc<KarmaRicheseBuy>> for Event {
     fn from(e: Rc<KarmaRicheseBuy>) -> Self {
-        GameEvent::KarmaRicheseBuy(e)
+        Event::KarmaRicheseBuy(e)
     }
 }
 
-impl From<Rc<KarmaShipmentPrevention>> for GameEvent {
+impl From<Rc<KarmaShipmentPrevention>> for Event {
     fn from(e: Rc<KarmaShipmentPrevention>) -> Self {
-        GameEvent::KarmaShipmentPrevention(e)
+        Event::KarmaShipmentPrevention(e)
     }
 }
 
-impl From<Rc<LoserConcluded>> for GameEvent {
+impl From<Rc<LoserConcluded>> for Event {
     fn from(e: Rc<LoserConcluded>) -> Self {
-        GameEvent::LoserConcluded(e)
+        Event::LoserConcluded(e)
     }
 }
 
-impl From<Rc<MetheorPlayed>> for GameEvent {
+impl From<Rc<MetheorPlayed>> for Event {
     fn from(e: Rc<MetheorPlayed>) -> Self {
-        GameEvent::MetheorPlayed(e)
+        Event::MetheorPlayed(e)
     }
 }
 
-impl From<Rc<Move>> for GameEvent {
+impl From<Rc<Move>> for Event {
     fn from(e: Rc<Move>) -> Self {
-        GameEvent::Move(e)
+        Event::Move(e)
     }
 }
 
-impl From<Rc<MulliganPerformed>> for GameEvent {
+impl From<Rc<MulliganPerformed>> for Event {
     fn from(e: Rc<MulliganPerformed>) -> Self {
-        GameEvent::MulliganPerformed(e)
+        Event::MulliganPerformed(e)
     }
 }
 
-impl From<Rc<NexusCardDrawn>> for GameEvent {
+impl From<Rc<NexusCardDrawn>> for Event {
     fn from(e: Rc<NexusCardDrawn>) -> Self {
-        GameEvent::NexusCardDrawn(e)
+        Event::NexusCardDrawn(e)
     }
 }
 
-impl From<Rc<NexusPlayed>> for GameEvent {
+impl From<Rc<NexusPlayed>> for Event {
     fn from(e: Rc<NexusPlayed>) -> Self {
-        GameEvent::NexusPlayed(e)
+        Event::NexusPlayed(e)
     }
 }
 
-impl From<Rc<NexusVoted>> for GameEvent {
+impl From<Rc<NexusVoted>> for Event {
     fn from(e: Rc<NexusVoted>) -> Self {
-        GameEvent::NexusVoted(e)
+        Event::NexusVoted(e)
     }
 }
 
-impl From<Rc<PerformBeneGesseritPlacement>> for GameEvent {
+impl From<Rc<PerformBeneGesseritPlacement>> for Event {
     fn from(e: Rc<PerformBeneGesseritPlacement>) -> Self {
-        GameEvent::PerformBeneGesseritPlacement(e)
+        Event::PerformBeneGesseritPlacement(e)
     }
 }
 
-impl From<Rc<PerformFremenSetup>> for GameEvent {
+impl From<Rc<PerformFremenSetup>> for Event {
     fn from(e: Rc<PerformFremenSetup>) -> Self {
-        GameEvent::PerformFremenSetup(e)
+        Event::PerformFremenSetup(e)
     }
 }
 
-impl From<Rc<PerformHmsMovement>> for GameEvent {
+impl From<Rc<PerformHmsMovement>> for Event {
     fn from(e: Rc<PerformHmsMovement>) -> Self {
-        GameEvent::PerformHmsMovement(e)
+        Event::PerformHmsMovement(e)
     }
 }
 
-impl From<Rc<PerformHmsPlacement>> for GameEvent {
+impl From<Rc<PerformHmsPlacement>> for Event {
     fn from(e: Rc<PerformHmsPlacement>) -> Self {
-        GameEvent::PerformHmsPlacement(e)
+        Event::PerformHmsPlacement(e)
     }
 }
 
-impl From<Rc<PerformMoritaniSetup>> for GameEvent {
+impl From<Rc<PerformMoritaniSetup>> for Event {
     fn from(e: Rc<PerformMoritaniSetup>) -> Self {
-        GameEvent::PerformMoritaniSetup(e)
+        Event::PerformMoritaniSetup(e)
     }
 }
 
-impl From<Rc<PerformSetup>> for GameEvent {
+impl From<Rc<PerformSetup>> for Event {
     fn from(e: Rc<PerformSetup>) -> Self {
-        GameEvent::PerformSetup(e)
+        Event::PerformSetup(e)
     }
 }
 
-impl From<Rc<Planetology>> for GameEvent {
+impl From<Rc<Planetology>> for Event {
     fn from(e: Rc<Planetology>) -> Self {
-        GameEvent::Planetology(e)
+        Event::Planetology(e)
     }
 }
 
-impl From<Rc<PlayerReplaced>> for GameEvent {
+impl From<Rc<PlayerReplaced>> for Event {
     fn from(e: Rc<PlayerReplaced>) -> Self {
-        GameEvent::PlayerReplaced(e)
+        Event::PlayerReplaced(e)
     }
 }
 
-impl From<Rc<PoisonToothCancelled>> for GameEvent {
+impl From<Rc<PoisonToothCancelled>> for Event {
     fn from(e: Rc<PoisonToothCancelled>) -> Self {
-        GameEvent::PoisonToothCancelled(e)
+        Event::PoisonToothCancelled(e)
     }
 }
 
-impl From<Rc<PortableAntidoteUsed>> for GameEvent {
+impl From<Rc<PortableAntidoteUsed>> for Event {
     fn from(e: Rc<PortableAntidoteUsed>) -> Self {
-        GameEvent::PortableAntidoteUsed(e)
+        Event::PortableAntidoteUsed(e)
     }
 }
 
-impl From<Rc<Prescience>> for GameEvent {
+impl From<Rc<Prescience>> for Event {
     fn from(e: Rc<Prescience>) -> Self {
-        GameEvent::Prescience(e)
+        Event::Prescience(e)
     }
 }
 
-impl From<Rc<RaiseDeadPlayed>> for GameEvent {
+impl From<Rc<RaiseDeadPlayed>> for Event {
     fn from(e: Rc<RaiseDeadPlayed>) -> Self {
-        GameEvent::RaiseDeadPlayed(e)
+        Event::RaiseDeadPlayed(e)
     }
 }
 
-impl From<Rc<RecruitsPlayed>> for GameEvent {
+impl From<Rc<RecruitsPlayed>> for Event {
     fn from(e: Rc<RecruitsPlayed>) -> Self {
-        GameEvent::RecruitsPlayed(e)
+        Event::RecruitsPlayed(e)
     }
 }
 
-impl From<Rc<ReplacedCardWon>> for GameEvent {
+impl From<Rc<ReplacedCardWon>> for Event {
     fn from(e: Rc<ReplacedCardWon>) -> Self {
-        GameEvent::ReplacedCardWon(e)
+        Event::ReplacedCardWon(e)
     }
 }
 
-impl From<Rc<RequestTleilaxuRevival>> for GameEvent {
+impl From<Rc<RequestTleilaxuRevival>> for Event {
     fn from(e: Rc<RequestTleilaxuRevival>) -> Self {
-        GameEvent::RequestTleilaxuRevival(e)
+        Event::RequestTleilaxuRevival(e)
     }
 }
 
-impl From<Rc<ResidualPlayed>> for GameEvent {
+impl From<Rc<ResidualPlayed>> for Event {
     fn from(e: Rc<ResidualPlayed>) -> Self {
-        GameEvent::ResidualPlayed(e)
+        Event::ResidualPlayed(e)
     }
 }
 
-impl From<Rc<ResourcesAudited>> for GameEvent {
+impl From<Rc<ResourcesAudited>> for Event {
     fn from(e: Rc<ResourcesAudited>) -> Self {
-        GameEvent::ResourcesAudited(e)
+        Event::ResourcesAudited(e)
     }
 }
 
-impl From<Rc<ResourcesTransferred>> for GameEvent {
+impl From<Rc<ResourcesTransferred>> for Event {
     fn from(e: Rc<ResourcesTransferred>) -> Self {
-        GameEvent::ResourcesTransferred(e)
+        Event::ResourcesTransferred(e)
     }
 }
 
-impl From<Rc<Retreat>> for GameEvent {
+impl From<Rc<Retreat>> for Event {
     fn from(e: Rc<Retreat>) -> Self {
-        GameEvent::Retreat(e)
+        Event::Retreat(e)
     }
 }
 
-impl From<Rc<Revival>> for GameEvent {
+impl From<Rc<Revival>> for Event {
     fn from(e: Rc<Revival>) -> Self {
-        GameEvent::Revival(e)
+        Event::Revival(e)
     }
 }
 
-impl From<Rc<RicheseAnnouncesAuction>> for GameEvent {
+impl From<Rc<RicheseAnnouncesAuction>> for Event {
     fn from(e: Rc<RicheseAnnouncesAuction>) -> Self {
-        GameEvent::RicheseAnnouncesAuction(e)
+        Event::RicheseAnnouncesAuction(e)
     }
 }
 
-impl From<Rc<RicheseAnnouncesBlackMarket>> for GameEvent {
+impl From<Rc<RicheseAnnouncesBlackMarket>> for Event {
     fn from(e: Rc<RicheseAnnouncesBlackMarket>) -> Self {
-        GameEvent::RicheseAnnouncesBlackMarket(e)
+        Event::RicheseAnnouncesBlackMarket(e)
     }
 }
 
-impl From<Rc<RicheseGaveCard>> for GameEvent {
+impl From<Rc<RicheseGaveCard>> for Event {
     fn from(e: Rc<RicheseGaveCard>) -> Self {
-        GameEvent::RicheseGaveCard(e)
+        Event::RicheseGaveCard(e)
     }
 }
 
-impl From<Rc<RicheseKeepsUnsoldCard>> for GameEvent {
+impl From<Rc<RicheseKeepsUnsoldCard>> for Event {
     fn from(e: Rc<RicheseKeepsUnsoldCard>) -> Self {
-        GameEvent::RicheseKeepsUnsoldCard(e)
+        Event::RicheseKeepsUnsoldCard(e)
     }
 }
 
-impl From<Rc<RicheseRevealedNoField>> for GameEvent {
+impl From<Rc<RicheseRevealedNoField>> for Event {
     fn from(e: Rc<RicheseRevealedNoField>) -> Self {
-        GameEvent::RicheseRevealedNoField(e)
+        Event::RicheseRevealedNoField(e)
     }
 }
 
-impl From<Rc<RicheseSpecifiesAuction>> for GameEvent {
+impl From<Rc<RicheseSpecifiesAuction>> for Event {
     fn from(e: Rc<RicheseSpecifiesAuction>) -> Self {
-        GameEvent::RicheseSpecifiesAuction(e)
+        Event::RicheseSpecifiesAuction(e)
     }
 }
 
-impl From<Rc<RockWasMelted>> for GameEvent {
+impl From<Rc<RockWasMelted>> for Event {
     fn from(e: Rc<RockWasMelted>) -> Self {
-        GameEvent::RockWasMelted(e)
+        Event::RockWasMelted(e)
     }
 }
 
-impl From<Rc<SetIncreasedRevivalLimits>> for GameEvent {
+impl From<Rc<SetIncreasedRevivalLimits>> for Event {
     fn from(e: Rc<SetIncreasedRevivalLimits>) -> Self {
-        GameEvent::SetIncreasedRevivalLimits(e)
+        Event::SetIncreasedRevivalLimits(e)
     }
 }
 
-impl From<Rc<SetShipmentPermission>> for GameEvent {
+impl From<Rc<SetShipmentPermission>> for Event {
     fn from(e: Rc<SetShipmentPermission>) -> Self {
-        GameEvent::SetShipmentPermission(e)
+        Event::SetShipmentPermission(e)
     }
 }
 
-impl From<Rc<Shipment>> for GameEvent {
+impl From<Rc<Shipment>> for Event {
     fn from(e: Rc<Shipment>) -> Self {
-        GameEvent::Shipment(e)
+        Event::Shipment(e)
     }
 }
 
-impl From<Rc<SkillAssigned>> for GameEvent {
+impl From<Rc<SkillAssigned>> for Event {
     fn from(e: Rc<SkillAssigned>) -> Self {
-        GameEvent::SkillAssigned(e)
+        Event::SkillAssigned(e)
     }
 }
 
-impl From<Rc<StormDialled>> for GameEvent {
+impl From<Rc<StormDialled>> for Event {
     fn from(e: Rc<StormDialled>) -> Self {
-        GameEvent::StormDialled(e)
+        Event::StormDialled(e)
     }
 }
 
-impl From<Rc<StormSpellPlayed>> for GameEvent {
+impl From<Rc<StormSpellPlayed>> for Event {
     fn from(e: Rc<StormSpellPlayed>) -> Self {
-        GameEvent::StormSpellPlayed(e)
+        Event::StormSpellPlayed(e)
     }
 }
 
-impl From<Rc<SwitchedSkilledLeader>> for GameEvent {
+impl From<Rc<SwitchedSkilledLeader>> for Event {
     fn from(e: Rc<SwitchedSkilledLeader>) -> Self {
-        GameEvent::SwitchedSkilledLeader(e)
+        Event::SwitchedSkilledLeader(e)
     }
 }
 
-impl From<Rc<TakeLosses>> for GameEvent {
+impl From<Rc<TakeLosses>> for Event {
     fn from(e: Rc<TakeLosses>) -> Self {
-        GameEvent::TakeLosses(e)
+        Event::TakeLosses(e)
     }
 }
 
-impl From<Rc<TerrorPlanted>> for GameEvent {
+impl From<Rc<TerrorPlanted>> for Event {
     fn from(e: Rc<TerrorPlanted>) -> Self {
-        GameEvent::TerrorPlanted(e)
+        Event::TerrorPlanted(e)
     }
 }
 
-impl From<Rc<TerrorRevealed>> for GameEvent {
+impl From<Rc<TerrorRevealed>> for Event {
     fn from(e: Rc<TerrorRevealed>) -> Self {
-        GameEvent::TerrorRevealed(e)
+        Event::TerrorRevealed(e)
     }
 }
 
-impl From<Rc<TestingStationUsed>> for GameEvent {
+impl From<Rc<TestingStationUsed>> for Event {
     fn from(e: Rc<TestingStationUsed>) -> Self {
-        GameEvent::TestingStationUsed(e)
+        Event::TestingStationUsed(e)
     }
 }
 
-impl From<Rc<Thought>> for GameEvent {
+impl From<Rc<Thought>> for Event {
     fn from(e: Rc<Thought>) -> Self {
-        GameEvent::Thought(e)
+        Event::Thought(e)
     }
 }
 
-impl From<Rc<ThoughtAnswered>> for GameEvent {
+impl From<Rc<ThoughtAnswered>> for Event {
     fn from(e: Rc<ThoughtAnswered>) -> Self {
-        GameEvent::ThoughtAnswered(e)
+        Event::ThoughtAnswered(e)
     }
 }
 
-impl From<Rc<ThumperPlayed>> for GameEvent {
+impl From<Rc<ThumperPlayed>> for Event {
     fn from(e: Rc<ThumperPlayed>) -> Self {
-        GameEvent::ThumperPlayed(e)
+        Event::ThumperPlayed(e)
     }
 }
 
-impl From<Rc<TraitorDiscarded>> for GameEvent {
+impl From<Rc<TraitorDiscarded>> for Event {
     fn from(e: Rc<TraitorDiscarded>) -> Self {
-        GameEvent::TraitorDiscarded(e)
+        Event::TraitorDiscarded(e)
     }
 }
 
-impl From<Rc<TraitorsSelected>> for GameEvent {
+impl From<Rc<TraitorsSelected>> for Event {
     fn from(e: Rc<TraitorsSelected>) -> Self {
-        GameEvent::TraitorsSelected(e)
+        Event::TraitorsSelected(e)
     }
 }
 
-impl From<Rc<TreacheryCalled>> for GameEvent {
+impl From<Rc<TreacheryCalled>> for Event {
     fn from(e: Rc<TreacheryCalled>) -> Self {
-        GameEvent::TreacheryCalled(e)
+        Event::TreacheryCalled(e)
     }
 }
 
-impl From<Rc<Voice>> for GameEvent {
+impl From<Rc<Voice>> for Event {
     fn from(e: Rc<Voice>) -> Self {
-        GameEvent::Voice(e)
+        Event::Voice(e)
     }
 }
 
-impl From<Rc<VoiceDeclined>> for GameEvent {
+impl From<Rc<VoiceDeclined>> for Event {
     fn from(e: Rc<VoiceDeclined>) -> Self {
-        GameEvent::VoiceDeclined(e)
+        Event::VoiceDeclined(e)
     }
 }
 
 /// The type of a concrete event (`GetType()`, `typeof(X)`).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
-pub enum GameEventType {
+pub enum EventType {
     AcceptOrCancelTleilaxuRevival,
     AllianceBroken,
     AllianceByAmbassador,
@@ -1332,615 +1332,615 @@ pub enum GameEventType {
     VoiceDeclined,
 }
 
-impl GameEventType {
-    pub const ALL: &'static [GameEventType] = &[
-        GameEventType::AcceptOrCancelTleilaxuRevival,
-        GameEventType::AllianceBroken,
-        GameEventType::AllianceByAmbassador,
-        GameEventType::AllianceByTerror,
-        GameEventType::AllianceOffered,
-        GameEventType::AlliancePassed,
-        GameEventType::AllyPermission,
-        GameEventType::AmalPlayed,
-        GameEventType::AmbassadorActivated,
-        GameEventType::AmbassadorPlaced,
-        GameEventType::AuditCancelled,
-        GameEventType::Audited,
-        GameEventType::AutomationConfigured,
-        GameEventType::Battle,
-        GameEventType::BattleClaimed,
-        GameEventType::BattleConcluded,
-        GameEventType::BattleInitiated,
-        GameEventType::BattleRevision,
-        GameEventType::BeneGesseritAccompanies,
-        GameEventType::BeneGesseritBattleAnnouncement,
-        GameEventType::BeneGesseritFlip,
-        GameEventType::BeneGesseritPrediction,
-        GameEventType::Bid,
-        GameEventType::BlackMarketBid,
-        GameEventType::Bureaucracy,
-        GameEventType::Captured,
-        GameEventType::Caravan,
-        GameEventType::CardGiven,
-        GameEventType::CardTraded,
-        GameEventType::CardsDetermined,
-        GameEventType::CharityClaimed,
-        GameEventType::ChoamDiscarded,
-        GameEventType::ChoamEconomics,
-        GameEventType::ChoamExtraMove,
-        GameEventType::ChoamFreeRevivalPrevention,
-        GameEventType::ChoamKarmaPrevention,
-        GameEventType::ChoamMovePrevention,
-        GameEventType::ChoamRemoveForce,
-        GameEventType::ClairVoyanceAnswered,
-        GameEventType::ClairVoyancePlayed,
-        GameEventType::DealAccepted,
-        GameEventType::DealOffered,
-        GameEventType::DealRejected,
-        GameEventType::Diplomacy,
-        GameEventType::Discarded,
-        GameEventType::DiscardedSearched,
-        GameEventType::DiscardedSearchedAnnounced,
-        GameEventType::DiscardedTaken,
-        GameEventType::DiscoveryEntered,
-        GameEventType::DiscoveryRevealed,
-        GameEventType::DistransUsed,
-        GameEventType::DivideResources,
-        GameEventType::DivideResourcesAccepted,
-        GameEventType::Donated,
-        GameEventType::EmperorBidSupport,
-        GameEventType::EmperorDiscarded,
-        GameEventType::EndPhase,
-        GameEventType::EstablishPlayers,
-        GameEventType::ExtortionPrevented,
-        GameEventType::FaceDanced,
-        GameEventType::FaceDancerReplaced,
-        GameEventType::FaceDancerRevealed,
-        GameEventType::FactionSelected,
-        GameEventType::FactionTradeOffered,
-        GameEventType::FlightDiscoveryUsed,
-        GameEventType::FlightUsed,
-        GameEventType::FremenRidesMonster,
-        GameEventType::FremenSentMonster,
-        GameEventType::GuildDelay,
-        GameEventType::HMSAdvantageChosen,
-        GameEventType::HarvesterPlayed,
-        GameEventType::HideSecrets,
-        GameEventType::IxianRemovedCardFromAuction,
-        GameEventType::IxianSelectedStartingCard,
-        GameEventType::IxianSwappedCardOnBid,
-        GameEventType::JuicePlayed,
-        GameEventType::Karma,
-        GameEventType::KarmaChoamDiscard,
-        GameEventType::KarmaEcazDial,
-        GameEventType::KarmaFreeRevival,
-        GameEventType::KarmaHandSwap,
-        GameEventType::KarmaHandSwapInitiated,
-        GameEventType::KarmaHmsMovement,
-        GameEventType::KarmaMonster,
-        GameEventType::KarmaPrescience,
-        GameEventType::KarmaRevivalPrevention,
-        GameEventType::KarmaRicheseBuy,
-        GameEventType::KarmaShipmentPrevention,
-        GameEventType::LoserConcluded,
-        GameEventType::MetheorPlayed,
-        GameEventType::Move,
-        GameEventType::MulliganPerformed,
-        GameEventType::NexusCardDrawn,
-        GameEventType::NexusPlayed,
-        GameEventType::NexusVoted,
-        GameEventType::PerformBeneGesseritPlacement,
-        GameEventType::PerformFremenSetup,
-        GameEventType::PerformHmsMovement,
-        GameEventType::PerformHmsPlacement,
-        GameEventType::PerformMoritaniSetup,
-        GameEventType::PerformSetup,
-        GameEventType::Planetology,
-        GameEventType::PlayerReplaced,
-        GameEventType::PoisonToothCancelled,
-        GameEventType::PortableAntidoteUsed,
-        GameEventType::Prescience,
-        GameEventType::RaiseDeadPlayed,
-        GameEventType::RecruitsPlayed,
-        GameEventType::ReplacedCardWon,
-        GameEventType::RequestTleilaxuRevival,
-        GameEventType::ResidualPlayed,
-        GameEventType::ResourcesAudited,
-        GameEventType::ResourcesTransferred,
-        GameEventType::Retreat,
-        GameEventType::Revival,
-        GameEventType::RicheseAnnouncesAuction,
-        GameEventType::RicheseAnnouncesBlackMarket,
-        GameEventType::RicheseGaveCard,
-        GameEventType::RicheseKeepsUnsoldCard,
-        GameEventType::RicheseRevealedNoField,
-        GameEventType::RicheseSpecifiesAuction,
-        GameEventType::RockWasMelted,
-        GameEventType::SetIncreasedRevivalLimits,
-        GameEventType::SetShipmentPermission,
-        GameEventType::Shipment,
-        GameEventType::SkillAssigned,
-        GameEventType::StormDialled,
-        GameEventType::StormSpellPlayed,
-        GameEventType::SwitchedSkilledLeader,
-        GameEventType::TakeLosses,
-        GameEventType::TerrorPlanted,
-        GameEventType::TerrorRevealed,
-        GameEventType::TestingStationUsed,
-        GameEventType::Thought,
-        GameEventType::ThoughtAnswered,
-        GameEventType::ThumperPlayed,
-        GameEventType::TraitorDiscarded,
-        GameEventType::TraitorsSelected,
-        GameEventType::TreacheryCalled,
-        GameEventType::Voice,
-        GameEventType::VoiceDeclined,
+impl EventType {
+    pub const ALL: &'static [EventType] = &[
+        EventType::AcceptOrCancelTleilaxuRevival,
+        EventType::AllianceBroken,
+        EventType::AllianceByAmbassador,
+        EventType::AllianceByTerror,
+        EventType::AllianceOffered,
+        EventType::AlliancePassed,
+        EventType::AllyPermission,
+        EventType::AmalPlayed,
+        EventType::AmbassadorActivated,
+        EventType::AmbassadorPlaced,
+        EventType::AuditCancelled,
+        EventType::Audited,
+        EventType::AutomationConfigured,
+        EventType::Battle,
+        EventType::BattleClaimed,
+        EventType::BattleConcluded,
+        EventType::BattleInitiated,
+        EventType::BattleRevision,
+        EventType::BeneGesseritAccompanies,
+        EventType::BeneGesseritBattleAnnouncement,
+        EventType::BeneGesseritFlip,
+        EventType::BeneGesseritPrediction,
+        EventType::Bid,
+        EventType::BlackMarketBid,
+        EventType::Bureaucracy,
+        EventType::Captured,
+        EventType::Caravan,
+        EventType::CardGiven,
+        EventType::CardTraded,
+        EventType::CardsDetermined,
+        EventType::CharityClaimed,
+        EventType::ChoamDiscarded,
+        EventType::ChoamEconomics,
+        EventType::ChoamExtraMove,
+        EventType::ChoamFreeRevivalPrevention,
+        EventType::ChoamKarmaPrevention,
+        EventType::ChoamMovePrevention,
+        EventType::ChoamRemoveForce,
+        EventType::ClairVoyanceAnswered,
+        EventType::ClairVoyancePlayed,
+        EventType::DealAccepted,
+        EventType::DealOffered,
+        EventType::DealRejected,
+        EventType::Diplomacy,
+        EventType::Discarded,
+        EventType::DiscardedSearched,
+        EventType::DiscardedSearchedAnnounced,
+        EventType::DiscardedTaken,
+        EventType::DiscoveryEntered,
+        EventType::DiscoveryRevealed,
+        EventType::DistransUsed,
+        EventType::DivideResources,
+        EventType::DivideResourcesAccepted,
+        EventType::Donated,
+        EventType::EmperorBidSupport,
+        EventType::EmperorDiscarded,
+        EventType::EndPhase,
+        EventType::EstablishPlayers,
+        EventType::ExtortionPrevented,
+        EventType::FaceDanced,
+        EventType::FaceDancerReplaced,
+        EventType::FaceDancerRevealed,
+        EventType::FactionSelected,
+        EventType::FactionTradeOffered,
+        EventType::FlightDiscoveryUsed,
+        EventType::FlightUsed,
+        EventType::FremenRidesMonster,
+        EventType::FremenSentMonster,
+        EventType::GuildDelay,
+        EventType::HMSAdvantageChosen,
+        EventType::HarvesterPlayed,
+        EventType::HideSecrets,
+        EventType::IxianRemovedCardFromAuction,
+        EventType::IxianSelectedStartingCard,
+        EventType::IxianSwappedCardOnBid,
+        EventType::JuicePlayed,
+        EventType::Karma,
+        EventType::KarmaChoamDiscard,
+        EventType::KarmaEcazDial,
+        EventType::KarmaFreeRevival,
+        EventType::KarmaHandSwap,
+        EventType::KarmaHandSwapInitiated,
+        EventType::KarmaHmsMovement,
+        EventType::KarmaMonster,
+        EventType::KarmaPrescience,
+        EventType::KarmaRevivalPrevention,
+        EventType::KarmaRicheseBuy,
+        EventType::KarmaShipmentPrevention,
+        EventType::LoserConcluded,
+        EventType::MetheorPlayed,
+        EventType::Move,
+        EventType::MulliganPerformed,
+        EventType::NexusCardDrawn,
+        EventType::NexusPlayed,
+        EventType::NexusVoted,
+        EventType::PerformBeneGesseritPlacement,
+        EventType::PerformFremenSetup,
+        EventType::PerformHmsMovement,
+        EventType::PerformHmsPlacement,
+        EventType::PerformMoritaniSetup,
+        EventType::PerformSetup,
+        EventType::Planetology,
+        EventType::PlayerReplaced,
+        EventType::PoisonToothCancelled,
+        EventType::PortableAntidoteUsed,
+        EventType::Prescience,
+        EventType::RaiseDeadPlayed,
+        EventType::RecruitsPlayed,
+        EventType::ReplacedCardWon,
+        EventType::RequestTleilaxuRevival,
+        EventType::ResidualPlayed,
+        EventType::ResourcesAudited,
+        EventType::ResourcesTransferred,
+        EventType::Retreat,
+        EventType::Revival,
+        EventType::RicheseAnnouncesAuction,
+        EventType::RicheseAnnouncesBlackMarket,
+        EventType::RicheseGaveCard,
+        EventType::RicheseKeepsUnsoldCard,
+        EventType::RicheseRevealedNoField,
+        EventType::RicheseSpecifiesAuction,
+        EventType::RockWasMelted,
+        EventType::SetIncreasedRevivalLimits,
+        EventType::SetShipmentPermission,
+        EventType::Shipment,
+        EventType::SkillAssigned,
+        EventType::StormDialled,
+        EventType::StormSpellPlayed,
+        EventType::SwitchedSkilledLeader,
+        EventType::TakeLosses,
+        EventType::TerrorPlanted,
+        EventType::TerrorRevealed,
+        EventType::TestingStationUsed,
+        EventType::Thought,
+        EventType::ThoughtAnswered,
+        EventType::ThumperPlayed,
+        EventType::TraitorDiscarded,
+        EventType::TraitorsSelected,
+        EventType::TreacheryCalled,
+        EventType::Voice,
+        EventType::VoiceDeclined,
     ];
 
     pub fn name(self) -> &'static str {
         match self {
-            GameEventType::AcceptOrCancelTleilaxuRevival => "AcceptOrCancelTleilaxuRevival",
-            GameEventType::AllianceBroken => "AllianceBroken",
-            GameEventType::AllianceByAmbassador => "AllianceByAmbassador",
-            GameEventType::AllianceByTerror => "AllianceByTerror",
-            GameEventType::AllianceOffered => "AllianceOffered",
-            GameEventType::AlliancePassed => "AlliancePassed",
-            GameEventType::AllyPermission => "AllyPermission",
-            GameEventType::AmalPlayed => "AmalPlayed",
-            GameEventType::AmbassadorActivated => "AmbassadorActivated",
-            GameEventType::AmbassadorPlaced => "AmbassadorPlaced",
-            GameEventType::AuditCancelled => "AuditCancelled",
-            GameEventType::Audited => "Audited",
-            GameEventType::AutomationConfigured => "AutomationConfigured",
-            GameEventType::Battle => "Battle",
-            GameEventType::BattleClaimed => "BattleClaimed",
-            GameEventType::BattleConcluded => "BattleConcluded",
-            GameEventType::BattleInitiated => "BattleInitiated",
-            GameEventType::BattleRevision => "BattleRevision",
-            GameEventType::BeneGesseritAccompanies => "BeneGesseritAccompanies",
-            GameEventType::BeneGesseritBattleAnnouncement => "BeneGesseritBattleAnnouncement",
-            GameEventType::BeneGesseritFlip => "BeneGesseritFlip",
-            GameEventType::BeneGesseritPrediction => "BeneGesseritPrediction",
-            GameEventType::Bid => "Bid",
-            GameEventType::BlackMarketBid => "BlackMarketBid",
-            GameEventType::Bureaucracy => "Bureaucracy",
-            GameEventType::Captured => "Captured",
-            GameEventType::Caravan => "Caravan",
-            GameEventType::CardGiven => "CardGiven",
-            GameEventType::CardTraded => "CardTraded",
-            GameEventType::CardsDetermined => "CardsDetermined",
-            GameEventType::CharityClaimed => "CharityClaimed",
-            GameEventType::ChoamDiscarded => "ChoamDiscarded",
-            GameEventType::ChoamEconomics => "ChoamEconomics",
-            GameEventType::ChoamExtraMove => "ChoamExtraMove",
-            GameEventType::ChoamFreeRevivalPrevention => "ChoamFreeRevivalPrevention",
-            GameEventType::ChoamKarmaPrevention => "ChoamKarmaPrevention",
-            GameEventType::ChoamMovePrevention => "ChoamMovePrevention",
-            GameEventType::ChoamRemoveForce => "ChoamRemoveForce",
-            GameEventType::ClairVoyanceAnswered => "ClairVoyanceAnswered",
-            GameEventType::ClairVoyancePlayed => "ClairVoyancePlayed",
-            GameEventType::DealAccepted => "DealAccepted",
-            GameEventType::DealOffered => "DealOffered",
-            GameEventType::DealRejected => "DealRejected",
-            GameEventType::Diplomacy => "Diplomacy",
-            GameEventType::Discarded => "Discarded",
-            GameEventType::DiscardedSearched => "DiscardedSearched",
-            GameEventType::DiscardedSearchedAnnounced => "DiscardedSearchedAnnounced",
-            GameEventType::DiscardedTaken => "DiscardedTaken",
-            GameEventType::DiscoveryEntered => "DiscoveryEntered",
-            GameEventType::DiscoveryRevealed => "DiscoveryRevealed",
-            GameEventType::DistransUsed => "DistransUsed",
-            GameEventType::DivideResources => "DivideResources",
-            GameEventType::DivideResourcesAccepted => "DivideResourcesAccepted",
-            GameEventType::Donated => "Donated",
-            GameEventType::EmperorBidSupport => "EmperorBidSupport",
-            GameEventType::EmperorDiscarded => "EmperorDiscarded",
-            GameEventType::EndPhase => "EndPhase",
-            GameEventType::EstablishPlayers => "EstablishPlayers",
-            GameEventType::ExtortionPrevented => "ExtortionPrevented",
-            GameEventType::FaceDanced => "FaceDanced",
-            GameEventType::FaceDancerReplaced => "FaceDancerReplaced",
-            GameEventType::FaceDancerRevealed => "FaceDancerRevealed",
-            GameEventType::FactionSelected => "FactionSelected",
-            GameEventType::FactionTradeOffered => "FactionTradeOffered",
-            GameEventType::FlightDiscoveryUsed => "FlightDiscoveryUsed",
-            GameEventType::FlightUsed => "FlightUsed",
-            GameEventType::FremenRidesMonster => "FremenRidesMonster",
-            GameEventType::FremenSentMonster => "FremenSentMonster",
-            GameEventType::GuildDelay => "GuildDelay",
-            GameEventType::HMSAdvantageChosen => "HMSAdvantageChosen",
-            GameEventType::HarvesterPlayed => "HarvesterPlayed",
-            GameEventType::HideSecrets => "HideSecrets",
-            GameEventType::IxianRemovedCardFromAuction => "IxianRemovedCardFromAuction",
-            GameEventType::IxianSelectedStartingCard => "IxianSelectedStartingCard",
-            GameEventType::IxianSwappedCardOnBid => "IxianSwappedCardOnBid",
-            GameEventType::JuicePlayed => "JuicePlayed",
-            GameEventType::Karma => "Karma",
-            GameEventType::KarmaChoamDiscard => "KarmaChoamDiscard",
-            GameEventType::KarmaEcazDial => "KarmaEcazDial",
-            GameEventType::KarmaFreeRevival => "KarmaFreeRevival",
-            GameEventType::KarmaHandSwap => "KarmaHandSwap",
-            GameEventType::KarmaHandSwapInitiated => "KarmaHandSwapInitiated",
-            GameEventType::KarmaHmsMovement => "KarmaHmsMovement",
-            GameEventType::KarmaMonster => "KarmaMonster",
-            GameEventType::KarmaPrescience => "KarmaPrescience",
-            GameEventType::KarmaRevivalPrevention => "KarmaRevivalPrevention",
-            GameEventType::KarmaRicheseBuy => "KarmaRicheseBuy",
-            GameEventType::KarmaShipmentPrevention => "KarmaShipmentPrevention",
-            GameEventType::LoserConcluded => "LoserConcluded",
-            GameEventType::MetheorPlayed => "MetheorPlayed",
-            GameEventType::Move => "Move",
-            GameEventType::MulliganPerformed => "MulliganPerformed",
-            GameEventType::NexusCardDrawn => "NexusCardDrawn",
-            GameEventType::NexusPlayed => "NexusPlayed",
-            GameEventType::NexusVoted => "NexusVoted",
-            GameEventType::PerformBeneGesseritPlacement => "PerformBeneGesseritPlacement",
-            GameEventType::PerformFremenSetup => "PerformFremenSetup",
-            GameEventType::PerformHmsMovement => "PerformHmsMovement",
-            GameEventType::PerformHmsPlacement => "PerformHmsPlacement",
-            GameEventType::PerformMoritaniSetup => "PerformMoritaniSetup",
-            GameEventType::PerformSetup => "PerformSetup",
-            GameEventType::Planetology => "Planetology",
-            GameEventType::PlayerReplaced => "PlayerReplaced",
-            GameEventType::PoisonToothCancelled => "PoisonToothCancelled",
-            GameEventType::PortableAntidoteUsed => "PortableAntidoteUsed",
-            GameEventType::Prescience => "Prescience",
-            GameEventType::RaiseDeadPlayed => "RaiseDeadPlayed",
-            GameEventType::RecruitsPlayed => "RecruitsPlayed",
-            GameEventType::ReplacedCardWon => "ReplacedCardWon",
-            GameEventType::RequestTleilaxuRevival => "RequestTleilaxuRevival",
-            GameEventType::ResidualPlayed => "ResidualPlayed",
-            GameEventType::ResourcesAudited => "ResourcesAudited",
-            GameEventType::ResourcesTransferred => "ResourcesTransferred",
-            GameEventType::Retreat => "Retreat",
-            GameEventType::Revival => "Revival",
-            GameEventType::RicheseAnnouncesAuction => "RicheseAnnouncesAuction",
-            GameEventType::RicheseAnnouncesBlackMarket => "RicheseAnnouncesBlackMarket",
-            GameEventType::RicheseGaveCard => "RicheseGaveCard",
-            GameEventType::RicheseKeepsUnsoldCard => "RicheseKeepsUnsoldCard",
-            GameEventType::RicheseRevealedNoField => "RicheseRevealedNoField",
-            GameEventType::RicheseSpecifiesAuction => "RicheseSpecifiesAuction",
-            GameEventType::RockWasMelted => "RockWasMelted",
-            GameEventType::SetIncreasedRevivalLimits => "SetIncreasedRevivalLimits",
-            GameEventType::SetShipmentPermission => "SetShipmentPermission",
-            GameEventType::Shipment => "Shipment",
-            GameEventType::SkillAssigned => "SkillAssigned",
-            GameEventType::StormDialled => "StormDialled",
-            GameEventType::StormSpellPlayed => "StormSpellPlayed",
-            GameEventType::SwitchedSkilledLeader => "SwitchedSkilledLeader",
-            GameEventType::TakeLosses => "TakeLosses",
-            GameEventType::TerrorPlanted => "TerrorPlanted",
-            GameEventType::TerrorRevealed => "TerrorRevealed",
-            GameEventType::TestingStationUsed => "TestingStationUsed",
-            GameEventType::Thought => "Thought",
-            GameEventType::ThoughtAnswered => "ThoughtAnswered",
-            GameEventType::ThumperPlayed => "ThumperPlayed",
-            GameEventType::TraitorDiscarded => "TraitorDiscarded",
-            GameEventType::TraitorsSelected => "TraitorsSelected",
-            GameEventType::TreacheryCalled => "TreacheryCalled",
-            GameEventType::Voice => "Voice",
-            GameEventType::VoiceDeclined => "VoiceDeclined",
+            EventType::AcceptOrCancelTleilaxuRevival => "AcceptOrCancelTleilaxuRevival",
+            EventType::AllianceBroken => "AllianceBroken",
+            EventType::AllianceByAmbassador => "AllianceByAmbassador",
+            EventType::AllianceByTerror => "AllianceByTerror",
+            EventType::AllianceOffered => "AllianceOffered",
+            EventType::AlliancePassed => "AlliancePassed",
+            EventType::AllyPermission => "AllyPermission",
+            EventType::AmalPlayed => "AmalPlayed",
+            EventType::AmbassadorActivated => "AmbassadorActivated",
+            EventType::AmbassadorPlaced => "AmbassadorPlaced",
+            EventType::AuditCancelled => "AuditCancelled",
+            EventType::Audited => "Audited",
+            EventType::AutomationConfigured => "AutomationConfigured",
+            EventType::Battle => "Battle",
+            EventType::BattleClaimed => "BattleClaimed",
+            EventType::BattleConcluded => "BattleConcluded",
+            EventType::BattleInitiated => "BattleInitiated",
+            EventType::BattleRevision => "BattleRevision",
+            EventType::BeneGesseritAccompanies => "BeneGesseritAccompanies",
+            EventType::BeneGesseritBattleAnnouncement => "BeneGesseritBattleAnnouncement",
+            EventType::BeneGesseritFlip => "BeneGesseritFlip",
+            EventType::BeneGesseritPrediction => "BeneGesseritPrediction",
+            EventType::Bid => "Bid",
+            EventType::BlackMarketBid => "BlackMarketBid",
+            EventType::Bureaucracy => "Bureaucracy",
+            EventType::Captured => "Captured",
+            EventType::Caravan => "Caravan",
+            EventType::CardGiven => "CardGiven",
+            EventType::CardTraded => "CardTraded",
+            EventType::CardsDetermined => "CardsDetermined",
+            EventType::CharityClaimed => "CharityClaimed",
+            EventType::ChoamDiscarded => "ChoamDiscarded",
+            EventType::ChoamEconomics => "ChoamEconomics",
+            EventType::ChoamExtraMove => "ChoamExtraMove",
+            EventType::ChoamFreeRevivalPrevention => "ChoamFreeRevivalPrevention",
+            EventType::ChoamKarmaPrevention => "ChoamKarmaPrevention",
+            EventType::ChoamMovePrevention => "ChoamMovePrevention",
+            EventType::ChoamRemoveForce => "ChoamRemoveForce",
+            EventType::ClairVoyanceAnswered => "ClairVoyanceAnswered",
+            EventType::ClairVoyancePlayed => "ClairVoyancePlayed",
+            EventType::DealAccepted => "DealAccepted",
+            EventType::DealOffered => "DealOffered",
+            EventType::DealRejected => "DealRejected",
+            EventType::Diplomacy => "Diplomacy",
+            EventType::Discarded => "Discarded",
+            EventType::DiscardedSearched => "DiscardedSearched",
+            EventType::DiscardedSearchedAnnounced => "DiscardedSearchedAnnounced",
+            EventType::DiscardedTaken => "DiscardedTaken",
+            EventType::DiscoveryEntered => "DiscoveryEntered",
+            EventType::DiscoveryRevealed => "DiscoveryRevealed",
+            EventType::DistransUsed => "DistransUsed",
+            EventType::DivideResources => "DivideResources",
+            EventType::DivideResourcesAccepted => "DivideResourcesAccepted",
+            EventType::Donated => "Donated",
+            EventType::EmperorBidSupport => "EmperorBidSupport",
+            EventType::EmperorDiscarded => "EmperorDiscarded",
+            EventType::EndPhase => "EndPhase",
+            EventType::EstablishPlayers => "EstablishPlayers",
+            EventType::ExtortionPrevented => "ExtortionPrevented",
+            EventType::FaceDanced => "FaceDanced",
+            EventType::FaceDancerReplaced => "FaceDancerReplaced",
+            EventType::FaceDancerRevealed => "FaceDancerRevealed",
+            EventType::FactionSelected => "FactionSelected",
+            EventType::FactionTradeOffered => "FactionTradeOffered",
+            EventType::FlightDiscoveryUsed => "FlightDiscoveryUsed",
+            EventType::FlightUsed => "FlightUsed",
+            EventType::FremenRidesMonster => "FremenRidesMonster",
+            EventType::FremenSentMonster => "FremenSentMonster",
+            EventType::GuildDelay => "GuildDelay",
+            EventType::HMSAdvantageChosen => "HMSAdvantageChosen",
+            EventType::HarvesterPlayed => "HarvesterPlayed",
+            EventType::HideSecrets => "HideSecrets",
+            EventType::IxianRemovedCardFromAuction => "IxianRemovedCardFromAuction",
+            EventType::IxianSelectedStartingCard => "IxianSelectedStartingCard",
+            EventType::IxianSwappedCardOnBid => "IxianSwappedCardOnBid",
+            EventType::JuicePlayed => "JuicePlayed",
+            EventType::Karma => "Karma",
+            EventType::KarmaChoamDiscard => "KarmaChoamDiscard",
+            EventType::KarmaEcazDial => "KarmaEcazDial",
+            EventType::KarmaFreeRevival => "KarmaFreeRevival",
+            EventType::KarmaHandSwap => "KarmaHandSwap",
+            EventType::KarmaHandSwapInitiated => "KarmaHandSwapInitiated",
+            EventType::KarmaHmsMovement => "KarmaHmsMovement",
+            EventType::KarmaMonster => "KarmaMonster",
+            EventType::KarmaPrescience => "KarmaPrescience",
+            EventType::KarmaRevivalPrevention => "KarmaRevivalPrevention",
+            EventType::KarmaRicheseBuy => "KarmaRicheseBuy",
+            EventType::KarmaShipmentPrevention => "KarmaShipmentPrevention",
+            EventType::LoserConcluded => "LoserConcluded",
+            EventType::MetheorPlayed => "MetheorPlayed",
+            EventType::Move => "Move",
+            EventType::MulliganPerformed => "MulliganPerformed",
+            EventType::NexusCardDrawn => "NexusCardDrawn",
+            EventType::NexusPlayed => "NexusPlayed",
+            EventType::NexusVoted => "NexusVoted",
+            EventType::PerformBeneGesseritPlacement => "PerformBeneGesseritPlacement",
+            EventType::PerformFremenSetup => "PerformFremenSetup",
+            EventType::PerformHmsMovement => "PerformHmsMovement",
+            EventType::PerformHmsPlacement => "PerformHmsPlacement",
+            EventType::PerformMoritaniSetup => "PerformMoritaniSetup",
+            EventType::PerformSetup => "PerformSetup",
+            EventType::Planetology => "Planetology",
+            EventType::PlayerReplaced => "PlayerReplaced",
+            EventType::PoisonToothCancelled => "PoisonToothCancelled",
+            EventType::PortableAntidoteUsed => "PortableAntidoteUsed",
+            EventType::Prescience => "Prescience",
+            EventType::RaiseDeadPlayed => "RaiseDeadPlayed",
+            EventType::RecruitsPlayed => "RecruitsPlayed",
+            EventType::ReplacedCardWon => "ReplacedCardWon",
+            EventType::RequestTleilaxuRevival => "RequestTleilaxuRevival",
+            EventType::ResidualPlayed => "ResidualPlayed",
+            EventType::ResourcesAudited => "ResourcesAudited",
+            EventType::ResourcesTransferred => "ResourcesTransferred",
+            EventType::Retreat => "Retreat",
+            EventType::Revival => "Revival",
+            EventType::RicheseAnnouncesAuction => "RicheseAnnouncesAuction",
+            EventType::RicheseAnnouncesBlackMarket => "RicheseAnnouncesBlackMarket",
+            EventType::RicheseGaveCard => "RicheseGaveCard",
+            EventType::RicheseKeepsUnsoldCard => "RicheseKeepsUnsoldCard",
+            EventType::RicheseRevealedNoField => "RicheseRevealedNoField",
+            EventType::RicheseSpecifiesAuction => "RicheseSpecifiesAuction",
+            EventType::RockWasMelted => "RockWasMelted",
+            EventType::SetIncreasedRevivalLimits => "SetIncreasedRevivalLimits",
+            EventType::SetShipmentPermission => "SetShipmentPermission",
+            EventType::Shipment => "Shipment",
+            EventType::SkillAssigned => "SkillAssigned",
+            EventType::StormDialled => "StormDialled",
+            EventType::StormSpellPlayed => "StormSpellPlayed",
+            EventType::SwitchedSkilledLeader => "SwitchedSkilledLeader",
+            EventType::TakeLosses => "TakeLosses",
+            EventType::TerrorPlanted => "TerrorPlanted",
+            EventType::TerrorRevealed => "TerrorRevealed",
+            EventType::TestingStationUsed => "TestingStationUsed",
+            EventType::Thought => "Thought",
+            EventType::ThoughtAnswered => "ThoughtAnswered",
+            EventType::ThumperPlayed => "ThumperPlayed",
+            EventType::TraitorDiscarded => "TraitorDiscarded",
+            EventType::TraitorsSelected => "TraitorsSelected",
+            EventType::TreacheryCalled => "TreacheryCalled",
+            EventType::Voice => "Voice",
+            EventType::VoiceDeclined => "VoiceDeclined",
         }
     }
 
-    /// The `$type` discriminator from `[JsonDerivedType]` on `GameEvent`; `None` for types without one.
+    /// The `$type` discriminator from `[JsonDerivedType]` on `Event`; `None` for types without one.
     pub fn json_discriminator(self) -> Option<&'static str> {
         match self {
-            GameEventType::AcceptOrCancelTleilaxuRevival => Some("AcceptOrCancelTleilaxuRevival"),
-            GameEventType::AllianceBroken => Some("AllianceBroken"),
-            GameEventType::AllianceByAmbassador => Some("AllianceByAmbassador"),
-            GameEventType::AllianceByTerror => Some("AllianceByTerror"),
-            GameEventType::AllianceOffered => Some("AllianceOffered"),
-            GameEventType::AlliancePassed => Some("AlliancePassed"),
-            GameEventType::AllyPermission => Some("AllyPermission"),
-            GameEventType::AmalPlayed => Some("AmalPlayed"),
-            GameEventType::AmbassadorActivated => Some("AmbassadorActivated"),
-            GameEventType::AmbassadorPlaced => Some("AmbassadorPlaced"),
-            GameEventType::AuditCancelled => Some("AuditCancelled"),
-            GameEventType::Audited => Some("Audited"),
-            GameEventType::AutomationConfigured => Some("AutomationConfigured"),
-            GameEventType::Battle => Some("Battle"),
-            GameEventType::BattleClaimed => Some("BattleClaimed"),
-            GameEventType::BattleConcluded => Some("BattleConcluded"),
-            GameEventType::BattleInitiated => Some("BattleInitiated"),
-            GameEventType::BattleRevision => Some("BattleRevision"),
-            GameEventType::BeneGesseritAccompanies => Some("BeneGesseritAccompanies"),
-            GameEventType::BeneGesseritBattleAnnouncement => Some("BeneGesseritBattleAnnouncement"),
-            GameEventType::BeneGesseritFlip => Some("BeneGesseritFlip"),
-            GameEventType::BeneGesseritPrediction => Some("BeneGesseritPrediction"),
-            GameEventType::Bid => Some("Bid"),
-            GameEventType::BlackMarketBid => Some("BlackMarketBid"),
-            GameEventType::Bureaucracy => Some("Bureaucracy"),
-            GameEventType::Captured => Some("Captured"),
-            GameEventType::Caravan => Some("Caravan"),
-            GameEventType::CardGiven => Some("CardGiven"),
-            GameEventType::CardTraded => Some("CardTraded"),
-            GameEventType::CardsDetermined => Some("CardsDetermined"),
-            GameEventType::CharityClaimed => Some("CharityClaimed"),
-            GameEventType::ChoamDiscarded => Some("ChoamDiscarded"),
-            GameEventType::ChoamEconomics => Some("ChoamEconomics"),
-            GameEventType::ChoamExtraMove => Some("ChoamExtraMove"),
-            GameEventType::ChoamFreeRevivalPrevention => Some("ChoamFreeRevivalPrevention"),
-            GameEventType::ChoamKarmaPrevention => Some("ChoamKarmaPrevention"),
-            GameEventType::ChoamMovePrevention => Some("ChoamMovePrevention"),
-            GameEventType::ChoamRemoveForce => Some("ChoamRemoveForce"),
-            GameEventType::ClairVoyanceAnswered => Some("ClairVoyanceAnswered"),
-            GameEventType::ClairVoyancePlayed => Some("ClairVoyancePlayed"),
-            GameEventType::DealAccepted => Some("DealAccepted"),
-            GameEventType::DealOffered => Some("DealOffered"),
-            GameEventType::DealRejected => Some("DealRejected"),
-            GameEventType::Diplomacy => Some("Diplomacy"),
-            GameEventType::Discarded => Some("Discarded"),
-            GameEventType::DiscardedSearched => Some("DiscardedSearched"),
-            GameEventType::DiscardedSearchedAnnounced => Some("DiscardedSearchedAnnounced"),
-            GameEventType::DiscardedTaken => Some("DiscardedTaken"),
-            GameEventType::DiscoveryEntered => Some("DiscoveryEntered"),
-            GameEventType::DiscoveryRevealed => Some("DiscoveryRevealed"),
-            GameEventType::DistransUsed => Some("DistransUsed"),
-            GameEventType::DivideResources => Some("DivideResources"),
-            GameEventType::DivideResourcesAccepted => Some("DivideResourcesAccepted"),
-            GameEventType::Donated => Some("Donated"),
-            GameEventType::EmperorBidSupport => Some("EmperorBidSupport"),
-            GameEventType::EmperorDiscarded => Some("EmperorDiscarded"),
-            GameEventType::EndPhase => Some("EndPhase"),
-            GameEventType::EstablishPlayers => Some("EstablishPlayers"),
-            GameEventType::ExtortionPrevented => Some("ExtortionPrevented"),
-            GameEventType::FaceDanced => Some("FaceDanced"),
-            GameEventType::FaceDancerReplaced => Some("FaceDancerReplaced"),
-            GameEventType::FaceDancerRevealed => Some("FaceDancerRevealed"),
-            GameEventType::FactionSelected => Some("FactionSelected"),
-            GameEventType::FactionTradeOffered => Some("FactionTradeOffered"),
-            GameEventType::FlightDiscoveryUsed => Some("FlightDiscoveryUsed"),
-            GameEventType::FlightUsed => Some("FlightUsed"),
-            GameEventType::FremenRidesMonster => Some("FremenRidesMonster"),
-            GameEventType::FremenSentMonster => Some("FremenSentMonster"),
-            GameEventType::GuildDelay => Some("GuildDelay"),
-            GameEventType::HMSAdvantageChosen => Some("HMSAdvantageChosen"),
-            GameEventType::HarvesterPlayed => Some("HarvesterPlayed"),
-            GameEventType::HideSecrets => Some("HideSecrets"),
-            GameEventType::IxianRemovedCardFromAuction => Some("IxianRemovedCardFromAuction"),
-            GameEventType::IxianSelectedStartingCard => Some("IxianSelectedStartingCard"),
-            GameEventType::IxianSwappedCardOnBid => Some("IxianSwappedCardOnBid"),
-            GameEventType::JuicePlayed => Some("JuicePlayed"),
-            GameEventType::Karma => Some("Karma"),
-            GameEventType::KarmaChoamDiscard => Some("KarmaChoamDiscard"),
-            GameEventType::KarmaEcazDial => Some("KarmaEcazDial"),
-            GameEventType::KarmaFreeRevival => Some("KarmaFreeRevival"),
-            GameEventType::KarmaHandSwap => Some("KarmaHandSwap"),
-            GameEventType::KarmaHandSwapInitiated => Some("KarmaHandSwapInitiated"),
-            GameEventType::KarmaHmsMovement => Some("KarmaHmsMovement"),
-            GameEventType::KarmaMonster => Some("KarmaMonster"),
-            GameEventType::KarmaPrescience => Some("KarmaPrescience"),
-            GameEventType::KarmaRevivalPrevention => Some("KarmaRevivalPrevention"),
-            GameEventType::KarmaRicheseBuy => Some("KarmaRicheseBuy"),
-            GameEventType::KarmaShipmentPrevention => Some("KarmaShipmentPrevention"),
-            GameEventType::LoserConcluded => Some("LoserConcluded"),
-            GameEventType::MetheorPlayed => Some("MetheorPlayed"),
-            GameEventType::Move => Some("Move"),
-            GameEventType::MulliganPerformed => Some("MulliganPerformed"),
-            GameEventType::NexusCardDrawn => Some("NexusCardDrawn"),
-            GameEventType::NexusPlayed => Some("NexusPlayed"),
-            GameEventType::NexusVoted => Some("NexusVoted"),
-            GameEventType::PerformBeneGesseritPlacement => Some("PerformBeneGesseritPlacement"),
-            GameEventType::PerformFremenSetup => Some("PerformFremenSetup"),
-            GameEventType::PerformHmsMovement => Some("PerformHmsMovement"),
-            GameEventType::PerformHmsPlacement => Some("PerformHmsPlacement"),
-            GameEventType::PerformMoritaniSetup => Some("PerformMoritaniSetup"),
-            GameEventType::PerformSetup => Some("PerformSetup"),
-            GameEventType::Planetology => Some("Planetology"),
-            GameEventType::PlayerReplaced => Some("PlayerReplaced"),
-            GameEventType::PoisonToothCancelled => Some("PoisonToothCancelled"),
-            GameEventType::PortableAntidoteUsed => Some("PortableAntidoteUsed"),
-            GameEventType::Prescience => Some("Prescience"),
-            GameEventType::RaiseDeadPlayed => Some("RaiseDeadPlayed"),
-            GameEventType::RecruitsPlayed => Some("RecruitsPlayed"),
-            GameEventType::ReplacedCardWon => Some("ReplacedCardWon"),
-            GameEventType::RequestTleilaxuRevival => Some("RequestTleilaxuRevival"),
-            GameEventType::ResidualPlayed => Some("ResidualPlayed"),
-            GameEventType::ResourcesAudited => Some("ResourcesAudited"),
-            GameEventType::ResourcesTransferred => Some("ResourcesTransferred"),
-            GameEventType::Retreat => Some("Retreat"),
-            GameEventType::Revival => Some("Revival"),
-            GameEventType::RicheseAnnouncesAuction => Some("RicheseAnnouncesAuction"),
-            GameEventType::RicheseAnnouncesBlackMarket => Some("RicheseAnnouncesBlackMarket"),
-            GameEventType::RicheseGaveCard => Some("RicheseGaveCard"),
-            GameEventType::RicheseKeepsUnsoldCard => Some("RicheseKeepsUnsoldCard"),
-            GameEventType::RicheseRevealedNoField => Some("RicheseRevealedNoField"),
-            GameEventType::RicheseSpecifiesAuction => Some("RicheseSpecifiesAuction"),
-            GameEventType::RockWasMelted => Some("RockWasMelted"),
-            GameEventType::SetIncreasedRevivalLimits => Some("SetIncreasedRevivalLimits"),
-            GameEventType::SetShipmentPermission => Some("SetShipmentPermission"),
-            GameEventType::Shipment => Some("Shipment"),
-            GameEventType::SkillAssigned => Some("SkillAssigned"),
-            GameEventType::StormDialled => Some("StormDialled"),
-            GameEventType::StormSpellPlayed => Some("StormSpellPlayed"),
-            GameEventType::SwitchedSkilledLeader => Some("SwitchedSkilledLeader"),
-            GameEventType::TakeLosses => Some("TakeLosses"),
-            GameEventType::TerrorPlanted => Some("TerrorPlanted"),
-            GameEventType::TerrorRevealed => Some("TerrorRevealed"),
-            GameEventType::TestingStationUsed => Some("TestingStationUsed"),
-            GameEventType::Thought => Some("Thought"),
-            GameEventType::ThoughtAnswered => Some("ThoughtAnswered"),
-            GameEventType::ThumperPlayed => Some("ThumperPlayed"),
-            GameEventType::TraitorDiscarded => Some("TraitorDiscarded"),
-            GameEventType::TraitorsSelected => Some("TraitorsSelected"),
-            GameEventType::TreacheryCalled => Some("TreacheryCalled"),
-            GameEventType::Voice => Some("Voice"),
-            GameEventType::VoiceDeclined => Some("VoiceDeclined"),
+            EventType::AcceptOrCancelTleilaxuRevival => Some("AcceptOrCancelTleilaxuRevival"),
+            EventType::AllianceBroken => Some("AllianceBroken"),
+            EventType::AllianceByAmbassador => Some("AllianceByAmbassador"),
+            EventType::AllianceByTerror => Some("AllianceByTerror"),
+            EventType::AllianceOffered => Some("AllianceOffered"),
+            EventType::AlliancePassed => Some("AlliancePassed"),
+            EventType::AllyPermission => Some("AllyPermission"),
+            EventType::AmalPlayed => Some("AmalPlayed"),
+            EventType::AmbassadorActivated => Some("AmbassadorActivated"),
+            EventType::AmbassadorPlaced => Some("AmbassadorPlaced"),
+            EventType::AuditCancelled => Some("AuditCancelled"),
+            EventType::Audited => Some("Audited"),
+            EventType::AutomationConfigured => Some("AutomationConfigured"),
+            EventType::Battle => Some("Battle"),
+            EventType::BattleClaimed => Some("BattleClaimed"),
+            EventType::BattleConcluded => Some("BattleConcluded"),
+            EventType::BattleInitiated => Some("BattleInitiated"),
+            EventType::BattleRevision => Some("BattleRevision"),
+            EventType::BeneGesseritAccompanies => Some("BeneGesseritAccompanies"),
+            EventType::BeneGesseritBattleAnnouncement => Some("BeneGesseritBattleAnnouncement"),
+            EventType::BeneGesseritFlip => Some("BeneGesseritFlip"),
+            EventType::BeneGesseritPrediction => Some("BeneGesseritPrediction"),
+            EventType::Bid => Some("Bid"),
+            EventType::BlackMarketBid => Some("BlackMarketBid"),
+            EventType::Bureaucracy => Some("Bureaucracy"),
+            EventType::Captured => Some("Captured"),
+            EventType::Caravan => Some("Caravan"),
+            EventType::CardGiven => Some("CardGiven"),
+            EventType::CardTraded => Some("CardTraded"),
+            EventType::CardsDetermined => Some("CardsDetermined"),
+            EventType::CharityClaimed => Some("CharityClaimed"),
+            EventType::ChoamDiscarded => Some("ChoamDiscarded"),
+            EventType::ChoamEconomics => Some("ChoamEconomics"),
+            EventType::ChoamExtraMove => Some("ChoamExtraMove"),
+            EventType::ChoamFreeRevivalPrevention => Some("ChoamFreeRevivalPrevention"),
+            EventType::ChoamKarmaPrevention => Some("ChoamKarmaPrevention"),
+            EventType::ChoamMovePrevention => Some("ChoamMovePrevention"),
+            EventType::ChoamRemoveForce => Some("ChoamRemoveForce"),
+            EventType::ClairVoyanceAnswered => Some("ClairVoyanceAnswered"),
+            EventType::ClairVoyancePlayed => Some("ClairVoyancePlayed"),
+            EventType::DealAccepted => Some("DealAccepted"),
+            EventType::DealOffered => Some("DealOffered"),
+            EventType::DealRejected => Some("DealRejected"),
+            EventType::Diplomacy => Some("Diplomacy"),
+            EventType::Discarded => Some("Discarded"),
+            EventType::DiscardedSearched => Some("DiscardedSearched"),
+            EventType::DiscardedSearchedAnnounced => Some("DiscardedSearchedAnnounced"),
+            EventType::DiscardedTaken => Some("DiscardedTaken"),
+            EventType::DiscoveryEntered => Some("DiscoveryEntered"),
+            EventType::DiscoveryRevealed => Some("DiscoveryRevealed"),
+            EventType::DistransUsed => Some("DistransUsed"),
+            EventType::DivideResources => Some("DivideResources"),
+            EventType::DivideResourcesAccepted => Some("DivideResourcesAccepted"),
+            EventType::Donated => Some("Donated"),
+            EventType::EmperorBidSupport => Some("EmperorBidSupport"),
+            EventType::EmperorDiscarded => Some("EmperorDiscarded"),
+            EventType::EndPhase => Some("EndPhase"),
+            EventType::EstablishPlayers => Some("EstablishPlayers"),
+            EventType::ExtortionPrevented => Some("ExtortionPrevented"),
+            EventType::FaceDanced => Some("FaceDanced"),
+            EventType::FaceDancerReplaced => Some("FaceDancerReplaced"),
+            EventType::FaceDancerRevealed => Some("FaceDancerRevealed"),
+            EventType::FactionSelected => Some("FactionSelected"),
+            EventType::FactionTradeOffered => Some("FactionTradeOffered"),
+            EventType::FlightDiscoveryUsed => Some("FlightDiscoveryUsed"),
+            EventType::FlightUsed => Some("FlightUsed"),
+            EventType::FremenRidesMonster => Some("FremenRidesMonster"),
+            EventType::FremenSentMonster => Some("FremenSentMonster"),
+            EventType::GuildDelay => Some("GuildDelay"),
+            EventType::HMSAdvantageChosen => Some("HMSAdvantageChosen"),
+            EventType::HarvesterPlayed => Some("HarvesterPlayed"),
+            EventType::HideSecrets => Some("HideSecrets"),
+            EventType::IxianRemovedCardFromAuction => Some("IxianRemovedCardFromAuction"),
+            EventType::IxianSelectedStartingCard => Some("IxianSelectedStartingCard"),
+            EventType::IxianSwappedCardOnBid => Some("IxianSwappedCardOnBid"),
+            EventType::JuicePlayed => Some("JuicePlayed"),
+            EventType::Karma => Some("Karma"),
+            EventType::KarmaChoamDiscard => Some("KarmaChoamDiscard"),
+            EventType::KarmaEcazDial => Some("KarmaEcazDial"),
+            EventType::KarmaFreeRevival => Some("KarmaFreeRevival"),
+            EventType::KarmaHandSwap => Some("KarmaHandSwap"),
+            EventType::KarmaHandSwapInitiated => Some("KarmaHandSwapInitiated"),
+            EventType::KarmaHmsMovement => Some("KarmaHmsMovement"),
+            EventType::KarmaMonster => Some("KarmaMonster"),
+            EventType::KarmaPrescience => Some("KarmaPrescience"),
+            EventType::KarmaRevivalPrevention => Some("KarmaRevivalPrevention"),
+            EventType::KarmaRicheseBuy => Some("KarmaRicheseBuy"),
+            EventType::KarmaShipmentPrevention => Some("KarmaShipmentPrevention"),
+            EventType::LoserConcluded => Some("LoserConcluded"),
+            EventType::MetheorPlayed => Some("MetheorPlayed"),
+            EventType::Move => Some("Move"),
+            EventType::MulliganPerformed => Some("MulliganPerformed"),
+            EventType::NexusCardDrawn => Some("NexusCardDrawn"),
+            EventType::NexusPlayed => Some("NexusPlayed"),
+            EventType::NexusVoted => Some("NexusVoted"),
+            EventType::PerformBeneGesseritPlacement => Some("PerformBeneGesseritPlacement"),
+            EventType::PerformFremenSetup => Some("PerformFremenSetup"),
+            EventType::PerformHmsMovement => Some("PerformHmsMovement"),
+            EventType::PerformHmsPlacement => Some("PerformHmsPlacement"),
+            EventType::PerformMoritaniSetup => Some("PerformMoritaniSetup"),
+            EventType::PerformSetup => Some("PerformSetup"),
+            EventType::Planetology => Some("Planetology"),
+            EventType::PlayerReplaced => Some("PlayerReplaced"),
+            EventType::PoisonToothCancelled => Some("PoisonToothCancelled"),
+            EventType::PortableAntidoteUsed => Some("PortableAntidoteUsed"),
+            EventType::Prescience => Some("Prescience"),
+            EventType::RaiseDeadPlayed => Some("RaiseDeadPlayed"),
+            EventType::RecruitsPlayed => Some("RecruitsPlayed"),
+            EventType::ReplacedCardWon => Some("ReplacedCardWon"),
+            EventType::RequestTleilaxuRevival => Some("RequestTleilaxuRevival"),
+            EventType::ResidualPlayed => Some("ResidualPlayed"),
+            EventType::ResourcesAudited => Some("ResourcesAudited"),
+            EventType::ResourcesTransferred => Some("ResourcesTransferred"),
+            EventType::Retreat => Some("Retreat"),
+            EventType::Revival => Some("Revival"),
+            EventType::RicheseAnnouncesAuction => Some("RicheseAnnouncesAuction"),
+            EventType::RicheseAnnouncesBlackMarket => Some("RicheseAnnouncesBlackMarket"),
+            EventType::RicheseGaveCard => Some("RicheseGaveCard"),
+            EventType::RicheseKeepsUnsoldCard => Some("RicheseKeepsUnsoldCard"),
+            EventType::RicheseRevealedNoField => Some("RicheseRevealedNoField"),
+            EventType::RicheseSpecifiesAuction => Some("RicheseSpecifiesAuction"),
+            EventType::RockWasMelted => Some("RockWasMelted"),
+            EventType::SetIncreasedRevivalLimits => Some("SetIncreasedRevivalLimits"),
+            EventType::SetShipmentPermission => Some("SetShipmentPermission"),
+            EventType::Shipment => Some("Shipment"),
+            EventType::SkillAssigned => Some("SkillAssigned"),
+            EventType::StormDialled => Some("StormDialled"),
+            EventType::StormSpellPlayed => Some("StormSpellPlayed"),
+            EventType::SwitchedSkilledLeader => Some("SwitchedSkilledLeader"),
+            EventType::TakeLosses => Some("TakeLosses"),
+            EventType::TerrorPlanted => Some("TerrorPlanted"),
+            EventType::TerrorRevealed => Some("TerrorRevealed"),
+            EventType::TestingStationUsed => Some("TestingStationUsed"),
+            EventType::Thought => Some("Thought"),
+            EventType::ThoughtAnswered => Some("ThoughtAnswered"),
+            EventType::ThumperPlayed => Some("ThumperPlayed"),
+            EventType::TraitorDiscarded => Some("TraitorDiscarded"),
+            EventType::TraitorsSelected => Some("TraitorsSelected"),
+            EventType::TreacheryCalled => Some("TreacheryCalled"),
+            EventType::Voice => Some("Voice"),
+            EventType::VoiceDeclined => Some("VoiceDeclined"),
         }
     }
 
     /// Inverse of [`Self::json_discriminator`] (ordinal, case-sensitive).
-    pub fn from_json_discriminator(s: &str) -> Option<GameEventType> {
+    pub fn from_json_discriminator(s: &str) -> Option<EventType> {
         match s {
-            "AcceptOrCancelTleilaxuRevival" => Some(GameEventType::AcceptOrCancelTleilaxuRevival),
-            "AllianceBroken" => Some(GameEventType::AllianceBroken),
-            "AllianceByAmbassador" => Some(GameEventType::AllianceByAmbassador),
-            "AllianceByTerror" => Some(GameEventType::AllianceByTerror),
-            "AllianceOffered" => Some(GameEventType::AllianceOffered),
-            "AlliancePassed" => Some(GameEventType::AlliancePassed),
-            "AllyPermission" => Some(GameEventType::AllyPermission),
-            "AmalPlayed" => Some(GameEventType::AmalPlayed),
-            "AmbassadorActivated" => Some(GameEventType::AmbassadorActivated),
-            "AmbassadorPlaced" => Some(GameEventType::AmbassadorPlaced),
-            "AuditCancelled" => Some(GameEventType::AuditCancelled),
-            "Audited" => Some(GameEventType::Audited),
-            "AutomationConfigured" => Some(GameEventType::AutomationConfigured),
-            "Battle" => Some(GameEventType::Battle),
-            "BattleClaimed" => Some(GameEventType::BattleClaimed),
-            "BattleConcluded" => Some(GameEventType::BattleConcluded),
-            "BattleInitiated" => Some(GameEventType::BattleInitiated),
-            "BattleRevision" => Some(GameEventType::BattleRevision),
-            "BeneGesseritAccompanies" => Some(GameEventType::BeneGesseritAccompanies),
-            "BeneGesseritBattleAnnouncement" => Some(GameEventType::BeneGesseritBattleAnnouncement),
-            "BeneGesseritFlip" => Some(GameEventType::BeneGesseritFlip),
-            "BeneGesseritPrediction" => Some(GameEventType::BeneGesseritPrediction),
-            "Bid" => Some(GameEventType::Bid),
-            "BlackMarketBid" => Some(GameEventType::BlackMarketBid),
-            "Bureaucracy" => Some(GameEventType::Bureaucracy),
-            "Captured" => Some(GameEventType::Captured),
-            "Caravan" => Some(GameEventType::Caravan),
-            "CardGiven" => Some(GameEventType::CardGiven),
-            "CardTraded" => Some(GameEventType::CardTraded),
-            "CardsDetermined" => Some(GameEventType::CardsDetermined),
-            "CharityClaimed" => Some(GameEventType::CharityClaimed),
-            "ChoamDiscarded" => Some(GameEventType::ChoamDiscarded),
-            "ChoamEconomics" => Some(GameEventType::ChoamEconomics),
-            "ChoamExtraMove" => Some(GameEventType::ChoamExtraMove),
-            "ChoamFreeRevivalPrevention" => Some(GameEventType::ChoamFreeRevivalPrevention),
-            "ChoamKarmaPrevention" => Some(GameEventType::ChoamKarmaPrevention),
-            "ChoamMovePrevention" => Some(GameEventType::ChoamMovePrevention),
-            "ChoamRemoveForce" => Some(GameEventType::ChoamRemoveForce),
-            "ClairVoyanceAnswered" => Some(GameEventType::ClairVoyanceAnswered),
-            "ClairVoyancePlayed" => Some(GameEventType::ClairVoyancePlayed),
-            "DealAccepted" => Some(GameEventType::DealAccepted),
-            "DealOffered" => Some(GameEventType::DealOffered),
-            "DealRejected" => Some(GameEventType::DealRejected),
-            "Diplomacy" => Some(GameEventType::Diplomacy),
-            "Discarded" => Some(GameEventType::Discarded),
-            "DiscardedSearched" => Some(GameEventType::DiscardedSearched),
-            "DiscardedSearchedAnnounced" => Some(GameEventType::DiscardedSearchedAnnounced),
-            "DiscardedTaken" => Some(GameEventType::DiscardedTaken),
-            "DiscoveryEntered" => Some(GameEventType::DiscoveryEntered),
-            "DiscoveryRevealed" => Some(GameEventType::DiscoveryRevealed),
-            "DistransUsed" => Some(GameEventType::DistransUsed),
-            "DivideResources" => Some(GameEventType::DivideResources),
-            "DivideResourcesAccepted" => Some(GameEventType::DivideResourcesAccepted),
-            "Donated" => Some(GameEventType::Donated),
-            "EmperorBidSupport" => Some(GameEventType::EmperorBidSupport),
-            "EmperorDiscarded" => Some(GameEventType::EmperorDiscarded),
-            "EndPhase" => Some(GameEventType::EndPhase),
-            "EstablishPlayers" => Some(GameEventType::EstablishPlayers),
-            "ExtortionPrevented" => Some(GameEventType::ExtortionPrevented),
-            "FaceDanced" => Some(GameEventType::FaceDanced),
-            "FaceDancerReplaced" => Some(GameEventType::FaceDancerReplaced),
-            "FaceDancerRevealed" => Some(GameEventType::FaceDancerRevealed),
-            "FactionSelected" => Some(GameEventType::FactionSelected),
-            "FactionTradeOffered" => Some(GameEventType::FactionTradeOffered),
-            "FlightDiscoveryUsed" => Some(GameEventType::FlightDiscoveryUsed),
-            "FlightUsed" => Some(GameEventType::FlightUsed),
-            "FremenRidesMonster" => Some(GameEventType::FremenRidesMonster),
-            "FremenSentMonster" => Some(GameEventType::FremenSentMonster),
-            "GuildDelay" => Some(GameEventType::GuildDelay),
-            "HMSAdvantageChosen" => Some(GameEventType::HMSAdvantageChosen),
-            "HarvesterPlayed" => Some(GameEventType::HarvesterPlayed),
-            "HideSecrets" => Some(GameEventType::HideSecrets),
-            "IxianRemovedCardFromAuction" => Some(GameEventType::IxianRemovedCardFromAuction),
-            "IxianSelectedStartingCard" => Some(GameEventType::IxianSelectedStartingCard),
-            "IxianSwappedCardOnBid" => Some(GameEventType::IxianSwappedCardOnBid),
-            "JuicePlayed" => Some(GameEventType::JuicePlayed),
-            "Karma" => Some(GameEventType::Karma),
-            "KarmaChoamDiscard" => Some(GameEventType::KarmaChoamDiscard),
-            "KarmaEcazDial" => Some(GameEventType::KarmaEcazDial),
-            "KarmaFreeRevival" => Some(GameEventType::KarmaFreeRevival),
-            "KarmaHandSwap" => Some(GameEventType::KarmaHandSwap),
-            "KarmaHandSwapInitiated" => Some(GameEventType::KarmaHandSwapInitiated),
-            "KarmaHmsMovement" => Some(GameEventType::KarmaHmsMovement),
-            "KarmaMonster" => Some(GameEventType::KarmaMonster),
-            "KarmaPrescience" => Some(GameEventType::KarmaPrescience),
-            "KarmaRevivalPrevention" => Some(GameEventType::KarmaRevivalPrevention),
-            "KarmaRicheseBuy" => Some(GameEventType::KarmaRicheseBuy),
-            "KarmaShipmentPrevention" => Some(GameEventType::KarmaShipmentPrevention),
-            "LoserConcluded" => Some(GameEventType::LoserConcluded),
-            "MetheorPlayed" => Some(GameEventType::MetheorPlayed),
-            "Move" => Some(GameEventType::Move),
-            "MulliganPerformed" => Some(GameEventType::MulliganPerformed),
-            "NexusCardDrawn" => Some(GameEventType::NexusCardDrawn),
-            "NexusPlayed" => Some(GameEventType::NexusPlayed),
-            "NexusVoted" => Some(GameEventType::NexusVoted),
-            "PerformBeneGesseritPlacement" => Some(GameEventType::PerformBeneGesseritPlacement),
-            "PerformFremenSetup" => Some(GameEventType::PerformFremenSetup),
-            "PerformHmsMovement" => Some(GameEventType::PerformHmsMovement),
-            "PerformHmsPlacement" => Some(GameEventType::PerformHmsPlacement),
-            "PerformMoritaniSetup" => Some(GameEventType::PerformMoritaniSetup),
-            "PerformSetup" => Some(GameEventType::PerformSetup),
-            "Planetology" => Some(GameEventType::Planetology),
-            "PlayerReplaced" => Some(GameEventType::PlayerReplaced),
-            "PoisonToothCancelled" => Some(GameEventType::PoisonToothCancelled),
-            "PortableAntidoteUsed" => Some(GameEventType::PortableAntidoteUsed),
-            "Prescience" => Some(GameEventType::Prescience),
-            "RaiseDeadPlayed" => Some(GameEventType::RaiseDeadPlayed),
-            "RecruitsPlayed" => Some(GameEventType::RecruitsPlayed),
-            "ReplacedCardWon" => Some(GameEventType::ReplacedCardWon),
-            "RequestTleilaxuRevival" => Some(GameEventType::RequestTleilaxuRevival),
-            "ResidualPlayed" => Some(GameEventType::ResidualPlayed),
-            "ResourcesAudited" => Some(GameEventType::ResourcesAudited),
-            "ResourcesTransferred" => Some(GameEventType::ResourcesTransferred),
-            "Retreat" => Some(GameEventType::Retreat),
-            "Revival" => Some(GameEventType::Revival),
-            "RicheseAnnouncesAuction" => Some(GameEventType::RicheseAnnouncesAuction),
-            "RicheseAnnouncesBlackMarket" => Some(GameEventType::RicheseAnnouncesBlackMarket),
-            "RicheseGaveCard" => Some(GameEventType::RicheseGaveCard),
-            "RicheseKeepsUnsoldCard" => Some(GameEventType::RicheseKeepsUnsoldCard),
-            "RicheseRevealedNoField" => Some(GameEventType::RicheseRevealedNoField),
-            "RicheseSpecifiesAuction" => Some(GameEventType::RicheseSpecifiesAuction),
-            "RockWasMelted" => Some(GameEventType::RockWasMelted),
-            "SetIncreasedRevivalLimits" => Some(GameEventType::SetIncreasedRevivalLimits),
-            "SetShipmentPermission" => Some(GameEventType::SetShipmentPermission),
-            "Shipment" => Some(GameEventType::Shipment),
-            "SkillAssigned" => Some(GameEventType::SkillAssigned),
-            "StormDialled" => Some(GameEventType::StormDialled),
-            "StormSpellPlayed" => Some(GameEventType::StormSpellPlayed),
-            "SwitchedSkilledLeader" => Some(GameEventType::SwitchedSkilledLeader),
-            "TakeLosses" => Some(GameEventType::TakeLosses),
-            "TerrorPlanted" => Some(GameEventType::TerrorPlanted),
-            "TerrorRevealed" => Some(GameEventType::TerrorRevealed),
-            "TestingStationUsed" => Some(GameEventType::TestingStationUsed),
-            "Thought" => Some(GameEventType::Thought),
-            "ThoughtAnswered" => Some(GameEventType::ThoughtAnswered),
-            "ThumperPlayed" => Some(GameEventType::ThumperPlayed),
-            "TraitorDiscarded" => Some(GameEventType::TraitorDiscarded),
-            "TraitorsSelected" => Some(GameEventType::TraitorsSelected),
-            "TreacheryCalled" => Some(GameEventType::TreacheryCalled),
-            "Voice" => Some(GameEventType::Voice),
-            "VoiceDeclined" => Some(GameEventType::VoiceDeclined),
+            "AcceptOrCancelTleilaxuRevival" => Some(EventType::AcceptOrCancelTleilaxuRevival),
+            "AllianceBroken" => Some(EventType::AllianceBroken),
+            "AllianceByAmbassador" => Some(EventType::AllianceByAmbassador),
+            "AllianceByTerror" => Some(EventType::AllianceByTerror),
+            "AllianceOffered" => Some(EventType::AllianceOffered),
+            "AlliancePassed" => Some(EventType::AlliancePassed),
+            "AllyPermission" => Some(EventType::AllyPermission),
+            "AmalPlayed" => Some(EventType::AmalPlayed),
+            "AmbassadorActivated" => Some(EventType::AmbassadorActivated),
+            "AmbassadorPlaced" => Some(EventType::AmbassadorPlaced),
+            "AuditCancelled" => Some(EventType::AuditCancelled),
+            "Audited" => Some(EventType::Audited),
+            "AutomationConfigured" => Some(EventType::AutomationConfigured),
+            "Battle" => Some(EventType::Battle),
+            "BattleClaimed" => Some(EventType::BattleClaimed),
+            "BattleConcluded" => Some(EventType::BattleConcluded),
+            "BattleInitiated" => Some(EventType::BattleInitiated),
+            "BattleRevision" => Some(EventType::BattleRevision),
+            "BeneGesseritAccompanies" => Some(EventType::BeneGesseritAccompanies),
+            "BeneGesseritBattleAnnouncement" => Some(EventType::BeneGesseritBattleAnnouncement),
+            "BeneGesseritFlip" => Some(EventType::BeneGesseritFlip),
+            "BeneGesseritPrediction" => Some(EventType::BeneGesseritPrediction),
+            "Bid" => Some(EventType::Bid),
+            "BlackMarketBid" => Some(EventType::BlackMarketBid),
+            "Bureaucracy" => Some(EventType::Bureaucracy),
+            "Captured" => Some(EventType::Captured),
+            "Caravan" => Some(EventType::Caravan),
+            "CardGiven" => Some(EventType::CardGiven),
+            "CardTraded" => Some(EventType::CardTraded),
+            "CardsDetermined" => Some(EventType::CardsDetermined),
+            "CharityClaimed" => Some(EventType::CharityClaimed),
+            "ChoamDiscarded" => Some(EventType::ChoamDiscarded),
+            "ChoamEconomics" => Some(EventType::ChoamEconomics),
+            "ChoamExtraMove" => Some(EventType::ChoamExtraMove),
+            "ChoamFreeRevivalPrevention" => Some(EventType::ChoamFreeRevivalPrevention),
+            "ChoamKarmaPrevention" => Some(EventType::ChoamKarmaPrevention),
+            "ChoamMovePrevention" => Some(EventType::ChoamMovePrevention),
+            "ChoamRemoveForce" => Some(EventType::ChoamRemoveForce),
+            "ClairVoyanceAnswered" => Some(EventType::ClairVoyanceAnswered),
+            "ClairVoyancePlayed" => Some(EventType::ClairVoyancePlayed),
+            "DealAccepted" => Some(EventType::DealAccepted),
+            "DealOffered" => Some(EventType::DealOffered),
+            "DealRejected" => Some(EventType::DealRejected),
+            "Diplomacy" => Some(EventType::Diplomacy),
+            "Discarded" => Some(EventType::Discarded),
+            "DiscardedSearched" => Some(EventType::DiscardedSearched),
+            "DiscardedSearchedAnnounced" => Some(EventType::DiscardedSearchedAnnounced),
+            "DiscardedTaken" => Some(EventType::DiscardedTaken),
+            "DiscoveryEntered" => Some(EventType::DiscoveryEntered),
+            "DiscoveryRevealed" => Some(EventType::DiscoveryRevealed),
+            "DistransUsed" => Some(EventType::DistransUsed),
+            "DivideResources" => Some(EventType::DivideResources),
+            "DivideResourcesAccepted" => Some(EventType::DivideResourcesAccepted),
+            "Donated" => Some(EventType::Donated),
+            "EmperorBidSupport" => Some(EventType::EmperorBidSupport),
+            "EmperorDiscarded" => Some(EventType::EmperorDiscarded),
+            "EndPhase" => Some(EventType::EndPhase),
+            "EstablishPlayers" => Some(EventType::EstablishPlayers),
+            "ExtortionPrevented" => Some(EventType::ExtortionPrevented),
+            "FaceDanced" => Some(EventType::FaceDanced),
+            "FaceDancerReplaced" => Some(EventType::FaceDancerReplaced),
+            "FaceDancerRevealed" => Some(EventType::FaceDancerRevealed),
+            "FactionSelected" => Some(EventType::FactionSelected),
+            "FactionTradeOffered" => Some(EventType::FactionTradeOffered),
+            "FlightDiscoveryUsed" => Some(EventType::FlightDiscoveryUsed),
+            "FlightUsed" => Some(EventType::FlightUsed),
+            "FremenRidesMonster" => Some(EventType::FremenRidesMonster),
+            "FremenSentMonster" => Some(EventType::FremenSentMonster),
+            "GuildDelay" => Some(EventType::GuildDelay),
+            "HMSAdvantageChosen" => Some(EventType::HMSAdvantageChosen),
+            "HarvesterPlayed" => Some(EventType::HarvesterPlayed),
+            "HideSecrets" => Some(EventType::HideSecrets),
+            "IxianRemovedCardFromAuction" => Some(EventType::IxianRemovedCardFromAuction),
+            "IxianSelectedStartingCard" => Some(EventType::IxianSelectedStartingCard),
+            "IxianSwappedCardOnBid" => Some(EventType::IxianSwappedCardOnBid),
+            "JuicePlayed" => Some(EventType::JuicePlayed),
+            "Karma" => Some(EventType::Karma),
+            "KarmaChoamDiscard" => Some(EventType::KarmaChoamDiscard),
+            "KarmaEcazDial" => Some(EventType::KarmaEcazDial),
+            "KarmaFreeRevival" => Some(EventType::KarmaFreeRevival),
+            "KarmaHandSwap" => Some(EventType::KarmaHandSwap),
+            "KarmaHandSwapInitiated" => Some(EventType::KarmaHandSwapInitiated),
+            "KarmaHmsMovement" => Some(EventType::KarmaHmsMovement),
+            "KarmaMonster" => Some(EventType::KarmaMonster),
+            "KarmaPrescience" => Some(EventType::KarmaPrescience),
+            "KarmaRevivalPrevention" => Some(EventType::KarmaRevivalPrevention),
+            "KarmaRicheseBuy" => Some(EventType::KarmaRicheseBuy),
+            "KarmaShipmentPrevention" => Some(EventType::KarmaShipmentPrevention),
+            "LoserConcluded" => Some(EventType::LoserConcluded),
+            "MetheorPlayed" => Some(EventType::MetheorPlayed),
+            "Move" => Some(EventType::Move),
+            "MulliganPerformed" => Some(EventType::MulliganPerformed),
+            "NexusCardDrawn" => Some(EventType::NexusCardDrawn),
+            "NexusPlayed" => Some(EventType::NexusPlayed),
+            "NexusVoted" => Some(EventType::NexusVoted),
+            "PerformBeneGesseritPlacement" => Some(EventType::PerformBeneGesseritPlacement),
+            "PerformFremenSetup" => Some(EventType::PerformFremenSetup),
+            "PerformHmsMovement" => Some(EventType::PerformHmsMovement),
+            "PerformHmsPlacement" => Some(EventType::PerformHmsPlacement),
+            "PerformMoritaniSetup" => Some(EventType::PerformMoritaniSetup),
+            "PerformSetup" => Some(EventType::PerformSetup),
+            "Planetology" => Some(EventType::Planetology),
+            "PlayerReplaced" => Some(EventType::PlayerReplaced),
+            "PoisonToothCancelled" => Some(EventType::PoisonToothCancelled),
+            "PortableAntidoteUsed" => Some(EventType::PortableAntidoteUsed),
+            "Prescience" => Some(EventType::Prescience),
+            "RaiseDeadPlayed" => Some(EventType::RaiseDeadPlayed),
+            "RecruitsPlayed" => Some(EventType::RecruitsPlayed),
+            "ReplacedCardWon" => Some(EventType::ReplacedCardWon),
+            "RequestTleilaxuRevival" => Some(EventType::RequestTleilaxuRevival),
+            "ResidualPlayed" => Some(EventType::ResidualPlayed),
+            "ResourcesAudited" => Some(EventType::ResourcesAudited),
+            "ResourcesTransferred" => Some(EventType::ResourcesTransferred),
+            "Retreat" => Some(EventType::Retreat),
+            "Revival" => Some(EventType::Revival),
+            "RicheseAnnouncesAuction" => Some(EventType::RicheseAnnouncesAuction),
+            "RicheseAnnouncesBlackMarket" => Some(EventType::RicheseAnnouncesBlackMarket),
+            "RicheseGaveCard" => Some(EventType::RicheseGaveCard),
+            "RicheseKeepsUnsoldCard" => Some(EventType::RicheseKeepsUnsoldCard),
+            "RicheseRevealedNoField" => Some(EventType::RicheseRevealedNoField),
+            "RicheseSpecifiesAuction" => Some(EventType::RicheseSpecifiesAuction),
+            "RockWasMelted" => Some(EventType::RockWasMelted),
+            "SetIncreasedRevivalLimits" => Some(EventType::SetIncreasedRevivalLimits),
+            "SetShipmentPermission" => Some(EventType::SetShipmentPermission),
+            "Shipment" => Some(EventType::Shipment),
+            "SkillAssigned" => Some(EventType::SkillAssigned),
+            "StormDialled" => Some(EventType::StormDialled),
+            "StormSpellPlayed" => Some(EventType::StormSpellPlayed),
+            "SwitchedSkilledLeader" => Some(EventType::SwitchedSkilledLeader),
+            "TakeLosses" => Some(EventType::TakeLosses),
+            "TerrorPlanted" => Some(EventType::TerrorPlanted),
+            "TerrorRevealed" => Some(EventType::TerrorRevealed),
+            "TestingStationUsed" => Some(EventType::TestingStationUsed),
+            "Thought" => Some(EventType::Thought),
+            "ThoughtAnswered" => Some(EventType::ThoughtAnswered),
+            "ThumperPlayed" => Some(EventType::ThumperPlayed),
+            "TraitorDiscarded" => Some(EventType::TraitorDiscarded),
+            "TraitorsSelected" => Some(EventType::TraitorsSelected),
+            "TreacheryCalled" => Some(EventType::TreacheryCalled),
+            "Voice" => Some(EventType::Voice),
+            "VoiceDeclined" => Some(EventType::VoiceDeclined),
             _ => None,
         }
     }
 }
 
-impl std::fmt::Display for GameEventType {
+impl std::fmt::Display for EventType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name())
     }
 }
 
-impl PartialEq for GameEvent {
+impl PartialEq for Event {
     /// Identity: two events are equal only if they are the same object.
     fn eq(&self, other: &Self) -> bool {
         self.ptr() == other.ptr()
     }
 }
 
-impl Eq for GameEvent {}
+impl Eq for Event {}
 
-impl std::hash::Hash for GameEvent {
+impl std::hash::Hash for Event {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.ptr().hash(state)
     }
 }
 
-impl std::fmt::Debug for GameEvent {
+impl std::fmt::Debug for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}@{:p}", self.event_type().name(), self.ptr())
     }
@@ -1948,13 +1948,13 @@ impl std::fmt::Debug for GameEvent {
 
 /// Virtual dispatch: each method calls the concrete event's implementation of the
 /// `GameEventMethods` member of the same name.
-impl GameEvent {
+impl Event {
     /// Address of the event object (reference identity).
     pub fn ptr(&self) -> *const () {
         dispatch!(self, e => Rc::as_ptr(e) as *const ())
     }
 
-    pub fn event_type(&self) -> GameEventType {
+    pub fn event_type(&self) -> EventType {
         dispatch!(self, e => e.event_type())
     }
 
@@ -2027,7 +2027,7 @@ impl GameEvent {
         dispatch!(self, e => GameEventMethods::by_player(&**e, game, p))
     }
 
-    pub fn shallow_copy(&self) -> Option<GameEvent> {
+    pub fn shallow_copy(&self) -> Option<Event> {
         dispatch!(self, e => GameEventMethods::shallow_copy(&**e))
     }
 
@@ -2059,8 +2059,8 @@ impl GameEvent {
     /// `((BidEvent)this).TotalAmount`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_total_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::total_amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::total_amount(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::total_amount(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::total_amount(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2068,8 +2068,8 @@ impl GameEvent {
     /// `((BidEvent)this).Amount`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::amount(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::amount(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::amount(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2077,8 +2077,8 @@ impl GameEvent {
     /// `((BidEvent)this).AllyContributionAmount`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_ally_contribution_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2086,8 +2086,8 @@ impl GameEvent {
     /// `((BidEvent)this).EmperorContributionAmount`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_emperor_contribution_amount(&self) -> i32 {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2095,8 +2095,8 @@ impl GameEvent {
     /// `((BidEvent)this).Initiator`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_initiator(&self) -> Faction {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::initiator(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::initiator(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::initiator(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::initiator(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2104,8 +2104,8 @@ impl GameEvent {
     /// `((BidEvent)this).Player`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_player(&self) -> Option<PlayerId> {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::player(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::player(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::player(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::player(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2113,8 +2113,8 @@ impl GameEvent {
     /// `((BidEvent)this).Passed`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_passed(&self) -> bool {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::passed(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::passed(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::passed(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::passed(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2122,8 +2122,8 @@ impl GameEvent {
     /// `((BidEvent)this).UsingKarmaToRemoveBidLimit`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_using_karma_to_remove_bid_limit(&self) -> bool {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2131,8 +2131,8 @@ impl GameEvent {
     /// `((BidEvent)this).KarmaCard`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_karma_card(&self) -> Option<TreacheryCard> {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::karma_card(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_card(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::karma_card(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_card(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2140,8 +2140,8 @@ impl GameEvent {
     /// `((BidEvent)this).KarmaBid`; InvalidCastException for events that do not implement `BidEvent`.
     pub fn bid_karma_bid(&self) -> bool {
         match self {
-            GameEvent::Bid(e) => <Bid as bid_trait::BidEvent>::karma_bid(&**e),
-            GameEvent::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_bid(&**e),
+            Event::Bid(e) => <Bid as bid_trait::BidEvent>::karma_bid(&**e),
+            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_bid(&**e),
             _ => panic!("{} is not a BidEvent", self.event_type().name()),
         }
     }
@@ -2149,20 +2149,20 @@ impl GameEvent {
     /// `((LocationEvent)this).Initiator`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_initiator(&self) -> Faction {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::Move(e) => <Move as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::initiator(&**e),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::initiator(&**e),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::initiator(&**e),
+            Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::initiator(&**e),
+            Event::Caravan(e) => <Caravan as location_event::LocationEvent>::initiator(&**e),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::initiator(&**e),
+            Event::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::initiator(&**e),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::initiator(&**e),
+            Event::Move(e) => <Move as location_event::LocationEvent>::initiator(&**e),
+            Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::initiator(&**e),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::initiator(&**e),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::initiator(&**e),
+            Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::initiator(&**e),
+            Event::Revival(e) => <Revival as location_event::LocationEvent>::initiator(&**e),
+            Event::Shipment(e) => <Shipment as location_event::LocationEvent>::initiator(&**e),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::initiator(&**e),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
@@ -2170,20 +2170,20 @@ impl GameEvent {
     /// `((LocationEvent)this).To`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_to(&self, game: &Game) -> Option<Location> {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::to(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::to(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::to(&**e, game),
+            Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::to(&**e, game),
+            Event::Caravan(e) => <Caravan as location_event::LocationEvent>::to(&**e, game),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::to(&**e, game),
+            Event::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::to(&**e, game),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::to(&**e, game),
+            Event::Move(e) => <Move as location_event::LocationEvent>::to(&**e, game),
+            Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::to(&**e, game),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::to(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::to(&**e, game),
+            Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::to(&**e, game),
+            Event::Revival(e) => <Revival as location_event::LocationEvent>::to(&**e, game),
+            Event::Shipment(e) => <Shipment as location_event::LocationEvent>::to(&**e, game),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::to(&**e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
@@ -2191,20 +2191,20 @@ impl GameEvent {
     /// `((LocationEvent)this).TotalAmountOfForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::Caravan(e) => <Caravan as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::Move(e) => <Move as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::Revival(e) => <Revival as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::Shipment(e) => <Shipment as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
@@ -2212,20 +2212,20 @@ impl GameEvent {
     /// `((LocationEvent)this).ForcesAddedToLocation`; InvalidCastException for events that do not implement `LocationEvent`.
     pub fn location_event_forces_added_to_location(&self, game: &Game) -> i32 {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Move(e) => <Move as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Revival(e) => <Revival as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::Shipment(e) => <Shipment as location_event::LocationEvent>::forces_added_to_location(&**e, game),
-            GameEvent::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::BeneGesseritAccompanies(e) => <BeneGesseritAccompanies as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::Caravan(e) => <Caravan as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::FaceDanced(e) => <FaceDanced as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::Move(e) => <Move as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::Revival(e) => <Revival as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::Shipment(e) => <Shipment as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::TerrorRevealed(e) => <TerrorRevealed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
             _ => panic!("{} is not a LocationEvent", self.event_type().name()),
         }
     }
@@ -2233,14 +2233,14 @@ impl GameEvent {
     /// `((Placement)this).Initiator`; InvalidCastException for events that do not implement `Placement`.
     pub fn placement_initiator(&self) -> Faction {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::initiator(&**e),
-            GameEvent::Caravan(e) => <Caravan as placement::Placement>::initiator(&**e),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::initiator(&**e),
-            GameEvent::FaceDanced(e) => <FaceDanced as placement::Placement>::initiator(&**e),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::initiator(&**e),
-            GameEvent::Move(e) => <Move as placement::Placement>::initiator(&**e),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::initiator(&**e),
-            GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::initiator(&**e),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::initiator(&**e),
+            Event::Caravan(e) => <Caravan as placement::Placement>::initiator(&**e),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::initiator(&**e),
+            Event::FaceDanced(e) => <FaceDanced as placement::Placement>::initiator(&**e),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::initiator(&**e),
+            Event::Move(e) => <Move as placement::Placement>::initiator(&**e),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::initiator(&**e),
+            Event::PerformSetup(e) => <PerformSetup as placement::Placement>::initiator(&**e),
             _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }
@@ -2248,14 +2248,14 @@ impl GameEvent {
     /// `((Placement)this).ForceLocations`; InvalidCastException for events that do not implement `Placement`.
     pub fn placement_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::force_locations(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as placement::Placement>::force_locations(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::force_locations(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as placement::Placement>::force_locations(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::force_locations(&**e, game),
-            GameEvent::Move(e) => <Move as placement::Placement>::force_locations(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::force_locations(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::force_locations(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::force_locations(&**e, game),
+            Event::Caravan(e) => <Caravan as placement::Placement>::force_locations(&**e, game),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::force_locations(&**e, game),
+            Event::FaceDanced(e) => <FaceDanced as placement::Placement>::force_locations(&**e, game),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::force_locations(&**e, game),
+            Event::Move(e) => <Move as placement::Placement>::force_locations(&**e, game),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::force_locations(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as placement::Placement>::force_locations(&**e, game),
             _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }
@@ -2263,14 +2263,14 @@ impl GameEvent {
     /// `((Placement)this).To`; InvalidCastException for events that do not implement `Placement`.
     pub fn placement_to(&self, game: &Game) -> Option<Location> {
         match self {
-            GameEvent::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::to(&**e, game),
-            GameEvent::Caravan(e) => <Caravan as placement::Placement>::to(&**e, game),
-            GameEvent::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::to(&**e, game),
-            GameEvent::FaceDanced(e) => <FaceDanced as placement::Placement>::to(&**e, game),
-            GameEvent::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::to(&**e, game),
-            GameEvent::Move(e) => <Move as placement::Placement>::to(&**e, game),
-            GameEvent::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::to(&**e, game),
-            GameEvent::PerformSetup(e) => <PerformSetup as placement::Placement>::to(&**e, game),
+            Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::to(&**e, game),
+            Event::Caravan(e) => <Caravan as placement::Placement>::to(&**e, game),
+            Event::DiscoveryEntered(e) => <DiscoveryEntered as placement::Placement>::to(&**e, game),
+            Event::FaceDanced(e) => <FaceDanced as placement::Placement>::to(&**e, game),
+            Event::FremenRidesMonster(e) => <FremenRidesMonster as placement::Placement>::to(&**e, game),
+            Event::Move(e) => <Move as placement::Placement>::to(&**e, game),
+            Event::PerformFremenSetup(e) => <PerformFremenSetup as placement::Placement>::to(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as placement::Placement>::to(&**e, game),
             _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }

@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct KarmaChoamDiscard {
     pub card_to_use: Option<TreacheryCard>,
     pub card_ids: Option<String>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -31,11 +31,11 @@ impl KarmaChoamDiscard {
     }
 
     pub fn cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(self.card_ids.as_deref(), &TreacheryCardManager::lookup())
     }
 
     pub fn set_cards(&mut self, value: &[TreacheryCard]) {
-        self.card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     /// `Cards.Select(c => MessagePart.Express(" ", c, " "))` as one message element.
@@ -96,12 +96,12 @@ impl GameEventMethods for KarmaChoamDiscard {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::KarmaChoamDiscard
+    fn event_type(&self) -> EventType {
+        EventType::KarmaChoamDiscard
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::KarmaChoamDiscard(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::KarmaChoamDiscard(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

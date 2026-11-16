@@ -398,7 +398,7 @@ impl Checker {
         Checker { game }
     }
 
-    fn event(l: &Value) -> Option<treachery_engine::events::GameEvent> {
+    fn event(l: &Value) -> Option<treachery_engine::events::Event> {
         let text = match &l["event"] {
             Value::String(s) => s.clone(),
             v => v.to_string(),

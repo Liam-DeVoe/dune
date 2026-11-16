@@ -15,7 +15,7 @@ pub struct NexusPlayed {
     pub moritani_territory: Option<Territory>,
     pub tleilaxu_number_of_special_forces_in_location: u16,
     pub tleilaxu_location: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -229,7 +229,7 @@ impl NexusPlayed {
             Some(Faction::Emperor) if cunning => is_currently_formulating_battle_plan,
 
             Some(Faction::Guild) if betrayal => {
-                g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.has_recent_payment_for(GameEventType::Shipment)
+                g.turn.current_main_phase == MainPhase::ShipmentAndMove && g.has_recent_payment_for(EventType::Shipment)
             }
             Some(Faction::Guild) if cunning => g.turn.current_phase == Phase::GuildMove && !g.ship_move.in_guild_cunning_shipment,
             Some(Faction::Guild) if secret_ally => g.turn.current_phase == Phase::NonGuildShip,
@@ -847,12 +847,12 @@ impl GameEventMethods for NexusPlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::NexusPlayed
+    fn event_type(&self) -> EventType {
+        EventType::NexusPlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::NexusPlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::NexusPlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct BeneGesseritPrediction {
     pub to_win: Option<Faction>,
     pub turn: Turn,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -64,12 +64,12 @@ impl GameEventMethods for BeneGesseritPrediction {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BeneGesseritPrediction
+    fn event_type(&self) -> EventType {
+        EventType::BeneGesseritPrediction
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BeneGesseritPrediction(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BeneGesseritPrediction(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

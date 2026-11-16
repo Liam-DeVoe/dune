@@ -13,7 +13,7 @@ mod common;
 use std::rc::Rc;
 
 use treachery_engine::error::catch_panic;
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::game::Game;
 use treachery_engine::game::GameStatus;
 use treachery_engine::json;
@@ -45,7 +45,7 @@ fn new_game(version: i32) -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::of_version(version);
     g.human_seats.insert(Seat::new(2));
-    let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
+    let e: Event = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none(), "establish rejected");
     g
@@ -92,7 +92,7 @@ fn state(l: &mut Lines, g: &mut Game, at: &str) {
     }
 }
 
-fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
+fn exec(l: &mut Lines, g: &mut Game, at: &str, e: Event) {
     e.initialize_game(g);
     let applicable = catch_panic(|| e.is_applicable(g, false));
     match applicable {
@@ -109,13 +109,13 @@ fn exec(l: &mut Lines, g: &mut Game, at: &str, e: GameEvent) {
     state(l, g, at);
 }
 
-fn offered(g: &Game, by: Faction, target: Faction) -> GameEvent {
+fn offered(g: &Game, by: Faction, target: Faction) -> Event {
     let mut e = AllianceOffered::new(g, by);
     e.target = Some(target);
     Rc::new(e).into_event()
 }
 
-fn passed(g: &Game, by: Faction) -> GameEvent {
+fn passed(g: &Game, by: Faction) -> Event {
     Rc::new(AlliancePassed::new(g, by)).into_event()
 }
 

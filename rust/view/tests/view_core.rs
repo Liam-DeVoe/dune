@@ -5,7 +5,7 @@
 mod common;
 
 use common::{first_bot_state, load, load_text, viewer_of, with_rules, OBSERVER};
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
@@ -281,7 +281,7 @@ fn hand_cards_name_the_actions_that_play_them() {
                 for a in &c.playable_with {
                     playable += 1;
                     assert!(view.actions.iter().any(|x| &x.event_type == a), "{fixture}: {a} is applicable");
-                    let t = GameEventType::ALL.iter().copied().find(|t| t.name() == a).unwrap();
+                    let t = EventType::ALL.iter().copied().find(|t| t.name() == a).unwrap();
                     assert!(treachery_view::shield::cards_for(&r.game, p, t).contains(&card));
                     if a.starts_with("Karma") {
                         assert!(Karma::valid_karma_cards(&r.game, p).any(|k| k == card));

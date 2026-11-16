@@ -1,7 +1,7 @@
 //! The setup forms, `EstablishPlayers` and `PerformSetup`. Both are host actions, so a host
 //! without a seat acts as `None`, as every host does before factions exist.
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate, ResolvedViewer, Seating};
@@ -9,11 +9,11 @@ use crate::describe::Describer;
 use crate::schema::*;
 
 /// The event types built here.
-pub const TYPES: [GameEventType; 2] = [GameEventType::EstablishPlayers, GameEventType::PerformSetup];
+pub const TYPES: [EventType; 2] = [EventType::EstablishPlayers, EventType::PerformSetup];
 
 /// Whether a host without a seat may act on `t` (as `Faction.None`).
-pub fn seatless_host_may_act(v: &ResolvedViewer, t: GameEventType) -> bool {
-    v.is_host && t == GameEventType::EstablishPlayers
+pub fn seatless_host_may_act(v: &ResolvedViewer, t: EventType) -> bool {
+    v.is_host && t == EventType::EstablishPlayers
 }
 
 /// The game settings the form starts from: six players, ten turns, every faction, the basic
@@ -25,23 +25,23 @@ fn initial_settings() -> GameSettings {
     s
 }
 
-pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Option<Event> {
     Some(match t {
-        GameEventType::EstablishPlayers => {
+        EventType::EstablishPlayers => {
             let mut e = EstablishPlayers::new(game, faction);
             e.settings = Some(initial_settings());
             event(e)
         }
         // No forces staged, no spice.
-        GameEventType::PerformSetup => event(PerformSetup::new(game, faction)),
+        EventType::PerformSetup => event(PerformSetup::new(game, faction)),
         _ => return None,
     })
 }
 
-pub fn options_and_validation(game: &Game, s: &Seating, draft: &GameEvent, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
+pub fn options_and_validation(game: &Game, s: &Seating, draft: &Event, d: &dyn Describer) -> Option<(Option<ActionOptions>, Option<RichText>)> {
     let options = match draft {
-        GameEvent::EstablishPlayers(_) => ActionOptions::EstablishPlayers(EstablishPlayersOptions { seated_players: s.seated_users }),
-        GameEvent::PerformSetup(_) => {
+        Event::EstablishPlayers(_) => ActionOptions::EstablishPlayers(EstablishPlayersOptions { seated_players: s.seated_users }),
+        Event::PerformSetup(_) => {
             let faction = game.next_faction_to_perform_custom_setup();
             let p = game.get_player(faction)?;
             let placer = game.player(p);

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct AlliancePassed {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -60,12 +60,12 @@ impl GameEventMethods for AlliancePassed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AlliancePassed
+    fn event_type(&self) -> EventType {
+        EventType::AlliancePassed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AlliancePassed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AlliancePassed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

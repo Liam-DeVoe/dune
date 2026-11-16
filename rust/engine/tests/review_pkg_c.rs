@@ -22,7 +22,7 @@ fn establish() -> String {
 fn run(events: &[String]) -> Game {
     let mut g = Game::of_version(Game::LATEST_VERSION);
     for text in events {
-        let e: GameEvent = json::deserialize(text).expect("event json");
+        let e: Event = json::deserialize(text).expect("event json");
         e.initialize_game(&g);
         let r = e.execute(&mut g, true, true);
         assert!(r.is_none(), "event rejected: {text}");
@@ -110,7 +110,7 @@ fn static_helpers_and_getters() {
 /// "accepted", "rejected:<message>", "error" for a GameError, or "escaped:<message>" for a panic
 /// out of `execute`.
 fn exec(g: &mut Game, text: &str, validate: bool) -> String {
-    let e: GameEvent = json::deserialize(text).expect("event json");
+    let e: Event = json::deserialize(text).expect("event json");
     e.initialize_game(g);
     match catch_panic(|| e.execute(g, validate, true)) {
         Ok(None) => "accepted".to_string(),

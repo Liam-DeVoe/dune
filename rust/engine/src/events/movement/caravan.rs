@@ -8,7 +8,7 @@ pub struct Caravan {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -90,12 +90,12 @@ impl GameEventMethods for Caravan {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Caravan
+    fn event_type(&self) -> EventType {
+        EventType::Caravan
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Caravan(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Caravan(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct KarmaHmsMovement {
     pub passed: bool,
     pub target: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -93,12 +93,12 @@ impl GameEventMethods for KarmaHmsMovement {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::KarmaHmsMovement
+    fn event_type(&self) -> EventType {
+        EventType::KarmaHmsMovement
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::KarmaHmsMovement(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::KarmaHmsMovement(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

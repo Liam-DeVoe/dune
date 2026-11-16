@@ -5,7 +5,7 @@ pub struct Retreat {
     pub forces: u16,
     pub special_forces: u16,
     pub location: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -141,12 +141,12 @@ impl GameEventMethods for Retreat {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Retreat
+    fn event_type(&self) -> EventType {
+        EventType::Retreat
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Retreat(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Retreat(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

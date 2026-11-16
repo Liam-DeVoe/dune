@@ -4,7 +4,7 @@
 //! story shows. The client draws the blocks in order (`web/src/components/StoryComponent.tsx`).
 
 use serde::{Deserialize, Serialize};
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::messages::part::Part as P;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
@@ -273,8 +273,8 @@ fn describe_detailed(t: Option<AuctionType>, d: &dyn Describer) -> String {
 }
 
 /// The events the story shows as milestones.
-fn is_milestone(e: &GameEvent) -> bool {
-    use GameEvent as E;
+fn is_milestone(e: &Event) -> bool {
+    use Event as E;
     match e {
         E::FaceDanced(e) => e.face_dancer_called,
         E::FaceDancerRevealed(e) => !e.passed,
@@ -311,7 +311,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
     let mut out = Vec::new();
     let mut previous_phase = Phase::AwaitingPlayers;
     let mut previous_main_phase = MainPhase::Started;
-    let mut previous_winning_bid: Option<GameEvent> = None;
+    let mut previous_winning_bid: Option<Event> = None;
     let mut replay = game.new_like();
 
     for original in &game.history.entries {
@@ -335,11 +335,11 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
             });
         }
 
-        if let GameEvent::BeneGesseritPrediction(bp) = &evt {
+        if let Event::BeneGesseritPrediction(bp) = &evt {
             out.push(StoryBlock::Prediction { to_win: name_or_absent(bp.to_win), turn: bp.turn });
         }
 
-        if matches!(evt, GameEvent::Bid(_) | GameEvent::BlackMarketBid(_)) {
+        if matches!(evt, Event::Bid(_) | Event::BlackMarketBid(_)) {
             if let Some(wb) = &r.bidding.winning_bid {
                 if previous_winning_bid.as_ref() != Some(wb) {
                     let buyer = wb.initiator();
@@ -348,7 +348,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
                         card: r.bidding.card_just_won.map(|c| card(c, rd)),
                         amount: wb.bid_total_amount(),
                         karma_card: match wb {
-                            GameEvent::Bid(b) => b.karma_card.map(|c| card(c, rd)),
+                            Event::Bid(b) => b.karma_card.map(|c| card(c, rd)),
                             _ => None,
                         },
                         auction: (r.bidding.current_auction_type != Some(AuctionType::Normal)).then(|| describe_detailed(r.bidding.current_auction_type, rd)),
@@ -384,7 +384,7 @@ fn story(game: &Game, s: &Seating, d: &dyn Describer) -> Vec<StoryBlock> {
             out.push(StoryBlock::Situation { when: SituationWhen::EndOfShipmentAndMove, turn: r.turn.current_turn, table: table(r, game, s, columns) });
         }
 
-        if matches!(evt, GameEvent::BattleInitiated(_)) {
+        if matches!(evt, Event::BattleInitiated(_)) {
             if let Some(t) = r.battle.battle_about_to_start.as_ref().and_then(|b| b.territory) {
                 out.push(StoryBlock::BattleFor { territory: t.id() });
             }

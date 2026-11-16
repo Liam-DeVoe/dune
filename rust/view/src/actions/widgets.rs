@@ -40,7 +40,7 @@ pub(super) fn card_ids(cards: impl IntoIterator<Item = TreacheryCard>) -> Vec<i3
 }
 
 /// The draft as savegame JSON, for the options' `draft`.
-pub(super) fn draft_json(e: &GameEvent) -> serde_json::Value {
+pub(super) fn draft_json(e: &Event) -> serde_json::Value {
     serde_json::from_str(&json::serialize(e)).expect("the engine writes valid JSON")
 }
 

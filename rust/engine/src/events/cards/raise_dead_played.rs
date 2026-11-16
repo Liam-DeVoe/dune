@@ -8,7 +8,7 @@ pub struct RaiseDeadPlayed {
     pub hero: Option<Hero>,
     pub number_of_special_forces_in_location: u16,
     pub location: Option<Location>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -232,12 +232,12 @@ impl GameEventMethods for RaiseDeadPlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::RaiseDeadPlayed
+    fn event_type(&self) -> EventType {
+        EventType::RaiseDeadPlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::RaiseDeadPlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::RaiseDeadPlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

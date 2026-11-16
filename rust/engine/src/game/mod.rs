@@ -170,13 +170,13 @@ impl Game {
         game
     }
 
-    pub fn perform_pre_event_tasks(&mut self, e: &GameEvent) {
+    pub fn perform_pre_event_tasks(&mut self, e: &Event) {
         self.update_timers(e);
 
         // e is AllyPermission or PlayerReplaced or NexusPlayed { IsBetrayal: true, Faction: Faction.Richese }
         let skip = match e {
-            GameEvent::AllyPermission(_) | GameEvent::PlayerReplaced(_) => true,
-            GameEvent::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Some(Faction::Richese),
+            Event::AllyPermission(_) | Event::PlayerReplaced(_) => true,
+            Event::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Some(Faction::Richese),
             _ => false,
         };
         if skip {
@@ -185,16 +185,16 @@ impl Game {
 
         self.clear_recent_payments();
 
-        if !matches!(e, GameEvent::DealOffered(_) | GameEvent::DealAccepted(_) | GameEvent::DealRejected(_)) {
+        if !matches!(e, Event::DealOffered(_) | Event::DealAccepted(_) | Event::DealRejected(_)) {
             self.decks.recently_discarded.clear();
         }
     }
 
-    pub fn perform_post_event_tasks(&mut self, e: &GameEvent, just_entered_start_of_phase: bool) {
+    pub fn perform_post_event_tasks(&mut self, e: &Event, just_entered_start_of_phase: bool) {
         if !just_entered_start_of_phase
             && !matches!(
                 e,
-                GameEvent::AllyPermission(_) | GameEvent::DealOffered(_) | GameEvent::DealAccepted(_) | GameEvent::DealRejected(_)
+                Event::AllyPermission(_) | Event::DealOffered(_) | Event::DealAccepted(_) | Event::DealRejected(_)
             )
         {
             self.main_phase_middle();

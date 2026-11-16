@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct AuditCancelled {
     pub cancelled: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -117,12 +117,12 @@ impl GameEventMethods for AuditCancelled {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AuditCancelled
+    fn event_type(&self) -> EventType {
+        EventType::AuditCancelled
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AuditCancelled(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AuditCancelled(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

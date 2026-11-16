@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::enumerations::{MainPhase, Phase};
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::random::{self, SharedRandom, SliceRandom};
 use treachery_engine::game::PlayerId;
 
@@ -15,10 +15,10 @@ use crate::ids;
 use crate::timers::Timer;
 
 /// How long the bots wait after `latest` before acting, in milliseconds, at speed 1.
-pub fn bot_delay(phase: MainPhase, latest: Option<&GameEvent>) -> u64 {
+pub fn bot_delay(phase: MainPhase, latest: Option<&Event>) -> u64 {
     match latest {
-        Some(GameEvent::AllyPermission(_) | GameEvent::DealOffered(_) | GameEvent::SetShipmentPermission(_)) => 800,
-        Some(GameEvent::Bid(_)) => 1600,
+        Some(Event::AllyPermission(_) | Event::DealOffered(_) | Event::SetShipmentPermission(_)) => 800,
+        Some(Event::Bid(_)) => 1600,
         _ if phase == MainPhase::Resurrection || phase == MainPhase::Charity => 2400,
         _ if phase == MainPhase::ShipmentAndMove || phase == MainPhase::Battle => 9600,
         _ => 4800,

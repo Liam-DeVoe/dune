@@ -8,7 +8,7 @@
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::json;
 
 fn traces(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -39,7 +39,7 @@ fn accepted_events_of_recorded_games_decode() {
                 continue;
             }
             let text = v["event"].to_string();
-            if let Err(e) = json::deserialize::<GameEvent>(&text) {
+            if let Err(e) = json::deserialize::<Event>(&text) {
                 failures.push(format!("{} line {}: {}: {text}", path.strip_prefix(&root).unwrap().display(), i + 1, e.message));
             }
         }

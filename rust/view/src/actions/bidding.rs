@@ -7,7 +7,7 @@
 //! `BlackMarketBid` action options. Normal, Richese once-around and Richese silent auctions all
 //! use `Bid`; black-market auctions (normal, once-around, silent) use `BlackMarketBid`.
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, ResolvedViewer};
@@ -55,17 +55,17 @@ fn clamped(game: &Game, p: PlayerId, (amount, ally): (i32, i32), max_amount: i32
 
 /// The event the panel would confirm before the player touches it (`ConfirmedResult`, with
 /// `KarmaCard` null and `UseEmperorSecretAlly` false).
-pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) -> Option<GameEvent> {
+pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Option<Event> {
     let p = game.get_player(faction)?;
     match t {
-        GameEventType::Bid => {
+        EventType::Bid => {
             let (amount, ally) = clamped(game, p, starting_amounts(game, p), Bid::valid_max_amount(game, p, false), Bid::valid_max_ally_amount(game, Some(p)));
             let mut e = Bid::new(game, faction);
             e.amount = treachery_engine::game::amounts::clamp_u16(amount);
             e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
             Some(event(e))
         }
-        GameEventType::BlackMarketBid => {
+        EventType::BlackMarketBid => {
             let (amount, ally) =
                 clamped(game, p, starting_amounts(game, p), BlackMarketBid::valid_max_amount(game, p), BlackMarketBid::valid_max_ally_amount(game, p));
             let mut e = BlackMarketBid::new(game, faction);
@@ -78,11 +78,11 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: GameEventType) ->
 }
 
 /// The panel's inputs for `draft`. Only `Bid`'s maximum depends on the draft (its Karma card).
-pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<ActionOptions> {
+pub fn options(game: &Game, v: &ResolvedViewer, draft: &Event) -> Option<ActionOptions> {
     let p = v.player?;
     let faction = game.player(p).faction;
     match draft {
-        GameEvent::Bid(bid) => {
+        Event::Bid(bid) => {
             let max_amount = Bid::valid_max_amount(game, p, bid.karma_card.is_some());
             let max_ally_amount = Bid::valid_max_ally_amount(game, Some(p));
             let (default_amount, default_ally_amount) =
@@ -97,7 +97,7 @@ pub fn options(game: &Game, v: &ResolvedViewer, draft: &GameEvent) -> Option<Act
                 default_ally_amount,
             })
         }
-        GameEvent::BlackMarketBid(_) => {
+        Event::BlackMarketBid(_) => {
             let max_amount = BlackMarketBid::valid_max_amount(game, p);
             let max_ally_amount = BlackMarketBid::valid_max_ally_amount(game, p);
             let (default_amount, default_ally_amount) = clamped(game, p, starting_amounts(game, p), max_amount, max_ally_amount);

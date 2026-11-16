@@ -5,7 +5,7 @@ pub struct PerformHmsMovement {
     pub target: Option<Location>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -84,12 +84,12 @@ impl GameEventMethods for PerformHmsMovement {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::PerformHmsMovement
+    fn event_type(&self) -> EventType {
+        EventType::PerformHmsMovement
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::PerformHmsMovement(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::PerformHmsMovement(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

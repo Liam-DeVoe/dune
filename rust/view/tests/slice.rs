@@ -5,7 +5,7 @@
 mod common;
 
 use common::{load, load_text, truncated, viewer_of, Viewer, OBSERVER};
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::identity::Identifiable;
 use treachery_engine::prelude::*;
 use treachery_view::actions::QueryError;
@@ -171,7 +171,7 @@ fn private_log_lines_reach_only_their_target() {
 fn storm_dial_range() {
     // The alliance fixture's last storm dialled by two players: the last two dials in a row.
     let full = load("alliance");
-    let dials: Vec<usize> = full.game.history.entries.iter().enumerate().filter(|(_, e)| matches!(e, GameEvent::StormDialled(_))).map(|(i, _)| i).collect();
+    let dials: Vec<usize> = full.game.history.entries.iter().enumerate().filter(|(_, e)| matches!(e, Event::StormDialled(_))).map(|(i, _)| i).collect();
     let first_dial = dials.windows(2).filter(|w| w[1] == w[0] + 1).last().expect("two dials in a row")[0] as i64;
     let mut r = load_text(&truncated("alliance", first_dial));
     let mut dialers = 0;
@@ -219,7 +219,7 @@ fn draft_queries() {
     assert_eq!(r.query(emperor, &ev("StormDialled", r#","Amount":3"#)), Err(QueryError::NotApplicable));
     assert_eq!(r.query(OBSERVER, &ev("AllianceOffered", "")), Err(QueryError::NotAPlayer));
     assert!(matches!(r.query(emperor, "{not json"), Err(QueryError::BadJson(_))));
-    assert!(GameEventType::ALL.contains(&GameEventType::AllianceOffered));
+    assert!(EventType::ALL.contains(&EventType::AllianceOffered));
 }
 
 /// Applying an accepted event to the replica moves every view on, and the event number follows

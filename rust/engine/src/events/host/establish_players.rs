@@ -9,7 +9,7 @@ pub struct EstablishPlayers {
     pub applicable_rules: Option<Vec<Rule>>,
     pub players: Option<String>,
     pub factions_in_play: Option<String>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -163,7 +163,7 @@ impl EstablishPlayers {
         result
     }
 
-    /// Overrides `GameEvent.Execute`: no try/catch, no applicability check,
+    /// Overrides `Event.Execute`: no try/catch, no applicability check,
     /// `RecentMilestones` is not cleared.
     pub fn try_execute(self: &Rc<Self>, game: &mut Game, perform_validation: bool, _is_host: bool) -> GameResult<Option<Message>> {
         if perform_validation {
@@ -357,12 +357,12 @@ impl GameEventMethods for EstablishPlayers {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::EstablishPlayers
+    fn event_type(&self) -> EventType {
+        EventType::EstablishPlayers
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::EstablishPlayers(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::EstablishPlayers(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

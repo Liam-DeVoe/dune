@@ -1,6 +1,6 @@
 //! Edge cases of alliances, deals, discards and the game status.
 
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::game::{Game, Seat};
 use treachery_engine::json;
 
@@ -17,8 +17,8 @@ fn new_game() -> Game {
     g
 }
 
-fn ev(g: &Game, text: &str) -> GameEvent {
-    let e: GameEvent = json::deserialize(text).expect("event json");
+fn ev(g: &Game, text: &str) -> Event {
+    let e: Event = json::deserialize(text).expect("event json");
     e.initialize_game(g);
     e
 }

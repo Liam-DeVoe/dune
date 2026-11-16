@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct AllianceByTerror {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -88,12 +88,12 @@ impl GameEventMethods for AllianceByTerror {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AllianceByTerror
+    fn event_type(&self) -> EventType {
+        EventType::AllianceByTerror
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AllianceByTerror(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AllianceByTerror(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

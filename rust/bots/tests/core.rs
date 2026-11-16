@@ -98,8 +98,8 @@ fn parameters() {
 /// decision method returns nothing or panics.
 #[test]
 fn try_decide_scenarios() {
-    let end_phase = [GameEventType::EndPhase];
-    let thought = [GameEventType::Thought];
+    let end_phase = [EventType::EndPhase];
+    let thought = [EventType::Thought];
     // (scenario, valid, event type that ended the round)
     let expected: [(&str, bool, Option<&str>); 5] = [
         ("valid", true, Some("EndPhase")),
@@ -133,7 +133,7 @@ fn try_decide_scenarios() {
 #[test]
 fn invalid_decision_is_not_submitted() {
     let (mut game, mut bot) = bot(1);
-    let allowed = [GameEventType::Thought];
+    let allowed = [EventType::Thought];
     let decision = bot.try_decide(&mut game, &allowed, |_, g| Some(Rc::new(Thought::new(g, Faction::Atreides))));
     assert!(matches!(decision, Some(Decision::Invalid(_))));
     assert!(decision.unwrap().valid().is_none());
@@ -144,7 +144,7 @@ fn invalid_decision_is_not_submitted() {
 #[test]
 fn a_panicking_decision_counts_as_no_decision() {
     let (mut game, mut bot) = bot(1);
-    let decision = bot.try_decide(&mut game, &[GameEventType::EndPhase], |_, _| -> Option<Rc<EndPhase>> { todo!("somewhere") });
+    let decision = bot.try_decide(&mut game, &[EventType::EndPhase], |_, _| -> Option<Rc<EndPhase>> { todo!("somewhere") });
     assert!(decision.is_none());
 }
 
@@ -152,7 +152,7 @@ fn a_panicking_decision_counts_as_no_decision() {
 #[test]
 fn draws_before_an_exception_stay() {
     let (mut game, mut bot) = bot(1);
-    let r = bot.try_decide(&mut game, &[GameEventType::EndPhase], |b, _| -> Option<Rc<EndPhase>> {
+    let r = bot.try_decide(&mut game, &[EventType::EndPhase], |b, _| -> Option<Rc<EndPhase>> {
         b.d(2, 6);
         b.d(1, -1);
         None

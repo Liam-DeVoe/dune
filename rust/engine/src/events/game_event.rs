@@ -2,7 +2,7 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 
 /// The fields shared by all events, embedded as `base` in every event struct.
-/// The polymorphic `GameEvent` itself is the enum in `events/mod.rs`.
+/// The polymorphic `Event` itself is the enum in `events/mod.rs`.
 #[derive(Clone, Debug)]
 pub struct GameEventBase {
     /// Interior mutability: written after the event is stored in game state.
@@ -26,13 +26,13 @@ impl Default for GameEventBase {
 /// The instance members shared by all events. Every event implements this trait
 /// (generated in its module); members an event overrides are delegated to its inherent method.
 pub trait GameEventMethods {
-    /// The `GameEvent` fields of this event.
+    /// The `Event` fields of this event.
     fn base(&self) -> &GameEventBase;
 
-    fn event_type(&self) -> GameEventType;
+    fn event_type(&self) -> EventType;
 
     /// Upcast to the polymorphic event (shares the object).
-    fn into_event(self: Rc<Self>) -> GameEvent;
+    fn into_event(self: Rc<Self>) -> Event;
 
     fn initiator(&self) -> Option<Faction> {
         self.base().initiator.get()
@@ -108,7 +108,7 @@ pub trait GameEventMethods {
             }
         }
 
-        let this: GameEvent = self.clone().into_event();
+        let this: Event = self.clone().into_event();
         game.turn.recent_milestones.clear();
         game.perform_pre_event_tasks(&this);
         self.execute_concrete_event(game)?;
@@ -148,7 +148,7 @@ pub trait GameEventMethods {
         self.player_opt() == Some(p)
     }
 
-    fn shallow_copy(&self) -> Option<GameEvent>
+    fn shallow_copy(&self) -> Option<Event>
     where
         Self: Clone + Sized,
     {
@@ -184,7 +184,7 @@ pub trait GameEventMethods {
 
 }
 
-impl GameEvent {
+impl Event {
     /// `((LocationEvent)e).To` of an event the game holds (`LastShipmentOrMovement`,
     /// `Intrusion.TriggeringEvent`).
     pub fn to_location(&self, game: &Game) -> Option<Location> {
@@ -193,7 +193,7 @@ impl GameEvent {
 }
 
 /// Associated items shared by all events.
-impl GameEvent {
+impl Event {
     pub const ID_STRING_SEPARATOR: char = ';';
 
     pub fn id_string_to_objects<T>(ids: Option<&str>, lookup: &dyn Fetcher<T>) -> Vec<T> {
@@ -201,7 +201,7 @@ impl GameEvent {
 
         if let Some(ids) = ids {
             if !ids.is_empty() {
-                for id in ids.split(GameEvent::ID_STRING_SEPARATOR) {
+                for id in ids.split(Event::ID_STRING_SEPARATOR) {
                     let obj = lookup.find(dotnet_compat::parse::convert_to_int32(Some(id)));
                     if let Some(obj) = obj {
                         result.push(obj);
@@ -217,7 +217,7 @@ impl GameEvent {
         objs.iter()
             .map(|pj| lookup.get_id(Some(pj.clone())).to_string())
             .collect::<Vec<_>>()
-            .join(&GameEvent::ID_STRING_SEPARATOR.to_string())
+            .join(&Event::ID_STRING_SEPARATOR.to_string())
     }
 
 }

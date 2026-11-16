@@ -6,7 +6,7 @@
 mod common;
 
 use common::{load, read_trace, sample_bot_traces, viewer_of};
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
@@ -39,8 +39,8 @@ fn draft_of(options: &ActionOptions) -> &serde_json::Value {
     }
 }
 
-fn event_of(v: &serde_json::Value, game: &Game) -> GameEvent {
-    let e: GameEvent = json::deserialize(&v.to_string()).expect("the draft is an event");
+fn event_of(v: &serde_json::Value, game: &Game) -> Event {
+    let e: Event = json::deserialize(&v.to_string()).expect("the draft is an event");
     e.initialize_game(game);
     e
 }
@@ -225,7 +225,7 @@ fn variations(default: &serde_json::Value, options: &ActionOptions) -> Vec<serde
 
 /// Checks every applicable revival form of player `p` in the current state, its default and
 /// the drafts in [`variations`]. Returns the event types checked.
-fn check_state(game: &Game, p: PlayerId, types: &[GameEventType], d: &dyn Describer, at: &str) -> Vec<GameEventType> {
+fn check_state(game: &Game, p: PlayerId, types: &[EventType], d: &dyn Describer, at: &str) -> Vec<EventType> {
     let v = resolved(game, p);
     let mut checked = vec![];
     for t in types.iter().filter(|t| revival::TYPES.contains(t)) {
@@ -261,7 +261,7 @@ fn fixture_forms_match_the_engine() {
             let viewer = viewer_of(&r, f);
             let view = r.view(viewer);
             let p = r.game.get_player(Some(f)).unwrap();
-            let types: Vec<GameEventType> = view.actions.iter().filter_map(|a| GameEventType::ALL.iter().copied().find(|t| t.name() == a.event_type)).collect();
+            let types: Vec<EventType> = view.actions.iter().filter_map(|a| EventType::ALL.iter().copied().find(|t| t.name() == a.event_type)).collect();
             for a in view.actions.iter().filter(|a| revival::TYPES.iter().any(|t| t.name() == a.event_type)) {
                 let at = format!("{name}/{f} {}", a.event_type);
                 check(&r.game, p, a.options.as_ref().unwrap(), &a.validation, d.as_ref(), &at);

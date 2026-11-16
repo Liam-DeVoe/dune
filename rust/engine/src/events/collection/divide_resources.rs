@@ -11,7 +11,7 @@ pub struct DivideResources {
     pub portion_to_first_player: u16,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -100,12 +100,12 @@ impl GameEventMethods for DivideResources {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DivideResources
+    fn event_type(&self) -> EventType {
+        EventType::DivideResources
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DivideResources(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::DivideResources(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

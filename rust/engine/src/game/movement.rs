@@ -5,10 +5,10 @@ use crate::messages::part::Part;
 /// and ambassadors offer during it, and the Guild's shipment permissions.
 pub struct ShipMoveState {
     pub shipment_and_move_sequence: Option<PlayerSequence>,
-    pub last_shipment_or_movement: Option<GameEvent>,
+    pub last_shipment_or_movement: Option<Event>,
     pub intrusions: Vec<Intrusion>,
     pub ships_tech_token_income: bool,
-    pub recent_moves: Vec<GameEvent>,
+    pub recent_moves: Vec<Event>,
     pub current_no_field_value: i32,
     pub latest_revealed_no_field_value: i32,
     // In the order the Guild granted them.
@@ -112,14 +112,14 @@ impl Game {
         guild_has_to_act && !(guild_is_on_auto_delay && guild_may_delay)
     }
 
-    pub fn perform_move_from_locations(&mut self, initiator: PlayerId, force_locations: &IndexMap<Location, Battalion>, evt: &GameEvent, as_advisors: bool, by_caravan: bool) -> GameResult {
+    pub fn perform_move_from_locations(&mut self, initiator: PlayerId, force_locations: &IndexMap<Location, Battalion>, evt: &Event, as_advisors: bool, by_caravan: bool) -> GameResult {
         let Some(to) = evt.to_location(self) else { return Ok(()) };
 
         self.ship_move.last_shipment_or_movement = Some(evt.clone());
         let was_occupied_before_move = self.is_occupied_territory(to.territory());
         let values: Vec<Battalion> = force_locations.values().cloned().collect();
         let dist = self.determine_maximum_move_distance(initiator, &values);
-        let move_number = if matches!(evt, GameEvent::Move(_) | GameEvent::Caravan(_)) {
+        let move_number = if matches!(evt, Event::Move(_) | Event::Caravan(_)) {
             self.ship_move.moves_logged += 1;
             Some(self.ship_move.moves_logged)
         } else {
@@ -762,7 +762,7 @@ impl Game {
         }
     }
 
-    pub fn check_intrusion(&mut self, e: &GameEvent) -> GameResult<bool> {
+    pub fn check_intrusion(&mut self, e: &Event) -> GameResult<bool> {
         let initiator = e.location_event_initiator();
         let territory = e.to_location(self).required("destination")?.territory();
         self.check_bene_gesserit_intrusion(e, initiator, territory);
@@ -771,7 +771,7 @@ impl Game {
         Ok(!self.ship_move.intrusions.is_empty())
     }
 
-    pub fn check_bene_gesserit_intrusion(&mut self, e: &GameEvent, initiator: Faction, territory: Territory) {
+    pub fn check_bene_gesserit_intrusion(&mut self, e: &Event, initiator: Faction, territory: Territory) {
         let bg_player = self.get_player(Some(Faction::BeneGesserit));
         if let Some(bg) = bg_player {
             if territory != self.board.map.polar_sink().territory()
@@ -793,7 +793,7 @@ impl Game {
         }
     }
 
-    pub fn check_ambassador_triggered(&mut self, e: &GameEvent) {
+    pub fn check_ambassador_triggered(&mut self, e: &Event) {
         let ecaz_player = self.get_player(Some(Faction::Ecaz));
         if let Some(ecaz) = ecaz_player {
             let initiator = e.location_event_initiator();
@@ -808,7 +808,7 @@ impl Game {
         }
     }
 
-    pub fn check_terror_triggered(&mut self, e: &GameEvent) {
+    pub fn check_terror_triggered(&mut self, e: &Event) {
         let moritani_player = self.get_player(Some(Faction::Moritani));
         if let Some(moritani) = moritani_player {
             let initiator = e.location_event_initiator();
@@ -823,7 +823,7 @@ impl Game {
         }
     }
 
-    pub fn queue_intrusion(&mut self, e: &GameEvent, type_: IntrusionType) {
+    pub fn queue_intrusion(&mut self, e: &Event, type_: IntrusionType) {
         self.ship_move.intrusions.push(Intrusion::new(e, type_));
     }
 
@@ -915,7 +915,7 @@ impl Game {
 
 #[derive(Clone, Debug)]
 pub struct Intrusion {
-    pub triggering_event: GameEvent,
+    pub triggering_event: Event,
     pub type_: IntrusionType,
 }
 
@@ -929,7 +929,7 @@ impl Intrusion {
         self.triggering_event.location_event_initiator()
     }
 
-    pub fn new(triggering_event: &GameEvent, type_: IntrusionType) -> Self {
+    pub fn new(triggering_event: &Event, type_: IntrusionType) -> Self {
         Intrusion { triggering_event: triggering_event.clone(), type_ }
     }
 

@@ -2,12 +2,12 @@ use crate::prelude::*;
 
 /// The events played so far, the events undone, and what each event's moment and timing were.
 pub struct History {
-    pub entries: Vec<GameEvent>,
+    pub entries: Vec<Event>,
     pub moments: Vec<Moment>,
     /// Keyed by the initiator, `None` for the host.
     pub timers: IndexMap<Option<Faction>, Timer<MainPhase>>,
     pub recently_undone_event_count: i32,
-    pub recently_undone_events: Vec<GameEvent>,
+    pub recently_undone_events: Vec<Event>,
     /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
     pub previous_game_state: Option<Box<Game>>,
 }
@@ -61,7 +61,7 @@ impl Game {
             return;
         }
 
-        let events: Vec<GameEvent> = self.history.entries.iter().chain(self.history.recently_undone_events.iter()).cloned().collect();
+        let events: Vec<Event> = self.history.entries.iter().chain(self.history.recently_undone_events.iter()).cloned().collect();
         *self = self.replay(&events);
     }
 
@@ -73,7 +73,7 @@ impl Game {
     }
 
     /// A new game of the same version and human seats that has executed `events`.
-    fn replay(&self, events: &[GameEvent]) -> Game {
+    fn replay(&self, events: &[Event]) -> Game {
         let mut result = self.new_like();
         for e in events {
             e.initialize_game(&result);
@@ -82,12 +82,12 @@ impl Game {
         result
     }
 
-    pub fn update_timers(&mut self, e: &GameEvent) {
+    pub fn update_timers(&mut self, e: &Event) {
         if e.time() != DateTimeOffset::default() && self.history.entries.len() > 0 && self.in_timed_phase() {
             let previous_event = match e.event_type() {
-                GameEventType::Battle => self.find_most_recent_event(vec![GameEventType::BattleInitiated]),
-                GameEventType::Move => self.find_most_recent_event(vec![GameEventType::Shipment, GameEventType::EndPhase]),
-                GameEventType::Shipment => self.find_most_recent_event(vec![GameEventType::Move, GameEventType::EndPhase]),
+                EventType::Battle => self.find_most_recent_event(vec![EventType::BattleInitiated]),
+                EventType::Move => self.find_most_recent_event(vec![EventType::Shipment, EventType::EndPhase]),
+                EventType::Shipment => self.find_most_recent_event(vec![EventType::Move, EventType::EndPhase]),
                 _ => self.find_most_recent_event(vec![]),
             };
 
@@ -134,12 +134,12 @@ impl Game {
         }
     }
 
-    pub fn latest_event(&self, event_type: GameEventType) -> Option<GameEvent> {
+    pub fn latest_event(&self, event_type: EventType) -> Option<Event> {
         // List<T>.LastOrDefault(pred) walks backwards; the predicate has no side effects.
         self.history.entries.iter().rev().find(|e| e.event_type() == event_type).cloned()
     }
 
-    pub fn latest_event_0(&self) -> Option<GameEvent> {
+    pub fn latest_event_0(&self) -> Option<Event> {
         if self.history.entries.len() > 0 {
             Some(self.history.entries[self.history.entries.len() - 1].clone())
         } else {
@@ -151,7 +151,7 @@ impl Game {
         self.history.entries.len() as i32
     }
 
-    pub fn find_most_recent_event(&self, types: Vec<GameEventType>) -> Option<GameEvent> {
+    pub fn find_most_recent_event(&self, types: Vec<EventType>) -> Option<Event> {
         if types.len() == 0 {
             return Some(self.history.entries.last().expect("an event in the history").clone());
         }

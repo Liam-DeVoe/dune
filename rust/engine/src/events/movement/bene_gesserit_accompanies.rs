@@ -5,7 +5,7 @@ pub struct BeneGesseritAccompanies {
     pub location: Option<Location>,
     pub accompanies: bool,
     pub extra_advisor: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -158,12 +158,12 @@ impl GameEventMethods for BeneGesseritAccompanies {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BeneGesseritAccompanies
+    fn event_type(&self) -> EventType {
+        EventType::BeneGesseritAccompanies
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BeneGesseritAccompanies(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BeneGesseritAccompanies(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -10,7 +10,7 @@ mod common;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use treachery_engine::events::GameEventType;
+use treachery_engine::events::EventType;
 use treachery_engine::json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
@@ -45,9 +45,9 @@ fn cards_by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i3
 
 /// The draft carried in the options: valid event JSON of the form's type, which the engine reads
 /// back to the same JSON.
-fn check_draft(game: &Game, faction: Faction, draft: &serde_json::Value, t: GameEventType, at: &str) -> GameEvent {
+fn check_draft(game: &Game, faction: Faction, draft: &serde_json::Value, t: EventType, at: &str) -> Event {
     let text = draft.to_string();
-    let e: GameEvent = json::deserialize(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
+    let e: Event = json::deserialize(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
     assert_eq!(e.event_type(), t, "{at}");
     let again: serde_json::Value = serde_json::from_str(&json::serialize(&e)).unwrap();
     assert_eq!(&again, draft, "{at}: the draft doesn't survive the engine's JSON");
@@ -78,7 +78,7 @@ impl Stats {
 }
 
 /// Checks one applicable battle form of player `p`.
-fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, stats: &mut Stats, at: &str) {
+fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut Stats, at: &str) {
     let v = viewer(game, p);
     let view = actions::action_view(game, &v, &Default::default(), t, d);
     let options = view.options.clone().unwrap_or_else(|| panic!("{at}: no options for {}", t.name()));
@@ -94,7 +94,7 @@ fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, stats: &
             assert_eq!((o.cost, o.cards), (AuditCancelled::cost_of_cancelling(game), AuditCancelled::get_number_of_cards_that_may_be_audited(game)), "{at}");
         }
         (ActionOptions::Audited(o), _) => assert_eq!(o.cards, ids(game.battle.audited_cards.iter().copied()), "{at}"),
-        (ActionOptions::Battle(o), GameEvent::Battle(b)) => check_battle(game, p, o, b, d, stats, at),
+        (ActionOptions::Battle(o), Event::Battle(b)) => check_battle(game, p, o, b, d, stats, at),
         (ActionOptions::BattleConcluded(o), _) => {
             let winner = game.battle.battle_winner == Some(me.faction);
             assert_eq!(o.winner, winner, "{at}");
@@ -118,7 +118,7 @@ fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, stats: &
                 stats.add("BattleConcluded winner");
             }
         }
-        (ActionOptions::BattleInitiated(o), GameEvent::BattleInitiated(e)) => {
+        (ActionOptions::BattleInitiated(o), Event::BattleInitiated(e)) => {
             let fights = Battle::battles_to_be_fought(game, p, false);
             let got: Vec<(i32, i32)> = o.fights.iter().map(|f| (f.faction.value, f.territory)).collect();
             let want: Vec<(i32, i32)> = fights.iter().map(|f| (f.faction.value(), f.territory.id())).collect();
@@ -139,7 +139,7 @@ fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, stats: &
             let latest = game.turn.latest_clairvoyance.as_ref().unwrap();
             assert_eq!(o.questioner, name_or_absent(latest.initiator()), "{at}");
         }
-        (ActionOptions::ClairVoyancePlayed(o), GameEvent::ClairVoyancePlayed(e)) => {
+        (ActionOptions::ClairVoyancePlayed(o), Event::ClairVoyancePlayed(e)) => {
             let targets: Vec<Faction> = ClairVoyancePlayed::valid_targets(game, p).collect();
             assert_eq!(o.targets.iter().map(|x| x.value).collect::<Vec<_>>(), values(targets.iter().copied()), "{at}");
             assert_eq!(o.questions.iter().map(|x| x.value).collect::<Vec<_>>(), ClairVoyancePlayed::valid_questions(game, e.target.expect("faction")).map(value_or_absent).collect::<Vec<_>>(), "{at}");
@@ -171,7 +171,7 @@ fn check(game: &Game, p: PlayerId, t: GameEventType, d: &dyn Describer, stats: &
             assert_eq!(o.choices.iter().map(|x| x.value).collect::<Vec<_>>(), values(HMSAdvantageChosen::valid_advantages(game, p)), "{at}")
         }
         (ActionOptions::JuicePlayed(o), _) => assert_eq!(o.choices.iter().map(|x| x.value).collect::<Vec<_>>(), values(JuicePlayed::valid_types(game, p)), "{at}"),
-        (ActionOptions::LoserConcluded(o), GameEvent::LoserConcluded(e)) => {
+        (ActionOptions::LoserConcluded(o), Event::LoserConcluded(e)) => {
             assert_eq!(e.kept_card, None, "{at}: default kept card");
             assert_eq!(o.cards_to_keep, ids(LoserConcluded::cards_loser_may_keep(game)), "{at}");
             assert_eq!(o.assassination.is_some(), LoserConcluded::can_assassinate(game, p), "{at}");
@@ -262,8 +262,8 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
         q.hero = hero;
         let (opts, validation) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
         let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
-        let normalized = check_draft(game, game.player(p).faction.expect("faction"), &o.draft, GameEventType::Battle, at);
-        let GameEvent::Battle(n) = &normalized else { unreachable!() };
+        let normalized = check_draft(game, game.player(p).faction.expect("faction"), &o.draft, EventType::Battle, at);
+        let Event::Battle(n) = &normalized else { unreachable!() };
         // A hero that isn't valid, or none when one is required, is replaced.
         if hero.is_some() || game.applicable(Rule::BattleWithoutLeader) || heroes.is_empty() {
             assert_eq!(n.hero, hero, "{at}: the chosen leader stays");
@@ -286,7 +286,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
     }
 }
 
-fn applicable_mine(game: &mut Game, p: PlayerId) -> Vec<GameEventType> {
+fn applicable_mine(game: &mut Game, p: PlayerId) -> Vec<EventType> {
     game.get_applicable_events(Some(p), p.index() == 0).into_iter().filter(|t| battle::TYPES.contains(t)).collect()
 }
 

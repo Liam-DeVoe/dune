@@ -5,7 +5,7 @@ pub struct AcceptOrCancelTleilaxuRevival {
     pub cancel: bool,
     pub price: i32,
     pub hero: Option<Hero>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -90,12 +90,12 @@ impl GameEventMethods for AcceptOrCancelTleilaxuRevival {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::AcceptOrCancelTleilaxuRevival
+    fn event_type(&self) -> EventType {
+        EventType::AcceptOrCancelTleilaxuRevival
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::AcceptOrCancelTleilaxuRevival(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::AcceptOrCancelTleilaxuRevival(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

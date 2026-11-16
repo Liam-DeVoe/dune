@@ -40,14 +40,14 @@ fn terror_triggered_by_bene_gesserit_accompanying_a_non_guild_shipment() {
 
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::TerrorTriggeredByNonGuildShip);
-    assert_eq!(asked(&mut g, GameEventType::TerrorRevealed), [Faction::Moritani]);
+    assert_eq!(asked(&mut g, EventType::TerrorRevealed), [Faction::Moritani]);
     assert_eq!(g.ship_move.intrusions.len(), 1);
     assert_eq!(g.ship_move.intrusions[0].initiator(), Faction::BeneGesserit);
 
     accept(&mut g, &terror_passed());
     assert_eq!(phase(&g), Phase::NonGuildMove);
-    assert_eq!(asked(&mut g, GameEventType::BeneGesseritAccompanies), []);
-    assert_eq!(asked(&mut g, GameEventType::Move), [Faction::Moritani]);
+    assert_eq!(asked(&mut g, EventType::BeneGesseritAccompanies), []);
+    assert_eq!(asked(&mut g, EventType::Move), [Faction::Moritani]);
 }
 
 #[test]
@@ -62,13 +62,13 @@ fn terror_triggered_by_bene_gesserit_accompanying_the_guilds_shipment() {
 
     accept(&mut g, &accompany(to));
     assert_eq!(phase(&g), Phase::TerrorTriggeredByGuildShip);
-    assert_eq!(asked(&mut g, GameEventType::TerrorRevealed), [Faction::Moritani]);
+    assert_eq!(asked(&mut g, EventType::TerrorRevealed), [Faction::Moritani]);
     assert_eq!(g.ship_move.intrusions[0].initiator(), Faction::BeneGesserit);
 
     accept(&mut g, &terror_passed());
     assert_eq!(phase(&g), Phase::GuildMove);
-    assert_eq!(asked(&mut g, GameEventType::BeneGesseritAccompanies), []);
-    assert_eq!(asked(&mut g, GameEventType::Move), [Faction::Guild]);
+    assert_eq!(asked(&mut g, EventType::BeneGesseritAccompanies), []);
+    assert_eq!(asked(&mut g, EventType::Move), [Faction::Guild]);
 }
 
 /// `check_terror_triggered` lets fewer than 3 forces trigger a token only while Moritani is *not*
@@ -188,7 +188,7 @@ fn storm_losses_taken_in_the_storm_phase_end_in_the_storm_report() {
     assert_eq!(phase(&g), Phase::StormLosses);
     assert_eq!(g.storm.phase_before_storm_loss, Some(Phase::BlowA), "the marker for the storm phase");
     assert_eq!(g.storm.storm_losses_to_take.len(), 2);
-    assert_eq!(asked(&mut g, GameEventType::TakeLosses), [Faction::Fremen]);
+    assert_eq!(asked(&mut g, EventType::TakeLosses), [Faction::Fremen]);
 
     accept(&mut g, &take_losses(FREMEN, 2));
     assert_eq!(phase(&g), Phase::StormLosses, "one loss left");
@@ -211,12 +211,12 @@ fn storm_losses_taken_during_a_shipment_go_back_to_the_shipment() {
     accept(&mut g, &shipment(FREMEN, flat, 4));
     assert_eq!(phase(&g), Phase::StormLosses);
     assert_eq!(g.storm.phase_before_storm_loss, Some(Phase::NonGuildShip));
-    assert_eq!(asked(&mut g, GameEventType::TakeLosses), [Faction::Fremen]);
+    assert_eq!(asked(&mut g, EventType::TakeLosses), [Faction::Fremen]);
 
     // Back in the shipment, which is over, so the game goes on to Fremen's move.
     accept(&mut g, &take_losses(FREMEN, 2));
     assert_eq!(phase(&g), Phase::NonGuildMove);
-    assert_eq!(asked(&mut g, GameEventType::Move), [Faction::Fremen]);
+    assert_eq!(asked(&mut g, EventType::Move), [Faction::Fremen]);
     let fremen = idx(&g, Faction::Fremen);
     assert_eq!(g.player(fremen).forces_in(Some(flat)), 2);
 }
@@ -249,13 +249,13 @@ fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
     accept(&mut g, &robbery);
     assert_eq!(phase(&g), Phase::Discarding);
     assert_eq!(g.turn.phase_before_discarding, Some(Phase::BeneGesseritAccompaniesNonGuildShip));
-    assert_eq!(asked(&mut g, GameEventType::Discarded), [Faction::Moritani]);
+    assert_eq!(asked(&mut g, EventType::Discarded), [Faction::Moritani]);
     assert_eq!(g.player(moritani).treachery_cards.len(), 5);
 
     let card = g.player(moritani).treachery_cards[0];
     accept(&mut g, &format!(r#"{{"$type":"Discarded","_cardId":{},"Initiator":{MORITANI}}}"#, card.id()));
     assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
-    assert_eq!(asked(&mut g, GameEventType::BeneGesseritAccompanies), [Faction::BeneGesserit]);
+    assert_eq!(asked(&mut g, EventType::BeneGesseritAccompanies), [Faction::BeneGesserit]);
     assert_eq!(g.player(moritani).treachery_cards.len(), 4);
 }
 
@@ -274,7 +274,7 @@ fn auditing_goes_on_to_the_battle_conclusion() {
     g.turn.current_phase = Phase::Auditing;
     g.battle.battle_winner = Some(Some(Faction::Atreides));
     g.battle.audited_cards = vec![card];
-    assert_eq!(asked(&mut g, GameEventType::Audited), [Faction::Choam]);
+    assert_eq!(asked(&mut g, EventType::Audited), [Faction::Choam]);
 
     accept(&mut g, &format!(r#"{{"$type":"Audited","Initiator":{CHOAM}}}"#));
     assert_eq!(phase(&g), Phase::BattleConclusion);

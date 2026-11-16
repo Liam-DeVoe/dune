@@ -42,14 +42,14 @@ fn each_state(name: &str, mut each: impl FnMut(&mut ViewReplica, usize)) {
     }
 }
 
-fn parse_event(v: &serde_json::Value) -> GameEvent {
+fn parse_event(v: &serde_json::Value) -> Event {
     treachery_engine::json::deserialize(&v.to_string()).unwrap_or_else(|e| panic!("{v}: {e:?}"))
 }
 
 /// The offer an id names: the `DealOffered` at that place in the history.
 fn offer_at(game: &Game, id: i32) -> Rc<treachery_engine::events::DealOffered> {
     match &game.history.entries[id as usize] {
-        GameEvent::DealOffered(o) => o.clone(),
+        Event::DealOffered(o) => o.clone(),
         e => panic!("deal id {id} is a {}", e.event_type().name()),
     }
 }
@@ -77,7 +77,7 @@ fn deals() {
                 let p = g.get_player(Some(f)).unwrap();
                 let d = view.deals.as_ref().unwrap_or_else(|| panic!("{at}: no deals for {f}"));
 
-                let expected: Vec<i32> = DealAccepted::acceptable_deals(g, Some(p)).map(|o| g.history.entries.iter().position(|e| matches!(e, GameEvent::DealOffered(x) if Rc::ptr_eq(x, &o))).unwrap() as i32).collect();
+                let expected: Vec<i32> = DealAccepted::acceptable_deals(g, Some(p)).map(|o| g.history.entries.iter().position(|e| matches!(e, Event::DealOffered(x) if Rc::ptr_eq(x, &o))).unwrap() as i32).collect();
                 assert_eq!(d.acceptable.iter().map(|o| o.id).collect::<Vec<_>>(), expected, "{at} {f}");
                 for o in &d.acceptable {
                     let offer = offer_at(g, o.id);
@@ -87,12 +87,12 @@ fn deals() {
                     assert_eq!(o.price, i32::from(offer.price));
                     assert!(o.answers.is_empty() && o.withdraw.is_none(), "{at} {f}: answers to someone else's offer");
                     let accept = parse_event(&o.accept);
-                    assert!(matches!(accept, GameEvent::DealAccepted(_)), "{at}");
+                    assert!(matches!(accept, Event::DealAccepted(_)), "{at}");
                     assert_eq!(accept.initiator(), Some(f));
-                    let acceptance = GameEvent::from(offer.acceptance(g, f).unwrap());
+                    let acceptance = Event::from(offer.acceptance(g, f).unwrap());
                     assert_eq!(o.accept_error.is_some(), acceptance.validate(g).is_some(), "{at} {f}: Accept enabled");
                     let decline = parse_event(&o.decline);
-                    assert!(matches!(decline, GameEvent::DealRejected(_)) && decline.initiator() == Some(f), "{at}");
+                    assert!(matches!(decline, Event::DealRejected(_)) && decline.initiator() == Some(f), "{at}");
                     seen[0] += 1;
                     seen[1] += o.accept_error.is_some() as usize;
                 }
@@ -103,7 +103,7 @@ fn deals() {
                     assert!(Rc::ptr_eq(&offer_at(g, o.id), offer), "{at} {f}");
                     assert_eq!(o.initiator, name(f), "{at}: someone else's offer as one's own");
                     let withdraw = parse_event(o.withdraw.as_ref().expect("Withdraw"));
-                    assert!(matches!(withdraw, GameEvent::DealOffered(ref w) if w.cancel), "{at}");
+                    assert!(matches!(withdraw, Event::DealOffered(ref w) if w.cancel), "{at}");
                     assert_eq!(withdraw.initiator(), Some(f));
                     let answers: Vec<DealAnswer> = g.deal_recipients(offer).map(|x| DealAnswer { faction: name(x), accepted: g.deal_response(offer, x) }).collect();
                     assert_eq!(o.answers, answers, "{at} {f}");
@@ -266,7 +266,7 @@ fn undo_list() {
         let mut unlisted = 0;
         for (i, (entry, e)) in list.iter().zip(&g.history.entries).enumerate() {
             assert_eq!(entry.event_number, i as i32);
-            let listed = !matches!(e, GameEvent::AllyPermission(_) | GameEvent::BattleRevision(_) | GameEvent::AutomationConfigured(_));
+            let listed = !matches!(e, Event::AllyPermission(_) | Event::BattleRevision(_) | Event::AutomationConfigured(_));
             assert_eq!(entry.listed, listed, "{fx} {i}");
             unlisted += !listed as usize;
             if i == 0 {

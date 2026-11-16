@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct HMSAdvantageChosen {
     pub advantage: Option<StrongholdAdvantage>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -74,12 +74,12 @@ impl GameEventMethods for HMSAdvantageChosen {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::HMSAdvantageChosen
+    fn event_type(&self) -> EventType {
+        EventType::HMSAdvantageChosen
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::HMSAdvantageChosen(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::HMSAdvantageChosen(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

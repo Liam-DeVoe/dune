@@ -11,7 +11,7 @@ pub struct FaceDanced {
     pub force_locations: Option<String>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -297,12 +297,12 @@ impl GameEventMethods for FaceDanced {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FaceDanced
+    fn event_type(&self) -> EventType {
+        EventType::FaceDanced
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FaceDanced(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FaceDanced(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct SetIncreasedRevivalLimits {
     pub factions: Option<Vec<Faction>>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -75,12 +75,12 @@ impl GameEventMethods for SetIncreasedRevivalLimits {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::SetIncreasedRevivalLimits
+    fn event_type(&self) -> EventType {
+        EventType::SetIncreasedRevivalLimits
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::SetIncreasedRevivalLimits(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::SetIncreasedRevivalLimits(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

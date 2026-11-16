@@ -5,7 +5,7 @@ use crate::messages::part::Part;
 pub struct FaceDancerRevealed {
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -71,12 +71,12 @@ impl GameEventMethods for FaceDancerRevealed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FaceDancerRevealed
+    fn event_type(&self) -> EventType {
+        EventType::FaceDancerRevealed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FaceDancerRevealed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FaceDancerRevealed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

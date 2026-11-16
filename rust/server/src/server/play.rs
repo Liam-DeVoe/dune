@@ -7,7 +7,7 @@ use std::time::Duration;
 use serde_json::{json, Value};
 use treachery_engine::enumerations::MainPhase;
 use treachery_engine::enum_type::value_or_absent;
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::Event;
 use treachery_engine::game::{GameStatus, Seat};
 use treachery_engine::json::FromJson;
 
@@ -47,10 +47,10 @@ impl Server {
             }
             _ => {}
         }
-        let event = GameEvent::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorCode::InvalidGameEvent, e.message))?;
+        let event = Event::from_json(&Value::Object(event)).map_err(|e| CallError::Refused(ErrorCode::InvalidGameEvent, e.message))?;
         // The engine doesn't know who waits for a seat, so the server checks that they fit at
         // the table, in the order of the engine's other checks.
-        if let GameEvent::EstablishPlayers(e) = &event {
+        if let Event::EstablishPlayers(e) = &event {
             let g = &self.games[&game];
             if let Some(refusal) = e.validate_for_table(&g.game, Some(g.participation.number_of_seated_players())) {
                 return Err(CallError::Refused(ErrorCode::InvalidGameEvent, render::message_to_string(&refusal)));
@@ -61,7 +61,7 @@ impl Server {
 
     /// Validates and executes an event. With `expected_events`, only while the game has that
     /// many events: a continue that comes late does nothing.
-    pub(super) async fn execute(&mut self, game: &str, event: GameEvent, as_host: bool, expected_events: Option<usize>, by_bot: bool) -> Result<(), CallError> {
+    pub(super) async fn execute(&mut self, game: &str, event: Event, as_host: bool, expected_events: Option<usize>, by_bot: bool) -> Result<(), CallError> {
         let now = self.now();
         let Some(g) = self.games.get_mut(game) else { return Ok(()) };
         if expected_events.is_some_and(|n| n != g.game.history.entries.len()) {
@@ -80,7 +80,7 @@ impl Server {
         g.last_activity = now;
 
         // Starting the game seats the users, in the order they joined, on the players' seats.
-        let seats = matches!(event, GameEvent::EstablishPlayers(_)).then(|| {
+        let seats = matches!(event, Event::EstablishPlayers(_)).then(|| {
             let mut seats: Vec<(UserId, Option<Seat>)> = g.participation.seated_players.iter().map(|(u, s)| (*u, *s)).collect();
             for ((_, seat), player) in seats.iter_mut().zip(&g.game.players) {
                 *seat = player.seat;
@@ -133,11 +133,11 @@ impl Server {
         }
 
         let since = g.last_async_mail;
-        let happened: Vec<&GameEvent> = g
+        let happened: Vec<&Event> = g
             .game
             .history.entries
             .iter()
-            .filter(|e| since.is_none_or(|t| time::from_event_time(&e.base().time.get()) > t) && !matches!(e, GameEvent::AllyPermission(_)))
+            .filter(|e| since.is_none_or(|t| time::from_event_time(&e.base().time.get()) > t) && !matches!(e, Event::AllyPermission(_)))
             .collect();
         if happened.is_empty() {
             return Ok(());
@@ -147,7 +147,7 @@ impl Server {
         } else {
             let items: String = happened
                 .iter()
-                .filter(|e| !matches!(e, GameEvent::EstablishPlayers(_)))
+                .filter(|e| !matches!(e, Event::EstablishPlayers(_)))
                 .map(|e| format!("<li>{}</li>", render::message_to_string(&e.get_short_message(&g.game))))
                 .collect();
             format!("The following happened:<ul>{items}</ul>")

@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct FlightUsed {
     pub move_three_territories: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -59,12 +59,12 @@ impl GameEventMethods for FlightUsed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::FlightUsed
+    fn event_type(&self) -> EventType {
+        EventType::FlightUsed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::FlightUsed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::FlightUsed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

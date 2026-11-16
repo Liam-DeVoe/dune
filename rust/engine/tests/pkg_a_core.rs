@@ -1,11 +1,11 @@
-//! Focused tests for the game core (Game, GameEvent, placement events, utilities and the small
+//! Focused tests for the game core (Game, Event, placement events, utilities and the small
 //! model types). Expected values marked "(.NET)" were first recorded from the original C#
 //! engine.
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::compat::date_time_offset::TimeSpan;
 use treachery_engine::enumerations::*;
-use treachery_engine::events::{GameEvent, PlacementEvent};
+use treachery_engine::events::{Event, PlacementEvent};
 use treachery_engine::game::Game;
 use treachery_engine::game::ObjectCounter;
 use treachery_engine::game::Timer;
@@ -60,12 +60,12 @@ fn time_span_one_hour_threshold() {
 #[test]
 fn id_strings() {
     let lookup = TreacheryCardManager::lookup();
-    assert!(GameEvent::id_string_to_objects(None, &lookup).is_empty());
-    assert!(GameEvent::id_string_to_objects(Some(""), &lookup).is_empty());
-    let cards = GameEvent::id_string_to_objects(Some("1;2"), &lookup);
+    assert!(Event::id_string_to_objects(None, &lookup).is_empty());
+    assert!(Event::id_string_to_objects(Some(""), &lookup).is_empty());
+    let cards = Event::id_string_to_objects(Some("1;2"), &lookup);
     assert_eq!(cards.len(), 2);
-    assert_eq!(GameEvent::objects_to_id_string(&cards, &lookup), "1;2");
-    let r = outcome(|| GameEvent::id_string_to_objects(Some("1;;2"), &lookup).len());
+    assert_eq!(Event::objects_to_id_string(&cards, &lookup), "1;2");
+    let r = outcome(|| Event::id_string_to_objects(Some("1;;2"), &lookup).len());
     assert!(r.is_err());
 }
 

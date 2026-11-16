@@ -10,7 +10,7 @@ pub struct BattleConcluded {
     pub card_ids: Option<String>,
     pub stolen_token: Option<TechToken>,
     pub add_extra_force: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -52,11 +52,11 @@ impl BattleConcluded {
     }
 
     pub fn discarded_cards(&self) -> Vec<TreacheryCard> {
-        GameEvent::id_string_to_objects(Some(self.card_ids.as_deref().unwrap_or("")), &TreacheryCardManager::lookup())
+        Event::id_string_to_objects(Some(self.card_ids.as_deref().unwrap_or("")), &TreacheryCardManager::lookup())
     }
 
     pub fn set_discarded_cards(&mut self, value: &[TreacheryCard]) {
-        self.card_ids = Some(GameEvent::objects_to_id_string(value, &TreacheryCardManager::lookup()));
+        self.card_ids = Some(Event::objects_to_id_string(value, &TreacheryCardManager::lookup()));
     }
 
     pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
@@ -438,12 +438,12 @@ impl GameEventMethods for BattleConcluded {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::BattleConcluded
+    fn event_type(&self) -> EventType {
+        EventType::BattleConcluded
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::BattleConcluded(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::BattleConcluded(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

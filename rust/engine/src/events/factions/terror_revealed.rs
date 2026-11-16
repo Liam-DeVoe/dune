@@ -11,7 +11,7 @@ pub struct TerrorRevealed {
     pub card_to_give_in_sabotage: Option<TreacheryCard>,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -355,12 +355,12 @@ impl GameEventMethods for TerrorRevealed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::TerrorRevealed
+    fn event_type(&self) -> EventType {
+        EventType::TerrorRevealed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::TerrorRevealed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::TerrorRevealed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

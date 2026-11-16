@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct PortableAntidoteUsed {
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -59,12 +59,12 @@ impl GameEventMethods for PortableAntidoteUsed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::PortableAntidoteUsed
+    fn event_type(&self) -> EventType {
+        EventType::PortableAntidoteUsed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::PortableAntidoteUsed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::PortableAntidoteUsed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

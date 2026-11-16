@@ -4,7 +4,7 @@ use crate::messages::part::Part;
 #[derive(Clone, Debug)]
 pub struct Diplomacy {
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -89,12 +89,12 @@ impl GameEventMethods for Diplomacy {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Diplomacy
+    fn event_type(&self) -> EventType {
+        EventType::Diplomacy
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Diplomacy(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Diplomacy(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

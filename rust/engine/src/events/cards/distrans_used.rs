@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct DistransUsed {
     pub target: Option<Faction>,
     pub card: Option<TreacheryCard>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -107,12 +107,12 @@ impl GameEventMethods for DistransUsed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::DistransUsed
+    fn event_type(&self) -> EventType {
+        EventType::DistransUsed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::DistransUsed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::DistransUsed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

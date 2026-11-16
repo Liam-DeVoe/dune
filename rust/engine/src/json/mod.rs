@@ -28,7 +28,7 @@ use std::fmt::Write as _;
 use indexmap::IndexMap;
 
 use crate::compat::date_time_offset::DateTimeOffset;
-use crate::events::{GameEvent, GameEventType};
+use crate::events::{Event, EventType};
 use crate::enum_type::GameEnum;
 
 pub type JsonValue = serde_json::Value;
@@ -222,7 +222,7 @@ pub trait JsonNullable {}
 impl JsonNullable for String {}
 impl<T> JsonNullable for Vec<T> {}
 impl<K, V> JsonNullable for IndexMap<K, V> {}
-impl JsonNullable for GameEvent {}
+impl JsonNullable for Event {}
 impl JsonNullable for crate::game::GameSettings {}
 
 /// A C# class serialized as a JSON object (events, `GameSettings`).
@@ -237,7 +237,7 @@ pub trait JsonObject: Default {
 ///
 /// `$`-prefixed members are skipped as unknown members, which is what .NET does
 /// for a non-polymorphic type (`GameSettings`). Events are polymorphic and
-/// reject them; [`GameEvent`]'s `from_json` checks that before calling this.
+/// reject them; [`Event`]'s `from_json` checks that before calling this.
 pub fn read_object<T: JsonObject>(members: &[(String, JsonValue)]) -> Result<T, JsonError> {
     let mut result = T::default();
     for (k, v) in members {
@@ -680,12 +680,12 @@ impl FromJson for crate::game::GameSettings {
     }
 }
 
-/// An event written as its base type `GameEvent`: `$type` first, then the members.
-impl ToJson for GameEvent {
+/// An event written as its base type `Event`: `$type` first, then the members.
+impl ToJson for Event {
     fn write_json(&self, w: &mut JsonWriter) {
         let t = self.event_type();
         let Some(discriminator) = t.json_discriminator() else {
-            panic!("Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.GameEvent'.", t.name());
+            panic!("Runtime type '{}' is not supported by polymorphic type 'Treachery.Shared.Event'.", t.name());
         };
         w.object_value();
         w.member("$type", discriminator);
@@ -694,9 +694,9 @@ impl ToJson for GameEvent {
     }
 }
 
-/// Reads a polymorphic `GameEvent`: `$type` must be the first
+/// Reads a polymorphic `Event`: `$type` must be the first
 /// member and a known discriminator; no other `$` member may follow.
-impl FromJson for GameEvent {
+impl FromJson for Event {
     fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
         let members = object_members(v)?;
         let Some((first, discriminator)) = members.first() else {
@@ -711,12 +711,12 @@ impl FromJson for GameEvent {
         if let Some((k, _)) = members.get(1).filter(|(k, _)| matches!(k.as_str(), "$id" | "$ref" | "$type" | "$values")) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
         }
-        let t = GameEventType::from_json_discriminator(name).ok_or_else(|| JsonError::unrecognized_discriminator(name))?;
+        let t = EventType::from_json_discriminator(name).ok_or_else(|| JsonError::unrecognized_discriminator(name))?;
         // A polymorphic type rejects any other metadata member.
         if let Some((k, _)) = members[1..].iter().find(|(k, _)| k.starts_with('$')) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
         }
-        GameEvent::read_json(t, &members[1..])
+        Event::read_json(t, &members[1..])
     }
 }
 
@@ -737,16 +737,16 @@ impl FromJson for crate::game::GameState {
             match k.as_str() {
                 "Version" => result.version = FromJson::from_json(&v)?,
                 "_events" => {
-                    // Vec<GameEvent>'s reader, keeping the index for an error's path.
+                    // Vec<Event>'s reader, keeping the index for an error's path.
                     result.events = match &v {
                         JsonValue::Array(items) => Some(
                             items
                                 .iter()
                                 .enumerate()
                                 .map(|(i, item)| {
-                                    GameEvent::from_json(item).map_err(|e| e.within(JsonPathSegment::Index(i)).within(JsonPathSegment::Member("_events")))
+                                    Event::from_json(item).map_err(|e| e.within(JsonPathSegment::Index(i)).within(JsonPathSegment::Member("_events")))
                                 })
-                                .collect::<Result<Vec<GameEvent>, _>>()?,
+                                .collect::<Result<Vec<Event>, _>>()?,
                         ),
                         _ => FromJson::from_json(&v)?,
                     }

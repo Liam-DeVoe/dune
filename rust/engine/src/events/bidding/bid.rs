@@ -10,7 +10,7 @@ pub struct Bid {
     pub karma_bid: bool,
     // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -230,8 +230,8 @@ impl Bid {
                 let card = self.win_with_karma(game, self)?;
                 let this = self.clone().into_event();
                 game.finish_bid(self.player_opt(), Some(&this), card, true);
-            } else if let Some(GameEvent::Bid(winning_bid)) = game.bidding.current_bid.clone().filter(|cb| {
-                matches!(cb, GameEvent::Bid(_)) && game.bidding.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(cb.bid_initiator())
+            } else if let Some(Event::Bid(winning_bid)) = game.bidding.current_bid.clone().filter(|cb| {
+                matches!(cb, Event::Bid(_)) && game.bidding.bid_sequence.as_ref().map(|s| s.current_faction(game)) == Some(cb.bid_initiator())
             }) {
                 if winning_bid.using_karma_to_remove_bid_limit() {
                     //Karma was used to bid any amount
@@ -447,12 +447,12 @@ impl GameEventMethods for Bid {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Bid
+    fn event_type(&self) -> EventType {
+        EventType::Bid
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Bid(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Bid(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

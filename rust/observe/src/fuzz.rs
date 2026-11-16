@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
-use treachery_engine::events::{GameEvent, GameEventType};
+use treachery_engine::events::{Event, EventType};
 use treachery_engine::game::Game;
 use treachery_engine::json;
 use treachery_engine::prelude::*;
@@ -41,7 +41,7 @@ impl Shadow {
             let text = json::serialize(e);
             let shadow = &mut self.game;
             let ok = quiet(|| {
-                let copy: GameEvent = json::deserialize(&text).ok()?;
+                let copy: Event = json::deserialize(&text).ok()?;
                 copy.initialize_game(shadow);
                 copy.execute(shadow, false, false);
                 Some(())
@@ -199,7 +199,7 @@ pub struct Pools {
     /// Whole events the client offers as buttons (accepting, declining or withdrawing a deal).
     buttons: Vec<Map<String, Value>>,
     /// The event type of the form.
-    event_type: Option<GameEventType>,
+    event_type: Option<EventType>,
     /// For forces arriving somewhere ([`LOCATION_EVENT_TYPES`]): locations where they would
     /// intrude ([`intrusion_locations`]).
     intrusions: Vec<i32>,
@@ -209,8 +209,8 @@ pub struct Pools {
 
 /// Events that bring forces to a location, and can make Bene Gesserit, an Ecaz ambassador or a
 /// Moritani terror token interrupt the phase.
-pub const LOCATION_EVENT_TYPES: [GameEventType; 6] =
-    [GameEventType::Shipment, GameEventType::Move, GameEventType::Caravan, GameEventType::FremenRidesMonster, GameEventType::Revival, GameEventType::BeneGesseritAccompanies];
+pub const LOCATION_EVENT_TYPES: [EventType; 6] =
+    [EventType::Shipment, EventType::Move, EventType::Caravan, EventType::FremenRidesMonster, EventType::Revival, EventType::BeneGesseritAccompanies];
 
 /// Whether player `i` may place revived forces on the planet (Tleilaxu and Fremen at their high threshold).
 fn may_revive_to_planet(game: &Game, i: usize) -> bool {
@@ -356,7 +356,7 @@ impl Pools {
     }
 
     /// The pools of the form for event type `t` for player `i` of the shadow game.
-    pub fn of(shadow: &Game, seating: &Seating, i: usize, t: GameEventType) -> Pools {
+    pub fn of(shadow: &Game, seating: &Seating, i: usize, t: EventType) -> Pools {
         let mut pools = Pools::default();
         if i >= shadow.players.len() {
             return pools;
@@ -371,7 +371,7 @@ impl Pools {
         if LOCATION_EVENT_TYPES.contains(&t) {
             pools.intrusions = quiet(|| intrusion_locations(shadow, i)).unwrap_or_default();
         }
-        if t == GameEventType::Battle {
+        if t == EventType::Battle {
             let me = &shadow.players[i];
             pools.diplomats = quiet(|| me.leaders.iter().filter(|l| shadow.skilled_as(Hero::from(**l), LeaderSkill::Diplomat)).map(|l| l.id()).collect()).unwrap_or_default();
         }
@@ -381,7 +381,7 @@ impl Pools {
             }
             pools.harvest("", &o);
         }
-        if matches!(t, GameEventType::DealAccepted | GameEventType::DealRejected | GameEventType::DealOffered) {
+        if matches!(t, EventType::DealAccepted | EventType::DealRejected | EventType::DealOffered) {
             let deals = quiet(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok())).flatten().flatten();
             for list in ["acceptable", "cancellable"] {
                 for offer in deals.as_ref().and_then(|d| d.get(list)).and_then(|l| l.as_array()).into_iter().flatten() {
@@ -518,8 +518,8 @@ fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &
     }
     let diplomat = [LeaderSkill::Diplomat.value()];
     let preferred: &[i32] = match (pools.event_type, key) {
-        (Some(GameEventType::SkillAssigned), "Skill") => &diplomat,
-        (Some(GameEventType::Battle), "_heroId") => &pools.diplomats,
+        (Some(EventType::SkillAssigned), "Skill") => &diplomat,
+        (Some(EventType::Battle), "_heroId") => &pools.diplomats,
         _ => &[],
     };
     if let Some(list) = pools.list_for(key, cur, keys, rng) {
@@ -594,7 +594,7 @@ fn steer(event: &mut Map<String, Value>, pools: &Pools, game: &Game, player: Opt
 
 /// Changes one field of `event` (an event of type `t` for `player`) to another value its form
 /// offers, falling back to [`mutate`]. Returns the fields changed.
-pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, seating: &Seating, player: usize, t: GameEventType, rng: &mut Rng) -> Vec<String> {
+pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, seating: &Seating, player: usize, t: EventType, rng: &mut Rng) -> Vec<String> {
     let pools = Pools::of(game, seating, player, t);
     let Some(d) = quiet(|| Domains::of(game, Some(player))) else { return vec![] };
     let keys: Vec<String> = event.keys().cloned().collect();
@@ -626,8 +626,8 @@ pub fn battle_in_progress(g: &Game) -> bool {
     g.turn.current_main_phase == MainPhase::Battle && g.battle.current_battle.is_some()
 }
 
-fn type_named(name: &str) -> Option<GameEventType> {
-    GameEventType::ALL.iter().copied().find(|t| t.name() == name)
+fn type_named(name: &str) -> Option<EventType> {
+    EventType::ALL.iter().copied().find(|t| t.name() == name)
 }
 
 /// Generates events and remembers which (type, phase) pairs were executed, to prefer rare ones.
@@ -684,13 +684,13 @@ impl Fuzzer {
         *self.accepted_total.entry(t).or_default() += 1;
     }
 
-    fn rare(&self, t: GameEventType, phase: Phase) -> bool {
+    fn rare(&self, t: EventType, phase: Phase) -> bool {
         self.accepted.get(&(t.name(), phase.value())).copied().unwrap_or(0) < 2
     }
 
     /// Novelty weight of a type in a phase: 1 / (1 + accepted)^1.5, damped by
     /// how often steering already picked it.
-    fn weight(&self, t: GameEventType, phase: Phase) -> f64 {
+    fn weight(&self, t: EventType, phase: Phase) -> f64 {
         let a = self.accepted.get(&(t.name(), phase.value())).copied().unwrap_or(0) as f64;
         let tries = self.steered_tries.get(&(t.name(), phase.value())).copied().unwrap_or(0) as f64;
         let total = self.accepted_total.get(t.name()).copied().unwrap_or(0) as f64;
@@ -714,8 +714,8 @@ impl Fuzzer {
 
     /// A (player or nobody, type) from everything applicable, weighted towards types rarely
     /// executed in this phase.
-    pub fn steered_pick(&mut self, applicable: &[(Option<usize>, Vec<GameEventType>)], phase: Phase) -> Option<(Option<usize>, GameEventType)> {
-        let items: Vec<((Option<usize>, GameEventType), f64)> = applicable.iter().flat_map(|(i, ts)| ts.iter().map(move |t| ((*i, *t), 0.0))).collect();
+    pub fn steered_pick(&mut self, applicable: &[(Option<usize>, Vec<EventType>)], phase: Phase) -> Option<(Option<usize>, EventType)> {
+        let items: Vec<((Option<usize>, EventType), f64)> = applicable.iter().flat_map(|(i, ts)| ts.iter().map(move |t| ((*i, *t), 0.0))).collect();
         let items: Vec<_> = items.into_iter().map(|((i, t), _)| ((i, t), self.weight(t, phase))).collect();
         let pick = self.weighted(&items)?;
         *self.steered_tries.entry((pick.1.name(), phase.value())).or_default() += 1;
@@ -724,8 +724,8 @@ impl Fuzzer {
 
     /// A battle action for a player in the current battle:
     /// an applicable one, weighted towards rare types; now and then a rare one regardless.
-    pub fn battle_action(&mut self, applicable: &[(usize, Vec<GameEventType>)], phase: Phase) -> Option<(usize, GameEventType)> {
-        let items: Vec<((usize, GameEventType), f64)> = applicable
+    pub fn battle_action(&mut self, applicable: &[(usize, Vec<EventType>)], phase: Phase) -> Option<(usize, EventType)> {
+        let items: Vec<((usize, EventType), f64)> = applicable
             .iter()
             .flat_map(|(i, ts)| ts.iter().filter(|t| BATTLE_ACTION_TYPES.contains(&t.name())).map(move |t| (*i, *t)))
             .map(|(i, t)| ((i, t), 0.0))
@@ -745,16 +745,16 @@ impl Fuzzer {
     /// Now and then, a (player, type) that brings forces to a location where they would intrude:
     /// in [`INTRUSION_ACTION`] of the rounds, or [`RARE_INTRUSION_ACTION`] when the type was
     /// rarely executed in this phase (moves of the Guild, worm rides).
-    pub fn intrusion_action(&mut self, shadow: &Game, applicable: &[(usize, Vec<GameEventType>)], phase: Phase) -> Option<(usize, GameEventType)> {
+    pub fn intrusion_action(&mut self, shadow: &Game, applicable: &[(usize, Vec<EventType>)], phase: Phase) -> Option<(usize, EventType)> {
         let x = self.rng.f64();
         if x >= RARE_INTRUSION_ACTION {
             return None;
         }
-        let candidates: Vec<(usize, GameEventType)> = applicable
+        let candidates: Vec<(usize, EventType)> = applicable
             .iter()
             .flat_map(|(i, ts)| ts.iter().filter(|t| LOCATION_EVENT_TYPES.contains(t)).map(move |t| (*i, *t)))
             .filter(|(_, t)| x < INTRUSION_ACTION || self.rare(*t, phase))
-            .filter(|(i, t)| quiet(|| !intrusion_locations(shadow, *i).is_empty() && (*t != GameEventType::Revival || may_revive_to_planet(shadow, *i))).unwrap_or(false))
+            .filter(|(i, t)| quiet(|| !intrusion_locations(shadow, *i).is_empty() && (*t != EventType::Revival || may_revive_to_planet(shadow, *i))).unwrap_or(false))
             .collect();
         self.rng.pick(&candidates).copied()
     }
@@ -762,17 +762,17 @@ impl Fuzzer {
     /// Now and then, a step towards a retreat, which needs a battle lost by a leader with the
     /// Diplomat skill who survives: a player choosing that skill when it is offered, or a battle
     /// plan with such a leader.
-    pub fn retreat_action(&mut self, shadow: &Game, applicable: &[(usize, Vec<GameEventType>)]) -> Option<(usize, GameEventType)> {
+    pub fn retreat_action(&mut self, shadow: &Game, applicable: &[(usize, Vec<EventType>)]) -> Option<(usize, EventType)> {
         if !self.rng.chance(RETREAT_ACTION) {
             return None;
         }
-        let candidates: Vec<(usize, GameEventType)> = applicable
+        let candidates: Vec<(usize, EventType)> = applicable
             .iter()
-            .flat_map(|(i, ts)| ts.iter().filter(|t| matches!(t, GameEventType::SkillAssigned | GameEventType::Battle)).map(move |t| (*i, *t)))
+            .flat_map(|(i, ts)| ts.iter().filter(|t| matches!(t, EventType::SkillAssigned | EventType::Battle)).map(move |t| (*i, *t)))
             .filter(|(i, t)| {
                 let pools = Pools::of(shadow, &self.seating, *i, *t);
                 match t {
-                    GameEventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&Value::from(LeaderSkill::Diplomat.value()))),
+                    EventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&Value::from(LeaderSkill::Diplomat.value()))),
                     _ => pools.lists.iter().any(|(n, l, _)| n == "hero" && l.iter().any(|h| h.as_i64().is_some_and(|h| pools.diplomats.contains(&(h as i32))))),
                 }
             })
@@ -786,7 +786,7 @@ impl Fuzzer {
     pub fn changed_plan(&mut self, shadow: &Game, player: usize) -> Option<Map<String, Value>> {
         let faction = value_or_absent(shadow.players.get(player)?.faction);
         let mut plan = self.plans.get(&faction)?.clone();
-        let pools = Pools::of(shadow, &self.seating, player, GameEventType::Battle);
+        let pools = Pools::of(shadow, &self.seating, player, EventType::Battle);
         let (field, list): (&str, Vec<Value>) = match self.rng.below(4) {
             0 => ("_heroId", pools.lists.iter().find(|(n, _, _)| n == "hero")?.1.clone()),
             1 => ("_weaponCardId", pools.lists.iter().find(|(n, _, _)| n == "weapon")?.1.clone()),
@@ -802,14 +802,14 @@ impl Fuzzer {
 
     /// An applicable type to try, preferring types rarely executed in this phase; any type now and then.
     /// None when nothing is applicable and `any` is false.
-    pub fn choose_type(&mut self, applicable: &[GameEventType], phase: Phase, any: bool) -> Option<GameEventType> {
+    pub fn choose_type(&mut self, applicable: &[EventType], phase: Phase, any: bool) -> Option<EventType> {
         if any && (applicable.is_empty() || self.rng.chance(0.1)) {
-            return Some(GameEventType::ALL[self.rng.below(GameEventType::ALL.len())]);
+            return Some(EventType::ALL[self.rng.below(EventType::ALL.len())]);
         }
         if applicable.is_empty() {
             return None;
         }
-        let rare: Vec<GameEventType> = applicable.iter().copied().filter(|t| self.rare(*t, phase)).collect();
+        let rare: Vec<EventType> = applicable.iter().copied().filter(|t| self.rare(*t, phase)).collect();
         if !rare.is_empty() && self.rng.chance(0.6) {
             return Some(rare[self.rng.below(rare.len())]);
         }
@@ -817,8 +817,8 @@ impl Fuzzer {
     }
 
     /// A (player, type) whose type is applicable and rarely executed in this phase, if any.
-    pub fn opportunistic(&mut self, applicable: &[(usize, Vec<GameEventType>)], phase: Phase) -> Option<(usize, GameEventType)> {
-        let candidates: Vec<(usize, GameEventType)> = applicable
+    pub fn opportunistic(&mut self, applicable: &[(usize, Vec<EventType>)], phase: Phase) -> Option<(usize, EventType)> {
+        let candidates: Vec<(usize, EventType)> = applicable
             .iter()
             .flat_map(|(i, ts)| ts.iter().map(move |t| (*i, *t)))
             .filter(|(_, t)| self.rare(*t, phase) && self.opportunistic_tries.get(&(t.name(), phase.value())).copied().unwrap_or(0) < 15)
@@ -832,7 +832,7 @@ impl Fuzzer {
     /// candidates, each the draft the client's form sends with fields filled from the choices the
     /// form offers. Returns the event JSON object (without `Time`), preferring one that passes
     /// validation.
-    pub fn build(&mut self, shadow: &Game, player: Option<usize>, t: GameEventType) -> Option<Map<String, Value>> {
+    pub fn build(&mut self, shadow: &Game, player: Option<usize>, t: EventType) -> Option<Map<String, Value>> {
         let faction = player.filter(|i| *i < shadow.players.len()).map(|i| shadow.players[i].faction).unwrap_or(None);
         let pools = player.map(|i| Pools::of(shadow, &self.seating, i, t)).unwrap_or_default();
         if let Some(b) = self.rng.pick(&pools.buttons).filter(|_| self.rng.chance(0.9)) {
@@ -849,7 +849,7 @@ impl Fuzzer {
         });
         let base = draft.unwrap_or_else(|| {
             let minimal = format!("{{\"$type\":\"{}\",\"Initiator\":{}}}", t.name(), value_or_absent(faction));
-            quiet(|| json::deserialize::<GameEvent>(&minimal).ok().map(|e| json::serialize(&e))).flatten().unwrap_or(minimal)
+            quiet(|| json::deserialize::<Event>(&minimal).ok().map(|e| json::serialize(&e))).flatten().unwrap_or(minimal)
         });
         let Ok(Value::Object(mut base)) = serde_json::from_str::<Value>(&base) else { return None };
         base.remove("Time");
@@ -882,7 +882,7 @@ impl Fuzzer {
                     }
                 }
             }
-            if t == GameEventType::Revival && candidate.get("_locationId").and_then(|v| v.as_i64()).is_some_and(|l| l >= 0) && self.rng.chance(0.7) {
+            if t == EventType::Revival && candidate.get("_locationId").and_then(|v| v.as_i64()).is_some_and(|l| l >= 0) && self.rng.chance(0.7) {
                 // Revived forces placed on the planet, where they may intrude.
                 for (amount, placed) in [("AmountOfForces", "NumberOfForcesInLocation"), ("AmountOfSpecialForces", "NumberOfSpecialForcesInLocation")] {
                     let n = candidate.get(amount).and_then(|v| v.as_i64()).unwrap_or(0) as i32;
@@ -891,7 +891,7 @@ impl Fuzzer {
                     }
                 }
             }
-            if t == GameEventType::JuicePlayed && self.rng.chance(0.7) {
+            if t == EventType::JuicePlayed && self.rng.chance(0.7) {
                 if pools.lists.iter().any(|(n, l, _)| n == "choice" && l.contains(&Value::from(JuiceType::Aggressor as i32))) {
                     candidate.insert("Type".into(), Value::from(JuiceType::Aggressor as i32));
                 }
@@ -901,7 +901,7 @@ impl Fuzzer {
             }
             let text = Value::Object(candidate.clone()).to_string();
             let valid = quiet(|| {
-                let e: GameEvent = json::deserialize(&text).ok()?;
+                let e: Event = json::deserialize(&text).ok()?;
                 e.initialize_game(shadow);
                 Some(e.validate(shadow).is_none())
             })

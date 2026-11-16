@@ -191,7 +191,7 @@ fn status_view(game: &Game, status: &GameStatus, v: &ResolvedViewer, d: &dyn Des
 }
 
 /// The event's validation message, rendered, with "Validation failed" when validating panics.
-pub fn validate(game: &Game, event: GameEvent, d: &dyn Describer) -> Option<RichText> {
+pub fn validate(game: &Game, event: Event, d: &dyn Describer) -> Option<RichText> {
     match draft_check(|| event.validate(game)) {
         Some(m) => m.map(|m| expr::message(&m, d)),
         None => Some(vec![Part::Text { v: "Validation failed".to_string() }]),
@@ -205,11 +205,11 @@ pub fn draft_check<R>(f: impl FnOnce() -> R) -> Option<R> {
 }
 
 /// Wraps a freshly built event for [`validate`].
-pub fn event<E>(e: E) -> GameEvent
+pub fn event<E>(e: E) -> Event
 where
-    GameEvent: From<Rc<E>>,
+    Event: From<Rc<E>>,
 {
-    GameEvent::from(Rc::new(e))
+    Event::from(Rc::new(e))
 }
 
 /// Prescience waits while the Bene Gesserit (or their ally) may still use Voice, so a player who

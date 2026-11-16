@@ -12,7 +12,7 @@ pub struct Revival {
     pub hero: Option<Hero>,
     pub assign_skill: bool,
     pub uses_emperor_secret_ally: bool,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -791,12 +791,12 @@ impl GameEventMethods for Revival {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::Revival
+    fn event_type(&self) -> EventType {
+        EventType::Revival
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::Revival(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::Revival(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

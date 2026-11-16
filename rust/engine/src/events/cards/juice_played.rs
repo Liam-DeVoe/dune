@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct JuicePlayed {
     pub type_: Option<JuiceType>,
-    /// The fields of `GameEvent` (Initiator, Time, Game, Player).
+    /// The fields of `Event` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
 
@@ -87,12 +87,12 @@ impl GameEventMethods for JuicePlayed {
         &self.base
     }
 
-    fn event_type(&self) -> GameEventType {
-        GameEventType::JuicePlayed
+    fn event_type(&self) -> EventType {
+        EventType::JuicePlayed
     }
 
-    fn into_event(self: Rc<Self>) -> GameEvent {
-        GameEvent::JuicePlayed(self)
+    fn into_event(self: Rc<Self>) -> Event {
+        Event::JuicePlayed(self)
     }
 
     fn validate(&self, game: &Game) -> Option<Message> {

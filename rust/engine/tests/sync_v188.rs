@@ -200,7 +200,7 @@ fn prescience(l: &mut Lines, v: i32) {
     Player::add_forces(&mut g, choam, arrakeen.into(), 3, false).unwrap();
     let territory = g.board.map.arrakeen().territory();
     let battle = BattleInitiated { target: Some(Faction::Choam), territory: Some(territory) };
-    g.battle.current_battle = Some(battle.battle(By::new(&g, Faction::Atreides), 0));
+    g.battle.current_battle = Some(battle.battle(By::new(&g, Faction::Atreides), EntryId::default()));
 
     let plan = |g: &Game, hero: Leader, weapon: Option<TreacheryCard>, def: Option<TreacheryCard>, half: u16| -> BattlePlan {
         let b = Battle { hero: Some(Hero::Leader(hero)), weapon, defense: def, forces_at_half_strength: half, ..Default::default() };

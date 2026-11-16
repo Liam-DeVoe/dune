@@ -88,6 +88,23 @@ pub struct HistoryEntry {
     /// itself sees the time it was submitted with (none, for a live submission).
     pub at: DateTimeOffset,
     pub event: Event,
+    /// Which submission this is. A clone keeps it, so an undo, which replays the kept entries,
+    /// keeps it too, while an event submitted after the undo gets a new one.
+    pub id: EntryId,
+}
+
+/// Tells history entries apart, as C# told its event objects apart by reference: an undo
+/// replayed the same objects, so a battle kept its identity, and a battle initiated again after
+/// the undo was a different one even at the same place in the history. Unique within the
+/// process; never saved or shown.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub struct EntryId(u64);
+
+impl EntryId {
+    pub fn fresh() -> EntryId {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+        EntryId(NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    }
 }
 
 impl HistoryEntry {
@@ -96,7 +113,7 @@ impl HistoryEntry {
     pub fn new(by: impl Into<Option<Faction>>, event: impl Into<Event>) -> HistoryEntry {
         let event = event.into();
         let at = event.legacy_base().map(|b| b.time.get()).unwrap_or_default();
-        HistoryEntry { by: by.into(), at, event }
+        HistoryEntry { by: by.into(), at, event, id: EntryId::fresh() }
     }
 
     pub fn event_type(&self) -> EventType {
@@ -122,9 +139,9 @@ impl HistoryEntry {
     }
 
     /// A copy whose event shares nothing with this one's (see [`Event::detached`]), to play in
-    /// another game.
+    /// another game. It is a new submission, with its own id.
     pub fn detached(&self) -> HistoryEntry {
-        HistoryEntry { by: self.by, at: self.at, event: self.event.detached() }
+        HistoryEntry { by: self.by, at: self.at, event: self.event.detached(), id: EntryId::fresh() }
     }
 
     /// The submitter in `game`: its faction and that faction's player now.

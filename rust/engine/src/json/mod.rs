@@ -759,7 +759,7 @@ impl FromJson for HistoryEntry {
             }
             Ok(true)
         })?;
-        Ok(HistoryEntry { by, at, event })
+        Ok(HistoryEntry { by, at, event, id: crate::events::EntryId::fresh() })
     }
 }
 

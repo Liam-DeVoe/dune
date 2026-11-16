@@ -10,6 +10,8 @@ pub struct History {
     pub recently_undone_events: Vec<HistoryEntry>,
     /// The game as it was before the last `undo`, which `restore_recently_undone` returns to.
     pub previous_game_state: Option<Box<Game>>,
+    /// The id of the entry being played, which `BattleInitiated` gives its battle.
+    pub playing: EntryId,
 }
 
 impl History {
@@ -31,6 +33,7 @@ impl History {
             recently_undone_event_count: Default::default(),
             recently_undone_events: Vec::new(),
             previous_game_state: None,
+            playing: EntryId::default(),
         }
     }
 }
@@ -99,7 +102,7 @@ impl Game {
     /// `at` is the time the event sees while it is applied (the timers read it). The server
     /// submits with no time and stamps the entry afterwards ([`History::stamp_last`]), as C# did.
     pub fn submit(&mut self, by: Option<Faction>, event: Event, at: DateTimeOffset, is_host: bool) -> Result<(), SubmitError> {
-        self.play(HistoryEntry { by, at, event }, true, is_host)
+        self.play(HistoryEntry { by, at, event, id: EntryId::fresh() }, true, is_host)
     }
 
     /// [`play`](Game::play), with an error as the message the player sees, as C#'s `Execute`
@@ -116,6 +119,7 @@ impl Game {
             base.time.set(entry.at);
         }
         let by = By::new(self, entry.by);
+        self.history.playing = entry.id;
 
         if matches!(entry.event, Event::EstablishPlayers(_)) {
             // Starting the game skips the check for applicable events, keeps the recent

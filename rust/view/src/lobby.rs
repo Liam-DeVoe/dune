@@ -1,9 +1,10 @@
 //! The data the web client's lobby and setup screens need outside any game view
 //! (`web/public/static/lobby.json`).
 //!
-//! The lobby protocol carries enums as numbers (protocol.md, Encoding), while the skin and the
-//! view name them. This file gives the client, per enum it meets in the lobby, every member's
-//! name, number and `DefaultSkin` description. It also has the static tables the lobby screens
+//! The lobby protocol carries enums as member names (protocol.md, Encoding), as the skin and the
+//! view do. This file gives the client, per enum it meets in the lobby, every member's name,
+//! number and `DefaultSkin` description. The numbers are for the game settings the browser
+//! remembers, which it stores in the C# format. It also has the static tables the lobby screens
 //! need: `EstablishPlayers.AvailableFactions`,
 //! `GetMaximumNumberOfPlayers`, `GetMaximumNumberOfTurns`, `AvailableRuleGroups`,
 //! `Game.GetAvailableRulesets`, `Game.RulesetDefinition`, `Game.GetRulesInGroup` and
@@ -26,7 +27,7 @@ use ts_rs::TS;
 pub struct EnumMember {
     /// The member name, as the view and the skin JSON use it.
     pub name: String,
-    /// The number the lobby protocol uses.
+    /// The C# member value.
     pub value: i32,
     /// `Skin.Describe(value)` with the default skin.
     pub label: String,
@@ -36,7 +37,7 @@ pub struct EnumMember {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct LobbyData {
-    /// `Game.LatestVersion`: sent with `RequestLogin`, shown under the login form.
+    /// `Game::LATEST_VERSION`, shown under the login form.
     pub latest_version: i32,
     /// `EstablishPlayers.GetMaximumNumberOfPlayers()`.
     pub maximum_players: i32,

@@ -9,7 +9,7 @@ export type EnumMember = {
  */
 name: string, 
 /**
- * The number the lobby protocol uses.
+ * The C# member value.
  */
 value: number, 
 /**

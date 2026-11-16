@@ -3,6 +3,6 @@ import type { Faction, MainPhase } from "./enums";
 
 /**
  * One entry of `Game.Reports`, without its messages. The log shows one phase at a time and
- * asks the server for older ones (`historyRequest` in protocol.md).
+ * asks the server for older ones (protocol.md, Log and history).
  */
 export type ReportHeader = { index: number, turn: number, about: MainPhase, isBattle: boolean, aggressor: Faction, defender: Faction, territory: number | null, battleDecided: boolean, battleWinner: Faction, };

@@ -5,7 +5,7 @@ mod common;
 use common::*;
 use serde_json::{json, Value};
 
-/// `ErrorType` values (protocol.md, Result).
+/// `ErrorCode` values (protocol.md, Errors).
 mod error {
     pub const NOT_LOGGED_IN: &str = "notLoggedIn";
     pub const NO_HOST: &str = "noHost";

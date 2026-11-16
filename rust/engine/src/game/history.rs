@@ -111,7 +111,7 @@ impl Game {
     /// [`submit`](Game::submit) of a whole entry, validated or not. Unvalidated play is for
     /// replaying a history and for tests.
     pub fn play(&mut self, mut entry: HistoryEntry, validate: bool, is_host: bool) -> Result<(), SubmitError> {
-        // A pass carries none of its other fields, as in the savegame and in the views' replica.
+        // A pass carries none of its other fields, as in the savegame.
         entry.event = entry.event.normalized();
         let by = By::new(self, entry.by);
         self.history.playing = entry.id;

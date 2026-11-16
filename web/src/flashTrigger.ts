@@ -1,7 +1,7 @@
 // When ImageFlash shows a flash. The C# component means to flash after every new event (it tracks
 // afterEventId) but sets the flash's time only on its first render, so in C# a flash shows only
 // when the game page opens with one current. The web client flashes after each new event that
-// brings a flash, and on the first render when one is current (protocol.md, deviation 6).
+// brings a flash, and on the first render when one is current.
 //
 // A view that is not a new event (a draft reply, chat, a reconnect's re-send, an undo back to an
 // earlier event) has an eventNumber no higher than the last one seen, and never starts a flash.

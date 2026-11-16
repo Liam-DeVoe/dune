@@ -96,7 +96,7 @@ pub struct LogLine {
 }
 
 /// One entry of `Game.Reports`, without its messages. The log shows one phase at a time and
-/// asks the server for older ones (`historyRequest` in protocol.md).
+/// asks the server for older ones (protocol.md, Log and history).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ReportHeader {

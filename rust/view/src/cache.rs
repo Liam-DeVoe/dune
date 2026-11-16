@@ -59,15 +59,15 @@ impl ViewCache {
         crate::actions::query(game, viewer, s, &applicable, draft_json, &InGame::new(self.describer.as_ref(), game))
     }
 
-    /// `RequestReport`: the lines of report `index` that `viewer` may read, as in the view's log.
+    /// The `report` call: the lines of report `index` that `viewer` may read, as in the view's log.
     pub fn report(&self, game: &Game, viewer: Viewer, index: usize) -> Option<ReportLines> {
         let r = game.reports().get(index)?;
         let v = viewer.resolve(game);
         Some(build::report_lines(index, r, &v, &InGame::new(self.describer.as_ref(), game)))
     }
 
-    /// `RequestUndoList`: the short message of every event, for the undo panel. The number of an
-    /// entry is its index in the history, the `untilEventNr` of `RequestUndo`.
+    /// The `undoList` call: the short message of every event, for the undo panel. The number of an
+    /// entry is its index in the history, the `until` of the `undo` call.
     pub fn undo_list(&self, game: &Game) -> Vec<UndoEntry> {
         let d = InGame::new(self.describer.as_ref(), game);
         game.history
@@ -88,7 +88,7 @@ impl ViewCache {
             .collect()
     }
 
-    /// `RequestUndoPreview`: the view `viewer` had at gap `gap`, the moment just before event
+    /// The `undoPreview` call: the view `viewer` had at gap `gap`, the moment just before event
     /// `gap`. The gap is clamped to `1..=` the number of events. The history is replayed into a
     /// new game with the same human seats, so `game` is not touched. A preview can't be acted
     /// on, so the view has no actions and no card plays.

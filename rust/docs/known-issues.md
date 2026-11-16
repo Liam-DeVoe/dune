@@ -12,6 +12,5 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 - `TraitorDiscarded` logs that the traitor deck is shuffled, but the deck isn't shuffled. Either the rule or the text is wrong. Check the rulebook.
 - Plain-text output has no space between a number and a force name ("3forces"). The client draws them as separate tokens, so only mails and server texts show it.
 - "X is a Y facedancer!" and "CHOAM The Economics Token flips ..." read badly.
-- Faction sheets paste advantage titles into the sheet template before formatting it, so a custom skin label with `{N}` gets sheet parameter N, and a lone `{` leaves the whole sheet unformatted. 3b drops this.
 - A custom skin missing any default key is replaced by the default skin entirely (C#'s `FixDictionary`), so its custom names are lost.
 - The web client's Karama help text has typos ("an advantages ... occured").

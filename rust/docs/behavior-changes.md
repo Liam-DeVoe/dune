@@ -292,3 +292,11 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Effect (seed 1, against the shared reference): all 20 fuzz games tried first differ at an `AutomationConfigured` whose `Action` names no `ItemAction` member, which the reference accepted. Five sampled games refuse actions 30, 70, 80, 120 and 120. Against a reference whose reader refuses the same undefined values (below), 20 bots and 20 fuzz games pass, so nothing else changed.
 - That reference is a copy of the shared reference's sources in `~/2d-ref/rust`, whose `json/mod.rs` refuses a number that names no member for the enums listed in `TREACHERY_CLOSED_ENUMS` (comma-separated). The patch is `~/2d-ref/closed-enums.patch`. It was built with `tools/build-native-ref.sh --source ~/2d-ref/rust --out ~/2d-ref/bin` and is run as `TREACHERY_CLOSED_ENUMS=<the closed enums> observe live --reference ~/2d-ref/bin/observe`.
 - Tests: `view/tests/trace_events_decode.rs` checks that every accepted event of the recorded test games still decodes. Seven `AutomationConfigured` steps with an undefined `Action` in two of those games are marked refused (`tools/drop-undecodable-steps.py`). The event JSON snapshot (`engine/tests/golden/events.jsonl`) records the cases with undefined values as refused.
+
+## Braces in a custom skin's advantage titles
+
+- Area: faction sheets drawn with a host's custom skin (rewrite-plan.md wave 3b)
+- What happened: a sheet puts the titles of its advantages into its HTML template before filling in the template's `{N}` placeholders. Where the title is a skin label (the Messiah, Karama, Shai-Hulud and a few more), a `{N}` in the label was replaced by sheet parameter N, and a brace that formed no placeholder left the whole sheet unfilled, `{N}` placeholders and all.
+- Now: braces in a label are escaped before the label goes into the template, so the title prints as the label is written. Labels everywhere else already printed as written. The default skin has no braces in its labels, so its sheets don't change.
+- Why: the skin no longer runs .NET's `string.Format`, and a host's label is text, not a template.
+- Test: `skin/tests/custom_labels.rs`.

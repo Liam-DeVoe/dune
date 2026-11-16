@@ -44,7 +44,7 @@ No state lives outside `Game`: the engine has no thread-locals or statics that g
 Change 2d of [rewrite-plan.md](rewrite-plan.md) is turning the enums into closed Rust enums, and most of them are closed already (`closed` in `enumerations.rs`). A closed enum is a Rust `enum` with the C# values as discriminants, so a number that names no member doesn't decode: event JSON holding `13` for a closed enum is refused with "13 is not a valid X". Where the C# enum had a `None = 0` member meaning "no value", the Rust enum leaves it out (`absent None = 0;`) and the game uses `Option<X>`. The C# `None` member doesn't disappear from what players see:
 
 - event JSON writes `None` as 0 and reads 0 as `None` (`Option<X>` has its own `ToJson`/`FromJson`, see `json::JsonNullable`);
-- a message logs `None` as the `None` member (`From<Option<X>> for ExpressionElement`), so the skin names it as before;
+- a message logs `None` as the `None` member (its `Part` variant holds an `Option<X>`), so the skin names it as before;
 - views, the lobby data and skin keys name it "None" (`enum_type::name_or_absent`, `value_or_absent`).
 
 ```rust
@@ -307,7 +307,9 @@ plan.activate_dynamic_weapons(game, hero, weapon, defense);
 
 ## Messages
 
-`Message.Express(...)` and friends are macros. Every argument goes through `ExpressionElement::from`:
+A `Message` is plain data: who may read it (`to: Audience`), its `parts: Vec<Part>`, and an optional `detail` with what the log draws besides the text (a heading, a route, battle plans, a battle fact, and a record from `log/`). A `Part` is a text, a number, a game object, an enum value, a list or a nested phrase (`messages/part.rs`). Turning parts into words is the skin's job (`Skin::render`).
+
+`express!` and friends build messages. Every argument goes through `Part::from`:
 
 ```rust
 use crate::{express, express_to, express_part, express_part_if};
@@ -322,7 +324,7 @@ express_to!(Faction::Atreides; "You see ", card);
 express_part_if!(amount > 0; " for ", Payment::of(amount));
 
 // Cards.Select(c => MessagePart.Express(" ", c, " "))
-ExpressionElement::list(cards.iter().map(|c| express_part!(" ", *c, " ")));
+Part::list(cards.iter().map(|c| express_part!(" ", *c, " ")));
 
 // .WithLog(new StormLog(...)), .AsHeading(Concept.Monster)
 express!(...).with_log(StormLog { /* ... */ }).as_heading(Concept::Monster);
@@ -330,14 +332,18 @@ express!(...).with_log(StormLog { /* ... */ }).as_heading(Concept::Monster);
 
 What converts:
 
-- `&str`, `String`, `bool`, `i32`, `i64`, `f32`, `f64`.
-- Every enum.
+- `&'static str`, `String`, `bool`, `i32`, `f32`, `f64`. Pass any other `&str` as a `String`.
+- Every enum that has a variant in the `part!` list of part.rs. An enum whose C# `None` member is `Option::None` in Rust goes in the `optional` list.
 - `Location` and its subtypes, `Territory`, `Leader`, `Hero`, `TreacheryCard`, `ResourceCard`.
 - `Payment`, `Message`, `MessagePart` and `GameError`.
 - `Option<T>`, where `None` is null.
 - `Vec<T>`, `&[T]` and `[T; N]`, which become a list element.
 
-Keep the C# numeric type: a `float` dial must go in as `f32`, not `i32`. If something new needs to go in a message, add a variant and a `From` impl in `expression.rs`.
+Keep the C# numeric type: a `float` dial must go in as `f32`, not `i32`. If something new needs to go in a message, add a variant and a `From` impl in part.rs, and say how the skin (`Skin::describe`) and the view (`view/src/expr.rs`) draw it.
+
+`parts!` takes the same arguments and gives the `Vec<Part>`, for texts that aren't messages (the skin's own labels). A new log record goes in the `log_records!` list of `log/mod.rs`, and `view/src/log.rs` converts it for the client.
+
+`Message::plain_text` prints a message without a skin, for tests and debugging.
 
 ### Collections in messages
 
@@ -457,6 +463,6 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 
 ## What is left of .NET
 
-- `dotnet_compat::fmt` (float `ToString()`), `fmt::string_format` and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
+- `dotnet_compat::fmt` (float `ToString()`) and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
 - `compat/date_time_offset.rs`: the `Time` of events in the JSON.
 - `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.

@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct GameSettings {
     pub number_of_players: i32,
-    pub maximum_turns: i32,
+    pub maximum_turns: Turn,
     pub initial_rules: Option<Vec<Rule>>,
     pub allowed_factions_in_play: Option<Vec<Faction>>,
     pub auto_open_empty_seats: bool,
@@ -15,7 +15,7 @@ impl Default for GameSettings {
     fn default() -> Self {
         GameSettings {
             number_of_players: 6,
-            maximum_turns: 10,
+            maximum_turns: Turn::new(10),
             initial_rules: Some(Default::default()),
             allowed_factions_in_play: Some(Default::default()),
             auto_open_empty_seats: true,

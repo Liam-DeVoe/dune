@@ -220,6 +220,16 @@ impl From<i32> for Part {
         Part::Number(v)
     }
 }
+impl From<crate::map::sector::Sector> for Part {
+    fn from(v: crate::map::sector::Sector) -> Self {
+        Part::Number(v.into())
+    }
+}
+impl From<crate::game::Turn> for Part {
+    fn from(v: crate::game::Turn) -> Self {
+        Part::Number(v.into())
+    }
+}
 impl From<f32> for Part {
     fn from(v: f32) -> Self {
         Part::Float(v)

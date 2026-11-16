@@ -53,7 +53,7 @@ impl BeneGesseritBattleAnnouncement {
                 (!player.has_ally() || g.player(player.allied_player(g).expect("allied player")).any_forces_in_territory(Some(t)) == 0)
                     && player.special_forces_in_territory(Some(t)) > 0
                     && (!t.is_stronghold() || g.nr_of_occupants_of_territory_excluding(t, player.faction) <= 1)
-                    && !t.locations().iter().any(|l| l.sector(&g.board.map) == g.board.sector_in_storm && player.special_forces_in(Some(*l)) > 0)
+                    && !t.locations().iter().any(|l| Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm) && player.special_forces_in(Some(*l)) > 0)
             })
     }
 

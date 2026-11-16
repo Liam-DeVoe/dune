@@ -8,7 +8,7 @@ pub struct Report {
     pub about: Option<MainPhase>,
     /// `None` for the report before the game starts.
     /// The value of `Game.CurrentTurn` when this report was started (0 for the setup report).
-    pub turn: i32,
+    pub turn: crate::game::Turn,
     /// Only set on a report that covers a single battle (started by BattleInitiated).
     pub aggressor: Option<Faction>,
     pub defender: Option<Faction>,
@@ -22,7 +22,7 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn new(about: Option<MainPhase>, turn: i32) -> Self {
+    pub fn new(about: Option<MainPhase>, turn: crate::game::Turn) -> Self {
         Report {
             about,
             turn,

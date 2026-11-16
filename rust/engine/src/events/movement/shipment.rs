@@ -547,7 +547,7 @@ impl Shipment {
             .filter(move |l| {
                 let l = *l;
                 Some(l.territory()) != g.board.atomics_aftermath
-                    && l.sector(&g.board.map) != g.board.sector_in_storm
+                    && !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)
                     && (l.id() != g.board.map.hidden_mobile_stronghold().location().id() || g.player(p).is(Faction::Ixian))
                     && Shipment::is_either_valid_homeworld_or_no_homeworld(g, p, l, cross_planet)
                     && Shipment::is_either_valid_discovery_or_no_discovery(&g.board.map, l)

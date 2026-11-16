@@ -24,7 +24,7 @@ pub const CHOAM: i32 = 90;
 pub const ATREIDES: i32 = 20;
 
 /// The sector the storm is in. Nothing the tests use lies in it.
-pub const STORM: i32 = 9;
+pub const STORM: Sector = Sector::new(9);
 
 /// The game at the start of the shipment and move phase of turn 1: the Guild's shipment.
 pub fn table() -> Game {
@@ -56,7 +56,7 @@ pub fn at_resurrection() -> Game {
 /// The game in the spice blow of turn 2, in `phase`.
 pub fn at_blow(phase: Phase) -> Game {
     let mut g = seated(|_| {});
-    g.turn.current_turn = 2;
+    g.turn.current_turn = Turn::new(2);
     g.turn.current_main_phase = MainPhase::Blow;
     g.turn.current_phase = phase;
     g
@@ -104,8 +104,8 @@ pub fn seated_with(factions: &[Faction], change_rules: impl FnOnce(&mut Vec<Rule
         g.setup_player_spice_and_forces_on_planet(p);
         g.player_mut(p).resources = 20;
     }
-    g.board.sector_in_storm = STORM;
-    g.turn.current_turn = 1;
+    g.board.sector_in_storm = Some(STORM);
+    g.turn.current_turn = Turn::new(1);
     g
 }
 

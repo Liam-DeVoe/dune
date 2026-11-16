@@ -4,7 +4,7 @@ use crate::prelude::*;
 /// ambassadors, discoveries, stronghold ownership and homeworld occupation.
 pub struct Board {
     pub map: Map,
-    pub sector_in_storm: i32,
+    pub sector_in_storm: Option<Sector>,
     pub next_storm_moves: i32,
     pub shield_wall_destroyed: bool,
     // Spice, discoveries and stronghold owners are in map order (by location id), so the board lists
@@ -24,7 +24,7 @@ impl Board {
     pub fn new() -> Self {
         Board {
             map: Map::new(),
-            sector_in_storm: -1,
+            sector_in_storm: None,
             next_storm_moves: -1,
             shield_wall_destroyed: Default::default(),
             resources_on_planet: Default::default(),
@@ -77,7 +77,7 @@ impl Game {
     }
 
     pub fn is_in_storm(&self, l: Location) -> bool {
-        l.sector(&self.board.map) == self.board.sector_in_storm
+        Sector::in_storm(l.sector(&self.board.map), self.board.sector_in_storm)
     }
 
     pub fn is_in_storm_territory(&self, t: Territory) -> bool {

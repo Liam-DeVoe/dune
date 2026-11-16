@@ -220,7 +220,11 @@ impl PlayerSequence {
     }
 
     pub fn determine_first_player(g: &Game) -> PlayerId {
-        let start_looking_in_sector = (((g.board.sector_in_storm as f32 * g.maximum_players() as f32 / Map::NUMBER_OF_SECTORS as f32) as f64).ceil() as i32) % g.maximum_players();
+        // The seat at or after the storm, rounded up: ceil(sector * seats / 18). Before the first
+        // storm, seat 0.
+        let storm = g.board.sector_in_storm.map_or(0, i32::from);
+        let sectors = Sector::COUNT as i32;
+        let start_looking_in_sector = ((storm * g.maximum_players() + sectors - 1) / sectors) % g.maximum_players();
 
         let mut result: Option<PlayerId> = None;
 

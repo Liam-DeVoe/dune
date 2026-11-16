@@ -74,7 +74,7 @@ impl Game {
                 break;
             }
 
-            if drawn.is_some_and(|d| d.is_shai_hulud() || d.is_great_maker()) && self.turn.current_turn == 1 {
+            if drawn.is_some_and(|d| d.is_shai_hulud() || d.is_great_maker()) && self.turn.current_turn == Turn::FIRST {
                 self.log_ignored_monster(drawn.expect("drawn").is_great_maker());
                 let c = self.current_discard_pile_mut().expect("current discard pile").draw();
                 self.blow.ignored_monsters.push(c);
@@ -118,7 +118,7 @@ impl Game {
                 }
             } else if drawn.is_some_and(|d| d.is_sand_trout()) {
                 let d = drawn.expect("drawn");
-                if self.turn.current_turn > 1 {
+                if self.turn.current_turn > Turn::FIRST {
                     self.stone(Milestone::BabyMonster);
                     self.log(elems![Concept::BabyMonster, " detected! All alliances are cancelled."]);
                     self.cancel_all_alliances();
@@ -272,7 +272,7 @@ impl Game {
         let location = blow_card.location().expect("location");
         let spice_amount = spice_factor * location.spice_blow_amount();
 
-        if location.sector(&self.board.map) != self.board.sector_in_storm {
+        if !Sector::in_storm(location.sector(&self.board.map), self.board.sector_in_storm) {
             let msg = express!(Payment::of(spice_amount), " detected in ", location, Game::sandtrout_message(self.blow.sand_trout_doubles_resources))
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, false, self.blow.sand_trout_doubles_resources));
             self.log(elems![msg]);
@@ -322,7 +322,7 @@ impl Game {
 
     pub fn let_monster_appear(&mut self, t: Option<Territory>, is_great_monster: bool) {
         match t {
-            Some(t) if self.turn.current_turn != 1 => {
+            Some(t) if self.turn.current_turn != Turn::FIRST => {
                 let m = MonsterAppearance::new(t, is_great_monster);
 
                 let appeared = WormAppearedLog::new(m.territory, (self.blow.monsters.len() as i32) + 1);

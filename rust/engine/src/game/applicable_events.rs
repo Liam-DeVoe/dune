@@ -165,7 +165,7 @@ impl Game {
                 }
             }
             Phase::MetheorAndStormSpell => {
-                if self.player(player).has_treachery_card_type(TreacheryCardType::StormSpell) && self.turn.current_turn > 1 {
+                if self.player(player).has_treachery_card_type(TreacheryCardType::StormSpell) && self.turn.current_turn > Turn::FIRST {
                     result.push(GameEventType::StormSpellPlayed);
                 }
                 if MetheorPlayed::may_play_metheor(self, player) {
@@ -780,7 +780,7 @@ impl Game {
                 && self.consider_as_end_of_phase()
                 && !self.player(p.allied_player(self).expect("allied player")).treachery_cards.is_empty()
                 && !p.treachery_cards.is_empty()
-                && self.alliances.last_turn_card_was_traded < self.turn.current_turn
+                && self.alliances.last_turn_card_was_traded < Some(self.turn.current_turn)
             {
                 result.push(GameEventType::CardTraded);
             }
@@ -871,7 +871,7 @@ impl Game {
 
             if faction == Some(Faction::Fremen)
                 && self.turn.current_main_phase == MainPhase::Blow
-                && self.turn.current_turn > 1
+                && self.turn.current_turn > Turn::FIRST
                 && !self.karma_prevented(faction)
                 && !p.special_karma_power_used
                 && p.has_karma(self)

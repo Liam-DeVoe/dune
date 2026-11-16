@@ -101,7 +101,7 @@ impl CardTraded {
             crate::iter::remove_first(&mut game.player_mut(other_player).treachery_cards, &offered_card);
             game.alliances.current_card_trade_offer = None;
             game.stone(Milestone::CardTraded);
-            game.alliances.last_turn_card_was_traded = game.turn.current_turn;
+            game.alliances.last_turn_card_was_traded = Some(game.turn.current_turn);
             if let Some(phase) = game.alliances.phase_before_card_trade {
                 game.enter(phase, true);
             }

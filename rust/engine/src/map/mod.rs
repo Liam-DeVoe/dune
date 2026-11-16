@@ -19,6 +19,7 @@ pub mod hidden_mobile_stronghold;
 pub mod homeworld;
 pub mod location;
 pub mod point;
+pub mod sector;
 pub mod territory;
 
 use crate::iter::IterExt;
@@ -30,6 +31,7 @@ use crate::map::location::Location;
 use crate::map::data::{INITIAL_NEIGHBOURS, LOCATION_COUNT};
 use crate::cards::resource_card::ResourceCard;
 use crate::map::territory::Territory;
+use crate::map::sector::Sector;
 
 /// The static properties of a territory (`new Territory(id) { ... }` in
 /// `InitializeLocations`).
@@ -48,14 +50,14 @@ pub struct TerritoryData {
     pub location_count: u8,
 }
 
-/// The static properties of a location. `sector` is the `Sector` for
-/// normal locations and homeworlds (-1); attached locations compute theirs.
+/// The static properties of a location. `sector` is the `Sector` of a normal
+/// location, `None` for homeworlds; attached locations compute theirs.
 #[derive(Debug)]
 pub struct LocationData {
     pub id: i32,
     pub territory: Territory,
     pub orientation: &'static str,
-    pub sector: i32,
+    pub sector: Option<Sector>,
     pub spice_blow_amount: i32,
     pub discovery_token_type: Option<DiscoveryTokenType>,
     pub kind: LocationKind,
@@ -89,7 +91,7 @@ pub struct HomeworldData {
 /// while `game.board.map` is borrowed through the same `Game`, and `Map` must not
 /// depend on the whole `Game` type, so the calls it makes are listed here.
 pub trait MapGame {
-    fn sector_in_storm(&self) -> i32;
+    fn sector_in_storm(&self) -> Option<Sector>;
     fn applicable(&self, rule: Rule) -> bool;
     /// `game.Forces()` (homeworlds excluded): every location with the
     /// `Faction` of each of its battalions, in dictionary enumeration order.
@@ -117,8 +119,6 @@ impl Default for Map {
 }
 
 impl Map {
-    pub const NUMBER_OF_SECTORS: i32 = 18;
-
     pub fn new() -> Map {
         let mut map = Map {
             neighbours: vec![Vec::new(); LOCATION_COUNT],
@@ -149,10 +149,10 @@ impl Map {
         self.attached_to[l.index()]
     }
 
-    pub(crate) fn attached_sector(&self, l: Location) -> i32 {
+    pub(crate) fn attached_sector(&self, l: Location) -> Option<Sector> {
         match (self.attached_to_game[l.index()], self.attached_to[l.index()]) {
             (true, Some(host)) => host.sector(self),
-            _ => -1,
+            _ => None,
         }
     }
 
@@ -285,7 +285,7 @@ impl Map {
             None,
             0,
             distance,
-            if ignore_storm { 99 } else { game.sector_in_storm() },
+            if ignore_storm { None } else { game.sector_in_storm() },
             &force_obstacles,
         );
 
@@ -327,7 +327,7 @@ impl Map {
         previous: Option<Location>,
         current_distance: i32,
         max_distance: i32,
-        sector_in_storm: i32,
+        storm: Option<Sector>,
         force_obstacles: &[Location],
     ) {
         if !found.contains(&current) {
@@ -336,7 +336,7 @@ impl Map {
 
         for &neighbour in current.neighbours(self).iter().filter(|n| {
             Some(n.id()) != previous.map(|p| p.id())
-                && n.sector(self) != sector_in_storm
+                && !Sector::in_storm(n.sector(self), storm)
                 && !force_obstacles.contains(n)
         }) {
             let distance = if current.territory() == neighbour.territory() { 0 } else { 1 };
@@ -348,7 +348,7 @@ impl Map {
                     Some(current),
                     current_distance + distance,
                     max_distance,
-                    sector_in_storm,
+                    storm,
                     force_obstacles,
                 );
             }
@@ -377,7 +377,7 @@ impl Map {
             None,
             0,
             distance,
-            if ignore_storm { 99 } else { game.sector_in_storm() },
+            if ignore_storm { None } else { game.sector_in_storm() },
             &obstacles,
         );
         paths
@@ -394,7 +394,7 @@ impl Map {
         previous: Option<Location>,
         current_distance: i32,
         max_distance: i32,
-        sector_in_storm: i32,
+        storm: Option<Sector>,
         obstacles: &[Location],
     ) {
         current_path.push(current);
@@ -405,7 +405,7 @@ impl Map {
             for &neighbour in current.neighbours(self).iter() {
                 // The Where is evaluated lazily, so currentPath is checked as it is now.
                 if !(Some(neighbour.id()) != previous.map(|p| p.id())
-                    && neighbour.sector(self) != sector_in_storm
+                    && !Sector::in_storm(neighbour.sector(self), storm)
                     && !current_path.contains(&neighbour)
                     && !obstacles.contains(&neighbour))
                 {
@@ -421,7 +421,7 @@ impl Map {
                         Some(current),
                         current_distance + distance,
                         max_distance,
-                        sector_in_storm,
+                        storm,
                         obstacles,
                     );
                 }
@@ -450,7 +450,7 @@ impl Map {
                 None,
                 0,
                 i,
-                if ignore_storm { 99 } else { game.sector_in_storm() },
+                if ignore_storm { None } else { game.sector_in_storm() },
                 &obstacles,
             );
             if path.is_some() {
@@ -469,7 +469,7 @@ impl Map {
         previous: Option<Location>,
         current_distance: i32,
         max_distance: i32,
-        sector_in_storm: i32,
+        storm: Option<Sector>,
         obstacles: &[Location],
     ) -> Option<Vec<Location>> {
         current_route.push(current);
@@ -481,7 +481,7 @@ impl Map {
 
         for &neighbour in current.neighbours(self).iter() {
             if !(Some(neighbour.id()) != previous.map(|p| p.id())
-                && neighbour.sector(self) != sector_in_storm
+                && !Sector::in_storm(neighbour.sector(self), storm)
                 && !current_route.contains(&neighbour)
                 && !obstacles.contains(&neighbour))
             {
@@ -500,7 +500,7 @@ impl Map {
                 Some(current),
                 current_distance + distance,
                 max_distance,
-                sector_in_storm,
+                storm,
                 obstacles,
             );
             if found.is_some() {
@@ -517,10 +517,10 @@ impl Map {
         start: Location,
         distance: i32,
         ignore_storm: bool,
-        sector_in_storm: i32,
+        storm: Option<Sector>,
     ) -> Vec<Location> {
         let mut neighbours = Vec::new();
-        self.find_neighbours_for_hms_movement_rec(&mut neighbours, start, None, 0, distance, ignore_storm, sector_in_storm);
+        self.find_neighbours_for_hms_movement_rec(&mut neighbours, start, None, 0, distance, ignore_storm, storm);
         if let Some(pos) = neighbours.iter().position(|l| *l == start) {
             neighbours.remove(pos);
         }
@@ -536,7 +536,7 @@ impl Map {
         current_distance: i32,
         max_distance: i32,
         ignore_storm: bool,
-        sector_in_storm: i32,
+        storm: Option<Sector>,
     ) {
         if !found.contains(&current) {
             found.push(current);
@@ -545,7 +545,7 @@ impl Map {
         for &neighbour in current
             .neighbours(self)
             .iter()
-            .filter(|n| Some(n.id()) != previous.map(|p| p.id()) && (ignore_storm || n.sector(self) != sector_in_storm))
+            .filter(|n| Some(n.id()) != previous.map(|p| p.id()) && (ignore_storm || !Sector::in_storm(n.sector(self), storm)))
         {
             let distance = if current.territory() == neighbour.territory() { 0 } else { 1 };
 
@@ -557,15 +557,15 @@ impl Map {
                     current_distance + distance,
                     max_distance,
                     ignore_storm,
-                    sector_in_storm,
+                    storm,
                 );
             }
         }
     }
 
-    pub fn find_neighbours_within_territory(&self, start: Location, ignore_storm: bool, sector_in_storm: i32) -> Vec<Location> {
+    pub fn find_neighbours_within_territory(&self, start: Location, ignore_storm: bool, storm: Option<Sector>) -> Vec<Location> {
         let mut neighbours = Vec::new();
-        self.find_neighbours_within_territory_rec(&mut neighbours, start, None, ignore_storm, sector_in_storm);
+        self.find_neighbours_within_territory_rec(&mut neighbours, start, None, ignore_storm, storm);
         neighbours
     }
 
@@ -575,7 +575,7 @@ impl Map {
         current: Location,
         previous: Option<Location>,
         ignore_storm: bool,
-        sector_in_storm: i32,
+        storm: Option<Sector>,
     ) {
         if !found.contains(&current) {
             found.push(current);
@@ -584,9 +584,9 @@ impl Map {
         for &neighbour in current.neighbours(self).iter().filter(|l| {
             l.territory() == current.territory()
                 && Some(l.id()) != previous.map(|p| p.id())
-                && (ignore_storm || l.sector(self) != sector_in_storm)
+                && (ignore_storm || !Sector::in_storm(l.sector(self), storm))
         }) {
-            self.find_neighbours_within_territory_rec(found, neighbour, Some(current), ignore_storm, sector_in_storm);
+            self.find_neighbours_within_territory_rec(found, neighbour, Some(current), ignore_storm, storm);
         }
     }
 }

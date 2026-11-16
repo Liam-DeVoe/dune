@@ -112,7 +112,7 @@ pub fn private_player(game: &Game, p: PlayerId, actions: &[GameEventType]) -> Pr
         },
         face_dancers: pl.face_dancers.iter().map(|h| hero_card(game, *h, pl.revealed_face_dancers.contains(h))).collect(),
         predicted_faction: (pl.faction == Some(Faction::BeneGesserit) && after_bene_gesserit_prediction).then(|| name_or_absent(pl.predicted_faction)),
-        predicted_turn: (pl.faction == Some(Faction::BeneGesserit) && after_bene_gesserit_prediction).then_some(pl.predicted_turn),
+        predicted_turn: (pl.faction == Some(Faction::BeneGesserit) && after_bene_gesserit_prediction).then(|| pl.predicted_turn.unwrap_or(Turn::BEFORE_START)),
         nexus: (pl.nexus != None).then(|| name_or_absent(pl.nexus)),
         // After the storm is dialled, with storm prescience.
         next_storm_moves: (game.turn.current_phase > Phase::DiallingStorm && game.has_storm_prescience(Some(p))).then_some(game.board.next_storm_moves),

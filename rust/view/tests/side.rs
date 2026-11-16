@@ -270,7 +270,7 @@ fn undo_list() {
             assert_eq!(entry.listed, listed, "{fx} {i}");
             unlisted += !listed as usize;
             if i == 0 {
-                assert_eq!((entry.turn, entry.phase.as_str()), (0, "None"));
+                assert_eq!((entry.turn, entry.phase.as_str()), (treachery_engine::game::Turn::BEFORE_START, "None"));
             } else {
                 let m = &g.history.moments[i - 1];
                 assert_eq!((entry.turn, entry.phase.clone()), (m.turn, name(m.phase)), "{fx} {i}");

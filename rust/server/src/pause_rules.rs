@@ -75,7 +75,7 @@ pub fn determine(g: &mut Game) -> Option<PauseRequirements> {
         Phase::BeginningOfStorm => with(tag(players(g, |g, p| DiscoveryEntered::valid_targets(g, p).next().is_some()), R::EnterDiscovery), amal),
         Phase::MetheorAndStormSpell => {
             let turn = g.turn.current_turn;
-            with(tag(players(g, |g, p| TestingStationUsed::can_be_played(g, p)), R::UseTestingStation), turn > 1)
+            with(tag(players(g, |g, p| TestingStationUsed::can_be_played(g, p)), R::UseTestingStation), turn > Turn::FIRST)
         }
         Phase::StormReport => end_of_phase(g, vec![]),
 
@@ -247,7 +247,7 @@ fn special_karma(g: &Game, f: Faction) -> Option<PlayerId> {
 
 /// Fremen's once-per-game Karma sandworm. Only during Spice Blow, from turn 2.
 fn fremen_sandworm(g: &Game) -> Vec<PlayerId> {
-    present(&[if g.turn.current_turn > 1 { special_karma(g, Faction::Fremen) } else { None }])
+    present(&[if g.turn.current_turn > Turn::FIRST { special_karma(g, Faction::Fremen) } else { None }])
 }
 
 /// Tleilaxu's once-per-game Karma, which stops a faction reviving.

@@ -88,6 +88,21 @@ let me = self.initiator().required("faction")?;
 
 `battle.battle_winner`, `battle_loser`, `current_ecaz_or_ally_fighter` and `collection.owner_of_flight_discovery` are `Option<Option<Faction>>`: `None` before the battle (or the discovery) is decided, `Some(None)` when it was decided and nobody won, as C#'s nullable `Faction?` holding `None`.
 
+## Turns and sectors
+
+A turn is a `Turn(u8)` (game/turn.rs). Turn 0 is `Turn::BEFORE_START`, the setup before the first storm: it has its own report and moments, so it's a value of the type and not `Option<Turn>`. Where a turn can really be missing, the field is `Option<Turn>`: `Player.predicted_turn` before the Bene Gesserit prediction, `alliances.last_turn_card_was_traded` before any trade. Event JSON reads a turn from 0 to 255 and refuses anything else ("256 is not a valid turn"), and `EstablishPlayers` refuses a game of 0 turns.
+
+A sector is a `Sector(u8)` from 0 to 17 (map/sector.rs). Homeworlds have no sector, and neither has an attached location before it's placed, so `Location::sector` returns `Option<Sector>`. `board.sector_in_storm` is `None` before the first storm. The storm's arithmetic modulo 18 is in one place, `Sector::moved`, and `Sector::in_storm` says whether a location is in the storm: a location without a sector never is.
+
+```rust
+if game.turn.current_turn == Turn::FIRST { /* ... */ }
+game.board.sector_in_storm = Some(sector.moved(1));
+if game.is_in_storm(l) { /* ... */ }        // Sector::in_storm(l.sector(map), storm)
+let n: i32 = Sector::number_or_none(l.sector(map));   // -1 for none, as views write it
+```
+
+Views and the log write both as numbers, and -1 for a missing sector, as before.
+
 ## Static game data: handles
 
 Territories, locations, leaders, the Messiah, treachery cards and resource cards are created once per process or once per game, and C# compares them by reference or by `Id`. Within one game those agree. In Rust each is a small `Copy` handle into a static table. Its `==` matches the C# `Equals`/`==`.

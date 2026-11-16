@@ -15,6 +15,7 @@ use crate::identity::Identifiable;
 use crate::map::{LocationData, LocationKind, Map};
 use crate::map::data::{LOCATIONS, LOCATION_COUNT};
 use crate::map::territory::Territory;
+use crate::map::sector::Sector;
 
 /// Handle to a location of the map. Equality is by id.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -71,9 +72,9 @@ impl Location {
         self.data().territory
     }
 
-    /// `Sector`. Attached locations take their host's sector once a game has
-    /// pointed them at it, else -1.
-    pub fn sector(self, map: &Map) -> i32 {
+    /// The location's sector: `None` for a homeworld. Attached locations take their host's
+    /// sector once a game has pointed them at it, and have none before.
+    pub fn sector(self, map: &Map) -> Option<Sector> {
         match self.data().kind {
             LocationKind::HiddenMobileStronghold | LocationKind::Discovered { .. } => map.attached_sector(self),
             _ => self.data().sector,

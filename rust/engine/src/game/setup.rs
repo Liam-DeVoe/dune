@@ -26,7 +26,7 @@ impl Game {
 
     pub fn enter_phase_awaiting_players(&mut self) {
         self.players = Vec::new();
-        self.turn.current_turn = 0;
+        self.turn.current_turn = Turn::BEFORE_START;
         self.enter(Phase::AwaitingPlayers, true);
     }
 

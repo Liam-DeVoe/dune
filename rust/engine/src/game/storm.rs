@@ -37,13 +37,13 @@ macro_rules! elems {
 
 impl Game {
     pub fn enter_storm_phase(&mut self) {
-        self.turn.current_turn += 1;
+        self.turn.current_turn = self.turn.current_turn.next().expect("a game has at most 255 turns");
         self.main_phase_start(MainPhase::Storm, true);
         self.revival.factions_that_revived_special_forces_this_turn.clear();
         self.storm.storm_losses_to_take.clear();
         self.storm.current_testing_station_used = false;
 
-        if self.turn.current_turn == 1 {
+        if self.turn.current_turn == Turn::FIRST {
             self.storm.dials.clear();
             self.turn.has_acted_or_passed.clear();
             self.enter(Phase::DiallingStorm, true);
@@ -120,7 +120,8 @@ impl Game {
         }
 
         for _ in 0..amount.max(0) {
-            self.board.sector_in_storm = (self.board.sector_in_storm + 1) % Map::NUMBER_OF_SECTORS;
+            // Before the first storm (which the rules never move) the storm starts from sector 0.
+            self.board.sector_in_storm = Some(self.board.sector_in_storm.map_or(Sector::new(0), |s| s.moved(1)));
             self.perform_storm();
         }
 
@@ -141,7 +142,7 @@ impl Game {
             let key = *key;
             // The Where predicate is checked lazily per element; SectorInStorm does not
             // change inside the loop.
-            if !(key.sector(&self.board.map) == self.board.sector_in_storm && !self.is_protected_from_storm(key)) {
+            if !(Sector::in_storm(key.sector(&self.board.map), self.board.sector_in_storm) && !self.is_protected_from_storm(key)) {
                 continue;
             }
 
@@ -198,7 +199,7 @@ impl Game {
         let strongholds: Vec<Territory> = self
             .strongholds()
             .into_iter()
-            .filter(|s| s.locations().iter().any(|l| l.sector(&self.board.map) == self.board.sector_in_storm && !self.is_protected_from_storm(*l)))
+            .filter(|s| s.locations().iter().any(|l| Sector::in_storm(l.sector(&self.board.map), self.board.sector_in_storm) && !self.is_protected_from_storm(*l)))
             .collect();
         for t in strongholds {
             if let Some(ambassador) = self.ambassador_in(t) {
@@ -209,7 +210,7 @@ impl Game {
             }
         }
 
-        let locations: Vec<Location> = self.board.map.locations(false).filter(|l| l.sector(&self.board.map) == self.board.sector_in_storm).collect();
+        let locations: Vec<Location> = self.board.map.locations(false).filter(|l| Sector::in_storm(l.sector(&self.board.map), self.board.sector_in_storm)).collect();
         for l in locations {
             let removed = self.remove_resources(l);
             if removed > 0 {

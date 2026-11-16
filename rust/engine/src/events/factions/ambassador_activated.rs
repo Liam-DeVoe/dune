@@ -281,7 +281,7 @@ impl AmbassadorActivated {
     pub fn valid_fremen_targets(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.board.map
             .locations(false)
-            .filter(move |l| l.visible(&g.board.map) && l.sector(&g.board.map) != g.board.sector_in_storm && g.is_not_full(p, *l))
+            .filter(move |l| l.visible(&g.board.map) && !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm) && g.is_not_full(p, *l))
     }
 
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
@@ -290,7 +290,7 @@ impl AmbassadorActivated {
         g.board.map
             .locations(g.applicable(Rule::Homeworlds))
             .filter(move |l| {
-                l.sector(&g.board.map) != g.board.sector_in_storm
+                !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)
                     && (*l != hms || g.player(p).is(Faction::Ixian))
                     && !g.contains_conflicting_ally(p, *l)
                     && Shipment::is_either_valid_homeworld_or_no_homeworld(g, p, *l, false)

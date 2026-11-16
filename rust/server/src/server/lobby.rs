@@ -108,7 +108,7 @@ impl Server {
                     let all: Vec<Faction> = game.players.iter().filter_map(|p| p.faction).collect();
                     (all.clone(), Game::determine_approximate_ruleset(&all, &game.rules.active, Game::EXPANSION_LEVEL))
                 };
-                (factions, Some(ruleset), settings.number_of_players, settings.maximum_turns)
+                (factions, Some(ruleset), settings.number_of_players, i32::from(settings.maximum_turns))
             }
             None => (vec![], None, 0, 0),
         };
@@ -125,7 +125,7 @@ impl Server {
             max_turns,
             main_phase: enum_name(game.turn.current_main_phase),
             phase: enum_name(game.turn.current_phase),
-            turn: game.turn.current_turn,
+            turn: game.turn.current_turn.into(),
             bots: game.number_of_bots(),
             players: participation.seated_players.len() as i32,
             factions_in_play: factions_in_play.iter().map(|f| enum_name(*f)).collect(),

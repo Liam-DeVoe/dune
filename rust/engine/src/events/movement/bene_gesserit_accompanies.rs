@@ -128,7 +128,7 @@ impl BeneGesseritAccompanies {
             && !BeneGesseritAccompanies::ally_prevents_accompanying_to_shipment_location(g, p)
         {
             result.extend(last_to.territory().locations().iter().copied().filter(|l| {
-                l.sector(&g.board.map) != g.board.sector_in_storm && (g.applicable(Rule::BeneGesseritAdvisors) || g.is_not_full(p, *l))
+                !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm) && (g.applicable(Rule::BeneGesseritAdvisors) || g.is_not_full(p, *l))
             }));
         }
 

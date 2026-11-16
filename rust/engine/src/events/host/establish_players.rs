@@ -5,7 +5,7 @@ pub struct EstablishPlayers {
     pub settings: Option<GameSettings>,
     pub seed: i32,
     pub maximum_number_of_players: i32,
-    pub maximum_turns: i32,
+    pub maximum_turns: Turn,
     pub applicable_rules: Option<Vec<Rule>>,
     pub players: Option<String>,
     pub factions_in_play: Option<String>,
@@ -19,7 +19,7 @@ impl Default for EstablishPlayers {
             settings: Some(Default::default()),
             seed: Default::default(),
             maximum_number_of_players: 6,
-            maximum_turns: 10,
+            maximum_turns: Turn::new(10),
             applicable_rules: Some(Default::default()),
             players: Some(String::new()),
             factions_in_play: Some("".to_string()),
@@ -72,6 +72,11 @@ impl EstablishPlayers {
         }
         if settings.number_of_players > settings.allowed_factions_in_play.as_ref().expect("allowed factions in play").len() as i32 {
             return Some(express!("More factions required"));
+        }
+        // Not in C#: a game of 0 turns never ended (behavior-changes.md, "Turns, sectors and
+        // amounts out of range").
+        if settings.maximum_turns < Turn::FIRST {
+            return Some(express!("At least one turn required"));
         }
         if seated_users.is_some_and(|n| n > settings.number_of_players) {
             return Some(express!("More players than seats at the table"));

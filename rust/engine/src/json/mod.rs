@@ -447,6 +447,24 @@ impl FromJson for i32 {
     }
 }
 
+/// Reads an integer that must fit `T`, refusing one that doesn't with "N is not a valid NAME".
+fn read_bounded<T: TryFrom<i32>>(v: &JsonValue, name: &str) -> Result<T, JsonError> {
+    let n = i32::from_json(v)?;
+    T::try_from(n).map_err(|_| JsonError::new("JsonException", format!("{n} is not a valid {name}")))
+}
+
+impl ToJson for crate::game::Turn {
+    fn write_json(&self, w: &mut JsonWriter) {
+        w.int(self.number() as i64)
+    }
+}
+
+impl FromJson for crate::game::Turn {
+    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
+        read_bounded::<u8>(v, "turn").map(crate::game::Turn::new)
+    }
+}
+
 impl ToJson for str {
     fn write_json(&self, w: &mut JsonWriter) {
         w.string(self)

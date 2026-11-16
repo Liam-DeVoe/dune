@@ -342,7 +342,7 @@ impl Refit {
     }
 
     fn position(&self) -> Position {
-        (self.game.turn.current_turn, self.game.turn.current_main_phase.value())
+        (i32::from(self.game.turn.current_turn), self.game.turn.current_main_phase.value())
     }
 
     /// Takes back what was added since `history` and `out` had these lengths.

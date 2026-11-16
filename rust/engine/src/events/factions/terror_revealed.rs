@@ -158,7 +158,7 @@ impl TerrorRevealed {
     pub fn open_despite_ally_and_storm_and_occupancy(g: &Game, p: PlayerId, l: Location) -> bool {
         let pl = g.player(p);
         g.is_not_full(p, l)
-            && l.sector(&g.board.map) != g.board.sector_in_storm
+            && !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)
             && (!pl.has_ally()
                 || g.player(pl.allied_player(g).expect("allied player")).any_forces_in_territory(Some(l.territory())) == 0
                 || pl.ally == Some(Faction::Ecaz)

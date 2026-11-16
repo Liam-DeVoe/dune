@@ -7,11 +7,51 @@ pub enum Step {
     Run(fn(&mut Game)),
 }
 
+/// A turn of the game, numbered from 1. Turn 0 is [`Turn::BEFORE_START`]: the setup, before
+/// the first storm. It is a real moment of the game, with its own report and moments, so it is a
+/// value of the type rather than `Option<Turn>`. A game has at most 255 turns.
+///
+/// Event JSON, views and the log write the number. Event JSON refuses a number outside 0 to 255.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct Turn(u8);
+
+impl Turn {
+    /// The setup, before the first storm.
+    pub const BEFORE_START: Turn = Turn(0);
+    pub const FIRST: Turn = Turn(1);
+
+    pub const fn new(number: u8) -> Turn {
+        Turn(number)
+    }
+
+    pub fn number(self) -> u8 {
+        self.0
+    }
+
+    /// The turn after this one, or `None` after turn 255.
+    pub fn next(self) -> Option<Turn> {
+        self.0.checked_add(1).map(Turn)
+    }
+}
+
+impl From<Turn> for i32 {
+    fn from(t: Turn) -> i32 {
+        t.0 as i32
+    }
+}
+
+impl std::fmt::Display for Turn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 /// Where the game is (turn, main phase, phase) and what lasts only for the current turn or main
 /// phase: who has acted, payments and milestones, prevented advantages, cards and Nexus cards in
 /// effect, and the phases paused by Clairvoyance, discarding and Bureaucracy.
 pub struct TurnState {
-    pub current_turn: i32,
+    pub current_turn: Turn,
     pub current_main_phase: MainPhase,
     pub current_moment: Option<MainPhaseMoment>,
     pub current_phase: Phase,

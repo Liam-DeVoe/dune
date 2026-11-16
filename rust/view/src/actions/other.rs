@@ -327,7 +327,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         GameEvent::BeneGesseritPrediction(e) => adjust!(e, |m| {
             let targets: Vec<Faction> = BeneGesseritPrediction::valid_targets(game, p).collect();
             m.to_win = required_opt(m.to_win, &targets);
-            m.turn = picker(m.turn, 1, game.maximum_turns());
+            m.turn = Turn::new(picker(m.turn.number().into(), 1, game.maximum_turns().number().into()) as u8);
         }),
         GameEvent::CardTraded(e) => adjust!(e, |m| {
             m.target = pl.ally;

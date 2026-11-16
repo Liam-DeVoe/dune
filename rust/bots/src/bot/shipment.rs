@@ -98,7 +98,7 @@ impl ClassicBot {
             return Some(plan);
         }
         if faction == Faction::Fremen
-            && game.turn.current_turn < 3
+            && game.turn.current_turn < Turn::new(3)
             && !winning
             && let Some(plan) = self.plan_fremen_to_spice_or_discovery(game)
         {
@@ -767,7 +767,7 @@ impl ClassicBot {
     pub fn find_one_troop_that_can_safely_move(&self, game: &Game, from: Location, to: Location) -> Option<Battalion> {
         let me = self.player;
         if game.player(me).forces_in_locations.contains_key(&from)
-            && from.sector(&game.board.map) != game.board.sector_in_storm
+            && !Sector::in_storm(from.sector(&game.board.map), game.board.sector_in_storm)
             && self.not_occupied_by_others(game, from.territory())
         {
             let bat = game.player(me).forces_in_locations[&from].clone();

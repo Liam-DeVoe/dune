@@ -537,7 +537,7 @@ impl Revival {
     pub fn valid_revived_force_locations(g: &Game, p: PlayerId) -> impl Iterator<Item = Location> {
         g.board.map.locations(false).filter(move |l| {
             let pl = g.player(p);
-            (pl.faction == Some(Faction::Fremen) || l.sector(&g.board.map) != g.board.sector_in_storm)
+            (pl.faction == Some(Faction::Fremen) || !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm))
                 && (!l.territory().is_stronghold() || g.nr_of_occupants_excluding_faction(*l, pl.faction) < 2)
                 && l.visible(&g.board.map)
                 && (!pl.has_ally()

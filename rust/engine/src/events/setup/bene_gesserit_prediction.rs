@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[derive(Clone, Debug)]
 pub struct BeneGesseritPrediction {
     pub to_win: Option<Faction>,
-    pub turn: i32,
+    pub turn: Turn,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).
     pub base: GameEventBase,
 }
@@ -29,7 +29,7 @@ impl BeneGesseritPrediction {
         if !game.is_playing(self.to_win) {
             return Some(express!("Invalid target"));
         }
-        if self.turn < 1 || self.turn > game.maximum_turns() {
+        if self.turn < Turn::FIRST || self.turn > game.maximum_turns() {
             return Some(express!("Invalid turn"));
         }
 
@@ -41,16 +41,14 @@ impl BeneGesseritPrediction {
         g.players_other_than(p)
     }
 
-    pub fn valid_turns(g: &Game) -> Vec<i32> {
-        let count = g.maximum_turns();
-        assert!(count >= 0, "negative number of turns: {count}");
-        (0..count).map(|i| 1i32 + i).collect()
+    pub fn valid_turns(g: &Game) -> Vec<Turn> {
+        (1..=g.maximum_turns().number()).map(Turn::new).collect()
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         let me = self.player();
         game.player_mut(me).predicted_faction = self.to_win;
-        game.player_mut(me).predicted_turn = self.turn;
+        game.player_mut(me).predicted_turn = Some(self.turn);
         self.log(game);
         let condition = game.treachery_cards_before_traitors();
         Game::run_either(

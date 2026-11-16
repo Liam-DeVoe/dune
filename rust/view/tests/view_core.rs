@@ -319,7 +319,7 @@ fn traitors_hidden_while_picking() {
 /// when the viewer knows it.
 #[test]
 fn faction_panel_extras() {
-    let mut r = first_bot_state("Atreides with the Messiah rule", |g| g.applicable(Rule::AtreidesMessiah) && g.is_playing(Faction::Atreides) && g.turn.current_turn >= 2);
+    let mut r = first_bot_state("Atreides with the Messiah rule", |g| g.applicable(Rule::AtreidesMessiah) && g.is_playing(Faction::Atreides) && g.turn.current_turn >= Turn::new(2));
     for (f, view) in all_views(&mut r) {
         let Some(f) = f else { continue };
         let me = view.me.unwrap();
@@ -331,7 +331,7 @@ fn faction_panel_extras() {
         }
     }
 
-    let mut r = first_bot_state("Moritani holding terror tokens", |g| g.is_playing(Faction::Moritani) && !g.board.unplaced_terror_tokens.is_empty() && g.turn.current_turn >= 1);
+    let mut r = first_bot_state("Moritani holding terror tokens", |g| g.is_playing(Faction::Moritani) && !g.board.unplaced_terror_tokens.is_empty() && g.turn.current_turn >= Turn::new(1));
     for (f, view) in all_views(&mut r) {
         let Some(f) = f else { continue };
         let me = view.me.unwrap();
@@ -657,7 +657,7 @@ fn expansion_tokens() {
     let hms = r.game.board.map.hidden_mobile_stronghold();
     let shown = view.board.attached.iter().find(|a| a.location == hms.location().id()).expect("the HMS is listed");
     assert_eq!(shown.attached_to, hms.attached_to_location(&r.game.board.map).unwrap().id());
-    assert_eq!(shown.sector, hms.location().sector(&r.game.board.map));
+    assert_eq!(shown.sector, Sector::number_or_none(hms.location().sector(&r.game.board.map)));
 
     let mut r = first_bot_state("a No-Field on the planet", |g| g.ship_move.current_no_field_value >= 0 && g.is_playing(Faction::Richese));
     for (f, view) in all_views(&mut r) {

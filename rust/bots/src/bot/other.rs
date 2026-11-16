@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use super::knowledge::storm_or_before_first;
 use treachery_engine::messages::part::Part;
 use treachery_engine::random::IndexedRandom;
 use crate::support::{cast_hero, unbox_enum, unbox_float, unbox_int};
@@ -64,18 +65,17 @@ impl ClassicBot {
     }
 
     pub fn determine_testing_station_used(&self, game: &Game) -> Option<Rc<TestingStationUsed>> {
-        const N: i32 = Map::NUMBER_OF_SECTORS;
         let faction = self.faction(game);
         let ally = self.ally(game);
         let me = game.player(self.player);
-        let storm_end = (game.board.sector_in_storm + game.board.next_storm_moves) % N;
+        let storm_end = storm_or_before_first(game).moved(game.board.next_storm_moves.max(0) as u32);
 
         let holds_weakly = |p: &Player, l: Location| p.occupies(game, Some(l)) && p.any_forces_in(Some(l)) < 6;
         // What the storm passing over `sector` gains me: enemy losses and weakly held strongholds of mine
         // (worth 3 forces each) minus my own losses and enemy strongholds.
-        let score = |sector: i32| {
+        let score = |sector: Option<Sector>| {
             let locations: Vec<Location> =
-                game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !l.is_protected_from_storm()).collect();
+                game.board.map.locations(false).filter(|l| Sector::in_storm(l.sector(&game.board.map), sector) && !l.is_protected_from_storm()).collect();
             // Mine and my ally's (C# had `&&`, which no faction matches, so it always counted 0).
             let my_forces_killed = forces_in(game, &locations, |f| f == faction || (ally != None && Some(f) == ally));
             let my_strongholds = locations
@@ -90,9 +90,10 @@ impl ClassicBot {
             enemy_forces_killed + my_strongholds * 3 - my_forces_killed - enemy_strongholds * 3
         };
 
-        let score_if_minus1 = score(if storm_end == 0 { N } else { storm_end - 1 });
-        let score_if_passed = score_if_minus1 + score(storm_end);
-        let score_if_plus1 = score_if_passed + score(if storm_end == N { 0 } else { storm_end + 1 });
+        // C# parity: the sectors before 0 and after 17 are numbered 18 and -1, so they score nothing.
+        let score_if_minus1 = score(storm_end.number().checked_sub(1).map(Sector::new));
+        let score_if_passed = score_if_minus1 + score(Some(storm_end));
+        let score_if_plus1 = score_if_passed + score((storm_end.number() + 1 < Sector::COUNT).then(|| storm_end.moved(1)));
 
         let value_added = if score_if_minus1 > score_if_passed && score_if_minus1 > score_if_plus1 {
             -1
@@ -582,7 +583,7 @@ impl ClassicBot {
     }
 
     pub fn determine_harvester_played(&self, game: &Game) -> Option<Rc<HarvesterPlayed>> {
-        if game.turn.current_turn > 1
+        if game.turn.current_turn > Turn::FIRST
             && ((game.turn.current_phase == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
                 || (game.turn.current_phase == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
         {
@@ -764,7 +765,7 @@ impl ClassicBot {
                 Some(ClairvoyanceQuestion::LeaderAsTraitor) => yes_no(me.traitors.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_traitor(h)))),
 
                 Some(ClairvoyanceQuestion::Prediction) => yes_no(
-                    me.predicted_faction == unbox_enum::<Faction>(&p1()) && me.predicted_turn == unbox_int(&clairvoyance.parameter2()),
+                    me.predicted_faction == unbox_enum::<Faction>(&p1()) && me.predicted_turn.map_or(0, i32::from) == unbox_int(&clairvoyance.parameter2()),
                 ),
 
                 Some(ClairvoyanceQuestion::WillAttackX) => ClairVoyanceAnswer::No,
@@ -847,7 +848,7 @@ impl ClassicBot {
         let play = if self.faction(game) == Faction::Guild {
             game.turn.current_phase == Phase::Resurrection && opponents_resources() > 2 * our_resources
         } else {
-            game.turn.current_turn > 1
+            game.turn.current_turn > Turn::FIRST
                 && game.turn.current_main_phase == MainPhase::Bidding
                 && opponents_resources() > 10
                 && opponents_resources() > (self.opponents(game).len() as i32 + 1) * our_resources
@@ -919,9 +920,9 @@ impl ClassicBot {
         let mut options = vec![StormKills { moves: 0, mine: 0, enemy: 0 }];
         let (mut mine, mut enemy) = (0, 0);
         for moves in 1..=10 {
-            let sector = (game.board.sector_in_storm + moves) % Map::NUMBER_OF_SECTORS;
+            let sector = storm_or_before_first(game).moved(moves as u32);
             let affected_locations: Vec<Location> =
-                game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !game.is_protected_from_storm(*l)).collect();
+                game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == Some(sector) && !game.is_protected_from_storm(*l)).collect();
             mine += forces_in(game, &affected_locations, |f| f == faction || Some(f) == ally);
             enemy += forces_in(game, &affected_locations, |f| f != faction && Some(f) != ally);
             options.push(StormKills { moves, mine, enemy });
@@ -929,7 +930,7 @@ impl ClassicBot {
 
         let best = options.into_iter().random_highest(&self.random, |k| k.enemy - k.mine).expect("there are always 11 options");
 
-        if best.enemy - best.mine >= 10 - (game.turn.current_turn + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
+        if best.enemy - best.mine >= 10 - (i32::from(game.turn.current_turn) + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
             let mut storm_spell = StormSpellPlayed::new(game, faction);
             storm_spell.move_amount = best.moves;
             return Some(Rc::new(storm_spell));

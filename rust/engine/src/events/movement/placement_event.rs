@@ -229,7 +229,7 @@ impl PlacementEvent {
         let mut res: Vec<Territory> = g
             .board.map
             .territories(false)
-            .filter(|t| t.locations().iter().any(|l| l.sector(&g.board.map) != g.board.sector_in_storm && player.any_forces_in(Some(*l)) > 0))
+            .filter(|t| t.locations().iter().any(|l| !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm) && player.any_forces_in(Some(*l)) > 0))
             .collect();
         if player.is(Faction::Emperor) && g.applicable(Rule::EmperorSpecialForces) {
             let salusa_secundus = g.board.map.get_home_world(World::SalusaSecundus);

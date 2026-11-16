@@ -38,7 +38,7 @@ impl PerformHmsPlacement {
         if g.player(p).faction != Some(Faction::Ixian) {
             return Either::Left(g.board.map.locations(false).filter(|l| !l.territory().is_stronghold()));
         }
-        Either::Right(g.board.map.locations(false).filter(move |l| !l.territory().is_stronghold() && l.sector(&g.board.map) != g.board.sector_in_storm))
+        Either::Right(g.board.map.locations(false).filter(move |l| !l.territory().is_stronghold() && !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

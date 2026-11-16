@@ -165,12 +165,12 @@ impl FremenRidesMonster {
         g.board.map
             .locations(false)
             .filter(move |l| {
-                (may_move_into_storm || l.sector(&g.board.map) != g.board.sector_in_storm)
+                (may_move_into_storm || !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm))
                     && (match l.as_attached_location() {
                         None => true,
                         // Reads the sector of the location it is attached to, not al.Sector.
                         Some(al) => match al.attached_to_location(&g.board.map) {
-                            Some(a) => a.sector(&g.board.map) != g.board.sector_in_storm,
+                            Some(a) => !Sector::in_storm(a.sector(&g.board.map), g.board.sector_in_storm),
                             None => false,
                         },
                     })

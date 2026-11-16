@@ -25,10 +25,10 @@ fn tbd(amount: i32) -> ResourcesToBeDivided {
 #[test]
 fn storm_dial_bounds_depend_on_turn() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    g.turn.current_turn = 1;
+    g.turn.current_turn = Turn::new(1);
     assert_eq!(StormDialled::valid_min_amount(&g), 0);
     assert_eq!(StormDialled::valid_max_amount(&g), 20);
-    g.turn.current_turn = 2;
+    g.turn.current_turn = Turn::new(2);
     assert_eq!(StormDialled::valid_min_amount(&g), 1);
     assert_eq!(StormDialled::valid_max_amount(&g), 3);
 

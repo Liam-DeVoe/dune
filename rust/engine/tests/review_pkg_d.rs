@@ -17,7 +17,7 @@ fn fremen_with_dangling_ally() -> (Game, PlayerId) {
     let mut g = game_with(&[Faction::Fremen]);
     let y = g.get_player(Some(Faction::Fremen)).unwrap();
     g.player_mut(y).ally = Some(Faction::Atreides);
-    g.board.sector_in_storm = 5;
+    g.board.sector_in_storm = Some(Sector::new(5));
     (g, y)
 }
 

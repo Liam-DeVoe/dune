@@ -319,7 +319,7 @@ fn bene_gesserit_prediction_draws_no_coin() {
         let predicted = b.others(&game).into_iter().random_item(&r).unwrap();
         let faction = game.player(predicted).faction;
         assert_ne!(faction, Some(Faction::Tleilaxu));
-        let max = game.maximum_turns();
+        let max = i32::from(game.maximum_turns());
         let d = |sides: i32| r.lock().random_range(1..=sides);
         let turn = if faction == Some(Faction::Harkonnen) {
             let sides = if d(2) == 1 { std::cmp::min(3, max) } else { max };
@@ -331,7 +331,7 @@ fn bene_gesserit_prediction_draws_no_coin() {
         } else {
             2 + d(max - 2)
         };
-        assert_eq!((e.to_win, e.turn), (faction, turn), "seed {seed}");
+        assert_eq!((e.to_win, i32::from(e.turn)), (faction, turn), "seed {seed}");
         assert_eq!(b.random.state(), r.state(), "seed {seed}: the bot made other draws");
     }
 }
@@ -383,15 +383,15 @@ fn the_guild_ships_a_stranded_battalion_back_to_reserves() {
 fn the_testing_station_counts_the_bots_own_storm_losses() {
     let mut game = load("ship");
     let me = player_of(&game, Faction::Atreides);
-    const N: i32 = Map::NUMBER_OF_SECTORS;
+    const N: i32 = Sector::COUNT as i32;
     let open = |game: &Game, sector: i32| -> Vec<Location> {
-        game.board.map.locations(false).filter(|l| l.sector(&game.board.map) == sector && !l.is_protected_from_storm()).collect()
+        game.board.map.locations(false).filter(|l| l.sector(&game.board.map).map(i32::from) == Some(sector) && !l.is_protected_from_storm()).collect()
     };
     let quiet = |game: &Game, sector: i32| {
         open(game, sector).iter().all(|l| !l.is_stronghold() && game.battalions_in(*l).iter().all(|b| b.total_amount_of_forces() == 0))
     };
     let sector = (1..N - 1).find(|s| !open(&game, *s).is_empty() && (s - 1..=s + 1).all(|t| quiet(&game, t))).expect("a quiet stretch of sand");
-    game.board.next_storm_moves = (sector - game.board.sector_in_storm + N) % N;
+    game.board.next_storm_moves = (sector - Sector::number_or_none(game.board.sector_in_storm) + N) % N;
     let home = game.player(me).home_worlds[0].location();
     let sand = open(&game, sector)[0];
     Player::move_forces(&mut game, me, home, sand, 10);

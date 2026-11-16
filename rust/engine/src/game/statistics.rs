@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct GameStatistics {
     pub date: DateTimeOffset,
     pub time: f32,
-    pub turn: i32,
+    pub turn: Turn,
     pub ruleset: String,
     pub players: Vec<GameStatisticsPlayerInfo>,
     pub winners: Vec<String>,

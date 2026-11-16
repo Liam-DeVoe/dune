@@ -665,7 +665,7 @@ impl ClassicBot {
         let predicted = humans.random_item(&self.random).or_else(|| self.others(game).into_iter().random_item(&self.random));
 
         let predicted = game.player(predicted.expect("predicted"));
-        let maximum_turns = game.maximum_turns();
+        let maximum_turns = i32::from(game.maximum_turns());
         // In `self.d(1, sides)` with a drawn `sides`, the draw for `sides` comes first.
         // A `sides` below 0 panics.
         let turn = if predicted.is(Faction::Harkonnen) {
@@ -683,7 +683,7 @@ impl ClassicBot {
 
         let mut e = BeneGesseritPrediction::new(game, self.faction(game));
         e.to_win = predicted.faction;
-        e.turn = turn;
+        e.turn = Turn::new(u8::try_from(turn).expect("a turn of the game"));
         Rc::new(e)
     }
 
@@ -966,7 +966,7 @@ impl ClassicBot {
             return None;
         }
 
-        if self.turn_when_revival_was_requested == game.turn.current_turn {
+        if self.turn_when_revival_was_requested == Some(game.turn.current_turn) {
             return None;
         }
 
@@ -989,7 +989,7 @@ impl ClassicBot {
         }
 
         let to_revive = to_revive?;
-        self.turn_when_revival_was_requested = game.turn.current_turn;
+        self.turn_when_revival_was_requested = Some(game.turn.current_turn);
         let mut e = RequestTleilaxuRevival::new(game, faction);
         e.hero = Some(to_revive);
         Some(Rc::new(e))

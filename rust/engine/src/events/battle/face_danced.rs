@@ -151,7 +151,7 @@ impl FaceDanced {
             .locations()
             .iter()
             .copied()
-            .filter(move |l| g.applicable(Rule::BattlesUnderStorm) || l.sector(&g.board.map) != g.board.sector_in_storm)
+            .filter(move |l| g.applicable(Rule::BattlesUnderStorm) || !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

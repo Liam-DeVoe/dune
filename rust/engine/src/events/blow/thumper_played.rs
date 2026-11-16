@@ -29,7 +29,7 @@ impl ThumperPlayed {
         game.discard(self.player(), TreacheryCardType::Thumper)?;
         self.log(game);
         game.stone(Milestone::Thumper);
-        game.blow.thumper_called_shai_hulud = game.turn.current_turn > 1;
+        game.blow.thumper_called_shai_hulud = game.turn.current_turn > Turn::FIRST;
         game.enter_blow_a();
         Ok(())
     }

@@ -148,7 +148,8 @@ pub struct BeneGesseritPredictionOptions {
     /// `BeneGesseritPrediction.ValidTargets(Game, Player)`.
     pub targets: Vec<FactionOption>,
     /// `Game.MaximumTurns`: the turn picker's maximum (its minimum is 1).
-    pub max_turn: i32,
+    #[ts(type = "number")]
+    pub max_turn: treachery_engine::game::Turn,
     #[ts(type = "Record<string, unknown>")]
     pub draft: serde_json::Value,
 }

@@ -274,7 +274,7 @@ impl Game {
         if let Some(bene_gesserit) = bene_gesserit {
             let predicted_faction = self.player(bene_gesserit).predicted_faction;
             let predicted_turn = self.player(bene_gesserit).predicted_turn;
-            if predicted_turn == self.turn.current_turn && self.contemplate.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
+            if predicted_turn == Some(self.turn.current_turn) && self.contemplate.winners.iter().any(|w| self.player(*w).faction == predicted_faction) {
                 self.log_win_reason(
                     WinMethod::Prediction,
                     vec![
@@ -282,7 +282,7 @@ impl Game {
                         " predicted ".into(),
                         predicted_faction.into(),
                         " victory in turn ".into(),
-                        predicted_turn.into(),
+                        self.turn.current_turn.into(),
                         "! They had everything planned...".into(),
                     ],
                 );

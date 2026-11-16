@@ -615,9 +615,9 @@ pub fn record(r: &l::LogRecord, d: &dyn Describer) -> LogRecord {
     on!(GuildDelayed, |_r| R::GuildDelayed {});
 
     on!(StormDials, |r| R::StormDials { first: f(Some(r.first)), first_dial: r.first_dial, second: f(Some(r.second)), second_dial: r.second_dial });
-    on!(StormPlaced, |r| R::StormPlaced { sector: r.sector });
+    on!(StormPlaced, |r| R::StormPlaced { sector: r.sector.into() });
     on!(StormForecast, |r| R::StormForecast { distance: r.distance });
-    on!(StormMoved, |r| R::StormMoved { from: r.from, distance: r.distance, by: f(r.by), card: r.card.map(crd) });
+    on!(StormMoved, |r| R::StormMoved { from: Sector::number_or_none(r.from), distance: r.distance, by: f(r.by), card: r.card.map(crd) });
     on!(StormKilled, |r| R::StormKilled {
         faction: f(Some(r.faction)),
         location: loc(r.location),

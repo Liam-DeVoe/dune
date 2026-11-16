@@ -78,7 +78,7 @@ impl Old {
         let seats = self.factions.as_ref().is_some_and(|f| *f != r.game.players.iter().map(|p| value_or_absent(p.faction)).collect::<Vec<_>>());
         let allies = self.allies.as_ref().is_some_and(|a| *a != r.game.players.iter().map(|p| value_or_absent(p.ally)).collect::<Vec<_>>());
         let phase = (!self.end.reached(&r.game) || seats || allies) as u8;
-        let turn = self.turn.is_some_and(|t| t != r.game.turn.current_turn) as u8;
+        let turn = self.turn.is_some_and(|t| t != i32::from(r.game.turn.current_turn)) as u8;
         (phase, self.offers_missing(r), turn, r.stats.dropped * 4 + r.stats.replaced + r.stats.added)
     }
 }

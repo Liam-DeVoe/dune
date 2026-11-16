@@ -132,7 +132,7 @@ impl ViewReplica {
                     event_number: i as i32,
                     text: crate::expr::message(&e.get_short_message(&self.game), &d),
                     listed: !matches!(e, GameEvent::AllyPermission(_) | GameEvent::BattleRevision(_) | GameEvent::AutomationConfigured(_)),
-                    turn: moment.map_or(0, |m| m.turn),
+                    turn: moment.map_or(treachery_engine::game::Turn::BEFORE_START, |m| m.turn),
                     phase: moment.map_or_else(|| "None".to_string(), |m| m.phase.to_string()),
                 }
             })
@@ -186,7 +186,8 @@ pub struct UndoEntry {
     /// and automation settings.
     pub listed: bool,
     /// The turn and main phase the event happened in (0 and "None" for event 0).
-    pub turn: i32,
+    #[ts(type = "number")]
+    pub turn: treachery_engine::game::Turn,
     #[ts(type = "MainPhase")]
     pub phase: String,
 }

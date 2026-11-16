@@ -157,13 +157,13 @@ fn the_spice_blow_passes_through_blow_a_and_blow_b_in_one_event() {
 }
 
 /// Fremen forces at a location in `sector` that the storm can reach.
-fn fremen_in_sector(g: &mut Game, sector: i32, forces: i32, avoid: &[Territory]) -> Location {
+fn fremen_in_sector(g: &mut Game, sector: Sector, forces: i32, avoid: &[Territory]) -> Location {
     let l = g
         .board
         .map
         .locations(false)
         .find(|l| {
-            l.sector(&g.board.map) == sector
+            l.sector(&g.board.map) == Some(sector)
                 && !l.territory().is_stronghold()
                 && !g.is_protected_from_storm(*l)
                 && l.visible(&g.board.map)
@@ -181,8 +181,8 @@ fn storm_losses_taken_in_the_storm_phase_end_in_the_storm_report() {
     g.turn.current_main_phase = MainPhase::Storm;
     g.turn.current_phase = Phase::MetheorAndStormSpell;
     g.board.next_storm_moves = 1;
-    let first = fremen_in_sector(&mut g, STORM + 1, 4, &[]);
-    let second = fremen_in_sector(&mut g, STORM + 1, 2, &[first.territory()]);
+    let first = fremen_in_sector(&mut g, STORM.moved(1), 4, &[]);
+    let second = fremen_in_sector(&mut g, STORM.moved(1), 2, &[first.territory()]);
 
     host_ends_phase(&mut g);
     assert_eq!(phase(&g), Phase::StormLosses);

@@ -47,7 +47,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
     let attached = map
         .locations(false)
         .filter_map(|l| l.as_attached_location())
-        .filter_map(|a| a.attached_to_location(map).map(|to| AttachedLocationView { location: a.location().id(), attached_to: to.id(), sector: a.location().sector(map) }))
+        .filter_map(|a| a.attached_to_location(map).map(|to| AttachedLocationView { location: a.location().id(), attached_to: to.id(), sector: Sector::number_or_none(a.location().sector(map)) }))
         .collect();
 
     // Every hero with a state that is alive and stands somewhere.
@@ -92,7 +92,7 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
     }
 
     BoardView {
-        sector_in_storm: game.board.sector_in_storm,
+        sector_in_storm: Sector::number_or_none(game.board.sector_in_storm),
         shield_wall_destroyed: game.board.shield_wall_destroyed,
         forces,
         spice: game.board.resources_on_planet.iter().map(|(l, a)| SpiceInLocation { location: l.id(), amount: *a }).collect(),

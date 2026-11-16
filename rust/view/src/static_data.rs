@@ -176,7 +176,7 @@ pub fn static_data() -> StaticData {
                 id: l.id(),
                 territory: l.territory().id(),
                 orientation: l.orientation().to_string(),
-                sector: l.sector(map),
+                sector: Sector::number_or_none(l.sector(map)),
                 spice_blow_amount: l.spice_blow_amount(),
                 discovery_token_type: name_or_absent(l.discovery_token_type()),
                 kind: kind.to_string(),

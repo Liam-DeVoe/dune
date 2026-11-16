@@ -63,7 +63,7 @@ pub use status::*;
 mod storm;
 pub use storm::StormState;
 mod turn;
-pub use turn::{Step, TurnState};
+pub use turn::{Step, Turn, TurnState};
 
 use crate::prelude::*;
 use crate::messages::part::Part;
@@ -105,7 +105,7 @@ pub struct Game {
 impl Game {
     pub const LATEST_VERSION: i32 = 190;
 
-    pub fn maximum_turns(&self) -> i32 {
+    pub fn maximum_turns(&self) -> Turn {
         self.rules.settings.as_ref().expect("settings").maximum_turns
     }
 
@@ -566,7 +566,7 @@ impl Game {
         // `p` is dereferenced inside the predicate, per element.
         self.board.map
             .locations(true)
-            .filter(move |l| l.sector(&self.board.map) != self.board.sector_in_storm && self.player(p).any_forces_in(Some(*l)) > 0)
+            .filter(move |l| !Sector::in_storm(l.sector(&self.board.map), self.board.sector_in_storm) && self.player(p).any_forces_in(Some(*l)) > 0)
     }
 
     pub fn is_not_full(&self, p: PlayerId, l: Location) -> bool {
@@ -705,7 +705,7 @@ impl Game {
 
 /// What `Map` needs to know about the game (see map.rs).
 impl crate::map::MapGame for Game {
-    fn sector_in_storm(&self) -> i32 {
+    fn sector_in_storm(&self) -> Option<Sector> {
         self.board.sector_in_storm
     }
 

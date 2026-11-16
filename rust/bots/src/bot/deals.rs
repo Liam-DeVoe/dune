@@ -42,7 +42,7 @@ impl ClassicBot {
         let for_the_phase = self.affordable_bidding_prescience_offer(game, Phase::BiddingReport);
         if let Some(d) = &for_the_phase {
             if self.faction(game) == Faction::Fremen
-                && game.turn.current_turn == 1
+                && game.turn.current_turn == Turn::FIRST
                 && game.applicable(Rule::TechTokens)
                 && game.turn.current_phase <= Phase::ClaimingCharity
             {
@@ -210,7 +210,7 @@ impl ClassicBot {
         let faction = self.faction(game);
         if faction == Faction::Atreides
             && game.is_playing(Faction::Fremen)
-            && game.turn.current_turn == 1
+            && game.turn.current_turn == Turn::FIRST
             && game.turn.current_main_phase == MainPhase::Charity
             && !game.deals.offers.iter().any(|deal| {
                 deal.initiator() == Some(faction)

@@ -156,7 +156,7 @@ impl ClassicBot {
         // Towards the Shield Wall, to blow it up with Family Atomics
         if !self.last_turn(game)
             && !winning
-            && (0..=8).contains(&game.board.sector_in_storm)
+            && game.board.sector_in_storm.is_some_and(|s| s.number() <= 8)
             && game.player(me).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
             && !MetheorPlayed::has_forces_at_or_near_shield_wall(game, me)
             && let Some(m) = self.battalion_that_will_destroy_shield_wall(game)
@@ -181,9 +181,9 @@ impl ClassicBot {
     /// Arrakeen and Carthag in that order.
     fn battalion_that_will_destroy_shield_wall(&self, game: &Game) -> Option<MovedBattalion> {
         let map = &game.board.map;
-        let false_wall_east = |sector: i32| map.false_wall_east().locations().iter().copied().find(|l| l.sector(map) == sector).expect("a location in that sector");
-        let false_wall_east_target = || if game.board.sector_in_storm != 8 { false_wall_east(8) } else { false_wall_east(7) };
-        let pasty_mesa_target = || map.pasty_mesa().locations().iter().copied().find(|l| l.sector(map) == 7).expect("a location in sector 7");
+        let false_wall_east = |sector: u8| map.false_wall_east().locations().iter().copied().find(|l| l.sector(map) == Some(Sector::new(sector))).expect("a location in that sector");
+        let false_wall_east_target = || if game.board.sector_in_storm != Some(Sector::new(8)) { false_wall_east(8) } else { false_wall_east(7) };
+        let pasty_mesa_target = || map.pasty_mesa().locations().iter().copied().find(|l| l.sector(map) == Some(Sector::new(7))).expect("a location in sector 7");
 
         let attempts: [(Location, &dyn Fn() -> Location); 4] = [
             (map.polar_sink(), &false_wall_east_target),

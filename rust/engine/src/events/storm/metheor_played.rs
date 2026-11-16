@@ -30,7 +30,7 @@ impl MetheorPlayed {
     }
 
     pub fn may_play_metheor(g: &Game, p: PlayerId) -> bool {
-        g.turn.current_turn > 1
+        g.turn.current_turn > Turn::FIRST
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
             && MetheorPlayed::has_forces_at_or_near_shield_wall(g, p)
     }

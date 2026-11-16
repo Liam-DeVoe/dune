@@ -846,14 +846,14 @@ impl Battle {
         let occupied_locations = pl.occupied_locations(g);
         for occupied_location in occupied_locations
             .into_iter()
-            .filter(|l| (may_battle_under_storm || l.sector(&g.board.map) != g.board.sector_in_storm) && l.id() != g.board.map.polar_sink().id())
+            .filter(|l| (may_battle_under_storm || !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)) && l.id() != g.board.map.polar_sink().id())
         {
             let locations_within_range = g.board.map.find_neighbours_within_territory(occupied_location, false, g.board.sector_in_storm);
 
             let occupying_forces = g.occupying_forces_on_planet();
             for (key, battalions) in occupying_forces
                 .iter()
-                .filter(|(k, _)| (may_battle_under_storm || k.sector(&g.board.map) != g.board.sector_in_storm) && locations_within_range.contains(k))
+                .filter(|(k, _)| (may_battle_under_storm || !Sector::in_storm(k.sector(&g.board.map), g.board.sector_in_storm)) && locations_within_range.contains(k))
             {
                 let _ = key;
                 let defenders = battalions.iter().filter(|b| Some(b.faction) != pl.faction && Some(b.faction) != pl.ally);

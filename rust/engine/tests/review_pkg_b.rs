@@ -178,7 +178,8 @@ fn rust_lines() -> Vec<String> {
     }
 
     for players in 1..=12 {
-        for sector in -2..=19 {
+        // -1 is no storm, before the first one.
+        for sector in -1..=17 {
             let mut g = Game::of_version(Game::LATEST_VERSION);
             g.rules.settings.as_mut().unwrap().number_of_players = players;
             for i in 0..players {
@@ -189,7 +190,7 @@ fn rust_lines() -> Vec<String> {
                 p.seat = i;
                 g.players.push(p);
             }
-            g.board.sector_in_storm = sector;
+            g.board.sector_in_storm = (sector >= 0).then(|| Sector::new(sector as u8));
             let res = match catch(|| PlayerSequence::determine_first_player(&g)) {
                 Ok(fp) => g.player(fp).seat.to_string(),
                 Err(()) => "exception".to_string(),
@@ -283,7 +284,7 @@ fn sequence_lines() -> Vec<String> {
                 }
                 g.players.push(p);
             }
-            g.board.sector_in_storm = r.below(18) as i32;
+            g.board.sector_in_storm = Some(Sector::new(r.below(18) as u8));
             let juice = r.below(4);
             if juice > 0 {
                 let f = g.players[r.below(count)].faction;

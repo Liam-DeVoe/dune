@@ -58,7 +58,8 @@ pub enum StoryBlock {
     Prediction {
         #[ts(type = "Faction")]
         to_win: String,
-        turn: i32,
+        #[ts(type = "number")]
+        turn: treachery_engine::game::Turn,
     },
     /// A card bought: "<buyer> buy <card> for <amount> [using <karma>] [(<auction type>)]".
     #[serde(rename_all = "camelCase")]
@@ -73,10 +74,18 @@ pub enum StoryBlock {
         auction: Option<String>,
     },
     /// "Turn N", when bidding starts.
-    Turn { turn: i32 },
+    Turn {
+        #[ts(type = "number")]
+        turn: treachery_engine::game::Turn,
+    },
     /// A "Situation at ..." heading with its table. `turn` is
     /// the current turn, which the end-of-turn heading names.
-    Situation { when: SituationWhen, turn: i32, table: StoryTable },
+    Situation {
+        when: SituationWhen,
+        #[ts(type = "number")]
+        turn: treachery_engine::game::Turn,
+        table: StoryTable,
+    },
     /// "Battle for <territory>".
     BattleFor { territory: i32 },
     /// A milestone event: its initiator's image and `GetMessage()`.

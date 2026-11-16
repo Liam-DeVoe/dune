@@ -11,7 +11,7 @@ impl Log {
     pub fn new() -> Self {
         Log {
             report_list: Vec::new(),
-            pre_game_report: Report::new(None, 0),
+            pre_game_report: Report::new(None, Turn::BEFORE_START),
         }
     }
 }

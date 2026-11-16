@@ -27,7 +27,7 @@ pub struct ClassicBot {
     pub voice_plan: Option<VoicePlan>,
     /// The price asked earlier for reviving a hero, for Tleilaxu revival requests.
     pub price_set_earlier: HashMap<Hero, i32>,
-    pub turn_when_revival_was_requested: i32,
+    pub turn_when_revival_was_requested: Option<Turn>,
     /// The shipment chosen while deciding, with the move planned after it.
     pub decided_shipment_action: ShipmentDecision,
     pub decided_shipment: Option<Rc<Shipment>>,
@@ -242,7 +242,7 @@ impl ClassicBot {
             random,
             voice_plan: None,
             price_set_earlier: HashMap::new(),
-            turn_when_revival_was_requested: -1,
+            turn_when_revival_was_requested: None,
             decided_shipment_action: ShipmentDecision::None,
             decided_shipment: None,
             final_destination: None,

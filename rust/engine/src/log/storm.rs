@@ -17,11 +17,11 @@ impl StormDials {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StormPlaced {
-    pub sector: i32,
+    pub sector: Sector,
 }
 
 impl StormPlaced {
-    pub fn new(sector: i32) -> Self {
+    pub fn new(sector: Sector) -> Self {
         StormPlaced { sector }
     }
 
@@ -41,14 +41,15 @@ impl StormForecast {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct StormMoved {
-    pub from: i32,
+    /// `None` only if the storm moved before the first storm, which the rules don't allow.
+    pub from: Option<Sector>,
     pub distance: i32,
     pub by: Option<Faction>,
     pub card: Option<TreacheryCard>,
 }
 
 impl StormMoved {
-    pub fn new(from: i32, distance: i32, by: Option<Faction>, card: Option<TreacheryCard>) -> Self {
+    pub fn new(from: Option<Sector>, distance: i32, by: Option<Faction>, card: Option<TreacheryCard>) -> Self {
         StormMoved { from, distance, by, card }
     }
 

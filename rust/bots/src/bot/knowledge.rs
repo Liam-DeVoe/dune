@@ -82,7 +82,7 @@ impl ClassicBot {
         let ally = game.player(game.get_player(Some(opponent_faction)).expect("player")).ally;
         let me = game.player(self.player);
         self.faction(game) == Faction::BeneGesserit
-            && game.turn.current_turn == me.predicted_turn
+            && game.turn.current_turn == me.predicted_turn.unwrap_or(Turn::BEFORE_START)
             && (Some(opponent_faction) == me.predicted_faction || ally == me.predicted_faction)
     }
 
@@ -91,7 +91,7 @@ impl ClassicBot {
     }
 
     pub fn almost_last_turn(&self, game: &Game) -> bool {
-        game.turn.current_turn >= game.maximum_turns() - 1
+        i32::from(game.turn.current_turn) >= i32::from(game.maximum_turns()) - 1
     }
 
     pub fn opponents_to_ship_and_move(&self, game: &Game) -> Vec<PlayerId> {
@@ -322,7 +322,7 @@ impl ClassicBot {
             return false;
         }
         let sector = l.sector(&game.board.map);
-        (1..=self.max_expected_storm_moves(game)).any(|i| (game.board.sector_in_storm + i) % Map::NUMBER_OF_SECTORS == sector)
+        (1..=self.max_expected_storm_moves(game)).any(|i| Some(storm_or_before_first(game).moved(i.max(0) as u32)) == sector)
     }
 
     pub fn vacant_and_safe_from_storm(&self, game: &Game, location: Location) -> bool {
@@ -394,7 +394,7 @@ impl ClassicBot {
     }
 
     pub fn in_storm(&self, game: &Game, l: Location) -> bool {
-        l.sector(&game.board.map) == game.board.sector_in_storm
+        Sector::in_storm(l.sector(&game.board.map), game.board.sector_in_storm)
     }
 
     /// My battalions on the planet for which `keep` holds, in board order. `keep` runs for every
@@ -908,4 +908,10 @@ impl ClassicBot {
         let kinds: [&dyn Fn(&TreacheryCard) -> bool; 3] = [&|c| c.is_projectile_defense() && !both(c), &|c| c.is_poison_defense() && !both(c), &both];
         kinds.iter().filter(|kind| cards.iter().any(|c| kind(c))).count() as i32
     }
+}
+
+/// The sector the bots count the storm's moves from. Before the first storm C# counted from sector
+/// -1, which lands where moving from sector 17 does.
+pub fn storm_or_before_first(game: &Game) -> Sector {
+    game.board.sector_in_storm.unwrap_or(Sector::new(17))
 }

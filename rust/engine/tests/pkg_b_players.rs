@@ -172,7 +172,7 @@ fn determine_first_player_from_storm() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor, Faction::Fremen, Faction::BeneGesserit, Faction::Ixian]);
     // ceil(sector * 6 / 18f) % 6
     for (sector, seat) in [(0, 0), (1, 1), (3, 1), (4, 2), (17, 0), (16, 0), (15, 5)] {
-        g.board.sector_in_storm = sector;
+        g.board.sector_in_storm = Some(Sector::new(sector));
         let first = PlayerSequence::determine_first_player(&g);
         assert_eq!(g.player(first).seat, seat, "sector {sector}");
     }
@@ -182,7 +182,7 @@ fn determine_first_player_from_storm() {
 fn determine_first_player_skips_empty_seats_and_panics() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen]);
     g.player_mut(g.player_at(1)).seat = 4;
-    g.board.sector_in_storm = 6; // starts looking at seat 2
+    g.board.sector_in_storm = Some(Sector::new(6)); // starts looking at seat 2
     assert_eq!(PlayerSequence::determine_first_player(&g), g.player_at(1));
 
     g.rules.settings.as_mut().unwrap().number_of_players = 0;
@@ -197,7 +197,7 @@ fn determine_first_player_skips_empty_seats_and_panics() {
 #[test]
 fn sequence_goes_around_and_counts_full_circles() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor]);
-    g.board.sector_in_storm = 7; // ceil(7*6/18) = 3 -> seat 3 is empty -> wraps to seat 0
+    g.board.sector_in_storm = Some(Sector::new(7)); // ceil(7*6/18) = 3 -> seat 3 is empty -> wraps to seat 0
     let mut seq = PlayerSequence::starting_with_first_player(&g);
     let order: Vec<_> = seq.players_in_order(&g).into_iter().map(|p| p.unwrap()).collect();
     assert_eq!(order, vec![g.player_at(0), g.player_at(1), g.player_at(2)]);
@@ -224,7 +224,7 @@ fn reverse_direction_orders_by_negated_seat() {
 #[test]
 fn is_after_uses_first_player() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen, Faction::Emperor]);
-    g.board.sector_in_storm = 0;
+    g.board.sector_in_storm = Some(Sector::new(0));
     assert!(PlayerSequence::is_after(&g, g.player_at(2), g.player_at(1)));
     assert!(!PlayerSequence::is_after(&g, g.player_at(0), g.player_at(1)));
 }

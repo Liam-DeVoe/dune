@@ -101,7 +101,8 @@ pub struct LogLine {
 #[serde(rename_all = "camelCase")]
 pub struct ReportHeader {
     pub index: i32,
-    pub turn: i32,
+    #[ts(type = "number")]
+    pub turn: treachery_engine::game::Turn,
     #[ts(type = "MainPhase")]
     pub about: String,
     pub is_battle: bool,
@@ -275,7 +276,8 @@ pub struct PrivatePlayer {
     /// Bene Gesserit's prediction, once made (`Phase > BeneGesseritPredicting`).
     #[ts(type = "Faction | null")]
     pub predicted_faction: Option<String>,
-    pub predicted_turn: Option<i32>,
+    #[ts(type = "number | null")]
+    pub predicted_turn: Option<treachery_engine::game::Turn>,
     /// The Nexus card held (`Player.Nexus`).
     #[ts(type = "Faction | null")]
     pub nexus: Option<String>,
@@ -704,8 +706,10 @@ pub struct GameView {
     /// view they were made from with it.
     pub event_number: i32,
     pub version: i32,
-    pub turn: i32,
-    pub maximum_turns: i32,
+    #[ts(type = "number")]
+    pub turn: treachery_engine::game::Turn,
+    #[ts(type = "number")]
+    pub maximum_turns: treachery_engine::game::Turn,
     /// `Game.MaximumPlayers`: the seats around the map, which place each player's token
     /// (`SectorGeometry.PlayerTokenPosition`).
     pub maximum_players: i32,

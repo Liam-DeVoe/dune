@@ -87,8 +87,10 @@ fn shipment_costs_match_csharp_at_the_edges() {
     assert_eq!(show(|| s2.validate(&g).map(|m| m.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
     let valid: Vec<_> = Shipment::valid_shipment_locations(&g, pl, false, false).collect();
-    assert_eq!(valid.len(), 85, "probe: validLocations.count");
-    assert_eq!(valid[0].id(), 1, "probe: validLocations.first");
+    // Before the first storm. C# counted the Polar Sink (sector -1, like the storm) as in the storm,
+    // so it listed 85 locations from id 1 (behavior-changes.md, "Turns, sectors and amounts out of range").
+    assert_eq!(valid.len(), 86, "probe: validLocations.count");
+    assert_eq!(valid[0].id(), 0, "probe: validLocations.first");
 }
 
 /// `ChoamRemoveForce` with no location, executed without validation (as

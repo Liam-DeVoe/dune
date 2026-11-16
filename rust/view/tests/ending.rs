@@ -45,7 +45,7 @@ fn everyone_sees_the_same_story() {
     let story = e.story.as_ref().expect("story");
     assert!(matches!(story.first(), Some(StoryBlock::Setup { .. })), "the story starts with the setup");
     assert!(matches!(story.last(), Some(StoryBlock::Ended { .. })));
-    let turns: Vec<i32> = story.iter().filter_map(|b| if let StoryBlock::Turn { turn } = b { Some(*turn) } else { None }).collect();
+    let turns: Vec<i32> = story.iter().filter_map(|b| if let StoryBlock::Turn { turn } = b { Some(i32::from(*turn)) } else { None }).collect();
     assert_eq!(turns, vec![1, 2]);
     assert!(story.iter().any(|b| matches!(b, StoryBlock::Purchase { card: Some(_), .. })));
     assert!(story.iter().any(|b| matches!(b, StoryBlock::Battle { .. })));

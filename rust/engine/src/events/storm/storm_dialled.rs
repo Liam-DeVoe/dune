@@ -40,14 +40,14 @@ impl StormDialled {
     }
 
     pub fn valid_min_amount(g: &Game) -> i32 {
-        if g.turn.current_turn == 1 {
+        if g.turn.current_turn == Turn::FIRST {
             return 0;
         }
         1
     }
 
     pub fn valid_max_amount(g: &Game) -> i32 {
-        if g.turn.current_turn == 1 {
+        if g.turn.current_turn == Turn::FIRST {
             return 20;
         }
         3
@@ -68,7 +68,7 @@ impl StormDialled {
             self.log_objects(game, elems![msg]);
             game.board.next_storm_moves = game.storm.dials.iter().copied().sum::<i32>();
 
-            if game.turn.current_turn == 1 {
+            if game.turn.current_turn == Turn::FIRST {
                 self.position_first_storm(game);
             } else {
                 game.reveal_storm();
@@ -78,8 +78,11 @@ impl StormDialled {
     }
 
     pub fn position_first_storm(&self, game: &mut Game) {
-        game.board.sector_in_storm = game.board.next_storm_moves % Map::NUMBER_OF_SECTORS;
-        let msg = express!("The first storm moves ", game.board.sector_in_storm, " sectors").with_log(StormPlaced::new(game.board.sector_in_storm));
+        // The dials are validated, so their sum isn't negative.
+        let moves = u32::try_from(game.board.next_storm_moves).expect("storm moves");
+        let sector = Sector::first_storm(moves);
+        game.board.sector_in_storm = Some(sector);
+        let msg = express!("The first storm moves ", sector, " sectors").with_log(StormPlaced::new(sector));
         self.log_objects(game, elems![msg]);
         game.perform_storm();
 

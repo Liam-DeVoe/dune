@@ -13,13 +13,13 @@ use treachery_engine::prelude::*;
 
 #[derive(Default)]
 struct StubGame {
-    sector_in_storm: Cell<i32>,
+    sector_in_storm: Cell<Option<Sector>>,
     forces: RefCell<Vec<(Location, Vec<Faction>)>>,
     blocked: RefCell<Vec<Territory>>,
 }
 
 impl MapGame for StubGame {
-    fn sector_in_storm(&self) -> i32 {
+    fn sector_in_storm(&self) -> Option<Sector> {
         self.sector_in_storm.get()
     }
     fn applicable(&self, _rule: Rule) -> bool {
@@ -46,7 +46,7 @@ fn reachable(m: &Map, g: &StubGame, from: Location) -> Vec<Location> {
 #[test]
 fn the_storm_moving_changes_the_paths_found() {
     let m = Map::new();
-    let g = StubGame { sector_in_storm: Cell::new(-1), ..Default::default() };
+    let g = StubGame { sector_in_storm: Cell::new(None), ..Default::default() };
     let before = reachable(&m, &g, m.arrakeen());
     let sector = before.iter().map(|l| l.sector(&m)).find(|s| *s != m.arrakeen().sector(&m)).expect("a sector to put the storm on");
     g.sector_in_storm.set(sector);
@@ -58,7 +58,7 @@ fn the_storm_moving_changes_the_paths_found() {
 #[test]
 fn forces_arriving_change_the_paths_found() {
     let m = Map::new();
-    let g = StubGame { sector_in_storm: Cell::new(-1), ..Default::default() };
+    let g = StubGame { sector_in_storm: Cell::new(None), ..Default::default() };
     assert!(reachable(&m, &g, m.arrakeen()).contains(&m.carthag()));
     // Two other factions in Carthag make it an obstacle for Atreides.
     *g.forces.borrow_mut() = vec![(m.carthag(), vec![Faction::Harkonnen, Faction::Emperor])];
@@ -68,7 +68,7 @@ fn forces_arriving_change_the_paths_found() {
 #[test]
 fn a_territory_becoming_blocked_changes_the_paths_found() {
     let m = Map::new();
-    let g = StubGame { sector_in_storm: Cell::new(-1), ..Default::default() };
+    let g = StubGame { sector_in_storm: Cell::new(None), ..Default::default() };
     assert!(reachable(&m, &g, m.arrakeen()).contains(&m.carthag()));
     *g.blocked.borrow_mut() = vec![m.carthag().territory()];
     assert!(!reachable(&m, &g, m.arrakeen()).contains(&m.carthag()));
@@ -96,7 +96,7 @@ fn a_game_finds_move_targets_for_its_current_storm() {
     let sector = before
         .iter()
         .map(|l| l.sector(&g.board.map))
-        .find(|s| *s >= 0 && *s != from.sector(&g.board.map))
+        .find(|s| s.is_some() && *s != from.sector(&g.board.map))
         .expect("a sector to put the storm on");
     g.board.sector_in_storm = sector;
     let after = PlacementEvent::valid_targets(&g, p, from, &battalion);

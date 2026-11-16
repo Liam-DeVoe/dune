@@ -14,6 +14,7 @@ use treachery_engine::identity::Fetcher;
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;
+use treachery_engine::map::sector::Sector;
 use treachery_engine::random::SharedRandom;
 use treachery_engine::map::{Map, MapGame};
 use treachery_engine::messages::message::BattleFactKind;
@@ -75,17 +76,17 @@ fn opt_id(l: Option<Location>) -> Value {
 
 /// A `Game` with no players: what MapGame needs for the static tests.
 struct StubGame {
-    sector_in_storm: Cell<i32>,
+    sector_in_storm: Cell<Option<Sector>>,
 }
 
 impl StubGame {
     fn new() -> Self {
-        StubGame { sector_in_storm: Cell::new(-1) }
+        StubGame { sector_in_storm: Cell::new(None) }
     }
 }
 
 impl MapGame for StubGame {
-    fn sector_in_storm(&self) -> i32 {
+    fn sector_in_storm(&self) -> Option<Sector> {
         self.sector_in_storm.get()
     }
     fn applicable(&self, _rule: Rule) -> bool {
@@ -156,7 +157,7 @@ fn dump_location(m: &Map, l: Location) -> Value {
     let mut o = json!({
         "id": l.id(),
         "kind": l.type_name(),
-        "sector": l.sector(m),
+        "sector": Sector::number_or_none(l.sector(m)),
         "territory": l.territory().id(),
         "visible": l.visible(m),
         "neighbours": ids(l.neighbours(m).iter().copied()),
@@ -260,7 +261,7 @@ fn dump_map(m: &Map) -> Value {
     }
 
     json!({
-        "number_of_sectors": Map::NUMBER_OF_SECTORS,
+        "number_of_sectors": Sector::COUNT,
         "locations": m.locations(true).map(|l| dump_location(m, l)).collect::<Vec<_>>(),
         "territories": m.territories(true).map(|t| dump_territory(m, t)).collect::<Vec<_>>(),
         "locations_true": ids(m.locations(true)),
@@ -311,12 +312,12 @@ fn map_attached() {
                 }
             }
             let hms: Vec<Value> =
-                m.locations(true).map(|l| ids(m.find_neighbours_for_hms_movement(l, 1, false, 9))).collect();
+                m.locations(true).map(|l| ids(m.find_neighbours_for_hms_movement(l, 1, false, Some(Sector::new(9))))).collect();
             result.push(json!({
                 "version": version,
                 "step": name,
                 "locations": m.locations(true).map(|l| json!([
-                    l.sector(&m), l.visible(&m), ids(l.neighbours(&m).iter().copied()),
+                    Sector::number_or_none(l.sector(&m)), l.visible(&m), ids(l.neighbours(&m).iter().copied()),
                     l.as_attached_location().and_then(|a| a.attached_to_location(&m)).map(|a| a.id())
                 ])).collect::<Vec<_>>(),
                 "territories_visible": m.territories(true).map(|t| json!(t.is_visible(&m))).collect::<Vec<_>>(),
@@ -329,6 +330,11 @@ fn map_attached() {
     check("map_attached", Value::Array(result));
 }
 
+/// The storm over sector `n`, or no storm for -1.
+fn storm(n: i32) -> Option<Sector> {
+    (n >= 0).then(|| Sector::new(n as u8))
+}
+
 #[test]
 fn pathfinding() {
     let g = StubGame::new();
@@ -339,7 +345,7 @@ fn pathfinding() {
     let mut hms = Vec::new();
     let mut within = Vec::new();
     let mut neighbours = Vec::new();
-    for sector in sectors {
+    for sector in sectors.map(storm) {
         g.sector_in_storm.set(sector);
         for &l in &locations {
             for ignore_storm in [false, true] {
@@ -353,7 +359,7 @@ fn pathfinding() {
     }
 
     let mut shortest = Vec::new();
-    for sector in [-1, 9] {
+    for sector in [-1, 9].map(storm) {
         g.sector_in_storm.set(sector);
         for &from in &locations {
             for &to in &locations {
@@ -367,7 +373,7 @@ fn pathfinding() {
 
     let starts = [0, 5, 9, 23, 42, 57, 68, 74, 86];
     let mut paths = Vec::new();
-    for sector in [-1, 9] {
+    for sector in [-1, 9].map(storm) {
         g.sector_in_storm.set(sector);
         for s in starts {
             for &to in &locations {

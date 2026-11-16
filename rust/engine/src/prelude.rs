@@ -34,6 +34,7 @@ pub use crate::heroes::leader::Leader;
 pub use crate::map::location::Location;
 pub use crate::cards::resource_card::ResourceCard;
 pub use crate::map::territory::Territory;
+pub use crate::map::sector::Sector;
 pub use crate::cards::treachery_card::TreacheryCard;
 
 pub use crate::events::*;

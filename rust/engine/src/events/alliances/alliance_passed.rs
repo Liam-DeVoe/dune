@@ -1,34 +1,19 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AlliancePassed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for AlliancePassed {
-    fn default() -> Self {
-        AlliancePassed {
-            base: Default::default(),
-        }
-    }
-}
-
-impl AlliancePassed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for AlliancePassed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
-
-        let initiator = self.initiator();
+        let initiator = by.faction;
         loop {
             let withdrawn_offer = game.alliances.current_alliance_offers.iter().position(|x| x.initiator() == initiator || x.target == initiator);
             let Some(i) = withdrawn_offer else { break };
@@ -41,46 +26,16 @@ impl AlliancePassed {
         Ok(())
     }
 
-    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        let player = game.player(self.player_opt().required("player")?);
+    fn describe(&self, game: &Game, by: By) -> Message {
+        self.try_describe(game, by).expect("the message of an applicable AlliancePassed event")
+    }
+
+    fn try_describe(&self, game: &Game, by: By) -> GameResult<Message> {
+        let player = game.player(by.player.required("player")?);
         Ok(if player.has_ally() {
-            express!(self.initiator(), " keep their alliance with ", player.ally)
+            express!(by.faction, " keep their alliance with ", player.ally)
         } else {
-            express!(self.initiator(), " will not make an alliance")
+            express!(by.faction, " will not make an alliance")
         })
-    }
-
-    pub fn get_message(&self, game: &Game) -> Message {
-        self.try_get_message(game).expect("the message of an applicable AlliancePassed event")
-    }
-}
-
-impl GameEventMethods for AlliancePassed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AlliancePassed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AlliancePassed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AlliancePassed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AlliancePassed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AlliancePassed::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        AlliancePassed::try_get_message(self, game)
     }
 }

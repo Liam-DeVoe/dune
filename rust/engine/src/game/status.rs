@@ -931,14 +931,14 @@ impl GameStatus {
 
                 // Show Faction
                 Event::EstablishPlayers(_) if g.turn.current_phase != Phase::SelectingFactions && is_player => Self::flash_faction_played(&mut result, my_faction),
-                Event::FactionTradeOffered(fto) if (fto.initiator() == my_faction || fto.target == my_faction) && g.setup.current_trade_offers.iter().all(|t| t.initiator() != my_faction) => {
+                Event::FactionTradeOffered(fto) if (latest.by == my_faction || fto.target == my_faction) && g.setup.current_trade_offers.iter().all(|t| t.initiator != my_faction) => {
                     Self::flash_faction_played(&mut result, my_faction)
                 }
 
                 // Show Nexus card played
                 Event::NexusPlayed(np) => Self::flash(&mut result, express!(np.initiator(), " play a Nexus card"), np.faction.map(Faction::to_nexus)),
                 Event::Revival(nexus_revival) if nexus_revival.uses_emperor_secret_ally => {
-                    Self::flash(&mut result, express!(nexus_revival.initiator(), " play a Nexus card"), Some(Faction::Emperor.to_nexus()))
+                    Self::flash(&mut result, express!(latest.by, " play a Nexus card"), Some(Faction::Emperor.to_nexus()))
                 }
 
                 _ => {}

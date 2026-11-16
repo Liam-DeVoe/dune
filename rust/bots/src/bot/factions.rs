@@ -307,7 +307,7 @@ impl ClassicBot {
         Rc::new(e)
     }
 
-    pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> Rc<IxianSelectedStartingCard> {
+    pub fn determine_ixian_selected_starting_card(&self, game: &Game) -> IxianSelectedStartingCard {
         use TreacheryCardType as T;
         let cards = || game.setup.starting_treachery_cards.as_ref().expect("starting treachery cards").items.iter().copied();
         let any = |f: fn(&TreacheryCard) -> bool| cards().any(|c| f(&c));
@@ -333,19 +333,19 @@ impl ClassicBot {
             .find_map(|(applies, wanted)| if *applies { cards().find(wanted) } else { None })
             .or_else(|| cards().next());
 
-        let mut e = IxianSelectedStartingCard::new(game, self.faction(game));
+        let mut e = IxianSelectedStartingCard::default();
         e.card = card;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_perform_hms_movement(&self, game: &Game) -> Rc<PerformHmsMovement> {
+    pub fn determine_perform_hms_movement(&self, game: &Game) -> PerformHmsMovement {
         let current_location = game.board.map.hidden_mobile_stronghold().attached_to_location(&game.board.map);
         let faction = self.faction(game);
         let target_event = |target: Option<Location>| {
-            let mut e = PerformHmsMovement::new(game, faction);
+            let mut e = PerformHmsMovement::default();
             e.passed = false;
             e.target = target;
-            Rc::new(e)
+            e
         };
         let step_towards = |target: Location, distance: i32| {
             PerformHmsMovement::valid_locations(game).find(|l| self.within_distance(game, *l, target, distance))
@@ -384,12 +384,12 @@ impl ClassicBot {
             }
         }
 
-        let mut e = PerformHmsMovement::new(game, faction);
+        let mut e = PerformHmsMovement::default();
         e.passed = true;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_perform_hms_placement(&self, game: &Game) -> Rc<PerformHmsPlacement> {
+    pub fn determine_perform_hms_placement(&self, game: &Game) -> PerformHmsPlacement {
         let faction = self.faction(game);
         let target = if faction != Faction::Ixian {
             game.board.map.shield_wall().locations().iter().copied().next().expect("an element")
@@ -400,24 +400,24 @@ impl ClassicBot {
             game.board.map.polar_sink()
         };
 
-        let mut e = PerformHmsPlacement::new(game, faction);
+        let mut e = PerformHmsPlacement::default();
         e.target = Some(target);
-        Rc::new(e)
+        e
     }
 
     // ---- Fremen ----
 
-    pub fn determine_take_losses(&self, game: &Game) -> Rc<TakeLosses> {
+    pub fn determine_take_losses(&self, game: &Game) -> TakeLosses {
         let losses = TakeLosses::losses_to_take(game).amount;
         let normal_forces = std::cmp::min(losses, TakeLosses::valid_max_force_amount(game, self.player));
-        let mut e = TakeLosses::new(game, self.faction(game));
+        let mut e = TakeLosses::default();
         e.force_amount = treachery_engine::game::amounts::clamp_u16(normal_forces);
         e.special_force_amount = treachery_engine::game::amounts::clamp_u16(losses - normal_forces);
         e.use_useless_card = TakeLosses::can_prevent_losses(game, self.player);
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_perform_fremen_setup(&self, game: &Game) -> Rc<PerformFremenSetup> {
+    pub fn determine_perform_fremen_setup(&self, game: &Game) -> PerformFremenSetup {
         let faction = self.faction(game);
         let special_forces_in_reserve = game.player(self.player).special_forces_in_reserve();
         let mut force_locations: IndexMap<Location, Battalion> = IndexMap::new();
@@ -434,18 +434,18 @@ impl ClassicBot {
             force_locations.insert_new(west, Battalion::new(faction, force_amount(forces_left - i32::from(special)), special, west));
         }
 
-        let mut e = PerformFremenSetup::new(game, faction);
+        let mut e = PerformFremenSetup::default();
         e.set_force_locations(game, &force_locations);
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_fremen_sent_monster(&self, game: &Game) -> Rc<FremenSentMonster> {
+    pub fn determine_fremen_sent_monster(&self, game: &Game) -> FremenSentMonster {
         let target = FremenSentMonster::valid_targets(game).random_highest(&self.random, |t| {
             FloatKey(self.total_max_dial_of_opponents(game, *t) + (2 * t.forces_of(game, self.player)) as f32)
         });
-        let mut e = FremenSentMonster::new(game, self.faction(game));
+        let mut e = FremenSentMonster::default();
         e.territory = target;
-        Rc::new(e)
+        e
     }
 
     /// Where Fremen forces riding a worm (or moved by the Fremen ambassador) go: the first of
@@ -464,7 +464,7 @@ impl ClassicBot {
         })
     }
 
-    pub fn determine_fremen_rides_monster(&self, game: &Game) -> Rc<FremenRidesMonster> {
+    pub fn determine_fremen_rides_monster(&self, game: &Game) -> FremenRidesMonster {
         let me = game.player(self.player);
         let valid_locations: Vec<Location> = FremenRidesMonster::valid_targets(game, self.player).collect();
         // `add` throws if a source is listed twice.
@@ -500,7 +500,7 @@ impl ClassicBot {
             + forces_from_reserves
             + special_forces_from_reserves;
 
-        let mut e = FremenRidesMonster::new(game, self.faction(game));
+        let mut e = FremenRidesMonster::default();
         if total_forces > 0 {
             e.passed = false;
             e.set_force_locations(game, &battalions_to_move.clone());
@@ -510,12 +510,12 @@ impl ClassicBot {
         } else {
             e.passed = true;
         }
-        Rc::new(e)
+        e
     }
 
     // ---- BeneGesserit ----
 
-    pub fn determine_bene_gesserit_placement(&self, game: &Game) -> Rc<PerformBeneGesseritPlacement> {
+    pub fn determine_bene_gesserit_placement(&self, game: &Game) -> PerformBeneGesseritPlacement {
         let map = &game.board.map;
         let empty = |l: Location| l.forces_of(game, self.player) == 0;
         let target = if empty(map.arrakeen()) {
@@ -528,9 +528,9 @@ impl ClassicBot {
             map.carthag()
         };
 
-        let mut e = PerformBeneGesseritPlacement::new(game, self.faction(game));
+        let mut e = PerformBeneGesseritPlacement::default();
         e.target = Some(target);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_bene_gesserit_flip(&self, game: &Game) -> BeneGesseritFlip {
@@ -663,7 +663,7 @@ impl ClassicBot {
         no_accompany()
     }
 
-    pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> Rc<BeneGesseritPrediction> {
+    pub fn determine_bene_gesserit_prediction(&self, game: &Game) -> BeneGesseritPrediction {
         // A random human player if there is one, else any other player.
         let humans = self.others(game).into_iter().filter(|p| !game.is_bot(*p));
         let predicted = humans.random_item(&self.random).or_else(|| self.others(game).into_iter().random_item(&self.random));
@@ -685,10 +685,10 @@ impl ClassicBot {
             2 + self.d(1, maximum_turns - 2)
         };
 
-        let mut e = BeneGesseritPrediction::new(game, self.faction(game));
+        let mut e = BeneGesseritPrediction::default();
         e.to_win = predicted.faction;
         e.turn = Turn::new(u8::try_from(turn).expect("a turn of the game"));
-        Rc::new(e)
+        e
     }
 
     pub fn determine_voice(&mut self, game: &Game) -> Option<Voice> {
@@ -870,12 +870,12 @@ impl ClassicBot {
 
     // ---- Tleilaxu ----
 
-    pub fn determine_set_increased_revival_limits(&self, game: &Game) -> Option<Rc<SetIncreasedRevivalLimits>> {
+    pub fn determine_set_increased_revival_limits(&self, game: &Game) -> Option<SetIncreasedRevivalLimits> {
         let targets: Vec<Faction> = SetIncreasedRevivalLimits::valid_targets(game, self.player).collect();
         if game.revival.factions_with_increased_revival_limits.as_ref().expect("factions with increased revival limits").len() != targets.len() {
-            let mut e = SetIncreasedRevivalLimits::new(game, self.faction(game));
+            let mut e = SetIncreasedRevivalLimits::default();
             e.factions = Some(targets);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
@@ -962,9 +962,9 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<RequestTleilaxuRevival>> {
+    pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<RequestTleilaxuRevival> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.initiator() == Some(faction))
+        if game.revival.current_revival_requests.iter().any(|r| r.initiator == Some(faction))
             || game.revival.early_revivals_offers.keys().any(|h| h.faction() == Some(faction))
         {
             return None;
@@ -994,16 +994,16 @@ impl ClassicBot {
 
         let to_revive = to_revive?;
         self.turn_when_revival_was_requested = Some(game.turn.current_turn);
-        let mut e = RequestTleilaxuRevival::new(game, faction);
+        let mut e = RequestTleilaxuRevival::default();
         e.hero = Some(to_revive);
-        Some(Rc::new(e))
+        Some(e)
     }
 
-    pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<Rc<AcceptOrCancelTleilaxuRevival>> {
+    pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<AcceptOrCancelTleilaxuRevival> {
         let request_to_handle = game.revival.current_revival_requests.first().cloned()?;
         let hero = request_to_handle.hero.expect("hero");
 
-        let price = if request_to_handle.initiator() == self.ally(game) {
+        let price = if request_to_handle.initiator == self.ally(game) {
             0
         } else if let Some(price) = self.price_set_earlier.get(&hero) {
             *price
@@ -1019,11 +1019,11 @@ impl ClassicBot {
             price
         };
 
-        let mut e = AcceptOrCancelTleilaxuRevival::new(game, self.faction(game));
+        let mut e = AcceptOrCancelTleilaxuRevival::default();
         e.hero = Some(hero);
         e.price = price;
         e.cancel = false;
-        Some(Rc::new(e))
+        Some(e)
     }
 
     // ---- Choam ----
@@ -1114,7 +1114,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_perform_moritani_setup(&self, game: &Game) -> Rc<PerformMoritaniSetup> {
+    pub fn determine_perform_moritani_setup(&self, game: &Game) -> PerformMoritaniSetup {
         let map = &game.board.map;
         let valid = || PerformMoritaniSetup::valid_locations(game);
         let preferred = [
@@ -1131,9 +1131,9 @@ impl ClassicBot {
             .find(|l| valid().any(|v| v == *l))
             .unwrap_or_else(|| valid().find(|l| l.is_protected_from_storm()).expect("a location protected from the storm"));
 
-        let mut e = PerformMoritaniSetup::new(game, self.faction(game));
+        let mut e = PerformMoritaniSetup::default();
         e.target = Some(target);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_terror_planted(&self, game: &Game) -> Option<Rc<TerrorPlanted>> {

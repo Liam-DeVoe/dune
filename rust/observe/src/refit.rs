@@ -251,7 +251,7 @@ impl Refit {
                 }
                 let allowed = quiet(|| self.game.get_applicable_events(Some(p), false)).unwrap_or_default();
                 if allowed.contains(&EventType::AlliancePassed) {
-                    let e = Rc::new(AlliancePassed::new(&self.game, faction)).into_event();
+                    let e = Event::from(AlliancePassed::default());
                     if self.add(to_object(&HistoryEntry::new(Some(faction), e)), false, time) {
                         return true;
                     }
@@ -261,35 +261,36 @@ impl Refit {
         // What the host does when no bot acts.
         let host = quiet(|| self.game.get_applicable_events(None, true)).unwrap_or_default();
         let game = &self.game;
-        let mut candidates: Vec<Event> = Vec::new();
+        let mut candidates: Vec<HistoryEntry> = Vec::new();
         if host.contains(&EventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
-            let mut e = CardsDetermined::new(game, None);
+            let mut e = CardsDetermined::default();
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
-            candidates.push(Rc::new(e).into_event());
+            candidates.push(HistoryEntry::new(None, e));
         }
         if host.contains(&EventType::PerformSetup) {
-            if let Some(mut e) = quiet(|| PerformSetup::new(game, game.next_faction_to_perform_custom_setup())) {
+            if let Some(by) = quiet(|| game.next_faction_to_perform_custom_setup()) {
+                let mut e = PerformSetup::default();
                 e.resources = 10;
                 e.force_locations = Some(String::new());
-                candidates.push(Rc::new(e).into_event());
+                candidates.push(HistoryEntry::new(by, e));
             }
         }
         if host.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
             let p = game.player_at(0);
             if let Some(l) = PerformHmsPlacement::valid_locations(game, p).next() {
-                let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
+                let mut e = PerformHmsPlacement::default();
                 e.target = Some(l);
-                candidates.push(Rc::new(e).into_event());
+                candidates.push(HistoryEntry::new(game.player(p).faction, e));
             }
         }
         if host.contains(&EventType::EndPhase) {
-            candidates.push(Rc::new(EndPhase::new(game, None)).into_event());
+            candidates.push(HistoryEntry::new(None, EndPhase::default()));
         }
         for e in candidates {
-            if self.add(to_object(&HistoryEntry::legacy(e)), true, time) {
+            if self.add(to_object(&e), true, time) {
                 return true;
             }
         }

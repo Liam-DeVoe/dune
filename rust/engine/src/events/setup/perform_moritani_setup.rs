@@ -1,50 +1,44 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PerformMoritaniSetup {
     pub target: Option<Location>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for PerformMoritaniSetup {
     fn default() -> Self {
         PerformMoritaniSetup {
             target: Location::from_id(0),
-            base: Default::default(),
         }
     }
 }
 
 impl PerformMoritaniSetup {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let target = self.target;
-        if !Self::valid_locations(game).any(|l| Some(l) == target) {
-            return Some(express!("Invalid location"));
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         let hms = g.board.map.hidden_mobile_stronghold().location();
         g.board.map.locations(false).filter(move |l| *l != hms && !g.any_forces_in(l.territory()))
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for PerformMoritaniSetup {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        let target = self.target;
+        if !Self::valid_locations(game).any(|l| Some(l) == target) {
+            return Err(Rejection(express!("Invalid location")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // Player is read before Target.
-        let me = self.player();
+        let me = by.player();
         // `Target` may be null without validation: ShipForces passes it on.
         let target = self.target.required("target")?;
         Player::ship_forces(game, me, target, 6)?;
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
         if game.treachery_cards_before_traitors() {
             game.enter_storm_phase()?;
         } else {
@@ -53,35 +47,7 @@ impl PerformMoritaniSetup {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " have set up forces")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " have set up forces")
     }
-
-}
-
-impl GameEventMethods for PerformMoritaniSetup {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::PerformMoritaniSetup
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::PerformMoritaniSetup(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        PerformMoritaniSetup::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        PerformMoritaniSetup::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        PerformMoritaniSetup::get_message(self, game)
-    }
-
 }

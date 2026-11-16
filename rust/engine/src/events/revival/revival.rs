@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Revival {
     pub amount_of_forces: u16,
     pub amount_of_special_forces: u16,
@@ -12,8 +12,6 @@ pub struct Revival {
     pub hero: Option<Hero>,
     pub assign_skill: bool,
     pub uses_emperor_secret_ally: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Revival {
@@ -29,18 +27,11 @@ impl Default for Revival {
             hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
             assign_skill: Default::default(),
             uses_emperor_secret_ally: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl Revival {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn to(&self, _game: &Game) -> Option<Location> {
         self.location
     }
@@ -55,113 +46,6 @@ impl Revival {
 
     pub fn special_forces_added_to_location(&self, _game: &Game) -> i32 {
         i32::from(self.number_of_special_forces_in_location)
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // `var p = Player;` does not throw; the first dereference (line 84) does.
-        let p_opt = self.player_opt();
-        let initiator = self.initiator();
-        let forces = i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor);
-        let special_forces = i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor);
-
-        if forces <= 0 && special_forces <= 0 && self.hero.is_none() {
-            return Some(express!("Select forces or a leader to revive"));
-        }
-
-        let p = p_opt.expect("player");
-        if let Some(hero) = self.hero {
-            if Self::is_living_leader(game, hero) && !Self::is_ghola_returning_home(game, initiator.expect("faction"), hero) {
-                return Some(express!("You can't revive a leader who isn't dead"));
-            }
-        }
-
-        let pl = game.player(p);
-        if forces > i32::from(pl.forces_killed) {
-            return Some(express!("You can't revive that many ", pl.force()));
-        }
-        if special_forces > i32::from(pl.special_forces_killed) {
-            return Some(express!("You can't revive that many ", pl.special_force()));
-        }
-
-        if initiator != Some(Faction::Ixian) && special_forces > 1 {
-            return Some(express!("You can't revive more than one ", pl.special_force(), " per turn"));
-        }
-        if special_forces > 0
-            && initiator != Some(Faction::Ixian)
-            && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(initiator)
-        {
-            return Some(express!("You already revived a ", pl.special_force(), " this turn"));
-        }
-
-        let limit = game.get_max_revivals(game, p, self.uses_emperor_secret_ally);
-        if (i32::from(self.amount_of_forces) + i32::from(self.amount_of_special_forces)) > limit {
-            return Some(express!("You can't revive more than ", limit));
-        }
-
-        let ally_limit = Self::valid_max_revivals_by_emperor(game, p);
-        if (i32::from(self.extra_forces_paid_by_emperor) + i32::from(self.extra_special_forces_paid_by_emperor))
-            > Self::valid_max_revivals_by_emperor(game, p)
-        {
-            return Some(express!("Your ally won't revive more than ", ally_limit));
-        }
-
-        if initiator != Some(Faction::Tleilaxu)
-            && game.revival.leader_revivals_this_turn.get_opt(initiator).copied().unwrap_or(0) > 0
-        {
-            return Some(express!("You cannot revive more leaders this turn"));
-        }
-
-        let cost_of_revival = Self::determine_cost(
-            game,
-            p,
-            self.hero,
-            i32::from(self.amount_of_forces),
-            i32::from(self.amount_of_special_forces),
-            i32::from(self.extra_forces_paid_by_emperor),
-            i32::from(self.extra_special_forces_paid_by_emperor),
-            self.uses_emperor_secret_ally,
-        );
-        if cost_of_revival.total_cost_for_player() > i32::from(game.player(p).resources) {
-            return Some(express!("You can't pay that many"));
-        }
-
-        if self.assign_skill && self.hero.is_none() {
-            return Some(express!("You must revive a leader to assign a skill to"));
-        }
-        if self.assign_skill && !Self::may_assign_skill(game, p, self.hero) {
-            return Some(express!("You can't assign a skill to this leader"));
-        }
-
-        if self.uses_emperor_secret_ally && !Self::may_use_emperor_secret_ally(game, p) {
-            return Some(express!("you can't use ", Faction::Emperor, " cunning"));
-        }
-
-        if self.location.is_some() {
-            let location = self.location;
-            // Contains on the lazy Where: stops at the first match (see valid_revived_force_locations).
-            if !Self::valid_revived_force_locations(game, p).any(|l| Some(l) == location) {
-                return Some(express!("You can't place revived forces there"));
-            }
-
-            if i32::from(self.number_of_forces_in_location)
-                > Self::number_of_forces_that_may_be_placed_on_planet(
-                    game,
-                    p,
-                    self.uses_emperor_secret_ally,
-                    i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor),
-                )
-                || i32::from(self.number_of_special_forces_in_location)
-                    > Self::number_of_special_forces_that_may_be_placed_on_planet(
-                        game,
-                        p,
-                        i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor),
-                    )
-            {
-                return Some(express!("You can't place that many forces directly on the planet"));
-            }
-        }
-
-        None
     }
 
     pub fn determine_cost_of_forces_for_emperor(g: &Game, emperor: PlayerId, ally: Faction, forces: i32, special_forces: i32) -> i32 {
@@ -549,9 +433,162 @@ impl Revival {
         })
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let initiator = self.initiator();
-        let me = self.player();
+    pub fn register_and_log_revival(&self, game: &mut Game, by: By, cost: &RevivalCost, tleilaxu_received_resources: i32, as_ghola: bool, high_threshold_extra_suboids: i32) {
+        let initiator = by.faction;
+        let me = by.player();
+        let total_amount_of_forces = i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor) + i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor) + high_threshold_extra_suboids;
+
+        let v = game.revival.total_revivals_this_turn.get_opt(initiator).copied().unwrap_or(0) + total_amount_of_forces;
+        game.revival.total_revivals_this_turn.insert(initiator.expect("faction"), v);
+
+        // Each kind of force counted once; Ixian's free extra suboids have their own part.
+        let forces = i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor);
+        let special_forces = i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor);
+
+        let total_cost = cost.total_cost_for_player() + cost.cost_for_emperor;
+        let paid_by_emperor = i32::from(self.extra_forces_paid_by_emperor) > 0 || i32::from(self.extra_special_forces_paid_by_emperor) > 0;
+
+        let pl = game.player(me);
+        let message = express!(
+            initiator,
+            " revive ",
+            express_part_if!(self.hero.is_some(); self.hero),
+            express_part_if!(as_ghola; " as Ghola"),
+            express_part_if!(self.hero.is_some() && (forces + special_forces) > 0; " and "),
+            express_part_if!(forces > 0; forces, pl.force()),
+            express_part_if!(special_forces > 0; special_forces, pl.special_force()),
+            " for ",
+            Payment::of(total_cost),
+            express_part_if!(paid_by_emperor; " (", Payment::of_by(cost.cost_for_emperor, Some(Faction::Emperor)), ")"),
+            express_part_if!(tleilaxu_received_resources > 0; " → ", Faction::Tleilaxu, " get ", Payment::of(tleilaxu_received_resources)),
+            express_part_if!(high_threshold_extra_suboids > 0; " + ", high_threshold_extra_suboids, FactionForce::Ixian, " for free")
+        );
+        let mut row = RevivalRow::new(
+            initiator.expect("faction"),
+            forces + high_threshold_extra_suboids,
+            special_forces,
+            total_cost,
+        );
+        row.hero = self.hero;
+        row.as_ghola = as_ghola;
+        row.paid_by_other = if paid_by_emperor { cost.cost_for_emperor } else { 0 };
+        row.payer = if paid_by_emperor { Some(Faction::Emperor) } else { None };
+        row.tleilaxu_income = tleilaxu_received_resources;
+        game.log(vec![message.with_log(row).into()]);
+    }
+}
+
+impl EventRules for Revival {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        // `var p = Player;` does not throw; the first dereference (line 84) does.
+        let p_opt = by.player;
+        let initiator = by.faction;
+        let forces = i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor);
+        let special_forces = i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor);
+
+        if forces <= 0 && special_forces <= 0 && self.hero.is_none() {
+            return Err(Rejection(express!("Select forces or a leader to revive")));
+        }
+
+        let p = p_opt.expect("player");
+        if let Some(hero) = self.hero {
+            if Self::is_living_leader(game, hero) && !Self::is_ghola_returning_home(game, initiator.expect("faction"), hero) {
+                return Err(Rejection(express!("You can't revive a leader who isn't dead")));
+            }
+        }
+
+        let pl = game.player(p);
+        if forces > i32::from(pl.forces_killed) {
+            return Err(Rejection(express!("You can't revive that many ", pl.force())));
+        }
+        if special_forces > i32::from(pl.special_forces_killed) {
+            return Err(Rejection(express!("You can't revive that many ", pl.special_force())));
+        }
+
+        if initiator != Some(Faction::Ixian) && special_forces > 1 {
+            return Err(Rejection(express!("You can't revive more than one ", pl.special_force(), " per turn")));
+        }
+        if special_forces > 0
+            && initiator != Some(Faction::Ixian)
+            && game.revival.factions_that_revived_special_forces_this_turn.contains_opt(initiator)
+        {
+            return Err(Rejection(express!("You already revived a ", pl.special_force(), " this turn")));
+        }
+
+        let limit = game.get_max_revivals(game, p, self.uses_emperor_secret_ally);
+        if (i32::from(self.amount_of_forces) + i32::from(self.amount_of_special_forces)) > limit {
+            return Err(Rejection(express!("You can't revive more than ", limit)));
+        }
+
+        let ally_limit = Self::valid_max_revivals_by_emperor(game, p);
+        if (i32::from(self.extra_forces_paid_by_emperor) + i32::from(self.extra_special_forces_paid_by_emperor))
+            > Self::valid_max_revivals_by_emperor(game, p)
+        {
+            return Err(Rejection(express!("Your ally won't revive more than ", ally_limit)));
+        }
+
+        if initiator != Some(Faction::Tleilaxu)
+            && game.revival.leader_revivals_this_turn.get_opt(initiator).copied().unwrap_or(0) > 0
+        {
+            return Err(Rejection(express!("You cannot revive more leaders this turn")));
+        }
+
+        let cost_of_revival = Self::determine_cost(
+            game,
+            p,
+            self.hero,
+            i32::from(self.amount_of_forces),
+            i32::from(self.amount_of_special_forces),
+            i32::from(self.extra_forces_paid_by_emperor),
+            i32::from(self.extra_special_forces_paid_by_emperor),
+            self.uses_emperor_secret_ally,
+        );
+        if cost_of_revival.total_cost_for_player() > i32::from(game.player(p).resources) {
+            return Err(Rejection(express!("You can't pay that many")));
+        }
+
+        if self.assign_skill && self.hero.is_none() {
+            return Err(Rejection(express!("You must revive a leader to assign a skill to")));
+        }
+        if self.assign_skill && !Self::may_assign_skill(game, p, self.hero) {
+            return Err(Rejection(express!("You can't assign a skill to this leader")));
+        }
+
+        if self.uses_emperor_secret_ally && !Self::may_use_emperor_secret_ally(game, p) {
+            return Err(Rejection(express!("you can't use ", Faction::Emperor, " cunning")));
+        }
+
+        if self.location.is_some() {
+            let location = self.location;
+            // Contains on the lazy Where: stops at the first match (see valid_revived_force_locations).
+            if !Self::valid_revived_force_locations(game, p).any(|l| Some(l) == location) {
+                return Err(Rejection(express!("You can't place revived forces there")));
+            }
+
+            if i32::from(self.number_of_forces_in_location)
+                > Self::number_of_forces_that_may_be_placed_on_planet(
+                    game,
+                    p,
+                    self.uses_emperor_secret_ally,
+                    i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor),
+                )
+                || i32::from(self.number_of_special_forces_in_location)
+                    > Self::number_of_special_forces_that_may_be_placed_on_planet(
+                        game,
+                        p,
+                        i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor),
+                    )
+            {
+                return Err(Rejection(express!("You can't place that many forces directly on the planet")));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let initiator = by.faction;
+        let me = by.player();
 
         if self.uses_emperor_secret_ally {
             game.play_nexus_card(
@@ -697,7 +734,7 @@ impl Revival {
 
         //Logging
         game.stone(Milestone::Revival);
-        self.register_and_log_revival(game, &cost, total_profits_for_tleilaxu, as_ghola, high_threshold_extra_suboids);
+        self.register_and_log_revival(game, by, &cost, total_profits_for_tleilaxu, as_ghola, high_threshold_extra_suboids);
 
         if let Some(location) = self.location {
             if i32::from(self.number_of_special_forces_in_location) > 0 || i32::from(self.number_of_forces_in_location) > 0 {
@@ -726,7 +763,7 @@ impl Revival {
                 game.ship_move.last_shipment_or_movement = Some(ShipmentOrMovement { to: self.location });
             }
 
-            if game.check_intrusion(&self.clone().into_event(), self.initiator().expect("faction"))? {
+            if game.check_intrusion(&Event::from(self.clone()), by.faction.expect("faction"))? {
                 game.ship_move.phase_before_revival_caused_intrusion = Some(game.turn.current_phase);
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
@@ -736,82 +773,11 @@ impl Revival {
         Ok(())
     }
 
-    pub fn register_and_log_revival(&self, game: &mut Game, cost: &RevivalCost, tleilaxu_received_resources: i32, as_ghola: bool, high_threshold_extra_suboids: i32) {
-        let initiator = self.initiator();
-        let me = self.player();
-        let total_amount_of_forces = i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor) + i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor) + high_threshold_extra_suboids;
-
-        let v = game.revival.total_revivals_this_turn.get_opt(initiator).copied().unwrap_or(0) + total_amount_of_forces;
-        game.revival.total_revivals_this_turn.insert(initiator.expect("faction"), v);
-
-        // Each kind of force counted once; Ixian's free extra suboids have their own part.
-        let forces = i32::from(self.amount_of_forces) + i32::from(self.extra_forces_paid_by_emperor);
-        let special_forces = i32::from(self.amount_of_special_forces) + i32::from(self.extra_special_forces_paid_by_emperor);
-
-        let total_cost = cost.total_cost_for_player() + cost.cost_for_emperor;
-        let paid_by_emperor = i32::from(self.extra_forces_paid_by_emperor) > 0 || i32::from(self.extra_special_forces_paid_by_emperor) > 0;
-
-        let pl = game.player(me);
-        let message = express!(
-            initiator,
-            " revive ",
-            express_part_if!(self.hero.is_some(); self.hero),
-            express_part_if!(as_ghola; " as Ghola"),
-            express_part_if!(self.hero.is_some() && (forces + special_forces) > 0; " and "),
-            express_part_if!(forces > 0; forces, pl.force()),
-            express_part_if!(special_forces > 0; special_forces, pl.special_force()),
-            " for ",
-            Payment::of(total_cost),
-            express_part_if!(paid_by_emperor; " (", Payment::of_by(cost.cost_for_emperor, Some(Faction::Emperor)), ")"),
-            express_part_if!(tleilaxu_received_resources > 0; " → ", Faction::Tleilaxu, " get ", Payment::of(tleilaxu_received_resources)),
-            express_part_if!(high_threshold_extra_suboids > 0; " + ", high_threshold_extra_suboids, FactionForce::Ixian, " for free")
-        );
-        let mut row = RevivalRow::new(
-            initiator.expect("faction"),
-            forces + high_threshold_extra_suboids,
-            special_forces,
-            total_cost,
-        );
-        row.hero = self.hero;
-        row.as_ghola = as_ghola;
-        row.paid_by_other = if paid_by_emperor { cost.cost_for_emperor } else { 0 };
-        row.payer = if paid_by_emperor { Some(Faction::Emperor) } else { None };
-        row.tleilaxu_income = tleilaxu_received_resources;
-        game.log(vec![message.with_log(row).into()]);
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " perform revival")
     }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " perform revival")
-    }
-
 }
 
-impl GameEventMethods for Revival {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Revival
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Revival(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Revival::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Revival::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Revival::get_message(self, game)
-    }
-
-}
 
 impl crate::events::location_event::LocationEvent for Revival {
     fn to(&self, game: &Game) -> Option<Location> {
@@ -829,5 +795,4 @@ impl crate::events::location_event::LocationEvent for Revival {
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
         Revival::special_forces_added_to_location(self, game)
     }
-
 }

@@ -1,18 +1,9 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
-/// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DiscoveryRevealed {
     pub location: Option<Location>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for DiscoveryRevealed {
@@ -20,27 +11,11 @@ impl Default for DiscoveryRevealed {
         DiscoveryRevealed {
             location: Location::from_id(0),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl DiscoveryRevealed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let location = self.location;
-        if !Self::get_locations(game, self.player()).any(|l| Some(l) == location) {
-            return Some(express!("Invalid location"));
-        }
-
-        None
-    }
-
     pub fn applicable(g: &Game, p: PlayerId) -> bool {
         g.turn.current_main_phase == MainPhase::Collection && !Self::get_locations(g, p).next().is_none()
     }
@@ -52,8 +27,19 @@ impl DiscoveryRevealed {
             .filter(move |(k, v)| g.collection.pending_discoveries.contains(&v.token) && g.player(p).occupies_territory(g, Some(k.territory())))
             .map(move |(k, _)| *k)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+impl EventRules for DiscoveryRevealed {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        let location = self.location;
+        if !Self::get_locations(game, by.player()).any(|l| Some(l) == location) {
+            return Err(Rejection(express!("Invalid location")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         // Location!: a null key would be ArgumentNullException; Validate guarantees a valid location.
         let Some(location) = self.location else {
             game_error!("Value cannot be null. (Parameter 'key')")
@@ -67,7 +53,7 @@ impl DiscoveryRevealed {
             game.stone(Milestone::DiscoveryRevealed);
             game.board.discoveries_on_planet.remove(&discovery.location);
 
-            self.log_objects(game, elems![self.initiator(), " reveal ", discovery.token, " in ", discovery.location.territory()]);
+            game.log(parts![by.faction, " reveal ", discovery.token, " in ", discovery.location.territory()]);
 
             match discovery.token {
                 DiscoveryToken::Jacurutu
@@ -82,78 +68,39 @@ impl DiscoveryRevealed {
 
                 DiscoveryToken::CardStash => {
                     let card = game.draw_treachery_card();
-                    let me = self.player();
+                    let me = by.player();
                     game.player_mut(me).treachery_cards.push(card.required("card")?);
-                    self.log_objects(game, elems![self.initiator(), " draw a treachery card"]);
+                    game.log(parts![by.faction, " draw a treachery card"]);
                     if game.player(me).hand_size_exceeded(game) {
                         game.let_factions_discard_surplus_cards();
                     }
                 }
 
                 DiscoveryToken::ResourceStash => {
-                    let me = self.player();
+                    let me = by.player();
                     let r = &mut game.player_mut(me).resources;
                     *r += 7;
-                    self.log_objects(game, elems![self.initiator(), " get ", Payment::of(7)]);
+                    game.log(parts![by.faction, " get ", Payment::of(7)]);
                 }
 
                 DiscoveryToken::Flight => {
-                    game.collection.owner_of_flight_discovery = Some(self.initiator());
-                    self.log_objects(game, elems![self.initiator(), " gain the ", discovery.token, " discovery token"]);
+                    game.collection.owner_of_flight_discovery = Some(by.faction);
+                    game.log(parts![by.faction, " gain the ", discovery.token, " discovery token"]);
                 }
             }
         }
         Ok(())
     }
 
-    pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
+    fn describe(&self, game: &Game, by: By) -> Message {
+        self.try_describe(game, by).expect("the message of an applicable DiscoveryRevealed event")
+    }
+
+    fn try_describe(&self, _game: &Game, by: By) -> GameResult<Message> {
         Ok(if self.passed {
-            express!(self.initiator(), " don't reveal a discovery")
+            express!(by.faction, " don't reveal a discovery")
         } else {
-            express!(self.initiator(), " reveal a discovery in ", self.location.required("location")?.territory())
+            express!(by.faction, " reveal a discovery in ", self.location.required("location")?.territory())
         })
     }
-
-    pub fn get_message(&self, game: &Game) -> Message {
-        self.try_get_message(game).expect("the message of an applicable DiscoveryRevealed event")
-    }
-
-}
-
-impl GameEventMethods for DiscoveryRevealed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DiscoveryRevealed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DiscoveryRevealed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DiscoveryRevealed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DiscoveryRevealed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DiscoveryRevealed::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        DiscoveryRevealed::try_get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for DiscoveryRevealed {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

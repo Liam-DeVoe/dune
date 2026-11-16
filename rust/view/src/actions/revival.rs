@@ -43,7 +43,7 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
     let p = game.get_player(faction)?;
     let draft = match t {
         EventType::Revival => {
-            let mut e = Revival::new(game, faction);
+            let mut e = Revival::default();
             e.hero = None;
             event(e)
         }
@@ -53,26 +53,26 @@ pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Opt
             event(e)
         }
         EventType::KarmaFreeRevival => {
-            let mut e = KarmaFreeRevival::new(game, faction);
+            let mut e = KarmaFreeRevival::default();
             e.hero = None;
             event(e)
         }
-        EventType::KarmaRevivalPrevention => event(KarmaRevivalPrevention::new(game, faction)),
+        EventType::KarmaRevivalPrevention => event(KarmaRevivalPrevention::default()),
         EventType::ChoamFreeRevivalPrevention => event(ChoamFreeRevivalPrevention::new(game, faction)),
         EventType::RequestTleilaxuRevival => {
-            let mut e = RequestTleilaxuRevival::new(game, faction);
+            let mut e = RequestTleilaxuRevival::default();
             e.hero = None;
             event(e)
         }
         EventType::AcceptOrCancelTleilaxuRevival => {
-            let mut e = AcceptOrCancelTleilaxuRevival::new(game, faction);
+            let mut e = AcceptOrCancelTleilaxuRevival::default();
             e.cancel = false;
             e.hero = None;
             event(e)
         }
         // OnInitialized: the factions that already have the increased limit.
         EventType::SetIncreasedRevivalLimits => {
-            let mut e = SetIncreasedRevivalLimits::new(game, faction);
+            let mut e = SetIncreasedRevivalLimits::default();
             e.factions = Some(game.revival.factions_with_increased_revival_limits.clone().unwrap_or_default());
             event(e)
         }
@@ -99,7 +99,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
     let pl = game.player(p);
     match draft {
         Event::Revival(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             if !(pl.nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, p)) {
                 e.uses_emperor_secret_ally = false;
             }
@@ -147,7 +147,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::KarmaFreeRevival(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_forces), KarmaFreeRevival::valid_max_amount(game, p, false)));
             e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(forces(i32::from(e.amount_of_special_forces), KarmaFreeRevival::valid_max_amount(game, p, true)));
             if !e.hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))) {
@@ -156,7 +156,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::KarmaRevivalPrevention(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let targets: Vec<Faction> = KarmaRevivalPrevention::get_valid_targets(game, p).collect();
             e.target = required_opt(e.target, &targets);
             event(e)
@@ -168,7 +168,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
             event(e)
         }
         Event::RequestTleilaxuRevival(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             let heroes: Vec<Hero> = RequestTleilaxuRevival::valid_targets(game, p).collect();
             let hero = e.hero;
             if !hero.is_some_and(|h| heroes.contains(&h)) {
@@ -178,7 +178,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         }
         // The hero picker and the price are drawn only while there are requests.
         Event::AcceptOrCancelTleilaxuRevival(e) => {
-            let mut e = (**e).clone();
+            let mut e = e.clone();
             e.cancel = false;
             if !game.revival.current_revival_requests.is_empty() {
                 let heroes = request_heroes(game);
@@ -293,7 +293,7 @@ fn options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Action
         }),
         Event::AcceptOrCancelTleilaxuRevival(e) => ActionOptions::AcceptOrCancelTleilaxuRevival(AcceptOrCancelTleilaxuRevivalOptions {
             requests: hero_options(request_heroes(game)),
-            bot_awaits: game.revival.current_revival_requests.iter().any(|r| game.player(r.player()).is_bot(game)),
+            bot_awaits: game.revival.current_revival_requests.iter().any(|r| game.player(r.player.expect("the request has a player")).is_bot(game)),
             offers: game
                 .revival.early_revivals_offers
                 .iter()

@@ -4,7 +4,6 @@ use treachery_engine::messages::part::Part;
 use treachery_engine::random::IndexedRandom;
 use crate::support::{cast_hero, unbox_enum, unbox_int, unbox_strength};
 use std::cmp::Reverse;
-use treachery_engine::events::PlacementEventMethods;
 
 /// Total forces in `locations` that belong to a faction `counted` accepts.
 fn forces_in(game: &Game, locations: &[Location], counted: impl Fn(Faction) -> bool) -> i32 {
@@ -32,18 +31,18 @@ struct StormKills {
 }
 
 impl ClassicBot {
-    pub fn determine_resources_transferred(&self, game: &Game) -> Option<Rc<ResourcesTransferred>> {
+    pub fn determine_resources_transferred(&self, game: &Game) -> Option<ResourcesTransferred> {
         let amount = ResourcesTransferred::max_amount(game, self.player);
         if self.resources(game) - amount > 15 && game.player(self.player).allied_resources(game) < self.resources(game) {
-            let mut e = ResourcesTransferred::new(game, self.faction(game));
+            let mut e = ResourcesTransferred::default();
             e.resources = treachery_engine::game::amounts::clamp_u16(amount);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
     }
 
-    pub fn determine_discovery_entered(&self, game: &Game) -> Rc<DiscoveryEntered> {
+    pub fn determine_discovery_entered(&self, game: &Game) -> DiscoveryEntered {
         let to = DiscoveryEntered::valid_targets(game, self.player).next();
         // Fails right away when there is no target.
         let me = game.player(self.player);
@@ -51,20 +50,20 @@ impl ClassicBot {
         for l in DiscoveryEntered::valid_sources(game, self.player, to.expect("destination")) {
             battalions_to_move.insert_new(l, me.battalion_in_location(l).expect("battalion in location"));
         }
-        let mut e = DiscoveryEntered::new(game, self.faction(game));
+        let mut e = DiscoveryEntered::default();
         e.set_force_locations(game, &battalions_to_move);
         e.to = to.map(|d| d.location());
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_discovery_revealed(&self, game: &Game) -> Rc<DiscoveryRevealed> {
-        let mut e = DiscoveryRevealed::new(game, self.faction(game));
+    pub fn determine_discovery_revealed(&self, game: &Game) -> DiscoveryRevealed {
+        let mut e = DiscoveryRevealed::default();
         let location = DiscoveryRevealed::get_locations(game, self.player).next().expect("an element");
         e.location = Some(location);
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_testing_station_used(&self, game: &Game) -> Option<Rc<TestingStationUsed>> {
+    pub fn determine_testing_station_used(&self, game: &Game) -> Option<TestingStationUsed> {
         let faction = self.faction(game);
         let ally = self.ally(game);
         let me = game.player(self.player);
@@ -102,9 +101,9 @@ impl ClassicBot {
         } else {
             return None;
         };
-        let mut e = TestingStationUsed::new(game, faction);
+        let mut e = TestingStationUsed::default();
         e.value_added = value_added;
-        Some(Rc::new(e))
+        Some(e)
     }
 
     pub fn determine_divide_resources(&self, game: &Game) -> DivideResources {
@@ -489,17 +488,17 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_karma_free_revival(&self, game: &Game) -> Option<Rc<KarmaFreeRevival>> {
+    pub fn determine_karma_free_revival(&self, game: &Game) -> Option<KarmaFreeRevival> {
         let special_forces_that_can_be_revived = std::cmp::min(3, Revival::valid_max_revivals(game, self.player, true, false));
         let forces_killed = i32::from(game.player(self.player).forces_killed);
 
         if self.last_turn(game) || forces_killed + special_forces_that_can_be_revived >= 6 {
             let forces = std::cmp::max(0, std::cmp::min(3, forces_killed) - special_forces_that_can_be_revived);
-            let mut e = KarmaFreeRevival::new(game, self.faction(game));
+            let mut e = KarmaFreeRevival::default();
             e.hero = None;
             e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(forces);
             e.amount_of_special_forces = treachery_engine::game::amounts::clamp_u16(special_forces_that_can_be_revived);
-            return Some(Rc::new(e));
+            return Some(e);
         }
 
         None
@@ -582,21 +581,21 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_harvester_played(&self, game: &Game) -> Option<Rc<HarvesterPlayed>> {
+    pub fn determine_harvester_played(&self, game: &Game) -> Option<HarvesterPlayed> {
         if game.turn.current_turn > Turn::FIRST
             && ((game.turn.current_phase == Phase::HarvesterA && self.resources_in(game, game.blow.latest_spice_card_a.expect("latest spice card a").location().expect("location")) > 6)
                 || (game.turn.current_phase == Phase::HarvesterB && self.resources_in(game, game.blow.latest_spice_card_b.expect("latest spice card b").location().expect("location")) > 6))
         {
-            return Some(Rc::new(HarvesterPlayed::new(game, self.faction(game))));
+            return Some(HarvesterPlayed::default());
         }
 
         None
     }
 
-    pub fn determine_mulligan_performed(&self, game: &Game) -> Rc<MulliganPerformed> {
-        let mut e = MulliganPerformed::new(game, self.faction(game));
+    pub fn determine_mulligan_performed(&self, game: &Game) -> MulliganPerformed {
+        let mut e = MulliganPerformed::default();
         e.passed = !MulliganPerformed::may_mulligan(game, self.player);
-        Rc::new(e)
+        e
     }
 
     pub fn determine_delay(&self, game: &Game) -> Option<GuildDelay> {
@@ -867,25 +866,25 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_metheor_played(&self, game: &Game) -> Option<Rc<MetheorPlayed>> {
+    pub fn determine_metheor_played(&self, game: &Game) -> Option<MetheorPlayed> {
         let faction = self.faction(game);
         let ally = self.ally(game);
         let targets = [game.board.map.arrakeen(), game.board.map.carthag()];
         let others = forces_in(game, &targets, |f| f != faction && Some(f) != ally);
         let ours = forces_in(game, &targets, |f| f == faction || Some(f) == ally);
 
-        (others > 2 * ours).then(|| Rc::new(MetheorPlayed::new(game, faction)))
+        (others > 2 * ours).then(|| MetheorPlayed::default())
     }
 
-    pub fn determine_storm_dialled(&self, game: &Game) -> Rc<StormDialled> {
+    pub fn determine_storm_dialled(&self, game: &Game) -> StormDialled {
         let min = StormDialled::valid_min_amount(game);
         let max = StormDialled::valid_max_amount(game);
-        let mut e = StormDialled::new(game, self.faction(game));
+        let mut e = StormDialled::default();
         e.amount = treachery_engine::game::amounts::clamp_u16(min + self.d(1, 1 + max - min) - 1);
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_traitors_selected(&self, game: &Game) -> Rc<TraitorsSelected> {
+    pub fn determine_traitors_selected(&self, game: &Game) -> TraitorsSelected {
         let me = game.player(self.player);
         let faction = self.faction(game);
         let traitor = me.traitors.iter().copied().filter(|l| l.faction() != Some(faction)).random_highest(&self.random, |l| l.value()).or_else(|| {
@@ -893,27 +892,27 @@ impl ClassicBot {
                 l.value() - if l.faction() == Some(Faction::Atreides) && game.applicable(Rule::AtreidesMessiah) { 2 } else { 0 }
             })
         });
-        let mut e = TraitorsSelected::new(game, faction);
+        let mut e = TraitorsSelected::default();
         e.selected_traitor = traitor;
-        Rc::new(e)
+        e
     }
 
-    pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<Rc<FactionTradeOffered>> {
+    pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<FactionTradeOffered> {
         let faction = self.faction(game);
         let mut matching = game.setup.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
         let m = matching.next()?;
         // C# parity: SingleOrDefault throws when two factions offer me a trade.
         assert!(matching.next().is_none(), "more than one trade offer to {faction}");
-        let mut e = FactionTradeOffered::new(game, faction);
-        e.target = m.initiator();
-        Some(Rc::new(e))
+        let mut e = FactionTradeOffered::default();
+        e.target = m.initiator;
+        Some(e)
     }
 
-    pub fn determine_thumper_played(&self, game: &Game) -> Rc<ThumperPlayed> {
-        Rc::new(ThumperPlayed::new(game, self.faction(game)))
+    pub fn determine_thumper_played(&self, _game: &Game) -> ThumperPlayed {
+        ThumperPlayed::default()
     }
 
-    pub fn determine_storm_spell_played(&self, game: &Game) -> Option<Rc<StormSpellPlayed>> {
+    pub fn determine_storm_spell_played(&self, game: &Game) -> Option<StormSpellPlayed> {
         let faction = self.faction(game);
         let ally = self.ally(game);
 
@@ -931,9 +930,9 @@ impl ClassicBot {
         let best = options.into_iter().random_highest(&self.random, |k| k.enemy - k.mine).expect("there are always 11 options");
 
         if best.enemy - best.mine >= 10 - (i32::from(game.turn.current_turn) + if game.player(self.player).has_room_for_cards(game) { 0 } else { 4 }) {
-            let mut storm_spell = StormSpellPlayed::new(game, faction);
+            let mut storm_spell = StormSpellPlayed::default();
             storm_spell.move_amount = treachery_engine::game::amounts::clamp_u16(best.moves);
-            return Some(Rc::new(storm_spell));
+            return Some(storm_spell);
         }
 
         None
@@ -972,9 +971,9 @@ impl ClassicBot {
         0
     }
 
-    pub fn determine_revival(&self, game: &Game) -> Option<Rc<Revival>> {
+    pub fn determine_revival(&self, game: &Game) -> Option<Revival> {
         let faction = self.faction(game);
-        if game.revival.current_revival_requests.iter().any(|r| r.by(faction)) {
+        if game.revival.current_revival_requests.iter().any(|r| r.initiator == Some(faction)) {
             return None;
         }
 
@@ -1051,7 +1050,7 @@ impl ClassicBot {
             return None;
         }
 
-        let mut e = Revival::new(game, faction);
+        let mut e = Revival::default();
         e.hero = leader_to_revive;
         e.amount_of_forces = treachery_engine::game::amounts::clamp_u16(normal_forces_to_revive);
         e.extra_forces_paid_by_emperor = treachery_engine::game::amounts::clamp_u16(forces_revived_by_emperor);
@@ -1062,7 +1061,7 @@ impl ClassicBot {
         e.location = target_of_forces;
         e.number_of_forces_in_location = treachery_engine::game::amounts::clamp_u16(forces_to_planet);
         e.number_of_special_forces_in_location = treachery_engine::game::amounts::clamp_u16(special_forces_to_planet);
-        Some(Rc::new(e))
+        Some(e)
     }
 
     /// Where `count` revived forces go on the planet, and how many of them do: all of them, or none
@@ -1204,7 +1203,7 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_skill_assigned(&self, game: &Game) -> Rc<SkillAssigned> {
+    pub fn determine_skill_assigned(&self, game: &Game) -> SkillAssigned {
         let me = game.player(self.player);
         let skills: Vec<LeaderSkill> = SkillAssigned::valid_skills(game, self.player);
         let holds = |is: fn(&TreacheryCard) -> bool| me.treachery_cards.iter().any(is);
@@ -1239,11 +1238,11 @@ impl ClassicBot {
             .unwrap_or_else(|| skills.iter().copied().next().expect("an element"));
 
         let leader = self.random_item_from(&SkillAssigned::valid_leaders(game, self.player));
-        let mut e = SkillAssigned::new(game, self.faction(game));
+        let mut e = SkillAssigned::default();
         e.passed = false;
         e.leader = leader;
         e.skill = Some(skill);
-        Rc::new(e)
+        e
     }
 
     pub fn random_item_from<T: Clone>(&self, items: &[T]) -> T {

@@ -75,16 +75,16 @@ impl SharedAdvantage {
 }
 
 impl ClassicBot {
-    pub fn determine_alliance_by_terror(&self, game: &Game) -> Rc<AllianceByTerror> {
-        let mut result = AllianceByTerror::new(game, self.faction(game));
+    pub fn determine_alliance_by_terror(&self, game: &Game) -> AllianceByTerror {
+        let mut result = AllianceByTerror::default();
         result.passed = !self.accepts_forced_alliance_with(game, Faction::Moritani);
-        Rc::new(result)
+        result
     }
 
-    pub fn determine_alliance_by_ambassador(&self, game: &Game) -> Rc<AllianceByAmbassador> {
-        let mut result = AllianceByAmbassador::new(game, self.faction(game));
+    pub fn determine_alliance_by_ambassador(&self, game: &Game) -> AllianceByAmbassador {
+        let mut result = AllianceByAmbassador::default();
         result.passed = !self.accepts_forced_alliance_with(game, Faction::Ecaz);
-        Rc::new(result)
+        result
     }
 
     /// Whether to ally with `faction` when it offers through terror or an ambassador: when I have
@@ -95,10 +95,10 @@ impl ClassicBot {
             || self.player_standing(game, offering.expect("offering")) as f32 > 0.75 * self.player_standing(game, self.allied_player(game).expect("allied player")) as f32
     }
 
-    pub fn determine_nexus_voted(&self, game: &Game) -> Rc<NexusVoted> {
-        let mut result = NexusVoted::new(game, self.faction(game));
+    pub fn determine_nexus_voted(&self, _game: &Game) -> NexusVoted {
+        let mut result = NexusVoted::default();
         result.passed = false;
-        Rc::new(result)
+        result
     }
 
     pub fn determine_alliance_offered(&self, game: &Game) -> Option<Rc<AllianceOffered>> {
@@ -148,7 +148,7 @@ impl ClassicBot {
         Some(Rc::new(result))
     }
 
-    pub fn determine_alliance_passed(&self, game: &Game) -> Option<Rc<AlliancePassed>> {
+    pub fn determine_alliance_passed(&self, game: &Game) -> Option<AlliancePassed> {
         let faction = self.faction(game);
 
         // Keep waiting while one of our offers is still open; it is withdrawn when the other faction passes
@@ -161,7 +161,7 @@ impl ClassicBot {
             return None;
         }
 
-        Some(Rc::new(AlliancePassed::new(game, faction)))
+        Some(AlliancePassed::default())
     }
 
     /// How strong `p` is: cards, spice, strongholds, forces and living leaders.
@@ -177,7 +177,7 @@ impl ClassicBot {
     }
 
     /// Break my alliance for a human whose offer stands better than my ally.
-    pub fn determine_alliance_broken(&self, game: &Game) -> Option<Rc<AllianceBroken>> {
+    pub fn determine_alliance_broken(&self, game: &Game) -> Option<AllianceBroken> {
         let faction = self.faction(game);
         let offer = game
             .alliances.current_alliance_offers
@@ -188,10 +188,10 @@ impl ClassicBot {
 
         let better_than_my_ally = game.player(self.player).has_ally()
             && self.player_standing(game, offer.player()) > self.player_standing(game, self.allied_player(game).expect("allied player"));
-        better_than_my_ally.then(|| Rc::new(AllianceBroken::new(game, faction)))
+        better_than_my_ally.then(|| AllianceBroken::default())
     }
 
-    pub fn determine_nexus_card_drawn(&self, game: &Game) -> Rc<NexusCardDrawn> {
+    pub fn determine_nexus_card_drawn(&self, game: &Game) -> NexusCardDrawn {
         let faction = self.faction(game);
         let nexus = game.player(self.player).nexus;
         let draw = NexusCardDrawn::may_draw(game, self.player)
@@ -199,13 +199,13 @@ impl ClassicBot {
                 || (faction == Faction::Emperor && nexus == Some(Faction::Emperor) && !game.applicable(Rule::EmperorSpecialForces))
                 || (faction == Faction::BeneGesserit && nexus == Some(Faction::BeneGesserit) && !game.applicable(Rule::BeneGesseritAdvisors))
                 || (faction == Faction::Ixian && nexus == Some(Faction::Ixian) && !game.applicable(Rule::AdvancedCombat)));
-        let mut result = NexusCardDrawn::new(game, faction);
+        let mut result = NexusCardDrawn::default();
         result.passed = !draw;
-        Rc::new(result)
+        result
     }
 
     /// Share spice, a Karama card and my faction's advantages with my ally, when they changed.
-    pub fn determine_alliance_permissions(&self, game: &Game) -> Option<Rc<AllyPermission>> {
+    pub fn determine_alliance_permissions(&self, game: &Game) -> Option<AllyPermission> {
         let ally = self.ally(game);
         if ally == None
             || !matches!(game.turn.current_main_phase, MainPhase::Blow | MainPhase::Bidding | MainPhase::ShipmentAndMove | MainPhase::Battle)
@@ -215,7 +215,7 @@ impl ClassicBot {
 
         let allowed_resources = self.determine_allowed_resources(game);
         let allowed_karma_card = game.player(self.player).treachery_cards.iter().copied().find(|c| c.type_() == TreacheryCardType::Karma);
-        let mut permission = AllyPermission::new(game, self.faction(game));
+        let mut permission = AllyPermission::default();
         permission.permitted_resources = treachery_engine::game::amounts::clamp_u16(allowed_resources);
         permission.permitted_karma_card = allowed_karma_card;
 
@@ -235,7 +235,7 @@ impl ClassicBot {
             || extra_revivals_changed
             || game.get_permitted_use_of_ally_resources(ally.expect("faction")) != allowed_resources
             || game.get_permitted_use_of_ally_karma(ally.expect("faction")) != allowed_karma_card;
-        changed.then(|| Rc::new(permission))
+        changed.then(|| permission)
     }
 
     /// The spice my ally may use: all of it in the phases my faction doesn't need it, otherwise

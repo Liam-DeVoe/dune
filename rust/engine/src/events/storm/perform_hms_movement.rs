@@ -1,12 +1,9 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PerformHmsMovement {
     pub target: Option<Location>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for PerformHmsMovement {
@@ -14,28 +11,11 @@ impl Default for PerformHmsMovement {
         PerformHmsMovement {
             target: Location::from_id(0),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl PerformHmsMovement {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !self.passed {
-            if !PerformHmsMovement::valid_locations(game).any(|v| Some(v) == self.target) {
-                return Some(express!("Invalid location"));
-            }
-        }
-
-        None
-    }
-
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_locations(g: &Game) -> impl Iterator<Item = Location> {
         // AttachedToLocation is null only when the HMS was never placed; FindNeighboursForHmsMovement then throws.
@@ -45,20 +25,33 @@ impl PerformHmsMovement {
             .into_iter()
             .filter(move |l| !l.is_stronghold())
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+impl EventRules for PerformHmsMovement {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        if !self.passed {
+            if !PerformHmsMovement::valid_locations(game).any(|v| Some(v) == self.target) {
+                return Err(Rejection(express!("Invalid location")));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         let hms = game.board.map.hidden_mobile_stronghold();
         let collection_rate = game.player(me).any_forces_in(Some(hms.location())) * 2;
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         let current_location = hms.attached_to_location(&game.board.map).required("the location of the HMS")?;
-        game.collect_spice_from(self.initiator().required("faction")?, current_location, collection_rate)?;
+        game.collect_spice_from(by.faction.required("faction")?, current_location, collection_rate)?;
 
         if !self.passed {
             let target = self.target.required("target")?;
             hms.point_at(&mut game.board.map, target);
-            game.collect_spice_from(self.initiator().required("faction")?, target, collection_rate)?;
+            game.collect_spice_from(by.faction.required("faction")?, target, collection_rate)?;
             game.storm.hms_moves_left -= 1;
             game.stone(Milestone::HmsMovement);
         }
@@ -69,46 +62,11 @@ impl PerformHmsMovement {
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
+    fn describe(&self, game: &Game, by: By) -> Message {
         let hms = game.board.map.hidden_mobile_stronghold();
         if !self.passed {
-            return express!(self.initiator(), " move the ", hms, " to ", self.target);
+            return express!(by.faction, " move the ", hms, " to ", self.target);
         }
-        express!(self.initiator(), " pass (further) movement of the ", hms)
+        express!(by.faction, " pass (further) movement of the ", hms)
     }
-
-}
-
-impl GameEventMethods for PerformHmsMovement {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::PerformHmsMovement
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::PerformHmsMovement(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        PerformHmsMovement::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        PerformHmsMovement::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        PerformHmsMovement::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for PerformHmsMovement {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
 }

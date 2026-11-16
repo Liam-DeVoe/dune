@@ -8,7 +8,6 @@
 
 #![allow(dead_code)]
 
-use std::rc::Rc;
 
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::json;
@@ -89,10 +88,10 @@ pub fn seated_with(factions: &[Faction], change_rules: impl FnOnce(&mut Vec<Rule
     rules.extend([Rule::Homeworlds, Rule::BeneGesseritAccompaniesToShipmentLocation]);
     change_rules(&mut rules);
     s.initial_rules = Some(rules);
-    let mut establish = EstablishPlayers::new(&g, None);
+    let mut establish = EstablishPlayers::default();
     establish.seed = 7;
     establish.settings = Some(s);
-    assert!(g.play_for_message(HistoryEntry::new(None, Rc::new(establish)), false, true).is_none());
+    assert!(g.play_for_message(HistoryEntry::new(None, establish), false, true).is_none());
     // Out of faction trading into setup: leaders and Ecaz's ambassadors are assigned.
     host_ends_phase(&mut g);
     assert_eq!(g.turn.current_main_phase, MainPhase::Setup);
@@ -129,7 +128,7 @@ pub fn pass_until_shipment_of(g: &mut Game, f: Faction) {
 }
 
 pub fn host_ends_phase(g: &mut Game) {
-    let e = HistoryEntry::new(None, Rc::new(EndPhase::new(g, None)));
+    let e = HistoryEntry::new(None, EndPhase::default());
     assert_eq!(g.play_for_message(e, true, true).map(|m| m.plain_text()), None, "EndPhase in {:?}", g.turn.current_phase);
 }
 

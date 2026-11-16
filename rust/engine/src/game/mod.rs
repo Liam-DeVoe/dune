@@ -57,7 +57,7 @@ pub use seats::{seat_or_minus_one, Seat};
 mod settings;
 pub use settings::*;
 mod setup;
-pub use setup::SetupState;
+pub use setup::{SetupState, TradeOffer};
 mod state;
 pub use state::*;
 mod statistics;

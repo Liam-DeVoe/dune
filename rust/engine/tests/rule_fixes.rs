@@ -3,7 +3,6 @@
 //! situation, and submits events with validation, as the server does.
 
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use treachery_engine::game::{GameState, Intrusion};
 use treachery_engine::prelude::*;
@@ -27,7 +26,7 @@ fn submit(g: &mut Game, make: impl FnOnce(&Game) -> Event) -> Option<String> {
 }
 
 /// Submits `e` by `faction` with validation; the refusal, if any.
-fn submit_by(g: &mut Game, faction: Faction, make: impl FnOnce(&Game) -> Event) -> Option<String> {
+fn submit_by(g: &mut Game, faction: impl Into<Option<Faction>>, make: impl FnOnce(&Game) -> Event) -> Option<String> {
     let e = make(g);
     g.play_for_message(HistoryEntry::new(faction, e), true, false).map(|m| m.plain_text())
 }
@@ -142,20 +141,20 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
     ally(&mut g, Faction::Fremen, Faction::Emperor);
     g.player_mut(fremen).special_forces_killed = 2;
 
-    let mut permission = AllyPermission::new(&g, Faction::Emperor);
+    let mut permission = AllyPermission::default();
     permission.emperor_will_pay_for_extra_revival = 3;
-    assert_eq!(submit(&mut g, |_| Event::AllyPermission(Rc::new(permission))), None);
+    assert_eq!(submit_by(&mut g, Faction::Emperor, |_| Event::AllyPermission(permission)), None);
 
-    let revival = |own: u16, by_emperor: u16, g: &Game| {
-        let mut r = Revival::new(g, Faction::Fremen);
+    let revival = |own: u16, by_emperor: u16, _g: &Game| {
+        let mut r = Revival::default();
         r.hero = None;
         r.amount_of_special_forces = own;
         r.extra_special_forces_paid_by_emperor = by_emperor;
-        Event::Revival(Rc::new(r))
+        Event::Revival(r)
     };
-    assert_eq!(submit(&mut g, |g| revival(0, 1, g)), None);
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| revival(0, 1, g)), None);
     assert_eq!(g.player(fremen).special_forces_killed, 1);
-    assert_eq!(submit(&mut g, |g| revival(1, 0, g)).as_deref(), Some("You already revived a Fremen this turn"));
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| revival(1, 0, g)).as_deref(), Some("You already revived a Fremen this turn"));
     assert_eq!(g.player(fremen).special_forces_killed, 1);
 }
 
@@ -165,10 +164,10 @@ fn special_force_paid_by_emperor_counts_toward_the_limit() {
 fn karama_worm_needs_a_territory() {
     let mut g = fixture("karma-monster");
     let fremen = idx(&g, Faction::Fremen);
-    let monster = |t: Option<Territory>, g: &Game| {
-        let mut m = KarmaMonster::new(g, Faction::Fremen);
+    let monster = |t: Option<Territory>, _g: &Game| {
+        let mut m = KarmaMonster::default();
         m.territory = t;
-        Event::KarmaMonster(Rc::new(m))
+        Event::KarmaMonster(m)
     };
     let karama_cards = |g: &Game| g.player(fremen).treachery_cards.iter().filter(|c| c.type_() == TreacheryCardType::Karma).count();
     if karama_cards(&g) == 0 {
@@ -178,15 +177,15 @@ fn karama_worm_needs_a_territory() {
     }
     assert_eq!(karama_cards(&g), 1);
 
-    assert_eq!(submit(&mut g, |g| monster(None, g)).as_deref(), Some("No territory selected"));
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(None, g)).as_deref(), Some("No territory selected"));
     let stronghold = g.board.map.territories(false).find(|t| t.is_stronghold()).unwrap();
-    assert_eq!(submit(&mut g, |g| monster(Some(stronghold), g)).as_deref(), Some("Selected territory is protected"));
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(Some(stronghold), g)).as_deref(), Some("Selected territory is protected"));
     assert_eq!(karama_cards(&g), 1);
     assert!(!g.player(fremen).special_karma_power_used);
 
     let monsters = g.blow.number_of_monsters;
     let target = KarmaMonster::valid_targets(&g).next().unwrap();
-    assert_eq!(submit(&mut g, |g| monster(Some(target), g)), None);
+    assert_eq!(submit_by(&mut g, Faction::Fremen, |g| monster(Some(target), g)), None);
     assert_eq!(karama_cards(&g), 0);
     assert!(g.player(fremen).special_karma_power_used);
     assert_eq!(g.blow.number_of_monsters, monsters + 1);
@@ -197,9 +196,9 @@ fn karama_worm_needs_a_territory() {
 #[test]
 fn ally_permissions_without_an_ally_store_nothing() {
     let mut g = fixture("ship");
-    let mut permission = AllyPermission::new(&g, Faction::Guild);
+    let mut permission = AllyPermission::default();
     permission.permitted_resources = 3;
-    let e = HistoryEntry::new(Faction::Guild, Rc::new(permission));
+    let e = HistoryEntry::new(Faction::Guild, permission);
     assert!(g.play_for_message(e, false, false).is_none());
     assert!(g.alliances.permitted_use_of_ally_spice.is_empty(), "{:?}", g.alliances.permitted_use_of_ally_spice);
 }
@@ -215,11 +214,11 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     s.number_of_players = 3;
     s.allowed_factions_in_play = Some(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]);
     s.initial_rules = Some(vec![Rule::RicheseTreacheryCards]);
-    let mut establish = EstablishPlayers::new(&g, None);
+    let mut establish = EstablishPlayers::default();
     establish.seed = 7;
     establish.settings = Some(s);
-    assert!(g.play_for_message(HistoryEntry::new(None, Rc::new(establish)), false, true).is_none());
-    let end = HistoryEntry::new(None, Rc::new(EndPhase::new(&g, None)));
+    assert!(g.play_for_message(HistoryEntry::new(None, establish), false, true).is_none());
+    let end = HistoryEntry::new(None, EndPhase::default());
     assert!(g.play_for_message(end, false, true).is_none());
 
     let in_deck = |g: &Game, c: TreacheryCard| g.decks.treachery_deck.as_ref().unwrap().items.contains(&c);
@@ -353,24 +352,24 @@ fn only_a_dead_leader_can_be_revived() {
     let leader = g.player(p).leaders[0];
     assert!(g.is_alive(Hero::Leader(leader)));
 
-    let revival = |g: &Game| {
-        let mut r = Revival::new(g, f);
+    let revival = |_g: &Game| {
+        let mut r = Revival::default();
         r.hero = Some(Hero::Leader(leader));
-        Event::Revival(Rc::new(r))
+        Event::Revival(r)
     };
     let karama_revival = |g: &Game| {
-        let mut r = KarmaFreeRevival::new(g, f);
+        let mut r = KarmaFreeRevival::default();
         r.hero = Some(Hero::Leader(leader));
-        r.validate(g).map(|m| m.plain_text())
+        r.validate(g, By::new(g, f)).err().map(|r| r.0.plain_text())
     };
     let refusal = Some("You can't revive a leader who isn't dead");
-    assert_eq!(submit(&mut g, revival).as_deref(), refusal);
+    assert_eq!(submit_by(&mut g, f, revival).as_deref(), refusal);
     assert_eq!(karama_revival(&g).as_deref(), refusal);
     assert!(g.is_alive(Hero::Leader(leader)));
 
     g.kill_hero(Hero::Leader(leader));
     assert_eq!(karama_revival(&g), None);
-    assert_eq!(submit(&mut g, revival), None);
+    assert_eq!(submit_by(&mut g, f, revival), None);
     assert!(g.is_alive(Hero::Leader(leader)));
 }
 
@@ -385,9 +384,9 @@ fn a_living_ghola_can_be_taken_back() {
     g.player_mut(p).leaders.retain(|l| *l != leader);
     g.player_mut(tleilaxu).leaders.push(leader);
 
-    let mut r = Revival::new(&g, f);
+    let mut r = Revival::default();
     r.hero = Some(Hero::Leader(leader));
-    assert_eq!(submit(&mut g, |_| Event::Revival(Rc::new(r))), None);
+    assert_eq!(submit_by(&mut g, f, |_| Event::Revival(r)), None);
     assert!(g.is_alive(Hero::Leader(leader)));
     assert!(g.player(p).leaders.contains(&leader));
     assert!(!g.player(tleilaxu).leaders.contains(&leader));

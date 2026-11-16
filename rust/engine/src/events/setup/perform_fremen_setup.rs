@@ -1,14 +1,11 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PerformFremenSetup {
     // ---- inherited from PlacementEvent ----
     pub to: Option<Location>,
     pub force_locations: Option<String>,
-    // ---- inherited from PassableGameEvent ----
     pub passed: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for PerformFremenSetup {
@@ -17,109 +14,61 @@ impl Default for PerformFremenSetup {
             to: Location::from_id(0),
             force_locations: Some("".to_string()),
             passed: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
-impl PerformFremenSetup {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        let p = self.player_opt();
+impl EventRules for PerformFremenSetup {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        let p = by.player;
         let number_of_special_forces =
-            self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>();
+            self.force_locations(game, by).values().map(|b| b.special_forces()).sum::<i32>();
         let p = p.expect("player");
         if number_of_special_forces > game.player(p).special_forces_in_reserve() {
-            return Some(express!("You only have ", game.player(p).special_forces_in_reserve(), " ", FactionSpecialForce::Fremen));
+            return Err(Rejection(express!("You only have ", game.player(p).special_forces_in_reserve(), " ", FactionSpecialForce::Fremen)));
         }
 
-        let number_of_forces = self.force_locations(game).values().map(|b| b.forces()).sum::<i32>();
+        let number_of_forces = self.force_locations(game, by).values().map(|b| b.forces()).sum::<i32>();
         if (number_of_forces + number_of_special_forces) != 10 {
-            return Some(express!("Distribute 10 forces"));
+            return Err(Rejection(express!("Distribute 10 forces")));
         }
 
-        None
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        for (location, battalion) in self.force_locations(game).iter() {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        for (location, battalion) in self.force_locations(game, by).iter() {
             let location = *location;
-            Player::ship_forces(game, self.player(), location, battalion.forces())?;
-            Player::ship_special_forces(game, self.player(), location, battalion.special_forces())?;
+            Player::ship_forces(game, by.player(), location, battalion.forces())?;
+            Player::ship_special_forces(game, by.player(), location, battalion.special_forces())?;
         }
 
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         // All conditions are evaluated before the call.
-        let c1 = self.is_playing(game, Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(game);
-        let c2 = self.is_playing(game, Faction::Moritani);
+        let c1 = game.is_playing(Faction::BeneGesserit) && PerformBeneGesseritPlacement::bene_gesserit_may_place_first_force_in_any_territory(game);
+        let c2 = game.is_playing(Faction::Moritani);
         let c3 = game.treachery_cards_before_traitors();
         game.enter_first(&[(c1, Step::Enter(Phase::BeneGesseritSettingUp)), (c2, Step::Enter(Phase::MoritaniSettingUp)), (c3, Step::Run(Game::enter_storm_phase))], Step::Run(Game::deal_starting_treachery_cards))?;
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " have set up forces")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " have set up forces")
     }
-
 }
 
-impl GameEventMethods for PerformFremenSetup {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+/// The force list, as placement events read it (`PlacementEvent` in C#).
+impl PerformFremenSetup {
+    /// The battalions in the force list, of the submitter `by`.
+    pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {
+        PlacementEvent::force_locations_by(game, by, &self.force_locations)
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::PerformFremenSetup
+    pub fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
+        self.force_locations = Some(PlacementEvent::force_locations_string(game, value));
     }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::PerformFremenSetup(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        PerformFremenSetup::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        PerformFremenSetup::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        PerformFremenSetup::get_message(self, game)
-    }
-
-}
-
-impl PassableGameEventMethods for PerformFremenSetup {
-    fn field_passed(&self) -> &bool {
-        &self.passed
-    }
-
-}
-
-impl PlacementEventMethods for PerformFremenSetup {
-    fn field_to(&self) -> &Option<Location> {
-        &self.to
-    }
-
-    fn field_force_locations(&self) -> &Option<String> {
-        &self.force_locations
-    }
-
-    fn field_to_mut(&mut self) -> &mut Option<Location> {
-        &mut self.to
-    }
-
-    fn field_force_locations_mut(&mut self) -> &mut Option<String> {
-        &mut self.force_locations
-    }
-
 }
 
 impl crate::events::location_event::LocationEvent for PerformFremenSetup {
@@ -128,26 +77,15 @@ impl crate::events::location_event::LocationEvent for PerformFremenSetup {
     }
 
     fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::total_amount_of_forces_added_to_location(self, game)
+        let (forces, special_forces) = PlacementEvent::force_amounts(game, &self.force_locations);
+        forces + special_forces
     }
 
     fn forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.force_locations).0
     }
 
     fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        <Self as PlacementEventMethods>::special_forces_added_to_location(self, game)
+        PlacementEvent::force_amounts(game, &self.force_locations).1
     }
-
-}
-
-impl crate::events::placement::Placement for PerformFremenSetup {
-    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        <Self as PlacementEventMethods>::force_locations(self, game)
-    }
-
-    fn to(&self, _game: &Game) -> Option<Location> {
-        self.to
-    }
-
 }

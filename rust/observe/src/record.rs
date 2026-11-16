@@ -229,8 +229,8 @@ impl<'a> Recorder<'a> {
             }
             let types = self.query(Some(i), false)?;
             if types.contains(&EventType::AlliancePassed) {
-                let e = AlliancePassed::new(&self.sess.game, faction);
-                return Ok(Some((to_object(&HistoryEntry::legacy(treachery_view::build::event(e))), i)));
+                let e = AlliancePassed::default();
+                return Ok(Some((to_object(&HistoryEntry::new(faction, e)), i)));
             }
         }
         Ok(None)
@@ -245,40 +245,40 @@ impl<'a> Recorder<'a> {
             if let Some(i) = game.players.iter().position(|p| p.faction == None) {
                 let p = &game.players[i];
                 if !valid.is_empty() {
-                    let mut e = FactionSelected::new(game);
-                    e.base.initiator.set(None);
+                    let mut e = FactionSelected::default();
                     e.seat = Seat::number_or_minus_one(p.seat);
                     e.faction = Some(valid[self.rng.below(valid.len())]);
                     e.initiator_player_name = Some(self.sess.seating.player_name(game, game.player_at(i)));
-                    return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
+                    return Ok(Some(to_object(&HistoryEntry::new(None, e))));
                 }
             }
         }
         if types.contains(&EventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
-            let mut e = CardsDetermined::new(game, None);
+            let mut e = CardsDetermined::default();
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
-            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
+            return Ok(Some(to_object(&HistoryEntry::new(None, e))));
         }
         if types.contains(&EventType::PerformSetup) {
-            let mut e = PerformSetup::new(game, game.next_faction_to_perform_custom_setup());
+            let by = game.next_faction_to_perform_custom_setup();
+            let mut e = PerformSetup::default();
             e.resources = treachery_engine::game::amounts::clamp_u16(self.rng.range(0, 21));
             e.force_locations = Some(String::new());
-            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
+            return Ok(Some(to_object(&HistoryEntry::new(by, e))));
         }
         if types.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
             let p = game.player_at(0);
             let valid: Vec<Location> = PerformHmsPlacement::valid_locations(game, p).collect();
             if !valid.is_empty() {
-                let mut e = PerformHmsPlacement::new(game, game.player(p).faction);
+                let mut e = PerformHmsPlacement::default();
                 e.target = Some(valid[self.rng.below(valid.len())]);
-                return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(e)))));
+                return Ok(Some(to_object(&HistoryEntry::new(game.player(p).faction, e))));
             }
         }
         if types.contains(&EventType::EndPhase) {
-            return Ok(Some(to_object(&HistoryEntry::legacy(treachery_view::build::event(EndPhase::new(game, None))))));
+            return Ok(Some(to_object(&HistoryEntry::new(None, EndPhase::default()))));
         }
         Ok(None)
     }

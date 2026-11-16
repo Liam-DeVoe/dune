@@ -112,10 +112,10 @@ fn try_decide_scenarios() {
         let (mut game, mut bot) = bot(1);
         let called = Cell::new(false);
         let decision = match name {
-            "valid" => bot.try_decide(&mut game, &end_phase, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
-            "notAllowed" => bot.try_decide(&mut game, &thought, |_, g| { called.set(true); Some(Rc::new(EndPhase::new(g, Faction::Atreides))) }),
+            "valid" => bot.try_decide(&mut game, &end_phase, |_, _| { called.set(true); Some(EndPhase::default()) }),
+            "notAllowed" => bot.try_decide(&mut game, &thought, |_, _| { called.set(true); Some(EndPhase::default()) }),
             "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Thought> { called.set(true); None }),
-            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<Rc<EndPhase>> { called.set(true); panic!("boom") }),
+            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<EndPhase> { called.set(true); panic!("boom") }),
             "invalid" => bot.try_decide(&mut game, &thought, |_, _| { called.set(true); Some(Thought::default()) }),
             _ => unreachable!(),
         };
@@ -144,7 +144,7 @@ fn invalid_decision_is_not_submitted() {
 #[test]
 fn a_panicking_decision_counts_as_no_decision() {
     let (mut game, mut bot) = bot(1);
-    let decision = bot.try_decide(&mut game, &[EventType::EndPhase], |_, _| -> Option<Rc<EndPhase>> { todo!("somewhere") });
+    let decision = bot.try_decide(&mut game, &[EventType::EndPhase], |_, _| -> Option<EndPhase> { todo!("somewhere") });
     assert!(decision.is_none());
 }
 
@@ -152,7 +152,7 @@ fn a_panicking_decision_counts_as_no_decision() {
 #[test]
 fn draws_before_an_exception_stay() {
     let (mut game, mut bot) = bot(1);
-    let r = bot.try_decide(&mut game, &[EventType::EndPhase], |b, _| -> Option<Rc<EndPhase>> {
+    let r = bot.try_decide(&mut game, &[EventType::EndPhase], |b, _| -> Option<EndPhase> {
         b.d(2, 6);
         b.d(1, -1);
         None

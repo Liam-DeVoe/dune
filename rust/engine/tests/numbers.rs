@@ -29,9 +29,9 @@ fn a_game_needs_at_least_one_turn() {
     let settings = e.settings.as_mut().unwrap();
     settings.number_of_players = 2;
     settings.allowed_factions_in_play = Some(vec![Faction::Atreides, Faction::Harkonnen]);
-    assert_eq!(e.validate(&g).map(|m| m.plain_text()), None);
+    assert_eq!(e.validate(&g, By::NOBODY).err().map(|r| r.0.plain_text()), None);
     e.settings.as_mut().unwrap().maximum_turns = Turn::BEFORE_START;
-    assert_eq!(e.validate(&g).map(|m| m.plain_text()), Some("At least one turn required".to_string()));
+    assert_eq!(e.validate(&g, By::NOBODY).err().map(|r| r.0.plain_text()), Some("At least one turn required".to_string()));
 }
 
 #[test]
@@ -263,10 +263,10 @@ fn spice_bid_in_a_silent_auction_cant_be_given_away() {
     assert_eq!(g.spice_committed_to_bids(fremen), 2);
 
     let gift = |g: &Game, amount: i32| {
-        let mut e = Donated::new(g, Faction::Fremen);
+        let mut e = Donated::default();
         e.target = Some(Faction::Emperor);
         e.resources = amount;
-        refusal(e.validate(g))
+        refusal(e.validate(g, By::new(g, Faction::Fremen)).err().map(|r| r.0))
     };
     assert_eq!(gift(&g, 1), None);
     assert_eq!(gift(&g, 2).as_deref(), Some("You need that spice to pay your bid"));

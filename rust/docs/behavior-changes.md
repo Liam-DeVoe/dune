@@ -374,3 +374,9 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Area: battle, undo (rewrite-plan.md change 3a)
 - What happened: the battle plan held by the game was the same object as the `Battle` event in the history. A card that stays in a plan after the battle (the Diplomat's, or a Portable Antidote) also changed the history entry, so an undo after such a battle replayed the changed plan, and the plan's log line showed the card.
 - Done (3a battle, merged with b300d4e's successors): `game.battle` holds `BattlePlan` state structs, and the history keeps the event as submitted. No harness game reaches it (12 bots and 12 fuzz games, seed 1, match).
+
+## The history keeps an automation rule as it was submitted
+
+- Area: automation rules, saved games (rewrite-plan.md change 3a)
+- What happened: the game's list of automation rules held the `AutomationConfigured` events of the history, and creating a rule wrote its new id into the event. So a saved game showed the assigned id in the history (`"AutomationRuleId":0`), not the -1 that was submitted.
+- Done (3a, the rest folder): the game keeps `AutomationRuleState` values with their ids, and the history keeps the event as submitted. Replays don't change, because a created rule always gets the next free id, whatever id the event holds. No harness game reaches it (12 bots and 12 fuzz games, seed 1, match).

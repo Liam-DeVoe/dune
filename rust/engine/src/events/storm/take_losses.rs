@@ -1,56 +1,13 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TakeLosses {
     pub force_amount: u16,
     pub special_force_amount: u16,
     pub use_useless_card: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for TakeLosses {
-    fn default() -> Self {
-        TakeLosses {
-            force_amount: Default::default(),
-            special_force_amount: Default::default(),
-            use_useless_card: Default::default(),
-            base: Default::default(),
-        }
-    }
 }
 
 impl TakeLosses {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if self.use_useless_card && !TakeLosses::can_prevent_losses(game, self.player()) {
-            return Some(express!("You can't use a card to prevent force losses"));
-        }
-        if self.use_useless_card {
-            return None;
-        }
-
-
-        let value_to_be_killed = TakeLosses::losses_to_take(game).amount;
-        if (i32::from(self.force_amount) + i32::from(self.special_force_amount)) < value_to_be_killed {
-            return Some(express!("Select a total value of at least ", value_to_be_killed, " to be killed"));
-        }
-
-        if i32::from(self.force_amount) > TakeLosses::valid_max_force_amount(game, self.player()) {
-            return Some(express!("Invalid amount of forces"));
-        }
-        if i32::from(self.special_force_amount) > TakeLosses::valid_max_special_force_amount(game, self.player()) {
-            return Some(express!("Invalid amount of forces"));
-        }
-
-        None
-    }
-
     pub fn losses_to_take(g: &Game) -> LossToTake {
         if g.storm.storm_losses_to_take.len() > 0 {
             return g.storm.storm_losses_to_take[0].clone();
@@ -85,21 +42,47 @@ impl TakeLosses {
         // The int addition wraps, as in C#.
         half_rounded_up(amount_of_forces.wrapping_add(amount_of_special_forces))
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let player = self.get_player(game, self.initiator());
+impl EventRules for TakeLosses {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if self.use_useless_card && !TakeLosses::can_prevent_losses(game, by.player()) {
+            return Err(Rejection(express!("You can't use a card to prevent force losses")));
+        }
+        if self.use_useless_card {
+            return Ok(());
+        }
+
+
+        let value_to_be_killed = TakeLosses::losses_to_take(game).amount;
+        if (i32::from(self.force_amount) + i32::from(self.special_force_amount)) < value_to_be_killed {
+            return Err(Rejection(express!("Select a total value of at least ", value_to_be_killed, " to be killed")));
+        }
+
+        if i32::from(self.force_amount) > TakeLosses::valid_max_force_amount(game, by.player()) {
+            return Err(Rejection(express!("Invalid amount of forces")));
+        }
+        if i32::from(self.special_force_amount) > TakeLosses::valid_max_special_force_amount(game, by.player()) {
+            return Err(Rejection(express!("Invalid amount of forces")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let player = game.get_player(by.faction);
         let mut must_discard = false;
 
         if self.use_useless_card {
-            let card = TakeLosses::valid_useless_card_to_prevent_losses(game, self.player());
+            let card = TakeLosses::valid_useless_card_to_prevent_losses(game, by.player());
             if card.is_none() && NexusPlayed::can_use_cunning(game, player.required("player")?) {
                 let location = game.storm.storm_losses_to_take[0].location;
                 game.play_nexus_card(player.required("player")?, vec!["prevent losing forces in ".into(), location.into()]);
                 must_discard = true;
             } else {
-                game.discard_card_of(Some(self.player()), card, true);
+                game.discard_card_of(Some(by.player()), card, true);
                 let location = game.storm.storm_losses_to_take[0].location;
-                self.log_objects(game, vec![self.initiator().into(), " prevent losing forces in ".into(), location.into()]);
+                game.log(vec![by.faction.into(), " prevent losing forces in ".into(), location.into()]);
             }
             game.storm.storm_losses_to_take.remove(0);
             game.stone(Milestone::SpecialUselessPlayed);
@@ -112,7 +95,7 @@ impl TakeLosses {
             };
             Player::kill_forces(game, player, kill_location, i32::from(self.force_amount), i32::from(self.special_force_amount), false)?;
             game.storm.storm_losses_to_take.remove(0);
-            let message = self.get_message(game).with_log(StormKilled::new(self.initiator().required("faction")?, kill_location, i32::from(self.force_amount), i32::from(self.special_force_amount)));
+            let message = self.describe(game, by).with_log(StormKilled::new(by.faction.required("faction")?, kill_location, i32::from(self.force_amount), i32::from(self.special_force_amount)));
             game.log(vec![message.into()]);
         }
 
@@ -126,13 +109,17 @@ impl TakeLosses {
         }
 
         if must_discard {
-            game.let_player_discard_treachery_card_of_choice(self.initiator().required("faction")?);
+            game.let_player_discard_treachery_card_of_choice(by.faction.required("faction")?);
         }
         Ok(())
     }
 
-    pub fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        let p = self.player_opt().required("player")?;
+    fn describe(&self, game: &Game, by: By) -> Message {
+        self.try_describe(game, by).expect("the message of an applicable TakeLosses event")
+    }
+
+    fn try_describe(&self, game: &Game, by: By) -> GameResult<Message> {
+        let p = by.player.required("player")?;
         let force = game.player(p).force();
         let special_force = game.player(p).special_force();
         Ok(express!(
@@ -142,40 +129,4 @@ impl TakeLosses {
             express_part_if!(i32::from(self.special_force_amount) > 0; i32::from(self.special_force_amount), special_force)
         ))
     }
-
-    pub fn get_message(&self, game: &Game) -> Message {
-        self.try_get_message(game).expect("the message of an applicable TakeLosses event")
-    }
-
-}
-
-impl GameEventMethods for TakeLosses {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::TakeLosses
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::TakeLosses(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        TakeLosses::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        TakeLosses::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        TakeLosses::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        TakeLosses::try_get_message(self, game)
-    }
-
 }

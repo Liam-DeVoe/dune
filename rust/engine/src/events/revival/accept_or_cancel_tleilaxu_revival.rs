@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AcceptOrCancelTleilaxuRevival {
     pub cancel: bool,
     pub price: i32,
     pub hero: Option<Hero>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for AcceptOrCancelTleilaxuRevival {
@@ -15,28 +13,24 @@ impl Default for AcceptOrCancelTleilaxuRevival {
             cancel: Default::default(),
             price: Default::default(),
             hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
-            base: Default::default(),
         }
     }
 }
 
 impl AcceptOrCancelTleilaxuRevival {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn is_denial(&self) -> bool {
         self.price == i32::MAX
     }
+}
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
+impl EventRules for AcceptOrCancelTleilaxuRevival {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         match self.hero {
             None => {
@@ -55,59 +49,27 @@ impl AcceptOrCancelTleilaxuRevival {
                     game.revival.early_revivals_offers.insert_new(hero, self.price);
                 }
 
-                let request_to_remove =
-                    game.revival.current_revival_requests.iter().find(|r| r.hero == Some(hero)).cloned();
-                if let Some(request_to_remove) = request_to_remove {
-                    // List.Remove: events compare by reference.
-                    if let Some(i) = game.revival.current_revival_requests.iter().position(|r| Rc::ptr_eq(r, &request_to_remove)) {
-                        game.revival.current_revival_requests.remove(i);
-                    }
+                // C# removed the first request for the hero, by reference.
+                if let Some(i) = game.revival.current_revival_requests.iter().position(|r| r.hero == Some(hero)) {
+                    game.revival.current_revival_requests.remove(i);
                 }
             }
         }
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
+    fn describe(&self, _game: &Game, by: By) -> Message {
         let Some(hero) = self.hero else {
-            return express!(self.initiator(), " deny all outstanding requests for early revival");
+            return express!(by.faction, " deny all outstanding requests for early revival");
         };
 
         if !self.cancel {
             if self.is_denial() {
-                return express!(self.initiator(), " deny ", hero.faction(), " early revival of a leader");
+                return express!(by.faction, " deny ", hero.faction(), " early revival of a leader");
             }
-            return express!(self.initiator(), " offer ", hero.faction(), " revival of a leader for ", Payment::of(self.price));
+            return express!(by.faction, " offer ", hero.faction(), " revival of a leader for ", Payment::of(self.price));
         }
 
-        express!(self.initiator(), " cancel their revival offer to ", hero.faction())
+        express!(by.faction, " cancel their revival offer to ", hero.faction())
     }
-
-}
-
-impl GameEventMethods for AcceptOrCancelTleilaxuRevival {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AcceptOrCancelTleilaxuRevival
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AcceptOrCancelTleilaxuRevival(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AcceptOrCancelTleilaxuRevival::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AcceptOrCancelTleilaxuRevival::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AcceptOrCancelTleilaxuRevival::get_message(self, game)
-    }
-
 }

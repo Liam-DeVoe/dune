@@ -1,7 +1,6 @@
 //! Log and event texts that were fixed on purpose after the port (behavior-changes.md:
 //! "Missing spaces", "Setting an automation rule", "Other small text quirks", "Typos and grammar").
 
-use std::rc::Rc;
 
 use treachery_engine::enumerations::{AutomationRuleType, DealType, Faction, FactionAdvantage, ItemAction, TreacheryCardType};
 use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
@@ -73,8 +72,7 @@ fn automation_rules_are_described() {
         e.action = action;
         e.rule_type = rule_type;
         e.bidding_above_amount = 5;
-        e.initialize(&g, by);
-        text(&e.get_message(&g))
+        text(&e.describe(&g, By::new(&g, by)))
     };
     assert_eq!(
         message(ItemAction::Create, AutomationRuleType::BiddingPassAboveAmount, Some(Faction::Atreides)),

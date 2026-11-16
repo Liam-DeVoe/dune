@@ -25,15 +25,15 @@ fn initial_settings() -> GameSettings {
     s
 }
 
-pub fn default_draft(game: &Game, faction: Option<Faction>, t: EventType) -> Option<Event> {
+pub fn default_draft(_game: &Game, _faction: Option<Faction>, t: EventType) -> Option<Event> {
     Some(match t {
         EventType::EstablishPlayers => {
-            let mut e = EstablishPlayers::new(game, faction);
+            let mut e = EstablishPlayers::default();
             e.settings = Some(initial_settings());
             event(e)
         }
         // No forces staged, no spice.
-        EventType::PerformSetup => event(PerformSetup::new(game, faction)),
+        EventType::PerformSetup => event(PerformSetup::default()),
         _ => return None,
     })
 }

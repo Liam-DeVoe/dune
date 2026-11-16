@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EstablishPlayers {
     pub settings: Option<GameSettings>,
     pub seed: i32,
@@ -9,8 +9,6 @@ pub struct EstablishPlayers {
     pub applicable_rules: Option<Vec<Rule>>,
     pub players: Option<String>,
     pub factions_in_play: Option<String>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for EstablishPlayers {
@@ -23,18 +21,11 @@ impl Default for EstablishPlayers {
             applicable_rules: Some(Default::default()),
             players: Some(String::new()),
             factions_in_play: Some("".to_string()),
-            base: Default::default(),
         }
     }
 }
 
 impl EstablishPlayers {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
     pub fn players(&self) -> Vec<String> {
         // `_players == ""` is false for null, so a null `_players` throws on Split.
         let players = self.players.as_deref();
@@ -53,10 +44,6 @@ impl EstablishPlayers {
                 .filter_map(|part| <Faction as crate::enum_type::GameEnum>::from_value(dotnet_compat::parse::enum_parse(Some(part), Faction::INFO.declared)))
                 .collect(),
         }
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        self.validate_for_table(game, None)
     }
 
     /// [`EstablishPlayers::validate`], and with `seated_users` also whether that many users fit
@@ -163,106 +150,6 @@ impl EstablishPlayers {
         result
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.start_report(MainPhase::Setup);
-        self.log_objects(game, vec!["Game started!".into()]);
-        game.stone(Milestone::GameStarted);
-
-        game.turn.current_main_phase = MainPhase::Setup;
-        game.seed = self.seed;
-        game.random = Some(SharedRandom::from_seed(self.seed));
-
-        //Settings
-
-        // A copy of the event's settings. A null Settings is stored, and the next statement
-        // fails the event.
-        game.rules.settings = self.settings.clone();
-
-        //Rules
-
-        // A null InitialRules is stored, and the filter below panics.
-        game.rules.all_rules = game.rules.settings.as_ref().required("settings")?.initial_rules.clone();
-
-        game.rules.active = game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != Some(RuleGroup::Bots)).collect();
-        game.rules.rules_for_bots =
-            game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == Some(RuleGroup::Bots)).collect();
-        let core_basic = Game::get_rules_in_group(Some(RuleGroup::CoreBasic), Game::EXPANSION_LEVEL);
-        game.rules.active.extend(core_basic);
-
-        let allowed = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
-        game.rules.ruleset = Some(Game::determine_approximate_ruleset(&allowed, &game.rules.active, Game::EXPANSION_LEVEL));
-        let ruleset = game.rules.ruleset;
-        self.log_objects(game, vec!["Ruleset: ".into(), ruleset.into()]);
-
-        let custom_rules: Vec<Rule> = game.get_custom_rules();
-        self.log_if(game, !custom_rules.is_empty(), vec!["House rules: ".into(), custom_rules.into()]);
-
-        if game.applicable(Rule::ExpansionTreacheryCards) {
-            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) {
-                game.rules.active.push(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
-            }
-            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsPBandSs) {
-                game.rules.active.push(Rule::ExpansionTreacheryCardsPBandSs);
-            }
-            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsAmal) {
-                game.rules.active.push(Rule::ExpansionTreacheryCardsAmal);
-            }
-        }
-
-        //Decks and card piles
-
-        game.decks.resource_card_deck = Some(self.create_and_shuffle_resource_card_deck(game));
-        game.decks.treachery_deck = Some(TreacheryCardManager::create_treachery_deck(&*game, game.random.clone()));
-        self.create_discovery_tokens(game);
-
-        if !game.applicable(Rule::CustomDecks) {
-            game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle();
-            game.stone(Milestone::Shuffled);
-        }
-
-        game.decks.treachery_discard_pile = Some(Deck::empty(game.random.clone()));
-        game.decks.resource_card_discard_pile_a = Some(Deck::empty(game.random.clone()));
-        game.decks.resource_card_discard_pile_b = Some(Deck::empty(game.random.clone()));
-
-        if game.applicable(Rule::NexusCards) {
-            self.create_nexus_deck(game);
-        }
-
-        self.create_terror_tokens(game);
-
-        game.decks.unassigned_ambassadors = Some(Deck::new(
-            Self::available_factions().into_iter().filter(|f| *f != Faction::Moritani).filter_map(Game::ambassador_of),
-            game.random.clone(),
-        ));
-
-        //Initial alliance settings
-
-        game.alliances.guild_allows_shipping_discount = true;
-        game.alliances.tleilaxu_allows_revival_discount = true;
-        game.alliances.ixian_allows_replacing_cards = true;
-        game.alliances.emperor_will_pay_for_extra_revival = 0;
-        game.alliances.fremen_will_protect_from_monster = true;
-        game.alliances.fremen_allows_three_free_revivals = true;
-        game.alliances.fremen_shares_prescience = true;
-        game.alliances.fremen_refunds_battle_dial = true;
-        game.alliances.atreides_shares_prescience = true;
-        game.alliances.bene_gesserit_allows_use_of_voice = true;
-        game.alliances.richese_allows_use_of_no_field = true;
-
-        // A copy of the settings' allowed factions, which can't be null here: the ruleset above
-        // needed them.
-        game.rules.factions_in_play = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
-
-        self.fill_seats(game);
-        self.remove_claimed_factions(game);
-
-        game.determine_positions_at_table();
-
-        let condition = game.applicable(Rule::PlayersChooseFactions);
-        game.enter_or_else(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
-        Ok(())
-    }
-
     pub fn create_terror_tokens(&self, game: &mut Game) {
         game.board.unplaced_terror_tokens = vec![
             TerrorType::Assassination,
@@ -336,25 +223,115 @@ impl EstablishPlayers {
     }
 }
 
-impl GameEventMethods for EstablishPlayers {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for EstablishPlayers {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        match self.validate_for_table(game, None) {
+            None => Ok(()),
+            Some(m) => Err(Rejection(m)),
+        }
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::EstablishPlayers
+    fn apply(&self, game: &mut Game, _by: By) -> GameResult {
+        game.start_report(MainPhase::Setup);
+        game.log(vec!["Game started!".into()]);
+        game.stone(Milestone::GameStarted);
+
+        game.turn.current_main_phase = MainPhase::Setup;
+        game.seed = self.seed;
+        game.random = Some(SharedRandom::from_seed(self.seed));
+
+        //Settings
+
+        // A copy of the event's settings. A null Settings is stored, and the next statement
+        // fails the event.
+        game.rules.settings = self.settings.clone();
+
+        //Rules
+
+        // A null InitialRules is stored, and the filter below panics.
+        game.rules.all_rules = game.rules.settings.as_ref().required("settings")?.initial_rules.clone();
+
+        game.rules.active = game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) != Some(RuleGroup::Bots)).collect();
+        game.rules.rules_for_bots =
+            game.rules.all_rules.as_ref().expect("rules").iter().copied().filter(|r| Game::get_rule_group(*r) == Some(RuleGroup::Bots)).collect();
+        let core_basic = Game::get_rules_in_group(Some(RuleGroup::CoreBasic), Game::EXPANSION_LEVEL);
+        game.rules.active.extend(core_basic);
+
+        let allowed = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
+        game.rules.ruleset = Some(Game::determine_approximate_ruleset(&allowed, &game.rules.active, Game::EXPANSION_LEVEL));
+        let ruleset = game.rules.ruleset;
+        game.log(vec!["Ruleset: ".into(), ruleset.into()]);
+
+        let custom_rules: Vec<Rule> = game.get_custom_rules();
+        game.log_if(!custom_rules.is_empty(), vec!["House rules: ".into(), custom_rules.into()]);
+
+        if game.applicable(Rule::ExpansionTreacheryCards) {
+            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) {
+                game.rules.active.push(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
+            }
+            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsPBandSs) {
+                game.rules.active.push(Rule::ExpansionTreacheryCardsPBandSs);
+            }
+            if !game.rules.active.contains(&Rule::ExpansionTreacheryCardsAmal) {
+                game.rules.active.push(Rule::ExpansionTreacheryCardsAmal);
+            }
+        }
+
+        //Decks and card piles
+
+        game.decks.resource_card_deck = Some(self.create_and_shuffle_resource_card_deck(game));
+        game.decks.treachery_deck = Some(TreacheryCardManager::create_treachery_deck(&*game, game.random.clone()));
+        self.create_discovery_tokens(game);
+
+        if !game.applicable(Rule::CustomDecks) {
+            game.decks.treachery_deck.as_mut().required("treachery deck")?.shuffle();
+            game.stone(Milestone::Shuffled);
+        }
+
+        game.decks.treachery_discard_pile = Some(Deck::empty(game.random.clone()));
+        game.decks.resource_card_discard_pile_a = Some(Deck::empty(game.random.clone()));
+        game.decks.resource_card_discard_pile_b = Some(Deck::empty(game.random.clone()));
+
+        if game.applicable(Rule::NexusCards) {
+            self.create_nexus_deck(game);
+        }
+
+        self.create_terror_tokens(game);
+
+        game.decks.unassigned_ambassadors = Some(Deck::new(
+            Self::available_factions().into_iter().filter(|f| *f != Faction::Moritani).filter_map(Game::ambassador_of),
+            game.random.clone(),
+        ));
+
+        //Initial alliance settings
+
+        game.alliances.guild_allows_shipping_discount = true;
+        game.alliances.tleilaxu_allows_revival_discount = true;
+        game.alliances.ixian_allows_replacing_cards = true;
+        game.alliances.emperor_will_pay_for_extra_revival = 0;
+        game.alliances.fremen_will_protect_from_monster = true;
+        game.alliances.fremen_allows_three_free_revivals = true;
+        game.alliances.fremen_shares_prescience = true;
+        game.alliances.fremen_refunds_battle_dial = true;
+        game.alliances.atreides_shares_prescience = true;
+        game.alliances.bene_gesserit_allows_use_of_voice = true;
+        game.alliances.richese_allows_use_of_no_field = true;
+
+        // A copy of the settings' allowed factions, which can't be null here: the ruleset above
+        // needed them.
+        game.rules.factions_in_play = game.rules.settings.as_ref().required("settings")?.allowed_factions_in_play.clone().required("allowed factions in play")?;
+
+        self.fill_seats(game);
+        self.remove_claimed_factions(game);
+
+        game.determine_positions_at_table();
+
+        let condition = game.applicable(Rule::PlayersChooseFactions);
+        game.enter_or_else(condition, Phase::SelectingFactions, Game::assign_factions_and_enter_faction_trade);
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::EstablishPlayers(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(EventType::EstablishPlayers.name(), " by ", by.faction)
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        EstablishPlayers::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        EstablishPlayers::execute_concrete_event(self, game)
-    }
-
 }

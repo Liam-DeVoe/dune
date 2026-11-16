@@ -1,34 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct MetheorPlayed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for MetheorPlayed {
-    fn default() -> Self {
-        MetheorPlayed {
-            base: Default::default(),
-        }
-    }
 }
 
 impl MetheorPlayed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !MetheorPlayed::may_play_metheor(game, self.player()) {
-            return Some(express!("You cannot use ", TreacheryCardType::Metheor));
-        }
-
-        None
-    }
-
     pub fn may_play_metheor(g: &Game, p: PlayerId) -> bool {
         g.turn.current_turn > Turn::FIRST
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Metheor)
@@ -59,9 +35,19 @@ impl MetheorPlayed {
 
         false
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let me = self.player();
+impl EventRules for MetheorPlayed {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !MetheorPlayed::may_play_metheor(game, by.player()) {
+            return Err(Rejection(express!("You cannot use ", TreacheryCardType::Metheor)));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let me = by.player();
         let card = game.player(me).card(TreacheryCardType::Metheor);
         game.stone(Milestone::MetheorUsed);
         game.board.shield_wall_destroyed = true;
@@ -69,8 +55,8 @@ impl MetheorPlayed {
             crate::iter::remove_first(&mut game.player_mut(me).treachery_cards, &card);
         }
         game.decks.removed_treachery_cards.push(card.required("a Metheor card")?);
-        let m = self.get_message(game).with_log(FamilyAtomicsUsed { faction: self.initiator().required("faction")?, card });
-        self.log_objects(game, vec![m.into()]);
+        let m = self.describe(game, by).with_log(FamilyAtomicsUsed { faction: by.faction.required("faction")?, card });
+        game.log(vec![m.into()]);
 
         for i in 0..game.players.len() {
             let p = game.player_at(i);
@@ -99,40 +85,13 @@ impl MetheorPlayed {
                     game.board.map.shield_wall()
                 )
                 .with_log(FamilyAtomicsKilled { faction: faction.required("faction")?, forces, special_forces });
-                self.log_objects(game, vec![m.into()]);
+                game.log(vec![m.into()]);
             }
         }
         Ok(())
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        express!(self.initiator(), " use ", TreacheryCardType::Metheor, " to destroy the ", game.board.map.shield_wall(), "!")
+    fn describe(&self, game: &Game, by: By) -> Message {
+        express!(by.faction, " use ", TreacheryCardType::Metheor, " to destroy the ", game.board.map.shield_wall(), "!")
     }
-}
-
-impl GameEventMethods for MetheorPlayed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::MetheorPlayed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::MetheorPlayed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        MetheorPlayed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        MetheorPlayed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        MetheorPlayed::get_message(self, game)
-    }
-
 }

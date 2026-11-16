@@ -11,7 +11,7 @@ pub struct Rules {
     /// `EstablishPlayers` can assign null, hence the `Option`.
     pub settings: Option<GameSettings>,
     pub factions_in_play: Vec<Faction>,
-    pub automation_rules: Vec<Rc<AutomationConfigured>>,
+    pub automation_rules: Vec<AutomationRuleState>,
     pub secrets_remain_hidden: Vec<Faction>,
 }
 
@@ -503,11 +503,11 @@ impl Game {
 
     pub fn is_automated(&self, rule: AutomationRuleType, p: PlayerId) -> bool {
                 let faction = self.player(p).faction;
-        self.rules.automation_rules.iter().any(|x| x.initiator() == faction && x.rule_type == rule)
+        self.rules.automation_rules.iter().any(|x| x.initiator == faction && x.rule_type == rule)
     }
 
     pub fn is_auto_passed_bid(&self, f: Faction) -> bool {
-                for rule in self.rules.automation_rules.iter().filter(|x| x.initiator() == Some(f)) {
+                for rule in self.rules.automation_rules.iter().filter(|x| x.initiator == Some(f)) {
             match rule.rule_type {
                 AutomationRuleType::BiddingPassAboveAmount => {
                     if let Some(bid) = &self.bidding.current_bid {

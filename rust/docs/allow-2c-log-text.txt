@@ -47,3 +47,8 @@ message Invalid decision*
 message You need to decide to either force keeping or discarding cards*
 message Select the source of in total *
 message Select the sources of * in total
+# An inapplicable event's refusal quotes the event's text
+message Event '* forces by their own' is not applicable
+message Event '* forces with their own' is not applicable
+message Event '* to reveal amount of weapons, defenses and *' is not applicable
+message Event '* to reveal the amount of weapons, defenses and *' is not applicable

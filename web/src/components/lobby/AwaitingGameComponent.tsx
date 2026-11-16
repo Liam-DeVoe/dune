@@ -1,6 +1,6 @@
 // OtherComponents/AwaitingGameComponent.razor: what a non-host sees while the host sets up the
 // game: the host's settings (sent every few seconds by UpdateSettings) and who has joined.
-import type { Faction, RuleGroup } from "../../generated/enums";
+import type { RuleGroup } from "../../generated/enums";
 import { useLobby } from "../../lobby/context";
 import { JoinedPlayersPanel } from "./JoinedPlayersPanel";
 import { FactionImage } from "./widgets";
@@ -13,19 +13,19 @@ export function AwaitingGameComponent() {
   if (!g) return null;
   const { lobby } = client;
   const settings = g.settings;
-  const rules = new Set(settings.InitialRules);
+  const rules = new Set<string>(settings.initialRules);
   return (
     <div className="card mb-2">
       <div className="card-header">Welcome to {g.gameName}</div>
       <div className="card-body">
-        <div className="mt-1 mb-0"><strong>Maximum number of turns:</strong> {settings.MaximumTurns}</div>
-        <div className="mt-1 mb-0"><strong>Maximum number of players:</strong> {settings.NumberOfPlayers}</div>
+        <div className="mt-1 mb-0"><strong>Maximum number of turns:</strong> {settings.maximumTurns}</div>
+        <div className="mt-1 mb-0"><strong>Maximum number of players:</strong> {settings.numberOfPlayers}</div>
         <div className="mt-1 mb-0">
-          {settings.AllowedFactionsInPlay.map((f, i) => <FactionImage key={i} faction={lobby.name<Faction>("Faction", f)} />)}
+          {settings.allowedFactionsInPlay.map((f, i) => <FactionImage key={i} faction={f} />)}
         </div>
         <JoinedPlayersPanel />
         {GROUPS.map((group) => (
-          <RuleList key={group} title={lobby.labelOf("RuleGroup", group)} rules={lobby.data.rulesInGroup[group] ?? []} applicable={(r) => rules.has(lobby.value("Rule", r))} />
+          <RuleList key={group} title={lobby.labelOf("RuleGroup", group)} rules={lobby.data.rulesInGroup[group] ?? []} applicable={(r) => rules.has(r)} />
         ))}
       </div>
     </div>

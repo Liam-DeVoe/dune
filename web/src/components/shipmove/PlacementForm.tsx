@@ -12,7 +12,7 @@ import { ButtonRow } from "../ButtonRow";
 import { PlaceChip } from "../PlaceChip";
 import { RichText } from "../RichText";
 import { isPlainClick, mapInteraction, onLocationClick, useMapInteraction } from "../board/mapInteraction";
-import { EventLayout, forceLocationsString, idOf, MapForceStepper, parseForceLocations, PinChoice, useBoardGeometry, useDraft, useTerritoryOf, Validation, type Draft, type ForceMap } from "./common";
+import { EventLayout, forceEntries, idOf, MapForceStepper, forceMap, PinChoice, useBoardGeometry, useDraft, useTerritoryOf, Validation, type Draft, type ForceMap } from "./common";
 
 type Kind = "Move" | "Caravan" | "FremenRidesMonster";
 
@@ -29,23 +29,23 @@ interface State {
 const reset = (): State => ({ forces: [], to: null, undecided: null, asAdvisors: false, fromReserves: 0, specialFromReserves: 0 });
 
 function toDraft(kind: Kind, s: State): Draft {
-  const common = { _toId: s.to ?? -1, _forceLocations: forceLocationsString(s.forces), Passed: false };
+  const common = { to: s.to, forceLocations: forceEntries(s.forces) };
   return kind === "FremenRidesMonster"
-    ? { ForcesFromReserves: s.fromReserves, SpecialForcesFromReserves: s.specialFromReserves, ...common }
-    : { AsAdvisors: s.asAdvisors, ...common };
+    ? { forcesFromReserves: s.fromReserves, specialForcesFromReserves: s.specialFromReserves, ...common }
+    : { asAdvisors: s.asAdvisors, ...common };
 }
 
 // The component's fields, read from a draft (the server's adjusted one once it answered: the
 // Bene Gesserit advisor flag follows the destination, as PinContent set it).
 function fromDraft(d: Draft, undecided: number | null): State {
-  const num = (k: string) => (typeof d[k] === "number" ? (d[k] as number) : 0);
+  const num = (k: keyof Draft) => (typeof d[k] === "number" ? (d[k] as number) : 0);
   return {
-    forces: parseForceLocations(d._forceLocations),
-    to: idOf(d._toId),
+    forces: forceMap(d.forceLocations),
+    to: idOf(d.to),
     undecided,
-    asAdvisors: d.AsAdvisors === true,
-    fromReserves: num("ForcesFromReserves"),
-    specialFromReserves: num("SpecialForcesFromReserves"),
+    asAdvisors: d.asAdvisors === true,
+    fromReserves: num("forcesFromReserves"),
+    specialFromReserves: num("specialForcesFromReserves"),
   };
 }
 
@@ -58,7 +58,7 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   const [undecided, setUndecided] = useState<number | null>(null);
   const [, redraw] = useState(0);
   const undecidedRef = useRef(undecided);
-  const { draft, options, validation, set, send, confirm, get } = useDraft(action, () => toDraft(kind, reset()));
+  const { draft, options, validation, set, pass: sendPass, confirm, get } = useDraft(action, () => toDraft(kind, reset()));
   const state = fromDraft(draft, undecided);
   const o: PlacementOptions | null = options != null && options.form === kind ? (options as PlacementOptions) : null;
   const self = useRef<object>({});
@@ -227,7 +227,7 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   };
 
   const mayPass = kind !== "Caravan";
-  const pass = mayPass ? () => void send({ Passed: true }) : undefined;
+  const pass = mayPass ? () => void sendPass() : undefined;
   const header = kind === "FremenRidesMonster" ? (o?.title ? <RichText parts={o.title} size={20} /> : null) : <>{title}{"?"}</>;
   return (
     <EventLayout type={kind} urgent header={header}>

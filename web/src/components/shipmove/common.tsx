@@ -1,9 +1,10 @@
 // Shared pieces of the ship-and-move forms: the event panel
 // (GenericComponents/GameEventComponentLayout.razor with its CollapseButton), the draft and its
 // queries (GameEventComponent's ConfirmedResult and Validation), the pinned map panel's parts
-// (MapPickComponent.PinActions, MapForceStepper) and the savegame encodings drafts use.
+// (MapPickComponent.PinActions, MapForceStepper) and the encodings of draft inputs.
 import { useMemo, useRef, useState, type ReactNode } from "react";
-import { useViewChanges } from "../formDraft";
+import { eventOf, type Fields, fieldsOf, passOf, useViewChanges } from "../formDraft";
+import type { ForceEntry } from "../../generated/Event";
 import type { ActionOptions } from "../../generated/ActionOptions";
 import type { ActionView } from "../../generated/ActionView";
 import type { Faction } from "../../generated/enums";
@@ -59,18 +60,20 @@ export function Validation({ parts, className = "pin-error" }: { parts: Part[] |
   return <div className={className}><RichText parts={parts} /></div>;
 }
 
-export type Draft = Record<string, unknown>;
+// A draft's inputs (formDraft.ts): `play` of a passable event, the fields beside `type` otherwise.
+export type Draft = Fields;
 
 // Narrows a form's options to its variant.
 export function optionsOf<F extends ActionOptions["form"]>(o: ActionOptions | null | undefined, form: F): Extract<ActionOptions, { form: F }> | null {
   return o != null && o.form === form ? (o as Extract<ActionOptions, { form: F }>) : null;
 }
 
-// The draft a form's options carry: the event with the inputs as the C# component shows them,
-// after the server made the component's render-time adjustments (rust/view/src/schema/ship_move.rs).
+// The inputs of the draft a form's options carry: the event with the inputs as the C# component
+// shows them, after the server made the component's render-time adjustments
+// (rust/view/src/schema/ship_move.rs).
 function draftOf(o: ActionOptions | null | undefined): Draft | null {
   const d = (o as { draft?: unknown } | null | undefined)?.draft;
-  return d != null && typeof d === "object" ? (d as Draft) : null;
+  return d != null && typeof d === "object" ? fieldsOf(d as Record<string, unknown>) : null;
 }
 
 // Runs after the answer to a draft arrives, with the options for that draft and the adjusted
@@ -78,7 +81,7 @@ function draftOf(o: ActionOptions | null | undefined): Draft | null {
 // destination is picked). Returns the next draft, or null to stop.
 export type Then = (options: ActionOptions, draft: Draft) => Draft | null;
 
-// The form's draft (the C# component's fields, as the event in savegame JSON) and the server's
+// The form's draft (the C# component's fields, as the event's inputs) and the server's
 // answer for it. `set` changes the draft and asks again; the answer replaces the draft with the
 // server's adjusted one. Answers to older drafts are dropped, and the previous options stay on
 // screen until the answer arrives. A new view keeps the draft and asks again for it
@@ -110,7 +113,7 @@ export function useDraft(action: ActionView, initial: () => Draft) {
   const ask = async (d: Draft, then?: Then) => {
     const n = ++latest.current;
     try {
-      const r = await source.query({ $type: action.eventType, ...d });
+      const r = await source.query(eventOf(action.eventType, d));
       if (n !== latest.current) return;
       if (r.options != null) setOptions(r.options);
       setValidation(r.validation);
@@ -135,13 +138,15 @@ export function useDraft(action: ActionView, initial: () => Draft) {
     void ask(next, then);
   };
 
-  // Sends an event: the draft (Confirm) or another result of the component (Pass, Other).
-  const send = async (event: Draft) => setFailure(await source.submit({ $type: action.eventType, ...event }));
+  // Sends an event with these inputs: the draft (Confirm) or another result of the component
+  // (Other). `pass` sends the pass of a passable event.
+  const send = async (inputs: Draft) => setFailure(await source.submit(eventOf(action.eventType, inputs)));
+  const pass = async () => setFailure(await source.submit(passOf(action.eventType)));
   const confirm = () => send(current.current);
   // The latest draft, for handlers that run between renders.
   const get = () => current.current;
 
-  return { draft, options, validation, failure, set, send, confirm, get };
+  return { draft, options, validation, failure, set, send, pass, confirm, get };
 }
 
 // Board geometry for the forms (which sectors are drawn, where the player's token sits).
@@ -156,31 +161,26 @@ export function useTerritoryOf(): (location: number) => number {
   return (l: number) => skin.locationInfo(l)?.territory ?? -1;
 }
 
-// PlacementEvent.ForceLocationsString: "location:forces|specialForces", comma separated, in
-// the dictionary's insertion order.
+// A force list input (`forceLocations` and friends), as the forms edit it: location and
+// amounts, in the order the locations were added.
 export interface Forces { forces: number; specialForces: number }
 export type ForceMap = Array<[number, Forces]>;
 
-export function forceLocationsString(m: ForceMap): string {
-  return m.map(([l, b]) => `${l}:${b.forces}|${b.specialForces}`).join(",");
+export function forceEntries(m: ForceMap): ForceEntry[] {
+  return m.map(([location, b]) => ({ location, forces: b.forces, specialForces: b.specialForces }));
 }
 
-// PlacementEvent.ParseForceLocations, for a draft's `_forceLocations`.
-export function parseForceLocations(s: unknown): ForceMap {
-  if (typeof s !== "string" || s === "") return [];
-  return s.split(",").map((pair) => {
-    const [l, amounts] = pair.split(":");
-    const [f, sf] = (amounts ?? "").split("|");
-    return [Number(l), { forces: Number(f) || 0, specialForces: Number(sf) || 0 }] as [number, Forces];
-  });
+export function forceMap(v: unknown): ForceMap {
+  if (!Array.isArray(v)) return [];
+  return (v as ForceEntry[]).map((e) => [e.location, { forces: e.forces ?? 0, specialForces: e.specialForces ?? 0 }]);
 }
 
-// The member name of a savegame enum number (the inverse of the generated `*Value` tables).
-export function enumName<T extends string>(values: Record<T, number>, n: unknown, fallback: NoInfer<T>): T {
-  return (Object.keys(values) as T[]).find((k) => values[k] === n) ?? fallback;
+// An enum input, by member name.
+export function enumName<T extends string>(v: unknown, fallback: T): T {
+  return typeof v === "string" ? (v as T) : fallback;
 }
 
-// A savegame id field: -1 is null.
+// An id input: null for none.
 export function idOf(v: unknown): number | null {
   return typeof v === "number" && v >= 0 ? v : null;
 }

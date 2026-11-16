@@ -3,6 +3,7 @@
 // to submit come built in the view (`deals`).
 import "./DealComponent.css";
 import { useState } from "react";
+import type { Event } from "../generated/Event";
 import { useGame } from "../state/context";
 import { CollapseButton } from "./CollapseButton";
 import { answeredDeals } from "./DealToasts";
@@ -21,7 +22,7 @@ export function DealComponent({ open = false }: { open?: boolean }) {
   const submit = (e: Record<string, unknown> | null | undefined, answering?: number) => {
     if (!e) return;
     if (answering !== undefined) answeredDeals.add(answering);
-    void source.submit(e as { $type: string });
+    void source.submit(e as Event);
   };
   return (
     <div className="card mb-2" style={open ? undefined : { animation: "fadeIn 1s" }}>

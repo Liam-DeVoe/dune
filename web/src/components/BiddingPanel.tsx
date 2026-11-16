@@ -11,6 +11,7 @@ import type { ActionView } from "../generated/ActionView";
 import type { BiddingPanelView } from "../generated/BiddingPanelView";
 import type { DraftResult } from "../generated/DraftResult";
 import type { Faction } from "../generated/enums";
+import type { Event } from "../generated/Event";
 import { factionChipHtml, treacheryCardPopup } from "../popups";
 import { usePopover, popoverAttributes } from "../popover";
 import { useGame } from "../state/context";
@@ -21,7 +22,7 @@ import { Image } from "./Image";
 import { SelectResources, SelectResourcesFromFaction } from "./NumberPicker";
 import { SelectFromImage } from "./SelectFromImage";
 import { SpiceComponent } from "./SpiceComponent";
-import { useViewChanges } from "./formDraft";
+import { passOf, useViewChanges } from "./formDraft";
 
 // Client.AutoPass, BidAutoPassThreshold and KeepAutoPassSetting: client state that outlives the
 // panel (it is remounted for every auction) but not the page, as in the C# Client.
@@ -98,11 +99,16 @@ function defaults(o: BidOptions | null): Pick<Draft, "amount" | "ally"> {
   return { amount: o?.defaultAmount ?? 0, ally: o?.defaultAllyAmount ?? 0 };
 }
 
-function toEvent(eventType: string, d: Draft): Record<string, unknown> {
-  const amounts = { Amount: d.amount, AllyContributionAmount: d.ally, EmperorContributionAmount: d.emperor };
+function toEvent(eventType: string, d: Draft): Event {
+  const amounts = { amount: d.amount, allyContributionAmount: d.ally, emperorContributionAmount: d.emperor };
   return eventType === "Bid"
-    ? { ...amounts, UsesEmperorSecretAlly: d.secretAlly, KarmaBid: false, _karmaCardId: d.karmaCard ?? -1, Passed: false }
-    : { ...amounts, Passed: false };
+    ? { type: "Bid", play: { ...amounts, usesEmperorSecretAlly: d.secretAlly, karmaBid: false, karmaCard: d.karmaCard } }
+    : { type: "BlackMarketBid", play: amounts };
+}
+
+// Bid with Karma: win the card at once.
+function karmaBid(karmaCard: number | null): Event {
+  return { type: "Bid", play: { amount: 0, allyContributionAmount: 0, emperorContributionAmount: 0, usesEmperorSecretAlly: false, karmaBid: true, karmaCard } };
 }
 
 // The bidder's inputs and buttons (BiddingPanel.razor:41-107).
@@ -115,7 +121,7 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
 
   const ask = async (next: Draft) => {
     const n = ++latest.current;
-    const r = await source.query({ $type: action.eventType, Initiator: 0, ...toEvent(action.eventType, next) });
+    const r = await source.query(toEvent(action.eventType, next));
     if (n === latest.current) setResult(r);
   };
   const current = useRef(draft);
@@ -139,7 +145,7 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
     setDraft(next);
     void ask(next);
   };
-  const send = (event: Record<string, unknown>) => source.submit({ $type: action.eventType, Initiator: 0, ...event, eventNumber: view.eventNumber });
+  const send = (event: Event) => source.submit(event);
 
   const o = result.options?.form === "Bid" || result.options?.form === "BlackMarketBid" ? result.options : viewOptions;
   if (!o) return null;
@@ -157,8 +163,8 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
   const karmaInfo = `If you use a ${karmaName} card to bid any amount of ${skin.concept("Resource")} you wish, that card will be set aside until someone outbids you and will be discarded only if you win the auction. If you instead use your ${karmaName} card to win immediately, it is immediately discarded.`;
 
   const confirm = () => send(toEvent(action.eventType, { ...draft, ally: allyAmount, karmaCard, secretAlly }));
-  const pass = () => send(action.eventType === "Bid" ? { Passed: true, KarmaBid: false } : { Passed: true });
-  const other = () => send({ Passed: false, KarmaBid: true, _karmaCardId: karmaCard ?? -1 });
+  const pass = () => send(passOf(action.eventType));
+  const other = () => send(karmaBid(karmaCard));
 
   return (
     <>
@@ -201,7 +207,7 @@ function AutoPass({ action, panel }: { action: ActionView | undefined; panel: Bi
   const canBid = action !== undefined;
   const pass = () => {
     if (!action) return;
-    source.submit({ $type: action.eventType, Initiator: 0, Passed: true, ...(action.eventType === "Bid" ? { KarmaBid: false } : {}), eventNumber: view.eventNumber });
+    source.submit(passOf(action.eventType));
   };
   const passRef = useRef(pass);
   passRef.current = pass;

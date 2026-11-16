@@ -7,7 +7,7 @@ import type { Part } from "./Part";
  */
 export type ActionView = { 
 /**
- * The event type name, which is also the `$type` of the event to submit.
+ * The event type name, which is also the `type` of the event to submit.
  */
 eventType: string, 
 /**

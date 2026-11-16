@@ -262,9 +262,9 @@ fn karma_card_lifts_the_limit_in_a_draft_query() {
     let draft = |karma: i32| {
         format!(r#"{{"$type":"Bid","Amount":{over},"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":{karma},"Passed":false,"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#)
     };
-    let with = r.query(viewer, &draft(card)).unwrap();
+    let with = r.query(viewer, &common::draft(&draft(card))).unwrap();
     assert!(matches!(with.options, Some(ActionOptions::Bid { max_amount: 100, .. })));
-    let without = r.query(viewer, &draft(-1)).unwrap();
+    let without = r.query(viewer, &common::draft(&draft(-1))).unwrap();
     assert!(without.validation.is_some(), "bidding more than one has needs Karma");
     if over > r.game.bidding.current_bid.as_ref().map_or(0, |b| b.bid_total_amount()) {
         assert_eq!(with.validation, None);

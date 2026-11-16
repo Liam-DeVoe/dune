@@ -138,7 +138,7 @@ export function GameStatusComponent() {
                 <div className="mt-2 text-end">
                   <button className="btn btn-primary" disabled={endPhase.validation !== null}
                           title={error ?? undefined}
-                          onClick={async () => setError(await source.submit({ $type: "EndPhase" }))}>{nextCard ? "Open bidding" : "Continue"}</button>
+                          onClick={async () => setError(await source.submit({ type: "EndPhase" }))}>{nextCard ? "Open bidding" : "Continue"}</button>
                 </div>
               )}
             </>

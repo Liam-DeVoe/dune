@@ -6,10 +6,11 @@
 //   participation change, and answers draft queries and submissions over the protocol in
 //   rust/docs/protocol.md.
 //
-// Events, in drafts and submissions, are in the savegame format: PascalCase members, enums as
-// numbers (FactionValue and friends in generated/enums.ts). The server sets `Initiator` to the
-// faction of the authenticated user, so the client leaves it out.
+// Events, in drafts and submissions, are in the engine's wire format (generated/Event.ts). The
+// server records the faction of the authenticated user as the event's submitter and the time it
+// was played, so the client sends only the event.
 import type { DraftResult } from "../generated/DraftResult";
+import type { Event } from "../generated/Event";
 import type { GameView } from "../generated/GameView";
 import type { ReportLines } from "../generated/ReportLines";
 import type { Call } from "../protocol/Call";
@@ -19,7 +20,7 @@ import { type CallError, type CallName, type Connection, type ConnectionStatus, 
 
 export type { UndoEntry };
 
-export type GameEventDraft = Record<string, unknown> & { $type: string };
+export type GameEventDraft = Event;
 
 /** The calls about one game: those whose arguments name the game. */
 export type GameCallName = { [C in CallName]: Extract<Call, { call: C }> extends { args: { game: string } } ? C : never }[CallName];
@@ -31,7 +32,7 @@ export interface ViewSource {
   load(): Promise<GameView>;
   /** Later views, for sources whose game moves on. Returns an unsubscribe function. */
   subscribe?(onView: (view: GameView) => void): () => void;
-  /** A draft query: the form's inputs as an event in savegame JSON. */
+  /** A draft query: the form's inputs as an event. */
   query(draft: GameEventDraft): Promise<DraftResult>;
   /** Submits an event. Resolves with the server's error text, or null when it was accepted. */
   submit(event: GameEventDraft): Promise<string | null>;
@@ -66,8 +67,8 @@ export class StaticSource implements ViewSource {
   // Without a server, a draft keeps the view's options and is never validated again.
   async query(draft: GameEventDraft): Promise<DraftResult> {
     const view = await this.load();
-    const action = view.actions.find((a) => a.eventType === draft["$type"]);
-    return { eventType: String(draft["$type"]), options: action?.options ?? null, validation: null };
+    const action = view.actions.find((a) => a.eventType === draft.type);
+    return { eventType: draft.type, options: action?.options ?? null, validation: null };
   }
 
   async submit(): Promise<string | null> {
@@ -175,8 +176,8 @@ export class WebSocketSource implements ViewSource {
     const r = await this.conn.call("queryDraft", { game: this.gameId, eventNumber: this.view?.eventNumber ?? 0, draft });
     if (!failed(r)) return r.ok;
     // A refused query leaves the form's options and shows why, as a validation message.
-    const action = this.view?.actions.find((a) => a.eventType === draft.$type);
-    return { eventType: draft.$type, options: action?.options ?? null, validation: [{ t: "text", v: errorText(r.err) }] };
+    const action = this.view?.actions.find((a) => a.eventType === draft.type);
+    return { eventType: draft.type, options: action?.options ?? null, validation: [{ t: "text", v: errorText(r.err) }] };
   }
 
   async submit(event: GameEventDraft): Promise<string | null> {

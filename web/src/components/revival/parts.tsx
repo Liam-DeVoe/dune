@@ -12,9 +12,8 @@ import type { GameView } from "../../generated/GameView";
 import { leaderPopup, messiahPopup, treacheryCardPopup } from "../../popups";
 import type { Skin } from "../../skin";
 import { useGame } from "../../state/context";
-import type { GameEventDraft } from "../../state/source";
 import { CollapseButton } from "../CollapseButton";
-import { useServerDraft } from "../formDraft";
+import { type Fields, useServerDraft } from "../formDraft";
 import { hasStarredSpecialForce } from "../ForceToken";
 import { NumberPicker } from "../NumberPicker";
 import { RichText } from "../RichText";
@@ -110,25 +109,25 @@ function heroPopup(skin: Skin, view: GameView, h: HeroRef): string {
   return leaderPopup(skin, h.id, skill);
 }
 
-// The images of SelectFromImageComponent over heroes, valued by `_heroId`.
+// The images of SelectFromImageComponent over heroes, valued by the event's hero id.
 export function heroChoices(skin: Skin, view: GameView, heroes: HeroOption[]): ImageChoice<number>[] {
   return heroes.map((h) => ({ value: h.id, src: heroImage(skin, h.hero), alt: heroName(skin, h.hero), popover: heroPopup(skin, view, h.hero) }));
 }
 
-// The images of SelectFromImageComponent over factions, valued by the enum number. A faction
-// has no rich popover, so Image.razor shows its name as a tooltip.
-export function factionChoices(skin: Skin, factions: FactionOption[]): ImageChoice<number>[] {
-  return factions.map((f) => ({ value: f.value, src: skin.factionImage(f.faction), alt: skin.faction(f.faction), popover: null }));
+// The images of SelectFromImageComponent over factions. A faction has no rich popover, so
+// Image.razor shows its name as a tooltip.
+export function factionChoices(skin: Skin, factions: FactionOption[]): ImageChoice<Faction>[] {
+  return factions.map((f) => ({ value: f.faction, src: skin.factionImage(f.faction), alt: skin.faction(f.faction), popover: null }));
 }
 
-type Draft = GameEventDraft;
 type WithDraft = Extract<ActionOptions, { draft: Record<string, unknown> }>;
 
 // A revival form's state (formDraft.ts): the server's latest options and validation, whose
 // `draft` is the event with the inputs as the component shows them (rust/view/src/schema/revival.rs).
 export function useRevivalDraft<F extends WithDraft["form"]>(action: ActionView, form: F) {
-  const { source, options, draft, validation, update, error, setError } = useServerDraft(action, form);
-  const submit = async (event: Draft = draft) => setError(await source.submit(event));
+  const { source, options, draft, validation, update, withChanges, error, setError } = useServerDraft(action, form);
+  // Sends the draft, with some inputs changed for buttons that set one.
+  const submit = async (changes: Fields = {}) => setError(await source.submit(withChanges(changes)));
   return { options, draft, validation, update, submit, error };
 }
 

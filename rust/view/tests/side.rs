@@ -40,6 +40,7 @@ fn each_state(name: &str, mut each: impl FnMut(&mut ViewedGame, usize)) {
     }
 }
 
+/// A button's event. The client sends only the event; the server makes the caller its submitter.
 fn parse_event(v: &serde_json::Value) -> HistoryEntry {
     HistoryEntry::new(None, serde_json::from_value::<Event>(v.clone()).unwrap_or_else(|e| panic!("{v}: {e}")))
 }
@@ -87,11 +88,10 @@ fn deals() {
                     assert!(o.answers.is_empty() && o.withdraw.is_none(), "{at} {f}: answers to someone else's offer");
                     let accept = parse_event(&o.accept);
                     assert!(matches!(accept.event, Event::DealAccepted(_)), "{at}");
-                    assert_eq!(accept.by, Some(f));
                     let acceptance = Event::from(offer.acceptance());
                     assert_eq!(o.accept_error.is_some(), acceptance.validate_for(g, Some(f)).is_err(), "{at} {f}: Accept enabled");
                     let decline = parse_event(&o.decline);
-                    assert!(matches!(decline.event, Event::DealRejected(_)) && decline.by == Some(f), "{at}");
+                    assert!(matches!(decline.event, Event::DealRejected(_)), "{at}");
                     seen[0] += 1;
                     seen[1] += o.accept_error.is_some() as usize;
                 }
@@ -103,7 +103,6 @@ fn deals() {
                     assert_eq!(o.initiator, name(f), "{at}: someone else's offer as one's own");
                     let withdraw = parse_event(o.withdraw.as_ref().expect("Withdraw"));
                     assert!(matches!(withdraw.event, Event::DealOffered(ref w) if w.cancel), "{at}");
-                    assert_eq!(withdraw.by, Some(f));
                     let answers: Vec<DealAnswer> = g.deal_recipients(offer).map(|x| DealAnswer { faction: name(x), accepted: g.deal_response(offer.id, x) }).collect();
                     assert_eq!(o.answers, answers, "{at} {f}");
                     seen[2] += 1;

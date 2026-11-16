@@ -7,7 +7,7 @@ import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
 import { Checkbox } from "../Checkbox";
 import { RichText } from "../RichText";
-import { useViewChanges } from "../formDraft";
+import { eventOf, useViewChanges } from "../formDraft";
 import type { FormProps } from "./ChoiceForms";
 import { Layout, SubmitError, useOtherDraft } from "./parts";
 
@@ -28,7 +28,7 @@ export function SimpleForm({ action, inPopover = false }: FormProps) {
   // A new view clears a refusal.
   useViewChanges(() => setError(null));
   const o = action.options?.form === "Simple" ? action.options : null;
-  const confirm = async () => setError(await source.submit({ $type: action.eventType }));
+  const confirm = async () => setError(await source.submit(eventOf(action.eventType, {})));
   // OnInitialized: with the box ticked, confirm after 5 seconds if the box is still ticked and the
   // event is valid then (AutoPass).
   const latest = useRef({ action, auto });
@@ -56,11 +56,11 @@ export function SimpleForm({ action, inPopover = false }: FormProps) {
 }
 
 export function YesNoForm({ action, inPopover = false }: FormProps) {
-  const { options: o, validation, submit, error } = useOtherDraft(action, "YesNo");
+  const { options: o, validation, submit, submitPass, error } = useOtherDraft(action, "YesNo");
   if (!o) return null;
   return (
     <Layout type={`YesNo:${action.eventType}`} header={<Title parts={o.title} />} urgent={o.alert} inPopover={inPopover}>
-      <ButtonRow confirm={() => submit({ Passed: false })} confirmText="Yes" confirmError={validation} pass={() => submit({ Passed: true })} passText="No" />
+      <ButtonRow confirm={() => submit()} confirmText="Yes" confirmError={validation} pass={() => submitPass()} passText="No" />
       <SubmitError error={error} />
     </Layout>
   );

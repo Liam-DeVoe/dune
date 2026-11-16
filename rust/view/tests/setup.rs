@@ -41,14 +41,14 @@ fn a_host_without_a_seat_establishes_players() {
 
     // EstablishPlayers.Validate on the host's drafts.
     let two = [Faction::Atreides, Faction::Harkonnen];
-    assert_eq!(r.query(host, &settings(2, &two)).unwrap().validation, None);
-    assert_eq!(r.query(host, &settings(1, &two)).unwrap().validation, Some(text("At least two players required")));
-    assert_eq!(r.query(host, &settings(3, &two)).unwrap().validation, Some(text("More factions required")));
+    assert_eq!(r.query(host, &common::draft(&settings(2, &two))).unwrap().validation, None);
+    assert_eq!(r.query(host, &common::draft(&settings(1, &two))).unwrap().validation, Some(text("At least two players required")));
+    assert_eq!(r.query(host, &common::draft(&settings(3, &two))).unwrap().validation, Some(text("More factions required")));
 
     // A guest has no host actions and can't query them.
     let guest = Viewer { user_id: 2, seat: None, is_host: false, is_observer: false };
     assert!(r.view(guest).actions.is_empty());
-    assert_eq!(r.query(guest, &settings(2, &two)), Err(QueryError::NotAPlayer));
+    assert_eq!(r.query(guest, &common::draft(&settings(2, &two))), Err(QueryError::NotAPlayer));
 }
 
 #[test]
@@ -70,6 +70,6 @@ fn perform_setup_offers_the_next_factions_reserves() {
     // PerformSetup.Validate: no more forces than the reserves.
     let location = o.locations[0];
     let draft = |n: i32| format!(r#"{{"$type":"PerformSetup","Initiator":0,"Passed":false,"Resources":5,"_forceLocations":"{location}:{n}|0"}}"#);
-    assert_eq!(r.query(host, &draft(o.forces_in_reserve)).unwrap().validation, None);
-    assert!(r.query(host, &draft(o.forces_in_reserve + 1)).unwrap().validation.is_some());
+    assert_eq!(r.query(host, &common::draft(&draft(o.forces_in_reserve))).unwrap().validation, None);
+    assert!(r.query(host, &common::draft(&draft(o.forces_in_reserve + 1))).unwrap().validation.is_some());
 }

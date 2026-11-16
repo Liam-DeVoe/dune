@@ -80,7 +80,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
   // draft when the server's answer changed its counts.
   useEffect(() => {
     if (!o) return;
-    const counts = [draft.Forces, draft.ForcesAtHalfStrength, draft.SpecialForces, draft.SpecialForcesAtHalfStrength].map((v) => Number(v ?? 0));
+    const counts = [draft.forces, draft.forcesAtHalfStrength, draft.specialForces, draft.specialForcesAtHalfStrength].map((v) => Number(v ?? 0));
     if (!started.current) {
       started.current = true;
       setNormal(makeRow(o.normalTokens, counts[0], counts[1]));
@@ -124,9 +124,9 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
     setNormal(nr);
     const c = costOfRows(sr, nr);
     void update({
-      Forces: count(nr, "full"), ForcesAtHalfStrength: count(nr, "half"),
-      SpecialForces: count(sr, "full"), SpecialForcesAtHalfStrength: count(sr, "half"),
-      AllyContributionAmount: clampAlly(draft.AllyContributionAmount as number, Number.isFinite(c) ? c : 0),
+      forces: count(nr, "full"), forcesAtHalfStrength: count(nr, "half"),
+      specialForces: count(sr, "full"), specialForcesAtHalfStrength: count(sr, "half"),
+      allyContributionAmount: clampAlly(draft.allyContributionAmount as number, Number.isFinite(c) ? c : 0),
     });
   };
 
@@ -175,15 +175,15 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
     setRows(sr, nr);
   };
 
-  const hero = idOrNull(draft._heroId);
-  const weapon = idOrNull(draft._weaponCardId);
-  const defense = idOrNull(draft._defenseCardId);
-  const messiah = draft.Messiah as boolean;
+  const hero = idOrNull(draft.hero);
+  const weapon = idOrNull(draft.weapon);
+  const defense = idOrNull(draft.defense);
+  const messiah = draft.messiah as boolean;
   const pickHero = (id: number) => {
     if (id === hero) {
-      if (!o.leaderRequired) void update({ _heroId: -1 });
+      if (!o.leaderRequired) void update({ hero: null });
     } else {
-      void update({ _heroId: id });
+      void update({ hero: id });
     }
   };
 
@@ -210,14 +210,14 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
     );
   };
 
-  const cards = (title: string, list: number[], chosen: number | null, key: string) => (
+  const cards = (title: string, list: number[], chosen: number | null, key: "weapon" | "defense") => (
     <div>
       <div className="bp-label">{title}</div>
       <div className="bp-choices">
-        <button type="button" className={`bp-none ${chosen === null ? "on" : ""}`} onClick={() => void update({ [key]: -1 })}>None</button>
+        <button type="button" className={`bp-none ${chosen === null ? "on" : ""}`} onClick={() => void update({ [key]: null })}>None</button>
         {list.map((c) => (
           <Image key={c} src={skin.cardImage(c)} alt={skin.card(c)} width={50} pointer highlightOnHover darkened={chosen !== c}
-                 popover={treacheryCardPopup(skin, c)} onClick={() => void update({ [key]: chosen === c ? -1 : c })} />
+                 popover={treacheryCardPopup(skin, c)} onClick={() => void update({ [key]: chosen === c ? null : c })} />
         ))}
       </div>
     </div>
@@ -257,7 +257,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
                 <div className="bp-ctl">
                   <span className="bp-what">From ally</span>
                   <div className="d-flex">
-                    <NumberPicker value={draft.AllyContributionAmount as number} min={allyMin} max={allyMax} spice symbolSrc={skin.factionImage(o.ally as Faction)} onChange={(v) => void update({ AllyContributionAmount: v })} />
+                    <NumberPicker value={draft.allyContributionAmount as number} min={allyMin} max={allyMax} spice symbolSrc={skin.factionImage(o.ally as Faction)} onChange={(v) => void update({ allyContributionAmount: v })} />
                   </div>
                 </div>
               )}
@@ -281,13 +281,13 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
       )}
 
       <div className="bp-section bp-cards">
-        {cards("Weapon", o.weapons, weapon, "_weaponCardId")}
-        {cards("Defense", o.defenses, defense, "_defenseCardId")}
+        {cards("Weapon", o.weapons, weapon, "weapon")}
+        {cards("Defense", o.defenses, defense, "defense")}
       </div>
 
       {o.messiahAvailable && (
         <div className="bp-section">
-          <Radio values={[false, true]} labels={["No", "Yes"]} value={messiah} onChange={(v) => void update({ Messiah: v })}
+          <Radio values={[false, true]} labels={["No", "Yes"]} value={messiah} onChange={(v) => void update({ messiah: v })}
                  label={<>Should <Image width={32} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} /> join the fight?</>} />
         </div>
       )}
@@ -296,8 +296,8 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
         <div className="bp-section">
           <div className="d-inline-flex align-items-center">
             <label className="me-1">{o.bankerLabel}</label>
-            <NumberPicker value={draft.BankerBonus as number} min={0} max={o.maxBankerBoost} spice symbolSrc={harvester}
-                          onChange={(v) => void update({ BankerBonus: v })} />
+            <NumberPicker value={draft.bankerBonus as number} min={0} max={o.maxBankerBoost} spice symbolSrc={harvester}
+                          onChange={(v) => void update({ bankerBonus: v })} />
           </div>
         </div>
       )}

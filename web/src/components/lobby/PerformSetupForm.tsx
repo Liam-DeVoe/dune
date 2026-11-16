@@ -12,7 +12,7 @@ import { FactionChip } from "../FactionChip";
 import { ForceToken } from "../ForceToken";
 import { SelectResources } from "../NumberPicker";
 import { PlaceChip } from "../PlaceChip";
-import { EventLayout, forceLocationsString, type ForceMap, MapForceStepper, optionsOf, useDraft, useForceNames, Validation } from "../shipmove/common";
+import { EventLayout, forceEntries, type ForceMap, MapForceStepper, optionsOf, useDraft, useForceNames, Validation } from "../shipmove/common";
 
 export function PerformSetupForm({ action }: { action: ActionView }) {
   const { skin } = useGame();
@@ -25,7 +25,7 @@ export function PerformSetupForm({ action }: { action: ActionView }) {
   const st = useRef(forces);
   st.current = forces;
   const self = useRef<object>({});
-  const { validation, set, confirm } = useDraft(action, () => ({ Passed: false, Resources: 0, _forceLocations: "" }));
+  const { validation, set, confirm } = useDraft(action, () => ({ resources: 0, forceLocations: [] }));
   useMapInteraction();
 
   // SyncPlacer: when the next faction to set up changes, start again with nothing staged.
@@ -37,7 +37,7 @@ export function PerformSetupForm({ action }: { action: ActionView }) {
     st.current = [];
     setForces([]);
     setResources(0);
-    set({ Passed: false, Resources: 0, _forceLocations: "" });
+    set({ resources: 0, forceLocations: [] });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faction]);
 
@@ -47,7 +47,7 @@ export function PerformSetupForm({ action }: { action: ActionView }) {
   const commit = (next: ForceMap) => {
     st.current = next;
     setForces(next);
-    set({ _forceLocations: forceLocationsString(next) });
+    set({ forceLocations: forceEntries(next) });
   };
   const add = (l: number, special: boolean) => {
     if (!(o?.locations ?? []).includes(l) || (special && !o?.mayStageSpecial) || room(special) === 0) return;
@@ -106,7 +106,7 @@ export function PerformSetupForm({ action }: { action: ActionView }) {
   const spice = skin.concept("Resource");
   return (
     <EventLayout type="PerformSetup" urgent header={<>Set <FactionChip faction={faction} /> initial {spice} and forces.</>}>
-      <SelectResources value={resources} onChange={(v) => { setResources(v); set({ Resources: v }); }} min={0} max={o?.maxResources ?? 100} label={spice} />
+      <SelectResources value={resources} onChange={(v) => { setResources(v); set({ resources: v }); }} min={0} max={o?.maxResources ?? 100} label={spice} />
       <div className="small mt-2">Use the map to place forces.</div>
       <div className="small text-2">
         <div><ClickHint button="Lmb" /> place <ForceToken faction={faction} size={18} imgClass="setup-hint-force" title={names.force} /></div>

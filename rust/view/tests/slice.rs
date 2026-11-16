@@ -206,7 +206,7 @@ fn draft_queries() {
     let mut r = load("alliance");
     let emperor = viewer_of(&r, Faction::Emperor);
     let _ = r.view(emperor);
-    let ev = |t: &str, extra: &str| format!(r#"{{"$type":"{t}"{extra},"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#);
+    let ev = |t: &str, extra: &str| common::draft(&format!(r#"{{"$type":"{t}"{extra},"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#));
 
     let ok = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, (Faction::BeneGesserit as i32)))).unwrap();
     assert_eq!(ok.event_type, "AllianceOffered");

@@ -516,7 +516,7 @@ fn view_and_draft_query() {
     let draft = format!(
         r#"{{"$type":"Shipment","ShipmentType":1,"ForceAmount":2,"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":{to},"_fromId":-1,"_noFieldValue":0,"_cunningNoFieldValue":0,"_karmaCardId":-1,"_forceLocations":"","Passed":false,"Initiator":0}}"#
     );
-    let answer = r.query(viewer, &draft).unwrap();
+    let answer = r.query(viewer, &common::draft(&draft)).unwrap();
     let Some(ActionOptions::Shipment(q)) = answer.options else { panic!() };
     let loc = r.game.board.map.location_lookup().find(to).unwrap();
     let expected = shipment_draft(&r.game, Faction::Emperor, ShipmentType::ShipmentNormal, None, Some(loc), 2, 0);
@@ -535,7 +535,7 @@ fn view_and_draft_query() {
         r#"{{"$type":"Move","AsAdvisors":false,"_toId":-1,"_forceLocations":"{}:{}|{}","Passed":false,"Initiator":0}}"#,
         src.location, src.forces, src.special_forces
     );
-    let answer = r.query(viewer, &draft).unwrap();
+    let answer = r.query(viewer, &common::draft(&draft)).unwrap();
     let Some(ActionOptions::Move(q)) = answer.options else { panic!() };
     assert!(!q.targets.is_empty());
 }

@@ -5,7 +5,8 @@
 import { useEffect, useRef } from "react";
 import type { ActionView } from "../../generated/ActionView";
 import type { BattleFormParam } from "../../generated/BattleFormParam";
-import type { Faction, StrongholdAdvantage } from "../../generated/enums";
+import type { ClairVoyanceAnswer, ClairvoyanceQuestion, Faction, JuiceType, PrescienceAspect, StrongholdAdvantage, TechToken, TreacheryCardType } from "../../generated/enums";
+import type { ForceEntry } from "../../generated/Event";
 import { strongholdAdvantagePopup, techTokenPopup, treacheryCardPopup } from "../../popups";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
@@ -20,6 +21,7 @@ import { SimpleNumber } from "../SimpleNumber";
 import { SpiceComponent } from "../SpiceComponent";
 import { BattleComponent } from "./BattleComponent";
 import { useMapPicker } from "../board/mapInteraction";
+import { type Fields } from "../formDraft";
 import { cardChoices, heroChoices, idOrNull, Layout, MapForceStepper, PinActions, Radio, SelectForces, SubmitError, useBattleDraft, useTerritoryOf } from "./parts";
 import { Select } from "../Select";
 
@@ -69,7 +71,7 @@ function AuditCancelledComponent({ action, inPopover }: Props) {
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover}
             header={<>Do you wish to pay <FactionChip faction="Choam" /> <SpiceComponent amount={String(o.cost)} /> to cancel a scheduled audit of {o.cards} of your treachery cards?</>}>
-      <ButtonRow confirm={() => submit({ Cancelled: true })} confirmText="Yes" confirmError={validation} pass={() => submit({ Cancelled: false })} passText="No" />
+      <ButtonRow confirm={() => submit({ cancelled: true })} confirmText="Yes" confirmError={validation} pass={() => submit({ cancelled: false })} passText="No" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -103,19 +105,19 @@ function BattleInitiatedComponent({ action, inPopover }: Props) {
     return () => clearTimeout(t);
   });
   if (!o) return null;
-  const opponents = [...new Map(o.fights.map((f) => [f.faction.value, f.faction])).values()];
-  const target = draft.Target as number;
-  const territories = o.fights.filter((f) => f.faction.value === target);
+  const opponents = [...new Map(o.fights.map((f) => [f.faction.name, f.faction])).values()];
+  const target = (draft.target ?? null) as Faction | null;
+  const territories = o.fights.filter((f) => f.faction.name === target);
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Select whom and where to battle">
-      <SelectFromImage values={opponents.map((f) => ({ value: f.value, src: skin.factionImage(f.name as Faction), alt: f.label, popover: null, tooltip: f.label }))}
+      <SelectFromImage values={opponents.map((f) => ({ value: f.name as Faction, src: skin.factionImage(f.name as Faction), alt: f.label, popover: null, tooltip: f.label }))}
                        value={target} required
                        onChange={(v) => {
-                         const first = o.fights.find((f) => f.faction.value === v);
-                         if (v !== null) void update({ Target: v, _territoryId: first?.territory ?? -1 });
+                         const first = o.fights.find((f) => f.faction.name === v);
+                         if (v !== null) void update({ target: v, territory: first?.territory ?? null });
                        }} />
-      <Select options={territories.map((f) => ({ value: f.territory, label: f.territoryLabel }))} value={draft._territoryId as number}
-              onChange={(v) => void update({ _territoryId: v })} />
+      <Select options={territories.map((f) => ({ value: f.territory, label: f.territoryLabel }))} value={idOrNull(draft.territory)}
+              onChange={(v) => void update({ territory: v })} />
       <ButtonRow confirm={() => submit()} confirmText="Initiate Battle" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -135,8 +137,8 @@ function BeneGesseritBattleAnnouncementComponent({ action, inPopover }: Props) {
     pin: () => <div className="pin-body"><PinActions label="Flip to fighters" validation={validation} cancel={() => pick.clear()} confirm={() => void submit()} /></div>,
   });
   useEffect(() => {
-    const t = pick.target != null ? territoryOf(pick.target) : -1;
-    if (o && draft._territoryId !== t) void update({ _territoryId: t });
+    const t = pick.target != null ? territoryOf(pick.target) : null;
+    if (o && idOrNull(draft.territory) !== t) void update({ territory: t });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick.target]);
   if (!o) return null;
@@ -152,16 +154,16 @@ function CardsDeterminedComponent({ action, inPopover }: Props) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "CardsDetermined");
   if (!o) return null;
-  const ids = (s: unknown) => (typeof s === "string" && s !== "" ? s.split(";").map(Number) : []);
-  const treachery = ids(draft._treacheryCardIds);
-  const richese = ids(draft._richeseCardIds);
+  const ids = (v: unknown): number[] => (Array.isArray(v) ? (v as number[]) : []);
+  const treachery = ids(draft.treacheryCardIds);
+  const richese = ids(draft.richeseCardIds);
   // A multi-select row: clicking swaps a card in or out; shift-click keeps only that card.
-  const row = (cards: number[], selected: number[], key: string, width: number) => (
+  const row = (cards: number[], selected: number[], key: "treacheryCardIds" | "richeseCardIds", width: number) => (
     <div className="img-choices">
       {cards.map((c) => (
         <span key={c} onClick={(e) => {
           const next = e.shiftKey ? [c] : selected.includes(c) ? selected.filter((x) => x !== c) : [...selected, c];
-          void update({ [key]: next.join(";") });
+          void update({ [key]: next });
         }}>
           <Image src={skin.cardImage(c)} alt={skin.card(c)} width={width} pointer highlightOnHover darkened={!selected.includes(c)}
                  popover={treacheryCardPopup(skin, c)} />
@@ -172,11 +174,11 @@ function CardsDeterminedComponent({ action, inPopover }: Props) {
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Select cards in play">
       <h4>Treachery Cards</h4>
-      {row(o.treacheryCards, treachery, "_treacheryCardIds", 80)}
+      {row(o.treacheryCards, treachery, "treacheryCardIds", 80)}
       {o.richeseCards.length > 0 && (
         <>
           <h4><FactionChip faction="Richese" /> Cards</h4>
-          {row(o.richeseCards, richese, "_richeseCardIds", 60)}
+          {row(o.richeseCards, richese, "richeseCardIds", 60)}
         </>
       )}
       <ButtonRow confirm={() => submit()} confirmText="Confirm Cards" confirmError={validation} />
@@ -189,13 +191,13 @@ function ClairVoyanceAnsweredComponent({ action, inPopover }: Props) {
   const { skin } = useGame();
   const { options: o, validation, submit, error } = useBattleDraft(action, "ClairVoyanceAnswered");
   if (!o) return null;
-  // ClairVoyanceAnswer: Unknown 0, Yes 1, No 2.
+  const answer = (a: ClairVoyanceAnswer) => submit({ answer: a });
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover}
             header={<><FactionChip faction={o.questioner} /> questions you with {cardTypeName(skin, "Clairvoyance")}!</>}>
       <div className="font-italic bg-dark"><RichText parts={o.question} /></div>
-      <ButtonRow confirm={() => submit({ Answer: 1 })} confirmText="Yes" confirmError={validation}
-                 pass={() => submit({ Answer: 2 })} passText="No" other={() => submit({ Answer: 0 })} otherText="I can't answer that..." />
+      <ButtonRow confirm={() => answer("Yes")} confirmText="Yes" confirmError={validation}
+                 pass={() => answer("No")} passText="No" other={() => answer("Unknown")} otherText="I can't answer that..." />
       <SubmitError error={error} />
     </Layout>
   );
@@ -211,35 +213,32 @@ function ClairVoyancePlayedComponent({ action, inPopover }: Props) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "ClairVoyancePlayed");
   if (!o) return null;
-  const question = o.questions.find((q) => q.value === draft.Question)?.name ?? "";
+  const question = typeof draft.question === "string" ? draft.question : "";
   // Each select takes its first value when the current one is not among its values.
-  const param = (values: BattleFormParam[], key: string, label: string) => (
+  const param = (values: BattleFormParam[], key: "questionParameter1" | "questionParameter2", label: string) => (
     <Select options={values.map((v) => ({ value: v.value, label: v.label }))} value={(draft[key] as string | null) ?? null}
             onChange={(v) => void update({ [key]: v })} label={label} />
   );
   const paramsFor = (q: string) =>
     cardTypeQuestions.includes(q) ? [o.cardTypes] : leaderQuestions.includes(q) ? [o.leaders] : q === "Prediction" ? [o.factions, o.turns]
       : q === "DialOfMoreThanXInBattle" ? [dials] : q === "WillAttackX" ? [o.territories] : [];
-  const firstParams = (q: string, current: Record<string, unknown>) => {
+  const firstParams = (q: string, current: Fields) => {
     const lists = paramsFor(q);
     const keep = (l: BattleFormParam[] | undefined, v: unknown) => (l === undefined ? null : l.some((p) => p.value === v) ? v : l[0]?.value ?? null);
-    return { QuestionParameter1: keep(lists[0], current.QuestionParameter1), QuestionParameter2: keep(lists[1], current.QuestionParameter2) };
+    return { questionParameter1: keep(lists[0], current.questionParameter1), questionParameter2: keep(lists[1], current.questionParameter2) };
   };
   return (
     <Layout type={action.eventType} inPopover={inPopover} header={`Use ${cardTypeName(skin, "Clairvoyance")}?`}>
-      <SelectFromImage label="Target Faction" imageWidth={40} required value={draft.Target as number}
-                       values={o.targets.map((f) => ({ value: f.value, src: skin.factionImage(f.name as Faction), alt: f.label, popover: null, tooltip: f.label }))}
-                       onChange={(v) => v !== null && v !== draft.Target && void update({ Target: v })} />
-      <Select options={o.questions.map((q) => ({ value: q.value, label: q.label }))} value={draft.Question as number} label="Question"
-              onChange={(v) => {
-                const name = o.questions.find((q) => q.value === v)?.name ?? "";
-                void update({ Question: v, ...firstParams(name, draft) });
-              }} />
-      {cardTypeQuestions.includes(question) && param(o.cardTypes, "QuestionParameter1", "Card Type")}
-      {leaderQuestions.includes(question) && param(o.leaders, "QuestionParameter1", "Leader")}
-      {question === "Prediction" && <>{param(o.factions, "QuestionParameter1", "Faction")}{param(o.turns, "QuestionParameter2", "Turn")}</>}
-      {question === "DialOfMoreThanXInBattle" && param(dials, "QuestionParameter1", "Dial")}
-      {question === "WillAttackX" && param(o.territories, "QuestionParameter1", "Territory")}
+      <SelectFromImage label="Target Faction" imageWidth={40} required value={(draft.target ?? null) as Faction | null}
+                       values={o.targets.map((f) => ({ value: f.name as Faction, src: skin.factionImage(f.name as Faction), alt: f.label, popover: null, tooltip: f.label }))}
+                       onChange={(v) => v !== null && v !== draft.target && void update({ target: v })} />
+      <Select options={o.questions.map((q) => ({ value: q.name as ClairvoyanceQuestion, label: q.label }))} value={(draft.question ?? null) as ClairvoyanceQuestion | null} label="Question"
+              onChange={(v) => void update({ question: v, ...firstParams(v, draft) })} />
+      {cardTypeQuestions.includes(question) && param(o.cardTypes, "questionParameter1", "Card Type")}
+      {leaderQuestions.includes(question) && param(o.leaders, "questionParameter1", "Leader")}
+      {question === "Prediction" && <>{param(o.factions, "questionParameter1", "Faction")}{param(o.turns, "questionParameter2", "Turn")}</>}
+      {question === "DialOfMoreThanXInBattle" && param(dials, "questionParameter1", "Dial")}
+      {question === "WillAttackX" && param(o.territories, "questionParameter1", "Territory")}
       <ButtonRow confirm={() => submit()} confirmText={`Use ${cardTypeName(skin, "Clairvoyance")}`} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -255,11 +254,11 @@ function CardForm({ action, inPopover, form, header, confirmText }: Props & {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, form);
   if (!o) return null;
-  const card = idOrNull(draft._cardId);
+  const card = idOrNull(draft.card);
   return (
     <Layout type={action.eventType} inPopover={inPopover} header={header}>
       <SelectFromImage values={cardChoices(skin, o.cards)} value={card} required imageWidth={80}
-                       onChange={(v) => v !== null && v !== card && void update({ _cardId: v })} />
+                       onChange={(v) => v !== null && v !== card && void update({ card: v })} />
       <ButtonRow confirm={() => submit()} confirmText={confirmText(card)} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -283,22 +282,18 @@ function ThoughtAnsweredComponent(p: Props) {
                    confirmText={(c) => `Show ${c === null ? "" : skin.card(c)}`} />;
 }
 
-// One location's force pickers in ForceSelectionComponent: "locId:forces|special" entries.
+// One location's force pickers in ForceSelectionComponent: location to forces and special forces.
 type Placement = Map<number, [number, number]>;
 
-function parsePlacement(s: unknown): Placement {
+function parsePlacement(v: unknown): Placement {
   const m: Placement = new Map();
-  if (typeof s !== "string" || s === "") return m;
-  for (const pair of s.split(",")) {
-    const [l, amounts] = pair.split(":");
-    const [f, sf] = (amounts ?? "0|0").split("|");
-    m.set(Number(l), [Number(f), Number(sf)]);
-  }
+  if (!Array.isArray(v)) return m;
+  for (const e of v as ForceEntry[]) m.set(e.location, [e.forces ?? 0, e.specialForces ?? 0]);
   return m;
 }
 
-function placementString(m: Placement): string {
-  return [...m.entries()].map(([l, [f, s]]) => `${l}:${f}|${s}`).join(",");
+function placementEntries(m: Placement): ForceEntry[] {
+  return [...m.entries()].map(([location, [forces, specialForces]]) => ({ location, forces, specialForces }));
 }
 
 // ForceSelectionComponent: its pickers step the placement (OnUp/OnDown); a typed number changes
@@ -340,23 +335,23 @@ function FaceDancedComponent({ action, inPopover }: Props) {
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "FaceDanced");
   if (!o) return null;
   const faction = (view.viewer.faction ?? "Tleilaxu") as Faction;
-  const sources = parsePlacement(draft._forceLocations);
-  const targets = parsePlacement(draft._targetForceLocations);
+  const sources = parsePlacement(draft.forceLocations);
+  const targets = parsePlacement(draft.targetForceLocations);
   const pickers = (
     <>
       <div>
-        <SelectForces value={draft.ForcesFromReserve as number} onChange={(v) => void update({ ForcesFromReserve: v })} min={0} max={o.forcesInReserve}
+        <SelectForces value={draft.forcesFromReserve as number} onChange={(v) => void update({ forcesFromReserve: v })} min={0} max={o.forcesInReserve}
                       faction={faction} special={false} label="From reserves:" />
       </div>
       {o.sources.length > 0 && (
         <>
           <div className="mt-2 mb-0">From somewhere on the planet:</div>
-          <ForceSelection faction={faction} locations={o.sources} value={sources} onChange={(m) => void update({ _forceLocations: placementString(m) })} />
+          <ForceSelection faction={faction} locations={o.sources} value={sources} onChange={(m) => void update({ forceLocations: placementEntries(m) })} />
         </>
       )}
       <div className="mt-2 mb-0">Select where to put your replacements:</div>
       <ForceSelection faction={faction} locations={o.targets} value={targets} fixedMax={o.maximumForces}
-                      onChange={(m) => void update({ _targetForceLocations: placementString(m) })} />
+                      onChange={(m) => void update({ targetForceLocations: placementEntries(m) })} />
     </>
   );
   return (
@@ -371,29 +366,29 @@ function FaceDancedComponent({ action, inPopover }: Props) {
 
 function FaceDancerReplacedComponent({ action, inPopover }: Props) {
   const { skin, view } = useGame();
-  const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "FaceDancerReplaced");
+  const { options: o, draft, validation, update, submit, submitPass, error } = useBattleDraft(action, "FaceDancerReplaced");
   if (!o) return null;
-  const dancer = idOrNull(draft.dancerId);
+  const dancer = idOrNull(draft.selectedDancer);
   const label = o.heroes.find((h) => h.id === dancer)?.label;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Replace a Face Dancer?">
       <SelectFromImage values={heroChoices(skin, view, o.heroes)} value={dancer} required imageWidth={80}
-                       onChange={(v) => v !== null && v !== dancer && void update({ dancerId: v })} />
-      <ButtonRow confirm={() => submit({ Passed: false })} confirmText={label ? `Replace ${label}` : "Replace"} confirmError={validation}
-                 pass={() => submit({ Passed: true })} passText="Pass" />
+                       onChange={(v) => v !== null && v !== dancer && void update({ selectedDancer: v })} />
+      <ButtonRow confirm={() => submit()} confirmText={label ? `Replace ${label}` : "Replace"} confirmError={validation}
+                 pass={() => submitPass()} passText="Pass" />
       <SubmitError error={error} />
     </Layout>
   );
 }
 
 function FaceDancerRevealedComponent({ action, inPopover }: Props) {
-  const { options: o, validation, submit, error } = useBattleDraft(action, "FaceDancerRevealed");
+  const { options: o, validation, submit, submitPass, error } = useBattleDraft(action, "FaceDancerRevealed");
   if (!o) return null;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Reveal a Face Dancer?">
       {o.mayCall
-        ? <ButtonRow confirm={() => submit({ Passed: false })} confirmText="Yes" confirmError={validation} pass={() => submit({ Passed: true })} passText="No" />
-        : <ButtonRow pass={() => submit({ Passed: true })} passText="No" />}
+        ? <ButtonRow confirm={() => submit()} confirmText="Yes" confirmError={validation} pass={() => submitPass()} passText="No" />
+        : <ButtonRow pass={() => submitPass()} passText="No" />}
       <SubmitError error={error} />
     </Layout>
   );
@@ -403,13 +398,13 @@ function HMSAdvantageChosenComponent({ action, inPopover }: Props) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "HMSAdvantageChosen");
   if (!o) return null;
-  const chosen = o.choices.find((c) => c.value === draft.Advantage);
+  const chosen = o.choices.find((c) => c.name === draft.advantage);
   return (
     <Layout type={action.eventType} inPopover={inPopover}
             header={<>Select which advantage of another stronghold you control to use for the <PlaceChip place={{ location: skin.statics.map.hiddenMobileStronghold }} /></>}>
-      <SelectFromImage values={o.choices.map((c) => ({ value: c.value, src: skin.url(skin.get("StrongholdCardImage_URL", c.name)), alt: c.label, popover: strongholdAdvantagePopup(skin, c.name as StrongholdAdvantage) }))}
-                       value={draft.Advantage as number} required imageWidth={100}
-                       onChange={(v) => v !== null && v !== draft.Advantage && void update({ Advantage: v })} />
+      <SelectFromImage values={o.choices.map((c) => ({ value: c.name as StrongholdAdvantage, src: skin.url(skin.get("StrongholdCardImage_URL", c.name)), alt: c.label, popover: strongholdAdvantagePopup(skin, c.name as StrongholdAdvantage) }))}
+                       value={(draft.advantage ?? null) as StrongholdAdvantage | null} required imageWidth={100}
+                       onChange={(v) => v !== null && v !== draft.advantage && void update({ advantage: v })} />
       <ButtonRow confirm={() => submit()} confirmText={`Select ${chosen?.label ?? ""}`} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -422,7 +417,7 @@ function JuicePlayedComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header={`Use ${cardTypeName(skin, "Juice")}?`}>
-      <Radio values={o.choices.map((c) => c.value)} labels={o.choices.map((c) => c.label)} value={draft.Type as number} onChange={(v) => void update({ Type: v })} />
+      <Radio values={o.choices.map((c) => c.name as JuiceType)} labels={o.choices.map((c) => c.label)} value={draft.juiceType as JuiceType} onChange={(v) => void update({ juiceType: v })} />
       <ButtonRow confirm={() => submit()} confirmText={`Use ${cardTypeName(skin, "Juice")}`} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -436,18 +431,17 @@ function LoserConcludedComponent({ action, inPopover }: Props) {
   const { skin, view } = useGame();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "LoserConcluded");
   if (!o) return null;
-  const kept = idOrNull(draft._keptCardId);
-  const forced = typeof draft._forcedKeptOrDiscardedCardIds === "string" && draft._forcedKeptOrDiscardedCardIds !== ""
-    ? draft._forcedKeptOrDiscardedCardIds.split(";").map(Number) : [];
-  const decision = draft.KarmaForcedKeptCardDecision as number;
+  const kept = idOrNull(draft.keptCard);
+  const forced = Array.isArray(draft.forcedKeptOrDiscardedCardIds) ? (draft.forcedKeptOrDiscardedCardIds as number[]) : [];
+  const decision = draft.karmaForcedKeptCardDecision as number;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header="Please conclude the battle you lost">
       {o.cardsToKeep.length > 0 && (
         <SelectFromImage label="You may select one card to keep:" values={cardChoices(skin, o.cardsToKeep)} value={kept} required={false} imageWidth={80}
-                         onChange={(v) => void update({ _keptCardId: v ?? -1 })} />
+                         onChange={(v) => void update({ keptCard: v })} />
       )}
       {o.assassination && (
-        <Radio values={[true, false]} labels={["Yes", "No"]} value={draft.Assassinate as boolean} onChange={(v) => void update({ Assassinate: v })}
+        <Radio values={[true, false]} labels={["Yes", "No"]} value={draft.assassinate as boolean} onChange={(v) => void update({ assassinate: v })}
                label={(
                  <>
                    <div>Execute an assassination mission by revealing <Image src={skin.personImage(o.assassination.target)} alt={skin.person(o.assassination.target)}
@@ -461,14 +455,14 @@ function LoserConcludedComponent({ action, inPopover }: Props) {
       {o.mayUseKarma && (
         <>
           <Radio values={karmaDecisions} labels={["No", "Force keeping...", "Force discarding..."]} value={decision}
-                 onChange={(v) => void update({ KarmaForcedKeptCardDecision: v, ...(v === 0 ? { _forcedKeptOrDiscardedCardIds: "" } : {}) })}
+                 onChange={(v) => void update({ karmaForcedKeptCardDecision: v, ...(v === 0 ? { forcedKeptOrDiscardedCardIds: [] } : {}) })}
                  label={<>Use {cardTypeName(skin, "Karma")} to force your opponent to discard or keep any or all cards used in battle?</>} />
           {decision !== 0 && (
             <div className="img-choices">
               {o.cardsKeptOrDiscarded.map((c) => (
                 <span key={c} onClick={(e) => {
                   const next = e.shiftKey ? [c] : forced.includes(c) ? forced.filter((x) => x !== c) : [...forced, c];
-                  void update({ _forcedKeptOrDiscardedCardIds: next.join(";") });
+                  void update({ forcedKeptOrDiscardedCardIds: next });
                 }}>
                   <Image src={skin.cardImage(c)} alt={skin.card(c)} width={80} pointer highlightOnHover darkened={!forced.includes(c)} popover={treacheryCardPopup(skin, c)} />
                 </span>
@@ -490,8 +484,8 @@ function PlanetologyComponent({ action, inPopover }: Props) {
   return (
     <Layout type={action.eventType} inPopover={inPopover}
             header={<>Use <span>{skin.enumValue("LeaderSkill", "Planetologist")}</span> to move 1 extra territory or move two force groups to the same territory?</>}>
-      <ButtonRow confirm={() => submit({ AddOneToMovement: true })} confirmText="1 extra territory" confirmError={validation}
-                 other={() => submit({ AddOneToMovement: false })} otherText="2 force groups" />
+      <ButtonRow confirm={() => submit({ addOneToMovement: true })} confirmText="1 extra territory" confirmError={validation}
+                 other={() => submit({ addOneToMovement: false })} otherText="2 force groups" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -502,8 +496,8 @@ function PrescienceComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header="Use Prescience">
-      <Radio values={o.aspects.map((a) => a.value)} labels={o.aspects.map((a) => a.label)} value={draft.Aspect as number}
-             onChange={(v) => void update({ Aspect: v })} label="What should be foreseen?" />
+      <Radio values={o.aspects.map((a) => a.name as PrescienceAspect)} labels={o.aspects.map((a) => a.label)} value={draft.aspect as PrescienceAspect}
+             onChange={(v) => void update({ aspect: v })} label="What should be foreseen?" />
       <ButtonRow confirm={() => submit()} confirmText="Use Prescience" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -523,25 +517,25 @@ function RetreatComponent({ action, inPopover }: Props) {
     pin: () => o && (
       <div className="pin-body">
         <div className="pin-row">
-          {o.maxForces > 0 && <MapForceStepper value={draft.Forces as number} onChange={(v) => void update({ Forces: v })} min={0} max={o.maxForces} faction={faction} special={false} />}
-          {o.maxSpecialForces > 0 && <MapForceStepper value={draft.SpecialForces as number} onChange={(v) => void update({ SpecialForces: v })} min={0} max={o.maxSpecialForces} faction={faction} special />}
+          {o.maxForces > 0 && <MapForceStepper value={draft.forces as number} onChange={(v) => void update({ forces: v })} min={0} max={o.maxForces} faction={faction} special={false} />}
+          {o.maxSpecialForces > 0 && <MapForceStepper value={draft.specialForces as number} onChange={(v) => void update({ specialForces: v })} min={0} max={o.maxSpecialForces} faction={faction} special />}
         </div>
         <PinActions label="Retreat" validation={validation} cancel={() => pick.clear()} confirm={() => void submit()} />
       </div>
     ),
   });
   useEffect(() => {
-    const l = pick.target ?? -1;
-    if (o && draft._targetId !== l) void update({ _targetId: l });
+    const l = pick.target ?? null;
+    if (o && idOrNull(draft.location) !== l) void update({ location: l });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick.target]);
   if (!o) return null;
   // Passing still names a location, because the event insists on a valid one.
-  const target = pick.target ?? o.targets[0] ?? -1;
+  const target = pick.target ?? o.targets[0] ?? null;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="You may retreat from the battle any number of undialed forces to an adjacent empty non-stronghold territory">
       <div className="small">Use the map to choose a location.</div>
-      <ButtonRow pass={() => submit({ _targetId: target, Forces: 0, SpecialForces: 0 })} passText="Pass" />
+      <ButtonRow pass={() => submit({ location: target, forces: 0, specialForces: 0 })} passText="Pass" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -553,7 +547,7 @@ function RockWasMeltedComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header={`Use ${cardTypeName(skin, "Rockmelter")} to kill or to reduce leader strength to zero?`}>
-      <ButtonRow confirm={() => submit({ Kill: true })} confirmText="Kill" confirmError={validation} other={() => submit({ Kill: false })} otherText="Reduce to 0" />
+      <ButtonRow confirm={() => submit({ kill: true })} confirmText="Kill" confirmError={validation} other={() => submit({ kill: false })} otherText="Reduce to 0" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -564,17 +558,17 @@ function TakeLossesComponent({ action, inPopover }: Props) {
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "TakeLosses");
   if (!o) return null;
   const faction = (view.viewer.faction ?? "None") as Faction;
-  const forces = o.maxForces > 0 ? (draft.ForceAmount as number) : 0;
-  const specials = o.maxSpecialForces > 0 ? (draft.SpecialForceAmount as number) : 0;
+  const forces = o.maxForces > 0 ? (draft.forceAmount as number) : 0;
+  const specials = o.maxSpecialForces > 0 ? (draft.specialForceAmount as number) : 0;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover}
             header={<>Please choose how to distribute a storm loss total of at least <strong>{o.amount}</strong> over your forces in {o.location !== null && <PlaceChip place={{ location: o.location }} />}</>}>
-      {o.maxForces > 0 && <SelectForces value={forces} onChange={(v) => void update({ ForceAmount: v })} min={0} max={o.maxForces} faction={faction} special={false} />}
-      {o.maxSpecialForces > 0 && <SelectForces value={specials} onChange={(v) => void update({ SpecialForceAmount: v })} min={0} max={o.maxSpecialForces} faction={faction} special />}
+      {o.maxForces > 0 && <SelectForces value={forces} onChange={(v) => void update({ forceAmount: v })} min={0} max={o.maxForces} faction={faction} special={false} />}
+      {o.maxSpecialForces > 0 && <SelectForces value={specials} onChange={(v) => void update({ specialForceAmount: v })} min={0} max={o.maxSpecialForces} faction={faction} special />}
       <p>Total losses: <SimpleNumber>{String(forces + specials)}</SimpleNumber></p>
       {o.uselessLabel !== null
-        ? <ButtonRow confirm={() => submit({ UseUselessCard: false })} confirmText="Confirm Losses" confirmError={validation} other={() => submit({ UseUselessCard: true })} otherText={o.uselessLabel} />
-        : <ButtonRow confirm={() => submit({ UseUselessCard: false })} confirmText="Confirm Losses" confirmError={validation} />}
+        ? <ButtonRow confirm={() => submit({ useUselessCard: false })} confirmText="Confirm Losses" confirmError={validation} other={() => submit({ useUselessCard: true })} otherText={o.uselessLabel} />
+        : <ButtonRow confirm={() => submit({ useUselessCard: false })} confirmText="Confirm Losses" confirmError={validation} />}
       <SubmitError error={error} />
     </Layout>
   );
@@ -590,13 +584,13 @@ function TreacheryCalledComponent({ action, inPopover }: Props) {
   useEffect(() => {
     if (o && !o.mayCall && view.battle && passedFor.current !== battleKey) {
       passedFor.current = battleKey;
-      void autoSubmit({ TraitorCalled: false });
+      void autoSubmit({ traitorCalled: false });
     }
   });
   if (!o || !o.mayCall) return null;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Call TREACHERY?">
-      <ButtonRow confirm={() => submit({ TraitorCalled: true })} confirmText="TREACHERY!" confirmError={validation} pass={() => submit({ TraitorCalled: false })} passText="Pass" />
+      <ButtonRow confirm={() => submit({ traitorCalled: true })} confirmText="TREACHERY!" confirmError={validation} pass={() => submit({ traitorCalled: false })} passText="Pass" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -607,8 +601,8 @@ function VoiceComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header="Use Voice">
-      <Radio values={[true, false]} labels={["Force the use of...", "Deny the use of..."]} value={draft.Must as boolean} onChange={(v) => void update({ Must: v })} />
-      <Select options={o.types.map((t) => ({ value: t.value, label: t.label }))} value={draft.Type as number} onChange={(v) => void update({ Type: v })} />
+      <Radio values={[true, false]} labels={["Force the use of...", "Deny the use of..."]} value={draft.must as boolean} onChange={(v) => void update({ must: v })} />
+      <Select options={o.types.map((t) => ({ value: t.name as TreacheryCardType, label: t.label }))} value={(draft.cardType ?? null) as TreacheryCardType | null} onChange={(v) => void update({ cardType: v })} />
       <ButtonRow confirm={() => submit()} confirmText="Use Voice" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -619,18 +613,18 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
   const { skin, view } = useGame();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "BattleConcluded");
   if (!o) return null;
-  const discarded = typeof draft._cardIds === "string" && draft._cardIds !== "" ? draft._cardIds.split(";").map(Number) : [];
+  const discarded = Array.isArray(draft.cardIds) ? (draft.cardIds as number[]) : [];
   // DetermineSelectedCards keeps the order mercenary, weapon, defense.
   const toggle = (card: number, on: boolean) => {
     const order = [o.discardableMercenary, o.discardableWeapon, o.discardableDefense].filter((c): c is number => c !== null);
     const set = new Set(discarded);
     if (on) set.add(card); else set.delete(card);
-    void update({ _cardIds: order.filter((c) => set.has(c)).join(";") });
+    void update({ cardIds: order.filter((c) => set.has(c)) });
   };
-  const traitorToReplace = idOrNull(draft._traitorToReplaceId);
+  const traitorToReplace = idOrNull(draft.traitorToReplace);
   const replaceLabel = o.traitorsToReplace?.find((h) => h.id === traitorToReplace)?.label;
   // CaptureDecision is stored as Capture and Kill: DontCapture 0, Capture 1, Kill 2 (the C# enum).
-  const decision = !draft.Capture ? valueOf(o.capture?.decisions, "DontCapture") : draft.Kill ? valueOf(o.capture?.decisions, "Kill") : valueOf(o.capture?.decisions, "Capture");
+  const decision = !draft.capture ? valueOf(o.capture?.decisions, "DontCapture") : draft.kill ? valueOf(o.capture?.decisions, "Kill") : valueOf(o.capture?.decisions, "Capture");
   const discardable = [o.discardableMercenary, o.discardableWeapon, o.discardableDefense].filter((c): c is number => c !== null);
   const loserTokens = o.techTokens;
   return (
@@ -640,7 +634,7 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
           {o.maxReplacementForces > 0 && (
             <>
               <label>How many <ForceToken faction={o.forceSupplier} special size={20} /> losses should be exchanged with <ForceToken faction={o.forceSupplier} size={20} />?</label>
-              <SelectForces value={draft.SpecialForceLossesReplaced as number} onChange={(v) => void update({ SpecialForceLossesReplaced: v })} min={0}
+              <SelectForces value={draft.specialForceLossesReplaced as number} onChange={(v) => void update({ specialForceLossesReplaced: v })} min={0}
                             max={o.maxReplacementForces} faction={o.forceSupplier} special />
             </>
           )}
@@ -662,29 +656,29 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
                      label="What are your orders, keep or kill?"
                      onChange={(v) => {
                        const name = o.capture?.decisions.find((d) => d.value === v)?.name;
-                       void update({ Capture: name !== "DontCapture", Kill: name === "Kill" });
+                       void update({ capture: name !== "DontCapture", kill: name === "Kill" });
                      }} />
             </>
           )}
           {loserTokens.length > 0 && (
             <SelectFromImage label={loserTokens.length === 1 ? <span>You will steal the following tech token:</span> : <span>Choose a tech token to steal:</span>}
-                             values={loserTokens.map((t) => ({ value: t.value, src: skin.url(skin.get("TechTokenImage_URL", t.name)), alt: t.label, popover: techTokenPopup(skin, t.name as never) }))}
-                             value={draft.StolenToken as number} required onChange={(v) => v !== null && v !== draft.StolenToken && void update({ StolenToken: v })} />
+                             values={loserTokens.map((t) => ({ value: t.name as TechToken, src: skin.url(skin.get("TechTokenImage_URL", t.name)), alt: t.label, popover: techTokenPopup(skin, t.name as never) }))}
+                             value={(draft.stolenToken ?? null) as TechToken | null} required onChange={(v) => v !== null && v !== draft.stolenToken && void update({ stolenToken: v })} />
           )}
           {o.deciphererTraitors.length > 0 && (
             <>
               <SelectFromImage label={<><span>{skin.enumValue("LeaderSkill", "Decipherer")}</span> shows you the following leaders from the traitor deck:</>}
-                               values={heroChoices(skin, view, o.deciphererTraitors)} value={idOrNull(draft._newTraitorId)} required={false} imageWidth={80}
-                               onChange={(v) => void update({ _newTraitorId: v ?? -1 })} />
+                               values={heroChoices(skin, view, o.deciphererTraitors)} value={idOrNull(draft.newTraitor)} required={false} imageWidth={80}
+                               onChange={(v) => void update({ newTraitor: v })} />
               {o.traitorsToReplace && (
                 <SelectFromImage label={`If you wish, you may select one of the above leaders to reveal and replace one of your current ${view.viewer.faction === "Tleilaxu" ? "facedancers" : "traitors"}:`}
                                  values={heroChoices(skin, view, o.traitorsToReplace)} value={traitorToReplace} required={false} imageWidth={80}
-                                 onChange={(v) => void update({ _traitorToReplaceId: v ?? -1 })} />
+                                 onChange={(v) => void update({ traitorToReplace: v })} />
               )}
             </>
           )}
           {o.addExtraForceIn !== null && (
-            <Checkbox value={draft.AddExtraForce as boolean} onChange={(v) => void update({ AddExtraForce: v })}>
+            <Checkbox value={draft.addExtraForce as boolean} onChange={(v) => void update({ addExtraForce: v })}>
               Do you wish to add one force from reserves in <PlaceChip place={{ territory: o.addExtraForceIn }} />?
             </Checkbox>
           )}

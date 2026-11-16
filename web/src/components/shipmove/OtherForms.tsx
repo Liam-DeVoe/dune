@@ -2,7 +2,8 @@
 // (AmbassadorActivated moves or ships forces on the map; PerformFremenSetup stages forces).
 import { useEffect, useRef, useState } from "react";
 import type { ActionView } from "../../generated/ActionView";
-import { AmbassadorValue, FactionValue, type Ambassador, type DiscoveryToken, type Faction } from "../../generated/enums";
+import type { ShipmentPermission } from "../../generated/Event";
+import type { Ambassador, DiscoveryToken, Faction } from "../../generated/enums";
 import { ambassadorPopup, discoveryTokenPopup, leaderPopup, treacheryCardPopup, withSpiceIcons } from "../../popups";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
@@ -17,7 +18,7 @@ import { Select } from "../Select";
 import { SelectFromImage } from "../SelectFromImage";
 import { SpiceComponent } from "../SpiceComponent";
 import { isPlainClick, mapInteraction, onLocationClick, useMapInteraction, useMapPicker } from "../board/mapInteraction";
-import { enumName, EventLayout, forceLocationsString, idOf, MapForceStepper, optionsOf, parseForceLocations, PinActions, useDraft, useForceNames, useTerritoryOf, Validation, type ForceMap } from "./common";
+import { enumName, EventLayout, forceEntries, forceMap, idOf, MapForceStepper, optionsOf, PinActions, useDraft, useForceNames, useTerritoryOf, Validation, type ForceMap } from "./common";
 import { Radio } from "./PickForms";
 
 function useFaction(): Faction {
@@ -28,11 +29,11 @@ function useFaction(): Faction {
 // BeneGesseritFlipComponent.
 export function BeneGesseritFlipForm({ action }: { action: ActionView }) {
   const o = optionsOf(action.options, "BeneGesseritFlip");
-  const { validation, send } = useDraft(action, () => ({ AsAdvisors: false }));
+  const { validation, send } = useDraft(action, () => ({ asAdvisors: false }));
   return (
     <EventLayout type="BeneGesseritFlip" urgent header={<>Choose to be fighters or advisors in {o && <PlaceChip place={{ territory: o.territory }} />}.</>}>
-      <ButtonRow confirm={() => void send({ AsAdvisors: false })} confirmText="Fighters" confirmError={validation}
-                 other={() => void send({ AsAdvisors: true })} otherText="Advisors" />
+      <ButtonRow confirm={() => void send({ asAdvisors: false })} confirmText="Fighters" confirmError={validation}
+                 other={() => void send({ asAdvisors: true })} otherText="Advisors" />
     </EventLayout>
   );
 }
@@ -40,11 +41,11 @@ export function BeneGesseritFlipForm({ action }: { action: ActionView }) {
 // FlightUsedComponent.
 export function FlightUsedForm({ action }: { action: ActionView }) {
   const { skin } = useGame();
-  const { validation, send } = useDraft(action, () => ({ MoveThreeTerritories: true }));
+  const { validation, send } = useDraft(action, () => ({ moveThreeTerritories: true }));
   return (
     <EventLayout type="FlightUsed" header={`Use ${skin.enumValue("TreacheryCardType", "Flight")} to be able to move 3 territories once OR move 2 different force groups?`}>
-      <ButtonRow confirm={() => void send({ MoveThreeTerritories: true })} confirmText="Move 3 territories" confirmError={validation}
-                 other={() => void send({ MoveThreeTerritories: false })} otherText="Move 2 different groups" />
+      <ButtonRow confirm={() => void send({ moveThreeTerritories: true })} confirmText="Move 3 territories" confirmError={validation}
+                 other={() => void send({ moveThreeTerritories: false })} otherText="Move 2 different groups" />
     </EventLayout>
   );
 }
@@ -52,11 +53,11 @@ export function FlightUsedForm({ action }: { action: ActionView }) {
 // TestingStationUsedComponent.
 export function TestingStationUsedForm({ action }: { action: ActionView }) {
   const { skin } = useGame();
-  const { draft, validation, set, confirm } = useDraft(action, () => ({ ValueAdded: -1 }));
+  const { draft, validation, set, confirm } = useDraft(action, () => ({ valueAdded: -1 }));
   const token: DiscoveryToken = "TestingStation";
   return (
     <EventLayout type="TestingStationUsed" header={<>Use the <PopoverText popover={discoveryTokenPopup(skin, token)}>{skin.get("DiscoveryTokenName_STR", token)}</PopoverText>?</>}>
-      <Radio values={[-1, 1]} labels={["Subtract one from storm movement", "Add one to storm movement"]} value={draft.ValueAdded as number} onChange={(v) => set({ ValueAdded: v })} />
+      <Radio values={[-1, 1]} labels={["Subtract one from storm movement", "Add one to storm movement"]} value={draft.valueAdded as number} onChange={(v) => set({ valueAdded: v })} />
       <ButtonRow confirm={confirm} confirmError={validation} />
     </EventLayout>
   );
@@ -67,11 +68,11 @@ export function KarmaShipmentPreventionForm({ action }: { action: ActionView }) 
   const { skin } = useGame();
   const o = optionsOf(action.options, "KarmaShipmentPrevention");
   const first = (o?.targets[0] ?? "None") as Faction;
-  const { draft, validation, set, confirm } = useDraft(action, () => ({ Target: FactionValue[first] }));
-  const target = enumName(FactionValue, draft.Target, "None");
+  const { draft, validation, set, confirm } = useDraft(action, () => ({ target: first === "None" ? null : first }));
+  const target = enumName<Faction>(draft.target, "None");
   return (
     <EventLayout type="KarmaShipmentPrevention" header={`Use ${skin.enumValue("TreacheryCardType", "Karma")} to prevent shipment`}>
-      <SelectFromImage label="Target" imageWidth={40} value={target === "None" ? null : target} onChange={(f) => set({ Target: FactionValue[f ?? "None"] })}
+      <SelectFromImage label="Target" imageWidth={40} value={target === "None" ? null : target} onChange={(f) => set({ target: f })}
                        values={(o?.targets ?? []).map((f) => ({ value: f as Faction, src: skin.factionImage(f as Faction), alt: skin.faction(f as Faction), popover: null }))} />
       <ButtonRow confirm={confirm} confirmText="Prevent Shipment" confirmError={validation} />
     </EventLayout>
@@ -86,11 +87,11 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
   const [cross, setCross] = useState(false);
   const [homeworld, setHomeworld] = useState(false);
   const [discount, setDiscount] = useState(false);
-  const permission = (c: boolean, h: boolean, d: boolean) => (c ? 1 : 0) | (h ? 2 : 0) | (d ? 4 : 0);
-  const { validation, set, confirm, send } = useDraft(action, () => ({ Factions: [], Permission: 0 }));
+  const permission = (c: boolean, h: boolean, d: boolean): ShipmentPermission => ({ cross: c, toHomeworld: h, guildRate: d });
+  const { validation, set, confirm, send } = useDraft(action, () => ({ factions: [], permission: permission(false, false, false) }));
   const update = (t: Faction[], c: boolean, h: boolean, d: boolean) => {
     setTargets(t); setCross(c); setHomeworld(h); setDiscount(d);
-    set({ Factions: t.map((f) => FactionValue[f]), Permission: permission(c, h, d) });
+    set({ factions: t, permission: permission(c, h, d) });
   };
   const yes = (b: boolean) => (b ? "Yes" : "No");
   return (
@@ -113,7 +114,7 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
                 <td>{yes(row.cross)}</td>
                 <td>{yes(row.toHomeworld)}</td>
                 <td>{yes(row.guildRate)}</td>
-                <td><button className="btn btn-primary btn-sm" onClick={() => void send({ Factions: [FactionValue[row.faction]], Permission: 0 })}>Revoke</button></td>
+                <td><button className="btn btn-primary btn-sm" onClick={() => void send({ factions: [row.faction], permission: permission(false, false, false) })}>Revoke</button></td>
               </tr>
             ))}
           </tbody>
@@ -149,14 +150,14 @@ export function DiscoveryRevealedForm({ action }: { action: ActionView }) {
   const o = optionsOf(action.options, "DiscoveryRevealed");
   const locations = o?.locations ?? [];
   const [selected, setSelected] = useState(locations[0]?.location ?? -1);
-  const { validation, set, confirm, send } = useDraft(action, () => ({ _locationId: locations[0]?.location ?? -1, Passed: false }));
+  const { validation, set, confirm, pass } = useDraft(action, () => ({ location: locations[0]?.location ?? null }));
   const current = locations.find((l) => l.location === selected) ?? locations[0];
   const token = current?.token as DiscoveryToken | undefined;
   return (
     <EventLayout type="DiscoveryRevealed" header="Reveal a Discovery?">
       {locations.length > 1 && (
         <Select required label="Where?" options={locations.map((l) => ({ value: l.location, label: skin.location(l.location) }))} value={selected}
-                onChange={(v) => { setSelected(v); set({ _locationId: v }); }} />
+                onChange={(v) => { setSelected(v); set({ location: v }); }} />
       )}
       {current && token && (
         <>
@@ -164,7 +165,7 @@ export function DiscoveryRevealedForm({ action }: { action: ActionView }) {
           <div className="label-info" dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, skin.get("DiscoveryTokenDescription_STR", token)) }} />
         </>
       )}
-      <ButtonRow confirm={confirm} confirmError={validation} pass={() => void send({ Passed: true })} />
+      <ButtonRow confirm={confirm} confirmError={validation} pass={() => void pass()} />
     </EventLayout>
   );
 }
@@ -182,7 +183,7 @@ export function PerformFremenSetupForm({ action }: { action: ActionView }) {
   const st = useRef(forces);
   st.current = forces;
   const self = useRef<object>({});
-  const { validation, set, confirm } = useDraft(action, () => ({ _forceLocations: "" }));
+  const { validation, set, confirm } = useDraft(action, () => ({ forceLocations: [] }));
   useMapInteraction();
   const maxTotal = o?.maxTotal ?? 10;
   const staged = (special: boolean) => st.current.reduce((n, [, b]) => n + (special ? b.specialForces : b.forces), 0);
@@ -194,7 +195,7 @@ export function PerformFremenSetupForm({ action }: { action: ActionView }) {
   const commit = (next: ForceMap) => {
     st.current = next;
     setForces(next);
-    set({ _forceLocations: forceLocationsString(next) });
+    set({ forceLocations: forceEntries(next) });
   };
   const add = (l: number, special: boolean) => {
     if (!(o?.targets ?? []).includes(l) || (special && !o?.mayStageSpecial) || room(special) === 0) return;
@@ -314,26 +315,26 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
   const initialActual = (o0?.ambassador === "BeneGesserit" ? o0.beneGesseritAmbassadors[0] ?? "None" : o0?.ambassador ?? "None") as Ambassador;
   const initialIxian = initialActual === "Ixian" ? o0?.ixianCards[0] ?? null : null;
   const d = useDraft(action, () => ({
-    BeneGesseritSelectedAmbassador: AmbassadorValue[initialActual], EcazOfferAlliance: false, EcazGiveVidalToAlly: false, EcazTakeVidal: false,
-    GuildForceAmount: 0, TleilaxuAmountOfForces: 0, TleilaxuAssignSkill: false, _choamCardIds: "", _fremenOrGuildToId: -1,
-    _fremenForceLocations: "", _ixianCardId: initialIxian ?? -1, _tleilaxuHeroId: -1, Passed: false,
+    beneGesseritSelectedAmbassador: initialActual === "None" ? null : initialActual, ecazOfferAlliance: false, ecazGiveVidalToAlly: false, ecazTakeVidal: false,
+    guildForceAmount: 0, tleilaxuAmountOfForces: 0, tleilaxuAssignSkill: false, choamCardIds: [], fremenOrGuildTo: null,
+    fremenForceLocations: [], ixianCard: initialIxian, tleilaxuHero: null,
   }));
   const o = optionsOf(d.options, "AmbassadorActivated") ?? o0;
   // The component's fields, from the draft. The server makes the markup's adjustments: the
   // shown ambassador or the first valid one, Ecaz checkboxes that no longer apply, Tleilaxu
   // forces without room, a skill for a hero that can't take one, the Guild amount without
   // targets, the first Ixian card.
-  const actual = enumName(AmbassadorValue, d.draft.BeneGesseritSelectedAmbassador, "None");
-  const choamCards = typeof d.draft._choamCardIds === "string" && d.draft._choamCardIds !== "" ? d.draft._choamCardIds.split(";").map(Number) : [];
-  const takeVidal = d.draft.EcazTakeVidal === true;
-  const offerAlliance = d.draft.EcazOfferAlliance === true;
-  const giveVidal = d.draft.EcazGiveVidalToAlly === true;
-  const fremenForces = parseForceLocations(d.draft._fremenForceLocations);
-  const ixianCard = idOf(d.draft._ixianCardId);
-  const guildAmount = typeof d.draft.GuildForceAmount === "number" ? d.draft.GuildForceAmount : 0;
-  const tleilaxuForces = typeof d.draft.TleilaxuAmountOfForces === "number" ? d.draft.TleilaxuAmountOfForces : 0;
-  const tleilaxuHero = idOf(d.draft._tleilaxuHeroId);
-  const assignSkill = d.draft.TleilaxuAssignSkill === true;
+  const actual = enumName<Ambassador>(d.draft.beneGesseritSelectedAmbassador, "None");
+  const choamCards = Array.isArray(d.draft.choamCardIds) ? (d.draft.choamCardIds as number[]) : [];
+  const takeVidal = d.draft.ecazTakeVidal === true;
+  const offerAlliance = d.draft.ecazOfferAlliance === true;
+  const giveVidal = d.draft.ecazGiveVidalToAlly === true;
+  const fremenForces = forceMap(d.draft.fremenForceLocations);
+  const ixianCard = idOf(d.draft.ixianCard);
+  const guildAmount = typeof d.draft.guildForceAmount === "number" ? d.draft.guildForceAmount : 0;
+  const tleilaxuForces = typeof d.draft.tleilaxuAmountOfForces === "number" ? d.draft.tleilaxuAmountOfForces : 0;
+  const tleilaxuHero = idOf(d.draft.tleilaxuHero);
+  const assignSkill = d.draft.tleilaxuAssignSkill === true;
   const victim = (o?.victim ?? "None") as Faction;
   const movesForces = actual === "Fremen";
   const shipsForces = actual === "Guild";
@@ -364,7 +365,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
         ) : (
           <>
             <div className="pin-row">
-              <MapForceStepper value={guildAmount} onChange={(v) => d.set({ GuildForceAmount: v })} max={o?.guildMaxForces ?? 0} faction={faction} />
+              <MapForceStepper value={guildAmount} onChange={(v) => d.set({ guildForceAmount: v })} max={o?.guildMaxForces ?? 0} faction={faction} />
             </div>
             <PinActions validation={d.validation} cancel={pick.clear} confirm={d.confirm} label="Send" />
           </>
@@ -374,7 +375,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
   });
   const setFremen = (l: number, v: number, special: boolean) => {
     const next: ForceMap = fremenForces.map(([x, b]) => [x, x === l ? (special ? { ...b, specialForces: v } : { ...b, forces: v }) : b]);
-    d.set({ _fremenForceLocations: forceLocationsString(next) });
+    d.set({ fremenForceLocations: forceEntries(next) });
   };
   // OnPickChanged: moving starts with everything in the clicked sectors; shipping with one force.
   const key = `${pick.target}|${pick.selected.join(",")}`;
@@ -388,12 +389,12 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
     }
     let guild = guildAmount;
     if (shipsForces && pick.target != null && guild === 0) guild = Math.min(1, o?.guildMaxForces ?? 0);
-    d.set({ _fremenOrGuildToId: pick.target ?? -1, _fremenForceLocations: forceLocationsString(kept), GuildForceAmount: guild });
+    d.set({ fremenOrGuildTo: pick.target, fremenForceLocations: forceEntries(kept), guildForceAmount: guild });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const chooseActual = (a: Ambassador | null) => {
-    d.set({ BeneGesseritSelectedAmbassador: AmbassadorValue[(a ?? "None") as Ambassador] });
+    d.set({ beneGesseritSelectedAmbassador: a });
   };
   const cardChoice = (c: number) => ({ value: c, src: skin.cardImage(c), alt: skin.card(c), popover: treacheryCardPopup(skin, c) });
   const forceToken = <ForceToken faction={faction} size={20} />;
@@ -412,7 +413,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
               const on = choamCards.includes(c);
               return (
                 <Image key={c} src={skin.cardImage(c)} alt={skin.card(c)} width={80} popover={treacheryCardPopup(skin, c)} pointer highlightOnHover darkened={!on}
-                       onClick={() => { const next = on ? choamCards.filter((x) => x !== c) : [...choamCards, c]; d.set({ _choamCardIds: next.join(";") }); }} />
+                       onClick={() => { const next = on ? choamCards.filter((x) => x !== c) : [...choamCards, c]; d.set({ choamCardIds: next }); }} />
               );
             })}
           </div>
@@ -422,12 +423,12 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
     case "Ecaz":
       body = (
         <>
-          {o?.vidalCanBeTaken && <Checkbox value={takeVidal} onChange={(v) => d.set({ EcazTakeVidal: v })}>Take {vidal}</Checkbox>}
+          {o?.vidalCanBeTaken && <Checkbox value={takeVidal} onChange={(v) => d.set({ ecazTakeVidal: v })}>Take {vidal}</Checkbox>}
           {!takeVidal && o?.allianceCanBeOffered && (
             <>
-              <Checkbox value={offerAlliance} onChange={(v) => d.set({ EcazOfferAlliance: v })}>Offer an alliance to <FactionChip faction={victim} /></Checkbox>
+              <Checkbox value={offerAlliance} onChange={(v) => d.set({ ecazOfferAlliance: v })}>Offer an alliance to <FactionChip faction={victim} /></Checkbox>
               {offerAlliance && o.vidalCanBeOfferedToNewAlly && (
-                <Checkbox value={giveVidal} onChange={(v) => d.set({ EcazGiveVidalToAlly: v })}>Give {vidal} to <FactionChip faction={victim} /> if they agree to ally</Checkbox>
+                <Checkbox value={giveVidal} onChange={(v) => d.set({ ecazGiveVidalToAlly: v })}>Give {vidal} to <FactionChip faction={victim} /> if they agree to ally</Checkbox>
               )}
             </>
           )}
@@ -455,7 +456,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
         <>
           <div>Discard a card from your hand to draw a new one?</div>
           <SelectFromImage label="Select the card you wish to discard" imageWidth={80} value={ixianCard} values={(o?.ixianCards ?? []).map(cardChoice)}
-                           onChange={(c) => d.set({ _ixianCardId: c ?? -1 })} />
+                           onChange={(c) => d.set({ ixianCard: c })} />
         </>
       );
       break;
@@ -475,15 +476,15 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
           {(o?.tleilaxuMaxAmount ?? 0) > 0 && (
             <div className="d-inline-flex align-items-center">
               <NumberPicker value={tleilaxuForces} min={0} max={o!.tleilaxuMaxAmount} symbolSrc={skin.url(skin.get("FactionForceImage_URL", faction))}
-                            onChange={(v) => d.set({ TleilaxuAmountOfForces: v })} />
+                            onChange={(v) => d.set({ tleilaxuAmountOfForces: v })} />
             </div>
           )}
           <SelectFromImage required={false} imageWidth={80} value={tleilaxuHero}
-                           onChange={(h) => d.set({ _tleilaxuHeroId: h ?? -1 })}
+                           onChange={(h) => d.set({ tleilaxuHero: h })}
                            values={(o?.tleilaxuHeroes ?? []).map((h) => ({ value: h.id, src: h.hero.t === "leader" ? skin.personImage(h.id) : h.hero.t === "treacheryCard" ? skin.cardImage(h.id) : skin.url(skin.str("Messiah_URL")), alt: "", popover: null }))} />
           {tleilaxuHero != null && o?.mayAssignSkill && (
             <Radio label="Do you wish to assign a skill to this leader?" values={[false, true]} labels={["No", "Yes"]} value={assignSkill}
-                   onChange={(v) => d.set({ TleilaxuAssignSkill: v })} />
+                   onChange={(v) => d.set({ tleilaxuAssignSkill: v })} />
           )}
         </>
       );
@@ -502,7 +503,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
       )}
       {body}
       {o?.mayPass
-        ? <ButtonRow confirm={d.confirm} confirmError={d.validation} pass={() => void d.send({ Passed: true })} />
+        ? <ButtonRow confirm={d.confirm} confirmError={d.validation} pass={() => void d.pass()} />
         : <ButtonRow confirm={d.confirm} confirmError={d.validation} />}
     </EventLayout>
   );

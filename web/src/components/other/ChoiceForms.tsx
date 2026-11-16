@@ -3,9 +3,9 @@
 // Options and the adjusted draft come from rust/view/src/actions/other.rs.
 import { useRef, useState } from "react";
 import type { ActionView } from "../../generated/ActionView";
-import { FactionValue } from "../../generated/enums";
+import { type AuctionType, type ChoamEconomicsStatus, type Faction, type FactionAdvantage, type LeaderSkill, FactionValue } from "../../generated/enums";
 import type { Part } from "../../generated/Part";
-import type { GameEventDraft } from "../../state/source";
+import type { Event } from "../../generated/Event";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
 import { FactionChip } from "../FactionChip";
@@ -14,11 +14,11 @@ import { NumberPicker, SelectResources } from "../NumberPicker";
 import { PlaceChip } from "../PlaceChip";
 import { heroChoices, heroName } from "../revival/parts";
 import { RichText } from "../RichText";
-import { useViewChanges } from "../formDraft";
+import { eventOf, useViewChanges } from "../formDraft";
 import { SelectFromImage } from "../SelectFromImage";
 import { SpiceComponent } from "../SpiceComponent";
 import {
-  cardChoices, cardType, factionChoices, fmt, idList, idString, Layout, num, Radio, SelectManyFromImage, SelectNumber,
+  cardChoices, cardType, factionChoices, factionOf, fmt, idList, idOf, Layout, nameOf, num, Radio, SelectManyFromImage, SelectNumber,
   SubmitError, useOtherDraft,
 } from "./parts";
 import { Select } from "../Select";
@@ -28,7 +28,7 @@ export interface FormProps {
   inPopover?: boolean;
 }
 
-const cardName = (skin: ReturnType<typeof useGame>["skin"], id: number) => (id >= 0 ? skin.card(id) : "");
+const cardName = (skin: ReturnType<typeof useGame>["skin"], id: number | null) => (id != null ? skin.card(id) : "");
 
 // A form whose only input is one card: Discarded, EmperorDiscarded, ChoamDiscarded, DiscardedSearched,
 // DiscardedTaken, IxianSelectedStartingCard, KarmaRicheseBuy, RicheseGaveCard.
@@ -41,10 +41,10 @@ function CardForm({ action, inPopover = false, form, header, urgent = false, con
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, form);
   if (!o) return null;
-  const card = num(draft._cardId);
+  const card = idOf(draft.card);
   return (
     <Layout type={form} header={header} urgent={urgent} inPopover={inPopover}>
-      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
+      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ card: v })} imageWidth={80} />
       <ButtonRow confirm={() => submit()} confirmText={confirm(cardName(skin, card))} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -101,17 +101,17 @@ export function RicheseGaveCardForm(p: FormProps) {
   return <CardForm {...p} form="RicheseGaveCard" header="Give your ally a card?" confirm={(c) => fmt("Give {0}", c)} />;
 }
 
-// IxianSwappedCardOnBidComponent: Pass sends `Passed`.
+// IxianSwappedCardOnBidComponent: Pass sends the pass.
 export function IxianSwappedCardOnBidForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();
-  const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "IxianSwappedCardOnBid");
+  const { options: o, draft, validation, update, submit, submitPass, error } = useOtherDraft(action, "IxianSwappedCardOnBid");
   if (!o) return null;
-  const card = num(draft._cardId);
+  const card = idOf(draft.card);
   return (
     <Layout type="IxianSwappedCardOnBid" header="Swap the next card on auction with a card from your hand? You can do this once per Bidding round." urgent inPopover={inPopover}>
-      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
+      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ card: v })} imageWidth={80} />
       <ButtonRow confirm={() => submit()} confirmText={fmt("Swap {0}", cardName(skin, card))} confirmError={validation}
-                 pass={() => submit({ Passed: true })} passText="Pass" />
+                 pass={() => submitPass()} passText="Pass" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -122,12 +122,12 @@ export function IxianRemovedCardFromAuctionForm({ action, inPopover = false }: F
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "IxianRemovedCardFromAuction");
   if (!o) return null;
-  const card = num(draft._cardId);
+  const card = idOf(draft.card);
   return (
     <Layout type="IxianRemovedCardFromAuction" header="Put one card on top or on the bottom of the Treachery Card deck" urgent inPopover={inPopover}>
-      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
-      <ButtonRow confirm={() => submit({ PutOnTop: true })} confirmText="Put on top" confirmError={validation}
-                 pass={() => submit({ PutOnTop: false })} passText="Put at bottom" />
+      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ card: v })} imageWidth={80} />
+      <ButtonRow confirm={() => submit({ putOnTop: true })} confirmText="Put on top" confirmError={validation}
+                 pass={() => submit({ putOnTop: false })} passText="Put at bottom" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -137,7 +137,7 @@ export function IxianRemovedCardFromAuctionForm({ action, inPopover = false }: F
 function FactionForm({ action, inPopover = false, form, header, member, confirm, urgent = false, startCollapsed = false, label }: FormProps & {
   form: "ResourcesAudited" | "FactionSelected" | "KarmaHandSwapInitiated" | "FactionTradeOffered" | "ChoamKarmaPrevention";
   header: React.ReactNode;
-  member: string;
+  member: "target" | "faction";
   confirm: (faction: string) => string;
   urgent?: boolean;
   startCollapsed?: boolean;
@@ -146,11 +146,11 @@ function FactionForm({ action, inPopover = false, form, header, member, confirm,
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, form);
   if (!o) return null;
-  const value = num(draft[member]);
-  const chosen = o.targets.find((t) => t.value === value)?.faction;
+  const value = factionOf(draft[member]);
+  const chosen = o.targets.find((t) => t.faction === value)?.faction;
   return (
     <Layout type={form} header={header} urgent={urgent} startCollapsed={startCollapsed} inPopover={inPopover}>
-      <SelectFromImage values={factionChoices(skin, o.targets)} value={value} onChange={(v) => update({ [member]: v ?? 0 })} imageWidth={40} label={label} />
+      <SelectFromImage values={factionChoices(skin, o.targets)} value={value} onChange={(v) => update({ [member]: v })} imageWidth={40} label={label} />
       <ButtonRow confirm={() => submit()} confirmText={confirm(chosen ?? "")} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -160,19 +160,19 @@ function FactionForm({ action, inPopover = false, form, header, member, confirm,
 export function ResourcesAuditedForm(p: FormProps) {
   const { skin } = useGame();
   return (
-    <FactionForm {...p} form="ResourcesAudited" member="Target" confirm={() => "Confirm"}
+    <FactionForm {...p} form="ResourcesAudited" member="target" confirm={() => "Confirm"}
       header={<>Force a faction to reveal the amount of {skin.concept("Resource")}, weapons and defenses?</>} />
   );
 }
 
 export function FactionSelectedForm(p: FormProps) {
-  return <FactionForm {...p} form="FactionSelected" member="Faction" confirm={() => "Choose Faction"} header="Choose your faction. If you don't, it will be assigned at random." />;
+  return <FactionForm {...p} form="FactionSelected" member="faction" confirm={() => "Choose Faction"} header="Choose your faction. If you don't, it will be assigned at random." />;
 }
 
 export function KarmaHandSwapInitiatedForm(p: FormProps) {
   const { skin } = useGame();
   return (
-    <FactionForm {...p} form="KarmaHandSwapInitiated" member="Target" confirm={() => "Initiate Swap"} label="Target"
+    <FactionForm {...p} form="KarmaHandSwapInitiated" member="target" confirm={() => "Initiate Swap"} label="Target"
       header={<>Use {cardType(skin, "Karma")} to perform a Hand Swap</>} />
   );
 }
@@ -182,7 +182,7 @@ export function ChoamKarmaPreventionForm(p: FormProps) {
   const o = p.action.options?.form === "ChoamKarmaPrevention" ? p.action.options : null;
   const karma = cardType(skin, "Karma");
   return (
-    <FactionForm {...p} form="ChoamKarmaPrevention" member="Target" confirm={() => fmt("Prevent use of {0}", karma)}
+    <FactionForm {...p} form="ChoamKarmaPrevention" member="target" confirm={() => fmt("Prevent use of {0}", karma)}
       header={<>Use {o?.card ? <RichText parts={o.card} /> : "Nexus Cunning"} to prevent a faction from playing {karma} this phase?</>} />
   );
 }
@@ -191,7 +191,7 @@ export function FactionTradeOfferedForm(p: FormProps) {
   const { skin } = useGame();
   const o = p.action.options?.form === "FactionTradeOffered" ? p.action.options : null;
   return (
-    <FactionForm {...p} form="FactionTradeOffered" member="Target" header="Offer to trade factions"
+    <FactionForm {...p} form="FactionTradeOffered" member="target" header="Offer to trade factions"
       confirm={(f) => (o?.inPlay.some((x) => x === f) ? fmt("Offer Trade with {0}", skin.faction(f as never)) : fmt("Pick {0}", f === "" ? "" : skin.faction(f as never)))} />
   );
 }
@@ -204,9 +204,9 @@ export function DistransUsedForm({ action, inPopover = false }: FormProps) {
   const name = cardType(skin, "Distrans");
   return (
     <Layout type="DistransUsed" header={<>Use {name}?</>} inPopover={inPopover}>
-      <SelectFromImage values={factionChoices(skin, o.targets)} value={num(draft.Target)} onChange={(v) => update({ Target: v ?? 0 })} imageWidth={40} />
+      <SelectFromImage values={factionChoices(skin, o.targets)} value={factionOf(draft.target)} onChange={(v) => update({ target: v })} imageWidth={40} />
       <div className="mt-1">
-        <SelectFromImage values={cardChoices(skin, o.cards)} value={num(draft._cardId)} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
+        <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
       </div>
       <ButtonRow confirm={() => submit()} confirmText={fmt("Use {0}", name)} confirmError={validation} />
       <SubmitError error={error} />
@@ -219,15 +219,15 @@ export function CardTradedForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "CardTraded");
   if (!o) return null;
-  const requested = num(draft._requestedCardId);
+  const requested = idOf(draft.requestedCard);
   return (
     <Layout type="CardTraded" header="Trade one of your cards with your ally?" inPopover={inPopover}>
-      <SelectFromImage values={cardChoices(skin, o.cards)} value={num(draft._cardId)} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
+      <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
       {o.allyCards && (
         <>
           <div className="mt-1">Because you're playing with a Bot, you may select one of their cards to receive in return:</div>
-          <SelectFromImage values={cardChoices(skin, o.allyCards)} value={requested >= 0 ? requested : null} required={false}
-                           onChange={(v) => update({ _requestedCardId: v ?? -1 })} imageWidth={80} />
+          <SelectFromImage values={cardChoices(skin, o.allyCards)} value={requested} required={false}
+                           onChange={(v) => update({ requestedCard: v })} imageWidth={80} />
         </>
       )}
       <ButtonRow confirm={() => submit()} confirmText="Trade Card" confirmError={validation} />
@@ -243,11 +243,12 @@ function HeroForm({ action, inPopover = false, form, header, confirm }: FormProp
   const { skin, view } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, form);
   if (!o) return null;
-  const id = num(draft._traitorId);
+  const key = form === "TraitorsSelected" ? "selectedTraitor" : "traitor";
+  const id = idOf(draft[key]);
   const hero = o.heroes.find((h) => h.id === id);
   return (
     <Layout type={form} header={header} urgent inPopover={inPopover}>
-      <SelectFromImage values={heroChoices(skin, view, o.heroes)} value={id} onChange={(v) => update({ _traitorId: v ?? -1 })} imageWidth={80} />
+      <SelectFromImage values={heroChoices(skin, view, o.heroes)} value={id} onChange={(v) => update({ [key]: v })} imageWidth={80} />
       <ButtonRow confirm={() => submit()} confirmText={fmt(confirm, hero ? heroName(skin, hero.hero) : "")} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -267,11 +268,11 @@ export function SkillAssignedForm({ action, inPopover = false }: FormProps) {
   const { skin, view } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "SkillAssigned");
   if (!o) return null;
-  const skills = o.skills.map((s) => ({ value: s.value, src: skin.url(skin.get("LeaderSkillCardImage_URL", s.name)), alt: s.label, popover: null, tooltip: s.label }));
+  const skills = o.skills.map((s) => ({ value: s.name as LeaderSkill, src: skin.url(skin.get("LeaderSkillCardImage_URL", s.name)), alt: s.label, popover: null, tooltip: s.label }));
   return (
     <Layout type="SkillAssigned" header="Assign a skill to a one of your leaders" urgent inPopover={inPopover}>
-      <SelectFromImage values={skills} value={num(draft.Skill)} onChange={(v) => update({ Skill: v ?? 0 })} imageWidth={80} />
-      <SelectFromImage values={heroChoices(skin, view, o.leaders)} value={num(draft._leaderId)} onChange={(v) => update({ _leaderId: v ?? -1 })} imageWidth={80} />
+      <SelectFromImage values={skills} value={nameOf(draft.skill) as LeaderSkill | null} onChange={(v) => update({ skill: v })} imageWidth={80} />
+      <SelectFromImage values={heroChoices(skin, view, o.leaders)} value={idOf(draft.leader)} onChange={(v) => update({ leader: v })} imageWidth={80} />
       <ButtonRow confirm={() => submit()} confirmText="Assign Skill" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -285,8 +286,8 @@ export function BeneGesseritPredictionForm({ action, inPopover = false }: FormPr
   if (!o) return null;
   return (
     <Layout type="BeneGesseritPrediction" header={null} urgent inPopover={inPopover}>
-      <SelectFromImage values={factionChoices(skin, o.targets)} value={num(draft.ToWin)} onChange={(v) => update({ ToWin: v ?? 0 })} imageWidth={40} />
-      <SelectNumber value={num(draft.Turn)} onChange={(v) => update({ Turn: v })} min={1} max={o.maxTurn} />
+      <SelectFromImage values={factionChoices(skin, o.targets)} value={factionOf(draft.toWin)} onChange={(v) => update({ toWin: v })} imageWidth={40} />
+      <SelectNumber value={num(draft.turn)} onChange={(v) => update({ turn: v })} min={1} max={o.maxTurn} />
       <ButtonRow confirm={() => submit()} confirmText="Confirm Prediction" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -301,7 +302,7 @@ export function StormSpellPlayedForm({ action, inPopover = false }: FormProps) {
   const name = cardType(skin, "StormSpell");
   return (
     <Layout type="StormSpellPlayed" header={<>Use {name}?</>} inPopover={inPopover}>
-      <SelectNumber value={num(draft.MoveAmount)} onChange={(v) => update({ MoveAmount: v })} min={0} max={10} label="Number of sectors" />
+      <SelectNumber value={num(draft.moveAmount)} onChange={(v) => update({ moveAmount: v })} min={0} max={10} label="Number of sectors" />
       <ButtonRow confirm={() => submit()} confirmText={fmt("Use {0}", name)} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -316,7 +317,7 @@ export function ResourcesTransferredForm({ action, inPopover = false }: FormProp
   return (
     <Layout type="ResourcesTransferred" header={<>Transfer {skin.concept("Resource")} to your ally?</>} inPopover={inPopover}>
       <div className="mt-1">
-        <SelectResources value={num(draft.Resources)} onChange={(v) => update({ Resources: v })} min={0} max={o.max} />
+        <SelectResources value={num(draft.resources)} onChange={(v) => update({ resources: v })} min={0} max={o.max} />
       </div>
       <ButtonRow confirm={() => submit()} confirmError={validation} />
       <SubmitError error={error} />
@@ -327,16 +328,16 @@ export function ResourcesTransferredForm({ action, inPopover = false }: FormProp
 // DivideResourcesComponent.
 export function DivideResourcesForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();
-  const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "DivideResources");
+  const { options: o, draft, validation, update, submit, submitPass, error } = useOtherDraft(action, "DivideResources");
   if (!o) return null;
-  const portion = num(draft.PortionToFirstPlayer);
+  const portion = num(draft.portionToFirstPlayer);
   return (
     <Layout type="DivideResources" header={<>Please choose how to divide collected {skin.concept("Resource")}</>} urgent inPopover={inPopover}>
       <div className="mt-1">
         <SpiceComponent amount={String(o.amount)} /> was collected from <PlaceChipTerritory id={o.territory} /> by you and <FactionChip faction={o.otherFaction} />
       </div>
       <div className="mt-1">
-        <SelectResources value={portion} onChange={(v) => update({ PortionToFirstPlayer: v })} min={0} max={o.amount} label="How much should go to you?" />
+        <SelectResources value={portion} onChange={(v) => update({ portionToFirstPlayer: v })} min={0} max={o.amount} label="How much should go to you?" />
       </div>
       <div className="mt-1">
         If <FactionChip faction={o.otherFaction} /> agree, they will receive the remaining <SpiceComponent amount={String(o.amount - portion)} />
@@ -344,7 +345,7 @@ export function DivideResourcesForm({ action, inPopover = false }: FormProps) {
       <div className="mt-1">
         If you pass, you get <SpiceComponent amount={String(o.gainedIfPassed)} /> and <FactionChip faction={o.otherFaction} /> get <SpiceComponent amount={String(o.otherGainsIfPassed)} />
       </div>
-      <ButtonRow pass={() => submit({ Passed: true })} confirm={() => submit()} confirmError={validation} />
+      <ButtonRow pass={() => submitPass()} confirm={() => submit()} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
   );
@@ -360,7 +361,7 @@ export function ChoamEconomicsForm({ action, inPopover = false }: FormProps) {
   if (!o) return null;
   return (
     <Layout type="ChoamEconomics" header="Play Inflation?" inPopover={inPopover}>
-      <Radio values={o.statuses.map((s) => ({ value: s.value, label: s.label }))} value={num(draft.Status)} onChange={(v) => update({ Status: v })} />
+      <Radio values={o.statuses.map((s) => ({ value: s.name as ChoamEconomicsStatus, label: s.label }))} value={nameOf(draft.status) as ChoamEconomicsStatus} onChange={(v) => update({ status: v })} />
       <ButtonRow confirm={() => submit()} confirmText="Confirm Inflation" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -375,8 +376,8 @@ export function KarmaForm({ action, inPopover = false }: FormProps) {
   const karma = cardType(skin, "Karma");
   return (
     <Layout type="Karma" header={<>Use {karma} to prevent a faction from using one of their advantages</>} inPopover={inPopover}>
-      <SelectFromImage values={cardChoices(skin, o.cards)} value={num(draft._cardId)} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
-      <Select options={o.advantages.map((a) => ({ value: a.value, label: a.label }))} value={num(draft.Prevented)} onChange={(v) => update({ Prevented: v })}
+      <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
+      <Select options={o.advantages.map((a) => ({ value: a.name as FactionAdvantage, label: a.label }))} value={nameOf(draft.prevented) as FactionAdvantage | null} onChange={(v) => update({ prevented: v })}
               label={<>Advantage to prevent <InfoIcon contents="Prevention of an advantages with a * cannot be done automatically and must be done verbally between players. This might require an undo-action by the host after the action you want to prevent has occured." /></>} />
       <ButtonRow confirm={() => submit()} confirmText={fmt("Use {0}", karma)} confirmError={validation} />
       <SubmitError error={error} />
@@ -406,10 +407,10 @@ export function KarmaChoamDiscardForm({ action, inPopover = false }: FormProps) 
   return (
     <Layout type="KarmaChoamDiscard" header={<>Use {karma} to discard any cards from your hand to gain <SpiceComponent amount="3" /> each</>} inPopover={inPopover}>
       {o.karmaCards.length > 1 && (
-        <SelectFromImage values={cardChoices(skin, o.karmaCards)} value={num(draft._cardToUse)} imageWidth={80} label={<>{karma} card to use</>}
-                         onChange={(v) => update({ _cardToUse: v ?? -1, _cardIds: "" })} />
+        <SelectFromImage values={cardChoices(skin, o.karmaCards)} value={idOf(draft.cardToUse)} imageWidth={80} label={<>{karma} card to use</>}
+                         onChange={(v) => update({ cardToUse: v, cardIds: [] })} />
       )}
-      <SelectManyFromImage values={cardChoices(skin, o.cards)} selected={idList(draft._cardIds)} onChange={(v) => update({ _cardIds: idString(v) })}
+      <SelectManyFromImage values={cardChoices(skin, o.cards)} selected={idList(draft.cardIds)} onChange={(v) => update({ cardIds: v })}
                            imageWidth={80} label="Cards to discard" />
       <ButtonRow confirm={() => submit()} confirmText="Discard" confirmError={validation} />
       <SubmitError error={error} />
@@ -424,7 +425,7 @@ export function KarmaHandSwapForm({ action, inPopover = false }: FormProps) {
   if (!o) return null;
   return (
     <Layout type="KarmaHandSwap" header={<>Return {o.number} cards to <FactionChip faction={o.target} /></>} urgent inPopover={inPopover}>
-      <SelectManyFromImage values={cardChoices(skin, o.cards)} selected={idList(draft._cardIds)} onChange={(v) => update({ _cardIds: idString(v) })} imageWidth={80} />
+      <SelectManyFromImage values={cardChoices(skin, o.cards)} selected={idList(draft.cardIds)} onChange={(v) => update({ cardIds: v })} imageWidth={80} />
       <ButtonRow confirm={() => submit()} confirmText="Return Cards" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -433,22 +434,22 @@ export function KarmaHandSwapForm({ action, inPopover = false }: FormProps) {
 
 // Forms with only buttons.
 export function ReplacedCardWonForm({ action, inPopover = false }: FormProps) {
-  const { options: o, validation, submit, error } = useOtherDraft(action, "ReplacedCardWon");
+  const { options: o, validation, submit, submitPass, error } = useOtherDraft(action, "ReplacedCardWon");
   if (!o) return null;
   return (
     <Layout type="ReplacedCardWon" header="Replace the card you just won by discarding it and drawing a new card from the Treachery Card deck?" inPopover={inPopover}>
-      <ButtonRow confirm={() => submit()} confirmText="Yes" confirmError={validation} pass={() => submit({ Passed: true })} passText="No" />
+      <ButtonRow confirm={() => submit()} confirmText="Yes" confirmError={validation} pass={() => submitPass()} passText="No" />
       <SubmitError error={error} />
     </Layout>
   );
 }
 
 export function RicheseKeepsUnsoldCardForm({ action, inPopover = false }: FormProps) {
-  const { options: o, validation, submit, error } = useOtherDraft(action, "RicheseKeepsUnsoldCard");
+  const { options: o, validation, submit, submitPass, error } = useOtherDraft(action, "RicheseKeepsUnsoldCard");
   if (!o) return null;
   return (
     <Layout type="RicheseKeepsUnsoldCard" header="Do you wish to get the card no faction bid on for free or should it be removed from the game?" urgent inPopover={inPopover}>
-      <ButtonRow confirm={() => submit()} confirmText="Get for free" confirmError={validation} pass={() => submit({ Passed: true })} passText="Remove from game" />
+      <ButtonRow confirm={() => submit()} confirmText="Get for free" confirmError={validation} pass={() => submitPass()} passText="Remove from game" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -459,7 +460,7 @@ export function RicheseAnnouncesAuctionForm({ action, inPopover = false }: FormP
   if (!o) return null;
   return (
     <Layout type="RicheseAnnouncesAuction" header={<>Auction a card from your <FactionChip faction="Richese" /> card cache First or Last?</>} urgent inPopover={inPopover}>
-      <ButtonRow confirm={() => submit({ First: true })} confirmText="First" confirmError={validation} other={() => submit({ First: false })} otherText="Last" />
+      <ButtonRow confirm={() => submit({ first: true })} confirmText="First" confirmError={validation} other={() => submit({ first: false })} otherText="Last" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -467,13 +468,13 @@ export function RicheseAnnouncesAuctionForm({ action, inPopover = false }: FormP
 
 // MulliganPerformedComponent and NexusCardDrawnComponent: without permission only "No".
 function MayForm({ action, inPopover = false, form, header, noText }: FormProps & { form: "MulliganPerformed" | "NexusCardDrawn"; header: string; noText: string }) {
-  const { options: o, validation, submit, error } = useOtherDraft(action, form);
+  const { options: o, validation, submit, submitPass, error } = useOtherDraft(action, form);
   if (!o) return null;
   return (
     <Layout type={form} header={header} urgent inPopover={inPopover}>
       {o.may
-        ? <ButtonRow confirm={() => submit()} confirmText="Yes" confirmError={validation} pass={() => submit({ Passed: true })} passText={noText} />
-        : <ButtonRow pass={() => submit({ Passed: true })} passText="No" />}
+        ? <ButtonRow confirm={() => submit()} confirmText="Yes" confirmError={validation} pass={() => submitPass()} passText={noText} />
+        : <ButtonRow pass={() => submitPass()} passText="No" />}
       <SubmitError error={error} />
     </Layout>
   );
@@ -492,21 +493,21 @@ const directions = [{ value: 1, label: "Counter-clockwise" }, { value: -1, label
 // RicheseAnnouncesBlackMarketComponent.
 export function RicheseAnnouncesBlackMarketForm({ action, inPopover = false }: FormProps) {
   const { skin, view } = useGame();
-  const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "RicheseAnnouncesBlackMarket");
+  const { options: o, draft, validation, update, submit, submitPass, error } = useOtherDraft(action, "RicheseAnnouncesBlackMarket");
   if (!o) return null;
-  const card = num(draft._cardId);
-  const onceAround = o.auctionTypes.find((t) => t.name === "BlackMarketOnceAround")?.value;
+  const card = idOf(draft.card);
+  const onceAround: AuctionType = "BlackMarketOnceAround";
   void view;
   return (
     <Layout type="RicheseAnnouncesBlackMarket" header="Select a card to put on the Black Market, or pass" urgent inPopover={inPopover}>
-      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
-      <Radio values={o.auctionTypes.map((t) => ({ value: t.value, label: t.label }))} value={num(draft.AuctionType)} onChange={(v) => update({ AuctionType: v })}
+      <SelectFromImage values={cardChoices(skin, o.cards)} value={card} onChange={(v) => update({ card: v })} imageWidth={80} />
+      <Radio values={o.auctionTypes.map((t) => ({ value: t.name as AuctionType, label: t.label }))} value={nameOf(draft.auctionType) as AuctionType} onChange={(v) => update({ auctionType: v })}
              label="Type of auction" />
-      {num(draft.AuctionType) === onceAround && (
-        <Radio values={directions} value={num(draft.Direction)} onChange={(v) => update({ Direction: v })} label="Bidding direction" />
+      {nameOf(draft.auctionType) === onceAround && (
+        <Radio values={directions} value={num(draft.direction)} onChange={(v) => update({ direction: v })} label="Bidding direction" />
       )}
       <ButtonRow confirm={() => submit()} confirmText={fmt("Put {0} on Black Market", cardName(skin, card))} confirmError={validation}
-                 pass={() => submit({ Passed: true })} passText="Pass" />
+                 pass={() => submitPass()} passText="Pass" />
       <SubmitError error={error} />
     </Layout>
   );
@@ -517,18 +518,18 @@ export function RicheseSpecifiesAuctionForm({ action, inPopover = false }: FormP
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "RicheseSpecifiesAuction");
   if (!o) return null;
-  const onceAround = o.auctionTypes.find((t) => t.name === "RicheseOnceAround")?.value;
+  const onceAround: AuctionType = "RicheseOnceAround";
   return (
     <Layout type="RicheseSpecifiesAuction" header="Define the auction" urgent inPopover={inPopover}>
       {o.maySpecifyCard && (
-        <SelectFromImage values={cardChoices(skin, o.cards)} value={num(draft._cardId)} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
+        <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
       )}
       {o.maySpecifyType && (
         <>
-          <Radio values={o.auctionTypes.map((t) => ({ value: t.value, label: t.label }))} value={num(draft.AuctionType)}
-                 onChange={(v) => update({ AuctionType: v })} label="Type of auction" />
-          {num(draft.AuctionType) === onceAround && (
-            <Radio values={directions} value={num(draft.Direction)} onChange={(v) => update({ Direction: v })} label="Bidding direction" />
+          <Radio values={o.auctionTypes.map((t) => ({ value: t.name as AuctionType, label: t.label }))} value={nameOf(draft.auctionType) as AuctionType}
+                 onChange={(v) => update({ auctionType: v })} label="Type of auction" />
+          {nameOf(draft.auctionType) === onceAround && (
+            <Radio values={directions} value={num(draft.direction)} onChange={(v) => update({ direction: v })} label="Bidding direction" />
           )}
         </>
       )}
@@ -545,7 +546,7 @@ export function StormDialledForm({ action, inPopover = false }: FormProps) {
   return o ? <StormDial action={action} min={o.min} max={o.max} inPopover={inPopover} submit={source.submit.bind(source)} /> : null;
 }
 
-function StormDial({ action, min, max, inPopover, submit }: { action: ActionView; min: number; max: number; inPopover: boolean; submit: (e: GameEventDraft) => Promise<string | null> }) {
+function StormDial({ action, min, max, inPopover, submit }: { action: ActionView; min: number; max: number; inPopover: boolean; submit: (e: Event) => Promise<string | null> }) {
   const { source } = useGame();
   // The field starts at 0, which the number picker clamps into [Min, Max].
   const [amount, setAmount] = useState(() => (0 < min ? min : 0 > max ? max : 0));
@@ -554,7 +555,7 @@ function StormDial({ action, min, max, inPopover, submit }: { action: ActionView
   const latest = useRef(0);
   const ask = async (v: number) => {
     const n = ++latest.current;
-    const r = await source.query({ $type: action.eventType, Amount: v });
+    const r = await source.query(eventOf(action.eventType, { amount: v }));
     if (n === latest.current) setValidation(r.validation);
   };
   const change = (v: number) => {
@@ -568,7 +569,7 @@ function StormDial({ action, min, max, inPopover, submit }: { action: ActionView
       <div className="d-flex align-items-center">
         <NumberPicker value={amount} onChange={change} min={min} max={max} symbolFill="white" />
       </div>
-      <ButtonRow confirm={async () => setError(await submit({ $type: action.eventType, Amount: amount }))} confirmText={`Dial ${amount}`} confirmError={validation} />
+      <ButtonRow confirm={async () => setError(await submit(eventOf(action.eventType, { amount })))} confirmText={`Dial ${amount}`} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
   );
@@ -580,17 +581,17 @@ export function AllianceOfferedForm({ action, inPopover = false }: FormProps) {
   const { skin, source } = useGame();
   const o = action.options?.form === "AllianceOffered" ? action.options : null;
   const targets = (o?.targets ?? []).map((f) => ({ faction: f, value: FactionValue[f] }));
-  const [target, setTarget] = useState<number | null>(null);
+  const [target, setTarget] = useState<Faction | null>(null);
   const [validation, setValidation] = useState<Part[] | null>(action.validation);
   const [error, setError] = useState<string | null>(null);
-  const chosen = target != null && targets.some((t) => t.value === target) ? target : (targets[0]?.value ?? null);
+  const chosen = target != null && targets.some((t) => t.faction === target) ? target : (targets[0]?.faction ?? null);
   const latest = useRef(0);
-  const ask = async (v: number | null) => {
+  const ask = async (v: Faction | null) => {
     const n = ++latest.current;
-    const r = await source.query({ $type: action.eventType, Target: v ?? 0 });
+    const r = await source.query(eventOf(action.eventType, { target: v }));
     if (n === latest.current) setValidation(r.validation);
   };
-  const change = (v: number | null) => {
+  const change = (v: Faction | null) => {
     setTarget(v);
     void ask(v);
   };
@@ -601,7 +602,7 @@ export function AllianceOfferedForm({ action, inPopover = false }: FormProps) {
   return (
     <Layout type="AllianceOffered" header="Offer a faction to form an Alliance" inPopover={inPopover}>
       <SelectFromImage values={factionChoices(skin, targets)} value={chosen} onChange={change} imageWidth={40} />
-      <ButtonRow confirm={async () => setError(await source.submit({ $type: action.eventType, Target: chosen ?? 0 }))} confirmText="Offer Alliance"
+      <ButtonRow confirm={async () => setError(await source.submit(eventOf(action.eventType, { target: chosen })))} confirmText="Offer Alliance"
                  confirmError={validation} />
       <SubmitError error={error} />
     </Layout>

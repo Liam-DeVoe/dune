@@ -90,7 +90,8 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
         let line: Value = serde_json::from_str(&text).unwrap();
         let kind = line["kind"].as_str().unwrap();
         if kind == "header" {
-            let mut g = Game::of_version(line["gameVersion"].as_i64().unwrap() as i32);
+            // Version 190 is played as 191, which changed only the format.
+            let mut g = Game::of_version((line["gameVersion"].as_i64().unwrap() as i32).max(treachery_legacy::LAST_LEGACY_VERSION + 1));
             g.human_seats = human_seats(&line["participation"]);
             game = Some(g);
             continue;

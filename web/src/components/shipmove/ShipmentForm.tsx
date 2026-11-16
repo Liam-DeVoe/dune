@@ -6,14 +6,14 @@
 import { useEffect, useRef } from "react";
 import type { ActionView } from "../../generated/ActionView";
 import type { ShipmentOptions } from "../../generated/ShipmentOptions";
-import { type Faction, type ShipmentType, ShipmentTypeValue } from "../../generated/enums";
+import type { Faction, ShipmentType } from "../../generated/enums";
 import { useGame } from "../../state/context";
 import { useViewChanges } from "../formDraft";
 import { ButtonRow } from "../ButtonRow";
 import { FactionChip } from "../FactionChip";
 import { PlaceChip } from "../PlaceChip";
 import { isPlainClick, mapInteraction, onLocationClick, useMapInteraction } from "../board/mapInteraction";
-import { enumName, EventLayout, forceLocationsString, idOf, MapForceStepper, optionsOf, parseForceLocations, PinChoice, useBoardGeometry, useDraft, Validation, type Draft, type ForceMap } from "./common";
+import { enumName, EventLayout, forceEntries, idOf, MapForceStepper, optionsOf, forceMap, PinChoice, useBoardGeometry, useDraft, Validation, type Draft, type ForceMap } from "./common";
 
 interface State {
   type: ShipmentType;
@@ -36,24 +36,23 @@ const reset = (): State => ({
   smuggled: 0, smuggledSpecial: 0, origins: [], from: null, to: null,
 });
 
-// ConfirmedResult, in savegame JSON (NoFieldValue is stored plus one).
+// ConfirmedResult, as the event's inputs (the No-Field values are stored plus one).
 function toDraft(s: State): Draft {
   const direction = s.type === "ShipmentBack" ? -1 : 1;
   return {
-    ShipmentType: ShipmentTypeValue[s.type],
-    ForceAmount: direction * s.forces,
-    SpecialForceAmount: direction * s.specialForces,
-    SmuggledAmount: s.smuggled,
-    SmuggledSpecialAmount: s.smuggledSpecial,
-    AllyContributionAmount: s.ally,
-    UseRicheseSecretAlly: s.type === "ShipmentRicheseSecretAlly",
-    _toId: s.to ?? -1,
-    _fromId: s.from ?? -1,
-    _noFieldValue: s.noField + 1,
-    _cunningNoFieldValue: s.cunningNoField + 1,
-    _karmaCardId: s.karmaCard ?? -1,
-    _forceLocations: forceLocationsString(s.origins),
-    Passed: false,
+    shipmentType: s.type,
+    forceAmount: direction * s.forces,
+    specialForceAmount: direction * s.specialForces,
+    smuggledAmount: s.smuggled,
+    smuggledSpecialAmount: s.smuggledSpecial,
+    allyContributionAmount: s.ally,
+    useRicheseSecretAlly: s.type === "ShipmentRicheseSecretAlly",
+    to: s.to,
+    from: s.from,
+    noFieldValue: s.noField + 1,
+    cunningNoFieldValue: s.cunningNoField + 1,
+    karmaCard: s.karmaCard,
+    forceLocations: forceEntries(s.origins),
   };
 }
 
@@ -64,20 +63,20 @@ const destinationOf = (s: State) => (s.type === "ShipmentBack" ? null : s.to);
 
 // The component's fields, read from a draft (the server's adjusted one once it answered).
 function fromDraft(d: Draft): State {
-  const num = (k: string) => (typeof d[k] === "number" ? (d[k] as number) : 0);
+  const num = (k: keyof Draft) => (typeof d[k] === "number" ? (d[k] as number) : 0);
   return {
-    type: enumName(ShipmentTypeValue, d.ShipmentType, "ShipmentNormal"),
-    karmaCard: idOf(d._karmaCardId),
-    forces: Math.abs(num("ForceAmount")),
-    specialForces: Math.abs(num("SpecialForceAmount")),
-    ally: num("AllyContributionAmount"),
-    noField: num("_noFieldValue") - 1,
-    cunningNoField: num("_cunningNoFieldValue") - 1,
-    smuggled: num("SmuggledAmount"),
-    smuggledSpecial: num("SmuggledSpecialAmount"),
-    origins: parseForceLocations(d._forceLocations),
-    from: idOf(d._fromId),
-    to: idOf(d._toId),
+    type: enumName<ShipmentType>(d.shipmentType, "ShipmentNormal"),
+    karmaCard: idOf(d.karmaCard),
+    forces: Math.abs(num("forceAmount")),
+    specialForces: Math.abs(num("specialForceAmount")),
+    ally: num("allyContributionAmount"),
+    noField: num("noFieldValue") - 1,
+    cunningNoField: num("cunningNoFieldValue") - 1,
+    smuggled: num("smuggledAmount"),
+    smuggledSpecial: num("smuggledSpecialAmount"),
+    origins: forceMap(d.forceLocations),
+    from: idOf(d.from),
+    to: idOf(d.to),
   };
 }
 
@@ -87,7 +86,7 @@ export function ShipmentForm({ action }: { action: ActionView }) {
   const seat = view.players.find((p) => p.faction === faction)?.seat ?? 0;
   const me = view.players.find((p) => p.faction === faction);
   const board = useBoardGeometry();
-  const { draft, options, validation, set, send, confirm, get } = useDraft(action, () => toDraft(reset()));
+  const { draft, options, validation, set, pass, confirm, get } = useDraft(action, () => toDraft(reset()));
   const state = fromDraft(draft);
   const o = optionsOf(options, "Shipment");
   const self = useRef<object>({});
@@ -347,7 +346,7 @@ export function ShipmentForm({ action }: { action: ActionView }) {
       {o?.mayShipCrossPlanet && <div className="small text-2">You may also ship site-to-site: click the sector to ship from first.</div>}
       {o?.mayShipToReserves && <div className="small text-2">You may also ship forces back to your reserves: click the sector holding them.</div>}
       {prevented ? <div className="small">{o?.karmaName} prevents you from shipping.</div> : <div className="small">Use the map to ship forces.</div>}
-      {state.type !== "ShipmentRicheseSecretAlly" && <ButtonRow pass={() => void send({ Passed: true })} passText="Pass" />}
+      {state.type !== "ShipmentRicheseSecretAlly" && <ButtonRow pass={() => void pass()} passText="Pass" />}
     </EventLayout>
   );
 }

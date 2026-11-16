@@ -11,9 +11,8 @@ import type { Part } from "../../generated/Part";
 import { leaderPopup, messiahPopup, treacheryCardPopup } from "../../popups";
 import type { Skin } from "../../skin";
 import { useGame } from "../../state/context";
-import type { GameEventDraft } from "../../state/source";
 import { CollapseButton } from "../CollapseButton";
-import { useServerDraft } from "../formDraft";
+import { type Fields, useServerDraft } from "../formDraft";
 import { hasStarredSpecialForce } from "../ForceToken";
 import { NumberPicker } from "../NumberPicker";
 import { RichText } from "../RichText";
@@ -54,16 +53,18 @@ type WithDraft = Extract<ActionOptions, { draft: Record<string, unknown> }>;
 // A battle form's state (formDraft.ts): the server's latest options and validation. Their `draft`
 // is the event with the inputs as the component shows them (rust/view/src/schema/battle.rs).
 export function useBattleDraft<F extends WithDraft["form"]>(action: ActionView, form: F) {
-  const { source, options, draft, validation, update, error, setError } = useServerDraft(action, form);
-  // Pass and Other send the draft with a field changed (PassedResult, OtherResult).
-  const submit = async (changes: Record<string, unknown> = {}) => setError(await source.submit({ ...draft, ...changes } as GameEventDraft));
+  const { source, options, draft, validation, update, withChanges, pass, error, setError } = useServerDraft(action, form);
+  // Other sends the draft with an input changed (OtherResult). Pass sends the pass of a passable
+  // event (PassedResult).
+  const submit = async (changes: Fields = {}) => setError(await source.submit(withChanges(changes)));
+  const submitPass = async () => setError(await source.submit(pass()));
   // A submission the form makes by itself (BattleInitiated with one fight, TreacheryCalled when
   // there is nothing to call): C# only logs a refusal to the console.
-  const autoSubmit = async (changes: Record<string, unknown> = {}) => {
-    const refused = await source.submit({ ...draft, ...changes } as GameEventDraft);
+  const autoSubmit = async (changes: Fields = {}) => {
+    const refused = await source.submit(withChanges(changes));
     if (refused) console.log(refused);
   };
-  return { options, draft, validation, update, submit, autoSubmit, error };
+  return { options, draft, validation, update, submit, submitPass, autoSubmit, error };
 }
 
 // The server's answer to a refused submission, under the form.
@@ -142,7 +143,7 @@ export function cardChoices(skin: Skin, cards: number[]): ImageChoice<number>[] 
   return cards.map((id) => ({ value: id, src: skin.cardImage(id), alt: skin.card(id), popover: treacheryCardPopup(skin, id) }));
 }
 
-// A hero id of the event (`_heroId`, `_traitorToReplaceId`, ...): -1 for none.
+// An id input of the event (`hero`, `traitorToReplace`, ...): null for none.
 export function idOrNull(v: unknown): number | null {
   return typeof v === "number" && v >= 0 ? v : null;
 }

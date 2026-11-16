@@ -3,7 +3,7 @@
 // open from the menu bar's TradePopover), EmperorBidSupportComponent and
 // AutomationConfiguredComponent (opened from the menu bar).
 import { useEffect, useRef, useState } from "react";
-import type { Faction } from "../../generated/enums";
+import type { AutomationRuleType, DealType, Faction, Phase } from "../../generated/enums";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
 import { Checkbox } from "../Checkbox";
@@ -16,7 +16,8 @@ import { SelectFromImage } from "../SelectFromImage";
 import { SpiceComponent } from "../SpiceComponent";
 import { Image } from "../Image";
 import type { FormProps } from "./ChoiceForms";
-import { cardChoices, cardType, CommandButton, factionChoices, Layout, num, Segmented, SelectManyFromImage, SubmitError, useFaction, useOtherDraft } from "./parts";
+import { type Fields, fieldsOf } from "../formDraft";
+import { cardChoices, cardType, CommandButton, factionChoices, factionOf, idOf, Layout, nameOf, num, Segmented, SelectManyFromImage, SubmitError, useFaction, useOtherDraft } from "./parts";
 import { Select } from "../Select";
 
 const yesNo = (b: unknown) => (b === true ? "yes" : "no");
@@ -30,10 +31,10 @@ export function AllyPermissionForm({ action, inPopover = false }: FormProps) {
   // Set by an edit and cleared by Confirm Changes only (ConfirmAndSetUnedited), not by a new view.
   const [edited, setEdited] = useState(false);
   if (!o) return null;
-  const cur = o.current;
-  const edit = (changes: Record<string, unknown>) => { setEdited(true); void update(changes); };
-  const check = (member: string, label: React.ReactNode, aliases: string[] = []) => (
-    <Checkbox value={draft[member] === true} onChange={(v) => edit(Object.fromEntries([member, ...aliases].map((m) => [m, v])))}>
+  const cur = fieldsOf(o.current);
+  const edit = (changes: Fields) => { setEdited(true); void update(changes); };
+  const check = (member: keyof Fields, label: React.ReactNode) => (
+    <Checkbox value={draft[member] === true} onChange={(v) => edit({ [member]: v })}>
       {label} (currently: <strong>{yesNo(cur[member])}</strong>)
     </Checkbox>
   );
@@ -54,35 +55,35 @@ export function AllyPermissionForm({ action, inPopover = false }: FormProps) {
         </>
       )}
       <div className="mt-1">
-        <SelectResources value={num(draft.PermittedResources)} onChange={(v) => edit({ PermittedResources: v })} min={0} max={o.maxResources} label={willingToPay} />
+        <SelectResources value={num(draft.permittedResources)} onChange={(v) => edit({ permittedResources: v })} min={0} max={o.maxResources} label={willingToPay} />
       </div>
       {o.karmaCards && (
-        <SelectFromImage values={cardChoices(skin, o.karmaCards)} value={num(draft._permittedKarmaCardId) >= 0 ? num(draft._permittedKarmaCardId) : null} required={false}
-                         onChange={(v) => edit({ _permittedKarmaCardId: v ?? -1 })} imageWidth={80}
+        <SelectFromImage values={cardChoices(skin, o.karmaCards)} value={idOf(draft.permittedKarmaCard)} required={false}
+                         onChange={(v) => edit({ permittedKarmaCard: v })} imageWidth={80}
                          label={<>Select a {karma} card they may use to ship at <FactionChip faction="Guild" /> rates (currently: {currentKarma == null ? <strong>none</strong> : <RichText parts={[{ t: "treacheryCard", id: currentKarma, label: skin.card(currentKarma) }]} />})?</>} />
       )}
       {faction === "Emperor" && (
         <div className="mt-1">
-          <label className="mt-1 mb-0">How many revivals will you pay for them (currently: <strong>{num(cur.EmperorWillPayForExtraRevival)}</strong>)?</label>
-          <SelectForces value={num(draft.EmperorWillPayForExtraRevival)} onChange={(v) => edit({ EmperorWillPayForExtraRevival: v })} min={0} max={3} faction={o.ally} special={false} />
+          <label className="mt-1 mb-0">How many revivals will you pay for them (currently: <strong>{num(cur.emperorWillPayForExtraRevival)}</strong>)?</label>
+          <SelectForces value={num(draft.emperorWillPayForExtraRevival)} onChange={(v) => edit({ emperorWillPayForExtraRevival: v })} min={0} max={3} faction={o.ally} special={false} />
         </div>
       )}
-      {faction === "Guild" && check("GuildAllowsShippingDiscount", <>Allow shipment at <FactionChip faction="Guild" /> rates and site-to-site</>, ["AllyMayShipAsGuild"])}
-      {faction === "Tleilaxu" && check("TleilaxuAllowsRevivalDiscount", <>Allow revival at <FactionChip faction="Tleilaxu" /> rates</>, ["AllyMayReviveAsTleilaxu"])}
-      {faction === "Ixian" && check("IxianAllowsReplacingCards", "Allow replacing treachery cards they win", ["AllyMayReplaceCards"])}
+      {faction === "Guild" && check("allyMayShipAsGuild", <>Allow shipment at <FactionChip faction="Guild" /> rates and site-to-site</>)}
+      {faction === "Tleilaxu" && check("allyMayReviveAsTleilaxu", <>Allow revival at <FactionChip faction="Tleilaxu" /> rates</>)}
+      {faction === "Ixian" && check("allyMayReplaceCards", "Allow replacing treachery cards they win")}
       {faction === "Fremen" && (
         <>
-          {check("FremenAllowsThreeFreeRevivals", "Allow 3 free revivals")}
-          {check("FremenWillProtectFromMonster", <>Protect them from <MonsterIcon /></>)}
-          {o.fremenDeterminesStorm && check("FremenSharesPrescience", "Share storm knowledge")}
-          {o.fremenRefundsDial && check("FremenRefundsBattleDial", `Refund ${skin.concept("Resource")} dialled in battle`)}
+          {check("fremenAllowsThreeFreeRevivals", "Allow 3 free revivals")}
+          {check("fremenWillProtectFromMonster", <>Protect them from <MonsterIcon /></>)}
+          {o.fremenDeterminesStorm && check("fremenSharesPrescience", "Share storm knowledge")}
+          {o.fremenRefundsDial && check("fremenRefundsBattleDial", `Refund ${skin.concept("Resource")} dialled in battle`)}
         </>
       )}
-      {faction === "Atreides" && check("AtreidesSharesPrescience", "Share your Prescience")}
-      {faction === "BeneGesserit" && check("BeneGesseritAllowsUseOfVoice", "Allow use of Voice")}
-      {faction === "Richese" && check("RicheseAllowsUseOfNoField", "Allow shipment by No-Field")}
-      {faction === "Moritani" && check("MoritaniAllowsKeepingCards", "Allow keeping a treachery card after a lost battle")}
-      {faction === "Ecaz" && check("EcazSharesAmbassadors", "Allow them to activate and benefit from ambassadors")}
+      {faction === "Atreides" && check("atreidesSharesPrescience", "Share your Prescience")}
+      {faction === "BeneGesserit" && check("beneGesseritAllowsUseOfVoice", "Allow use of Voice")}
+      {faction === "Richese" && check("richeseAllowsUseOfNoField", "Allow shipment by No-Field")}
+      {faction === "Moritani" && check("moritaniAllowsKeepingCards", "Allow keeping a treachery card after a lost battle")}
+      {faction === "Ecaz" && check("ecazSharesAmbassadors", "Allow them to activate and benefit from ambassadors")}
       <ButtonRow confirm={async () => { await submit(); setEdited(false); }} confirmText="Confirm Changes" confirmError={validation} disabled={!edited} />
       <SubmitError error={error} />
     </Layout>
@@ -95,20 +96,20 @@ export function DonatedForm({ action, inPopover = false }: FormProps) {
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "Donated");
   if (!o) return null;
   const resource = skin.concept("Resource");
-  const card = num(draft._cardId);
+  const card = idOf(draft.card);
   return (
     <Layout type="Donated" header={<>Give {resource} to a faction</>} startCollapsed inPopover={inPopover}>
-      <SelectFromImage values={factionChoices(skin, o.targets)} value={num(draft.Target)} onChange={(v) => update({ Target: v ?? 0 })} imageWidth={40} />
+      <SelectFromImage values={factionChoices(skin, o.targets)} value={factionOf(draft.target)} onChange={(v) => update({ target: v })} imageWidth={40} />
       <div className="mt-1">
-        <SelectResources value={num(draft.Resources)} onChange={(v) => update({ Resources: v })} min={o.min} max={o.max} />
+        <SelectResources value={num(draft.resources)} onChange={(v) => update({ resources: v })} min={o.min} max={o.max} />
       </div>
       {o.cards && (
         <div className="mt-1">
-          <SelectFromImage values={cardChoices(skin, o.cards)} value={card >= 0 ? card : null} required={false} onChange={(v) => update({ _cardId: v ?? -1 })} imageWidth={80} />
+          <SelectFromImage values={cardChoices(skin, o.cards)} value={card} required={false} onChange={(v) => update({ card: v })} imageWidth={80} />
         </div>
       )}
       {o.isHost && (
-        <Checkbox value={draft.FromBank === true} onChange={(v) => update({ FromBank: v })}>
+        <Checkbox value={draft.fromBank === true} onChange={(v) => update({ fromBank: v })}>
           Host only: give from {resource} bank (you may select a negative amount to put that amount of {resource} from target faction in the bank)
         </Checkbox>
       )}
@@ -118,7 +119,15 @@ export function DonatedForm({ action, inPopover = false }: FormProps) {
   );
 }
 
-// DealOfferedComponent. Every target starts picked, which offers to everyone (To empty); a click
+// DealType by number, as DealTypeOption gives it.
+const DEAL_TYPES: Record<number, DealType> = {
+  0: "None", 10: "DontShipOrMoveTo", 30: "ShareBiddingPrescience", 50: "ShareResourceDeckPrescience", 60: "ShareStormPrescience",
+  70: "ForfeitBattle", 80: "TellDiscardedTraitors",
+};
+const dealTypeName = (v: number): DealType => DEAL_TYPES[v] ?? "None";
+const dealTypeValue = (t: unknown): number => Number(Object.keys(DEAL_TYPES).find((k) => DEAL_TYPES[Number(k)] === t) ?? 0);
+
+// DealOfferedComponent. Every target starts picked, which offers to everyone (`to` empty); a click
 // drops a faction, shift-click offers to that faction alone.
 export function DealOfferedForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();
@@ -126,18 +135,18 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
   // The C# component's fields, kept across events while the form stays open; only the text is
   // cleared after an offer (ConfirmOffer). The draft is kept across views too (formDraft.ts); when
   // the options come back after an answer for another form, the fields are sent again.
-  const [to, setTo] = useState<number[] | null>(null);
+  const [to, setTo] = useState<Faction[] | null>(null);
   const [theyPay, setTheyPay] = useState(true);
   const [amount, setAmount] = useState(0);
   const [type, setType] = useState<number | null>(null);
-  const [until, setUntil] = useState<number | null>(null);
+  const [until, setUntil] = useState<Phase | null>(null);
   const [text, setText] = useState("");
-  const all = o?.targets.map((t) => t.value) ?? [];
+  const all = o?.targets.map((t) => t.faction) ?? [];
   const picked = to == null ? all : all.filter((v) => to.includes(v));
-  const toField = (p: number[]) => (all.every((v) => p.includes(v)) ? [] : p);
-  const fields = () => ({
-    To: toField(picked), Price: theyPay ? amount : 0, Benefit: theyPay ? 0 : amount, Text: text,
-    ...(type != null ? { Type: type } : {}), ...(until != null ? { EndPhase: until } : {}),
+  const toField = (p: Faction[]) => (all.every((v) => p.includes(v)) ? [] : p);
+  const fields = (): Fields => ({
+    to: toField(picked), price: theyPay ? amount : 0, benefit: theyPay ? 0 : amount, text,
+    ...(type != null ? { dealType: dealTypeName(type) } : {}), ...(until != null ? { endPhase: until } : {}),
   });
   const edited = to != null || !theyPay || amount !== 0 || type != null || until != null || text !== "";
   const hadOptions = useRef(o != null);
@@ -150,28 +159,28 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
   const setPayment = (pay: boolean, a: number) => {
     setTheyPay(pay);
     setAmount(a);
-    void update({ Price: pay ? a : 0, Benefit: pay ? 0 : a });
+    void update({ price: pay ? a : 0, benefit: pay ? 0 : a });
   };
-  const dealType = o.dealTypes.find((t) => t.value === (type ?? num(draft.Type))) ?? o.dealTypes[0];
+  const dealType = o.dealTypes.find((t) => t.value === (type ?? dealTypeValue(draft.dealType))) ?? o.dealTypes[0];
   return (
     <Layout type="DealOffered" header="Offer a Deal" startCollapsed inPopover={inPopover}>
       <SelectManyFromImage values={factionChoices(skin, o.targets)} selected={picked} imageWidth={40} label="Offer to"
-                           onChange={(p) => { setTo(p); void update({ To: toField(p) }); }} />
+                           onChange={(p) => { setTo(p); void update({ to: toField(p) }); }} />
       <label className="d-block mt-1 mb-0">Payment on accepting</label>
       <div className="d-flex align-items-center flex-wrap gap-2">
         <Segmented values={[{ value: true, label: "They pay you" }, { value: false, label: "You pay them" }]} value={theyPay} className=""
                    onChange={(v) => setPayment(v, amount)} />
         <SelectResources value={amount} onChange={(v) => setPayment(theyPay, v)} min={0} max={50} />
       </div>
-      <Select options={o.dealTypes.map((t) => ({ value: t.value, label: t.label }))} value={type ?? num(draft.Type)}
-              onChange={(v) => { setType(v); void update({ Type: v }); }} label="Type of deal" />
+      <Select options={o.dealTypes.map((t) => ({ value: t.value, label: t.label }))} value={type ?? dealTypeValue(draft.dealType)}
+              onChange={(v) => { setType(v); void update({ dealType: dealTypeName(v) }); }} label="Type of deal" />
       {dealType && (
-        <Segmented values={dealType.endPhases.map((p) => ({ value: p.value, label: p.label }))} value={until ?? num(draft.EndPhase)}
-                   onChange={(v) => { setUntil(v); void update({ EndPhase: v }); }} label="Until" />
+        <Segmented values={dealType.endPhases.map((p) => ({ value: p.name as Phase, label: p.label }))} value={until ?? (nameOf(draft.endPhase) as Phase)}
+                   onChange={(v) => { setUntil(v); void update({ endPhase: v }); }} label="Until" />
       )}
       <textarea className="form-control mt-1" rows={5} maxLength={512} placeholder="Deal description" value={text}
-                onChange={(e) => { setText(e.target.value); void update({ Text: e.target.value }); }} />
-      <ButtonRow confirm={async () => { await submit(fields()); setText(""); void update({ Text: "" }); }} confirmText="Offer Deal"
+                onChange={(e) => { setText(e.target.value); void update({ text: e.target.value }); }} />
+      <ButtonRow confirm={async () => { await submit(fields()); setText(""); void update({ text: "" }); }} confirmText="Offer Deal"
                  confirmError={picked.length === 0 ? [{ t: "text", v: "Pick at least one faction" }] : validation} />
       <SubmitError error={error} />
     </Layout>
@@ -183,12 +192,12 @@ export function EmperorBidSupportForm({ action, inPopover = false }: FormProps) 
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "EmperorBidSupport");
   if (!o) return null;
-  const amounts = (draft.Amounts ?? {}) as Record<string, number>;
+  const amounts = (draft.amounts ?? {}) as Record<string, number>;
   return (
     <Layout type="EmperorBidSupport" header={<>How much of your {skin.concept("Resource")} may non-allied factions use for bidding?</>} inPopover={inPopover}>
       {o.targets.map((t) => (
         <SelectResourcesFromFaction key={t.faction} value={amounts[t.faction] ?? 0} min={0} max={o.max} faction={t.faction}
-                                    onChange={(v) => update({ Amounts: { ...amounts, [t.faction]: v } })} />
+                                    onChange={(v) => update({ amounts: { ...amounts, [t.faction]: v } })} />
       ))}
       <div className="text-info small">Your contributions to opponent bids will flow back to you <i>at the end</i> of the bidding phase.</div>
       <ButtonRow confirm={() => submit()} confirmText="Confirm Support" confirmError={validation} />
@@ -197,29 +206,25 @@ export function EmperorBidSupportForm({ action, inPopover = false }: FormProps) 
   );
 }
 
-// ItemAction.Create and ItemAction.Delete.
-const CREATE = 0;
-const DELETE = 2;
-
 // AutomationConfiguredComponent (MenuPanels): create a rule, or cancel one in force.
 export function AutomationConfiguredForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();
   const { options: o, draft, update, submit, error } = useOtherDraft(action, "AutomationConfigured");
   if (!o) return null;
-  const type = o.ruleTypes.find((r) => r.value === num(draft.RuleType))?.name;
+  const type = nameOf(draft.ruleType) as AutomationRuleType | null;
   return (
     <Layout type="AutomationConfigured" header="Manage Automation" inPopover={inPopover}>
-      <Select options={o.ruleTypes.map((r) => ({ value: r.value, label: r.label }))} value={num(draft.RuleType)} onChange={(v) => update({ RuleType: v })} />
+      <Select options={o.ruleTypes.map((r) => ({ value: r.name as AutomationRuleType, label: r.label }))} value={type} onChange={(v) => update({ ruleType: v })} />
       <div className="mt-1">
         {type === "BiddingPassAboveAmount" && (
-          <SelectResources value={num(draft.BiddingAboveAmount)} onChange={(v) => update({ BiddingAboveAmount: v })} min={0} max={40} />
+          <SelectResources value={num(draft.biddingAboveAmount)} onChange={(v) => update({ biddingAboveAmount: v })} min={0} max={40} />
         )}
         {type === "BiddingPassWhenHighestBidByFaction" && (
-          <SelectFromImage values={factionChoices(skin, o.biddingFactions)} value={num(draft.BiddingWinningFaction)}
-                           onChange={(v) => update({ BiddingWinningFaction: v ?? 0 })} imageWidth={40} />
+          <SelectFromImage values={factionChoices(skin, o.biddingFactions)} value={factionOf(draft.biddingWinningFaction)}
+                           onChange={(v) => update({ biddingWinningFaction: v })} imageWidth={40} />
         )}
       </div>
-      <CommandButton margin="mt-1" onClick={() => submit({ Action: CREATE })}>Create rule</CommandButton>
+      <CommandButton margin="mt-1" onClick={() => submit({ action: "Create" })}>Create rule</CommandButton>
       {o.rules.length > 0 && (
         <>
           <hr className="hr-hairline" />
@@ -229,7 +234,7 @@ export function AutomationConfiguredForm({ action, inPopover = false }: FormProp
               {o.rules.map((r) => (
                 <tr key={r.id} className="table-dark">
                   <td>
-                    <CommandButton small onClick={() => submit({ AutomationRuleId: r.id, Action: DELETE })}>
+                    <CommandButton small onClick={() => submit({ automationRuleId: r.id, action: "Delete" })}>
                       <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Cancel" style={{ verticalAlign: "-0.125em" }}>
                         <path d="M3.5 3.5L12.5 12.5M12.5 3.5L3.5 12.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                       </svg>

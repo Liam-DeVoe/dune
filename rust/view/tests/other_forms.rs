@@ -358,7 +358,7 @@ fn dependent_inputs() {
     let view = r.view(host);
     let donated = view.actions.iter().find(|a| a.event_type == "Donated").expect("Donated applicable");
     let mut draft = draft_of(donated.options.as_ref().unwrap()).unwrap();
-    draft["FromBank"] = serde_json::json!(true);
+    draft["fromBank"] = serde_json::json!(true);
     let answer = r.query(host, &draft.to_string()).unwrap();
     let Some(ActionOptions::Donated(o)) = answer.options else { panic!("Donated options") };
     assert_eq!((o.min, o.max), (-99, 99));
@@ -372,7 +372,7 @@ fn dependent_inputs() {
         .expect("a non-host who may donate");
     let answer = r.query(other, &draft.to_string()).unwrap();
     let Some(ActionOptions::Donated(o)) = answer.options else { panic!("Donated options") };
-    assert_eq!(o.draft["FromBank"], serde_json::json!(false));
+    assert_eq!(o.draft["fromBank"], serde_json::json!(false));
     assert!(o.min >= 0);
 
     // A required image choice falls back to the first value; a number picker clamps.
@@ -381,10 +381,10 @@ fn dependent_inputs() {
     // Queries are answered for the actions of the viewer's latest view.
     let _ = r.view(bg);
     let draft = format!(r#"{{"$type":"BeneGesseritPrediction","Initiator":{},"ToWin":{},"Turn":99}}"#, Faction::BeneGesserit.value(), Faction::BeneGesserit.value());
-    let answer = r.query(bg, &draft).unwrap();
+    let answer = r.query(bg, &common::draft(&draft)).unwrap();
     let Some(ActionOptions::BeneGesseritPrediction(o)) = answer.options else { panic!("prediction options") };
-    assert_eq!(o.draft["ToWin"], serde_json::json!(o.targets[0].value));
-    assert_eq!(o.draft["Turn"], serde_json::json!(r.game.maximum_turns()));
+    assert_eq!(o.draft["toWin"], serde_json::json!(Faction::from_value(o.targets[0].value).unwrap().to_string()));
+    assert_eq!(o.draft["turn"], serde_json::json!(r.game.maximum_turns()));
     assert_eq!(answer.validation, None);
 
     // Map picks: nothing picked is invalid; a picked territory makes the draft valid, and one
@@ -397,11 +397,11 @@ fn dependent_inputs() {
     // Confirming before a territory is picked would spend the Karama card and send no worm.
     assert!(a.validation.is_some(), "no territory picked yet");
     let mut draft = o.draft.clone();
-    draft["_territoryId"] = serde_json::json!(o.territories[0]);
+    draft["territory"] = serde_json::json!(o.territories[0]);
     let answer = r.query(fremen, &draft.to_string()).unwrap();
     assert_eq!(answer.validation, None);
     let Some(ActionOptions::KarmaMonster(o2)) = answer.options else { panic!("KarmaMonster options") };
-    assert_eq!(o2.draft["_territoryId"], serde_json::json!(o.territories[0]));
+    assert_eq!(o2.draft["territory"], serde_json::json!(o.territories[0]));
     let mut r = common::load("nexus-moritani");
     let actor = common::viewer_of(&r, Faction::Harkonnen);
     let view = r.view(actor);
@@ -411,13 +411,13 @@ fn dependent_inputs() {
     assert!(a.validation.is_some(), "no stronghold picked yet");
     let territories = o.territories.clone().unwrap();
     let mut draft = o.draft.clone();
-    draft["_moritaniTerritoryId"] = serde_json::json!(territories[0]);
+    draft["moritaniTerritory"] = serde_json::json!(territories[0]);
     let answer = r.query(actor, &draft.to_string()).unwrap();
     assert_eq!(answer.validation, None);
     let Some(ActionOptions::NexusPlayed(o)) = answer.options else { panic!("NexusPlayed options") };
-    assert_eq!(o.draft["_moritaniTerritoryId"], serde_json::json!(territories[0]));
+    assert_eq!(o.draft["moritaniTerritory"], serde_json::json!(territories[0]));
     let not_offered = r.game.board.map.territories(false).map(|t| t.id()).find(|t| !territories.contains(t)).unwrap();
-    draft["_moritaniTerritoryId"] = serde_json::json!(not_offered);
+    draft["moritaniTerritory"] = serde_json::json!(not_offered);
     let answer = r.query(actor, &draft.to_string()).unwrap();
     assert!(answer.validation.is_some());
 }

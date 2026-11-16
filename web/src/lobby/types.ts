@@ -1,6 +1,8 @@
 // The lobby's types: the protocol's (generated from rust/protocol into web/src/protocol), and
 // the helpers the lobby screens use with them. Maps keyed by user id come as `[key, value]`
 // pairs in the server's order (an object would come out of JSON.parse ordered by key).
+import type { Faction, Rule } from "../generated/enums";
+import type { GameSettings as WireGameSettings } from "../generated/Event";
 import type { GameInfo } from "../protocol/GameInfo";
 
 export type { Account } from "../protocol/Account";
@@ -26,21 +28,21 @@ export function dictGet<V>(d: IntDict<V>, key: number): V | undefined {
   return d.find(([k]) => k === key)?.[1];
 }
 
-/** `GameSettings` in savegame format, as `updateSettings` takes them and `EstablishPlayers`
- * carries them. */
-export interface GameSettings {
-  NumberOfPlayers: number;
-  MaximumTurns: number;
-  InitialRules: number[];
-  AllowedFactionsInPlay: number[];
-  AutoOpenEmptySeats: boolean;
-  AsyncPlay: boolean;
-  AsyncPlayMessageIntervalMinutes: number;
-}
+/** `GameSettings` as `updateSettings` takes them and `EstablishPlayers` carries them, with the
+ * lists the wire format may leave out always present. */
+export type GameSettings = Omit<WireGameSettings, "initialRules" | "allowedFactionsInPlay"> & {
+  initialRules: Rule[];
+  allowedFactionsInPlay: Faction[];
+};
 
 /** `new GameSettings()`: the settings of a game until its host sends theirs. */
 export function defaultSettings(): GameSettings {
-  return { NumberOfPlayers: 6, MaximumTurns: 10, InitialRules: [], AllowedFactionsInPlay: [], AutoOpenEmptySeats: true, AsyncPlay: false, AsyncPlayMessageIntervalMinutes: 0 };
+  return { numberOfPlayers: 6, maximumTurns: 10, initialRules: [], allowedFactionsInPlay: [], autoOpenEmptySeats: true, asyncPlay: false, asyncPlayMessageIntervalMinutes: 0 };
+}
+
+/** Settings from the wire, with absent lists empty. */
+export function settingsOf(s: WireGameSettings): GameSettings {
+  return { ...s, initialRules: s.initialRules ?? [], allowedFactionsInPlay: s.allowedFactionsInPlay ?? [] };
 }
 
 /** `GameInfo.CanBeJoined`: users join without a seat while the game awaits players and has

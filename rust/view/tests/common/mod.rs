@@ -58,6 +58,12 @@ pub fn load_raw(savegame: &str) -> Result<ViewedGame, String> {
     ViewedGame::load(&converted(savegame))
 }
 
+/// A draft written in the format of version 190 (`{"$type":..}`), as the client sends it now.
+pub fn draft(legacy: &str) -> String {
+    let entry: HistoryEntry = treachery_legacy::deserialize(legacy).expect("draft reads");
+    serde_json::to_string(&entry.event).unwrap()
+}
+
 /// An event of a fixture or trace (either format), as `ViewedGame::apply` takes it.
 pub fn event_text(e: &serde_json::Value) -> String {
     let entry: HistoryEntry = if e.get("$type").is_some() {

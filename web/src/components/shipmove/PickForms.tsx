@@ -3,7 +3,7 @@
 // remaining inputs and its confirm button. Each form names its razor file.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ActionView } from "../../generated/ActionView";
-import { AmbassadorValue, FactionValue, TerrorTypeValue, type Ambassador, type Faction, type TerrorType } from "../../generated/enums";
+import type { Ambassador, Faction, TerrorType } from "../../generated/enums";
 import { ambassadorPopup, terrorPopup, treacheryCardPopup, withSpiceIcons } from "../../popups";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
@@ -16,7 +16,7 @@ import { Select } from "../Select";
 import { SelectFromImage } from "../SelectFromImage";
 import { SimpleNumber } from "../SimpleNumber";
 import { useMapPicker, type MapPick } from "../board/mapInteraction";
-import { enumName, EventLayout, idOf, MapForceStepper, optionsOf, parseForceLocations, PinActions, PinChoice, useDraft, useForceNames, useTerritoryOf, type Draft, type ForceMap } from "./common";
+import { enumName, EventLayout, forceEntries, forceMap, idOf, MapForceStepper, optionsOf, PinActions, PinChoice, useDraft, useForceNames, useTerritoryOf, type Draft } from "./common";
 
 function useFaction(): Faction {
   const { view } = useGame();
@@ -83,8 +83,8 @@ export function LocationPickForm({ action }: { action: ActionView }) {
   const passable = t === "PerformHmsMovement" || t === "KarmaHmsMovement";
   const p = usePick(action, {
     targets: o?.targets ?? [],
-    fields: () => (passable ? { Passed: false } : {}),
-    toDraft: (target) => ({ _targetId: target ?? -1 }),
+    fields: () => ({}),
+    toDraft: (target) => ({ target }),
     pin: () => <div className="pin-body"><PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label={label} /></div>,
   });
   const hms = <PlaceChip place={{ location: skin.statics.map.hiddenMobileStronghold }} />;
@@ -100,7 +100,7 @@ export function LocationPickForm({ action }: { action: ActionView }) {
     <EventLayout type={t} urgent={urgent} header={header}>
       {moves && <p className="text-info">You have {moves.movesLeft} move(s) left. </p>}
       {hint("Use the map to choose a location.")}
-      {passable && <ButtonRow pass={() => void p.send({ Passed: true })} passText="Pass" />}
+      {passable && <ButtonRow pass={() => void p.pass()} passText="Pass" />}
     </EventLayout>
   );
 }
@@ -114,7 +114,7 @@ export function FremenSentMonsterForm({ action }: { action: ActionView }) {
     targets: o?.targets ?? [],
     byTerritory: true,
     fields: () => ({}),
-    toDraft: (target) => ({ _territoryId: target != null ? p.territoryOf(target) : -1 }),
+    toDraft: (target) => ({ territory: target != null ? p.territoryOf(target) : null }),
     pin: (target) => (
       <div className="pin-body">
         <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label={`Appear in ${skin.territory(p.territoryOf(target))}`} />
@@ -130,8 +130,8 @@ export function BeneGesseritAccompaniesForm({ action }: { action: ActionView }) 
   const names = useForceNames(faction);
   const p = usePick(action, {
     targets: optionsOf(action.options, "BeneGesseritAccompanies")?.targets ?? [],
-    fields: () => ({ Accompanies: true, ExtraAdvisor: false }),
-    toDraft: (target) => ({ _targetId: target ?? -1 }),
+    fields: () => ({ accompanies: true, extraAdvisor: false }),
+    toDraft: (target) => ({ location: target }),
     pin: () => {
       const may = optionsOf(p.options, "BeneGesseritAccompanies")?.maySendExtraAdvisor ?? false;
       return (
@@ -139,7 +139,7 @@ export function BeneGesseritAccompaniesForm({ action }: { action: ActionView }) 
           {may && (
             <>
               <div className="pin-hint">How many <ForceToken faction={faction} special size={20} /> {names.special}?</div>
-              <PinChoice values={[false, true]} value={p.draft.ExtraAdvisor === true} onChange={(v) => p.set({ ExtraAdvisor: v })} label={(v) => (v ? "2" : "1")} />
+              <PinChoice values={[false, true]} value={p.draft.extraAdvisor === true} onChange={(v) => p.set({ extraAdvisor: v })} label={(v) => (v ? "2" : "1")} />
             </>
           )}
           <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Accompany" />
@@ -150,7 +150,7 @@ export function BeneGesseritAccompaniesForm({ action }: { action: ActionView }) 
   return (
     <EventLayout type="BeneGesseritAccompanies" urgent>
       {hint("Use the map to choose a location.")}
-      <ButtonRow pass={() => void p.send({ Accompanies: false })} passText="Don't accompany" />
+      <ButtonRow pass={() => void p.send({ accompanies: false })} passText="Don't accompany" />
     </EventLayout>
   );
 }
@@ -167,7 +167,7 @@ export function ChoamMovePreventionForm({ action }: { action: ActionView }) {
     targets: o?.targets ?? [],
     byTerritory: true,
     fields: () => ({}),
-    toDraft: (target) => ({ _territoryId: target != null ? p.territoryOf(target) : -1 }),
+    toDraft: (target) => ({ territory: target != null ? p.territoryOf(target) : null }),
     pin: () => <div className="pin-body"><PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Prevent move" /></div>,
   });
   return (
@@ -184,11 +184,11 @@ export function ChoamRemoveForceForm({ action }: { action: ActionView }) {
   const o = optionsOf(action.options, "ChoamRemoveForce");
   const p = usePick(action, {
     targets: o?.targets ?? [],
-    fields: () => ({ Target: FactionValue.None, SpecialForce: false }),
-    toDraft: (l) => ({ _locationId: l ?? -1 }),
+    fields: () => ({ target: null, specialForce: false }),
+    toDraft: (l) => ({ location: l }),
     pin: () => {
-      const target = enumName(FactionValue, p.draft.Target, "None");
-      const special = p.draft.SpecialForce === true;
+      const target = enumName<Faction>(p.draft.target, "None");
+      const special = p.draft.specialForce === true;
       const factions = optionsOf(p.options, "ChoamRemoveForce")?.factions ?? [];
       const choices = factions.find((f) => f.faction === target)?.specialChoices ?? [];
       const info = skin.statics.factions.find((f) => f.faction === target);
@@ -197,12 +197,12 @@ export function ChoamRemoveForceForm({ action }: { action: ActionView }) {
           {factions.length > 1 && (
             <>
               <div className="pin-hint">Whose force?</div>
-              <PinChoice values={factions.map((f) => f.faction)} value={target} onChange={(f) => p.set({ Target: FactionValue[f] })} label={(f) => skin.faction(f)} />
+              <PinChoice values={factions.map((f) => f.faction)} value={target} onChange={(f) => p.set({ target: f })} label={(f) => skin.faction(f)} />
             </>
           )}
           {factions.length === 1 && <div className="pin-hint"><FactionChip faction={factions[0].faction} /></div>}
           {choices.length > 1 && info && (
-            <PinChoice values={[false, true]} value={special} onChange={(v) => p.set({ SpecialForce: v })}
+            <PinChoice values={[false, true]} value={special} onChange={(v) => p.set({ specialForce: v })}
                        label={(v) => (v ? skin.get("SpecialForceName_STR", info.specialForce) : skin.get("ForceName_STR", info.force))} />
           )}
           <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Remove force" />
@@ -222,13 +222,12 @@ export function ChoamRemoveForceForm({ action }: { action: ActionView }) {
 // server fills in every source).
 export function DiscoveryEnteredForm({ action }: { action: ActionView }) {
   const faction = useFaction();
-  const encode = (m: ForceMap) => m.map(([l, b]) => `${l}:${b.forces}|${b.specialForces}`).join(",");
   const p = usePick(action, {
     targets: optionsOf(action.options, "DiscoveryEntered")?.targets ?? [],
-    fields: () => ({ _forceLocations: "", Passed: false }),
-    toDraft: (target) => ({ _toId: target ?? -1, _forceLocations: "" }),
+    fields: () => ({ forceLocations: [] }),
+    toDraft: (target) => ({ to: target, forceLocations: [] }),
     pin: () => {
-      const forces = parseForceLocations(p.draft._forceLocations);
+      const forces = forceMap(p.draft.forceLocations);
       const sources = optionsOf(p.options, "DiscoveryEntered")?.sources ?? [];
       return (
         <div className="pin-body">
@@ -236,7 +235,7 @@ export function DiscoveryEnteredForm({ action }: { action: ActionView }) {
             const s = sources.find((x) => x.location === l);
             const amount = (v: number, special: boolean) => {
               const next = forces.map(([x, c]) => [x, x === l ? (special ? { ...c, specialForces: v } : { ...c, forces: v }) : c] as [number, typeof c]);
-              p.set({ _forceLocations: encode(next) });
+              p.set({ forceLocations: forceEntries(next) });
             };
             return (
               <div key={l} className="pin-row">
@@ -254,7 +253,7 @@ export function DiscoveryEnteredForm({ action }: { action: ActionView }) {
   return (
     <EventLayout type="DiscoveryEntered" header="Enter a discovered stronghold?">
       {hint("Use the map to choose a location.")}
-      <ButtonRow pass={() => void p.send({ Passed: true })} passText="Don't enter" />
+      <ButtonRow pass={() => void p.pass()} passText="Don't enter" />
     </EventLayout>
   );
 }
@@ -266,8 +265,8 @@ export function AmbassadorPlacedForm({ action }: { action: ActionView }) {
   const p = usePick(action, {
     targets: o?.targets ?? [],
     byTerritory: true,
-    fields: () => ({ Ambassador: AmbassadorValue[(o?.ambassadors[0] ?? "None") as Ambassador] }),
-    toDraft: (target) => ({ _strongholdId: target != null ? p.territoryOf(target) : -1 }),
+    fields: () => ({ ambassador: (o?.ambassadors[0] ?? null) as Ambassador | null }),
+    toDraft: (target) => ({ stronghold: target != null ? p.territoryOf(target) : null }),
     pin: () => (
       <div className="pin-body">
         <div className="pin-row">
@@ -278,8 +277,8 @@ export function AmbassadorPlacedForm({ action }: { action: ActionView }) {
       </div>
     ),
   });
-  const ambassador = enumName(AmbassadorValue, p.draft.Ambassador, "None");
-  const choose = (a: Ambassador | null) => p.set({ Ambassador: AmbassadorValue[a ?? "None"] });
+  const ambassador = enumName<Ambassador>(p.draft.ambassador, "None");
+  const choose = (a: Ambassador | null) => p.set({ ambassador: a });
   return (
     <EventLayout type="AmbassadorPlaced" header="You may now place an Ambassador Token in a Stronghold">
       <SelectFromImage label="Which ambassador?" value={ambassador === "None" ? null : ambassador} onChange={choose}
@@ -296,17 +295,17 @@ export function TerrorPlantedForm({ action }: { action: ActionView }) {
   const o = optionsOf(action.options, "TerrorPlanted");
   const removing = o?.mayRemove ?? false;
   const describe = (t: TerrorType) => <span dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, skin.get("TerrorTokenDescription_STR", t)) }} />;
-  const choose = (t: TerrorType) => p.set({ Type: TerrorTypeValue[t] });
+  const choose = (t: TerrorType) => p.set({ terrorType: t });
   const p = usePick(action, {
     targets: o?.targets ?? [],
     enabled: !removing,
     byTerritory: true,
-    fields: () => ({ Type: TerrorTypeValue[((removing ? o?.removeTypes[0] : undefined) ?? "None") as TerrorType], Passed: false }),
-    toDraft: (target) => ({ _territoryId: target != null ? p.territoryOf(target) : -1 }),
+    fields: () => ({ terrorType: ((removing ? o?.removeTypes[0] : undefined) ?? null) as TerrorType | null }),
+    toDraft: (target) => ({ stronghold: target != null ? p.territoryOf(target) : null }),
     pin: () => {
       // PinContent's fallback to the first type is the server's.
       const types = (o?.placeTypes ?? []) as TerrorType[];
-      const current = enumName(TerrorTypeValue, p.draft.Type, "None");
+      const current = enumName<TerrorType>(p.draft.terrorType, "None");
       return (
         <div className="pin-body">
           <PinChoice wrap values={types} value={current} onChange={choose} label={(t) => skin.get("TerrorTokenName_STR", t)} />
@@ -317,7 +316,7 @@ export function TerrorPlantedForm({ action }: { action: ActionView }) {
       );
     },
   });
-  const type = enumName(TerrorTypeValue, p.draft.Type, "None");
+  const type = enumName<TerrorType>(p.draft.terrorType, "None");
   const removeTypes = (o?.removeTypes ?? []) as TerrorType[];
   return (
     <EventLayout type="TerrorPlanted" header={removing ? "You may now remove Terror" : "You may now place Terror"}>
@@ -325,12 +324,12 @@ export function TerrorPlantedForm({ action }: { action: ActionView }) {
         <>
           <Select required label="Token" options={removeTypes.map((t) => ({ value: t, label: skin.get("TerrorTokenName_STR", t) }))} value={type} onChange={choose} />
           <div className="text-info">{describe(type)}</div>
-          <ButtonRow pass={() => void p.send({ Passed: true })} confirm={p.confirm} confirmText="Remove token" confirmError={p.validation} />
+          <ButtonRow pass={() => void p.pass()} confirm={p.confirm} confirmText="Remove token" confirmError={p.validation} />
         </>
       ) : (
         <>
           {hint("Use the map to choose a stronghold.")}
-          <ButtonRow pass={() => void p.send({ Passed: true })} passText="Pass" />
+          <ButtonRow pass={() => void p.pass()} passText="Pass" />
         </>
       )}
     </EventLayout>
@@ -360,21 +359,21 @@ export function TerrorRevealedForm({ action }: { action: ActionView }) {
   const faction = useFaction();
   const o = optionsOf(action.options, "TerrorRevealed");
   const types = (o?.types ?? []) as TerrorType[];
-  const typeOf = (d: Draft) => enumName(TerrorTypeValue, d.Type, "None");
+  const typeOf = (d: Draft) => enumName<TerrorType>(d.terrorType, "None");
   const sneakPossible = (o?.sneakAttackTargets.length ?? 0) > 0;
   const p = usePick(action, {
     targets: o?.sneakAttackTargets ?? [],
     enabled: (d) => typeOf(d) === "SneakAttack" && sneakPossible,
-    fields: () => ({ AllianceOffered: false, Type: TerrorTypeValue[types[0] ?? "None"], ForcesInSneakAttack: 0, RobberyTakesCard: false, _cardToGiveInSabotageId: -1, Passed: false }),
-    toDraft: (target) => ({ _sneakAttackTo: target ?? -1 }),
+    fields: () => ({ allianceOffered: false, terrorType: types[0] ?? null, forcesInSneakAttack: 0, robberyTakesCard: false, cardToGiveInSabotage: null }),
+    toDraft: (target) => ({ sneakAttackTo: target }),
     // OnPickChanged: a pinned target starts with the most forces.
     onPick: (target) => {
-      if (target != null && p.get().ForcesInSneakAttack === 0) p.set({ ForcesInSneakAttack: o?.maxSneakAttackForces ?? 0 });
+      if (target != null && p.get().forcesInSneakAttack === 0) p.set({ forcesInSneakAttack: o?.maxSneakAttackForces ?? 0 });
     },
     pin: () => (
       <div className="pin-body">
         <div className="pin-row">
-          <MapForceStepper value={(p.draft.ForcesInSneakAttack as number) ?? 0} onChange={(v) => p.set({ ForcesInSneakAttack: v })} max={o?.maxSneakAttackForces ?? 0} faction={faction} />
+          <MapForceStepper value={(p.draft.forcesInSneakAttack as number) ?? 0} onChange={(v) => p.set({ forcesInSneakAttack: v })} max={o?.maxSneakAttackForces ?? 0} faction={faction} />
         </div>
         <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Sneak attack" />
       </div>
@@ -382,11 +381,11 @@ export function TerrorRevealedForm({ action }: { action: ActionView }) {
   });
   // The markup drops the robbery choice, the card and the forces of the other kinds; the
   // server does the same to the draft.
-  const chooseType = (t: TerrorType) => p.set({ Type: TerrorTypeValue[t] });
+  const chooseType = (t: TerrorType) => p.set({ terrorType: t });
   const type = typeOf(p.draft);
   const sneak = type === "SneakAttack";
-  const robberyTakesCard = p.draft.RobberyTakesCard === true;
-  const sabotageCard = idOf(p.draft._cardToGiveInSabotageId);
+  const robberyTakesCard = p.draft.robberyTakesCard === true;
+  const sabotageCard = idOf(p.draft.cardToGiveInSabotage);
   const territory = o?.territory;
   const termName = (t: TerrorType) => skin.get("TerrorTokenName_STR", t);
   return (
@@ -398,18 +397,18 @@ export function TerrorRevealedForm({ action }: { action: ActionView }) {
       )}
       {type === "Robbery" && (
         <Radio label="Which kind of robbery?" values={[false, true]} labels={["Steal half their spice (rounded up)", "Draw a Treachery Card"]} value={robberyTakesCard}
-               onChange={(v) => p.set({ RobberyTakesCard: v })} />
+               onChange={(v) => p.set({ robberyTakesCard: v })} />
       )}
       {type === "Sabotage" && (
         <SelectFromImage label="You may select one of your treachery cards to give to them:" required={false} imageWidth={80} value={sabotageCard}
-                         onChange={(c) => p.set({ _cardToGiveInSabotageId: c ?? -1 })}
+                         onChange={(c) => p.set({ cardToGiveInSabotage: c })}
                          values={(o?.cards ?? []).map((c) => ({ value: c, src: skin.cardImage(c), alt: skin.card(c), popover: treacheryCardPopup(skin, c) }))} />
       )}
       {sneak && (sneakPossible ? hint("Use the map to choose a location.") : <div className="alert alert-danger mt-2">You cannot send forces there.</div>)}
       {o?.mayOfferAlliance && <div>You may also offer them an alliance as an alternative to violence.</div>}
       {o?.mayPass ? (
-        <ButtonRow confirm={p.confirm} confirmError={p.validation} pass={() => void p.send({ Passed: true })}
-                   other={o.mayOfferAlliance ? () => void p.send({ AllianceOffered: true }) : undefined} otherText="Offer Alliance" />
+        <ButtonRow confirm={p.confirm} confirmError={p.validation} pass={() => void p.pass()}
+                   other={o.mayOfferAlliance ? () => void p.send({ allianceOffered: true }) : undefined} otherText="Offer Alliance" />
       ) : (
         <ButtonRow confirm={p.confirm} confirmError={p.validation} />
       )}

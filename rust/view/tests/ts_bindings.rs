@@ -138,14 +138,20 @@ fn typescript_bindings_are_current() {
     let generated = generate();
     let dir = out_dir();
     if std::env::var("UPDATE_TS_BINDINGS").is_ok() {
+        let events = std::fs::read_to_string(dir.join("Event.ts")).ok();
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
+        if let Some(events) = events {
+            std::fs::write(dir.join("Event.ts"), events).unwrap();
+        }
         for (name, text) in &generated {
             std::fs::write(dir.join(name), text).unwrap();
         }
         return;
     }
-    let existing = read_dir(&dir);
+    // Event.ts is the protocol crate's (protocol/tests/ts_bindings.rs).
+    let mut existing = read_dir(&dir);
+    existing.remove("Event.ts");
     let stale: Vec<&String> = generated.keys().filter(|k| existing.get(*k) != generated.get(*k)).chain(existing.keys().filter(|k| !generated.contains_key(*k))).collect();
     assert!(stale.is_empty(), "web/src/generated is out of date ({stale:?}). Run: UPDATE_TS_BINDINGS=1 cargo test -p treachery-view --test ts_bindings");
 }

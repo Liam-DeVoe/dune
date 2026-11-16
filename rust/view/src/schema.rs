@@ -506,7 +506,7 @@ pub struct WaitingActionView {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionView {
-    /// The event type name, which is also the `$type` of the event to submit.
+    /// The event type name, which is also the `type` of the event to submit.
     pub event_type: String,
     /// The choices the form offers, for the form's default inputs. `None` for event types whose
     /// option builder is not written yet: the client then shows only the event's name.

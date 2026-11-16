@@ -18,7 +18,7 @@ import { withBase } from "../base";
 import { loadLobby, type Lobby } from "./data";
 import { Participation } from "./participation";
 import {
-  type Account, type AdminInfo, canBeJoined, defaultSettings, type GameInfo, type GameInitInfo, type GameListScope, type GameSettings, type IntDict,
+  type Account, type AdminInfo, canBeJoined, defaultSettings, type GameInfo, type GameInitInfo, type GameListScope, type GameSettings, type IntDict, settingsOf,
   type LobbyStatus, type PhaseControlInfo, type ScheduledGameInfo, type SeenUser, type ServerInfo, type SubscriptionType, type UserStatus,
 } from "./types";
 
@@ -90,8 +90,7 @@ export class LobbyClient {
     this.conn.on("openOrCloseSeats", ({ seats }) => this.inGame((g) => seats.forEach((s) => g.participation.openOrCloseSeat(s))));
     this.conn.on("assignSeats", ({ seats }) => this.inGame((g) => g.participation.assignSeats(seats)));
     this.conn.on("botSpeed", ({ speed }) => this.inGame((g) => { g.participation.botsSpeed = speed; }));
-    // Settings stay in the savegame format until the event format changes.
-    this.conn.on("updateSettings", ({ settings }) => this.inGame((g) => { g.settings = settings as GameSettings; }));
+    this.conn.on("updateSettings", ({ settings }) => this.inGame((g) => { g.settings = settingsOf(settings); }));
     this.conn.on("phaseControl", (info) => this.inGame((g) => { g.phaseControl = info; }));
     this.conn.on("removeUser", ({ user, kick }) => { void this.handleRemoveUser(user, kick); });
     this.conn.on("loadGame", (info) => { void this.loadGame(info); });
@@ -391,7 +390,7 @@ export class LobbyClient {
     const g = this.state.game;
     if (!g) return "Not in game";
     const result = await g.source.submit(event);
-    if (event.$type === "EstablishPlayers" && (event.Settings as GameSettings | undefined)?.AutoOpenEmptySeats) {
+    if (event.type === "EstablishPlayers" && event.settings?.autoOpenEmptySeats) {
       const players = this.state.game?.view?.players ?? [];
       const seated = this.state.game?.participation.seatedPlayers.values() ?? [];
       for (const p of players.filter((p) => !seated.includes(p.seat))) await this.requestOpenOrCloseSeat(p.seat);

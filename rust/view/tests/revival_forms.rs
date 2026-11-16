@@ -46,12 +46,26 @@ fn event_of(v: &serde_json::Value) -> Event {
     entry_of(v).event
 }
 
+/// A number of the draft, -1 for `null` (no object picked).
 fn int(v: &serde_json::Value, k: &str) -> i32 {
+    if v[k].is_null() {
+        return -1;
+    }
     v[k].as_i64().unwrap_or_else(|| panic!("{k} in {v}")) as i32
 }
 
+/// A faction of the draft, written as its name.
+fn faction(v: &serde_json::Value, k: &str) -> Option<Faction> {
+    v[k].as_str().and_then(|n| Faction::ALL.iter().copied().find(|f| f.to_string() == n))
+}
+
+/// A faction as a draft holds it.
+fn faction_value(n: i32) -> serde_json::Value {
+    Faction::from_value(n).map_or(serde_json::Value::Null, |f| f.to_string().into())
+}
+
 fn hero_of(v: &serde_json::Value) -> Option<Hero> {
-    LeaderManager::hero_lookup().find(int(v, "_heroId"))
+    LeaderManager::hero_lookup().find(int(v, "hero"))
 }
 
 /// Checks one form against the engine: the options are the helpers' results for the form's
@@ -60,12 +74,11 @@ fn hero_of(v: &serde_json::Value) -> Option<Hero> {
 fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<RichText>, d: &dyn Describer, at: &str) {
     let pl = game.player(p);
     let draft = draft_of(options);
-    let entry = entry_of(draft);
-    let e = entry.event.clone();
-    assert_eq!(*validation, validate(game, entry.by, e.clone(), d), "{at}: validation");
+    let e = event_of(draft);
+    assert_eq!(*validation, validate(game, pl.faction, e.clone(), d), "{at}: validation");
     match options {
         ActionOptions::Revival(o) => {
-            let sa = draft["UsesEmperorSecretAlly"].as_bool().unwrap();
+            let sa = draft["usesEmperorSecretAlly"].as_bool().unwrap();
             assert_eq!(o.may_use_secret_ally, pl.nexus == Some(Faction::Emperor) && NexusPlayed::can_use_secret_ally(game, p), "{at}");
             assert!(o.may_use_secret_ally || !sa, "{at}: secret ally without the checkbox");
             assert_eq!(o.max_forces, Revival::valid_max_revivals(game, p, false, sa), "{at}");
@@ -73,8 +86,8 @@ fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<
             assert_eq!(o.max_by_emperor, Revival::valid_max_revivals_by_emperor(game, p), "{at}");
             let locations: Vec<i32> = Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect();
             assert_eq!(o.locations, locations, "{at}");
-            let (f, sf) = (int(draft, "AmountOfForces"), int(draft, "AmountOfSpecialForces"));
-            let (ef, esf) = (int(draft, "ExtraForcesPaidByEmperor"), int(draft, "ExtraSpecialForcesPaidByEmperor"));
+            let (f, sf) = (int(draft, "amountOfForces"), int(draft, "amountOfSpecialForces"));
+            let (ef, esf) = (int(draft, "extraForcesPaidByEmperor"), int(draft, "extraSpecialForcesPaidByEmperor"));
             let on_planet = if locations.is_empty() { 0 } else { Revival::number_of_forces_that_may_be_placed_on_planet(game, p, sa, f + ef) };
             let special_on_planet = if locations.is_empty() { 0 } else { Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, sf + esf) };
             assert_eq!((o.max_forces_on_planet, o.max_special_forces_on_planet), (on_planet, special_on_planet), "{at}");
@@ -87,9 +100,9 @@ fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<
             // The draft is what the component's widgets allow.
             assert!((0..=o.max_forces.max(0)).contains(&f) && (0..=o.max_special_forces.max(0)).contains(&sf), "{at}: {draft}");
             assert!((0..=o.max_by_emperor.max(0)).contains(&ef) && (0..=o.max_by_emperor.max(0)).contains(&esf), "{at}: {draft}");
-            assert!(int(draft, "NumberOfForcesInLocation") <= on_planet.max(0) && int(draft, "NumberOfSpecialForcesInLocation") <= special_on_planet.max(0), "{at}");
-            assert!(o.may_assign_skill || !draft["AssignSkill"].as_bool().unwrap(), "{at}");
-            let loc = int(draft, "_locationId");
+            assert!(int(draft, "numberOfForcesInLocation") <= on_planet.max(0) && int(draft, "numberOfSpecialForcesInLocation") <= special_on_planet.max(0), "{at}");
+            assert!(o.may_assign_skill || !draft["assignSkill"].as_bool().unwrap(), "{at}");
+            let loc = int(draft, "location");
             assert!(loc == -1 || locations.contains(&loc), "{at}");
         }
         ActionOptions::RaiseDeadPlayed(o) => {
@@ -98,13 +111,13 @@ fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<
             assert_eq!(o.max_special_forces, RaiseDeadPlayed::valid_max_amount(game, p, true), "{at}");
             let locations: Vec<i32> = Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect();
             assert_eq!(o.locations, locations, "{at}");
-            let sf = int(draft, "AmountOfSpecialForces");
+            let sf = int(draft, "amountOfSpecialForces");
             let special_on_planet = if locations.is_empty() { 0 } else { Revival::number_of_special_forces_that_may_be_placed_on_planet(game, p, sf) };
             assert_eq!(o.max_special_forces_on_planet, special_on_planet, "{at}");
             assert_eq!(o.heroes, heroes(RaiseDeadPlayed::valid_heroes(game, p)), "{at}");
             let hero = hero_of(draft);
             assert_eq!(o.may_assign_skill, hero.is_some_and(|h| Revival::may_assign_skill(game, p, Some(h))), "{at}");
-            assert!((0..=o.max_forces.max(0)).contains(&int(draft, "AmountOfForces")) && (0..=o.max_special_forces.max(0)).contains(&sf), "{at}");
+            assert!((0..=o.max_forces.max(0)).contains(&int(draft, "amountOfForces")) && (0..=o.max_special_forces.max(0)).contains(&sf), "{at}");
         }
         ActionOptions::KarmaFreeRevival(o) => {
             assert_eq!(o.card_name, d.describe(&TreacheryCardType::Karma.into()));
@@ -117,14 +130,14 @@ fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<
         ActionOptions::KarmaRevivalPrevention(o) => {
             let targets: Vec<Faction> = KarmaRevivalPrevention::get_valid_targets(game, p).collect();
             assert_eq!(o.targets, factions(targets.clone()), "{at}");
-            let t = Faction::from_value(int(draft, "Target")).unwrap();
+            let t = faction(draft, "target").unwrap();
             assert_eq!(t, targets.first().copied().filter(|_| !targets.contains(&t)).unwrap_or(t), "{at}: required choice");
         }
         ActionOptions::ChoamFreeRevivalPrevention(o) => {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
             assert_eq!(o.targets, factions(targets.clone()), "{at}");
             assert_eq!(o.card.is_some(), ChoamFreeRevivalPrevention::card_to_use(game, p).is_some(), "{at}");
-            assert!(targets.is_empty() || targets.contains(&Faction::from_value(int(draft, "Target")).unwrap()), "{at}");
+            assert!(targets.is_empty() || targets.contains(&faction(draft, "target").unwrap()), "{at}");
         }
         ActionOptions::RequestTleilaxuRevival(o) => {
             let targets: Vec<Hero> = RequestTleilaxuRevival::valid_targets(game, p).collect();
@@ -139,9 +152,9 @@ fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<
             assert_eq!(o.bot_awaits, game.revival.current_revival_requests.iter().any(|r| game.is_bot(r.player.expect("player"))), "{at}");
             if !requests.is_empty() {
                 assert!(hero_of(draft).is_some_and(|h| requests.contains(&h)), "{at}: a request is picked");
-                assert!((0..=50).contains(&int(draft, "Price")), "{at}");
+                assert!((0..=50).contains(&int(draft, "price")), "{at}");
             }
-            assert_eq!(draft["Cancel"], serde_json::json!(false));
+            assert_eq!(draft["cancel"], serde_json::json!(false));
         }
         ActionOptions::SetIncreasedRevivalLimits(o) => {
             assert_eq!(o.targets, factions(SetIncreasedRevivalLimits::valid_targets(game, p)), "{at}");
@@ -170,55 +183,55 @@ fn variations(default: &serde_json::Value, options: &ActionOptions) -> Vec<serde
                 for f in [0, 1, o.max_forces, o.max_forces + 3] {
                     for sf in [0, o.max_special_forces] {
                         with(&[
-                            ("UsesEmperorSecretAlly", sa.into()),
-                            ("AmountOfForces", f.into()),
-                            ("AmountOfSpecialForces", sf.into()),
-                            ("ExtraForcesPaidByEmperor", o.max_by_emperor.into()),
-                            ("NumberOfForcesInLocation", 20.into()),
-                            ("NumberOfSpecialForcesInLocation", 20.into()),
-                            ("_locationId", o.locations.first().copied().unwrap_or(-1).into()),
+                            ("usesEmperorSecretAlly", sa.into()),
+                            ("amountOfForces", f.into()),
+                            ("amountOfSpecialForces", sf.into()),
+                            ("extraForcesPaidByEmperor", o.max_by_emperor.into()),
+                            ("numberOfForcesInLocation", 20.into()),
+                            ("numberOfSpecialForcesInLocation", 20.into()),
+                            ("location", o.locations.first().copied().map_or(serde_json::Value::Null, |l| l.into())),
                         ]);
                     }
                 }
             }
             for h in &o.heroes {
-                with(&[("_heroId", h.id.into()), ("AssignSkill", true.into())]);
+                with(&[("hero", h.id.into()), ("assignSkill", true.into())]);
             }
         }
         ActionOptions::RaiseDeadPlayed(o) => {
             for f in [0, o.max_forces, o.max_forces + 1] {
                 for sf in [0, o.max_special_forces] {
                     with(&[
-                        ("AmountOfForces", f.into()),
-                        ("AmountOfSpecialForces", sf.into()),
-                        ("NumberOfSpecialForcesInLocation", 5.into()),
-                        ("_locationId", o.locations.first().copied().unwrap_or(-1).into()),
+                        ("amountOfForces", f.into()),
+                        ("amountOfSpecialForces", sf.into()),
+                        ("numberOfSpecialForcesInLocation", 5.into()),
+                        ("location", o.locations.first().copied().map_or(serde_json::Value::Null, |l| l.into())),
                     ]);
                 }
             }
             for h in &o.heroes {
-                with(&[("_heroId", h.id.into()), ("AssignSkill", true.into())]);
+                with(&[("hero", h.id.into()), ("assignSkill", true.into())]);
             }
         }
         ActionOptions::KarmaFreeRevival(o) => {
-            with(&[("AmountOfForces", (o.max_forces + 1).into()), ("AmountOfSpecialForces", o.max_special_forces.into())]);
+            with(&[("amountOfForces", (o.max_forces + 1).into()), ("amountOfSpecialForces", o.max_special_forces.into())]);
             for h in &o.heroes {
-                with(&[("_heroId", h.id.into()), ("AssignSkill", true.into())]);
+                with(&[("hero", h.id.into()), ("assignSkill", true.into())]);
             }
         }
-        ActionOptions::KarmaRevivalPrevention(o) => o.targets.iter().for_each(|t| with(&[("Target", t.value.into())])),
-        ActionOptions::ChoamFreeRevivalPrevention(o) => o.targets.iter().for_each(|t| with(&[("Target", t.value.into())])),
-        ActionOptions::RequestTleilaxuRevival(o) => o.heroes.iter().for_each(|h| with(&[("_heroId", h.id.into())])),
+        ActionOptions::KarmaRevivalPrevention(o) => o.targets.iter().for_each(|t| with(&[("target", faction_value(t.value))])),
+        ActionOptions::ChoamFreeRevivalPrevention(o) => o.targets.iter().for_each(|t| with(&[("target", faction_value(t.value))])),
+        ActionOptions::RequestTleilaxuRevival(o) => o.heroes.iter().for_each(|h| with(&[("hero", h.id.into())])),
         ActionOptions::AcceptOrCancelTleilaxuRevival(o) => {
             for h in &o.requests {
                 for price in [-1, 3, 51] {
-                    with(&[("_heroId", h.id.into()), ("Price", price.into()), ("Cancel", true.into())]);
+                    with(&[("hero", h.id.into()), ("price", price.into()), ("cancel", true.into())]);
                 }
             }
         }
         ActionOptions::SetIncreasedRevivalLimits(o) => {
-            with(&[("Factions", serde_json::json!(o.targets.iter().map(|t| t.value).collect::<Vec<_>>()))]);
-            with(&[("Factions", serde_json::json!([]))]);
+            with(&[("factions", serde_json::json!(o.targets.iter().map(|t| faction_value(t.value)).collect::<Vec<_>>()))]);
+            with(&[("factions", serde_json::json!([]))]);
         }
         _ => {}
     }
@@ -293,10 +306,10 @@ fn raise_dead_drops_a_leader_that_cant_be_revived() {
     let emperor = r.game.get_player(Some(Faction::Emperor)).unwrap();
     let living = r.game.player(emperor).leaders[0];
     let mut draft = o.draft.clone();
-    draft["_heroId"] = Hero::from(living).id().into();
+    draft["hero"] = Hero::from(living).id().into();
     let q = r.query(viewer, &draft.to_string()).unwrap();
     let Some(ActionOptions::RaiseDeadPlayed(q_options)) = q.options else { panic!("RaiseDeadPlayed options") };
-    assert_eq!(int(&q_options.draft, "_heroId"), -1, "the leader is dropped");
+    assert_eq!(int(&q_options.draft, "hero"), -1, "the leader is dropped");
     assert_eq!(q.validation, a.validation, "the same as the untouched form");
 }
 
@@ -312,17 +325,17 @@ fn revival_draft_queries() {
         let view = r.view(viewer);
         let Some(a) = view.actions.iter().find(|a| a.event_type == "Revival") else { continue };
         let Some(ActionOptions::Revival(o)) = &a.options else { panic!("Revival options") };
-        assert_eq!(int(&o.draft, "AmountOfForces"), 0);
-        assert_eq!(int(&o.draft, "_heroId"), -1, "no hero picked by default");
+        assert_eq!(int(&o.draft, "amountOfForces"), 0);
+        assert_eq!(int(&o.draft, "hero"), -1, "no hero picked by default");
         if o.max_forces == 0 {
             continue;
         }
         any = true;
         let mut draft = o.draft.clone();
-        draft["AmountOfForces"] = (o.max_forces + 5).into();
+        draft["amountOfForces"] = (o.max_forces + 5).into();
         let q = r.query(viewer, &draft.to_string()).unwrap();
         let Some(ActionOptions::Revival(q)) = q.options else { panic!("Revival options") };
-        assert_eq!(int(&q.draft, "AmountOfForces"), o.max_forces, "{f}: clamped to the maximum");
+        assert_eq!(int(&q.draft, "amountOfForces"), o.max_forces, "{f}: clamped to the maximum");
         let p = r.game.get_player(Some(f)).unwrap();
         assert_eq!(q.cost_for_player, Revival::determine_cost(&r.game, p, None, o.max_forces, 0, 0, 0, false).total_cost_for_player());
     }

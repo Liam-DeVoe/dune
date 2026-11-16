@@ -10,9 +10,8 @@ import type { FactionOption } from "../../generated/FactionOption";
 import { treacheryCardPopup, withSpiceIcons } from "../../popups";
 import type { Skin } from "../../skin";
 import { useGame } from "../../state/context";
-import type { GameEventDraft } from "../../state/source";
 import { CollapseButton } from "../CollapseButton";
-import { useServerDraft } from "../formDraft";
+import { type Fields, useServerDraft } from "../formDraft";
 import { Image } from "../Image";
 import { NumberPicker } from "../NumberPicker";
 import type { ImageChoice } from "../SelectFromImage";
@@ -56,9 +55,12 @@ type WithDraft = Extract<ActionOptions, { draft: Record<string, unknown> }>;
 // A form's state (formDraft.ts): the server's latest options and validation, whose `draft` is the
 // event with the inputs as the component shows them (rust/view/src/schema/other.rs).
 export function useOtherDraft<F extends WithDraft["form"]>(action: ActionView, form: F) {
-  const { source, options, draft, validation, update, error, setError } = useServerDraft(action, form);
-  const submit = async (changes: Record<string, unknown> = {}) => setError(await source.submit({ ...draft, ...changes } as GameEventDraft));
-  return { options, draft, validation, update, submit, error };
+  const { source, options, draft, validation, update, withChanges, pass, error, setError } = useServerDraft(action, form);
+  // Confirm sends the draft, with some inputs changed for buttons that set one. Pass sends the
+  // pass of a passable event.
+  const submit = async (changes: Fields = {}) => setError(await source.submit(withChanges(changes)));
+  const submitPass = async () => setError(await source.submit(pass()));
+  return { options, draft, validation, update, submit, submitPass, error };
 }
 
 // The server's answer to a refused submission, under the form.
@@ -68,11 +70,19 @@ export function SubmitError({ error }: { error: string | null }) {
 
 export const num = (v: unknown): number => (typeof v === "number" ? v : Number(v ?? 0));
 
-// The id lists of `_cardIds` and friends (GameEvent.IdStringToObjects): ids joined by ';'.
+// An id list input (`cardIds` and friends).
 export function idList(v: unknown): number[] {
-  return typeof v === "string" && v !== "" ? v.split(";").map(Number) : [];
+  return Array.isArray(v) ? v.filter((x): x is number => typeof x === "number") : [];
 }
-export const idString = (ids: number[]): string => ids.join(";");
+
+// An id input: null for none.
+export const idOf = (v: unknown): number | null => (typeof v === "number" && v >= 0 ? v : null);
+
+// A faction input: null for none.
+export const factionOf = (v: unknown): Faction | null => (typeof v === "string" && v !== "None" ? (v as Faction) : null);
+
+// An enum input other than a faction: its member name, null for none.
+export const nameOf = (v: unknown): string | null => (typeof v === "string" ? v : null);
 
 // Skin.Format("... {0} ...", value) for the client's own labels.
 export function fmt(template: string, value: string): string {
@@ -87,10 +97,10 @@ export function cardChoices(skin: Skin, ids: number[]): ImageChoice<number>[] {
   return ids.map((id) => ({ value: id, src: skin.cardImage(id), alt: skin.card(id), popover: treacheryCardPopup(skin, id) }));
 }
 
-// SelectFromImageComponent over factions (by enum number): a faction has no rich popover, so
-// Image.razor shows its name as a tooltip.
-export function factionChoices(skin: Skin, factions: FactionOption[]): ImageChoice<number>[] {
-  return factions.map((f) => ({ value: f.value, src: skin.factionImage(f.faction), alt: skin.faction(f.faction), popover: null, tooltip: skin.faction(f.faction) }));
+// SelectFromImageComponent over factions: a faction has no rich popover, so Image.razor shows its
+// name as a tooltip.
+export function factionChoices(skin: Skin, factions: FactionOption[]): ImageChoice<Faction>[] {
+  return factions.map((f) => ({ value: f.faction, src: skin.factionImage(f.faction), alt: skin.faction(f.faction), popover: null, tooltip: skin.faction(f.faction) }));
 }
 
 // SelectFromImageComponent with `Selected`: several values, each click toggles one; shift-click

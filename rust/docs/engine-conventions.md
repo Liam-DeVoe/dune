@@ -65,7 +65,8 @@ for w in World::ALL { /* ... */ }                           // Enum.GetValues<Wo
 
 - `ALL` leaves the absent member out, so `get_values_except_default(X::None)` is `get_values::<X>()`. Where C# offered `None` as a choice, the list says so (`ClairVoyancePlayed::valid_questions` starts with `None`, "any question").
 - A `None` member that is a real choice stays a member: `DealType::None` is a custom deal.
-- The lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) stay open for now, and so do `Faction`, `Phase`, `MainPhase` and `ShipmentPermission` until 2d reaches them.
+- The lobby enums (`UserStatus`, `SubscriptionType`, `GameListScope`, `ErrorType`) stay open for now, and so does `Faction` until 2d reaches them.
+- `ShipmentPermission`, a C# `[Flags]` enum, is a struct of three bools (`cross`, `to_homeworld`, `guild_rate`). Event JSON writes it as the flag number, and a number with any other bit doesn't decode.
 
 The rest of this section describes the enums that are still open. Each is a newtype over `i32`, with the members as associated constants that keep their C# names:
 

@@ -77,7 +77,7 @@ impl ClairVoyanceAnswered {
             deal.bound_faction = self.initiator();
             deal.consuming_faction = latest.initiator();
             deal.deal_parameter1 = latest.question_parameter1.clone();
-            deal.end = Phase::ShipmentAndMoveConcluded;
+            deal.end = Some(Phase::ShipmentAndMoveConcluded);
             game.start_deal(&deal);
         } else if latest.question == Some(ClairvoyanceQuestion::LeaderAsTraitor) {
             if let ExpressionElement::Hero(hero) = latest.parameter1(game) {
@@ -97,7 +97,7 @@ impl ClairVoyanceAnswered {
             }
         }
 
-        let paused = game.turn.phase_paused_by_clairvoyance;
+        let paused = game.turn.phase_paused_by_clairvoyance.required("phase paused by clairvoyance")?;
         game.enter(paused, false);
         Ok(())
     }

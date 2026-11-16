@@ -83,10 +83,13 @@ impl SkillAssigned {
 
         if !Self::players_must_choose_leader_skills(game) {
             game.decks.skill_deck.as_mut().required("skill deck")?.shuffle();
-            let c1 = game.turn.current_phase != Phase::AssigningInitialSkills;
-            let phase = game.setup.phase_before_skill_assignment;
-            let c2 = game.treachery_cards_before_traitors();
-            game.enter_first(&[(c1, Step::Enter(phase)), (c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces));
+            if game.turn.current_phase != Phase::AssigningInitialSkills {
+                let phase = game.setup.phase_before_skill_assignment.required("phase before skill assignment")?;
+                game.enter(phase, true);
+            } else {
+                let c2 = game.treachery_cards_before_traitors();
+                game.enter_first(&[(c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces));
+            }
         }
         Ok(())
     }

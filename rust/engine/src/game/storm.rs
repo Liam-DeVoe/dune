@@ -11,7 +11,7 @@ pub struct StormState {
     pub has_battle_wheel: Vec<Faction>,
     pub dials: Vec<i32>,
     pub current_testing_station_used: bool,
-    pub phase_before_storm_loss: Phase,
+    pub phase_before_storm_loss: Option<Phase>,
     pub storm_losses_to_take: Vec<LossToTake>,
 }
 
@@ -227,7 +227,7 @@ impl Game {
         if !self.storm.storm_losses_to_take.is_empty() {
             // BlowA marks losses taken in the storm phase: once they are taken, TakeLosses calls
             // this again, which ends the phase (again) and enters the storm report.
-            self.storm.phase_before_storm_loss = Phase::BlowA;
+            self.storm.phase_before_storm_loss = Some(Phase::BlowA);
             self.enter(Phase::StormLosses, true);
         } else {
             self.enter(Phase::StormReport, true);

@@ -5,7 +5,8 @@ use crate::map::territory::Territory;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Report {
-    pub about: MainPhase,
+    pub about: Option<MainPhase>,
+    /// `None` for the report before the game starts.
     /// The value of `Game.CurrentTurn` when this report was started (0 for the setup report).
     pub turn: i32,
     /// Only set on a report that covers a single battle (started by BattleInitiated).
@@ -21,7 +22,7 @@ pub struct Report {
 }
 
 impl Report {
-    pub fn new(about: MainPhase, turn: i32) -> Self {
+    pub fn new(about: Option<MainPhase>, turn: i32) -> Self {
         Report {
             about,
             turn,

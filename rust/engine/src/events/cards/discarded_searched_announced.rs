@@ -34,7 +34,7 @@ impl DiscardedSearchedAnnounced {
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
         self.log(game);
-        game.turn.phase_before_searching_discarded = game.turn.current_phase;
+        game.turn.phase_before_searching_discarded = Some(game.turn.current_phase);
         let me = self.player();
         let p = game.player_mut(me);
         p.resources -= 2;

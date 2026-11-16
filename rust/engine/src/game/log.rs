@@ -10,7 +10,7 @@ impl Log {
     pub fn new() -> Self {
         Log {
             report_list: Vec::new(),
-            pre_game_report: Report::new(MainPhase::None, 0),
+            pre_game_report: Report::new(None, 0),
         }
     }
 }
@@ -45,11 +45,11 @@ impl Game {
         let current_turn = self.turn.current_turn;
         let has_reports = self.log.report_list.len() > 0;
         let current = self.current_report();
-        if has_reports && current.about == about && current.turn == current_turn && !current.is_battle() && current.messages.len() == 0 {
+        if has_reports && current.about == Some(about) && current.turn == current_turn && !current.is_battle() && current.messages.len() == 0 {
             return self.current_report_mut();
         }
 
-        let result = Report::new(about, self.turn.current_turn);
+        let result = Report::new(Some(about), self.turn.current_turn);
         self.log.report_list.push(result);
         let last = self.log.report_list.len() - 1;
         &mut self.log.report_list[last]

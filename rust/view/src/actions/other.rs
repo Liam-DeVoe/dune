@@ -285,12 +285,12 @@ fn opponents_but_ally(game: &Game, p: PlayerIndex) -> Vec<Faction> {
 }
 
 /// The phases a deal offer may last until.
-fn deal_end_phases(t: DealType) -> Vec<Phase> {
+fn deal_end_phases(t: DealType) -> Vec<Option<Phase>> {
     match t {
-        DealType::ShareStormPrescience => vec![Phase::TurnConcluded],
-        DealType::ShareBiddingPrescience => vec![Phase::Bidding, Phase::BiddingReport],
-        DealType::ShareResourceDeckPrescience => vec![Phase::TurnConcluded],
-        _ => vec![Phase::TurnConcluded, Phase::GameEnded],
+        DealType::ShareStormPrescience => vec![Some(Phase::TurnConcluded)],
+        DealType::ShareBiddingPrescience => vec![Some(Phase::Bidding), Some(Phase::BiddingReport)],
+        DealType::ShareResourceDeckPrescience => vec![Some(Phase::TurnConcluded)],
+        _ => vec![Some(Phase::TurnConcluded), Some(Phase::GameEnded)],
     }
 }
 
@@ -360,7 +360,7 @@ pub fn normalize(game: &Game, p: PlayerIndex, v: &ResolvedViewer, s: &Seating, d
         GameEvent::DealOffered(e) => adjust!(e, |m| {
             let types = DealOffered::get_standard_deal_types(game, p);
             m.type_ = required(m.type_, &types, DealType::None);
-            m.end_phase = required(m.end_phase, &deal_end_phases(m.type_), Phase::default());
+            m.end_phase = required(m.end_phase, &deal_end_phases(m.type_), None);
             m.price = picker(m.price, 0, 50);
             m.benefit = picker(m.benefit, 0, 50);
         }),
@@ -598,7 +598,7 @@ fn options(game: &Game, p: PlayerIndex, v: &ResolvedViewer, draft: &GameEvent, d
                 .map(|t| DealTypeOption {
                     value: t.value(),
                     label: plain(&message(&Deal::express(t, ExpressionElement::Null), d)),
-                    end_phases: deal_end_phases(t).into_iter().map(|ph| enum_option(d, ph)).collect(),
+                    end_phases: deal_end_phases(t).into_iter().map(|ph| enum_option_opt(d, ph)).collect(),
                 })
                 .collect(),
             draft: json.clone(),

@@ -746,7 +746,7 @@ impl Revival {
             }
 
             if game.check_intrusion(&self.clone().into_event())? {
-                game.ship_move.phase_before_revival_caused_intrusion = game.turn.current_phase;
+                game.ship_move.phase_before_revival_caused_intrusion = Some(game.turn.current_phase);
                 let bene_gesserit = game.last_bene_gesserit_intrusion().is_some();
                 let terror = game.last_terror_trigger().is_some();
                 game.enter_first(&[(bene_gesserit, Step::Enter(Phase::BeneGesseritIntrudedByRevival)), (terror, Step::Enter(Phase::TerrorTriggeredByRevival))], Step::Enter(Phase::AmbassadorTriggeredByRevival));

@@ -7,6 +7,7 @@
 //! The generator reads a shadow copy of the game ([`Shadow`]), never the session's game, so it
 //! can't change state the replayer wouldn't change: drafts and validation fill caches. Only the recorder runs it; the replayer reads its events from the trace.
 
+use treachery_engine::enum_type::GameEnum;
 use std::collections::BTreeMap;
 use std::panic::{self, AssertUnwindSafe};
 
@@ -596,19 +597,19 @@ impl Fuzzer {
     }
 
     pub fn note_accepted(&mut self, t: &'static str, phase: Phase) {
-        *self.accepted.entry((t, phase.0)).or_default() += 1;
+        *self.accepted.entry((t, phase.value())).or_default() += 1;
         *self.accepted_total.entry(t).or_default() += 1;
     }
 
     fn rare(&self, t: GameEventType, phase: Phase) -> bool {
-        self.accepted.get(&(t.name(), phase.0)).copied().unwrap_or(0) < 2
+        self.accepted.get(&(t.name(), phase.value())).copied().unwrap_or(0) < 2
     }
 
     /// Novelty weight of a type in a phase: 1 / (1 + accepted)^1.5, damped by
     /// how often steering already picked it.
     fn weight(&self, t: GameEventType, phase: Phase) -> f64 {
-        let a = self.accepted.get(&(t.name(), phase.0)).copied().unwrap_or(0) as f64;
-        let tries = self.steered_tries.get(&(t.name(), phase.0)).copied().unwrap_or(0) as f64;
+        let a = self.accepted.get(&(t.name(), phase.value())).copied().unwrap_or(0) as f64;
+        let tries = self.steered_tries.get(&(t.name(), phase.value())).copied().unwrap_or(0) as f64;
         let total = self.accepted_total.get(t.name()).copied().unwrap_or(0) as f64;
         1.0 / ((1.0 + a).powf(1.5) * (1.0 + tries / 8.0) * (1.0 + total / 30.0))
     }
@@ -634,7 +635,7 @@ impl Fuzzer {
         let items: Vec<((Option<usize>, GameEventType), f64)> = applicable.iter().flat_map(|(i, ts)| ts.iter().map(move |t| ((*i, *t), 0.0))).collect();
         let items: Vec<_> = items.into_iter().map(|((i, t), _)| ((i, t), self.weight(t, phase))).collect();
         let pick = self.weighted(&items)?;
-        *self.steered_tries.entry((pick.1.name(), phase.0)).or_default() += 1;
+        *self.steered_tries.entry((pick.1.name(), phase.value())).or_default() += 1;
         Some(pick)
     }
 
@@ -699,10 +700,10 @@ impl Fuzzer {
         let candidates: Vec<(usize, GameEventType)> = applicable
             .iter()
             .flat_map(|(i, ts)| ts.iter().map(move |t| (*i, *t)))
-            .filter(|(_, t)| self.rare(*t, phase) && self.opportunistic_tries.get(&(t.name(), phase.0)).copied().unwrap_or(0) < 15)
+            .filter(|(_, t)| self.rare(*t, phase) && self.opportunistic_tries.get(&(t.name(), phase.value())).copied().unwrap_or(0) < 15)
             .collect();
         let pick = *self.rng.pick(&candidates)?;
-        *self.opportunistic_tries.entry((pick.1.name(), phase.0)).or_default() += 1;
+        *self.opportunistic_tries.entry((pick.1.name(), phase.value())).or_default() += 1;
         Some(pick)
     }
 

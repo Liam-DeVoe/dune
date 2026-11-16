@@ -381,7 +381,7 @@ impl Game {
         let factions: Vec<Faction> = self.players.iter().filter(|p| p.hand_size_exceeded(self)).map(|p| p.faction).collect();
         self.turn.factions_that_must_discard.extend(factions);
         if self.turn.factions_that_must_discard.len() > 0 {
-            self.turn.phase_before_discarding = self.turn.current_phase;
+            self.turn.phase_before_discarding = Some(self.turn.current_phase);
             self.enter(Phase::Discarding, true);
         }
     }

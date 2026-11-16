@@ -7,7 +7,7 @@ pub struct DealAccepted {
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,
     pub text: Option<String>,
-    pub end: Phase,
+    pub end: Option<Phase>,
     pub price: i32,
     pub benefit: i32,
     /// The fields of `GameEvent` (Initiator, Time, Game, Player).

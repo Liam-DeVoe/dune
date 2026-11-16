@@ -70,8 +70,8 @@ game_enum! {
 }
 
 game_enum! {
-    MainPhase {
-        None = 0,
+    closed MainPhase {
+        absent None = 0;
         Started = 10,
         Setup = 20,
         Storm = 30,
@@ -85,7 +85,7 @@ game_enum! {
         Contemplate = 100,
         Ended = 110,
     }
-    get_values [None, Started, Setup, Storm, Blow, Charity, Bidding, Resurrection, ShipmentAndMove, Battle, Collection, Contemplate, Ended]
+    get_values [Started, Setup, Storm, Blow, Charity, Bidding, Resurrection, ShipmentAndMove, Battle, Collection, Contemplate, Ended]
 }
 
 game_enum! {
@@ -111,8 +111,8 @@ game_enum! {
 }
 
 game_enum! {
-    Phase {
-        None = 0,
+    closed Phase {
+        absent None = 0;
         AwaitingPlayers = 10000,
         SelectingFactions = 29000,
         TradingFactions = 30000,
@@ -237,7 +237,7 @@ game_enum! {
         Discarding = 600000,
         DiscardingTraitor = 700000,
     }
-    get_values [None, AwaitingPlayers, SelectingFactions, TradingFactions, CustomizingDecks, BeneGesseritPredicting, HarkonnenMulligan, AssigningInitialSkills, SelectingTraitors, PerformCustomSetup, FremenSettingUp, BeneGesseritSettingUp, MoritaniSettingUp, BeginningOfStorm, MetheorAndStormSpell, HmsPlacement, HmsMovement, DiallingStorm, StormLosses, StormReport, Thumper, BlowA, HarvesterA, BlowB, HarvesterB, FremenSendingMonsterA, VoteAllianceA, AllianceA, FremenRidingMonsterA, FremenSendingMonsterB, VoteAllianceB, AllianceB, FremenRidingMonsterB, NexusCards, BlowReport, BeginningOfCharity, ClaimingCharity, CharityReport, BeginningOfBidding, BlackMarketAnnouncement, BlackMarketBidding, RicheseAnnouncingAuction, RicheseSpecifyingAuction, RicheseKeepingUnsoldCard, IxianSelectingCard, IxianRemovingCardFromBid, IxianSwappingCard, Bidding, ReplacingCardJustWon, WaitingForNextBiddingRound, BiddingReport, BeginningOfResurrection, Resurrection, BeneGesseritIntrudedByRevival, TerrorTriggeredByRevival, AmbassadorTriggeredByRevival, ResurrectionReport, BeginningOfShipAndMove, NonGuildShip, GuildShip, BeneGesseritAccompaniesNonGuildShip, TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip, AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip, BeneGesseritAccompaniesGuildShip, TerrorTriggeredByBeneGesseritAccompaniesGuildShip, AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip, BeneGesseritIntrudedByNonGuildShip, TerrorTriggeredByGuildShip, AmbassadorTriggeredByGuildShip, BeneGesseritIntrudedByGuildShip, TerrorTriggeredByNonGuildShip, AmbassadorTriggeredByNonGuildShip, NonGuildMove, GuildMove, BeneGesseritIntrudedByNonGuildMove, TerrorTriggeredByNonGuildMove, AmbassadorTriggeredByNonGuildMove, BeneGesseritIntrudedByGuildMove, TerrorTriggeredByGuildMove, AmbassadorTriggeredByGuildMove, BeneGesseritIntrudedByCaravan, TerrorTriggeredByCaravan, AmbassadorTriggeredByCaravan, BeneGesseritIntrudedByFremenRidingMonsterA, TerrorTriggeredByFremenRidingMonsterA, AmbassadorTriggeredByFremenRidingMonsterA, BeneGesseritIntrudedByFremenRidingMonsterB, TerrorTriggeredByFremenRidingMonsterB, AmbassadorTriggeredByFremenRidingMonsterB, AllianceByTerror, AllianceByAmbassador, ShipmentAndMoveConcluded, BeginningOfBattle, BattlePhase, ClaimingBattle, CallTraitorOrPass, CancellingTraitor, CaptureDecision, AvoidingAudit, Auditing, Retreating, BattleConclusion, RevealingFacedancer, Facedancing, BattleReport, BeginningOfCollection, DividingCollectedResources, AcceptingResourceDivision, CollectionReport, PerformingKarmaHandSwap, TradingCards, Clairvoyance, SearchingDiscarded, ReplacingFaceDancer, Extortion, Contemplate, TurnConcluded, GameEnded, Bureaucracy, AssigningSkill, Thought, MeltingRock, Discarding, DiscardingTraitor]
+    get_values [AwaitingPlayers, SelectingFactions, TradingFactions, CustomizingDecks, BeneGesseritPredicting, HarkonnenMulligan, AssigningInitialSkills, SelectingTraitors, PerformCustomSetup, FremenSettingUp, BeneGesseritSettingUp, MoritaniSettingUp, BeginningOfStorm, MetheorAndStormSpell, HmsPlacement, HmsMovement, DiallingStorm, StormLosses, StormReport, Thumper, BlowA, HarvesterA, BlowB, HarvesterB, FremenSendingMonsterA, VoteAllianceA, AllianceA, FremenRidingMonsterA, FremenSendingMonsterB, VoteAllianceB, AllianceB, FremenRidingMonsterB, NexusCards, BlowReport, BeginningOfCharity, ClaimingCharity, CharityReport, BeginningOfBidding, BlackMarketAnnouncement, BlackMarketBidding, RicheseAnnouncingAuction, RicheseSpecifyingAuction, RicheseKeepingUnsoldCard, IxianSelectingCard, IxianRemovingCardFromBid, IxianSwappingCard, Bidding, ReplacingCardJustWon, WaitingForNextBiddingRound, BiddingReport, BeginningOfResurrection, Resurrection, BeneGesseritIntrudedByRevival, TerrorTriggeredByRevival, AmbassadorTriggeredByRevival, ResurrectionReport, BeginningOfShipAndMove, NonGuildShip, GuildShip, BeneGesseritAccompaniesNonGuildShip, TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip, AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip, BeneGesseritAccompaniesGuildShip, TerrorTriggeredByBeneGesseritAccompaniesGuildShip, AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip, BeneGesseritIntrudedByNonGuildShip, TerrorTriggeredByGuildShip, AmbassadorTriggeredByGuildShip, BeneGesseritIntrudedByGuildShip, TerrorTriggeredByNonGuildShip, AmbassadorTriggeredByNonGuildShip, NonGuildMove, GuildMove, BeneGesseritIntrudedByNonGuildMove, TerrorTriggeredByNonGuildMove, AmbassadorTriggeredByNonGuildMove, BeneGesseritIntrudedByGuildMove, TerrorTriggeredByGuildMove, AmbassadorTriggeredByGuildMove, BeneGesseritIntrudedByCaravan, TerrorTriggeredByCaravan, AmbassadorTriggeredByCaravan, BeneGesseritIntrudedByFremenRidingMonsterA, TerrorTriggeredByFremenRidingMonsterA, AmbassadorTriggeredByFremenRidingMonsterA, BeneGesseritIntrudedByFremenRidingMonsterB, TerrorTriggeredByFremenRidingMonsterB, AmbassadorTriggeredByFremenRidingMonsterB, AllianceByTerror, AllianceByAmbassador, ShipmentAndMoveConcluded, BeginningOfBattle, BattlePhase, ClaimingBattle, CallTraitorOrPass, CancellingTraitor, CaptureDecision, AvoidingAudit, Auditing, Retreating, BattleConclusion, RevealingFacedancer, Facedancing, BattleReport, BeginningOfCollection, DividingCollectedResources, AcceptingResourceDivision, CollectionReport, PerformingKarmaHandSwap, TradingCards, Clairvoyance, SearchingDiscarded, ReplacingFaceDancer, Extortion, Contemplate, TurnConcluded, GameEnded, Bureaucracy, AssigningSkill, Thought, MeltingRock, Discarding, DiscardingTraitor]
 }
 
 game_enum! {
@@ -802,15 +802,95 @@ game_enum! {
     get_values [Dial, Leader, Weapon, Defense]
 }
 
-game_enum! {
-    flags ShipmentPermission {
-        None = 0,
-        Cross = 1,
-        ToHomeworld = 2,
-        GuildRate = 4,
-    }
-    get_values [None, Cross, ToHomeworld, GuildRate]
+/// What the Guild allows a faction to do with its shipments. C# had a `[Flags]` enum, and event
+/// JSON still writes it as that number: `Cross` 1, `ToHomeworld` 2, `GuildRate` 4. A number with
+/// any other bit set doesn't decode.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Default)]
+pub struct ShipmentPermission {
+    /// Ship from the planet to another faction's homeworld.
+    pub cross: bool,
+    /// Ship from the planet to the faction's own homeworld.
+    pub to_homeworld: bool,
+    /// Pay the Guild's rate.
+    pub guild_rate: bool,
 }
+
+impl ShipmentPermission {
+    pub const NONE: ShipmentPermission = ShipmentPermission { cross: false, to_homeworld: false, guild_rate: false };
+    pub const CROSS: ShipmentPermission = ShipmentPermission { cross: true, ..Self::NONE };
+    pub const TO_HOMEWORLD: ShipmentPermission = ShipmentPermission { to_homeworld: true, ..Self::NONE };
+    pub const GUILD_RATE: ShipmentPermission = ShipmentPermission { guild_rate: true, ..Self::NONE };
+
+    /// The members of the C# enum.
+    pub const ALL: &'static [ShipmentPermission] = &[Self::NONE, Self::CROSS, Self::TO_HOMEWORLD, Self::GUILD_RATE];
+
+    pub const INFO: crate::enum_type::EnumTypeInfo = crate::enum_type::EnumTypeInfo {
+        name: "ShipmentPermission",
+        is_flags: true,
+        declared: &[("None", 0), ("Cross", 1), ("ToHomeworld", 2), ("GuildRate", 4)],
+        absent: false,
+    };
+
+    /// Every permission in `other` is also in `self`.
+    pub fn contains(self, other: ShipmentPermission) -> bool {
+        (self.cross || !other.cross) && (self.to_homeworld || !other.to_homeworld) && (self.guild_rate || !other.guild_rate)
+    }
+
+    /// The permissions of both.
+    pub fn union(self, other: ShipmentPermission) -> ShipmentPermission {
+        ShipmentPermission {
+            cross: self.cross || other.cross,
+            to_homeworld: self.to_homeworld || other.to_homeworld,
+            guild_rate: self.guild_rate || other.guild_rate,
+        }
+    }
+}
+
+impl GameEnum for ShipmentPermission {
+    const INFO: &'static crate::enum_type::EnumTypeInfo = &ShipmentPermission::INFO;
+    const ALL: &'static [Self] = ShipmentPermission::ALL;
+
+    /// The C# flag number.
+    fn value(self) -> i32 {
+        self.cross as i32 | (self.to_homeworld as i32) << 1 | (self.guild_rate as i32) << 2
+    }
+
+    /// `None` for a negative number or one with a bit other than 1, 2 and 4.
+    fn from_value(value: i32) -> Option<Self> {
+        if !(0..8).contains(&value) {
+            return None;
+        }
+        Some(ShipmentPermission { cross: value & 1 != 0, to_homeworld: value & 2 != 0, guild_rate: value & 4 != 0 })
+    }
+}
+
+/// By flag number, like C#.
+impl Ord for ShipmentPermission {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.value().cmp(&other.value())
+    }
+}
+
+impl PartialOrd for ShipmentPermission {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+/// `Enum.ToString()`, such as `"Cross, ToHomeworld"`.
+impl std::fmt::Display for ShipmentPermission {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&Self::INFO.format(self.value()))
+    }
+}
+
+impl std::fmt::Debug for ShipmentPermission {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ShipmentPermission::{self}")
+    }
+}
+
+impl crate::json::JsonNullable for ShipmentPermission {}
 
 game_enum! {
     UserStatus {

@@ -117,7 +117,7 @@ impl Game {
             let bureaucrat = self.player_skilled_as(LeaderSkill::Bureaucrat);
             if let Some(bureaucrat) = bureaucrat {
                 if self.player(bureaucrat).faction != payer && self.player(bureaucrat).faction != receiver {
-                    self.turn.phase_before_bureaucrat_was_activated = self.turn.current_phase;
+                    self.turn.phase_before_bureaucrat_was_activated = Some(self.turn.current_phase);
                     self.turn.target_of_bureaucracy = receiver;
                     self.enter(Phase::Bureaucracy, true);
                 }

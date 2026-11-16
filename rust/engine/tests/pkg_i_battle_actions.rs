@@ -183,7 +183,7 @@ fn traitor_discarded_appends_without_shuffling() {
     g.decks.traitor_deck = Some(Deck::new(vec![leaders[0]], None));
     g.player_mut(harkonnen).traitors = vec![leaders[1], leaders[2]];
     g.turn.number_of_traitors_to_discard = 1;
-    g.turn.phase_before_discarding_traitor = Phase::BattlePhase;
+    g.turn.phase_before_discarding_traitor = Some(Phase::BattlePhase);
 
     let mut e = TraitorDiscarded::new(&g, Faction::Harkonnen);
     e.set_traitor(Some(leaders[2]));

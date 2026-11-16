@@ -24,7 +24,7 @@ pub struct BiddingState {
     pub replacing_bought_card_using_nexus: bool,
     pub karma_hand_swap_number_of_cards: i32,
     pub karma_hand_swap_target: Faction,
-    pub karma_hand_swap_paused_phase: Phase,
+    pub karma_hand_swap_paused_phase: Option<Phase>,
     pub black_market_auction_type: Option<AuctionType>,
     pub card_sold_on_black_market: Option<TreacheryCard>,
     pub richese_auction_should_still_happen: bool,

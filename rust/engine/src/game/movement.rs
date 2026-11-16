@@ -18,14 +18,14 @@ pub struct ShipMoveState {
     pub chosen_destinations_with_allies: Vec<Territory>,
     pub current_player_may_perform_extra_move: bool,
     pub bene_gesserit_may_accompany: bool,
-    pub phase_before_caravan_caused_intrusion: Phase,
-    pub phase_before_revival_caused_intrusion: Phase,
+    pub phase_before_caravan_caused_intrusion: Option<Phase>,
+    pub phase_before_revival_caused_intrusion: Option<Phase>,
     pub current_flight_used: Option<Rc<FlightUsed>>,
     pub current_flight_discovery_used: Option<Rc<FlightDiscoveryUsed>>,
     pub current_ambassador_activated: Option<Rc<AmbassadorActivated>>,
     pub alliance_by_ambassador_offered_to: Faction,
-    pub paused_ambassador_phase: Phase,
-    pub paused_terror_phase: Phase,
+    pub paused_ambassador_phase: Option<Phase>,
+    pub paused_terror_phase: Option<Phase>,
     pub alliance_by_terror_was_offered: bool,
     pub alliance_by_terror_offered_to: Faction,
     pub in_guild_cunning_shipment: bool,
@@ -292,7 +292,7 @@ impl Game {
     }
 
     pub fn let_player_discard_treachery_card_of_choice(&mut self, f: Faction) {
-        self.turn.phase_before_discarding = self.turn.current_phase;
+        self.turn.phase_before_discarding = Some(self.turn.current_phase);
         self.turn.factions_that_must_discard.push(f);
         self.enter(Phase::Discarding, true);
     }
@@ -322,7 +322,7 @@ impl Game {
         }
 
         if !self.storm.storm_losses_to_take.is_empty() {
-            self.storm.phase_before_storm_loss = self.turn.current_phase;
+            self.storm.phase_before_storm_loss = Some(self.turn.current_phase);
             self.enter(Phase::StormLosses, true);
         } else if !self.ship_move.intrusions.is_empty() {
             match self.ship_move.intrusions[0].type_ {
@@ -331,7 +331,7 @@ impl Game {
                 IntrusionType::Ambassador => self.determine_next_shipment_and_move_sub_phase_on_ambassador_triggered()?,
             }
         } else {
-            self.determine_next_shipment_and_move_sub_phase_on_no_intrusion();
+            self.determine_next_shipment_and_move_sub_phase_on_no_intrusion()?;
         }
 
         self.skip_move_if_nothing_to_move()?;
@@ -427,7 +427,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn determine_next_shipment_and_move_sub_phase_on_no_intrusion(&mut self) {
+    pub fn determine_next_shipment_and_move_sub_phase_on_no_intrusion(&mut self) -> GameResult {
         match self.turn.current_phase {
             Phase::FremenRidingMonsterA
             | Phase::BeneGesseritIntrudedByFremenRidingMonsterA
@@ -472,14 +472,14 @@ impl Game {
             }
 
             Phase::BeneGesseritIntrudedByCaravan | Phase::TerrorTriggeredByCaravan | Phase::AmbassadorTriggeredByCaravan => {
-                let p = self.ship_move.phase_before_caravan_caused_intrusion;
+                let p = self.ship_move.phase_before_caravan_caused_intrusion.required("phase before caravan caused intrusion")?;
                 self.enter(p, true);
             }
 
             Phase::BeneGesseritIntrudedByRevival | Phase::TerrorTriggeredByRevival | Phase::AmbassadorTriggeredByRevival => {
-                let mut next_phase = self.ship_move.phase_before_revival_caused_intrusion;
-                if self.ship_move.phase_before_revival_caused_intrusion == Phase::AssigningSkill && !SkillAssigned::players_must_choose_leader_skills(self) {
-                    next_phase = self.setup.phase_before_skill_assignment;
+                let mut next_phase = self.ship_move.phase_before_revival_caused_intrusion.required("phase before revival caused intrusion")?;
+                if next_phase == Phase::AssigningSkill && !SkillAssigned::players_must_choose_leader_skills(self) {
+                    next_phase = self.setup.phase_before_skill_assignment.required("phase before skill assignment")?;
                     if next_phase == self.turn.current_phase {
                         next_phase = Phase::Resurrection;
                     }
@@ -490,6 +490,7 @@ impl Game {
 
             _ => {}
         }
+        Ok(())
     }
 
     pub fn determine_next_shipment_and_move_sub_phase_on_bene_gesserit_intruded(&mut self) -> GameResult {
@@ -857,7 +858,7 @@ impl Game {
 
     pub fn has_shipment_permission(&self, p: PlayerIndex, permission: ShipmentPermission) -> bool {
         match self.ship_move.shipment_permissions.get(&self.player(p).faction) {
-            Some(permissions) => (permissions.0 & permission.0) == permission.0,
+            Some(permissions) => permissions.contains(permission),
             None => false,
         }
     }

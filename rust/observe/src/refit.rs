@@ -13,6 +13,7 @@
 //! An event that was already invalid where the old log executed it (savegames are loaded without
 //! validation) is kept only if it passes validation now, and never replaced.
 
+use treachery_engine::enum_type::GameEnum;
 use std::panic::{self, AssertUnwindSafe};
 
 use serde_json::{Map, Value};
@@ -340,7 +341,7 @@ impl Refit {
     }
 
     fn position(&self) -> Position {
-        (self.game.turn.current_turn, self.game.turn.current_main_phase.0)
+        (self.game.turn.current_turn, self.game.turn.current_main_phase.value())
     }
 
     /// Takes back what was added since `history` and `out` had these lengths.

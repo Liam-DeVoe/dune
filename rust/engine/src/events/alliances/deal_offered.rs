@@ -7,7 +7,7 @@ pub struct DealOffered {
     pub deal_parameter1: Option<String>,
     pub deal_parameter2: Option<String>,
     pub text: Option<String>,
-    pub end_phase: Phase,
+    pub end_phase: Option<Phase>,
     pub price: i32,
     pub benefit: i32,
     pub cancel: bool,
@@ -120,7 +120,7 @@ impl DealOffered {
         )
     }
 
-    pub fn matches(&self, by: Faction, bound_faction: Faction, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Phase) -> bool {
+    pub fn matches(&self, by: Faction, bound_faction: Faction, price: i32, type_: DealType, deal_parameter1: Option<&str>, deal_parameter2: Option<&str>, text: Option<&str>, benefit: i32, end: Option<Phase>) -> bool {
         bound_faction == self.initiator()
             && price == self.price
             && type_ == self.type_

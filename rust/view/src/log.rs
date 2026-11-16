@@ -10,6 +10,7 @@
 use serde::{Deserialize, Serialize};
 use treachery_engine::messages::expression::ExpressionElement;
 use treachery_engine::heroes::hero::Hero;
+use treachery_engine::enum_type::name_or_absent;
 use treachery_engine::log as l;
 use treachery_engine::messages::message::{self as m, Message};
 use treachery_engine::prelude::*;
@@ -37,7 +38,7 @@ pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
         .map(|(i, r)| ReportHeader {
             index: i as i32,
             turn: r.turn,
-            about: name(r.about),
+            about: name_or_absent(r.about),
             is_battle: r.territory.is_some(),
             aggressor: name(r.aggressor),
             defender: name(r.defender),

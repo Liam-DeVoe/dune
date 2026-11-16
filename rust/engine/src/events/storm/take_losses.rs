@@ -115,11 +115,11 @@ impl TakeLosses {
             game.log(vec![message.into()]);
         }
 
-        if game.storm.phase_before_storm_loss == Phase::BlowA {
+        if game.storm.phase_before_storm_loss == Some(Phase::BlowA) {
             let condition = game.storm.storm_losses_to_take.len() > 0;
             game.enter_or_else(condition, Phase::StormLosses, Game::end_storm_phase);
         } else {
-            let phase = game.storm.phase_before_storm_loss;
+            let phase = game.storm.phase_before_storm_loss.required("phase before storm loss")?;
             game.enter(phase, true);
             game.determine_next_shipment_and_move_sub_phase()?;
         }

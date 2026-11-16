@@ -17,7 +17,7 @@
 use std::path::PathBuf;
 
 use serde_json::{json, Value};
-use treachery_engine::events::GameEvent;
+use treachery_engine::events::{GameEvent, GameEventType};
 use treachery_engine::game::GameState;
 use treachery_engine::json;
 use treachery_engine::json::utilities::Utilities;
@@ -72,6 +72,14 @@ fn events_round_trip() {
         }
     }
     assert!(cases.len() > 1000, "corpus too small");
+    // Each closed enum turns more of the random values into refusals. A type whose cases are all
+    // refused would no longer show how it is written back.
+    let event_type = |c: &Value| serde_json::from_str::<Value>(c["json"].as_str().unwrap()).ok().and_then(|v| v["$type"].as_str().map(str::to_string));
+    let accepted: std::collections::BTreeSet<String> =
+        cases.iter().filter(|c| c["kind"] == "event" && c["ok"] == json!(true)).filter_map(event_type).collect();
+    let unaccepted: Vec<&str> =
+        GameEventType::ALL.iter().filter_map(|t| t.json_discriminator()).filter(|t| !accepted.contains(*t)).collect();
+    assert!(unaccepted.is_empty(), "no accepted case left for {unaccepted:?}: add one to events.jsonl");
     if updating() {
         write("events.jsonl", &cases);
         return;

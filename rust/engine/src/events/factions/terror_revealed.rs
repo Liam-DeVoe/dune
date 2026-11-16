@@ -199,7 +199,7 @@ impl TerrorRevealed {
             );
             game.ship_move.alliance_by_terror_offered_to = victim;
             game.ship_move.alliance_by_terror_was_offered = true;
-            game.ship_move.paused_terror_phase = game.turn.current_phase;
+            game.ship_move.paused_terror_phase = Some(game.turn.current_phase);
             game.enter(Phase::AllianceByTerror, true);
         } else {
             game.stone(Milestone::TerrorRevealed);

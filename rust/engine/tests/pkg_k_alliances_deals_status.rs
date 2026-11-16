@@ -167,9 +167,9 @@ fn deal_cancellation_removes_matching_offer() {
 #[test]
 fn deal_contents_description_uses_text_when_not_blank() {
     let g = game_with(&[Faction::Atreides]);
-    let m = Deal::describe_deal_contents(&g, DealType::None, Some("  \t"), 0, Phase::BattlePhase, None);
+    let m = Deal::describe_deal_contents(&g, DealType::None, Some("  \t"), 0, Some(Phase::BattlePhase), None);
     assert!(m.to_cs_string().contains("Custom deal"), "{}", m.to_cs_string());
-    let m = Deal::describe_deal_contents(&g, DealType::None, Some("hi"), 0, Phase::BattlePhase, None);
+    let m = Deal::describe_deal_contents(&g, DealType::None, Some("hi"), 0, Some(Phase::BattlePhase), None);
     assert!(m.to_cs_string().starts_with("hi until"), "{}", m.to_cs_string());
 }
 
@@ -214,13 +214,14 @@ fn threshold_for_win() {
 
 // ---------------------------------------------------------------- GameStatus
 
+/// Discarding traitors is the one phase without a status of its own.
 #[test]
 fn status_unknown_phase_waits_for_host() {
     let mut g = game_with(&[Faction::Atreides]);
-    g.turn.current_phase = Phase::None;
+    g.turn.current_phase = Phase::DiscardingTraitor;
     let s = GameStatus::determine_status(&mut g, None, false);
     assert!(s.waiting_for_host);
-    assert_eq!(s.get_message(g.player_at(0), true).to_cs_string(), "Unknown phase: None");
+    assert_eq!(s.get_message(g.player_at(0), true).to_cs_string(), "Unknown phase: DiscardingTraitor");
 }
 
 /// Discarding waits for the factions that must discard, skipping factions not in the game.

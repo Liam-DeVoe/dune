@@ -136,7 +136,7 @@ impl Skin {
             TreacheryCardType::Laser,                               //18
             TreacheryCardType::Karma,                               //19
             self.concept_str.index(Some(Concept::Messiah)).clone(),       //20
-            self.main_phase_str.index(MainPhase::ShipmentAndMove).clone(), //21
+            self.main_phase_str.index(Some(MainPhase::ShipmentAndMove)).clone(), //21
             m.habbanya_sietch(),                                    //22
             self.special_force_name_str.index(Faction::Fremen).clone(), //23
             self.special_force_name_str.index(Faction::Emperor).clone(), //24
@@ -158,11 +158,11 @@ impl Skin {
             card_name(TreacheryCardManager::CARD_KULON),            //40
             card_name(TreacheryCardManager::CARD_LALALA),           //41
             card_name(TreacheryCardManager::CARD_TRIP_TO_GAMONT),   //42
-            self.main_phase_str.index(MainPhase::Contemplate).clone(), //43
+            self.main_phase_str.index(Some(MainPhase::Contemplate)).clone(), //43
             self.person_name_str.index(1036).clone(),               //44
-            self.main_phase_str.index(MainPhase::Bidding).clone(),  //45
-            self.main_phase_str.index(MainPhase::Battle).clone(),   //46
-            self.main_phase_str.index(MainPhase::Charity).clone(),  //47
+            self.main_phase_str.index(Some(MainPhase::Bidding)).clone(),  //45
+            self.main_phase_str.index(Some(MainPhase::Battle)).clone(),   //46
+            self.main_phase_str.index(Some(MainPhase::Charity)).clone(),  //47
             Faction::Ecaz,                                          //48
             Faction::Moritani,                                          //49
             m.imperial_basin(),                                     //50

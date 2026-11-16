@@ -59,7 +59,7 @@ impl KarmaHandSwap {
             Game::register_known_by_player(game, me.required("me")?, Some(returned));
         }
         self.log(game);
-        let paused = game.bidding.karma_hand_swap_paused_phase;
+        let paused = game.bidding.karma_hand_swap_paused_phase.required("karma hand swap paused phase")?;
         game.enter(paused, false);
         Ok(())
     }

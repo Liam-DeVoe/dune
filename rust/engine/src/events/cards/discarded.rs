@@ -55,7 +55,7 @@ impl Discarded {
         game.discard_card_of(self.player_opt(), self.card(), false);
 
         if game.turn.factions_that_must_discard.is_empty() {
-            let phase = game.turn.phase_before_discarding;
+            let phase = game.turn.phase_before_discarding.required("phase before discarding")?;
             game.enter(phase, true);
         }
         Ok(())

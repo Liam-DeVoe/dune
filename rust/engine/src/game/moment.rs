@@ -6,15 +6,6 @@ pub struct Moment {
     pub phase: MainPhase,
 }
 
-impl Default for Moment {
-    fn default() -> Self {
-        Moment {
-            turn: Default::default(),
-            phase: Default::default(),
-        }
-    }
-}
-
 impl Moment {
     pub fn new(turn: i32, phase: MainPhase) -> Self {
         Moment { turn, phase }

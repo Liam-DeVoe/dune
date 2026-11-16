@@ -497,7 +497,7 @@ impl Shipment {
         let mut cost_of_shipment: f64 =
             (total_forces.abs() * if to.territory().has_reduced_shipping_cost() { 1 } else { 2 }) as f64;
 
-        if Shipment::may_ship_with_discount(g, p) || karama_shipment || (site_to_site && g.has_shipment_permission(p, ShipmentPermission::GuildRate)) {
+        if Shipment::may_ship_with_discount(g, p) || karama_shipment || (site_to_site && g.has_shipment_permission(p, ShipmentPermission::GUILD_RATE)) {
             cost_of_shipment /= 2.0;
         }
 
@@ -587,11 +587,11 @@ impl Shipment {
                 || pl.is(Faction::Guild)
                 || !pl.is_native_homeworld(hw)
                 || (pl.is_native_homeworld(hw) && Shipment::may_ship_to_reserves(g, p))
-                || (pl.is_native_homeworld(hw) && g.has_shipment_permission(p, ShipmentPermission::ToHomeworld))) // from planet to OWN homeworld
+                || (pl.is_native_homeworld(hw) && g.has_shipment_permission(p, ShipmentPermission::TO_HOMEWORLD))) // from planet to OWN homeworld
             && (!from_planet
                 || pl.is(Faction::Guild)
                 || pl.is_native_homeworld(hw)
-                || (!pl.is_native_homeworld(hw) && g.has_shipment_permission(p, ShipmentPermission::Cross))) // from planet to OTHER homeworld
+                || (!pl.is_native_homeworld(hw) && g.has_shipment_permission(p, ShipmentPermission::CROSS))) // from planet to OTHER homeworld
             && g.players.iter().any(|native| native.is_native_homeworld(hw))
             && (!pl.has_ally() || {
                 // p.AlliedPlayer may be null when the ally is not in the game: NullReferenceException.
@@ -703,14 +703,14 @@ impl Shipment {
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildSpecialShipments))
             || (pl.ally == Faction::Guild && g.alliances.guild_allows_shipping_discount)
             || Shipment::initiated_current_guild_secret_ally(g, p)
-            || g.has_shipment_permission(p, ShipmentPermission::Cross)
+            || g.has_shipment_permission(p, ShipmentPermission::CROSS)
     }
 
     pub fn may_ship_to_reserves(g: &Game, p: PlayerIndex) -> bool {
         let pl = g.player(p);
         (pl.is(Faction::Guild) && !g.prevented(FactionAdvantage::GuildSpecialShipments))
             || Shipment::initiated_current_guild_secret_ally(g, p)
-            || g.has_shipment_permission(p, ShipmentPermission::ToHomeworld)
+            || g.has_shipment_permission(p, ShipmentPermission::TO_HOMEWORLD)
     }
 
     pub fn may_ship_with_discount(g: &Game, p: PlayerIndex) -> bool {
@@ -724,7 +724,7 @@ impl Shipment {
     pub fn valid_source_locations(g: &Game, p: PlayerIndex) -> impl Iterator<Item = Location> {
         g.locations_with_any_forces_not_in_storm(p)
             .into_iter()
-            .filter(move |x| !x.is_homeworld() || Shipment::may_ship_cross_planet(g, p) || g.has_shipment_permission(p, ShipmentPermission::Cross))
+            .filter(move |x| !x.is_homeworld() || Shipment::may_ship_cross_planet(g, p) || g.has_shipment_permission(p, ShipmentPermission::CROSS))
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {

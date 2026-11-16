@@ -16,7 +16,6 @@ use serde_json::Value;
 use treachery_engine::events::GameEventType;
 use treachery_engine::json;
 use treachery_engine::messages::expression::ExpressionElement;
-use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 
 use crate::build::{event, validate};
@@ -619,9 +618,9 @@ fn build(game: &Game, p: PlayerIndex, draft: &GameEvent, d: &dyn Describer) -> A
                 .iter()
                 .map(|(f, perm)| ShipmentPermissionRow {
                     faction: name(*f),
-                    cross: perm.value() & ShipmentPermission::Cross.value() != 0,
-                    to_homeworld: perm.value() & ShipmentPermission::ToHomeworld.value() != 0,
-                    guild_rate: perm.value() & ShipmentPermission::GuildRate.value() != 0,
+                    cross: perm.cross,
+                    to_homeworld: perm.to_homeworld,
+                    guild_rate: perm.guild_rate,
                 })
                 .collect(),
             targets: SetShipmentPermission::valid_targets(game, p).map(name).collect(),

@@ -609,7 +609,7 @@ impl NexusPlayed {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
-                game.turn.phase_before_discarding_traitor = game.turn.current_phase;
+                game.turn.phase_before_discarding_traitor = Some(game.turn.current_phase);
                 game.turn.faction_that_must_discard_traitor = self.initiator();
                 game.turn.number_of_traitors_to_discard = 1;
                 game.play_nexus_card(actor, elems!["draw a new traitor"]);
@@ -710,7 +710,7 @@ impl NexusPlayed {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
-                game.turn.phase_before_discarding_traitor = game.turn.current_phase;
+                game.turn.phase_before_discarding_traitor = Some(game.turn.current_phase);
                 game.turn.faction_that_must_discard_traitor = self.initiator();
                 game.turn.number_of_traitors_to_discard = 2;
                 game.play_nexus_card(actor, elems!["draw two new traitors"]);

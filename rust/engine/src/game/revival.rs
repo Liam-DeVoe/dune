@@ -42,7 +42,7 @@ impl RevivalState {
 impl Game {
     pub fn prepare_skill_assignment_to_revived_leader(&mut self, player: PlayerIndex, leader: Option<Leader>) {
         if self.turn.current_phase != Phase::AssigningSkill && leader.is_some() {
-            self.setup.phase_before_skill_assignment = self.turn.current_phase;
+            self.setup.phase_before_skill_assignment = Some(self.turn.current_phase);
         }
 
         self.player_mut(player).most_recently_revived_leader = leader;

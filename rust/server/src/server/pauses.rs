@@ -24,7 +24,8 @@ use crate::pause_rules;
 pub struct Pause {
     /// Numbers the pauses of a game, so a countdown ends only its own pause.
     pub id: u32,
-    pub phase: Phase,
+    /// `None` before the first pause.
+    pub phase: Option<Phase>,
     pub turn: i32,
     /// After an undo or a load, until the next event: the host continues.
     pub suspended: bool,
@@ -129,7 +130,7 @@ impl Server {
             pause = new_pause(&mut counter, state, None, true);
         }
         if let Some(executed) = executed {
-            if matches!(executed, GameEvent::EndPhase(_)) || pause.phase != state.turn.current_phase || pause.turn != state.turn.current_turn {
+            if matches!(executed, GameEvent::EndPhase(_)) || pause.phase != Some(state.turn.current_phase) || pause.turn != state.turn.current_turn {
                 pause = new_pause(&mut counter, state, Some(&pause), false);
             } else {
                 pause.suspended = false;
@@ -209,7 +210,7 @@ fn new_pause(counter: &mut u32, g: &treachery_engine::game::Game, previous: Opti
     *counter += 1;
     Pause {
         id: *counter,
-        phase: g.turn.current_phase,
+        phase: Some(g.turn.current_phase),
         turn: g.turn.current_turn,
         suspended,
         last_sent: previous.and_then(|p| p.last_sent.clone()),

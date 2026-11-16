@@ -58,7 +58,7 @@ macro_rules! enum_keys {
     )*};
 }
 
-enum_keys!(MainPhase, Faction);
+enum_keys!(Faction);
 
 /// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
 macro_rules! optional_enum_keys {
@@ -74,7 +74,7 @@ macro_rules! optional_enum_keys {
     )*};
 }
 
-optional_enum_keys!(TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, TreacheryCardType, Ambassador);
+optional_enum_keys!(MainPhase, TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, TreacheryCardType, Ambassador);
 
 /// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
 /// which is the order .NET enumerates and serializes them in.
@@ -142,7 +142,7 @@ pub struct Skin {
     pub version: i32,
 
     pub concept_str: SkinDictionary<Option<Concept>>,
-    pub main_phase_str: SkinDictionary<MainPhase>,
+    pub main_phase_str: SkinDictionary<Option<MainPhase>>,
     pub person_name_str: SkinDictionary<i32>,
     pub person_image_url: SkinDictionary<i32>,
     pub territory_name_str: SkinDictionary<i32>,
@@ -431,13 +431,13 @@ impl Skin {
                     describe_rule_group(v)
                 } else if let Some(v) = e.get_opt::<Rule>() {
                     self.describe_rule(v)
-                } else if let Some(v) = e.get::<MainPhase>() {
+                } else if let Some(v) = e.get_opt::<MainPhase>() {
                     self.describe_main_phase(v)
                 } else if let Some(v) = e.get_opt::<TechToken>() {
                     self.describe_tech_token(v)
                 } else if let Some(v) = e.get_opt::<WinMethod>() {
                     self.describe_win_method(v)
-                } else if let Some(v) = e.get::<Phase>() {
+                } else if let Some(v) = e.get_opt::<Phase>() {
                     describe_phase(v)
                 } else if let Some(v) = e.get_opt::<ChoamEconomicsStatus>() {
                     describe_choam_economics_status(v)
@@ -785,7 +785,7 @@ impl Skin {
         get_label(&self.ambassador_image_url, ambassador)
     }
 
-    pub fn describe_main_phase(&self, p: MainPhase) -> String {
+    pub fn describe_main_phase(&self, p: Option<MainPhase>) -> String {
         get_label(&self.main_phase_str, p)
     }
 
@@ -1432,14 +1432,14 @@ pub fn describe_rule_group(s: Option<RuleGroup>) -> String {
     .to_string()
 }
 
-pub fn describe_phase(p: Phase) -> String {
+pub fn describe_phase(p: Option<Phase>) -> String {
     match p {
-        Phase::TurnConcluded => "End of turn",
-        Phase::Bidding => "Next bidding round",
-        Phase::BiddingReport => "End of bidding phase",
-        Phase::ShipmentAndMoveConcluded => "End of movement phase",
-        Phase::BattleReport => "End of battle phase",
-        Phase::GameEnded => "End of game",
+        Some(Phase::TurnConcluded) => "End of turn",
+        Some(Phase::Bidding) => "Next bidding round",
+        Some(Phase::BiddingReport) => "End of bidding phase",
+        Some(Phase::ShipmentAndMoveConcluded) => "End of movement phase",
+        Some(Phase::BattleReport) => "End of battle phase",
+        Some(Phase::GameEnded) => "End of game",
         _ => "unknown",
     }
     .to_string()

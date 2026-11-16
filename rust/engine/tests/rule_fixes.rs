@@ -64,7 +64,7 @@ fn shipping_back_to_reserves_moves_special_forces_too() {
     let sardaukar_home = g.player(emperor).home_worlds.iter().copied().find(|hw| g.player(emperor).special_forces_in(Some(hw.location())) > 0).unwrap();
     Player::move_special_forces(&mut g, emperor, sardaukar_home.location(), sand, 2);
     // As if the Guild had given Emperor the permission (SetShipmentPermission).
-    g.ship_move.shipment_permissions.insert(Faction::Emperor, ShipmentPermission::ToHomeworld);
+    g.ship_move.shipment_permissions.insert(Faction::Emperor, ShipmentPermission::TO_HOMEWORLD);
 
     let (reserve, special_reserve, spice) = {
         let pl = g.player(emperor);

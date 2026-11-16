@@ -33,7 +33,7 @@ impl AllianceByAmbassador {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let paused = game.ship_move.paused_ambassador_phase;
+        let paused = game.ship_move.paused_ambassador_phase.required("paused ambassador phase")?;
         game.enter(paused, true);
 
         if !self.passed {

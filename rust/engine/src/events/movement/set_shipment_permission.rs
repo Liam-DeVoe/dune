@@ -61,7 +61,7 @@ impl SetShipmentPermission {
             game.ship_move.shipment_permissions.shift_remove(f);
         }
 
-        if self.permission != ShipmentPermission::None {
+        if self.permission != ShipmentPermission::NONE {
             for f in factions {
                 // Dictionary.Add: ArgumentException on a faction listed twice.
                 game.ship_move.shipment_permissions.insert_new(*f, self.permission);
@@ -76,21 +76,20 @@ impl SetShipmentPermission {
             Some(f) => ExpressionElement::array(f.iter().copied()),
             None => ExpressionElement::from(Option::<Faction>::None),
         };
-        if self.permission == ShipmentPermission::None {
+        if self.permission == ShipmentPermission::NONE {
             return express!(self.initiator(), " → ", factions, ": all permissions revoked");
         }
-        let has = |flag: ShipmentPermission| (self.permission.0 & flag.0) == flag.0;
-        express!(
+                express!(
             self.initiator(),
             " → ",
             factions,
             ": ",
             "cross shipping: ",
-            if has(ShipmentPermission::Cross) { "yes" } else { "no" },
+            if self.permission.cross { "yes" } else { "no" },
             ", to (own) world: ",
-            if has(ShipmentPermission::ToHomeworld) { "yes" } else { "no" },
+            if self.permission.to_homeworld { "yes" } else { "no" },
             ", discount: ",
-            if has(ShipmentPermission::GuildRate) { "yes" } else { "no" }
+            if self.permission.guild_rate { "yes" } else { "no" }
         )
     }
 

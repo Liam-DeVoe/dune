@@ -619,6 +619,7 @@ impl GameStatus {
 
             Phase::GameEnded => Self::status("The game has ended.", None),
 
+            // DiscardingTraitor, the one phase C# had no status for, and the guarded phases above.
             _ => Self::status(express!(format!("Unknown phase: {}", game.turn.current_phase)), None),
         };
 

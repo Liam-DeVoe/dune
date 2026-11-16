@@ -3,7 +3,7 @@ use crate::prelude::*;
 /// State of the setup phases: faction trades, skill assignment and the starting cards.
 pub struct SetupState {
     pub current_trade_offers: Vec<Rc<FactionTradeOffered>>,
-    pub phase_before_skill_assignment: Phase,
+    pub phase_before_skill_assignment: Option<Phase>,
     pub starting_treachery_cards: Option<Deck<TreacheryCard>>,
     pub extra_starting_card_for_harkonnen: Option<TreacheryCard>,
 }

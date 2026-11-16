@@ -66,7 +66,7 @@ impl Game {
     pub fn remove_ended_deals(&mut self, phase: Phase) {
         // Deals are distinct objects, so List.Remove(deal) on the snapshot removes exactly
         // the deals whose End matches.
-        self.deals.agreed.retain(|deal| deal.end != phase);
+        self.deals.agreed.retain(|deal| deal.end != Some(phase));
     }
 
     pub fn is_ghola(&self, l: Hero) -> bool {
@@ -90,7 +90,7 @@ pub struct Deal {
     pub deal_parameter2: Option<String>,
     pub text: Option<String>,
     pub benefit: i32,
-    pub end: Phase,
+    pub end: Option<Phase>,
 }
 
 impl Default for Deal {
@@ -143,7 +143,7 @@ impl Deal {
     /// [`describe_deal_contents`](Self::describe_deal_contents),
     /// failing when the description needs a territory and `parameter1` isn't a number (where
     /// that one panics like .NET's `int.Parse`).
-    pub fn try_deal_contents_description(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> GameResult<Message> {
+    pub fn try_deal_contents_description(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Option<Phase>, parameter1: Option<&str>) -> GameResult<Message> {
         let uses_parameter = text.map_or(true, |t| t.chars().all(char::is_whitespace));
         if uses_parameter && type_ == DealType::DontShipOrMoveTo {
             if let Err(e) = dotnet_compat::parse::try_int_parse(Some(parameter1.unwrap_or("?"))) {
@@ -153,7 +153,7 @@ impl Deal {
         Ok(Deal::describe_deal_contents(g, type_, text, benefit, end, parameter1))
     }
 
-    pub fn describe_deal_contents(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Phase, parameter1: Option<&str>) -> Message {
+    pub fn describe_deal_contents(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Option<Phase>, parameter1: Option<&str>) -> Message {
         // string.IsNullOrWhiteSpace: char.IsWhiteSpace and Rust's char::is_whitespace agree.
         let is_null_or_white_space = text.map_or(true, |t| t.chars().all(char::is_whitespace));
         if !is_null_or_white_space {

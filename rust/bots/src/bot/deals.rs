@@ -11,7 +11,7 @@ impl ClassicBot {
     /// The first offer of bidding prescience until `end_phase` that I can pay for.
     fn affordable_bidding_prescience_offer(&self, game: &Game, end_phase: Phase) -> Option<Rc<DealOffered>> {
         DealAccepted::acceptable_deals(game, Some(self.player))
-            .find(|d| d.type_ == DealType::ShareBiddingPrescience && d.end_phase == end_phase && d.price <= self.resources(game))
+            .find(|d| d.type_ == DealType::ShareBiddingPrescience && d.end_phase == Some(end_phase) && d.price <= self.resources(game))
     }
 
     /// Buy bidding prescience when it is cheap enough for what I can spend.
@@ -155,7 +155,7 @@ impl ClassicBot {
             let mut offer = DealOffered::new(game, faction);
             offer.cancel = false;
             offer.type_ = DealType::TellDiscardedTraitors;
-            offer.end_phase = Phase::TurnConcluded;
+            offer.end_phase = Some(Phase::TurnConcluded);
             offer.price = self.d(3, 3);
             offer.text = Some("tell which traitors I discarded".to_string());
             return Some(Rc::new(offer));
@@ -170,13 +170,13 @@ impl ClassicBot {
             && (game.turn.current_main_phase >= MainPhase::ShipmentAndMove && game.turn.current_main_phase <= MainPhase::Battle)
             && game.has_resource_deck_prescience(Some(self.player))
             && !game.deals.offers.iter().any(|deal| {
-                deal.initiator() == faction && deal.type_ == DealType::ShareResourceDeckPrescience && deal.end_phase == Phase::TurnConcluded
+                deal.initiator() == faction && deal.type_ == DealType::ShareResourceDeckPrescience && deal.end_phase == Some(Phase::TurnConcluded)
             })
         {
             let mut offer = DealOffered::new(game, faction);
             offer.cancel = false;
             offer.type_ = DealType::ShareResourceDeckPrescience;
-            offer.end_phase = Phase::TurnConcluded;
+            offer.end_phase = Some(Phase::TurnConcluded);
             offer.price = self.d(1, 2);
             offer.text = Some("share spice card prescience Player turn".to_string());
             return Some(Rc::new(offer));
@@ -191,13 +191,13 @@ impl ClassicBot {
             && (game.turn.current_main_phase > MainPhase::Storm && game.turn.current_main_phase <= MainPhase::Battle)
             && game.has_storm_prescience(Some(self.player))
             && !game.deals.offers.iter().any(|deal| {
-                deal.initiator() == faction && deal.type_ == DealType::ShareStormPrescience && deal.end_phase == Phase::TurnConcluded
+                deal.initiator() == faction && deal.type_ == DealType::ShareStormPrescience && deal.end_phase == Some(Phase::TurnConcluded)
             })
         {
             let mut offer = DealOffered::new(game, faction);
             offer.cancel = false;
             offer.type_ = DealType::ShareStormPrescience;
-            offer.end_phase = Phase::TurnConcluded;
+            offer.end_phase = Some(Phase::TurnConcluded);
             offer.price = self.d(1, 2);
             offer.text = Some("share storm prescience Player turn".to_string());
             return Some(Rc::new(offer));
@@ -215,14 +215,14 @@ impl ClassicBot {
             && !game.deals.offers.iter().any(|deal| {
                 deal.initiator() == faction
                     && deal.type_ == DealType::ShareBiddingPrescience
-                    && deal.end_phase == Phase::BiddingReport
+                    && deal.end_phase == Some(Phase::BiddingReport)
                     && is_only_to_fremen(deal)
             })
         {
             let mut offer = DealOffered::new(game, faction);
             offer.cancel = false;
             offer.type_ = DealType::ShareBiddingPrescience;
-            offer.end_phase = Phase::BiddingReport;
+            offer.end_phase = Some(Phase::BiddingReport);
             offer.price = 3;
             offer.text = Some("share prescience (phase)".to_string());
             offer.to = Some(vec![Faction::Fremen]);
@@ -240,7 +240,7 @@ impl ClassicBot {
             && !game.deals.offers.iter().any(|deal| {
                 deal.initiator() == faction
                     && deal.type_ == DealType::ShareBiddingPrescience
-                    && deal.end_phase == Phase::BiddingReport
+                    && deal.end_phase == Some(Phase::BiddingReport)
                     && !is_only_to_fremen(deal)
             })
         {
@@ -252,7 +252,7 @@ impl ClassicBot {
             let mut offer = DealOffered::new(game, faction);
             offer.cancel = false;
             offer.type_ = DealType::ShareBiddingPrescience;
-            offer.end_phase = Phase::BiddingReport;
+            offer.end_phase = Some(Phase::BiddingReport);
             // The first term is computed in f32, the second in f64.
             offer.price = ((factor * nr_of_cards as f32) as i32)
                 + (0.1f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32;
@@ -270,13 +270,13 @@ impl ClassicBot {
             && game.bidding.current_auction_type == Some(AuctionType::Normal)
             && game.has_bidding_prescience(self.player)
             && !game.deals.offers.iter().any(|deal| {
-                deal.initiator() == faction && deal.type_ == DealType::ShareBiddingPrescience && deal.end_phase == Phase::Bidding
+                deal.initiator() == faction && deal.type_ == DealType::ShareBiddingPrescience && deal.end_phase == Some(Phase::Bidding)
             })
         {
             let mut offer = DealOffered::new(game, faction);
             offer.cancel = false;
             offer.type_ = DealType::ShareBiddingPrescience;
-            offer.end_phase = Phase::Bidding;
+            offer.end_phase = Some(Phase::Bidding);
             offer.price = 1i32
                 + (0.05f64 * self.resources_including_ally_contribution(game) as f64).floor() as i32
                 + if self.ally(game) == Faction::None { 0 } else { 1 };

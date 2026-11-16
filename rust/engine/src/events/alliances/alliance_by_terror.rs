@@ -33,7 +33,7 @@ impl AllianceByTerror {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let paused = game.ship_move.paused_terror_phase;
+        let paused = game.ship_move.paused_terror_phase.required("paused terror phase")?;
         game.enter(paused, true);
 
         if !self.passed {

@@ -429,7 +429,7 @@ impl AmbassadorActivated {
                             express_part_if!(self.ecaz_give_vidal_to_ally; " offering ", vidal, " if they accept")
                         ],
                     );
-                    game.ship_move.paused_ambassador_phase = game.turn.current_phase;
+                    game.ship_move.paused_ambassador_phase = Some(game.turn.current_phase);
                     game.enter(Phase::AllianceByAmbassador, true);
                 } else {
                     if game.ship_move.current_ambassador_activated.as_ref().required("current ambassador activated")?.ecaz_take_vidal {

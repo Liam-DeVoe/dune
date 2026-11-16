@@ -67,7 +67,7 @@ impl Skin {
         if template.is_empty() {
             String::new()
         } else {
-            self.with_spice_icons(&self.format_in(&template, &parameters, Some(g)), 20, false)
+            self.with_spice_icons(&self.format(&template, &parameters), 20, false)
         }
     }
 

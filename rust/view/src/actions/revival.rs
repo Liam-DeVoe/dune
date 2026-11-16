@@ -40,7 +40,7 @@ fn forces(value: i32, max: i32) -> i32 {
 /// `Skin.Format(m, args)`: `string.Format` over the described arguments; `m` itself when that
 /// fails.
 fn format(d: &dyn Describer, m: &str, args: &[ExpressionElement]) -> String {
-    let described: Vec<String> = args.iter().map(|a| d.describe_in(a, None)).collect();
+    let described: Vec<String> = args.iter().map(|a| d.describe(a)).collect();
     let refs: Vec<Option<&str>> = described.iter().map(|s| Some(s.as_str())).collect();
     dotnet_compat::fmt::string_format(m, &refs).unwrap_or_else(|_| m.to_string())
 }

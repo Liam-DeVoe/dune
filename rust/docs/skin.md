@@ -29,8 +29,6 @@ skin.format("{0} pays {1}", &args![Faction::Emperor, 3]);    // Format(m, params
 
 Functions that render one type of value are named after it: `describe_rule`, `get_popup_terror_type`. Where two take the same type, the name says what the other parameter adds (`get_popup_hero_in_game`, `get_popup_stronghold_advantage_for`). Optional C# parameters are explicit (`with_spice_icons(text, 18, true)`).
 
-**Live collections.** A message can refer to a game collection (`LiveList`), so it renders the collection's contents at render time. The `_in` variants (`describe_in`, `format_in`, `message_to_string_in`) take the game to read them from. Without a game they print the snapshot the engine took when the message was built, which is the same thing for a message rendered right after it was made (everything the server renders).
-
 **Exceptions.** `Describe` panics where C# throws (a resource card without a location, a skin missing a label that an indexer reads). Neither happens with the default skin in a valid game, so `Format` doesn't catch these panics. It still returns the template unchanged when `string.Format` fails. `Skin::load` returns an error instead of panicking.
 
 ## Known differences

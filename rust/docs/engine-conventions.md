@@ -315,7 +315,7 @@ Keep the C# numeric type: a `float` dial must go in as `f32`, not `i32`. If some
 
 ### Collections in messages
 
-A message stores a copy of each collection passed to it, taken when it is built. A few messages refer to a game collection instead, so the log shows the collection as it is when the message is rendered: `ExpressionElement::live(game, LiveList::...)`. The variant names where the collection lives, such as `PlayerTreacheryCards(p)`, and `LiveList::read` reads it from the game; the skin and the views call it when they render the message. A variant is only correct while that game field is never reassigned (only mutated), so check that before adding one. `tests/live_lists.rs` checks the reading.
+A message stores a copy of each collection passed to it, taken when it is built, so the log keeps showing what the collection held then. `tests/logged_lists.rs` checks this for the three messages that log a list the game changes later: a hand, the audited cards and the discarded traitors.
 
 The macro evaluates its arguments left to right. `express_part_if!` evaluates its arguments even when the condition is false, as C# does. Messages are data. Turning them into text is `Skin.Describe`, in the `rust/skin` crate ([skin.md](skin.md)).
 

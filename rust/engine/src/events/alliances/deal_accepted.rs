@@ -183,9 +183,11 @@ impl DealAccepted {
 
     pub fn handle_accepted_bot_deal(&self, game: &mut Game, offer: &Rc<DealOffered>) {
         if offer.type_ == DealType::TellDiscardedTraitors {
-            // The message refers to the player's discarded traitors, so the log shows the set as
-            // it is when rendered.
-            let discarded = ExpressionElement::live(game, crate::messages::expression::LiveList::PlayerDiscardedTraitors(offer.player()));
+            // A copy of the traitors discarded so far: later discards don't change this message.
+            let discarded = ExpressionElement::collection(
+                "System.Collections.Generic.HashSet`1[Treachery.Shared.IHero]",
+                game.player(offer.player()).discarded_traitors.iter().copied(),
+            );
             self.log_to(
                 game,
                 self.initiator(),

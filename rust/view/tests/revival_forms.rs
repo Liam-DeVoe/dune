@@ -91,7 +91,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
             assert!(loc == -1 || locations.contains(&loc), "{at}");
         }
         ActionOptions::RaiseDeadPlayed(o) => {
-            assert_eq!(o.card_name, d.describe_in(&TreacheryCardType::RaiseDead.into(), None));
+            assert_eq!(o.card_name, d.describe(&TreacheryCardType::RaiseDead.into()));
             assert_eq!(o.max_forces, RaiseDeadPlayed::valid_max_amount(game, p, false), "{at}");
             assert_eq!(o.max_special_forces, RaiseDeadPlayed::valid_max_amount(game, p, true), "{at}");
             let locations: Vec<i32> = Revival::valid_revived_force_locations(game, p).map(|l| l.id()).collect();
@@ -105,7 +105,7 @@ fn check(game: &Game, p: PlayerIndex, options: &ActionOptions, validation: &Opti
             assert!((0..=o.max_forces.max(0)).contains(&int(draft, "AmountOfForces")) && (0..=o.max_special_forces.max(0)).contains(&sf), "{at}");
         }
         ActionOptions::KarmaFreeRevival(o) => {
-            assert_eq!(o.card_name, d.describe_in(&TreacheryCardType::Karma.into(), None));
+            assert_eq!(o.card_name, d.describe(&TreacheryCardType::Karma.into()));
             assert_eq!(o.max_forces, KarmaFreeRevival::valid_max_amount(game, p, false), "{at}");
             assert_eq!(o.max_special_forces, KarmaFreeRevival::valid_max_amount(game, p, true), "{at}");
             assert_eq!(o.heroes, heroes(game.killed_heroes(p)), "{at}");

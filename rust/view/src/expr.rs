@@ -83,14 +83,8 @@ fn element_marked(el: &ExpressionElement, d: &dyn Describer, out: &mut RichText,
         // `case null`: a bold "none".
         ExpressionElement::Null => out.push(Part::None),
         ExpressionElement::String(s) => out.push(Part::Text { v: s.clone() }),
-        // The items, with separators. A collection the game still holds is read now, so it
-        // shows the game's current contents.
-        ExpressionElement::List { items, live, .. } => {
-            let current = match (live, d.game()) {
-                (Some(source), Some(g)) => source.read(g),
-                _ => None,
-            };
-            let items = current.as_deref().unwrap_or(items);
+        // The items, with separators.
+        ExpressionElement::List { items, .. } => {
             let separators = items.first().is_some_and(shows_with_separator);
             for (i, item) in items.iter().enumerate() {
                 if separators && i > 0 {

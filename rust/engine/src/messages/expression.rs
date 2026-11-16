@@ -88,54 +88,9 @@ pub enum ExpressionElement {
     /// the .NET runtime type name it prints as, such as
     /// ``System.Collections.Generic.List`1[Treachery.Shared.Faction]``.
     ///
-    /// `items` is a snapshot taken when the message is built. For the few
-    /// live game collections that are logged, `live` names the source that the
-    /// skin and the views read again when they render the message.
-    List { type_name: String, items: Vec<ExpressionElement>, live: Option<LiveList> },
-}
-
-/// A game collection that a message refers to rather than copies, so the log
-/// shows its contents when it is rendered rather than when it was logged.
-///
-/// A variant names the collection by where it lives in the game. That only
-/// identifies the logged collection because none of these fields is ever
-/// reassigned (only cloning a player copies them), so a new variant needs the
-/// same check.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum LiveList {
-    /// `Player.TreacheryCards`, which is never reassigned. Logged when an
-    /// ambassador is activated.
-    PlayerTreacheryCards(crate::game::PlayerIndex),
-    /// `Game.AuditedCards`, which is cleared and refilled on the next audit.
-    /// Logged when an audit is cancelled.
-    GameAuditedCards,
-    /// `Player.DiscardedTraitors`, a set that `TraitorsSelected` adds to.
-    /// Logged when a deal is accepted.
-    PlayerDiscardedTraitors(crate::game::PlayerIndex),
-}
-
-impl LiveList {
-    /// The .NET runtime type name the collection prints as.
-    pub fn type_name(self) -> String {
-        match self {
-            LiveList::PlayerTreacheryCards(_) | LiveList::GameAuditedCards => Vec::<TreacheryCard>::cs_type_name(),
-            LiveList::PlayerDiscardedTraitors(_) => format!("System.Collections.Generic.HashSet`1[{}]", Hero::cs_type_name()),
-        }
-    }
-
-    /// The collection's contents now, in enumeration order, or `None` if
-    /// `game` has no such player.
-    pub fn read(self, game: &crate::game::Game) -> Option<Vec<ExpressionElement>> {
-        let cards = |c: &[TreacheryCard]| c.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect();
-        let player = |p: crate::game::PlayerIndex| game.players.get(p.index);
-        match self {
-            LiveList::PlayerTreacheryCards(p) => player(p).map(|p| cards(&p.treachery_cards)),
-            LiveList::GameAuditedCards => Some(cards(&game.battle.audited_cards)),
-            LiveList::PlayerDiscardedTraitors(p) => {
-                player(p).map(|p| p.discarded_traitors.iter().map(|h| ExpressionElement::Hero(*h)).collect())
-            }
-        }
-    }
+    /// `items` is a copy taken when the message is built, so a logged list
+    /// keeps showing what it held then, even if the game's collection changes.
+    List { type_name: String, items: Vec<ExpressionElement> },
 }
 
 /// The .NET runtime type of a value that goes into a collection element, for
@@ -208,24 +163,7 @@ impl ExpressionElement {
     /// Any other collection, with its .NET runtime type name (a lazy query
     /// prints e.g. ``System.Linq.Enumerable+WhereSelectListIterator`2[A,B]``).
     pub fn collection<T: Into<ExpressionElement>>(type_name: impl Into<String>, items: impl IntoIterator<Item = T>) -> Self {
-        ExpressionElement::List { type_name: type_name.into(), items: items.into_iter().map(Into::into).collect(), live: None }
-    }
-
-    /// A game collection that a message refers to rather than copies: the
-    /// contents now, plus the source to read again when rendering. See [`LiveList`].
-    pub fn live(game: &crate::game::Game, source: LiveList) -> Self {
-        ExpressionElement::List { type_name: source.type_name(), items: source.read(game).unwrap_or_default(), live: Some(source) }
-    }
-
-    /// The live `List<TreacheryCard>` of a player's hand (`p.TreacheryCards`
-    /// passed to a message).
-    pub fn live_player_treachery_cards(game: &crate::game::Game, p: crate::game::PlayerIndex) -> Self {
-        Self::live(game, LiveList::PlayerTreacheryCards(p))
-    }
-
-    /// The live `Game.AuditedCards` list passed to a message.
-    pub fn live_game_audited_cards(game: &crate::game::Game) -> Self {
-        Self::live(game, LiveList::GameAuditedCards)
+        ExpressionElement::List { type_name: type_name.into(), items: items.into_iter().map(Into::into).collect() }
     }
 
     /// The element as plain text, as used when no describer is set. Game
@@ -281,7 +219,7 @@ impl PartialEq for ExpressionElement {
             (E::MessagePart(a), E::MessagePart(b)) => a == b,
             (E::Error(a), E::Error(b)) => a == b,
             (E::Player(a), E::Player(b)) => a == b,
-            (E::List { type_name: ta, items: a, live: la }, E::List { type_name: tb, items: b, live: lb }) => ta == tb && a == b && la == lb,
+            (E::List { type_name: ta, items: a }, E::List { type_name: tb, items: b }) => ta == tb && a == b,
             _ => false,
         }
     }

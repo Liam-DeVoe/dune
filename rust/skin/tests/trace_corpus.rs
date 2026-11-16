@@ -58,7 +58,7 @@ impl Renderer<'_> {
             }
             for m in r.messages.iter().skip(self.seen[i]) {
                 let skin = self.skin;
-                self.emit(format!("report {i}"), || skin.message_to_string_in(m, Some(game)));
+                self.emit(format!("report {i}"), || skin.message_to_string(m));
             }
             self.seen[i] = r.messages.len();
         }
@@ -108,11 +108,10 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 match catch_any(|| GameStatus::determine_status(g, p, is_player)) {
                     Err(e) => r.emit("status", || format!("!panic: {e}")),
                     Ok(status) => {
-                        let gr: &Game = g;
-                        r.emit("status awaited", || skin.message_to_string_in(&status.description_when_awaited, Some(gr)));
-                        r.emit("status waiting", || skin.message_to_string_in(&status.description_when_waiting, Some(gr)));
+                        r.emit("status awaited", || skin.message_to_string(&status.description_when_awaited));
+                        r.emit("status waiting", || skin.message_to_string(&status.description_when_waiting));
                         for fi in &status.flash_info {
-                            r.emit("flash", || skin.message_to_string_in(&fi.message, Some(gr)));
+                            r.emit("flash", || skin.message_to_string(&fi.message));
                         }
                     }
                 }
@@ -133,12 +132,12 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
                 });
                 let gr: &Game = g;
                 match result {
-                    Ok(Some(m)) => r.emit("result", || skin.message_to_string_in(&m, Some(gr))),
+                    Ok(Some(m)) => r.emit("result", || skin.message_to_string(&m)),
                     Ok(None) => {}
                     Err(e) => r.emit("escaped", || e),
                 }
-                r.emit("GetMessage", || skin.message_to_string_in(&ev.get_message(gr), Some(gr)));
-                r.emit("GetShortMessage", || skin.message_to_string_in(&ev.get_short_message(gr), Some(gr)));
+                r.emit("GetMessage", || skin.message_to_string(&ev.get_message(gr)));
+                r.emit("GetShortMessage", || skin.message_to_string(&ev.get_short_message(gr)));
                 r.new_report_messages(gr);
             }
             "undo" => {

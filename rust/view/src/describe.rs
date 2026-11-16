@@ -9,19 +9,13 @@ use treachery_engine::game::Game;
 use treachery_skin::Skin;
 
 pub trait Describer {
-    /// The skin's description of a value. Live game collections inside the value
-    /// are read from `game` when one is given, so they show the game's current contents.
-    fn describe_in(&self, el: &ExpressionElement, game: Option<&Game>) -> String;
+    /// `Skin.Describe(object)`: the skin's description of a value.
+    fn describe(&self, el: &ExpressionElement) -> String;
 
-    /// The game text is rendered for: live collections inside messages are read from it, and a
-    /// leader's popover shows the skill it has in it (`Game::skill`).
+    /// The game text is rendered for: a leader's popover shows the skill it has in it
+    /// (`Game::skill`).
     fn game(&self) -> Option<&Game> {
         None
-    }
-
-    /// `Skin.Describe(object)`, against [`Describer::game`].
-    fn describe(&self, el: &ExpressionElement) -> String {
-        self.describe_in(el, self.game())
     }
 
     /// The skin itself, for texts that are more than `Describe` (the faction sheets). `None` for
@@ -32,8 +26,8 @@ pub trait Describer {
 }
 
 impl Describer for Skin {
-    fn describe_in(&self, el: &ExpressionElement, game: Option<&Game>) -> String {
-        Skin::describe_in(self, el, game)
+    fn describe(&self, el: &ExpressionElement) -> String {
+        Skin::describe(self, el)
     }
     fn skin(&self) -> Option<&Skin> {
         Some(self)
@@ -41,8 +35,8 @@ impl Describer for Skin {
 }
 
 impl<T: Describer + ?Sized> Describer for &T {
-    fn describe_in(&self, el: &ExpressionElement, game: Option<&Game>) -> String {
-        (**self).describe_in(el, game)
+    fn describe(&self, el: &ExpressionElement) -> String {
+        (**self).describe(el)
     }
     fn game(&self) -> Option<&Game> {
         (**self).game()
@@ -71,8 +65,8 @@ impl<'a> InGame<'a> {
 }
 
 impl Describer for InGame<'_> {
-    fn describe_in(&self, el: &ExpressionElement, game: Option<&Game>) -> String {
-        self.skin.describe_in(el, game.or(Some(self.game)))
+    fn describe(&self, el: &ExpressionElement) -> String {
+        self.skin.describe(el)
     }
     fn game(&self) -> Option<&Game> {
         Some(self.game)

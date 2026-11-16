@@ -111,7 +111,7 @@ fn fill_placeholders(skin: &Skin, text: &str, parameters: &[ExpressionElement]) 
         match parameters.get(index) {
             Some(ExpressionElement::Location(l)) => out.push(SheetPart::Location { id: l.id() }),
             Some(ExpressionElement::Territory(t)) => out.push(SheetPart::Territory { id: t.id() }),
-            Some(el) => push_text(&mut out, &skin.describe_in(el, None)),
+            Some(el) => push_text(&mut out, &skin.describe(el)),
             None => {}
         }
         rest = &after[digits + 1..];

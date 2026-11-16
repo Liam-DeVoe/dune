@@ -391,8 +391,9 @@ impl AmbassadorActivated {
             Ambassador::Atreides => {
                 if !game.player(victim_player.required("victim player")?).treachery_cards.is_empty() {
                     self.log_objects(game, elems![self.initiator(), " see all treachery cards owned by ", victim]);
-                    // The message refers to the live hand, so the log shows its current contents.
-                    let cards = ExpressionElement::live_player_treachery_cards(game, victim_player.required("victim player")?);
+                    // A copy of the hand as it is now: later changes to it don't change this message.
+                    let hand = &game.player(victim_player.required("victim player")?).treachery_cards;
+                    let cards = ExpressionElement::list(hand.iter().copied());
                     self.log_to(game, self.initiator(), elems![victim, " own: ", cards]);
                 } else {
                     self.log_objects(game, elems![victim, " don't own any cards"]);

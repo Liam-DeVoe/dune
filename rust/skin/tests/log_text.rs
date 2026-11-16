@@ -30,12 +30,12 @@ fn game() -> Game {
     g
 }
 
-fn text(game: &Game, m: &Message) -> String {
-    default_skin().message_to_string_in(m, Some(game))
+fn text(m: &Message) -> String {
+    default_skin().message_to_string(m)
 }
 
 fn log(game: &Game) -> Vec<String> {
-    game.reports().iter().flat_map(|r| r.messages.iter()).map(|m| text(game, m)).collect()
+    game.reports().iter().flat_map(|r| r.messages.iter()).map(text).collect()
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn karama_against_guild_income_has_a_space_before_the_amount() {
     g.prevent(Faction::Atreides, FactionAdvantage::GuildReceiveShipment, false);
     let mut part = MessagePart::express(vec![]);
     s.handle_received_shipment_payment(&mut g, &mut part);
-    let rendered = default_skin().message_part_to_string_in(&part, Some(&g));
+    let rendered = default_skin().message_part_to_string(&part);
     assert_eq!(rendered, " → Karama prevents Guild from receiving 4 Spice");
 }
 
@@ -60,7 +60,7 @@ fn choam_karama_discard_reads_choam_using() {
     let g = game();
     let e = KarmaChoamDiscard::default();
     e.initialize(&g, Faction::Choam);
-    let rendered = text(&g, &e.get_message(&g));
+    let rendered = text(&e.get_message(&g));
     assert!(rendered.starts_with("CHOAM using Karama, CHOAM discard"), "{rendered}");
 }
 
@@ -73,7 +73,7 @@ fn automation_rules_are_described() {
         e.rule_type = rule_type;
         e.bidding_above_amount = 5;
         e.initialize(&g, by);
-        text(&g, &e.get_message(&g))
+        text(&e.get_message(&g))
     };
     assert_eq!(
         message(ItemAction::Create, AutomationRuleType::BiddingPassAboveAmount, Faction::Atreides),

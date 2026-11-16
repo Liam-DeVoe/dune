@@ -42,38 +42,6 @@ fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
 }
 
 // ---------------------------------------------------------------------------
-// Messages that keep a live hand (ambassador activation)
-// ---------------------------------------------------------------------------
-
-/// What a rendering of `e` with `game` shows: a live list's current contents, otherwise the
-/// items taken when the message was logged (see live_lists.rs).
-fn current(e: &ExpressionElement, game: Option<&Game>) -> Vec<ExpressionElement> {
-    match e {
-        ExpressionElement::List { items, live, .. } => live.and_then(|l| game.and_then(|g| l.read(g))).unwrap_or_else(|| items.clone()),
-        other => panic!("not a list: {other:?}"),
-    }
-}
-
-#[test]
-fn live_hand_in_a_message_shows_the_current_hand() {
-    let mut g = game_with(&[Faction::Ecaz, Faction::Atreides]);
-    let atreides = idx(&g, Faction::Atreides);
-    let c1 = card_of(TreacheryCardType::Karma, 0);
-    let c2 = card_of(TreacheryCardType::Useless, 0);
-    g.player_mut(atreides).treachery_cards.push(c1);
-
-    let live = ExpressionElement::live_player_treachery_cards(&g, atreides);
-    let hand = |cs: &[TreacheryCard]| cs.iter().map(|c| ExpressionElement::Hero(Hero::TreacheryCard(*c))).collect::<Vec<_>>();
-    assert_eq!(current(&live, Some(&g)), hand(&[c1]));
-
-    // The hand changes after the message was logged: the message shows the new contents.
-    g.player_mut(atreides).treachery_cards.push(c2);
-    assert_eq!(current(&live, Some(&g)), hand(&[c1, c2]));
-    // Without a game there is nothing to read again: the snapshot is shown.
-    assert_eq!(current(&live, None), hand(&[c1]));
-}
-
-// ---------------------------------------------------------------------------
 // Karma
 // ---------------------------------------------------------------------------
 

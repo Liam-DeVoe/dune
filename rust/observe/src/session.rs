@@ -196,7 +196,7 @@ impl Session {
             Err(e) => ("error", Some(e)),
             Ok(None) => (if accepted { "accepted" } else { "rejected" }, None),
             Ok(Some(m)) => {
-                let text = treachery_skin::default_skin().message_to_string_in(&m, Some(&self.game));
+                let text = treachery_skin::default_skin().message_to_string(&m);
                 let kind = if accepted { "accepted" } else if find_exception(&m) { "error" } else { "rejected" };
                 (kind, Some(text))
             }
@@ -233,7 +233,7 @@ impl Session {
                 for m in &r.messages {
                     if flat >= self.log_seen {
                         let target = if m.target == Faction::None { String::new() } else { faction_name(m.target) };
-                        let text = match guarded(|| skin.message_to_string_in(m, Some(&self.game)))? {
+                        let text = match guarded(|| skin.message_to_string(m))? {
                             Ok(t) => t,
                             Err(e) => format!("<render error: {e}>"),
                         };

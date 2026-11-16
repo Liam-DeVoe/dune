@@ -1,9 +1,7 @@
 //! The skin: names, images and the text of log messages.
 //!
 //! [`Skin::describe`] renders any [`ExpressionElement`], and `describe_<type>` one value of a
-//! known type, such as [`Skin::describe_faction`]. A message can hold live collections, which
-//! show their contents at render time; the `_in` variants take the game to read those from.
-//! Without a game they use the snapshot the engine took when the message was built.
+//! known type, such as [`Skin::describe_faction`].
 //!
 //! The faction rules sheets are in [`crate::faction_manual`], and loading and saving skins in
 //! [`crate::skin_json`].
@@ -314,15 +312,10 @@ impl Skin {
     /// `Format(string m, params object[] list)`: `string.Format` over the described arguments.
     /// Any exception, in `Describe` or in `string.Format`, gives back `m` unchanged.
     pub fn format(&self, m: &str, list: &[ExpressionElement]) -> String {
-        self.format_in(m, list, None)
-    }
-
-    /// [`Skin::format`], reading live collections from `game`.
-    pub fn format_in(&self, m: &str, list: &[ExpressionElement], game: Option<&Game>) -> String {
         if list.is_empty() {
             return m.to_string();
         }
-        let args = self.describe_array(list, game);
+        let args = self.describe_array(list);
         let args: Vec<Option<&str>> = args.iter().map(|a| Some(a.as_str())).collect();
         dotnet_compat::fmt::string_format(m, &args).unwrap_or_else(|_| m.to_string())
     }
@@ -330,12 +323,8 @@ impl Skin {
     /// `Join<T>(IEnumerable<T>? items)`: the described items joined with `", "`, or `"-"` when
     /// that is empty.
     pub fn join(&self, items: Option<&[ExpressionElement]>) -> String {
-        self.join_in(items, None)
-    }
-
-    pub fn join_in(&self, items: Option<&[ExpressionElement]>, game: Option<&Game>) -> String {
         let Some(items) = items else { return String::new() };
-        let result = items.iter().map(|i| self.describe_in(i, game)).collect::<Vec<_>>().join(", ");
+        let result = items.iter().map(|i| self.describe(i)).collect::<Vec<_>>().join(", ");
         if result.is_empty() {
             return "-".to_string();
         }
@@ -382,20 +371,16 @@ impl Skin {
         if location.spice_blow_amount() != 0 { *self.location_spice_point.index(location.id()) } else { PointD::new(0.0, 0.0) }
     }
 
+    /// `Describe(object? value)`.
     pub fn describe(&self, value: &ExpressionElement) -> String {
-        self.describe_in(value, None)
-    }
-
-    /// `Describe(object? value)`, reading live collections from `game`.
-    pub fn describe_in(&self, value: &ExpressionElement, game: Option<&Game>) -> String {
         use ExpressionElement as E;
         match value {
             E::Null => String::new(),
             E::String(s) => s.clone(),
             E::Bool(b) => if *b { "Yes" } else { "No" }.to_string(),
-            E::Message(m) => self.message_to_string_in(m, game),
-            E::MessagePart(p) => self.message_part_to_string_in(p, game),
-            E::Payment(p) => self.format_in("{0} {1}", &args![p.amount, Concept::Resource], game),
+            E::Message(m) => self.message_to_string(m),
+            E::MessagePart(p) => self.message_part_to_string(p),
+            E::Payment(p) => self.format("{0} {1}", &args![p.amount, Concept::Resource]),
             E::Enum(e) => {
                 if let Some(v) = e.get::<UserStatus>() {
                     describe_user_status(v)
@@ -463,20 +448,14 @@ impl Skin {
             E::Territory(t) => self.describe_territory(*t),
             E::Location(l) => self.describe_location(*l),
             E::Hero(h) => self.describe_hero(Some(*h)),
-            E::List { items, live, .. } => {
-                let current = match (live, game) {
-                    (Some(source), Some(g)) => source.read(g),
-                    _ => None,
-                };
-                self.join_in(Some(current.as_deref().unwrap_or(items)), game)
-            }
+            E::List { items, .. } => self.join(Some(items)),
             // `value.ToString()`: numbers (invariant culture), exceptions, `Player`.
             E::Int(_) | E::Long(_) | E::Float(_) | E::Double(_) | E::Error(_) | E::Player(_) => value.to_cs_string(),
         }
     }
 
-    fn describe_array(&self, objects: &[ExpressionElement], game: Option<&Game>) -> Vec<String> {
-        objects.iter().map(|o| self.describe_in(o, game)).collect()
+    fn describe_array(&self, objects: &[ExpressionElement]) -> Vec<String> {
+        objects.iter().map(|o| self.describe(o)).collect()
     }
 
     pub fn describe_territory(&self, t: Territory) -> String {
@@ -1293,19 +1272,11 @@ impl Skin {
 
     /// `Message.ToString(IDescriber describer)`: every element described and concatenated.
     pub fn message_to_string(&self, m: &Message) -> String {
-        self.message_to_string_in(m, None)
-    }
-
-    pub fn message_to_string_in(&self, m: &Message, game: Option<&Game>) -> String {
-        m.expression.elements.iter().map(|x| self.describe_in(x, game)).collect()
+        m.expression.elements.iter().map(|x| self.describe(x)).collect()
     }
 
     pub fn message_part_to_string(&self, p: &MessagePart) -> String {
-        self.message_part_to_string_in(p, None)
-    }
-
-    pub fn message_part_to_string_in(&self, p: &MessagePart, game: Option<&Game>) -> String {
-        p.expression.elements.iter().map(|x| self.describe_in(x, game)).collect()
+        p.expression.elements.iter().map(|x| self.describe(x)).collect()
     }
 
 }

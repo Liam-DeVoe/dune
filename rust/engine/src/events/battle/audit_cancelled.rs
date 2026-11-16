@@ -86,9 +86,9 @@ impl AuditCancelled {
 
         if !self.cancelled {
             game.enter(Phase::Auditing, true);
-            // C# passes the live Game.AuditedCards list, which the next audit clears and
-            // refills, so the message keeps it as a live list.
-            let audited = ExpressionElement::live_game_audited_cards(game);
+            // A copy: the next audit clears and refills `audited_cards`, and this message
+            // should keep showing the cards of this audit.
+            let audited = ExpressionElement::list(game.battle.audited_cards.iter().copied());
             game.log_to(self.initiator(), elems![Faction::Choam, " see: ", audited]);
         } else {
             let winner_is_none = game.battle.battle_winner == Some(Faction::None);

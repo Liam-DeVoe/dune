@@ -143,6 +143,8 @@ Numbers now go through `dotnet_compat::fmt`.
 
 The weak spot is the generated file. It only changes when someone reruns the tool after changing Shared. Shared is the spec and rarely changes, so we accepted that.
 
+Since 2026-11-15 (rewrite plan, 2c) every logged collection is a copy, and `LiveList` is gone, so this class can't come back: a message has no way to read the game when it's rendered. The three live sites now log a copy on purpose (behavior-changes.md, "Logged lists no longer change after the fact"), and `engine/tests/logged_lists.rs` checks them.
+
 ## Null in collections of game objects (2026-11)
 
 **Bugs.** C# stores `null` in collections of game objects and passes it along until a member access throws. About 30 sites did this, and the Rust port threw early or skipped the insert at each one. Some examples:

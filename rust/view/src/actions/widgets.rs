@@ -41,5 +41,5 @@ pub(super) fn draft_json(e: &GameEvent) -> serde_json::Value {
 
 /// The skin's description of a value, without a game.
 pub(super) fn describe(d: &dyn Describer, el: impl Into<ExpressionElement>) -> String {
-    d.describe_in(&el.into(), None)
+    d.describe(&el.into())
 }

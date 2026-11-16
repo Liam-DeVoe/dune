@@ -3,7 +3,7 @@
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::game::Intrusion;
-use treachery_engine::random::SharedRandom;
+use treachery_engine::random::new_rng;
 use treachery_engine::prelude::*;
 
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
@@ -12,7 +12,7 @@ fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
+    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new()));
     for f in factions {
         let p = Player::new(Some(*f));
         g.players.push(p);
@@ -92,7 +92,7 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
 #[test]
 fn moritani_betrayal_without_a_token_returns_nothing() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
-    g.random = Some(SharedRandom::from_seed(5));
+    g.rng = new_rng(5);
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).nexus = Some(Faction::Moritani);
     let t = a_stronghold(&g);
@@ -128,10 +128,10 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
 
     // Same seed, same draw: the pick is an index into the order above.
     let expected = {
-        let r = SharedRandom::from_seed(11);
-        [TerrorType::Robbery, TerrorType::Sabotage].into_iter().random_item(&r).unwrap()
+        let mut r = new_rng(11);
+        [TerrorType::Robbery, TerrorType::Sabotage].into_iter().random_item(&mut r).unwrap()
     };
-    g.random = Some(SharedRandom::from_seed(11));
+    g.rng = new_rng(11);
     let mut e = NexusPlayed::default();
     e.faction = Some(Faction::Moritani);
     e.moritani_territory = Some(t);
@@ -169,7 +169,7 @@ fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
 #[test]
 fn terror_robbery_takes_half_rounded_up() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
-    g.random = Some(SharedRandom::from_seed(1));
+    g.rng = new_rng(1);
     let t = a_stronghold(&g);
     g.board.terror_on_planet.insert_new(TerrorType::Robbery, t);
     trigger_terror(&mut g, Faction::Atreides, t);

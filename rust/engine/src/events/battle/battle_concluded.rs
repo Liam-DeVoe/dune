@@ -95,7 +95,7 @@ impl BattleConcluded {
         traitor_deck.put_on_top(traitor_to_replace);
 
         game.stone(Milestone::Shuffled);
-        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
+        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle(&mut game.rng);
     }
 
     pub fn decide_fate_of_captured_leader(&self, game: &mut Game, by: By) {

@@ -26,7 +26,7 @@ impl EventRules for IxianSelectedStartingCard {
         crate::iter::remove_first(&mut game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);
         let m = self.describe(game, by);
         game.log_event(m);
-        game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle();
+        game.setup.starting_treachery_cards.as_mut().required("starting treachery cards")?.shuffle(&mut game.rng);
         game.stone(Milestone::Shuffled);
         game.deal_remaining_starting_treachery_cards_to_non_ixian()?;
         Ok(())

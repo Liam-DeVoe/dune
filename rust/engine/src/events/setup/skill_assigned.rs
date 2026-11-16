@@ -67,7 +67,7 @@ impl EventRules for SkillAssigned {
         game.player_mut(me).skills_to_choose_from.clear();
 
         if !Self::players_must_choose_leader_skills(game) {
-            game.decks.skill_deck.as_mut().required("skill deck")?.shuffle();
+            game.decks.skill_deck.as_mut().required("skill deck")?.shuffle(&mut game.rng);
             if game.turn.current_phase != Phase::AssigningInitialSkills {
                 let phase = game.setup.phase_before_skill_assignment.required("phase before skill assignment")?;
                 game.enter(phase, true);

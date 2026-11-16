@@ -6,7 +6,6 @@ pub mod prelude;
 pub use indexmap;
 
 pub mod error;
-pub mod shared;
 
 // Game state and rules
 pub mod events;

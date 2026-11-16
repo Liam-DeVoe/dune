@@ -319,7 +319,7 @@ impl Bid {
         }
 
         while !game.bidding.cards_on_auction.as_ref().expect("cards on auction").is_empty() {
-            game.bidding.cards_on_auction.as_mut().expect("cards on auction").shuffle();
+            game.bidding.cards_on_auction.as_mut().expect("cards on auction").shuffle(&mut game.rng);
 
             let card = game.bidding.cards_on_auction.as_mut().expect("cards on auction").draw();
             game.decks.treachery_deck.as_mut().expect("treachery deck").put_on_top(card);

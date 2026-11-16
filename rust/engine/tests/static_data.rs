@@ -15,7 +15,7 @@ use treachery_engine::heroes::hero::Hero;
 use treachery_engine::heroes::leader_manager::LeaderManager;
 use treachery_engine::map::location::Location;
 use treachery_engine::map::sector::Sector;
-use treachery_engine::random::SharedRandom;
+use treachery_engine::random::new_rng;
 use treachery_engine::map::{Map, MapGame};
 use treachery_engine::messages::message::BattleFactKind;
 use treachery_engine::enum_type::{EnumTypeInfo, GameEnum};
@@ -563,11 +563,11 @@ fn deck_shuffle_and_random_item() {
     let mut shuffles = Vec::new();
     for seed in [0, 1, 42, 123456, i32::MAX] {
         for n in [0, 1, 2, 5, 33] {
-            let random = SharedRandom::from_seed(seed);
-            let mut deck = Deck::new(0..n, Some(random.clone()));
-            deck.shuffle();
-            deck.shuffle();
-            let pick = (0..n).random_item(&random).unwrap_or_default();
+            let mut rng = new_rng(seed);
+            let mut deck = Deck::new(0..n);
+            deck.shuffle(&mut rng);
+            deck.shuffle(&mut rng);
+            let pick = (0..n).random_item(&mut rng).unwrap_or_default();
             shuffles.push(json!({
                 "seed": seed,
                 "n": n,
@@ -581,18 +581,15 @@ fn deck_shuffle_and_random_item() {
 
 #[test]
 fn deck_basics() {
-    let mut deck = Deck::new([1, 2, 3], None);
+    let mut deck = Deck::new([1, 2, 3]);
     deck.put_on_top_all([7, 8]);
     assert_eq!(deck.items, vec![8, 7, 1, 2, 3]);
     deck.put_on_bottom(9);
     assert_eq!(deck.draw(), 8);
     assert_eq!(deck.top(), Some(7));
-    // Shuffling more than one item without a random generator panics.
-    let mut copy = deck.clone();
-    assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| copy.shuffle())).is_err());
     deck.clear();
     assert!(deck.is_empty());
-    assert_eq!(Deck::<i32>::empty(None).try_draw().unwrap_err().message(), "Cannot draw from an empty deck");
+    assert_eq!(Deck::<i32>::empty().try_draw().unwrap_err().message(), "Cannot draw from an empty deck");
 }
 
 // ---------------------------------------------------------------- messages

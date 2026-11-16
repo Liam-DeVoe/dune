@@ -17,7 +17,6 @@ pub use karma_shipment_prevention::*;
 pub mod location_event;
 mod r#move;
 pub use r#move::*;
-pub mod placement;
 mod placement_event;
 pub use placement_event::*;
 mod planetology;

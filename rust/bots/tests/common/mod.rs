@@ -24,8 +24,7 @@ use serde_json::{json, Value};
 use treachery_bots::prelude::*;
 use treachery_engine::error::catch_panic;
 
-/// A decision method's result as the goldens write it, for a converted event (returned by value)
-/// or a legacy one: the entry of the bot's faction (or the entry a `Resubmitted` decision
+/// A decision method's result as the goldens write it: the entry of the bot's faction (or the entry a `Resubmitted` decision
 /// names), "null" for no event.
 #[allow(dead_code)]
 pub fn decision<R: treachery_bots::bot::IntoDecision>(bot: &ClassicBot, game: &Game, e: R) -> String {
@@ -109,7 +108,7 @@ pub fn bot_for(game: &Game, probe: &Value) -> ClassicBot {
     let player = game.player_at(probe["p"].as_i64().unwrap() as usize);
     let faction = game.player(player).faction;
     let seed = probe["seed"].as_i64().unwrap() as i32;
-    ClassicBot::new(player, BotParameters::for_faction(faction), SharedRandom::from_seed(seed))
+    ClassicBot::new(player, BotParameters::for_faction(faction), treachery_engine::random::new_rng(seed))
 }
 
 /// The probe's arguments.

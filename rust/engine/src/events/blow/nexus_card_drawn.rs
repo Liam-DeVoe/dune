@@ -22,7 +22,7 @@ impl NexusCardDrawn {
             let pile = game.decks.nexus_discard_pile.clone();
             game.decks.nexus_card_deck.as_mut().expect("nexus card deck").items.extend(pile);
             game.decks.nexus_discard_pile.clear();
-            game.decks.nexus_card_deck.as_mut().expect("nexus card deck").shuffle();
+            game.decks.nexus_card_deck.as_mut().expect("nexus card deck").shuffle(&mut game.rng);
             game.stone(Milestone::Shuffled);
             game.log(parts!["The Nexus Card discard pile was shuffled into a new Nexus Card deck"]);
         }

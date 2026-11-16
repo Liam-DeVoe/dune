@@ -45,16 +45,13 @@ fn cards_by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i3
 
 /// The draft carried in the options: valid event JSON of the form's type, which the engine reads
 /// back to the same JSON.
-fn check_draft(game: &Game, faction: Faction, draft: &serde_json::Value, t: EventType, at: &str) -> Event {
+fn check_draft(draft: &serde_json::Value, t: EventType, at: &str) -> Event {
     let text = draft.to_string();
     let entry: HistoryEntry = json::deserialize(&text).unwrap_or_else(|err| panic!("{at}: draft of {} is not event JSON: {err:?}", t.name()));
     assert_eq!(entry.event_type(), t, "{at}");
     let again: serde_json::Value = serde_json::from_str(&json::serialize(&entry)).unwrap();
     assert_eq!(&again, draft, "{at}: the draft doesn't survive the engine's JSON");
-    // As a draft query and a submission do: the server sets the initiator.
-    let e = entry.event;
-    e.prepare(game, Some(faction));
-    e
+    entry.event
 }
 
 /// Every battle form carries its draft; take it from the serialized options.
@@ -85,7 +82,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut 
     let options = view.options.clone().unwrap_or_else(|| panic!("{at}: no options for {}", t.name()));
     let at = format!("{at} {} {}", treachery_engine::enum_type::name_or_absent(game.player(p).faction), t.name());
     let at = at.as_str();
-    let draft = check_draft(game, game.player(p).faction.expect("faction"), &draft_of(&options), t, at);
+    let draft = check_draft(&draft_of(&options), t, at);
     // The view's validation is the draft's.
     assert_eq!(view.validation, treachery_view::build::validate(game, game.player(p).faction, draft.clone(), d), "{at}: validation");
     stats.reached(t.name(), at);
@@ -263,7 +260,7 @@ fn check_battle(game: &Game, p: PlayerId, o: &BattleOptions, draft: &Battle, d: 
         q.hero = hero;
         let (opts, validation) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
         let Some(ActionOptions::Battle(o)) = opts else { panic!("{at}") };
-        let normalized = check_draft(game, game.player(p).faction.expect("faction"), &o.draft, EventType::Battle, at);
+        let normalized = check_draft(&o.draft, EventType::Battle, at);
         let Event::Battle(n) = &normalized else { unreachable!() };
         // A hero that isn't valid, or none when one is required, is replaced.
         if hero.is_some() || game.applicable(Rule::BattleWithoutLeader) || heroes.is_empty() {

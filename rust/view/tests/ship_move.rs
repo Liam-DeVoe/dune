@@ -548,7 +548,6 @@ fn adjusted(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Event
     let value = serde_json::to_value(&o).unwrap();
     let text = serde_json::to_string(&value["draft"]).unwrap();
     let e: Event = json::deserialize::<HistoryEntry>(&text).unwrap_or_else(|err| panic!("the draft reads back: {err:?} {text}")).event;
-    e.prepare(game, game.player(p).faction);
     assert_eq!(validation, validate(game, game.player(p).faction, e.clone(), d), "the validation is the adjusted draft's");
     e
 }

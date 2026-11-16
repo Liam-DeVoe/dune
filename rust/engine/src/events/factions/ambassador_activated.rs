@@ -237,7 +237,7 @@ impl AmbassadorActivated {
                     vp.traitors.clone()
                 };
 
-                let revealed = to_select_from.into_iter().random_item(game.random.as_ref().required("random")?);
+                let revealed = to_select_from.into_iter().random_item(&mut game.rng);
                 game.log_to(by.faction.required("faction")?, parts![victim, " reveal ", revealed]);
                 game.log_to(victim, parts![by.faction, " get to see ", revealed]);
                 game.determine_next_shipment_and_move_sub_phase()?;

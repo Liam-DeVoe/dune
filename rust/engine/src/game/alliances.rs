@@ -105,12 +105,12 @@ impl Game {
         self.set_permissions(b, true);
 
         while self.player(player_a).hand_size_exceeded(self) {
-            let card = self.player(player_a).treachery_cards.iter().copied().random_item(self.random.as_ref().expect("random"));
+            let card = self.player(player_a).treachery_cards.iter().copied().collect::<Vec<_>>().into_iter().random_item(&mut self.rng);
             self.discard_card_of(Some(player_a), card, true);
         }
 
         while self.player(player_b).hand_size_exceeded(self) {
-            let card = self.player(player_b).treachery_cards.iter().copied().random_item(self.random.as_ref().expect("random"));
+            let card = self.player(player_b).treachery_cards.iter().copied().collect::<Vec<_>>().into_iter().random_item(&mut self.rng);
             self.discard_card_of(Some(player_b), card, true);
         }
     }

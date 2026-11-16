@@ -146,7 +146,6 @@ pub fn query(game: &Game, viewer: Viewer, s: &Seating, applicable: &[EventType],
     if !applicable.contains(&draft.event_type()) {
         return Err(QueryError::NotApplicable);
     }
-    draft.prepare(game, faction);
     let v = ResolvedViewer { faction, ..v };
     let (options, validation) = options_and_validation(game, &v, s, &draft, d);
     Ok(DraftResult { event_type: draft.event_type().name().to_string(), options, validation })

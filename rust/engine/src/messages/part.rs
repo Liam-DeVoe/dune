@@ -64,7 +64,7 @@ macro_rules! part {
             /// The parts of an `express_part!`, shown in line.
             Phrase(Vec<Part>),
             /// Why an accepted event failed (the "Game Error" message of
-            /// `GameEventMethods::execute`), shown as text.
+            /// `SubmitError::Failed`), shown as text.
             Error(crate::error::GameError),
             /// A message nested in another, shown in line. [`Game::log`](crate::game::Game::log)
             /// keeps the detail of a message logged on its own.

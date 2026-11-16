@@ -82,8 +82,8 @@ impl Game {
         }
     }
 
-    pub fn determine_later_storm_with_storm_deck(&self) -> i32 {
-        self.random.as_ref().expect("random").lock().random_range(1..=6)
+    pub fn determine_later_storm_with_storm_deck(&mut self) -> i32 {
+        self.rng.random_range(1..=6)
     }
 
     pub fn determine_storm(&mut self) {

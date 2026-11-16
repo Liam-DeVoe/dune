@@ -111,16 +111,16 @@ pub fn cast_hero(o: &Part) -> Option<Hero> {
 #[cfg(test)]
 mod tests {
     use super::FloatKey;
-    use treachery_engine::random::{RandomPick, SharedRandom};
+    use treachery_engine::random::{new_rng, RandomPick};
 
     /// -0 and 0 tie, so both are drawn; -1 never is.
     #[test]
     fn float_keys_rank_negative_zero_with_zero() {
-        let random = SharedRandom::from_seed(5);
+        let mut random = new_rng(5);
         let mut seen = std::collections::BTreeSet::new();
         for _ in 0..1000 {
             let items = [(0, -0.0f32), (1, 0.0f32), (2, -1.0f32)];
-            seen.insert(items.iter().random_highest(&random, |x| FloatKey(x.1)).unwrap().0);
+            seen.insert(items.iter().random_highest(&mut random, |x| FloatKey(x.1)).unwrap().0);
         }
         assert_eq!(seen.into_iter().collect::<Vec<_>>(), [0, 1]);
     }

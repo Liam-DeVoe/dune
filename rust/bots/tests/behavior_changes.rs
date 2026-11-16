@@ -20,7 +20,7 @@ fn load(name: &str) -> Game {
 }
 
 fn bot(game: &Game, player: PlayerId) -> ClassicBot {
-    ClassicBot::new(player, BotParameters::for_faction(game.player(player).faction), SharedRandom::from_seed(1))
+    ClassicBot::new(player, BotParameters::for_faction(game.player(player).faction), treachery_engine::random::new_rng(1))
 }
 
 fn player_of(game: &Game, faction: Faction) -> PlayerId {
@@ -41,7 +41,7 @@ fn card(game: &Game, type_: TreacheryCardType) -> TreacheryCard {
 fn fingerprint(game: &Game) -> String {
     let mut lines = vec![
         format!("history: {}", GameState::get_state_as_string(game)),
-        format!("stream position: {:?}", game.random.as_ref().map(|r| r.state().get_word_pos())),
+        format!("stream position: {:?}", game.rng.get_word_pos()),
         format!("phase: {} {} {} turn {} milestones {:?}", game.turn.current_phase, game.turn.current_main_phase, name_or_absent(game.turn.current_moment), game.turn.current_turn, game.turn.recent_milestones),
         format!("battle: {:?}", game.battle.current_battle),
         format!("aggressor plan: {:?}", game.battle.aggressor_plan),
@@ -315,16 +315,16 @@ fn bene_gesserit_prediction_draws_no_coin() {
     let game = load("mc-prediction");
     let bg = player_of(&game, Faction::BeneGesserit);
     for seed in 1..20 {
-        let b = ClassicBot::new(bg, BotParameters::for_faction(Faction::BeneGesserit), SharedRandom::from_seed(seed));
+        let b = ClassicBot::new(bg, BotParameters::for_faction(Faction::BeneGesserit), treachery_engine::random::new_rng(seed));
         let e = b.determine_bene_gesserit_prediction(&game);
         // The same draws from a fresh generator: the pick, then the coin and the die of the turn
         // (Tleilaxu, which draws once, isn't in this game).
-        let r = SharedRandom::from_seed(seed);
-        let predicted = b.others(&game).into_iter().random_item(&r).unwrap();
+        let mut r = treachery_engine::random::new_rng(seed);
+        let predicted = b.others(&game).into_iter().random_item(&mut r).unwrap();
         let faction = game.player(predicted).faction;
         assert_ne!(faction, Some(Faction::Tleilaxu));
         let max = i32::from(game.maximum_turns());
-        let d = |sides: i32| r.lock().random_range(1..=sides);
+        let mut d = |sides: i32| r.random_range(1..=sides);
         let turn = if faction == Some(Faction::Harkonnen) {
             let sides = if d(2) == 1 { std::cmp::min(3, max) } else { max };
             d(sides)
@@ -336,7 +336,7 @@ fn bene_gesserit_prediction_draws_no_coin() {
             2 + d(max - 2)
         };
         assert_eq!((e.to_win, i32::from(e.turn)), (faction, turn), "seed {seed}");
-        assert_eq!(b.random.state(), r.state(), "seed {seed}: the bot made other draws");
+        assert_eq!(b.random.state(), r, "seed {seed}: the bot made other draws");
     }
 }
 

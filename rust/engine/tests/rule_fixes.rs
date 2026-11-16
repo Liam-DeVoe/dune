@@ -229,7 +229,7 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     assert!(!g.decks.richese_cache.contains(&drawn));
 
     // Sold from the cache: it leaves the deck.
-    g.bidding.cards_on_auction = Some(Deck::empty(None));
+    g.bidding.cards_on_auction = Some(Deck::empty());
     g.turn.current_phase = Phase::RicheseSpecifyingAuction;
     let mut auction = RicheseSpecifiesAuction::default();
     auction.card = Some(sold);

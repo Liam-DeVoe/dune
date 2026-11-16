@@ -1376,7 +1376,7 @@ mod tests {
         game.player_mut(me).treachery_cards = vec![mirror];
         game.player_mut(opponent).known_cards.insert(mirror);
 
-        let bot = ClassicBot::new(me, BotParameters::for_faction(game.player(me).faction), SharedRandom::from_seed(1));
+        let bot = ClassicBot::new(me, BotParameters::for_faction(game.player(me).faction), treachery_engine::random::new_rng(1));
         let choice = bot.chance_of_enemy_leader_dying(&game, me, opponent, None, None);
         assert_eq!(choice.weapon, Some(mirror));
         assert_eq!(choice.kill_chance, 0.5);

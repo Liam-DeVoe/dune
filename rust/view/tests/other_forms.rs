@@ -207,7 +207,6 @@ fn check_state(game: &mut Game, d: &dyn Describer, at: &str, seen: &mut Seen) {
             if let Some(draft) = draft_of(options) {
                 let e: Event = json::deserialize::<HistoryEntry>(&draft.to_string()).unwrap_or_else(|e| panic!("{at}: draft {draft}: {e:?}")).event;
                 assert_eq!(e.event_type(), t, "{at}");
-                e.prepare(game, game.player(p).faction);
                 assert_eq!(validate(game, game.player(p).faction, e, &in_game), view.validation, "{at}: validation is the draft's");
             }
             if let ActionOptions::NexusPlayed(o) = options {

@@ -39,14 +39,12 @@ fn draft_of(options: &ActionOptions) -> &serde_json::Value {
     }
 }
 
-fn entry_of(v: &serde_json::Value, game: &Game) -> HistoryEntry {
-    let e: HistoryEntry = json::deserialize(&v.to_string()).expect("the draft is an event");
-    e.event.prepare(game, e.by);
-    e
+fn entry_of(v: &serde_json::Value) -> HistoryEntry {
+    json::deserialize(&v.to_string()).expect("the draft is an event")
 }
 
-fn event_of(v: &serde_json::Value, game: &Game) -> Event {
-    entry_of(v, game).event
+fn event_of(v: &serde_json::Value) -> Event {
+    entry_of(v).event
 }
 
 fn int(v: &serde_json::Value, k: &str) -> i32 {
@@ -63,7 +61,7 @@ fn hero_of(v: &serde_json::Value) -> Option<Hero> {
 fn check(game: &Game, p: PlayerId, options: &ActionOptions, validation: &Option<RichText>, d: &dyn Describer, at: &str) {
     let pl = game.player(p);
     let draft = draft_of(options);
-    let entry = entry_of(draft, game);
+    let entry = entry_of(draft);
     let e = entry.event.clone();
     assert_eq!(*validation, validate(game, entry.by, e.clone(), d), "{at}: validation");
     match options {
@@ -238,10 +236,10 @@ fn check_state(game: &Game, p: PlayerId, types: &[EventType], d: &dyn Describer,
         let options = a.options.as_ref().unwrap_or_else(|| panic!("{at}: {t:?} has options"));
         check(game, p, options, &a.validation, d, &format!("{at} {} default", t.name()));
         // Adjusting the adjusted draft changes nothing.
-        let again = revival::options_and_validation(game, &v, &event_of(draft_of(options), game), d).unwrap();
+        let again = revival::options_and_validation(game, &v, &event_of(draft_of(options)), d).unwrap();
         assert_eq!(again, (a.options.clone(), a.validation.clone()), "{at} {}: normalizing is stable", t.name());
         for draft in variations(draft_of(options), options) {
-            let (o, val) = revival::options_and_validation(game, &v, &event_of(&draft, game), d).unwrap();
+            let (o, val) = revival::options_and_validation(game, &v, &event_of(&draft), d).unwrap();
             check(game, p, o.as_ref().unwrap(), &val, d, &format!("{at} {} draft {draft}", t.name()));
         }
         checked.push(*t);

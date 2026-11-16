@@ -1,13 +1,9 @@
 //! Everything an engine module usually needs: `use crate::prelude::*;`.
 
-pub use std::cell::{Cell, RefCell};
-pub use std::rc::Rc;
-
 pub use std::collections::BTreeMap;
 pub use indexmap::{IndexMap, IndexSet};
 
 pub use crate::iter::{ContainsOpt, IterExt, MapExt, MapOpt};
-pub use crate::shared::{RcKey, Shared};
 pub use crate::compat::date_time_offset::{DateTimeOffset, TimeSpan};
 pub use crate::cards::deck::Deck;
 pub use crate::enumerations::*;
@@ -16,7 +12,7 @@ pub use crate::identity::Fetcher;
 pub use crate::heroes::hero::Hero;
 pub use crate::identity::Identifiable;
 pub use crate::heroes::leader_manager::LeaderManager;
-pub use crate::random::{RandomPick, SharedRandom};
+pub use crate::random::{GameRng, RandomPick};
 pub use crate::map::Map;
 pub use crate::messages::message::{Audience, BattleFact, BattleFactKind, BattlePlans, LogDetail, Message, MessagePart, PlanSummary, Rejection, Route};
 pub use crate::messages::payment::Payment;

@@ -76,7 +76,8 @@ use crate::messages::part::Part;
 /// defined in the file of its topic under `game/` (see docs/engine.md).
 pub struct Game {
     pub seed: i32,
-    pub random: Option<SharedRandom>,
+    /// Every random draw of the game comes from here. `EstablishPlayers` seeds it.
+    pub rng: GameRng,
     pub rules: Rules,
     pub players: Vec<Player>,
     /// The seats users play. Every other seat is a bot's (`is_bot`). The server seats users, so
@@ -105,6 +106,9 @@ pub struct Game {
     pub collection: CollectionState,
     pub contemplate: ContemplateState,
 }
+
+// A game can move to another thread: it holds no `Rc` or `Cell`.
+const _: fn() = || { fn send<T: Send>() {} send::<Game>(); };
 
 impl Game {
     pub const LATEST_VERSION: i32 = 190;
@@ -140,7 +144,7 @@ impl Game {
 
         let mut game = Game {
             seed: -1,
-            random: None,
+            rng: crate::random::new_rng(-1),
             rules: Rules::new(version),
             players: Vec::new(),
             human_seats: IndexSet::new(),

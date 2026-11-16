@@ -15,14 +15,16 @@ pub use shipment::*;
 use std::collections::HashMap;
 
 use crate::prelude::*;
-use treachery_engine::random::Rng;
+use std::cell::RefCell;
+
+use treachery_engine::random::{GameRng, RandomSource, Rng};
 
 /// The bot of one player. One bot per faction lives for the whole game, and its fields carry
 /// plans from one decision to the next. The game itself is passed to every method.
 pub struct ClassicBot {
     pub player: PlayerId,
     pub param: BotParameters,
-    pub random: SharedRandom,
+    pub random: BotRng,
     /// The Voice the bot used in the current battle, for its battle plan.
     pub voice_plan: Option<VoicePlan>,
     /// The price asked earlier for reviving a hero, for Tleilaxu revival requests.
@@ -32,6 +34,30 @@ pub struct ClassicBot {
     pub decided_shipment_action: ShipmentDecision,
     pub decided_shipment: Option<Shipment>,
     pub final_destination: Option<Location>,
+}
+
+/// A bot's own random number generator. Decision methods take `&self`, so the generator is
+/// borrowed only for the length of one draw. A `RandomPick` computes its keys before it draws, so
+/// a key function may draw from the bot's generator too (`self.d(..)`).
+pub struct BotRng(RefCell<GameRng>);
+
+impl BotRng {
+    /// Draws with `f`. `f` must not draw from this generator itself.
+    #[track_caller]
+    pub fn draw<R>(&self, f: impl FnOnce(&mut GameRng) -> R) -> R {
+        f(&mut self.0.borrow_mut())
+    }
+
+    /// A copy of the generator's current state, for tests that check how far it has drawn.
+    pub fn state(&self) -> GameRng {
+        self.0.borrow().clone()
+    }
+}
+
+impl RandomSource for &BotRng {
+    fn draw<R>(self, f: impl FnOnce(&mut GameRng) -> R) -> R {
+        BotRng::draw(self, f)
+    }
 }
 
 /// An event type a decision method can return.
@@ -181,9 +207,8 @@ impl Priority {
     pub const ALL: [Priority; 5] = [Priority::Highest, Priority::High, Priority::Middle, Priority::Low, Priority::End];
 }
 
-/// What a decision method returns: an event, or maybe an event. A converted event comes by
-/// value, an `@legacy` one in an `Rc`, and an event the bot submits in another faction's name
-/// as a [`Resubmitted`] entry.
+/// What a decision method returns: an event, or maybe an event. An event the bot submits in
+/// another faction's name comes as a [`Resubmitted`] entry.
 pub trait IntoDecision {
     type Event: EventKind;
     /// The history entry the bot submits, for a bot of `faction`.
@@ -196,7 +221,7 @@ where
 {
     type Event = T;
     fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        Some(HistoryEntry::decided(faction, self))
+        Some(HistoryEntry::new(faction, self))
     }
 }
 
@@ -206,27 +231,7 @@ where
 {
     type Event = T;
     fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        self.map(|e| HistoryEntry::decided(faction, e))
-    }
-}
-
-impl<T: EventKind> IntoDecision for Rc<T>
-where
-    Event: From<Rc<T>>,
-{
-    type Event = T;
-    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        Some(HistoryEntry::decided(faction, self))
-    }
-}
-
-impl<T: EventKind> IntoDecision for Option<Rc<T>>
-where
-    Event: From<Rc<T>>,
-{
-    type Event = T;
-    fn into_entry(self, faction: Option<Faction>) -> Option<HistoryEntry> {
-        self.map(|e| HistoryEntry::decided(faction, e))
+        self.map(|e| HistoryEntry::new(faction, e))
     }
 }
 
@@ -292,12 +297,12 @@ macro_rules! first_decision {
 }
 
 impl ClassicBot {
-    /// A bot for `player`, drawing from `random`.
-    pub fn new(player: PlayerId, param: BotParameters, random: SharedRandom) -> Self {
+    /// A bot for `player`, drawing from `rng`.
+    pub fn new(player: PlayerId, param: BotParameters, rng: GameRng) -> Self {
         ClassicBot {
             player,
             param,
-            random,
+            random: BotRng(RefCell::new(rng)),
             voice_plan: None,
             price_set_earlier: HashMap::new(),
             turn_when_revival_was_requested: None,
@@ -509,7 +514,7 @@ impl ClassicBot {
         if amount == 0 || sides == 0 {
             return 0;
         }
-        (0..amount).map(|_| self.random.lock().random_range(1..=sides)).sum()
+        (0..amount).map(|_| self.random.draw(|r| r.random_range(1..=sides))).sum()
     }
 }
 
@@ -541,9 +546,19 @@ mod tests {
     #[test]
     fn an_invalid_decision_falls_through_to_the_next_method() {
         let game = Game::new();
-        let mut bot = ClassicBot::new(game.player_at(0), BotParameters::for_faction(Faction::Atreides), SharedRandom::from_seed(1));
+        let mut bot = ClassicBot::new(game.player_at(0), BotParameters::for_faction(Faction::Atreides), treachery_engine::random::new_rng(1));
         let allowed = [EventType::Thought, EventType::EndPhase];
         assert!(matches!(bot.try_decide(&game, &allowed, |b, g| b.invalid_thought(g)), Some(Decision::Invalid(_))));
         assert!(matches!(bot.invalid_then_valid(&game, &allowed).map(|e| e.event), Some(Event::EndPhase(_))));
+    }
+
+    /// A key function may draw from the bot's generator: the pick computes every key before it
+    /// borrows the generator for its own draw.
+    #[test]
+    fn a_key_may_draw_from_the_bot_generator() {
+        let game = Game::new();
+        let bot = ClassicBot::new(game.player_at(0), BotParameters::for_faction(Faction::Atreides), treachery_engine::random::new_rng(1));
+        let picked = (0..10).random_highest(&bot.random, |_| bot.d(1, 3));
+        assert!(picked.is_some());
     }
 }

@@ -61,7 +61,7 @@ fn nothing_is_in_the_storm_before_the_first_storm() {
 
 fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
-    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new(), None));
+    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new()));
     for f in factions {
         g.players.push(Player::new(Some(*f)));
     }

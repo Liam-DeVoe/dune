@@ -29,7 +29,7 @@ impl EventRules for IxianRemovedCardFromAuction {
         }
 
         game.register_known_by_faction(Faction::Ixian, card);
-        game.bidding.cards_on_auction.as_mut().required("cards on auction")?.shuffle();
+        game.bidding.cards_on_auction.as_mut().required("cards on auction")?.shuffle(&mut game.rng);
         game.stone(Milestone::Shuffled);
         let m = self.describe(game, by);
         game.log_event(m);

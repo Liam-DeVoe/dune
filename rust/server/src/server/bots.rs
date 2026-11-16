@@ -6,7 +6,7 @@ use std::time::Duration;
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::enumerations::{MainPhase, Phase};
 use treachery_engine::events::Event;
-use treachery_engine::random::{self, SharedRandom, SliceRandom};
+use treachery_engine::random::{self, SliceRandom};
 use treachery_engine::game::PlayerId;
 
 use super::{Answer, CallError, RunningGame, Server};
@@ -35,8 +35,8 @@ fn bot_for(g: &mut RunningGame, player: PlayerId) -> usize {
             i
         }
         None => {
-            let random = SharedRandom::from_seed(ids::new_seed());
-            g.bots.push((faction, ClassicBot::new(player, BotParameters::for_faction(faction), random)));
+            let rng = random::new_rng(ids::new_seed());
+            g.bots.push((faction, ClassicBot::new(player, BotParameters::for_faction(faction), rng)));
             g.bots.len() - 1
         }
     };

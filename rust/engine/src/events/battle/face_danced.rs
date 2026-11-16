@@ -173,7 +173,7 @@ impl FaceDanced {
         game.decks.traitor_deck.as_mut().expect("traitor deck").items.extend(face_dancers);
         game.player_mut(me).face_dancers.clear();
         game.player_mut(me).revealed_face_dancers.clear();
-        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle();
+        game.decks.traitor_deck.as_mut().expect("traitor deck").shuffle(&mut game.rng);
         game.stone(Milestone::Shuffled);
         for _ in 0..3 {
             let drawn = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();

@@ -1,7 +1,6 @@
 use crate::cards::deck::Deck;
 use crate::enumerations::{Rule, TreacheryCardType};
 use crate::identity::Fetcher;
-use crate::random::SharedRandom;
 use crate::map::MapGame;
 use crate::cards::treachery_card::{TreacheryCard, TreacheryCardData};
 
@@ -116,8 +115,8 @@ impl TreacheryCardManager {
         TreacheryCardFetcher
     }
 
-    pub fn create_treachery_deck(g: &impl CardsGame, random: Option<SharedRandom>) -> Deck<TreacheryCard> {
-        Deck::new(Self::get_cards_in_play(g), random)
+    pub fn create_treachery_deck(g: &impl CardsGame) -> Deck<TreacheryCard> {
+        Deck::new(Self::get_cards_in_play(g))
     }
 
     pub fn get_richese_cards() -> Vec<TreacheryCard> {

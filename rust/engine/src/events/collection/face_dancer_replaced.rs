@@ -49,7 +49,7 @@ impl EventRules for FaceDancerReplaced {
                     game.player_mut(player).face_dancers.remove(i);
                 }
                 game.decks.traitor_deck.as_mut().required("traitor deck")?.put_on_top(selected_dancer);
-                game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle();
+                game.decks.traitor_deck.as_mut().required("traitor deck")?.shuffle(&mut game.rng);
                 game.stone(Milestone::Shuffled);
                 let leader = game.decks.traitor_deck.as_mut().required("traitor deck")?.try_draw()?;
                 game.player_mut(player).face_dancers.push(leader);

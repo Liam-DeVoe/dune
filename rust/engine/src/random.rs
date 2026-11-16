@@ -7,20 +7,17 @@
 //! `shuffle`, `choose`) within one minor version of rand. Upgrading `rand` or `rand_chacha` to a
 //! new minor version may change the draws; if it does, that is a change of game version.
 //!
-//! `Game.random` is shared with every `Deck` built from it: [`SharedRandom`] is that shared
-//! reference, so draws through any deck advance the same stream.
+//! The game owns its generator (`Game.rng`), and whatever draws takes it as `&mut GameRng`:
+//! `game.decks.treachery_deck.shuffle(&mut game.rng)`.
 
-use std::cell::RefMut;
 use std::cmp::Ordering;
 
 use rand::SeedableRng;
 use rand::seq::IteratorRandom;
 
-/// rand's sampling traits, for drawing from [`SharedRandom::lock`].
+/// rand's sampling traits, for drawing from a [`GameRng`].
 pub use rand::Rng;
 pub use rand::seq::{IndexedRandom, SliceRandom};
-
-use crate::shared::Shared;
 
 /// The generator behind every random draw of a game or a bot.
 pub type GameRng = rand_chacha::ChaCha8Rng;
@@ -30,29 +27,17 @@ pub fn new_rng(seed: i32) -> GameRng {
     GameRng::seed_from_u64(seed as i64 as u64)
 }
 
-/// A shared reference to a generator: clones share the same stream.
-#[derive(Clone, Debug, PartialEq)]
-pub struct SharedRandom(Shared<GameRng>);
+/// What a [`RandomPick`] draws from: a game's generator (`&mut GameRng`), or a generator that
+/// lends itself out only for the draw (a bot's). The pick computes every key before it calls
+/// [`draw`](RandomSource::draw), so a key function may draw from the same generator when the
+/// source allows that.
+pub trait RandomSource {
+    fn draw<R>(self, f: impl FnOnce(&mut GameRng) -> R) -> R;
+}
 
-impl SharedRandom {
-    pub fn from_seed(seed: i32) -> Self {
-        SharedRandom(Shared::new(new_rng(seed)))
-    }
-
-    /// The generator, to draw from with rand's methods (`random_range`, `shuffle`, ...). Don't
-    /// hold it across a call that may draw from the same generator.
-    pub fn lock(&self) -> RefMut<'_, GameRng> {
-        self.0.borrow_mut()
-    }
-
-    /// A copy of the generator's current state, for tests that check how far it has drawn.
-    pub fn state(&self) -> GameRng {
-        self.0.borrow().clone()
-    }
-
-    /// Whether both refer to the same generator.
-    pub fn ptr_eq(&self, other: &SharedRandom) -> bool {
-        self.0.ptr_eq(&other.0)
+impl RandomSource for &mut GameRng {
+    fn draw<R>(self, f: impl FnOnce(&mut GameRng) -> R) -> R {
+        f(self)
     }
 }
 
@@ -71,26 +56,27 @@ macro_rules! rank_key_ord {
 rank_key_ord!(u16, i32, i64, u32, usize, bool);
 
 /// Picking a random item from an iterator. Each helper collects the items (and computes each key
-/// once) before it draws, so the iterator and the key function may draw from the same generator.
+/// once) before it draws, so with a source that allows it (a bot's), the iterator and the key
+/// function may draw from the same generator.
 pub trait RandomPick: Iterator + Sized {
     /// A random item, or `None` if there are none. Draws only when there are two or more.
-    fn random_item(self, random: &SharedRandom) -> Option<Self::Item> {
+    fn random_item(self, random: impl RandomSource) -> Option<Self::Item> {
         let items: Vec<Self::Item> = self.collect();
-        items.into_iter().choose(&mut *random.lock())
+        random.draw(|r| items.into_iter().choose(r))
     }
 
     /// A random one of the items with the highest key.
-    fn random_highest<K: RankKey>(self, random: &SharedRandom, key: impl FnMut(&Self::Item) -> K) -> Option<Self::Item> {
+    fn random_highest<K: RankKey>(self, random: impl RandomSource, key: impl FnMut(&Self::Item) -> K) -> Option<Self::Item> {
         random_extreme(self, random, key, Ordering::Greater)
     }
 
     /// A random one of the items with the lowest key.
-    fn random_lowest<K: RankKey>(self, random: &SharedRandom, key: impl FnMut(&Self::Item) -> K) -> Option<Self::Item> {
+    fn random_lowest<K: RankKey>(self, random: impl RandomSource, key: impl FnMut(&Self::Item) -> K) -> Option<Self::Item> {
         random_extreme(self, random, key, Ordering::Less)
     }
 
     /// A random one of the `n` items with the lowest keys (ties broken by position).
-    fn random_of_lowest_n<K: RankKey>(self, random: &SharedRandom, mut key: impl FnMut(&Self::Item) -> K, n: usize) -> Option<Self::Item> {
+    fn random_of_lowest_n<K: RankKey>(self, random: impl RandomSource, mut key: impl FnMut(&Self::Item) -> K, n: usize) -> Option<Self::Item> {
         let mut keyed: Vec<(K, Self::Item)> = self.map(|v| (key(&v), v)).collect();
         keyed.sort_by(|a, b| a.0.rank(&b.0));
         keyed.into_iter().take(n).map(|(_, v)| v).random_item(random)
@@ -99,7 +85,7 @@ pub trait RandomPick: Iterator + Sized {
 
 impl<I: Iterator> RandomPick for I {}
 
-fn random_extreme<I: Iterator, K: RankKey>(source: I, random: &SharedRandom, mut key: impl FnMut(&I::Item) -> K, better: Ordering) -> Option<I::Item> {
+fn random_extreme<I: Iterator, K: RankKey>(source: I, random: impl RandomSource, mut key: impl FnMut(&I::Item) -> K, better: Ordering) -> Option<I::Item> {
     let keyed: Vec<(K, I::Item)> = source.map(|v| (key(&v), v)).collect();
     let mut best = 0;
     for i in 1..keyed.len() {

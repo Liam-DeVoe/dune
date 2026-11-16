@@ -1,51 +1,7 @@
 use crate::prelude::*;
 
-/// Holds the static members of `PlacementEvent`. Its fields are inlined into every derived event struct;
-/// its instance members are the default methods of [`PlacementEventMethods`].
+/// The rules shared by the events that place forces: their force lists and move checks.
 pub struct PlacementEvent;
-
-/// The instance members of placement events. Every placement event implements this trait
-/// (generated in its module); members an event overrides are delegated to its inherent method.
-pub trait PlacementEventMethods: PassableGameEventMethods {
-    /// The inherited field `_toId` (`self.to` on the event struct).
-    fn field_to(&self) -> &Option<Location>;
-
-    /// The inherited field `_forceLocations` (`self.force_locations` on the event struct).
-    fn field_force_locations(&self) -> &Option<String>;
-
-    /// The inherited field `_toId`, for the `To` setter.
-    fn field_to_mut(&mut self) -> &mut Option<Location>;
-
-    /// The inherited field `_forceLocations`, for the `ForceLocations` setter.
-    fn field_force_locations_mut(&mut self) -> &mut Option<String>;
-
-    fn force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
-        // ParseForceLocations(Game, Player.Faction, _forceLocations): Player is dereferenced
-        // first; a null string throws at `.Length`.
-        let faction = game.player(self.player()).faction;
-        let s = self.field_force_locations().as_deref().expect("field force locations");
-        PlacementEvent::parse_force_locations(game, faction.expect("faction"), s)
-    }
-
-    fn set_force_locations(&mut self, game: &Game, value: &IndexMap<Location, Battalion>) {
-        *self.field_force_locations_mut() = Some(PlacementEvent::force_locations_string(game, value));
-    }
-
-    fn total_amount_of_forces_added_to_location(&self, game: &Game) -> i32 {
-        self.forces_added_to_location(game) + self.special_forces_added_to_location(game)
-    }
-
-    fn forces_added_to_location(&self, game: &Game) -> i32 {
-        // ForceLocations != null ? ... : 0 (the dictionary is never null; parsed twice)
-        let _ = self.force_locations(game);
-        self.force_locations(game).values().map(|b| b.forces()).sum::<i32>()
-    }
-
-    fn special_forces_added_to_location(&self, game: &Game) -> i32 {
-        let _ = self.force_locations(game);
-        self.force_locations(game).values().map(|b| b.special_forces()).sum::<i32>()
-    }
-}
 
 impl PlacementEvent {
     pub fn force_locations_string(g: &Game, force_locations: &IndexMap<Location, Battalion>) -> String {

@@ -19,9 +19,6 @@ impl History {
     pub fn stamp_last(&mut self, at: DateTimeOffset) {
         if let Some(e) = self.entries.last_mut() {
             e.at = at;
-            if let Some(base) = e.event.legacy_base() {
-                base.time.set(at);
-            }
         }
     }
 
@@ -114,10 +111,6 @@ impl Game {
     /// [`submit`](Game::submit) of a whole entry, validated or not. Unvalidated play is for
     /// replaying a history and for tests.
     pub fn play(&mut self, entry: HistoryEntry, validate: bool, is_host: bool) -> Result<(), SubmitError> {
-        entry.event.prepare(self, entry.by);
-        if let Some(base) = entry.event.legacy_base() {
-            base.time.set(entry.at);
-        }
         let by = By::new(self, entry.by);
         self.history.playing = entry.id;
 

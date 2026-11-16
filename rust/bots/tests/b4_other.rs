@@ -27,13 +27,6 @@ where
     treachery_engine::json::serialize(&HistoryEntry::legacy(e))
 }
 
-fn opt<T: EventKind>(e: Option<Rc<T>>) -> String
-where
-    Event: From<Rc<T>>,
-{
-    e.map_or_else(|| "null".to_string(), ev)
-}
-
 fn hero(h: Option<Hero>) -> String {
     h.map_or_else(|| "null".to_string(), |h| format!("H{}", h.id()))
 }
@@ -53,10 +46,13 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineDivideResources" => common::decision(bot, game, bot.determine_divide_resources(game)),
         "DetermineCardGiven" => common::decision(bot, game, bot.determine_card_given(game)),
         "DetermineDivideResourcesAccepted" => common::decision(bot, game, bot.determine_divide_resources_accepted(game)),
-        "DetermineDiscarded" => ev(bot.determine_discarded(game)),
+        "DetermineDiscarded" => common::decision(bot, game, bot.determine_discarded(game)),
         "DetermineTraitorDiscarded" => common::decision(bot, game, bot.determine_traitor_discarded(game)),
         "DetermineWorstTraitor" => hero(bot.determine_worst_traitor(game)),
-        "DetermineNexusPlayed" => opt(bot.determine_nexus_played(game)),
+        "DetermineNexusPlayed" => {
+            let decided = bot.determine_nexus_played(game);
+            common::decision(bot, game, decided)
+        }
         "DetermineTerritoryToRemoveEcazFrom" => {
             bot.determine_territory_to_remove_ecaz_from(game).map_or_else(|| "null".to_string(), |t| format!("T{}", t.id()))
         }
@@ -68,23 +64,23 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
         "DetermineHarvesterPlayed" => common::decision(bot, game, bot.determine_harvester_played(game)),
         "DetermineMulliganPerformed" => common::decision(bot, game, bot.determine_mulligan_performed(game)),
         "DetermineDelay" => common::decision(bot, game, bot.determine_delay(game)),
-        "DetermineClairvoyance" => opt(bot.determine_clairvoyance(game)),
-        "DetermineClairVoyanceAnswered" | "ClairVoyanceAnswered" => ev(bot.determine_clair_voyance_answered(game)),
-        "DetermineRaiseDeadPlayed" => opt(bot.determine_raise_dead_played(game)),
-        "DetermineAmalPlayed" => opt(bot.determine_amal_played(game)),
-        "DetermineRecruitsPlayed" => opt(bot.determine_recruits_played(game)),
+        "DetermineClairvoyance" => common::decision(bot, game, bot.determine_clairvoyance(game)),
+        "DetermineClairVoyanceAnswered" | "ClairVoyanceAnswered" => common::decision(bot, game, bot.determine_clair_voyance_answered(game)),
+        "DetermineRaiseDeadPlayed" => common::decision(bot, game, bot.determine_raise_dead_played(game)),
+        "DetermineAmalPlayed" => common::decision(bot, game, bot.determine_amal_played(game)),
+        "DetermineRecruitsPlayed" => common::decision(bot, game, bot.determine_recruits_played(game)),
         "DetermineMetheorPlayed" => common::decision(bot, game, bot.determine_metheor_played(game)),
         "DetermineStormDialled" => common::decision(bot, game, bot.determine_storm_dialled(game)),
         "DetermineTraitorsSelected" => common::decision(bot, game, bot.determine_traitors_selected(game)),
         "DetermineFactionTradeOffered" => common::decision(bot, game, bot.determine_faction_trade_offered(game)),
         "DetermineThumperPlayed" => common::decision(bot, game, bot.determine_thumper_played(game)),
         "DetermineStormSpellPlayed" => common::decision(bot, game, bot.determine_storm_spell_played(game)),
-        "DetermineDistransUsed" => opt(bot.determine_distrans_used(game)),
+        "DetermineDistransUsed" => common::decision(bot, game, bot.determine_distrans_used(game)),
         "DetermineRevival" => common::decision(bot, game, bot.determine_revival(game)),
-        "DetermineDiscardedSearchedAnnounced" => opt(bot.determine_discarded_searched_announced(game)),
-        "DetermineDiscardedSearched" => ev(bot.determine_discarded_searched(game)),
-        "DetermineDiscardedTaken" => opt(bot.determine_discarded_taken(game)),
-        "DetermineJuicePlayed" => opt(bot.determine_juice_played(game)),
+        "DetermineDiscardedSearchedAnnounced" => common::decision(bot, game, bot.determine_discarded_searched_announced(game)),
+        "DetermineDiscardedSearched" => common::decision(bot, game, bot.determine_discarded_searched(game)),
+        "DetermineDiscardedTaken" => common::decision(bot, game, bot.determine_discarded_taken(game)),
+        "DetermineJuicePlayed" => common::decision(bot, game, bot.determine_juice_played(game)),
         "DetermineBureaucracy" => ev(bot.determine_bureaucracy(game)),
         "DetermineDiplomacy" => common::decision(bot, game, bot.determine_diplomacy(game)),
         "DetermineSkillAssigned" => common::decision(bot, game, bot.determine_skill_assigned(game)),
@@ -101,13 +97,14 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
             format!("{f},{s}")
         }
         "DetermineNexusPlayed_Betrayal" | "DetermineNexusPlayed_Cunning" | "DetermineNexusPlayed_SecretAlly" => {
-            let mut result = NexusPlayed::new(game, game.player(me).faction);
+            let mut result = NexusPlayed::default();
             result.faction = treachery_engine::enum_type::from_value_or_absent::<Faction>(n(0)).unwrap();
-            opt(match m {
+            let decided = match m {
                 "DetermineNexusPlayed_Betrayal" => bot.determine_nexus_played_betrayal(game, result),
                 "DetermineNexusPlayed_Cunning" => bot.determine_nexus_played_cunning(game, result),
                 _ => bot.determine_nexus_played_secret_ally(game, result),
-            })
+            };
+            common::decision(bot, game, decided)
         }
         _ => panic!("unknown probe method {m}"),
     }
@@ -117,7 +114,7 @@ fn call(game: &Game, bot: &mut ClassicBot, m: &str, a: &[String]) -> String {
 enum Setup {
     None,
     Nexus(Option<Faction>),
-    Clairvoyance(Option<Rc<ClairVoyancePlayed>>),
+    Clairvoyance(Option<ClairvoyanceAsked>),
 }
 
 fn setup(game: &mut Game, me: PlayerId, m: &str, a: &[String]) -> Setup {
@@ -130,12 +127,14 @@ fn setup(game: &mut Game, me: PlayerId, m: &str, a: &[String]) -> Setup {
         "ClairVoyanceAnswered" => {
             let saved = game.turn.latest_clairvoyance.clone();
             let initiator = treachery_engine::enum_type::from_value_or_absent::<Faction>(a[0][1..].parse().unwrap()).unwrap();
-            let mut cv = ClairVoyancePlayed::new(game, initiator);
-            cv.target = game.player(me).faction;
-            cv.question = treachery_engine::enum_type::from_value_or_absent(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared)).unwrap();
-            cv.question_parameter1 = if a[4] == "null1" { None } else { Some(a[2].clone()) };
-            cv.question_parameter2 = if a[5] == "null2" { None } else { Some(a[3].clone()) };
-            game.turn.latest_clairvoyance = Some(Rc::new(cv));
+            let cv = ClairvoyanceAsked {
+                submitter: By::new(game, initiator),
+                target: game.player(me).faction,
+                question: treachery_engine::enum_type::from_value_or_absent(dotnet_compat::parse::enum_parse(Some(&a[1]), ClairvoyanceQuestion::INFO.declared)).unwrap(),
+                question_parameter1: if a[4] == "null1" { None } else { Some(a[2].clone()) },
+                question_parameter2: if a[5] == "null2" { None } else { Some(a[3].clone()) },
+            };
+            game.turn.latest_clairvoyance = Some(cv);
             Setup::Clairvoyance(saved)
         }
         _ => Setup::None,

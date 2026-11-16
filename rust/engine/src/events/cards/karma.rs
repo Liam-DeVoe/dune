@@ -1,12 +1,10 @@
 use crate::prelude::*;
 use crate::messages::part::Part;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Karma {
     pub prevented: Option<FactionAdvantage>,
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for Karma {
@@ -14,26 +12,11 @@ impl Default for Karma {
         Karma {
             prevented: Default::default(),
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
 impl Karma {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        if !Karma::valid_faction_advantages(game, self.player()).contains(&self.prevented) {
-            return Some(express!("You cannot prevent ", self.prevented, " at this moment"));
-        }
-
-        None
-    }
-
     pub fn valid_faction_advantages(g: &Game, p: PlayerId) -> Vec<Option<FactionAdvantage>> {
         let mut result = vec![None];
         let faction = g.player(p).faction;
@@ -279,47 +262,6 @@ impl Karma {
         Karma::valid_karma_cards(g, p).next().is_some()
     }
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.discard_card(self.card, false)?;
-        let effect: Vec<Part> = if self.prevented == None {
-            vec![]
-        } else {
-            vec!["prevent ".into(), self.prevented.into()]
-        };
-        let m = Game::karma_played(self.initiator().required("faction")?, self.card, effect);
-        game.log(vec![m.into()]);
-        game.stone(Milestone::Karma);
-
-        if let Some(prevented) = self.prevented {
-            game.prevent(self.initiator().required("faction")?, prevented, false);
-        }
-
-        self.revoke_battle_plans_if_needed(game);
-
-        if self.prevented == Some(FactionAdvantage::BeneGesseritUsingVoice) {
-            game.battle.current_voice = None;
-        }
-
-        if self.prevented == Some(FactionAdvantage::AtreidesBattlePlanPrescience) {
-            game.battle.current_prescience = None;
-        }
-
-        let me = self.player();
-        if game.player(me).is(Faction::Ixian)
-            && game.turn.current_phase == Phase::IxianSwappingCard
-            && game.player(me).treachery_cards.len() == 0
-        {
-            game.continue_after_ixian_card_swap_decision();
-        }
-
-        if self.prevented == Some(FactionAdvantage::FremenRidesMonster)
-            && matches!(game.turn.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
-        {
-            game.determine_next_shipment_and_move_sub_phase()?;
-        }
-        Ok(())
-    }
-
     pub fn revoke_battle_plans_if_needed(&self, game: &mut Game) {
         if game.turn.current_main_phase == MainPhase::Battle {
             if self.prevented == Some(FactionAdvantage::FremenNotPayingForBattles)
@@ -341,11 +283,62 @@ impl Karma {
             }
         }
     }
+}
 
-    pub fn try_get_message(&self, _game: &Game) -> GameResult<Message> {
+impl EventRules for Karma {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        if !Karma::valid_faction_advantages(game, by.player()).contains(&self.prevented) {
+            return Err(Rejection(express!("You cannot prevent ", self.prevented, " at this moment")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.discard_card(self.card, false)?;
+        let effect: Vec<Part> = if self.prevented == None {
+            vec![]
+        } else {
+            vec!["prevent ".into(), self.prevented.into()]
+        };
+        let m = Game::karma_played(by.required_faction()?, self.card, effect);
+        game.log(vec![m.into()]);
+        game.stone(Milestone::Karma);
+
+        if let Some(prevented) = self.prevented {
+            game.prevent(by.required_faction()?, prevented, false);
+        }
+
+        self.revoke_battle_plans_if_needed(game);
+
+        if self.prevented == Some(FactionAdvantage::BeneGesseritUsingVoice) {
+            game.battle.current_voice = None;
+        }
+
+        if self.prevented == Some(FactionAdvantage::AtreidesBattlePlanPrescience) {
+            game.battle.current_prescience = None;
+        }
+
+        let me = by.player();
+        if game.player(me).is(Faction::Ixian)
+            && game.turn.current_phase == Phase::IxianSwappingCard
+            && game.player(me).treachery_cards.len() == 0
+        {
+            game.continue_after_ixian_card_swap_decision();
+        }
+
+        if self.prevented == Some(FactionAdvantage::FremenRidesMonster)
+            && matches!(game.turn.current_phase, Phase::FremenRidingMonsterA | Phase::FremenRidingMonsterB)
+        {
+            game.determine_next_shipment_and_move_sub_phase()?;
+        }
+        Ok(())
+    }
+
+    fn try_describe(&self, _game: &Game, by: By) -> GameResult<Message> {
         let card = self.card.required("card")?;
         Ok(express!(
-            self.initiator(),
+            by.faction,
             " play ",
             express_part_if!(card.type_() != TreacheryCardType::Karma; card, " as "),
             "a ",
@@ -354,38 +347,7 @@ impl Karma {
         ))
     }
 
-    pub fn get_message(&self, game: &Game) -> Message {
-        self.try_get_message(game).expect("the message of an applicable Karma event")
+    fn describe(&self, game: &Game, by: By) -> Message {
+        self.try_describe(game, by).expect("the message of an applicable Karma event")
     }
-}
-
-impl GameEventMethods for Karma {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::Karma
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::Karma(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        Karma::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        Karma::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        Karma::get_message(self, game)
-    }
-
-    fn try_get_message(&self, game: &Game) -> GameResult<Message> {
-        Karma::try_get_message(self, game)
-    }
-
 }

@@ -895,7 +895,7 @@ impl Game {
             if faction == Some(Faction::BeneGesserit)
                 && self.turn.current_phase > Phase::AllianceB
                 && (self.turn.current_main_phase < MainPhase::ShipmentAndMove
-                    || (p.initiated(self.turn.current_bene_gesserit_cunning.clone().map(|c| c.into_event()).as_ref())
+                    || (p.initiated(self.turn.current_bene_gesserit_cunning.as_ref())
                         && self.turn.current_main_phase == MainPhase::ShipmentAndMove))
                 && !BeneGesseritBattleAnnouncement::valid_territories(self, player).next().is_none()
             {

@@ -55,7 +55,7 @@ fn raise_dead_without_a_player_panics() {
     // decodes.)
     let g = game_with(&[Faction::Emperor]);
     let e = RaiseDeadPlayed::default();
-    let r = catch_panic(|| e.validate(&g));
+    let r = catch_panic(|| e.validate(&g, By::NOBODY));
     assert!(r.is_err());
 }
 

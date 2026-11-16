@@ -1,33 +1,17 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
-pub struct AmalPlayed {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AmalPlayed {}
 
-impl Default for AmalPlayed {
-    fn default() -> Self {
-        AmalPlayed {
-            base: Default::default(),
-        }
-    }
-}
-
-impl AmalPlayed {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for AmalPlayed {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        game.discard(self.player(), TreacheryCardType::Amal)?;
-        self.log(game);
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        game.discard(by.player(), TreacheryCardType::Amal)?;
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         for i in 0..game.players.len() {
             let p = game.player_at(i);
@@ -37,41 +21,14 @@ impl AmalPlayed {
             pl.resources -= resources_paid;
             let resources_paid = i32::from(resources_paid);
             let faction = game.player(p).faction;
-            self.log_objects(game, vec![faction.into(), " lose ".into(), Payment::of(resources_paid).into()]);
+            game.log(vec![faction.into(), " lose ".into(), Payment::of(resources_paid).into()]);
         }
 
         game.stone(Milestone::Amal);
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " perform ", TreacheryCardType::Amal)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " perform ", TreacheryCardType::Amal)
     }
-}
-
-impl GameEventMethods for AmalPlayed {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::AmalPlayed
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AmalPlayed(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AmalPlayed::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AmalPlayed::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AmalPlayed::get_message(self, game)
-    }
-
 }

@@ -67,11 +67,11 @@ pub struct TurnState {
     pub number_of_traitors_to_discard: i32,
     pub phase_before_searching_discarded: Option<Phase>,
     pub phase_paused_by_clairvoyance: Option<Phase>,
-    pub latest_clairvoyance: Option<Rc<ClairVoyancePlayed>>,
+    pub latest_clairvoyance: Option<ClairvoyanceAsked>,
     pub latest_clairvoyance_qn_a: Option<ClairVoyanceQandA>,
     pub latest_clairvoyance_battle: Option<InitiatedBattle>,
     pub resource_audited_factions: Vec<Faction>,
-    pub current_juice: Option<Rc<JuicePlayed>>,
+    pub current_juice: Option<JuiceUsed>,
     pub current_karma_prevention: Option<Rc<ChoamKarmaPrevention>>,
     pub current_planetology: Option<PlanetologyUse>,
     pub bureaucrat_was_used_this_phase: bool,
@@ -79,13 +79,13 @@ pub struct TurnState {
     pub target_of_bureaucracy: Option<Faction>,
     pub was_victim_of_bureaucracy: Option<Faction>,
     pub banker_was_used_this_phase: bool,
-    pub current_nexus_prescience: Option<Rc<NexusPlayed>>,
-    pub current_fremen_secret_ally: Option<Rc<NexusPlayed>>,
-    pub current_emperor_cunning: Option<Rc<NexusPlayed>>,
-    pub current_guild_cunning: Option<Rc<NexusPlayed>>,
-    pub current_guild_secret_ally: Option<Rc<NexusPlayed>>,
-    pub current_bene_gesserit_cunning: Option<Rc<NexusPlayed>>,
-    pub current_ixian_cunning: Option<Rc<NexusPlayed>>,
+    pub current_nexus_prescience: Option<NexusCardPlayed>,
+    pub current_fremen_secret_ally: Option<NexusCardPlayed>,
+    pub current_emperor_cunning: Option<NexusCardPlayed>,
+    pub current_guild_cunning: Option<NexusCardPlayed>,
+    pub current_guild_secret_ally: Option<NexusCardPlayed>,
+    pub current_bene_gesserit_cunning: Option<NexusCardPlayed>,
+    pub current_ixian_cunning: Option<NexusCardPlayed>,
     pub harkonnen_traitor_was_cancelled: bool,
     pub facedancer_was_cancelled: bool,
 }
@@ -132,6 +132,43 @@ impl TurnState {
             facedancer_was_cancelled: Default::default(),
         }
     }
+}
+
+/// The methods that read who played the card, for the state a played card leaves.
+macro_rules! card_played_by {
+    ($($t:ty),* $(,)?) => {$(
+        impl $t {
+            pub fn initiator(&self) -> Option<Faction> {
+                self.submitter.faction
+            }
+
+            pub fn player_opt(&self) -> Option<PlayerId> {
+                self.submitter.player
+            }
+
+            pub fn by(&self, f: impl Into<Option<Faction>>) -> bool {
+                self.submitter.is(f)
+            }
+        }
+    )*};
+}
+
+card_played_by!(JuiceUsed, NexusCardPlayed);
+
+/// The Juice of Sapho in effect this main phase (`JuicePlayed`).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct JuiceUsed {
+    pub submitter: By,
+    pub type_: Option<JuiceType>,
+}
+
+/// A Nexus card whose effect lasts (`NexusPlayed`): a cunning or secret ally kept in one of the
+/// `current_*` fields of the turn until it ends.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct NexusCardPlayed {
+    pub submitter: By,
+    /// The battle plan element an Atreides Nexus card lets its player see.
+    pub atreides_prescience_aspect: Option<PrescienceAspect>,
 }
 
 impl Game {

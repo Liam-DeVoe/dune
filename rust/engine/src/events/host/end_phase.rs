@@ -127,7 +127,7 @@ impl EndPhase {
         }
         game.revival.current_karma_revival_prevention = None;
         game.turn.current_fremen_secret_ally = None;
-        game.revival.current_recruits_played = None;
+        game.revival.current_recruits_played = false;
 
         game.main_phase_end();
         game.enter(Phase::ResurrectionReport, true);

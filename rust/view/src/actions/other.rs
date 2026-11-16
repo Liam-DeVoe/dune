@@ -362,16 +362,16 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.price = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.price), 0, 50));
             m.benefit = treachery_engine::game::amounts::clamp_u16(picker(i32::from(m.benefit), 0, 50));
         }),
-        Event::Discarded(e) => adjust!(e, |m| {
+        Event::Discarded(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &hand);
         }),
-        Event::DiscardedSearched(e) => adjust!(e, |m| {
+        Event::DiscardedSearched(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &DiscardedSearched::valid_cards(game).into_iter().collect::<Vec<_>>());
         }),
-        Event::DiscardedTaken(e) => adjust!(e, |m| {
+        Event::DiscardedTaken(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &DiscardedTaken::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
-        Event::DistransUsed(e) => adjust!(e, |m| {
+        Event::DistransUsed(e) => adjust!(@plain e, |m| {
             let targets: Vec<Faction> = DistransUsed::valid_targets(game, p).collect();
             m.target = required_opt(m.target, &targets);
             m.card = required_opt(m.card, &DistransUsed::valid_cards(game, p).into_iter().collect::<Vec<_>>());
@@ -423,7 +423,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.passed = false;
             m.card = required_opt(m.card, &hand);
         }),
-        Event::Karma(e) => adjust!(e, |m| {
+        Event::Karma(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &Karma::valid_karma_cards(game, p).into_iter().collect::<Vec<_>>());
             m.prevented = required(m.prevented, &Karma::valid_faction_advantages(game, p), None);
         }),

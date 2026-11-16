@@ -23,7 +23,8 @@ pub struct RevivalState {
     pub factions_that_revived_special_forces_this_turn: Vec<Faction>,
     pub leader_revivals_this_turn: IndexMap<Faction, i32>,
     pub tleilaxu_started_revival_with_low_threshold: bool,
-    pub current_recruits_played: Option<Rc<RecruitsPlayed>>,
+    /// Whether Recruits were played this turn (`RecruitsPlayed`).
+    pub current_recruits_played: bool,
     /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
     pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
     pub current_revival_requests: Vec<RevivalRequest>,
@@ -43,7 +44,7 @@ impl RevivalState {
             factions_that_revived_special_forces_this_turn: Vec::new(),
             leader_revivals_this_turn: Default::default(),
             tleilaxu_started_revival_with_low_threshold: Default::default(),
-            current_recruits_played: None,
+            current_recruits_played: false,
             factions_with_increased_revival_limits: Some(Vec::new()),
             current_revival_requests: Vec::new(),
             early_revivals_offers: Default::default(),
@@ -109,7 +110,7 @@ impl Game {
             nr_of_free_revivals += 1;
         }
 
-        if self.revival.current_recruits_played.is_some() {
+        if self.revival.current_recruits_played {
             nr_of_free_revivals *= 2;
         }
 
@@ -141,7 +142,7 @@ impl Game {
         let low_threshold: i32 = if low_threshold_applies { 1 } else { 0 };
         let already_revived = g.revival.total_revivals_this_turn.get_opt(pl.faction).copied().unwrap_or(0);
 
-        if self.revival.current_recruits_played.is_some() {
+        if self.revival.current_recruits_played {
             return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
         }
 

@@ -1,38 +1,19 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DiscardedSearched {
     pub card: Option<TreacheryCard>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for DiscardedSearched {
     fn default() -> Self {
         DiscardedSearched {
             card: TreacheryCardManager::get(0),
-            base: Default::default(),
         }
     }
 }
 
 impl DiscardedSearched {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, game: &Game) -> Option<Message> {
-        // List.Contains(null) is false.
-        let valid_cards = DiscardedSearched::valid_cards(game);
-        if !self.card.is_some_and(|x| valid_cards.contains(&x)) {
-            return Some(express!("Invalid card"));
-        }
-
-        None
-    }
-
     pub fn valid_cards(g: &Game) -> Vec<TreacheryCard> {
         g.decks.treachery_discard_pile.as_ref().expect("treachery discard pile").items.clone()
     }
@@ -40,9 +21,22 @@ impl DiscardedSearched {
     pub fn can_be_played(game: &Game, p: PlayerId) -> bool {
         game.player(p).has_treachery_card_type(TreacheryCardType::SearchDiscarded)
     }
+}
 
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        self.log(game);
+impl EventRules for DiscardedSearched {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        // List.Contains(null) is false.
+        let valid_cards = DiscardedSearched::valid_cards(game);
+        if !self.card.is_some_and(|x| valid_cards.contains(&x)) {
+            return Err(Rejection(express!("Invalid card")));
+        }
+
+        Ok(())
+    }
+
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         for i in 0..game.players.len() {
             let items = game.decks.treachery_discard_pile.as_ref().required("treachery discard pile")?.items.clone();
@@ -51,7 +45,7 @@ impl DiscardedSearched {
 
         let card = self.card.required("card")?;
         crate::iter::remove_first(&mut game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.items, &card);
-        let me = self.player();
+        let me = by.player();
         game.player_mut(me).treachery_cards.push(card);
         game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.shuffle();
         game.discard(me, TreacheryCardType::SearchDiscarded)?;
@@ -61,35 +55,7 @@ impl DiscardedSearched {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " take one card and the Treachery Discard Pile is then shuffled")
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " take one card and the Treachery Discard Pile is then shuffled")
     }
-
-}
-
-impl GameEventMethods for DiscardedSearched {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::DiscardedSearched
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::DiscardedSearched(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        DiscardedSearched::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        DiscardedSearched::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        DiscardedSearched::get_message(self, game)
-    }
-
 }

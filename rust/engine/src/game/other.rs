@@ -240,16 +240,76 @@ impl TriggeredBureaucracy {
 
 }
 
-#[derive(Clone, Debug)]
+/// A Clairvoyance question to another faction (`ClairVoyancePlayed` with a target), kept while it
+/// waits for its answer and after.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClairvoyanceAsked {
+    pub submitter: By,
+    pub target: Option<Faction>,
+    pub question: Option<ClairvoyanceQuestion>,
+    pub question_parameter1: Option<String>,
+    pub question_parameter2: Option<String>,
+}
+
+impl ClairvoyanceAsked {
+    pub fn initiator(&self) -> Option<Faction> {
+        self.submitter.faction
+    }
+
+    /// The question as the event that asked it, to read its parameters.
+    pub fn played(&self) -> ClairVoyancePlayed {
+        ClairVoyancePlayed {
+            question: self.question,
+            target: self.target,
+            question_parameter1: self.question_parameter1.clone(),
+            question_parameter2: self.question_parameter2.clone(),
+        }
+    }
+
+    /// See [`ClairVoyancePlayed::parameter1`].
+    pub fn parameter1(&self, game: &Game) -> crate::messages::part::Part {
+        self.played().parameter1(game)
+    }
+
+    /// See [`ClairVoyancePlayed::parameter2`].
+    pub fn parameter2(&self) -> crate::messages::part::Part {
+        self.played().parameter2()
+    }
+
+    pub fn is_about(&self, game: &Game, type_: TreacheryCardType) -> bool {
+        self.played().is_about(game, type_)
+    }
+
+    pub fn get_question(&self, game: &Game) -> Message {
+        self.played().get_question(game)
+    }
+}
+
+/// The answer to a Clairvoyance question (`ClairVoyanceAnswered`).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ClairvoyanceAnswerGiven {
+    pub submitter: By,
+    pub answer: Option<ClairVoyanceAnswer>,
+}
+
+impl ClairvoyanceAnswerGiven {
+    pub fn initiator(&self) -> Option<Faction> {
+        self.submitter.faction
+    }
+
+    pub fn is_no(&self) -> bool {
+        self.answer == Some(ClairVoyanceAnswer::No)
+    }
+
+    pub fn is_yes(&self) -> bool {
+        self.answer == Some(ClairVoyanceAnswer::Yes)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct ClairVoyanceQandA {
     /// `Option` because the answer is recorded with `Game.LatestClairvoyance`, which can be
     /// null; nothing throws in that case.
-    pub question: Option<Rc<ClairVoyancePlayed>>,
-    pub answer: Rc<ClairVoyanceAnswered>,
-}
-
-impl ClairVoyanceQandA {
-    pub fn new(question: Option<Rc<ClairVoyancePlayed>>, answer: &Rc<ClairVoyanceAnswered>) -> Self {
-        ClairVoyanceQandA { question, answer: answer.clone() }
-    }
+    pub question: Option<ClairvoyanceAsked>,
+    pub answer: ClairvoyanceAnswerGiven,
 }

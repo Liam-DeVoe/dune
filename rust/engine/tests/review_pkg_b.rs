@@ -290,13 +290,12 @@ fn sequence_lines() -> Vec<String> {
             let juice = r.below(4);
             if juice > 0 {
                 let f = g.players[r.below(count)].faction;
-                let mut j = JuicePlayed::new(&g, f);
-                j.type_ = Some(match juice {
+                let type_ = Some(match juice {
                     1 => JuiceType::GoFirst,
                     2 => JuiceType::GoLast,
                     _ => JuiceType::Aggressor,
                 });
-                g.turn.current_juice = Some(std::rc::Rc::new(j));
+                g.turn.current_juice = Some(JuiceUsed { submitter: By::new(&g, f), type_ });
             }
             let skip = r.bool();
             let dir = if r.bool() { 1 } else { -1 };

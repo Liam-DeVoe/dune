@@ -34,7 +34,7 @@ fn a_stronghold(g: &Game) -> Territory {
 
 /// Makes `faction` the triggering event of a terror intrusion in `t`.
 fn trigger_terror(g: &mut Game, faction: Faction, t: Territory) {
-    let mut e = NexusPlayed::new(g, faction);
+    let mut e = NexusPlayed::default();
     e.tleilaxu_location = Some(t.locations()[0]);
     let to = e.tleilaxu_location;
     g.ship_move.intrusions.push(Intrusion { initiator: faction, to, type_: IntrusionType::Terror });
@@ -97,15 +97,15 @@ fn moritani_betrayal_without_a_token_returns_nothing() {
     g.player_mut(atreides).nexus = Some(Faction::Moritani);
     let t = a_stronghold(&g);
 
-    let mut e = NexusPlayed::new(&g, Faction::Atreides);
+    let mut e = NexusPlayed::default();
     e.faction = Some(Faction::Moritani);
     e.moritani_territory = Some(t);
-    let e = Rc::new(e);
-    assert!(e.is_betrayal(&g));
+    let by = By::new(&g, Faction::Atreides);
+    assert!(e.is_betrayal(&g, by.faction));
     // Validation rejects it, but the execution path is still defined.
-    assert!(e.validate(&g).is_some());
+    assert!(e.validate(&g, by).is_err());
     let unplaced = g.board.unplaced_terror_tokens.clone();
-    e.execute_concrete_event(&mut g).unwrap();
+    e.apply(&mut g, by).unwrap();
     // C# added `TerrorType.None` to the unplaced tokens here. Since rewrite-plan.md 2d there is no
     // such token, so nothing is added.
     assert_eq!(g.board.unplaced_terror_tokens, unplaced);
@@ -132,11 +132,12 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
         [TerrorType::Robbery, TerrorType::Sabotage].into_iter().random_item(&r).unwrap()
     };
     g.random = Some(SharedRandom::from_seed(11));
-    let mut e = NexusPlayed::new(&g, Faction::Atreides);
+    let mut e = NexusPlayed::default();
     e.faction = Some(Faction::Moritani);
     e.moritani_territory = Some(t);
-    assert!(e.validate(&g).is_none());
-    Rc::new(e).execute_concrete_event(&mut g).unwrap();
+    let by = By::new(&g, Faction::Atreides);
+    assert!(e.validate(&g, by).is_ok());
+    e.apply(&mut g, by).unwrap();
     assert!(!g.board.terror_on_planet.contains_key(&expected));
     assert_eq!(g.board.terror_on_planet.len(), 2);
     assert_eq!(g.board.unplaced_terror_tokens.last().copied(), Some(expected));
@@ -149,13 +150,13 @@ fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
     g.player_mut(atreides).nexus = Some(Faction::Tleilaxu);
     g.player_mut(atreides).forces_killed = 3;
     g.player_mut(atreides).resources = 10;
-    let mut e = NexusPlayed::new(&g, Faction::Atreides);
+    let mut e = NexusPlayed::default();
     e.faction = Some(Faction::Tleilaxu);
     e.tleilaxu_forces = 2;
-    let e = Rc::new(e);
     assert!(e.is_secret_ally(&g));
     assert_eq!(e.determine_tleilaxu_cost(), 2);
-    let _ = outcome(|| e.execute_concrete_event(&mut g));
+    let by = By::new(&g, Faction::Atreides);
+    let _ = outcome(|| e.apply(&mut g, by));
     // C# parity: validated against resources, never deducted.
     assert_eq!(i32::from(g.player(atreides).resources), 10);
     assert_eq!(g.player(atreides).forces_killed, 1);
@@ -294,7 +295,7 @@ fn choam_karma_prevention_uses_kull_wahad() {
 #[test]
 fn clairvoyance_parameters_parse_like_dotnet() {
     let g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    let mut e = ClairVoyancePlayed::new(&g, Faction::Atreides);
+    let mut e = ClairVoyancePlayed::default();
     e.question = Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle);
     // "1,5" is 15 under the invariant culture (thousands separator).
     e.question_parameter1 = Some("1,5".to_string());
@@ -331,10 +332,11 @@ fn clairvoyance_parameters_parse_like_dotnet() {
 #[test]
 fn clairvoyance_answer_without_question_stores_qna_then_fails() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    let e = Rc::new(ClairVoyanceAnswered::new(&g, Faction::Emperor));
+    let e = ClairVoyanceAnswered::default();
     let reports_before = g.current_report().messages.len();
     // No clairvoyance was played, so there is no question to answer.
-    assert!(e.execute_concrete_event(&mut g).is_err());
+    let by = By::new(&g, Faction::Emperor);
+    assert!(e.apply(&mut g, by).is_err());
     // C#: `new ClairVoyanceQandA(Game.LatestClairvoyance!, this)` and the log run first.
     let qna = g.turn.latest_clairvoyance_qn_a.as_ref().unwrap();
     assert!(qna.question.is_none());
@@ -360,8 +362,8 @@ fn amal_takes_half_rounded_up() {
     g.player_mut(atreides).treachery_cards.push(card_of(TreacheryCardType::Amal, 0));
     g.player_mut(atreides).resources = u16::MAX;
     g.player_mut(emperor).resources = 3;
-    let e = Rc::new(AmalPlayed::new(&g, Faction::Atreides));
-    e.execute_concrete_event(&mut g).unwrap();
+    let by = By::new(&g, Faction::Atreides);
+    AmalPlayed::default().apply(&mut g, by).unwrap();
     assert_eq!(g.player(atreides).resources, u16::MAX - 32_768);
     assert_eq!(g.player(emperor).resources, 1);
 }

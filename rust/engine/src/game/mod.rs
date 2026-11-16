@@ -67,7 +67,7 @@ pub use status::*;
 mod storm;
 pub use storm::StormState;
 mod turn;
-pub use turn::{Step, Turn, TurnState};
+pub use turn::{JuiceUsed, NexusCardPlayed, Step, Turn, TurnState};
 
 use crate::prelude::*;
 use crate::messages::part::Part;
@@ -177,7 +177,7 @@ impl Game {
         // e is AllyPermission or PlayerReplaced or NexusPlayed { IsBetrayal: true, Faction: Faction.Richese }
         let skip = match e {
             Event::AllyPermission(_) | Event::PlayerReplaced(_) => true,
-            Event::NexusPlayed(np) => np.is_betrayal(self) && np.faction == Some(Faction::Richese),
+            Event::NexusPlayed(np) => np.is_betrayal(self, entry.by) && np.faction == Some(Faction::Richese),
             _ => false,
         };
         if skip {

@@ -149,7 +149,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, stats: &mut 
             assert_eq!(o.leaders.len(), game.traitors_in_play().len(), "{at}");
             // Dependent: the questions follow the draft's target.
             for target in targets {
-                let mut q = ClairVoyancePlayed::new(game, me.faction);
+                let mut q = ClairVoyancePlayed::default();
                 q.target = Some(target);
                 let (opts, _) = battle::options_and_validation(game, &v, &event(q), d).unwrap();
                 let Some(ActionOptions::ClairVoyancePlayed(o)) = opts else { panic!("{at}") };

@@ -10,7 +10,6 @@ pub struct FactionSelected {
 impl FactionSelected {
     /// Lazy: callers may stop early, so filters run only on the elements they reach.
     pub fn valid_factions(g: &Game) -> impl Iterator<Item = Faction> {
-        // The list is shared (RefCell), so take its items now. Nothing changes it while a caller enumerates.
         let factions: Vec<Faction> = g.rules.factions_in_play.clone();
         factions.into_iter().filter(move |f| g.players.iter().all(|p| p.faction != Some(*f)))
     }

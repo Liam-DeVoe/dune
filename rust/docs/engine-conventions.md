@@ -240,7 +240,7 @@ game.board.map.find_neighbours_for_hms_movement(start, 1, false, game.board.sect
 
 ## Objects the game owns
 
-- Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`.
+- Plain ownership is the default. `Player`, `LeaderState`, `Battalion` and the like are fields of `Game`. `Game` holds no `Rc`, `RefCell` or `Cell`, so it is `Send`, and a check in game/mod.rs keeps it that way.
 - Game state holds no event: it holds a state struct that the event's `apply` builds ([Events](#events), "State instead of events").
 - Where C# keeps two references to one mutable object, the game keeps its own copy if nothing mutates the object afterwards: `EstablishPlayers` copies its settings into `rules.settings`, and the allowed factions into `rules.factions_in_play`. The same goes for `AllRules`/`InitialRules`, `PermittedUseOfEmperorSpice`/`Amounts` and `FactionsWithIncreasedRevivalLimits`/`Factions`.
 - When C# uses an object as an identity token, key by a stable handle: `PlayerId` for players. An event's state gets an id instead: `deals.responses` is keyed by `DealId`, the offer's place in the history.

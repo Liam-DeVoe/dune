@@ -107,6 +107,9 @@ pub struct Game {
     pub contemplate: ContemplateState,
 }
 
+// A game can move to another thread: it holds no `Rc` or `Cell`.
+const _: fn() = || { fn send<T: Send>() {} send::<Game>(); };
+
 impl Game {
     pub const LATEST_VERSION: i32 = 190;
 

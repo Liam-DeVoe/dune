@@ -124,23 +124,6 @@ impl BiddingStep {
         }
     }
 
-    pub fn of(phase: Phase) -> Option<BiddingStep> {
-        Some(match phase {
-            Phase::BeginningOfBidding => BiddingStep::Beginning,
-            Phase::BlackMarketAnnouncement => BiddingStep::BlackMarketAnnouncement,
-            Phase::BlackMarketBidding => BiddingStep::BlackMarketBidding,
-            Phase::RicheseAnnouncingAuction => BiddingStep::RicheseAnnouncingAuction,
-            Phase::RicheseSpecifyingAuction => BiddingStep::RicheseSpecifyingAuction,
-            Phase::RicheseKeepingUnsoldCard => BiddingStep::RicheseKeepingUnsoldCard,
-            Phase::IxianRemovingCardFromBid => BiddingStep::IxianRemovingCard,
-            Phase::IxianSwappingCard => BiddingStep::IxianSwappingCard,
-            Phase::Bidding => BiddingStep::Bidding,
-            Phase::ReplacingCardJustWon => BiddingStep::ReplacingCardJustWon,
-            Phase::WaitingForNextBiddingRound => BiddingStep::WaitingForNextRound,
-            Phase::BiddingReport => BiddingStep::Report,
-            _ => return None,
-        })
-    }
 }
 
 impl Game {

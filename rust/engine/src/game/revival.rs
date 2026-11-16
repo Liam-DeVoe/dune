@@ -62,14 +62,6 @@ impl RevivalStep {
         }
     }
 
-    pub fn of(phase: Phase) -> Option<RevivalStep> {
-        match phase {
-            Phase::BeginningOfResurrection => Some(RevivalStep::Beginning),
-            Phase::Resurrection => Some(RevivalStep::Reviving),
-            Phase::ResurrectionReport => Some(RevivalStep::Report),
-            _ => None,
-        }
-    }
 }
 
 /// What revivals leave for other phases (`turn.revivals`). The counts start again when the

@@ -7,18 +7,11 @@
 //! card, answers a Clairvoyance question, ...). The game waits on the top interrupt if there is
 //! one, otherwise on the phase. [`Game::phase`] computes the flat [`Phase`] from both, because
 //! views, the client and the bots' timing key on its names.
-//!
-//! Phases move over one at a time. Until a phase has its own variant, it is
-//! `PhaseState::Legacy(phase)`: just the name, with its state in the old per-phase struct
-//! (`game.storm`, `game.bidding`, ...), entered with [`Game::enter`].
 
 use crate::prelude::*;
 
 /// The phase the game is in, with that phase's state.
 pub enum PhaseState {
-    /// A phase that has no variant of its own yet: only its name. Its state is still in the
-    /// per-phase struct on `Game`.
-    Legacy(Phase),
     /// Before the game starts: the host configures it and players join.
     AwaitingPlayers,
     Setup(SetupState),
@@ -39,7 +32,6 @@ impl PhaseState {
     /// The flat phase this state is in.
     pub fn phase(&self) -> Phase {
         match self {
-            PhaseState::Legacy(phase) => *phase,
             PhaseState::AwaitingPlayers => Phase::AwaitingPlayers,
             PhaseState::Setup(s) => s.step.phase(),
             PhaseState::Storm(s) => s.step.phase(),
@@ -53,24 +45,6 @@ impl PhaseState {
             PhaseState::Contemplate(c) => c.step.phase(),
             PhaseState::Ended(_) => Phase::GameEnded,
         }
-    }
-
-    /// Whether `phase` is a step of a phase that has its own variant. Such a phase is entered
-    /// by its own functions (`Game::enter_collection`), never by name with [`Game::enter`],
-    /// because entering it by name can't build its state.
-    pub fn is_converted(phase: Phase) -> bool {
-        phase == Phase::AwaitingPlayers
-            || SetupStep::of(phase).is_some()
-            || StormStep::of(phase).is_some()
-            || BlowStep::of(phase).is_some()
-            || BattleStep::of(phase).is_some()
-            || CharityStep::of(phase).is_some()
-            || BiddingStep::of(phase).is_some()
-            || RevivalStep::of(phase).is_some()
-            || ShipMoveStep::of(phase).is_some()
-            || CollectionStep::of(phase).is_some()
-            || ContemplateStep::of(phase).is_some()
-            || phase == Phase::GameEnded
     }
 }
 
@@ -127,21 +101,6 @@ impl Interrupt {
             Interrupt::AllianceByAmbassador { .. } => Phase::AllianceByAmbassador,
         }
     }
-
-    /// The interrupt that a phase of that name is, if it is one that holds no data. The others
-    /// are pushed by the code that knows their data, never by name: an intrusion or an alliance
-    /// offer by its owner ([`Interrupt::intrusion`]), `PerformingKarmaHandSwap` by
-    /// `KarmaHandSwapInitiated`, and `Discarding`, `DiscardingTraitor`, `TradingCards` and
-    /// `Bureaucracy` where they start.
-    pub fn of(phase: Phase) -> Option<Interrupt> {
-        let i = match phase {
-            Phase::SearchingDiscarded => Interrupt::SearchingDiscarded,
-            Phase::Clairvoyance => Interrupt::Clairvoyance,
-            Phase::AssigningSkill => Interrupt::SkillAssignment,
-            _ => return None,
-        };
-        Some(i)
-    }
 }
 
 impl Game {
@@ -156,41 +115,6 @@ impl Game {
     /// The phase state under the interrupts.
     pub fn phase_state(&self) -> &PhaseState {
         &self.phase
-    }
-
-    /// Enters a phase by name. While phases move to [`PhaseState`] one at a time, this keeps
-    /// the old behavior, where entering a phase replaced the one before and a suspended phase
-    /// was resumed by entering it again:
-    ///
-    /// - a phase that is on the stack (an interrupt, or the phase state under them) is
-    ///   resumed: the interrupts above it are dropped;
-    /// - a phase that is an interrupt ([`Interrupt::of`]) is pushed;
-    /// - any other phase replaces the phase state, and the interrupts are dropped.
-    ///
-    /// A phase that has its own variant ([`PhaseState::is_converted`]) can only be resumed
-    /// this way; its owner enters it.
-    ///
-    /// `cleanup_deals` ends the deals that last until `phase`.
-    pub fn enter(&mut self, phase: Phase, cleanup_deals: bool) {
-        if let Some(i) = self.interrupts.iter().rposition(|i| i.phase() == phase) {
-            self.interrupts.truncate(i + 1);
-        } else if self.phase.phase() == phase {
-            self.interrupts.clear();
-        } else if let Some(i) = Interrupt::of(phase) {
-            self.interrupts.push(i);
-        } else {
-            assert!(!PhaseState::is_converted(phase), "{phase} has its own phase state; enter it with its own function");
-            assert!(
-                !matches!(phase, Phase::Discarding | Phase::DiscardingTraitor | Phase::TradingCards | Phase::Bureaucracy),
-                "{phase} is an interrupt with data; push it with Game::interrupt"
-            );
-            self.interrupts.clear();
-            self.phase = PhaseState::Legacy(phase);
-        }
-
-        if cleanup_deals {
-            self.remove_ended_deals(phase);
-        }
     }
 
     /// Replaces the phase state, dropping every interrupt, and ends the deals that last until

@@ -73,8 +73,11 @@ impl EventRules for SkillAssigned {
             if game.phase() != Phase::AssigningInitialSkills {
                 game.resume(Interrupt::SkillAssignment, true)?;
             } else {
-                let c2 = game.treachery_cards_before_traitors();
-                game.enter_first(&[(c2, Step::Run(Game::deal_traitors))], Step::Run(Game::setup_spice_and_forces))?;
+                if game.treachery_cards_before_traitors() {
+                    game.deal_traitors()?;
+                } else {
+                    game.setup_spice_and_forces()?;
+                }
             }
         }
         Ok(())

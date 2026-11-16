@@ -50,19 +50,6 @@ impl StormStep {
         }
     }
 
-    pub fn of(phase: Phase) -> Option<StormStep> {
-        let step = match phase {
-            Phase::BeginningOfStorm => StormStep::Beginning,
-            Phase::HmsMovement => StormStep::HmsMovement,
-            Phase::DiallingStorm => StormStep::Dialling,
-            Phase::HmsPlacement => StormStep::HmsPlacement,
-            Phase::MetheorAndStormSpell => StormStep::MetheorAndStormSpell,
-            Phase::StormLosses => StormStep::Losses,
-            Phase::StormReport => StormStep::Report,
-            _ => return None,
-        };
-        Some(step)
-    }
 }
 
 /// `params object?[]` element list for `Log(...)`.

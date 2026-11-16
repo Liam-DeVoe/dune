@@ -46,15 +46,6 @@ impl CollectionStep {
         }
     }
 
-    pub fn of(phase: Phase) -> Option<CollectionStep> {
-        match phase {
-            Phase::BeginningOfCollection => Some(CollectionStep::Beginning),
-            Phase::DividingCollectedResources => Some(CollectionStep::Dividing),
-            Phase::AcceptingResourceDivision => Some(CollectionStep::Accepting),
-            Phase::CollectionReport => Some(CollectionStep::Report),
-            _ => None,
-        }
-    }
 }
 
 /// `params object?[]` element list for `Log(...)`.

@@ -35,14 +35,6 @@ impl CharityStep {
         }
     }
 
-    pub fn of(phase: Phase) -> Option<CharityStep> {
-        match phase {
-            Phase::BeginningOfCharity => Some(CharityStep::Beginning),
-            Phase::ClaimingCharity => Some(CharityStep::Claiming),
-            Phase::CharityReport => Some(CharityStep::Report),
-            _ => None,
-        }
-    }
 }
 
 /// `params object?[]` element list for `Log(...)`.

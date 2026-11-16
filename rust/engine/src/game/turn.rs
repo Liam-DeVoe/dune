@@ -1,12 +1,5 @@
 use crate::prelude::*;
 
-/// What the game does next when a phase ends: enter a phase, or run a method that decides.
-#[derive(Clone, Copy)]
-pub enum Step {
-    Enter(Phase),
-    Run(fn(&mut Game) -> GameResult),
-}
-
 /// CHOAM's prevention of `target`'s Karama this phase (`ChoamKarmaPrevention`).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct KarmaPrevention {
@@ -244,49 +237,6 @@ impl Game {
             if !exceptions.contains(&adv) {
                 self.allow(adv);
             }
-        }
-    }
-
-    pub fn enter_either(&mut self, condition: bool, phase_if_true: Phase, phase_if_false: Phase) {
-        self.enter(if condition { phase_if_true } else { phase_if_false }, true);
-    }
-
-    pub fn enter_or_else(&mut self, condition: bool, phase_if_true: Phase, method_otherwise: fn(&mut Game)) {
-        if condition {
-            self.enter(phase_if_true, true);
-        } else {
-            method_otherwise(self);
-        }
-    }
-
-    /// As [`Game::enter_or_else`], for a method that can fail.
-    pub fn enter_or_else_try(&mut self, condition: bool, phase_if_true: Phase, method_otherwise: fn(&mut Game) -> GameResult) -> GameResult {
-        if condition {
-            self.enter(phase_if_true, true);
-            Ok(())
-        } else {
-            method_otherwise(self)
-        }
-    }
-
-    /// The game is passed to the actions.
-    pub fn run_either(game: &mut Game, condition: bool, method_if_true: fn(&mut Game), method_otherwise: fn(&mut Game)) {
-        if condition {
-            method_if_true(game);
-        } else {
-            method_otherwise(game);
-        }
-    }
-
-    /// Takes the step of the first choice whose condition holds, or `otherwise`.
-    pub fn enter_first(&mut self, choices: &[(bool, Step)], otherwise: Step) -> GameResult {
-        let step = choices.iter().find(|(condition, _)| *condition).map_or(otherwise, |(_, step)| *step);
-        match step {
-            Step::Enter(phase) => {
-                self.enter(phase, true);
-                Ok(())
-            }
-            Step::Run(method) => method(self),
         }
     }
 

@@ -26,7 +26,7 @@ How `rust/engine` represents the game: enums, static data, players, events, mess
 | `alliances` | `Alliances` | `alliances.rs` | alliance offers, card trades, what each faction allows its ally |
 | `deals` | `Deals` | `deals.rs` | `offers`, `responses` and the deals in force (`agreed`) |
 | `turn` | `TurnState` | `turn.rs` | turn and main phase, and what lasts for one turn or phase: payments, milestones, prevented advantages, cards and Nexus cards in effect |
-| `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state (`PhaseState::Storm(StormState)`, `PhaseState::Battle(BattlePhase)`, ...), or `Legacy(phase)` for a phase not converted yet |
+| `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state (`PhaseState::Storm(StormState)`, `PhaseState::Battle(BattlePhase)`, ...) |
 | `battle_leftovers` | `BattleLeftovers` | `battle.rs` | two battle flags that were never reset and outlive their battle (known-issues.md) |
 | `interrupts` | `Vec<Interrupt>` | `phase.rs` | what suspends the phase until it is resolved (a discard, a Clairvoyance answer, ...), the latest last, each with the data only it uses (`Discarding { factions }`, `CardTrade { offer }`, ...) |
 | `history` | `History` | `history.rs` | the events (`entries`), undone events, the game before an undo, moments and timers |

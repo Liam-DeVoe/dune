@@ -61,24 +61,6 @@ impl SetupStep {
         }
     }
 
-    pub fn of(phase: Phase) -> Option<SetupStep> {
-        let step = match phase {
-            Phase::SelectingFactions => SetupStep::SelectingFactions,
-            Phase::TradingFactions => SetupStep::TradingFactions,
-            Phase::CustomizingDecks => SetupStep::CustomizingDecks,
-            Phase::BeneGesseritPredicting => SetupStep::BeneGesseritPredicting,
-            Phase::HarkonnenMulligan => SetupStep::HarkonnenMulligan,
-            Phase::AssigningInitialSkills => SetupStep::AssigningInitialSkills,
-            Phase::SelectingTraitors => SetupStep::SelectingTraitors,
-            Phase::PerformCustomSetup => SetupStep::PerformCustomSetup,
-            Phase::FremenSettingUp => SetupStep::FremenSettingUp,
-            Phase::BeneGesseritSettingUp => SetupStep::BeneGesseritSettingUp,
-            Phase::MoritaniSettingUp => SetupStep::MoritaniSettingUp,
-            Phase::IxianSelectingCard => SetupStep::IxianSelectingCard,
-            _ => return None,
-        };
-        Some(step)
-    }
 }
 
 impl Game {

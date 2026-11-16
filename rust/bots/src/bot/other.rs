@@ -42,25 +42,26 @@ impl ClassicBot {
         None
     }
 
-    pub fn determine_discovery_entered(&self, game: &Game) -> DiscoveryEntered {
-        let to = DiscoveryEntered::valid_targets(game, self.player).next();
-        // Fails right away when there is no target.
+    /// No decision without a discovery to enter.
+    pub fn determine_discovery_entered(&self, game: &Game) -> Option<DiscoveryEntered> {
+        let to = DiscoveryEntered::valid_targets(game, self.player).next()?;
         let me = game.player(self.player);
         let mut battalions_to_move: IndexMap<Location, Battalion> = IndexMap::new();
-        for l in DiscoveryEntered::valid_sources(game, self.player, to.expect("destination")) {
-            battalions_to_move.insert_new(l, me.battalion_in_location(l).expect("battalion in location"));
+        for l in DiscoveryEntered::valid_sources(game, self.player, to) {
+            battalions_to_move.insert_new(l, me.battalion_in_location(l)?);
         }
         let mut e = DiscoveryEntered::default();
         e.set_force_locations(game, &battalions_to_move);
-        e.to = to.map(|d| d.location());
-        e
+        e.to = Some(to.location());
+        Some(e)
     }
 
-    pub fn determine_discovery_revealed(&self, game: &Game) -> DiscoveryRevealed {
+    /// No decision without a discovery to reveal.
+    pub fn determine_discovery_revealed(&self, game: &Game) -> Option<DiscoveryRevealed> {
         let mut e = DiscoveryRevealed::default();
-        let location = DiscoveryRevealed::get_locations(game, self.player).next().expect("an element");
+        let location = DiscoveryRevealed::get_locations(game, self.player).next()?;
         e.location = Some(location);
-        e
+        Some(e)
     }
 
     pub fn determine_testing_station_used(&self, game: &Game) -> Option<TestingStationUsed> {
@@ -106,12 +107,13 @@ impl ClassicBot {
         Some(e)
     }
 
-    pub fn determine_divide_resources(&self, game: &Game) -> DivideResources {
+    /// No decision without spice to divide.
+    pub fn determine_divide_resources(&self, game: &Game) -> Option<DivideResources> {
         let tbd = DivideResources::get_resources_to_be_divided(game);
-        let spice_i_want = std::cmp::max(0, tbd.expect("resources to be divided").amount - self.resources(game));
+        let spice_i_want = std::cmp::max(0, tbd?.amount - self.resources(game));
         let mut e = DivideResources::default();
         e.portion_to_first_player = treachery_engine::game::amounts::clamp_u16(spice_i_want);
-        e
+        Some(e)
     }
 
     pub fn determine_card_given(&self, game: &Game) -> CardGiven {
@@ -123,10 +125,11 @@ impl ClassicBot {
         e
     }
 
-    pub fn determine_divide_resources_accepted(&self, game: &Game) -> DivideResourcesAccepted {
+    /// No decision without a proposal.
+    pub fn determine_divide_resources_accepted(&self, game: &Game) -> Option<DivideResourcesAccepted> {
         let tbd = DivideResources::get_resources_to_be_divided(game);
 
-        let portion = i32::from(game.collection.current_division_proposal.as_ref().expect("current division proposal").portion_to_first_player);
+        let portion = i32::from(game.collection.current_division_proposal.as_ref()?.portion_to_first_player);
         let i_get_when_agreed = DivideResources::gained_by_other_faction(tbd.as_ref(), true, portion);
         let i_get_when_denied = DivideResources::gained_by_other_faction(tbd.as_ref(), false, portion);
 
@@ -134,16 +137,15 @@ impl ClassicBot {
 
         let mut e = DivideResourcesAccepted::default();
         e.passed = !accepted;
-        e
+        Some(e)
     }
 
-    pub fn determine_discarded(&self, game: &Game) -> Discarded {
-        let Some(worst_card) = game.player(self.player).treachery_cards.iter().copied().min_by_key(|c| self.card_quality(game, *c, None)) else {
-            panic!("Sequence contains no elements")
-        };
+    /// No decision without a card to discard.
+    pub fn determine_discarded(&self, game: &Game) -> Option<Discarded> {
+        let worst_card = game.player(self.player).treachery_cards.iter().copied().min_by_key(|c| self.card_quality(game, *c, None))?;
         let mut e = Discarded::default();
         e.card = Some(worst_card);
-        e
+        Some(e)
     }
 
     pub fn determine_traitor_discarded(&self, game: &Game) -> TraitorDiscarded {
@@ -198,7 +200,7 @@ impl ClassicBot {
                 self.is_winning_or_is_opponent_in_battle(game, Faction::Atreides) && !game.prevented(FactionAdvantage::AtreidesBattlePlanPrescience)
             }
 
-            Some(Faction::Harkonnen) | Some(Faction::Tleilaxu) => game.battle.current_battle.as_ref().expect("current battle").is_involved(game, self.player),
+            Some(Faction::Harkonnen) | Some(Faction::Tleilaxu) => game.battle.current_battle.as_ref()?.is_involved(game, self.player),
 
             Some(Faction::Fremen) => {
                 (game.turn.current_main_phase == MainPhase::Blow && FremenRidesMonster::is_applicable(game))
@@ -220,8 +222,8 @@ impl ClassicBot {
                     || (game.turn.current_main_phase == MainPhase::Battle
                         && self.is_winning_or_is_opponent_in_battle(game, Faction::Emperor)
                         && game
-                            .player(game.get_player(Some(Faction::Emperor)).expect("player"))
-                            .special_forces_in_territory(game.battle.current_battle.as_ref().expect("current battle").territory)
+                            .player(game.get_player(Some(Faction::Emperor))?)
+                            .special_forces_in_territory(game.battle.current_battle.as_ref()?.territory)
                             >= 3)
             }
 
@@ -235,15 +237,15 @@ impl ClassicBot {
 
             Some(Faction::Choam) => {
                 self.is_winning_or_is_opponent_in_battle(game, Faction::Choam)
-                    && Self::known_opponent_cards(game, self.player, game.get_player(Some(Faction::Choam)).expect("Choam"))
+                    && Self::known_opponent_cards(game, self.player, game.get_player(Some(Faction::Choam))?)
                         .iter()
                         .any(|c| c.is_weapon() || c.is_defense())
             }
 
             Some(Faction::Richese) => {
-                let richese = game.get_player(Some(Faction::Richese)).expect("Richese");
+                let richese = game.get_player(Some(Faction::Richese))?;
                 if game.player(richese).has(game.bidding.card_just_won) {
-                    self.card_quality(game, game.bidding.card_just_won.expect("card just won"), Some(richese)) > 2
+                    self.card_quality(game, game.bidding.card_just_won?, Some(richese)) > 2
                 } else {
                     game.recently_paid_total_amount() > 4
                 }
@@ -265,9 +267,9 @@ impl ClassicBot {
                 let my_shipment_turn = (faction == Faction::Guild && game.turn.current_phase == Phase::GuildShip && !game.guild_may_delay())
                     || (faction != Faction::Guild
                         && game.turn.current_phase == Phase::NonGuildShip
-                        && game.ship_move.shipment_and_move_sequence.as_ref().expect("shipment and move sequence").current_player(game) == Some(self.player));
+                        && game.ship_move.shipment_and_move_sequence.as_ref()?.current_player(game) == Some(self.player));
                 my_shipment_turn && {
-                    let territory = self.determine_shipment(game).to.expect("destination").territory();
+                    let territory = self.determine_shipment(game).to?.territory();
                     let has_terror = game.terror_in(territory).next().is_some();
                     if has_terror {
                         result.moritani_territory = Some(territory);
@@ -320,9 +322,10 @@ impl ClassicBot {
     }
 
     /// The aspect to ask about with Atreides prescience from a nexus card, or `None`
-    /// to wait: until the opponent has used voice, or when I'm not fighting this battle.
+    /// to wait: until the opponent has used voice, or when I'm not fighting this battle. Also
+    /// `None` without a battle, opponent or territory, which means no decision to both callers.
     fn nexus_prescience_aspect(&self, game: &Game, earlier: Option<PrescienceAspect>) -> Option<PrescienceAspect> {
-        let battle = game.battle.current_battle.as_ref().expect("current battle");
+        let battle = game.battle.current_battle.as_ref()?;
         let opponent = battle.opponent_of_faction(game, self.faction(game));
         let voice_still_to_come =
             Voice::may_use_voice_opt(game, opponent) && game.battle.current_voice.is_none() && battle.plan_of(game, opponent).is_none();
@@ -331,8 +334,8 @@ impl ClassicBot {
         }
 
         let territory = battle.territory;
-        let max_dial = Self::max_dial(game, self.player, territory.expect("territory"), opponent, false);
-        self.best_prescience(game, self.player, opponent.expect("opponent"), max_dial, earlier, territory.expect("territory"))
+        let max_dial = Self::max_dial(game, self.player, territory?, opponent, false);
+        self.best_prescience(game, self.player, opponent?, max_dial, earlier, territory?)
     }
 
     /// Plays the nexus card of my own faction for its cunning effect.
@@ -348,7 +351,7 @@ impl ClassicBot {
             Some(Faction::Fremen) => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
             Some(Faction::Emperor) => {
-                let t = game.battle.current_battle.as_ref().expect("current battle").territory;
+                let t = game.battle.current_battle.as_ref()?.territory;
                 game.player(self.player).forces_in_territory(t) >= 4
             }
 
@@ -364,7 +367,7 @@ impl ClassicBot {
             Some(Faction::BeneGesserit) => self.determine_bene_gesserit_battle_announcement(game).is_some(),
 
             Some(Faction::Ixian) => {
-                let t = game.battle.current_battle.as_ref().expect("current battle").territory;
+                let t = game.battle.current_battle.as_ref()?.territory;
                 game.player(self.player).forces_in_territory(t) >= 3
             }
 
@@ -399,7 +402,7 @@ impl ClassicBot {
 
             Some(Faction::BeneGesserit) => game.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(game, self.player)),
 
-            Some(Faction::Ixian) => self.card_quality(game, game.bidding.card_just_won.expect("card just won"), Some(self.player)) < 2,
+            Some(Faction::Ixian) => self.card_quality(game, game.bidding.card_just_won?, Some(self.player)) < 2,
 
             Some(Faction::Tleilaxu) => game.turn.has_acted_or_passed.contains(&self.faction(game)) && self.plan_tleilaxu_secret_ally_revival(game, &mut result),
 
@@ -412,29 +415,37 @@ impl ClassicBot {
                     }
                 }
                 MainPhase::Battle => {
-                    let battle = game.battle.current_battle.as_ref().expect("current battle");
+                    let battle = game.battle.current_battle.as_ref()?;
                     let auditee = battle.opponent_of(game, self.player);
                     let recent_battle_plan = battle.plan_of(game, auditee);
                     let me = game.player(self.player);
                     // Play it if the opponent holds a card outside their plan that I don't know yet.
-                    // The plan is only needed (and fails when missing) if the opponent holds any cards.
-                    game.player(auditee.expect("auditee")).treachery_cards.iter().copied().any(|c| {
-                        let plan = recent_battle_plan.as_ref().expect("recent battle plan");
-                        let auditable = Some(c) != plan.weapon() && Some(c) != plan.defense() && Some(Hero::TreacheryCard(c)) != plan.hero;
-                        auditable && !me.known_cards.contains(&c)
-                    })
+                    // The plan is only needed (and no decision without it) if the opponent holds any cards.
+                    let cards = &game.player(auditee?).treachery_cards;
+                    if cards.is_empty() {
+                        false
+                    } else {
+                        let plan = recent_battle_plan.as_ref()?;
+                        cards.iter().copied().any(|c| {
+                            let auditable = Some(c) != plan.weapon() && Some(c) != plan.defense() && Some(Hero::TreacheryCard(c)) != plan.hero;
+                            auditable && !me.known_cards.contains(&c)
+                        })
+                    }
                 }
                 _ => false,
             },
 
-            Some(Faction::Ecaz) => self.battle_im_fighting(game).is_some_and(|battle| {
-                let opponent = game.player(battle.opponent_of(game, self.player).expect("opponent of"));
-                let play = opponent.faction != Some(Faction::Tleilaxu) && opponent.unrevealed_traitors().next().is_some();
-                if play {
-                    result.ecaz_faction = opponent.faction;
+            Some(Faction::Ecaz) => match self.battle_im_fighting(game) {
+                Some(battle) => {
+                    let opponent = game.player(battle.opponent_of(game, self.player)?);
+                    let play = opponent.faction != Some(Faction::Tleilaxu) && opponent.unrevealed_traitors().next().is_some();
+                    if play {
+                        result.ecaz_faction = opponent.faction;
+                    }
+                    play
                 }
-                play
-            }),
+                None => false,
+            },
 
             _ => false,
         };
@@ -717,66 +728,89 @@ impl ClassicBot {
         voice.is_some_and(|v| v.may_not() && Voice::is_voiced_by(game, as_weapon, false, type_, v.type_))
     }
 
-    pub fn determine_clair_voyance_answered(&self, game: &Game) -> ClairVoyanceAnswered {
-        // Not caught below: without a question the whole decision fails.
-        let clairvoyance = game.turn.latest_clairvoyance.as_ref().expect("latest clairvoyance");
-        let question = clairvoyance.question;
-
-        let p1 = || clairvoyance.parameter1(game);
-        let card_type = || unbox_enum::<TreacheryCardType>(&p1()).expect("card type");
-        let in_battle = || game.battle.current_battle.as_ref().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
-        let my_plan = || match game.battle.current_battle.as_ref().expect("current battle").plan_of(game, Some(self.player)) {
-            Some(plan) => plan,
-            None => self.determine_battle_plan(game, true).plan(By::new(game, self.faction(game))),
-        };
-        let defends_with = |plan: &BattlePlan| plan.defense().is_some() && ClairVoyanceAnswered::is_questioned_by(false, plan.defense().expect("defense").type_(), card_type());
-        let attacks_with = |plan: &BattlePlan| plan.weapon().is_some() && ClairVoyanceAnswered::is_questioned_by(true, plan.weapon().expect("weapon").type_(), card_type());
-
-        // A question I fail to work out gets an unknown answer.
-        let answer = super::guarded(|| {
-            let me = game.player(self.player);
-            match question {
-                Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle) if in_battle() => yes_no(defends_with(&my_plan())),
-
-                Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle) if in_battle() => yes_no(attacks_with(&my_plan())),
-
-                Some(ClairvoyanceQuestion::CardTypeInBattle) if in_battle() => {
-                    let plan = my_plan();
-                    yes_no(
-                        defends_with(&plan)
-                            || attacks_with(&plan)
-                            || (plan.hero.is_some_and(|h| h.as_treachery_card().is_some()) && card_type() == TreacheryCardType::Mercenary),
-                    )
-                }
-
-                Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) if in_battle() => {
-                    let plan = my_plan();
-                    let opponent = game.battle.current_battle.as_ref().expect("current battle").opponent_of(game, self.player).expect("opponent of");
-                    yes_no(plan.dial(game, game.player(opponent).faction.expect("faction")) > unbox_strength(&p1()))
-                }
-
-                Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => yes_no(my_plan().hero == cast_hero(&p1())),
-
-                Some(ClairvoyanceQuestion::HasCardTypeInHand) => yes_no(me.treachery_cards.iter().any(|c| covers(c.type_(), card_type()))),
-
-                Some(ClairvoyanceQuestion::LeaderAsFacedancer) => yes_no(me.face_dancers.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_face_dancer(h)))),
-
-                Some(ClairvoyanceQuestion::LeaderAsTraitor) => yes_no(me.traitors.iter().any(|f| cast_hero(&p1()).is_some_and(|h| f.is_traitor(h)))),
-
-                Some(ClairvoyanceQuestion::Prediction) => yes_no(
-                    me.predicted_faction == unbox_enum::<Faction>(&p1()) && me.predicted_turn.map_or(0, i32::from) == unbox_int(&clairvoyance.parameter2()),
-                ),
-
-                Some(ClairvoyanceQuestion::WillAttackX) => ClairVoyanceAnswer::No,
-
-                _ => ClairVoyanceAnswer::Unknown,
-            }
-        })
-        .unwrap_or(ClairVoyanceAnswer::Unknown);
+    /// No decision without a question. A question I fail to work out (its parameter isn't of the
+    /// type the question needs, or my battle plan can't be made) gets an unknown answer.
+    pub fn determine_clair_voyance_answered(&self, game: &Game) -> Option<ClairVoyanceAnswered> {
+        let clairvoyance = game.turn.latest_clairvoyance.as_ref()?;
+        let answer = self.clairvoyance_answer(game, clairvoyance).unwrap_or(ClairVoyanceAnswer::Unknown);
 
         let mut e = ClairVoyanceAnswered::default();
         e.answer = Some(answer);
-        e
+        Some(e)
+    }
+
+    /// My answer to `clairvoyance`. Parameters are cast only when the answer needs them, so a
+    /// parameter of the wrong type fails the answer only where .NET threw.
+    fn clairvoyance_answer(&self, game: &Game, clairvoyance: &ClairvoyanceAsked) -> Option<ClairVoyanceAnswer> {
+        let question = clairvoyance.question;
+
+        let p1 = || clairvoyance.parameter1(game);
+        let card_type = || unbox_enum::<TreacheryCardType>(&p1()).ok().flatten();
+        let hero = || cast_hero(&p1()).ok();
+        let in_battle = || game.battle.current_battle.as_ref().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
+        let my_plan = || match game.battle.current_battle.as_ref()?.plan_of(game, Some(self.player)) {
+            Some(plan) => Some(plan),
+            None => Some(self.determine_battle_plan(game, true)?.plan(By::new(game, self.faction(game)))),
+        };
+        let defends_with = |plan: &BattlePlan| match plan.defense() {
+            Some(defense) => Some(ClairVoyanceAnswered::is_questioned_by(false, defense.type_(), card_type()?)),
+            None => Some(false),
+        };
+        let attacks_with = |plan: &BattlePlan| match plan.weapon() {
+            Some(weapon) => Some(ClairVoyanceAnswered::is_questioned_by(true, weapon.type_(), card_type()?)),
+            None => Some(false),
+        };
+        // `iter.any(f)` for an `f` that may fail, stopping at the first failure.
+        fn any<T>(items: impl IntoIterator<Item = T>, mut f: impl FnMut(T) -> Option<bool>) -> Option<bool> {
+            for item in items {
+                if f(item)? {
+                    return Some(true);
+                }
+            }
+            Some(false)
+        }
+
+        let me = game.player(self.player);
+        Some(match question {
+            Some(ClairvoyanceQuestion::CardTypeAsDefenseInBattle) if in_battle() => yes_no(defends_with(&my_plan()?)?),
+
+            Some(ClairvoyanceQuestion::CardTypeAsWeaponInBattle) if in_battle() => yes_no(attacks_with(&my_plan()?)?),
+
+            Some(ClairvoyanceQuestion::CardTypeInBattle) if in_battle() => {
+                let plan = my_plan()?;
+                yes_no(
+                    defends_with(&plan)?
+                        || attacks_with(&plan)?
+                        || (plan.hero.is_some_and(|h| h.as_treachery_card().is_some()) && card_type()? == TreacheryCardType::Mercenary),
+                )
+            }
+
+            Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) if in_battle() => {
+                let plan = my_plan()?;
+                let opponent = game.battle.current_battle.as_ref()?.opponent_of(game, self.player)?;
+                yes_no(plan.dial(game, game.player(opponent).faction?) > unbox_strength(&p1()).ok()?)
+            }
+
+            Some(ClairvoyanceQuestion::LeaderInBattle) if in_battle() => {
+                let plan = my_plan()?;
+                yes_no(plan.hero == hero()?)
+            }
+
+            Some(ClairvoyanceQuestion::HasCardTypeInHand) => yes_no(any(&me.treachery_cards, |c| Some(covers(c.type_(), card_type()?)))?),
+
+            Some(ClairvoyanceQuestion::LeaderAsFacedancer) => yes_no(any(&me.face_dancers, |f| Some(hero()?.is_some_and(|h| f.is_face_dancer(h))))?),
+
+            Some(ClairvoyanceQuestion::LeaderAsTraitor) => yes_no(any(&me.traitors, |f| Some(hero()?.is_some_and(|h| f.is_traitor(h))))?),
+
+            Some(ClairvoyanceQuestion::Prediction) => yes_no(
+                me.predicted_faction == unbox_enum::<Faction>(&p1()).ok()?
+                    && me.predicted_turn.map_or(0, i32::from) == unbox_int(&clairvoyance.parameter2()).ok()?,
+            ),
+
+            Some(ClairvoyanceQuestion::WillAttackX) => ClairVoyanceAnswer::No,
+
+            _ => ClairVoyanceAnswer::Unknown,
+        })
     }
 
     /// The most valuable leader among `candidates` that `acceptable` allows, preferring leaders I know
@@ -901,8 +935,10 @@ impl ClassicBot {
         let faction = self.faction(game);
         let mut matching = game.setup.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
         let m = matching.next()?;
-        // C# parity: SingleOrDefault throws when two factions offer me a trade.
-        assert!(matching.next().is_none(), "more than one trade offer to {faction}");
+        // No decision when two factions offer me a trade (C#'s SingleOrDefault threw).
+        if matching.next().is_some() {
+            return None;
+        }
         let mut e = FactionTradeOffered::default();
         e.target = m.initiator;
         Some(e)
@@ -1192,18 +1228,19 @@ impl ClassicBot {
     }
 
     pub fn determine_diplomacy(&self, game: &Game) -> Option<Diplomacy> {
-        let opponent_plan = game.battle.current_battle.as_ref().expect("current battle").plan_of_opponent(game, Some(self.player));
-        let opponent_plan = opponent_plan.expect("opponent plan");
+        let opponent_plan = game.battle.current_battle.as_ref()?.plan_of_opponent(game, Some(self.player));
+        let opponent_plan = opponent_plan?;
         if opponent_plan.weapon().is_some_and(|w| w.countered_by(opponent_plan.defense(), None)) {
             let mut e = Diplomacy::default();
-            e.card = Some(Diplomacy::valid_cards(game, self.player).into_iter().next().expect("an element"));
+            e.card = Some(Diplomacy::valid_cards(game, self.player).into_iter().next()?);
             return Some(e);
         }
 
         None
     }
 
-    pub fn determine_skill_assigned(&self, game: &Game) -> SkillAssigned {
+    /// No decision without a skill or a leader to assign it to.
+    pub fn determine_skill_assigned(&self, game: &Game) -> Option<SkillAssigned> {
         let me = game.player(self.player);
         let skills: Vec<LeaderSkill> = SkillAssigned::valid_skills(game, self.player);
         let holds = |is: fn(&TreacheryCard) -> bool| me.treachery_cards.iter().any(is);
@@ -1235,14 +1272,18 @@ impl ClassicBot {
             .map(|(_, s)| s)
             .find(|s| skills.contains(s))
             .or_else(|| skills.iter().copied().find(|s| *s != LeaderSkill::Planetologist))
-            .unwrap_or_else(|| skills.iter().copied().next().expect("an element"));
+            .or_else(|| skills.iter().copied().next())?;
 
-        let leader = self.random_item_from(&SkillAssigned::valid_leaders(game, self.player));
+        let leaders = SkillAssigned::valid_leaders(game, self.player);
+        if leaders.is_empty() {
+            return None;
+        }
+        let leader = self.random_item_from(&leaders);
         let mut e = SkillAssigned::default();
         e.passed = false;
         e.leader = leader;
         e.skill = Some(skill);
-        e
+        Some(e)
     }
 
     pub fn random_item_from<T: Clone>(&self, items: &[T]) -> T {

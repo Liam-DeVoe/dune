@@ -441,8 +441,8 @@ impl ClassicBot {
     }
 
     /// The only decision a bot also makes before it has a faction.
-    pub fn determine_end_phase(&self, game: &Game) -> Rc<EndPhase> {
-        Rc::new(EndPhase::new(game, game.player(self.player).faction))
+    pub fn determine_end_phase(&self, _game: &Game) -> EndPhase {
+        EndPhase::default()
     }
 
     /// Runs `decide` if the player may submit its event type, and checks the event it comes up
@@ -493,8 +493,8 @@ mod tests {
             Thought::default()
         }
 
-        fn end_phase(&self, game: &Game) -> Rc<EndPhase> {
-            Rc::new(EndPhase::new(game, Faction::Atreides))
+        fn end_phase(&self, _game: &Game) -> EndPhase {
+            EndPhase::default()
         }
 
         fn invalid_then_valid(&mut self, game: &Game, allowed: &[EventType]) -> Option<Event> {

@@ -102,7 +102,7 @@ pub fn default_draft(game: &Game, v: &ResolvedViewer, faction: Option<Faction>, 
             event(e)
         }
         EventType::CardsDetermined => {
-            let mut e = CardsDetermined::new(game, faction);
+            let mut e = CardsDetermined::default();
             e.set_treachery_cards(&game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default());
             e.set_richese_cards(&game.decks.richese_cache.clone());
             event(e)

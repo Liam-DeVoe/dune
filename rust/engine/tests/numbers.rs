@@ -29,9 +29,9 @@ fn a_game_needs_at_least_one_turn() {
     let settings = e.settings.as_mut().unwrap();
     settings.number_of_players = 2;
     settings.allowed_factions_in_play = Some(vec![Faction::Atreides, Faction::Harkonnen]);
-    assert_eq!(e.validate(&g).map(|m| m.plain_text()), None);
+    assert_eq!(e.validate(&g, By::NOBODY).err().map(|r| r.0.plain_text()), None);
     e.settings.as_mut().unwrap().maximum_turns = Turn::BEFORE_START;
-    assert_eq!(e.validate(&g).map(|m| m.plain_text()), Some("At least one turn required".to_string()));
+    assert_eq!(e.validate(&g, By::NOBODY).err().map(|r| r.0.plain_text()), Some("At least one turn required".to_string()));
 }
 
 #[test]

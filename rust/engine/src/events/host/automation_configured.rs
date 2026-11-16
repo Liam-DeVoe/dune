@@ -1,88 +1,28 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct AutomationConfigured {
-    /// Interior mutability: written after the event is stored in game state.
-    pub automation_rule_id: Cell<i32>,
+    /// The rule to delete. A created rule gets its id in [`AutomationRuleState`].
+    pub automation_rule_id: i32,
     pub action: ItemAction,
     pub rule_type: AutomationRuleType,
     pub bidding_above_amount: u16,
     pub bidding_winning_faction: Option<Faction>,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
 impl Default for AutomationConfigured {
     fn default() -> Self {
         AutomationConfigured {
-            automation_rule_id: Cell::new(-1),
+            automation_rule_id: -1,
             action: Default::default(),
             rule_type: Default::default(),
             bidding_above_amount: Default::default(),
             bidding_winning_faction: Default::default(),
-            base: Default::default(),
         }
     }
 }
 
 impl AutomationConfigured {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        match self.action {
-            ItemAction::Create => {
-                let id = if game.rules.automation_rules.is_empty() {
-                    0
-                } else {
-                    // Non-empty, so Max cannot throw.
-                    game.rules.automation_rules.iter().map(|x| x.automation_rule_id.get()).max().required("max")? + 1
-                };
-                self.automation_rule_id.set(id);
-
-                game.rules.automation_rules.push(self.clone());
-            }
-
-            ItemAction::Delete => {
-                // C# parity: an unknown id fails the event (C#'s First throws),
-                // and ownership is not checked.
-                let id = self.automation_rule_id.get();
-                let Some(i) = game.rules.automation_rules.iter().position(|x| x.automation_rule_id.get() == id) else {
-                    game_error!("There is no automation rule {id}");
-                };
-                game.rules.automation_rules.remove(i);
-            }
-
-            ItemAction::Update => {
-                // C# parity: Update does nothing.
-            }
-
-        }
-        Ok(())
-    }
-
-    pub fn get_message(&self, game: &Game) -> Message {
-        match self.action {
-            ItemAction::Create => {
-                // The description reads the initiator's player, which a seatless host doesn't have.
-                let description = game.get_player(self.initiator()).and_then(|_| self.get_description(game));
-                match description {
-                    Some(d) => express!(self.initiator(), " add an automation rule: ", d),
-                    None => express!(self.initiator(), " add an automation rule"),
-                }
-            }
-            ItemAction::Delete => express!(self.initiator(), " remove an automation rule"),
-            _ => express!(self.initiator(), " change an automation rule"),
-        }
-    }
-
     pub fn get_available_rule_types(g: &Game, p: PlayerId) -> Vec<AutomationRuleType> {
         let atreides_is_playing = g.is_playing(Faction::Atreides);
         AutomationRuleType::ALL
@@ -105,6 +45,35 @@ impl AutomationConfigured {
         g.players.iter().filter(|x| x.faction != faction).filter_map(|x| x.faction).collect()
     }
 
+}
+
+impl AutomationConfigured {
+    /// The rule this event creates, with id `id`, for the submitter `by`.
+    pub fn rule(&self, id: i32, by: By) -> AutomationRuleState {
+        AutomationRuleState {
+            id,
+            initiator: by.faction,
+            player: by.player,
+            rule_type: self.rule_type,
+            bidding_above_amount: self.bidding_above_amount,
+            bidding_winning_faction: self.bidding_winning_faction,
+        }
+    }
+}
+
+/// An automation rule a player created (`AutomationConfigured`), with the id the game gave it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct AutomationRuleState {
+    pub id: i32,
+    pub initiator: Option<Faction>,
+    /// The submitter's player when the rule was created.
+    pub player: Option<PlayerId>,
+    pub rule_type: AutomationRuleType,
+    pub bidding_above_amount: u16,
+    pub bidding_winning_faction: Option<Faction>,
+}
+
+impl AutomationRuleState {
     pub fn get_description(&self, game: &Game) -> Option<Message> {
         match self.rule_type {
             AutomationRuleType::CharityAutoClaim => {
@@ -132,7 +101,7 @@ impl AutomationConfigured {
             }
 
             AutomationRuleType::RevivalAutoClaimFreeRevival => {
-                let me = self.player();
+                let me = self.player.expect("the rule has a player");
                 if game.player(me).has_special_forces(game) {
                     return Some(express!("Auto claim free revival, prioritizing ", game.player(me).special_force()));
                 }
@@ -149,32 +118,55 @@ impl AutomationConfigured {
 
         None
     }
-
 }
 
-impl GameEventMethods for AutomationConfigured {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for AutomationConfigured {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::AutomationConfigured
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
+        match self.action {
+            ItemAction::Create => {
+                let id = if game.rules.automation_rules.is_empty() {
+                    0
+                } else {
+                    // Non-empty, so Max cannot throw.
+                    game.rules.automation_rules.iter().map(|x| x.id).max().required("max")? + 1
+                };
+                game.rules.automation_rules.push(self.rule(id, by));
+            }
+
+            ItemAction::Delete => {
+                // C# parity: an unknown id fails the event (C#'s First throws),
+                // and ownership is not checked.
+                let id = self.automation_rule_id;
+                let Some(i) = game.rules.automation_rules.iter().position(|x| x.id == id) else {
+                    game_error!("There is no automation rule {id}");
+                };
+                game.rules.automation_rules.remove(i);
+            }
+
+            ItemAction::Update => {
+                // C# parity: Update does nothing.
+            }
+
+        }
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::AutomationConfigured(self)
+    fn describe(&self, game: &Game, by: By) -> Message {
+        match self.action {
+            ItemAction::Create => {
+                // The description reads the initiator's player, which a seatless host doesn't have.
+                let description = game.get_player(by.faction).and_then(|_| self.rule(self.automation_rule_id, by).get_description(game));
+                match description {
+                    Some(d) => express!(by.faction, " add an automation rule: ", d),
+                    None => express!(by.faction, " add an automation rule"),
+                }
+            }
+            ItemAction::Delete => express!(by.faction, " remove an automation rule"),
+            _ => express!(by.faction, " change an automation rule"),
+        }
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        AutomationConfigured::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        AutomationConfigured::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        AutomationConfigured::get_message(self, game)
-    }
-
 }

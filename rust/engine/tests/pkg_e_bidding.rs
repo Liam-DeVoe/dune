@@ -1,7 +1,6 @@
 //! Focused tests for bidding. They build small game states by hand and check rules that are
 //! easy to get wrong.
 
-use std::rc::Rc;
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
@@ -17,12 +16,6 @@ fn game_with(factions: &[Faction]) -> Game {
 
 fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).unwrap()
-}
-
-fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
-    e.base().initiator.set(Some(f));
-    e.base().player.set(g.get_player(Some(f)));
-    e
 }
 
 /// A bid by `f`, as the auction keeps it.
@@ -190,8 +183,7 @@ fn automatic_passes_stop_when_bidding_ends() {
         for f in [Faction::BeneGesserit, Faction::Harkonnen] {
             let mut rule = AutomationConfigured::default();
             rule.rule_type = AutomationRuleType::BiddingPassWhenAtreidesOrAtreidesAllyPassed;
-            let rule = as_player(rule, &g, f);
-            g.rules.automation_rules.push(Rc::new(rule));
+            g.rules.automation_rules.push(rule.rule(-1, By::new(&g, f)));
         }
         g.turn.current_main_phase = MainPhase::Bidding;
         g.turn.current_phase = Phase::Bidding;
@@ -236,8 +228,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
             let mut rule = AutomationConfigured::default();
             rule.rule_type = AutomationRuleType::BiddingPassAboveAmount;
             rule.bidding_above_amount = 10;
-            let rule = as_player(rule, &g, f);
-            g.rules.automation_rules.push(Rc::new(rule));
+            g.rules.automation_rules.push(rule.rule(-1, By::new(&g, f)));
         }
         g.turn.current_main_phase = MainPhase::Bidding;
         g.turn.current_phase = Phase::Bidding;

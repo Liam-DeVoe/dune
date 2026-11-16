@@ -1,6 +1,5 @@
 //! Focused tests for setup. The comments say which behavior each test pins down.
 
-use std::rc::Rc;
 use treachery_engine::error::catch_panic;
 use treachery_engine::prelude::*;
 
@@ -105,26 +104,19 @@ fn remove_invalid_trade_offers_by_either_party() {
 #[test]
 fn automation_rules_create_and_delete() {
     let mut g = game_with(&[Faction::Atreides]);
-    let mk = |g: &Game, action: ItemAction, id: i32| {
-        let mut e = AutomationConfigured::new(g, Faction::Atreides);
-        e.action = action;
-        e.automation_rule_id.set(id);
-        Rc::new(e)
-    };
-    let r1 = mk(&g, ItemAction::Create, -1);
-    r1.execute_concrete_event(&mut g).unwrap();
-    let r2 = mk(&g, ItemAction::Create, -1);
-    r2.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(r1.automation_rule_id.get(), 0);
-    assert_eq!(r2.automation_rule_id.get(), 1);
+    let mk = |action: ItemAction, id: i32| AutomationConfigured { action, automation_rule_id: id, ..Default::default() };
+    let by = By::new(&g, Faction::Atreides);
+    let ids = |g: &Game| g.rules.automation_rules.iter().map(|r| r.id).collect::<Vec<_>>();
+    mk(ItemAction::Create, -1).apply(&mut g, by).unwrap();
+    mk(ItemAction::Create, -1).apply(&mut g, by).unwrap();
+    assert_eq!(ids(&g), vec![0, 1]);
 
-    mk(&g, ItemAction::Delete, 0).execute_concrete_event(&mut g).unwrap();
+    mk(ItemAction::Delete, 0).apply(&mut g, by).unwrap();
     assert_eq!(g.rules.automation_rules.len(), 1);
-    let r3 = mk(&g, ItemAction::Create, -1);
-    r3.execute_concrete_event(&mut g).unwrap();
-    assert_eq!(r3.automation_rule_id.get(), 2);
+    mk(ItemAction::Create, -1).apply(&mut g, by).unwrap();
+    assert_eq!(ids(&g), vec![1, 2]);
 
-    assert!(mk(&g, ItemAction::Delete, 7).execute_concrete_event(&mut g).is_err());
+    assert!(mk(ItemAction::Delete, 7).apply(&mut g, by).is_err());
     assert_eq!(g.rules.automation_rules.len(), 2);
 }
 
@@ -140,10 +132,9 @@ fn establish_players_copies_factions_list() {
         &[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit, Faction::Fremen],
         &[Rule::PlayersChooseFactions],
     );
-    let mut ev = EstablishPlayers::new(&g, None);
+    let mut ev = EstablishPlayers::default();
     ev.seed = 1234;
     ev.settings = Some(s);
-    let ev = Rc::new(ev);
     let r = g.play_for_message(HistoryEntry::new(None, ev.clone()), false, true);
     assert!(r.is_none());
     assert_eq!(g.players.len(), 3);
@@ -159,9 +150,8 @@ fn establish_players_null_initial_rules() {
     let mut g = Game::new();
     let mut s = settings(2, &[Faction::Atreides, Faction::Emperor], &[]);
     s.initial_rules = None;
-    let mut ev = EstablishPlayers::new(&g, None);
+    let mut ev = EstablishPlayers::default();
     ev.settings = Some(s);
-    let ev = Rc::new(ev);
     let text = exception_text(|| g.play_for_message(HistoryEntry::new(None, ev), false, true));
     assert_eq!(text, "rules");
 }
@@ -172,10 +162,10 @@ fn establish_players_is_deterministic() {
     let run = || {
         let mut g = Game::new();
         let s = settings(4, &[Faction::Atreides, Faction::Emperor, Faction::BeneGesserit, Faction::Fremen, Faction::Harkonnen], &[]);
-        let mut ev = EstablishPlayers::new(&g, None);
+        let mut ev = EstablishPlayers::default();
         ev.seed = 42;
         ev.settings = Some(s);
-        g.play_for_message(HistoryEntry::new(None, Rc::new(ev)), false, true);
+        g.play_for_message(HistoryEntry::new(None, ev), false, true);
         let factions: Vec<Option<Faction>> = g.players.iter().map(|p| p.faction).collect();
         let seats: Vec<Option<Seat>> = g.players.iter().map(|p| p.seat).collect();
         (factions, seats, g.turn.current_phase)

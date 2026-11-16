@@ -215,11 +215,11 @@ fn a_richese_card_taken_from_the_deck_or_the_cache_leaves_the_other() {
     s.number_of_players = 3;
     s.allowed_factions_in_play = Some(vec![Faction::Richese, Faction::Atreides, Faction::Emperor]);
     s.initial_rules = Some(vec![Rule::RicheseTreacheryCards]);
-    let mut establish = EstablishPlayers::new(&g, None);
+    let mut establish = EstablishPlayers::default();
     establish.seed = 7;
     establish.settings = Some(s);
-    assert!(g.play_for_message(HistoryEntry::new(None, Rc::new(establish)), false, true).is_none());
-    let end = HistoryEntry::new(None, Rc::new(EndPhase::new(&g, None)));
+    assert!(g.play_for_message(HistoryEntry::new(None, establish), false, true).is_none());
+    let end = HistoryEntry::new(None, EndPhase::default());
     assert!(g.play_for_message(end, false, true).is_none());
 
     let in_deck = |g: &Game, c: TreacheryCard| g.decks.treachery_deck.as_ref().unwrap().items.contains(&c);

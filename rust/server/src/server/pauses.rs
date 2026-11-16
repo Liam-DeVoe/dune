@@ -8,7 +8,6 @@
 
 use treachery_protocol::UserId;
 use std::collections::BTreeSet;
-use std::rc::Rc;
 use std::time::Duration;
 
 use treachery_engine::enumerations::Phase;
@@ -82,7 +81,7 @@ impl Server {
             let running = &self.games[&game];
             let g = &running.game;
             let faction = running.participation.player_of(g, user).map_or(None, |p| g.player(p).faction);
-            HistoryEntry::new(faction, Rc::new(EndPhase::new(g, faction)))
+            HistoryEntry::new(faction, EndPhase::default())
         };
         let Ok(expected) = usize::try_from(event_number) else { return Ok(()) };
         self.execute(&game, event, true, Some(expected), false).await?;
@@ -201,7 +200,7 @@ impl Server {
             );
         }
         if let Some(events) = continue_at {
-            let event = HistoryEntry::new(None, Rc::new(EndPhase::new(&self.games[game].game, None)));
+            let event = HistoryEntry::new(None, EndPhase::default());
             match Box::pin(self.execute(game, event, true, Some(events), false)).await {
                 Err(CallError::Refused(_, reason)) => println!("game {game}: the pause could not be ended: {reason}"),
                 r => r?,

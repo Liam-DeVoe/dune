@@ -1,117 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct EndPhase {
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
-}
-
-impl Default for EndPhase {
-    fn default() -> Self {
-        EndPhase {
-            base: Default::default(),
-        }
-    }
 }
 
 impl EndPhase {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
-    }
-
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        match game.turn.current_phase {
-            Phase::SelectingFactions => game.assign_factions_and_enter_faction_trade(),
-
-            Phase::TradingFactions => self.establish_decks(game)?,
-
-            Phase::BeginningOfStorm => game.move_hms_before_dialling_storm(),
-
-            Phase::MetheorAndStormSpell => self.enter_normal_storm_phase(game)?,
-
-            Phase::StormReport => game.enter_spice_blow_phase(),
-
-            Phase::Thumper => game.enter_blow_a()?,
-
-            Phase::HarvesterA | Phase::HarvesterB => game.move_to_next_phase_after_resource_blow()?,
-
-            Phase::AllianceA | Phase::AllianceB => game.end_nexus()?,
-
-            Phase::BlowReport => {
-                if game.applicable(Rule::HasCharityPhase) {
-                    self.enter_charity_phase(game);
-                } else {
-                    game.enter_bidding_phase();
-                }
-            }
-
-            Phase::BeginningOfCharity => self.start_claiming_charity(game),
-
-            Phase::ClaimingCharity => self.end_charity_phase(game),
-
-            Phase::CharityReport => game.enter_bidding_phase(),
-
-            Phase::BeginningOfBidding => game.start_bidding_phase(),
-
-            Phase::ReplacingCardJustWon => {
-                if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
-                    game.enter_richese_bidding();
-                } else {
-                    game.determine_next_step_after_card_was_sold();
-                }
-            }
-
-            Phase::WaitingForNextBiddingRound => game.put_next_card_on_auction(),
-
-            Phase::BiddingReport => self.enter_revival_phase(game),
-
-            Phase::BeginningOfResurrection => self.continue_to_revivals(game)?,
-
-            Phase::Resurrection => self.end_resurrection_phase(game),
-
-            Phase::ResurrectionReport => self.enter_shipment_and_move_phase(game),
-
-            Phase::BeginningOfShipAndMove => game.start_ship_and_move_sequence()?,
-
-            Phase::ShipmentAndMoveConcluded => self.enter_battle_phase(game),
-
-            Phase::BeginningOfBattle => game.enter(Phase::BattlePhase, true),
-
-            Phase::CancellingTraitor => {
-                game.enter(Phase::CallTraitorOrPass, true);
-                game.handle_revealed_battle_plans()?;
-            }
-
-            Phase::BattleReport => {
-                self.reset_battle(game);
-                let condition = game.next_player_to_battle().is_some();
-                game.enter_or_else(condition, Phase::BattlePhase, enter_spice_collection_phase);
-            }
-
-            Phase::BeginningOfCollection => game.start_collection(),
-
-            Phase::CollectionReport => game.enter_contemplate_phase(),
-
-            Phase::Extortion => game.end_contemplate_pause(),
-
-            Phase::Contemplate => game.continue_contemplate_phase(),
-
-            Phase::TurnConcluded => {
-                game.enter_storm_phase()?;
-                game.flip_bene_gesserit_advisors_when_alone()?;
-            }
-
-            _ => {}
-        }
-        Ok(())
-    }
-
     pub fn continue_to_revivals(&self, game: &mut Game) -> GameResult {
         game.enter(Phase::Resurrection, true);
 
@@ -138,7 +31,7 @@ impl EndPhase {
     pub fn enter_normal_storm_phase(&self, game: &mut Game) -> GameResult {
         let m = express!("The storm moves ", game.board.next_storm_moves, " sectors")
             .with_log(StormMoved::new(game.board.sector_in_storm, game.board.next_storm_moves, None, None));
-        self.log_objects(game, vec![m.into()]);
+        game.log(vec![m.into()]);
         let moves = game.board.next_storm_moves;
         game.move_storm_and_determine_next(moves)?;
         game.end_storm_phase();
@@ -158,18 +51,18 @@ impl EndPhase {
 
     pub fn start_claiming_charity(&self, game: &mut Game) {
         if !game.prevented(FactionAdvantage::ChoamControllingCharity) {
-            let choam = self.get_player(game, Some(Faction::Choam));
+            let choam = game.get_player(Some(Faction::Choam));
             if let Some(choam) = choam {
                 let to_collect = (game.players.len() as i32) * 2 * game.current_charity_multiplier();
                 let b = game.player_mut(choam);
                 crate::game::amounts::gain(&mut b.resources, to_collect, "spice").expect("CHOAM's charity");
-                self.log_objects(game, vec![Faction::Choam.into(), " collect ".into(), Payment::of(to_collect).into()]);
+                game.log(vec![Faction::Choam.into(), " collect ".into(), Payment::of(to_collect).into()]);
             }
         } else {
             game.log_prevention_by_karma(FactionAdvantage::ChoamControllingCharity);
         }
 
-        let bene_gesserit = self.get_player(game, Some(Faction::BeneGesserit));
+        let bene_gesserit = game.get_player(Some(Faction::BeneGesserit));
         if let Some(bene_gesserit) = bene_gesserit {
             if game.applicable(Rule::BeneGesseritAutoCharity) {
                 if !game.charity_is_cancelled() {
@@ -328,39 +221,105 @@ impl EndPhase {
     pub fn call_heroes_home(&self, game: &mut Game) {
         call_heroes_home(game)
     }
-
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!("Phase ended by ", self.initiator())
-    }
-
 }
 
-impl GameEventMethods for EndPhase {
-    fn base(&self) -> &GameEventBase {
-        &self.base
+impl EventRules for EndPhase {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    fn event_type(&self) -> EventType {
-        EventType::EndPhase
+    fn apply(&self, game: &mut Game, _by: By) -> GameResult {
+        match game.turn.current_phase {
+            Phase::SelectingFactions => game.assign_factions_and_enter_faction_trade(),
+
+            Phase::TradingFactions => self.establish_decks(game)?,
+
+            Phase::BeginningOfStorm => game.move_hms_before_dialling_storm(),
+
+            Phase::MetheorAndStormSpell => self.enter_normal_storm_phase(game)?,
+
+            Phase::StormReport => game.enter_spice_blow_phase(),
+
+            Phase::Thumper => game.enter_blow_a()?,
+
+            Phase::HarvesterA | Phase::HarvesterB => game.move_to_next_phase_after_resource_blow()?,
+
+            Phase::AllianceA | Phase::AllianceB => game.end_nexus()?,
+
+            Phase::BlowReport => {
+                if game.applicable(Rule::HasCharityPhase) {
+                    self.enter_charity_phase(game);
+                } else {
+                    game.enter_bidding_phase();
+                }
+            }
+
+            Phase::BeginningOfCharity => self.start_claiming_charity(game),
+
+            Phase::ClaimingCharity => self.end_charity_phase(game),
+
+            Phase::CharityReport => game.enter_bidding_phase(),
+
+            Phase::BeginningOfBidding => game.start_bidding_phase(),
+
+            Phase::ReplacingCardJustWon => {
+                if game.bidding.card_just_won == game.bidding.card_sold_on_black_market {
+                    game.enter_richese_bidding();
+                } else {
+                    game.determine_next_step_after_card_was_sold();
+                }
+            }
+
+            Phase::WaitingForNextBiddingRound => game.put_next_card_on_auction(),
+
+            Phase::BiddingReport => self.enter_revival_phase(game),
+
+            Phase::BeginningOfResurrection => self.continue_to_revivals(game)?,
+
+            Phase::Resurrection => self.end_resurrection_phase(game),
+
+            Phase::ResurrectionReport => self.enter_shipment_and_move_phase(game),
+
+            Phase::BeginningOfShipAndMove => game.start_ship_and_move_sequence()?,
+
+            Phase::ShipmentAndMoveConcluded => self.enter_battle_phase(game),
+
+            Phase::BeginningOfBattle => game.enter(Phase::BattlePhase, true),
+
+            Phase::CancellingTraitor => {
+                game.enter(Phase::CallTraitorOrPass, true);
+                game.handle_revealed_battle_plans()?;
+            }
+
+            Phase::BattleReport => {
+                self.reset_battle(game);
+                let condition = game.next_player_to_battle().is_some();
+                game.enter_or_else(condition, Phase::BattlePhase, enter_spice_collection_phase);
+            }
+
+            Phase::BeginningOfCollection => game.start_collection(),
+
+            Phase::CollectionReport => game.enter_contemplate_phase(),
+
+            Phase::Extortion => game.end_contemplate_pause(),
+
+            Phase::Contemplate => game.continue_contemplate_phase(),
+
+            Phase::TurnConcluded => {
+                game.enter_storm_phase()?;
+                game.flip_bene_gesserit_advisors_when_alone()?;
+            }
+
+            _ => {}
+        }
+        Ok(())
     }
 
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::EndPhase(self)
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!("Phase ended by ", by.faction)
     }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        EndPhase::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        EndPhase::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        EndPhase::get_message(self, game)
-    }
-
 }
+
 
 /// `EnterSpiceCollectionPhase`. A free function so it can be passed to `Game.Enter` as
 /// the action (it only touches `Game`).

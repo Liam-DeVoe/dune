@@ -250,7 +250,7 @@ fn prescience(l: &mut Lines, v: i32) {
     l.try_(&format!("{at}.outsider.validate"), || message(richese.validate(&g, By::new(&g, Faction::Richese)).err().map(|r| r.0), "valid"));
 
     l.try_(&format!("{at}.reset"), || {
-        EndPhase::new(&g, Faction::Choam).reset_battle(&mut g);
+        EndPhase::default().reset_battle(&mut g);
         "ok".to_string()
     });
     l.p(&format!("{at}.reset.seen"), seen(&g, &plans));

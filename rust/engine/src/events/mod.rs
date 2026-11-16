@@ -58,7 +58,7 @@ events! {
     @legacy AmbassadorPlaced,
     AuditCancelled,
     Audited,
-    @legacy AutomationConfigured,
+    AutomationConfigured,
     Battle,
     BattleClaimed,
     BattleConcluded,
@@ -75,7 +75,7 @@ events! {
     Caravan,
     CardGiven,
     @legacy CardTraded,
-    @legacy CardsDetermined,
+    CardsDetermined,
     CharityClaimed,
     @legacy ChoamDiscarded,
     @legacy ChoamEconomics,
@@ -102,8 +102,8 @@ events! {
     @legacy Donated,
     EmperorBidSupport,
     EmperorDiscarded,
-    @legacy EndPhase,
-    @legacy EstablishPlayers,
+    EndPhase,
+    EstablishPlayers,
     ExtortionPrevented,
     FaceDanced,
     FaceDancerReplaced,
@@ -117,7 +117,7 @@ events! {
     GuildDelay,
     HMSAdvantageChosen,
     HarvesterPlayed,
-    @legacy HideSecrets,
+    HideSecrets,
     IxianRemovedCardFromAuction,
     IxianSelectedStartingCard,
     IxianSwappedCardOnBid,
@@ -146,9 +146,9 @@ events! {
     PerformHmsMovement,
     PerformHmsPlacement,
     PerformMoritaniSetup,
-    @legacy PerformSetup,
+    PerformSetup,
     Planetology,
-    @legacy PlayerReplaced,
+    PlayerReplaced,
     PoisonToothCancelled,
     PortableAntidoteUsed,
     Prescience,
@@ -273,7 +273,7 @@ impl Event {
             Event::Move(e) => <Move as location_event::LocationEvent>::to(e, game),
             Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::to(&**e, game),
             Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::to(e, game),
-            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::to(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::to(e, game),
             Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::to(&**e, game),
             Event::Revival(e) => <Revival as location_event::LocationEvent>::to(&**e, game),
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::to(e, game),
@@ -293,7 +293,7 @@ impl Event {
             Event::Move(e) => <Move as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
             Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
-            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
             Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
             Event::Revival(e) => <Revival as location_event::LocationEvent>::total_amount_of_forces_added_to_location(&**e, game),
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::total_amount_of_forces_added_to_location(e, game),
@@ -313,7 +313,7 @@ impl Event {
             Event::Move(e) => <Move as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::NexusPlayed(e) => <NexusPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
             Event::PerformFremenSetup(e) => <PerformFremenSetup as location_event::LocationEvent>::forces_added_to_location(e, game),
-            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::forces_added_to_location(&**e, game),
+            Event::PerformSetup(e) => <PerformSetup as location_event::LocationEvent>::forces_added_to_location(e, game),
             Event::RaiseDeadPlayed(e) => <RaiseDeadPlayed as location_event::LocationEvent>::forces_added_to_location(&**e, game),
             Event::Revival(e) => <Revival as location_event::LocationEvent>::forces_added_to_location(&**e, game),
             Event::Shipment(e) => <Shipment as location_event::LocationEvent>::forces_added_to_location(e, game),
@@ -326,7 +326,6 @@ impl Event {
     pub fn placement_force_locations(&self, game: &Game) -> IndexMap<Location, Battalion> {
         match self {
             Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::force_locations(&**e, game),
-            Event::PerformSetup(e) => <PerformSetup as placement::Placement>::force_locations(&**e, game),
             _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }
@@ -335,7 +334,6 @@ impl Event {
     pub fn placement_to(&self, game: &Game) -> Option<Location> {
         match self {
             Event::AmbassadorActivated(e) => <AmbassadorActivated as placement::Placement>::to(&**e, game),
-            Event::PerformSetup(e) => <PerformSetup as placement::Placement>::to(&**e, game),
             _ => panic!("{} is not a Placement", self.event_type().name()),
         }
     }

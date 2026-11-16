@@ -265,16 +265,17 @@ impl Refit {
         if host.contains(&EventType::CardsDetermined) {
             let cards: Vec<TreacheryCard> = game.decks.treachery_deck.as_ref().map(|d| d.items.clone()).unwrap_or_default();
             let richese = if game.is_playing(Faction::Richese) { TreacheryCardManager::get_richese_cards() } else { vec![] };
-            let mut e = CardsDetermined::new(game, None);
+            let mut e = CardsDetermined::default();
             e.set_treachery_cards(&cards);
             e.set_richese_cards(&richese);
-            candidates.push(HistoryEntry::legacy(Rc::new(e).into_event()));
+            candidates.push(HistoryEntry::new(None, e));
         }
         if host.contains(&EventType::PerformSetup) {
-            if let Some(mut e) = quiet(|| PerformSetup::new(game, game.next_faction_to_perform_custom_setup())) {
+            if let Some(by) = quiet(|| game.next_faction_to_perform_custom_setup()) {
+                let mut e = PerformSetup::default();
                 e.resources = 10;
                 e.force_locations = Some(String::new());
-                candidates.push(HistoryEntry::legacy(Rc::new(e).into_event()));
+                candidates.push(HistoryEntry::new(by, e));
             }
         }
         if host.contains(&EventType::PerformHmsPlacement) && !game.players.is_empty() {
@@ -286,7 +287,7 @@ impl Refit {
             }
         }
         if host.contains(&EventType::EndPhase) {
-            candidates.push(HistoryEntry::legacy(Rc::new(EndPhase::new(game, None)).into_event()));
+            candidates.push(HistoryEntry::new(None, EndPhase::default()));
         }
         for e in candidates {
             if self.add(to_object(&e), true, time) {

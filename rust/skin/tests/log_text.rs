@@ -72,8 +72,7 @@ fn automation_rules_are_described() {
         e.action = action;
         e.rule_type = rule_type;
         e.bidding_above_amount = 5;
-        e.initialize(&g, by);
-        text(&e.get_message(&g))
+        text(&e.describe(&g, By::new(&g, by)))
     };
     assert_eq!(
         message(ItemAction::Create, AutomationRuleType::BiddingPassAboveAmount, Some(Faction::Atreides)),

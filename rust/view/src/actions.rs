@@ -74,7 +74,7 @@ pub fn default_draft(game: &Game, _v: &ResolvedViewer, s: &Seating, faction: Opt
         }
         EventType::AlliancePassed => event(AlliancePassed::new(game, faction)),
         EventType::AllianceBroken => event(AllianceBroken::new(game, faction)),
-        EventType::EndPhase => event(EndPhase::new(game, faction)),
+        EventType::EndPhase => event(EndPhase::default()),
         EventType::StormDialled => {
             let mut e = StormDialled::default();
             e.amount = treachery_engine::game::amounts::clamp_u16(0i32.clamp(StormDialled::valid_min_amount(game), StormDialled::valid_max_amount(game).max(StormDialled::valid_min_amount(game))));

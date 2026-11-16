@@ -174,7 +174,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
             event(e)
         }
         EventType::AutomationConfigured => {
-            let mut e = AutomationConfigured::new(game, faction);
+            let mut e = AutomationConfigured::default();
             e.action = ItemAction::Create;
             event(e)
         }
@@ -308,7 +308,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         }};
     }
     match draft {
-        Event::AutomationConfigured(e) => adjust!(e, |m| {
+        Event::AutomationConfigured(e) => adjust!(@plain e, |m| {
             let types = AutomationConfigured::get_available_rule_types(game, p);
             m.rule_type = required(m.rule_type, &types, AutomationRuleType::default());
             m.action = ItemAction::Create;
@@ -560,9 +560,9 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &Event, d: &dyn 
             rules: game
                 .rules.automation_rules
                 .iter()
-                .filter(|r| r.base.initiator.get() == pl.faction)
+                .filter(|r| r.initiator == pl.faction)
                 .map(|r| AutomationRule {
-                    id: r.automation_rule_id.get(),
+                    id: r.id,
                     description: r.get_description(game).map(|m| message(&m, d)).unwrap_or_default(),
                 })
                 .collect(),

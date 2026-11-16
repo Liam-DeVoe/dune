@@ -79,11 +79,11 @@ fn static_helpers_and_getters() {
     let rule_types: Vec<AutomationRuleType> = AutomationRuleType::ALL.to_vec();
     for faction in [Faction::Atreides, Faction::Ixian] {
         for rt in &rule_types {
-            let mut e = AutomationConfigured::new(&g, faction);
+            let mut e = AutomationConfigured::default();
             e.rule_type = *rt;
             e.bidding_above_amount = 7;
             e.bidding_winning_faction = Some(Faction::BeneGesserit);
-            p(format!("description.{faction}.{}", *rt as i32), try_str(|| e.get_description(&g).map(|m| m.plain_text())));
+            p(format!("description.{faction}.{}", *rt as i32), try_str(|| e.rule(-1, By::new(&g, faction)).get_description(&g).map(|m| m.plain_text())));
         }
     }
 

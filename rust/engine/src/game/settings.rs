@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct GameSettings {
     pub number_of_players: i32,
     pub maximum_turns: Turn,

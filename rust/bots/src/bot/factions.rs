@@ -484,7 +484,7 @@ impl ClassicBot {
                 .iter()
                 .copied()
                 .filter(|l| game.board.resources_on_planet.contains_key(l) && can_take(l))
-                .random_highest(&self.random, |l| *game.board.resources_on_planet.index(l))
+                .random_highest(&self.random, |l| game.board.resources_on_planet[l])
                 .or_else(|| {
                     valid_locations
                         .iter()

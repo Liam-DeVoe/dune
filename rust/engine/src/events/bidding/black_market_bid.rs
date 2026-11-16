@@ -57,7 +57,7 @@ impl BlackMarketBid {
         });
         game.stone(Milestone::Bid);
         let initiator = self.initiator();
-        game.bidding.bids.remove(&initiator);
+        game.bidding.bids.shift_remove(&initiator);
         game.bidding.bids.insert_new(initiator, self.clone().into_event());
         let as_event = self.clone().into_event();
         game.check_if_atreides_or_atreides_ally_passed_bid(&as_event);

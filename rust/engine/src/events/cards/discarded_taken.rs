@@ -61,7 +61,7 @@ impl DiscardedTaken {
         let Some(card) = self.card() else {
             game_error!("Value cannot be null. (Parameter 'key')")
         };
-        game.decks.recently_discarded.remove(&card);
+        game.decks.recently_discarded.shift_remove(&card);
         {
             let items = &mut game.decks.treachery_discard_pile.as_mut().required("treachery discard pile")?.items;
             if let Some(i) = items.iter().position(|c| *c == card) {

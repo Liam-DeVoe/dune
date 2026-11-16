@@ -427,12 +427,10 @@ The bots (`rust/bots/tests`), the skin (`rust/skin/tests`) and dotnet-compat hav
 Iteration order is observable in many places: the log, the views (spice, strongholds, forces, form options), the event a bot builds, and random draws over a collection. So:
 
 - Maps and sets are `IndexMap` and `IndexSet` (insertion order). `std::collections::HashMap` and `HashSet` are only for lookups whose order can't leak. Remove with `shift_remove`, which keeps the order of the rest. `iter::MapExt::insert_new` inserts a key that must be new.
-- .NET's `Dictionary` and `HashSet` reuse the slot of a removed entry for the next new key, so after a removal their order differs from insertion order. Thirteen game fields have removals and an order players see, and keep `dotnet_compat::NetDictionary`/`NetHashSet` so that order stays the same: `Player.forces_in_locations`, `known_cards`, `revealed_traitors`, and on `Game`: `board.resources_on_planet`, `board.terror_on_planet`, `board.homeworld_occupation`, `bidding.bids`, `board.stronghold_ownership`, `ship_move.shipment_permissions`, `board.discoveries_on_planet`, `board.ambassadors_on_planet`, `decks.recently_discarded` and `revival.early_revivals_offers`. Changing any of them to `IndexMap` changes behavior (the harness found `ambassadors_on_planet` in the board view); do it as a deliberate change (native-plan.md step 4), with a sorted or insertion order chosen on purpose.
-- `NetDictionary` and `NetHashSet` have `insert`, `remove`, `get`, `contains_key`, `iter` and indexing like std's maps, plus `MapExt::insert_new`.
+- `BTreeMap` where a sorted order reads better: spice, discoveries and stronghold owners on the board, and each player's `forces_in_locations`, are in map order (by location id), and so is `Game::forces_on_planet_excluding_empty_locations`, which the board view lists. These were .NET `Dictionary`s until wave 2a of rewrite-plan.md, whose order after a removal (the next new key took the freed slot) players could see ([behavior-changes.md](behavior-changes.md#order-of-spice-forces-and-other-lists-on-the-board)).
 
 ## What is left of .NET
 
-- `NetDictionary`/`NetHashSet` for the fields above.
 - `dotnet_compat::fmt` (float `ToString()`), `fmt::string_format` and `parse`: log texts and the parsing of the strings events carry (force locations, Clairvoyance parameters).
 - `compat/date_time_offset.rs`: the `Time` of events in the JSON.
 - `enum_type.rs`: open enums that print like .NET's `Enum.ToString()`.

@@ -148,14 +148,13 @@ fn forces_on_planet_skips_homeworlds() {
 }
 
 #[test]
-fn private_forces_to_reserves_throws_key_not_found() {
+fn private_forces_to_reserves_panics_without_forces_there() {
     let mut g = game_with(&[Faction::Atreides]);
     let me = idx(&g, Faction::Atreides);
     let l = Location::from_id(1).unwrap();
-    assert_eq!(
-        exception_text(|| Player::forces_to_reserves(&mut g, me, l)),
-        "KeyNotFoundException: The given key 'Treachery.Shared.Location' was not present in the dictionary."
-    );
+    // BTreeMap's message. The .NET one was "KeyNotFoundException: The given key
+    // 'Treachery.Shared.Location' was not present in the dictionary."
+    assert_eq!(exception_text(|| Player::forces_to_reserves(&mut g, me, l)), "no entry found for key");
 }
 
 #[test]

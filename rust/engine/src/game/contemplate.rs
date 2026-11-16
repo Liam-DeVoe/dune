@@ -118,7 +118,7 @@ impl Game {
                     traitors.remove(i);
                 }
             }
-            self.player_mut(moritani).revealed_traitors.remove(&hero);
+            self.player_mut(moritani).revealed_traitors.shift_remove(&hero);
             let traitor = self.decks.traitor_deck.as_mut().expect("traitor deck").draw();
             self.player_mut(moritani).traitors.push(traitor);
         }

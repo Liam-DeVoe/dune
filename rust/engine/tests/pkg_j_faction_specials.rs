@@ -111,25 +111,24 @@ fn moritani_betrayal_without_a_token_removes_and_returns_default_terror() {
 }
 
 #[test]
-fn moritani_betrayal_picks_from_dictionary_slot_order() {
+fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).nexus = Faction::Moritani;
     let t = a_stronghold(&g);
     let other = g.board.map.territories(false).find(|x| x.is_stronghold() && *x != t && !x.is_homeworld()).unwrap();
-    let k = |k: &TerrorType| ExpressionElement::from(*k).to_cs_string();
-    g.board.terror_on_planet.add_with(TerrorType::Assassination, t, k);
-    g.board.terror_on_planet.add_with(TerrorType::Atomics, other, k);
-    g.board.terror_on_planet.add_with(TerrorType::Robbery, t, k);
-    // Free slot 0; the next Add reuses it, so Sabotage iterates first.
-    g.board.terror_on_planet.remove(&TerrorType::Assassination);
-    g.board.terror_on_planet.add_with(TerrorType::Sabotage, t, k);
-    assert_eq!(g.terror_in(t).collect::<Vec<_>>(), vec![TerrorType::Sabotage, TerrorType::Robbery]);
+    g.board.terror_on_planet.insert_new(TerrorType::Assassination, t);
+    g.board.terror_on_planet.insert_new(TerrorType::Atomics, other);
+    g.board.terror_on_planet.insert_new(TerrorType::Robbery, t);
+    // A token placed after a removal goes last. (.NET's Dictionary put it in the freed slot, first.)
+    g.board.terror_on_planet.shift_remove(&TerrorType::Assassination);
+    g.board.terror_on_planet.insert_new(TerrorType::Sabotage, t);
+    assert_eq!(g.terror_in(t).collect::<Vec<_>>(), vec![TerrorType::Robbery, TerrorType::Sabotage]);
 
-    // Same seed, same draw: the pick is an index into the slot order above.
+    // Same seed, same draw: the pick is an index into the order above.
     let expected = {
         let r = SharedRandom::from_seed(11);
-        [TerrorType::Sabotage, TerrorType::Robbery].into_iter().random_item(&r).unwrap()
+        [TerrorType::Robbery, TerrorType::Sabotage].into_iter().random_item(&r).unwrap()
     };
     g.random = Some(SharedRandom::from_seed(11));
     let mut e = NexusPlayed::new(&g, Faction::Atreides);
@@ -170,7 +169,7 @@ fn terror_robbery_rounds_in_float() {
     let mut g = game_with(&[Faction::Atreides, Faction::Moritani]);
     g.random = Some(SharedRandom::from_seed(1));
     let t = a_stronghold(&g);
-    g.board.terror_on_planet.add_with(TerrorType::Robbery, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.terror_on_planet.insert_new(TerrorType::Robbery, t);
     trigger_terror(&mut g, Faction::Atreides, t);
     let atreides = idx(&g, Faction::Atreides);
     let moritani = idx(&g, Faction::Moritani);
@@ -193,7 +192,7 @@ fn terror_types_follow_the_trigger_territory() {
     assert!(TerrorRevealed::get_types(&g).next().is_none());
     assert_eq!(TerrorRevealed::get_victim(&g), Faction::None);
     let t = a_stronghold(&g);
-    g.board.terror_on_planet.add_with(TerrorType::Extortion, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.terror_on_planet.insert_new(TerrorType::Extortion, t);
     trigger_terror(&mut g, Faction::Atreides, t);
     assert_eq!(TerrorRevealed::get_types(&g).collect::<Vec<_>>(), vec![TerrorType::Extortion]);
     assert_eq!(TerrorRevealed::get_victim(&g), Faction::Atreides);
@@ -209,8 +208,8 @@ fn terror_planted_valid_types_is_an_ordered_union() {
     let mut g = game_with(&[Faction::Moritani]);
     let t = a_stronghold(&g);
     g.board.unplaced_terror_tokens = vec![TerrorType::Robbery, TerrorType::Atomics, TerrorType::Robbery];
-    g.board.terror_on_planet.add_with(TerrorType::Sabotage, t, |k| ExpressionElement::from(*k).to_cs_string());
-    g.board.terror_on_planet.add_with(TerrorType::Atomics, t, |k| ExpressionElement::from(*k).to_cs_string());
+    g.board.terror_on_planet.insert_new(TerrorType::Sabotage, t);
+    g.board.terror_on_planet.insert_new(TerrorType::Atomics, t);
     assert_eq!(
         TerrorPlanted::valid_terror_types(&g, false).collect::<Vec<_>>(),
         vec![TerrorType::Robbery, TerrorType::Atomics, TerrorType::Sabotage]

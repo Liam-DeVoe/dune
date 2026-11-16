@@ -10,7 +10,8 @@ pub struct ShipMoveState {
     pub recent_moves: Vec<GameEvent>,
     pub current_no_field_value: i32,
     pub latest_revealed_no_field_value: i32,
-    pub shipment_permissions: NetDictionary<Faction, ShipmentPermission>,
+    // In the order the Guild granted them.
+    pub shipment_permissions: IndexMap<Faction, ShipmentPermission>,
     pub factions_with_ornithopters_at_start_of_movement: Vec<Faction>,
     pub beginning_of_shipment_and_move_phase: bool,
     pub current_karma_shipment_prevention: Option<Rc<KarmaShipmentPrevention>>,
@@ -300,7 +301,7 @@ impl Game {
         let ambassador = self.ambassador_in(territory);
         if ambassador != Ambassador::None {
             let ecaz = self.get_player(Some(Faction::Ecaz));
-            self.board.ambassadors_on_planet.remove(&territory);
+            self.board.ambassadors_on_planet.shift_remove(&territory);
             self.player_mut(ecaz.expect("ecaz")).ambassadors.push(ambassador);
             self.log(elems!["The ambassador in ", territory, " returns to ", Faction::Ecaz]);
         }

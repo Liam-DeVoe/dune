@@ -203,7 +203,7 @@ impl Game {
             let ambassador = self.ambassador_in(t);
             if ambassador != Ambassador::None {
                 let Some(ecaz) = self.get_player(Some(Faction::Ecaz)) else { continue };
-                self.board.ambassadors_on_planet.remove(&t);
+                self.board.ambassadors_on_planet.shift_remove(&t);
                 self.player_mut(ecaz).ambassadors.push(ambassador);
                 self.log(elems!["The ambassador in ", t, " returns to ", Faction::Ecaz]);
             }

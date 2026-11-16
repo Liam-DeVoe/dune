@@ -5,7 +5,8 @@ pub struct Decks {
     pub treachery_deck: Option<Deck<TreacheryCard>>,
     pub treachery_discard_pile: Option<Deck<TreacheryCard>>,
     pub removed_treachery_cards: Vec<TreacheryCard>,
-    pub recently_discarded: NetDictionary<TreacheryCard, Faction>,
+    // In the order the cards were discarded.
+    pub recently_discarded: IndexMap<TreacheryCard, Faction>,
     pub resource_card_deck: Option<Deck<ResourceCard>>,
     pub resource_card_discard_pile_a: Option<Deck<ResourceCard>>,
     pub resource_card_discard_pile_b: Option<Deck<ResourceCard>>,

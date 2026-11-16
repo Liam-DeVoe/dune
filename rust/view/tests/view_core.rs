@@ -581,6 +581,31 @@ fn recent_moves() {
     assert!(load("alliance").view(OBSERVER).board.recent_moves.is_empty());
 }
 
+/// Spice, stronghold owners and each faction's forces are listed in map order (by location id),
+/// whatever order they were put on the planet in (behavior-changes.md, "Order of spice, forces and
+/// other lists on the board").
+#[test]
+fn board_lists_in_map_order() {
+    let increasing = |ids: &[i32]| ids.windows(2).all(|w| w[0] < w[1]);
+
+    let mut r = first_bot_state("spice in three places and a faction in three places", |g| {
+        g.board.resources_on_planet.len() >= 3 && g.players.iter().any(|p| p.forces_on_planet().len() >= 3)
+    });
+    let view = r.view(OBSERVER);
+    let spice: Vec<i32> = view.board.spice.iter().map(|s| s.location).collect();
+    assert!(spice.len() >= 3 && increasing(&spice), "spice not in map order: {spice:?}");
+    let all: Vec<i32> = view.board.forces.iter().map(|f| f.location).collect();
+    assert!(all.windows(2).all(|w| w[0] <= w[1]), "forces not in map order: {all:?}");
+    for p in &r.game.players {
+        let own: Vec<i32> = view.board.forces.iter().filter(|f| f.faction == name(p.faction)).map(|f| f.location).collect();
+        assert!(increasing(&own), "{:?} forces not in map order: {own:?}", p.faction);
+    }
+
+    let mut r = first_bot_state("two owned strongholds", |g| g.board.stronghold_ownership.len() >= 2);
+    let owned: Vec<i32> = r.view(OBSERVER).board.strongholds.iter().map(|s| s.location).collect();
+    assert!(increasing(&owned), "strongholds not in map order: {owned:?}");
+}
+
 /// Tokens of the expansions, from bot games: stronghold owners, terror (identity to Moritani only),
 /// ambassadors, discoveries (identity to the faction of the token's type only), the Hidden
 /// Mobile Stronghold and discovered strongholds with their hosts, No-Field (value to Richese only).

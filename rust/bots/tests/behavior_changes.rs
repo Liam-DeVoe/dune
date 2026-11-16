@@ -156,7 +156,7 @@ fn worthless_cards_count_as_karama_for_bene_gesserit() {
     let reinforcements_holding = |game: &mut Game, type_: TreacheryCardType, rule: bool| {
         let c = card(game, type_);
         game.player_mut(bg).treachery_cards = vec![c];
-        game.player_mut(me).known_cards.add(c);
+        game.player_mut(me).known_cards.insert(c);
         game.rules.active.retain(|r| *r != Rule::BeneGesseritWorthlessAsKarma);
         if rule {
             game.rules.active.push(Rule::BeneGesseritWorthlessAsKarma);
@@ -218,7 +218,7 @@ fn bene_gesserit_voices_a_useless_defense_against_poison() {
     let shield = card(&game, T::Shield);
     let unknown = card(&game, T::Karma);
     game.player_mut(opponent).treachery_cards = vec![shield, unknown];
-    game.player_mut(bg).known_cards.add(shield);
+    game.player_mut(bg).known_cards.insert(shield);
 
     let plan = bot(&game, bg).best_voice(&game, None, bg, opponent);
     assert_eq!(plan.weapon_to_use, Some(poison));

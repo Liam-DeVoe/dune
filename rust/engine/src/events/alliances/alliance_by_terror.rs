@@ -62,7 +62,7 @@ impl AllianceByTerror {
             self.log_objects(game, elems!["Terror in ", territory, " is returned to supplies"]);
             // ToList(): a snapshot before the dictionary changes
             for t in game.terror_in(territory).collect::<Vec<_>>() {
-                game.board.terror_on_planet.remove(&t);
+                game.board.terror_on_planet.shift_remove(&t);
                 game.board.unplaced_terror_tokens.push(t);
             }
 

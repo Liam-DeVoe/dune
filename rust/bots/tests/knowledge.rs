@@ -109,7 +109,7 @@ impl<T: Fmt> Fmt for Vec<T> {
         format!("[{}]", self.iter().map(Fmt::fmt).collect::<Vec<_>>().join(","))
     }
 }
-impl Fmt for NetDictionary<Location, Battalion> {
+impl Fmt for BTreeMap<Location, Battalion> {
     fn fmt(&self) -> String {
         format!("[{}]", self.iter().map(|(l, b)| format!("{}={}", l.fmt(), b.fmt())).collect::<Vec<_>>().join(","))
     }

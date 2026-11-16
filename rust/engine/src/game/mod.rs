@@ -239,7 +239,7 @@ impl Game {
     }
 
     pub fn unregister_known_by_player(game: &mut Game, p: PlayerIndex, c: TreacheryCard) {
-        game.player_mut(p).known_cards.remove(&c);
+        game.player_mut(p).known_cards.shift_remove(&c);
     }
 
     pub fn unregister_all_known_by_player(game: &mut Game, p: PlayerIndex, cards: &[TreacheryCard]) {
@@ -278,8 +278,9 @@ impl Game {
         result
     }
 
-    pub fn forces_on_planet_excluding_empty_locations(&self, include_homeworlds: bool) -> IndexMap<Location, Vec<Battalion>> {
-        let mut result: IndexMap<Location, Vec<Battalion>> = IndexMap::new();
+    /// In map order (by location id), so the board lists forces the same way every time.
+    pub fn forces_on_planet_excluding_empty_locations(&self, include_homeworlds: bool) -> BTreeMap<Location, Vec<Battalion>> {
+        let mut result: BTreeMap<Location, Vec<Battalion>> = BTreeMap::new();
 
         for p in &self.players {
             let forces = if include_homeworlds { p.forces_in_locations.iter().map(|(k, v)| (*k, v.clone())).collect() } else { p.forces_on_planet() };

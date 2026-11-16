@@ -10,7 +10,7 @@ treachery-online is an online version of the Dune board game, running at https:/
 - `rust/server`: the server ([server.md](rust/docs/server.md)). It holds every game and sends views to clients over a WebSocket ([protocol.md](rust/docs/protocol.md)).
 - `rust/skin`: text and image names for log messages ([skin.md](rust/docs/skin.md)).
 - `rust/observe`: the behavior harness ([native-harness.md](rust/docs/native-harness.md)).
-- `rust/dotnet-compat`: copies of the few .NET behaviors the game still depends on: the slot order of .NET's `Dictionary` and `HashSet` for thirteen game fields, and number formatting and parsing ([compat.md](rust/docs/compat.md)).
+- `rust/dotnet-compat`: copies of the few .NET behaviors the game still depends on: number formatting and parsing ([compat.md](rust/docs/compat.md)). Its copies of .NET's `Dictionary` and `HashSet` are no longer used and go with the crate in wave 6 of the rewrite.
 - `web/`: the React client ([client.md](rust/docs/client.md)), with its art, fonts and stylesheets.
 - `deploy/`: everything needed to rebuild and deploy the server ([deploy/README.md](deploy/README.md)).
 

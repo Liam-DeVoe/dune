@@ -39,7 +39,6 @@ pub use storm::*;
 
 // Interfaces shared by several events. Not glob-exported: their method names clash with
 // the `GameEventMethods` ones, so `Event` has a dispatching method for each member.
-pub use bidding::bid_trait;
 pub use movement::{location_event, placement};
 
 use crate::prelude::*;
@@ -69,12 +68,12 @@ events! {
     BeneGesseritBattleAnnouncement,
     BeneGesseritFlip,
     BeneGesseritPrediction,
-    @legacy Bid,
-    @legacy BlackMarketBid,
+    Bid,
+    BlackMarketBid,
     @legacy Bureaucracy,
     Captured,
     Caravan,
-    @legacy CardGiven,
+    CardGiven,
     @legacy CardTraded,
     @legacy CardsDetermined,
     CharityClaimed,
@@ -101,8 +100,8 @@ events! {
     DivideResources,
     DivideResourcesAccepted,
     @legacy Donated,
-    @legacy EmperorBidSupport,
-    @legacy EmperorDiscarded,
+    EmperorBidSupport,
+    EmperorDiscarded,
     @legacy EndPhase,
     @legacy EstablishPlayers,
     ExtortionPrevented,
@@ -119,21 +118,21 @@ events! {
     HMSAdvantageChosen,
     HarvesterPlayed,
     @legacy HideSecrets,
-    @legacy IxianRemovedCardFromAuction,
+    IxianRemovedCardFromAuction,
     IxianSelectedStartingCard,
-    @legacy IxianSwappedCardOnBid,
+    IxianSwappedCardOnBid,
     @legacy JuicePlayed,
     @legacy Karma,
     @legacy KarmaChoamDiscard,
     KarmaEcazDial,
     @legacy KarmaFreeRevival,
-    @legacy KarmaHandSwap,
-    @legacy KarmaHandSwapInitiated,
+    KarmaHandSwap,
+    KarmaHandSwapInitiated,
     KarmaHmsMovement,
     KarmaMonster,
     KarmaPrescience,
     @legacy KarmaRevivalPrevention,
-    @legacy KarmaRicheseBuy,
+    KarmaRicheseBuy,
     KarmaShipmentPrevention,
     LoserConcluded,
     MetheorPlayed,
@@ -155,19 +154,19 @@ events! {
     Prescience,
     @legacy RaiseDeadPlayed,
     @legacy RecruitsPlayed,
-    @legacy ReplacedCardWon,
+    ReplacedCardWon,
     @legacy RequestTleilaxuRevival,
     ResidualPlayed,
     @legacy ResourcesAudited,
     @legacy ResourcesTransferred,
     Retreat,
     @legacy Revival,
-    @legacy RicheseAnnouncesAuction,
-    @legacy RicheseAnnouncesBlackMarket,
+    RicheseAnnouncesAuction,
+    RicheseAnnouncesBlackMarket,
     @legacy RicheseGaveCard,
-    @legacy RicheseKeepsUnsoldCard,
+    RicheseKeepsUnsoldCard,
     RicheseRevealedNoField,
-    @legacy RicheseSpecifiesAuction,
+    RicheseSpecifiesAuction,
     RockWasMelted,
     @legacy SetIncreasedRevivalLimits,
     SetShipmentPermission,
@@ -261,96 +260,6 @@ impl Event {
     pub fn validate_for(&self, game: &Game, by: Option<Faction>) -> Result<(), Rejection> {
         self.prepare(game, by);
         self.validate(game, By::new(game, by))
-    }
-
-    /// `((BidEvent)this).TotalAmount`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_total_amount(&self) -> i32 {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::total_amount(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::total_amount(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).Amount`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_amount(&self) -> i32 {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::amount(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::amount(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).AllyContributionAmount`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_ally_contribution_amount(&self) -> i32 {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::ally_contribution_amount(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).EmperorContributionAmount`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_emperor_contribution_amount(&self) -> i32 {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::emperor_contribution_amount(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).Initiator`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_initiator(&self) -> Faction {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::initiator(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::initiator(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).Player`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_player(&self) -> Option<PlayerId> {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::player(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::player(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).Passed`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_passed(&self) -> bool {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::passed(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::passed(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).UsingKarmaToRemoveBidLimit`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_using_karma_to_remove_bid_limit(&self) -> bool {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::using_karma_to_remove_bid_limit(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).KarmaCard`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_karma_card(&self) -> Option<TreacheryCard> {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::karma_card(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_card(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
-    }
-
-    /// `((BidEvent)this).KarmaBid`; InvalidCastException for events that do not implement `BidEvent`.
-    pub fn bid_karma_bid(&self) -> bool {
-        match self {
-            Event::Bid(e) => <Bid as bid_trait::BidEvent>::karma_bid(&**e),
-            Event::BlackMarketBid(e) => <BlackMarketBid as bid_trait::BidEvent>::karma_bid(&**e),
-            _ => panic!("{} is not a BidEvent", self.event_type().name()),
-        }
     }
 
     /// `((LocationEvent)this).To`; InvalidCastException for events that do not implement `LocationEvent`.

@@ -1,35 +1,19 @@
 use crate::prelude::*;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RicheseAnnouncesAuction {
     pub first: bool,
-    /// The fields of `Event` (Initiator, Time, Game, Player).
-    pub base: GameEventBase,
 }
 
-impl Default for RicheseAnnouncesAuction {
-    fn default() -> Self {
-        RicheseAnnouncesAuction {
-            first: Default::default(),
-            base: Default::default(),
-        }
-    }
-}
-
-impl RicheseAnnouncesAuction {
-    pub fn new(game: &Game, initiator: impl Into<Option<Faction>>) -> Self {
-        let e = Self::default();
-        e.initialize(game, initiator.into());
-        e
+impl EventRules for RicheseAnnouncesAuction {
+    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+        Ok(())
     }
 
-    pub fn validate(&self, _game: &Game) -> Option<Message> {
-        None
-    }
-
-    pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
+    fn apply(&self, game: &mut Game, by: By) -> GameResult {
         game.bidding.richese_occupier_specified_card = false;
-        self.log(game);
+        let m = self.describe(game, by);
+        game.log_event(m);
 
         game.bidding.number_of_cards_on_auction -= 1;
 
@@ -46,35 +30,7 @@ impl RicheseAnnouncesAuction {
         Ok(())
     }
 
-    pub fn get_message(&self, _game: &Game) -> Message {
-        express!(self.initiator(), " will auction a card from their cache ", if self.first { "first" } else { "last" })
+    fn describe(&self, _game: &Game, by: By) -> Message {
+        express!(by.faction, " will auction a card from their cache ", if self.first { "first" } else { "last" })
     }
-
-}
-
-impl GameEventMethods for RicheseAnnouncesAuction {
-    fn base(&self) -> &GameEventBase {
-        &self.base
-    }
-
-    fn event_type(&self) -> EventType {
-        EventType::RicheseAnnouncesAuction
-    }
-
-    fn into_event(self: Rc<Self>) -> Event {
-        Event::RicheseAnnouncesAuction(self)
-    }
-
-    fn validate(&self, game: &Game) -> Option<Message> {
-        RicheseAnnouncesAuction::validate(self, game)
-    }
-
-    fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        RicheseAnnouncesAuction::execute_concrete_event(self, game)
-    }
-
-    fn get_message(&self, game: &Game) -> Message {
-        RicheseAnnouncesAuction::get_message(self, game)
-    }
-
 }

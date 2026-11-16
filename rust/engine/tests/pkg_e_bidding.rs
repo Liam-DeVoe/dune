@@ -25,12 +25,18 @@ fn as_player<E: GameEventMethods>(e: E, g: &Game, f: Faction) -> E {
     e
 }
 
+/// A bid by `f`, as the auction keeps it.
+fn placed(bid: &Bid, g: &mut Game, f: Faction) -> PlacedBid {
+    let by = By::new(g, f);
+    bid.placed(g, by)
+}
+
 fn outcome<R>(f: impl FnOnce() -> R) -> Result<R, String> {
     catch_panic(f)
 }
 
-fn text(m: Option<Message>) -> Option<String> {
-    m.map(|m| m.plain_text())
+fn text(m: Result<(), Rejection>) -> Option<String> {
+    m.err().map(|r| r.0.plain_text())
 }
 
 #[test]
@@ -39,17 +45,16 @@ fn silent_bids_cannot_be_passed() {
     g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
     let mut bid = Bid::default();
     bid.passed = true;
-    let bid = as_player(bid, &g, Faction::Atreides);
-    assert!(bid.validate(&g).is_some());
+    let by = By::new(&g, Faction::Atreides);
+    assert!(bid.validate(&g, by).is_err());
 
     g.bidding.current_auction_type = Some(AuctionType::BlackMarketSilent);
-    assert!(bid.validate(&g).is_some());
+    assert!(bid.validate(&g, by).is_err());
 
     // A BlackMarketBid pass is always valid, even in a silent auction.
     let mut bmb = BlackMarketBid::default();
     bmb.passed = true;
-    let bmb = as_player(bmb, &g, Faction::Atreides);
-    assert!(bmb.validate(&g).is_none());
+    assert!(bmb.validate(&g, by).is_ok());
 }
 
 #[test]
@@ -62,9 +67,8 @@ fn bid_total_amount_doesnt_wrap() {
 
     let mut g = game_with(&[Faction::Atreides]);
     g.bidding.current_auction_type = Some(AuctionType::Normal);
-    let bid = as_player(bid, &g, Faction::Atreides);
     // More than Atreides has.
-    assert!(bid.validate(&g).is_some());
+    assert!(bid.validate(&g, By::new(&g, Faction::Atreides)).is_err());
 }
 
 #[test]
@@ -74,18 +78,17 @@ fn bid_must_beat_current_bid_except_in_silent_auctions() {
     g.player_mut(idx(&g, Faction::Harkonnen)).resources = 10;
     let mut current = Bid::default();
     current.amount = 5;
-    let current = as_player(current, &g, Faction::Harkonnen);
-    g.bidding.current_bid = Some(Rc::new(current).into_event());
+    g.bidding.current_bid = Some(placed(&current, &mut g, Faction::Harkonnen));
 
     let mut bid = Bid::default();
     bid.amount = 5;
-    let bid = as_player(bid, &g, Faction::Atreides);
+    let by = By::new(&g, Faction::Atreides);
 
     g.bidding.current_auction_type = Some(AuctionType::Normal);
-    assert!(bid.validate(&g).is_some());
+    assert!(bid.validate(&g, by).is_err());
 
     g.bidding.current_auction_type = Some(AuctionType::RicheseSilent);
-    assert!(bid.validate(&g).is_none());
+    assert!(bid.validate(&g, by).is_ok());
 }
 
 #[test]
@@ -98,8 +101,7 @@ fn silent_bid_above_resources_is_rejected() {
     let mut bid = Bid::default();
     bid.amount = 3;
     bid.emperor_contribution_amount = 2;
-    let bid = as_player(bid, &g, Faction::Atreides);
-    assert!(bid.validate(&g).is_some());
+    assert!(bid.validate(&g, By::new(&g, Faction::Atreides)).is_err());
 }
 
 #[test]
@@ -109,8 +111,8 @@ fn black_market_bid_validation_dereferences_null_player() {
     let mut bmb = BlackMarketBid::default();
     bmb.amount = 1;
     // Initiator not in the game: Player is null.
-    let bmb = as_player(bmb, &g, Faction::Emperor);
-    let r = outcome(|| bmb.validate(&g).is_some());
+    let by = By::new(&g, Faction::Emperor);
+    let r = outcome(|| bmb.validate(&g, by).is_err());
     assert!(r.is_err());
 }
 
@@ -122,9 +124,9 @@ fn bid_with_null_player_and_karma_card_is_invalid_not_a_crash() {
     bid.amount = 1;
     let karma = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma).unwrap();
     bid.karma_card = Some(karma);
-    let bid = as_player(bid, &g, Faction::Emperor);
+    let by = By::new(&g, Faction::Emperor);
     // UsingKarmaToRemoveBidLimit skips Player.Resources; p == null makes the card invalid.
-    let r = outcome(|| text(bid.validate(&g)));
+    let r = outcome(|| text(bid.validate(&g, by)));
     assert!(r.is_ok());
     assert!(r.unwrap().is_some());
 }
@@ -134,9 +136,9 @@ fn emperor_bid_support_message_without_amounts_fails() {
     let g = game_with(&[Faction::Emperor]);
     let mut e2 = EmperorBidSupport::default();
     e2.amounts = None;
-    let e2 = as_player(e2, &g, Faction::Emperor);
+    let by = By::new(&g, Faction::Emperor);
     // Missing amounts (fuzz seed 2 recorded this in C#, where `Amounts.Sum(...)` threw).
-    assert_eq!(outcome(|| e2.get_message(&g).plain_text()).unwrap_err(), "amounts");
+    assert_eq!(outcome(|| e2.describe(&g, by).plain_text()).unwrap_err(), "amounts");
 }
 
 #[test]
@@ -203,8 +205,8 @@ fn automatic_passes_stop_when_bidding_ends() {
         assert_ne!(first, atreides);
         let mut pass = Bid::default();
         pass.passed = true;
-        let pass = Rc::new(as_player(pass, &g, g.player(first).faction.expect("faction")));
-        Bid::execute_concrete_event(&pass, &mut g).unwrap();
+        let by = By::new(&g, g.player(first).faction.expect("faction"));
+        pass.apply(&mut g, by).unwrap();
 
         let everyone_passed =
             g.current_report().messages.iter().filter(|m| m.plain_text() == "Bidding ends because everyone passed").count();
@@ -243,8 +245,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         g.start_bid_sequence_and_auction_type(Some(AuctionType::Normal), None, 1);
         let mut high = Bid::default();
         high.amount = 15;
-        let high = as_player(high, &g, Faction::Richese);
-        g.bidding.current_bid = Some(Rc::new(high).into_event());
+        g.bidding.current_bid = Some(placed(&high, &mut g, Faction::Richese));
         // Richese's hand filled up after the bid, so the sequence skips Richese from now on.
         let richese = idx(&g, Faction::Richese);
         g.player_mut(richese).treachery_cards = TreacheryCardManager::items().iter().copied().take(5).collect();
@@ -256,8 +257,8 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         assert_ne!(first, richese);
         let mut pass = Bid::default();
         pass.passed = true;
-        let pass = Rc::new(as_player(pass, &g, g.player(first).faction.expect("faction")));
-        Bid::execute_concrete_event(&pass, &mut g).unwrap();
+        let by = By::new(&g, g.player(first).faction.expect("faction"));
+        pass.apply(&mut g, by).unwrap();
         tx.send(g.turn.current_phase).unwrap();
     });
     // Before the fix the thread never finished.

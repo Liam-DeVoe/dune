@@ -368,3 +368,9 @@ Not part of the review. Each has an escapes.md entry with the details.
 - A Clairvoyance question "is your dial higher than X?" takes a whole or half number. Any other number, such as "2.7", fails the event like a parameter that isn't a number: "The input string '2.7' is not a whole or half number." The form only offers 0 to 25 in halves. A dial is always a multiple of 0.5, so the answer to a question with X in between is the same as with X rounded down to a half.
 - Costs of more than 16,777,216 forces are now exact. C# halved them in `float`, which rounded first: shipping 16,777,217 forces back to reserves cost 8,388,608, and now costs 8,388,609. Only a crafted event can hold such an amount.
 - Tests: `strength_plain_text` and `halves_round_like_dotnet` in `engine/tests/review_foundation.rs`, `clairvoyance_parameters_parse_like_dotnet` in `engine/tests/pkg_j_faction_specials.rs`, `shipment_costs_match_csharp_at_the_edges` in `engine/tests/review_pkg_g.rs`.
+
+## The history keeps a battle plan as it was submitted
+
+- Area: battle, undo (rewrite-plan.md change 3a)
+- What happened: the battle plan held by the game was the same object as the `Battle` event in the history. A card that stays in a plan after the battle (the Diplomat's, or a Portable Antidote) also changed the history entry, so an undo after such a battle replayed the changed plan, and the plan's log line showed the card.
+- Done (3a battle, merged with b300d4e's successors): `game.battle` holds `BattlePlan` state structs, and the history keeps the event as submitted. No harness game reaches it (12 bots and 12 fuzz games, seed 1, match).

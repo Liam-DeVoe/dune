@@ -83,7 +83,7 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                 if !karma_cards.is_empty() {
                     seen.karma += 1;
                 }
-                let mut e = Bid::new(game, faction);
+                let mut e = Bid::default();
                 e.amount = treachery_engine::game::amounts::clamp_u16(amount);
                 e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
                 (
@@ -96,18 +96,18 @@ fn check_state(game: &mut Game, d: &dyn treachery_view::describe::Describer, see
                         default_amount: amount,
                         default_ally_amount: ally,
                     },
-                    Event::from(std::rc::Rc::new(e)),
+                    Event::from(e),
                 )
             } else {
                 let max_amount = BlackMarketBid::valid_max_amount(game, p);
                 let max_ally = BlackMarketBid::valid_max_ally_amount(game, p);
                 let (amount, ally) = expected_defaults(game, p, max_amount, max_ally);
-                let mut e = BlackMarketBid::new(game, faction);
+                let mut e = BlackMarketBid::default();
                 e.amount = treachery_engine::game::amounts::clamp_u16(amount);
                 e.ally_contribution_amount = treachery_engine::game::amounts::clamp_u16(ally);
                 (
                     ActionOptions::BlackMarketBid { max_amount, max_ally_amount: max_ally, max_emperor_amount: emperor, default_amount: amount, default_ally_amount: ally },
-                    Event::from(std::rc::Rc::new(e)),
+                    Event::from(e),
                 )
             };
             assert_eq!(options, expected, "{at}: {faction:?} {t:?}");

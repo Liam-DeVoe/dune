@@ -275,7 +275,7 @@ fn emperor_discard(g: &Game) -> Option<PlayerId> {
 
 /// Whoever just won the card on auction.
 fn auction_winner(g: &Game) -> Option<PlayerId> {
-    let winner = g.bidding.winning_bid.as_ref()?.legacy_initiator();
+    let winner = g.bidding.winning_bid.as_ref()?.initiator;
     g.get_player(winner)
 }
 

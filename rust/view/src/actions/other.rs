@@ -391,14 +391,14 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
                 m.card = None;
             }
         }),
-        Event::EmperorBidSupport(e) => adjust!(e, |m| {
+        Event::EmperorBidSupport(e) => adjust!(@plain e, |m| {
             if let Some(amounts) = m.amounts.as_mut() {
                 for (_, a) in amounts.iter_mut() {
                     *a = picker(*a, 0, i32::from(pl.resources));
                 }
             }
         }),
-        Event::EmperorDiscarded(e) => adjust!(e, |m| {
+        Event::EmperorDiscarded(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &hand);
         }),
         Event::FactionSelected(e) => adjust!(@plain e, |m| {
@@ -411,7 +411,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let targets: Vec<Faction> = FactionTradeOffered::valid_targets(game, p).collect();
             m.target = required_opt(m.target, &targets);
         }),
-        Event::IxianRemovedCardFromAuction(e) => adjust!(e, |m| {
+        Event::IxianRemovedCardFromAuction(e) => adjust!(@plain e, |m| {
             let cards: Vec<TreacheryCard> = game.bidding.cards_on_auction.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
             m.card = required_opt(m.card, &cards);
         }),
@@ -419,7 +419,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             let cards: Vec<TreacheryCard> = game.setup.starting_treachery_cards.as_ref().map(|d| d.items.to_vec()).unwrap_or_default().into_iter().collect();
             m.card = required_opt(m.card, &cards);
         }),
-        Event::IxianSwappedCardOnBid(e) => adjust!(e, |m| {
+        Event::IxianSwappedCardOnBid(e) => adjust!(@plain e, |m| {
             m.passed = false;
             m.card = required_opt(m.card, &hand);
         }),
@@ -437,11 +437,11 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
                 m.set_cards(&[]);
             }
         }),
-        Event::KarmaHandSwapInitiated(e) => adjust!(e, |m| {
+        Event::KarmaHandSwapInitiated(e) => adjust!(@plain e, |m| {
             let targets: Vec<Faction> = game.players_other_than(p).collect();
             m.target = required_opt(m.target, &targets);
         }),
-        Event::KarmaRicheseBuy(e) => adjust!(e, |m| {
+        Event::KarmaRicheseBuy(e) => adjust!(@plain e, |m| {
             m.card = required_opt(m.card, &game.decks.richese_cache.iter().copied().into_iter().collect::<Vec<_>>());
         }),
         Event::MulliganPerformed(e) => adjust!(@plain e, |m| {
@@ -451,7 +451,7 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
             m.passed = false;
         }),
         Event::NexusPlayed(_) => other_nexus::normalize(game, p, draft),
-        Event::ReplacedCardWon(e) => adjust!(e, |m| {
+        Event::ReplacedCardWon(e) => adjust!(@plain e, |m| {
             m.passed = false;
         }),
         Event::ResourcesAudited(e) => adjust!(e, |m| {
@@ -477,10 +477,10 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::TraitorsSelected(e) => adjust!(@plain e, |m| {
             m.selected_traitor = required_opt(m.selected_traitor, &pl.traitors);
         }),
-        Event::RicheseAnnouncesAuction(e) => adjust!(e, |m| {
+        Event::RicheseAnnouncesAuction(e) => adjust!(@plain e, |m| {
             m.first = true;
         }),
-        Event::RicheseAnnouncesBlackMarket(e) => adjust!(e, |m| {
+        Event::RicheseAnnouncesBlackMarket(e) => adjust!(@plain e, |m| {
             m.passed = false;
             m.card = required_opt(m.card, &RicheseAnnouncesBlackMarket::valid_cards(game, p).into_iter().collect::<Vec<_>>());
             let types = [Some(AuctionType::BlackMarketNormal), Some(AuctionType::BlackMarketOnceAround), Some(AuctionType::BlackMarketSilent)];
@@ -492,10 +492,10 @@ pub fn normalize(game: &Game, p: PlayerId, v: &ResolvedViewer, s: &Seating, draf
         Event::RicheseGaveCard(e) => adjust!(e, |m| {
             m.card = required_opt(m.card, &RicheseGaveCard::valid_cards(game, p).into_iter().collect::<Vec<_>>());
         }),
-        Event::RicheseKeepsUnsoldCard(e) => adjust!(e, |m| {
+        Event::RicheseKeepsUnsoldCard(e) => adjust!(@plain e, |m| {
             m.passed = false;
         }),
-        Event::RicheseSpecifiesAuction(e) => adjust!(e, |m| {
+        Event::RicheseSpecifiesAuction(e) => adjust!(@plain e, |m| {
             if RicheseSpecifiesAuction::may_specify_card(game, p) {
                 m.card = required_opt(m.card, &RicheseSpecifiesAuction::valid_cards(game).into_iter().collect::<Vec<_>>());
             }

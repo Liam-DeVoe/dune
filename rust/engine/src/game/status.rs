@@ -354,8 +354,8 @@ impl GameStatus {
             Phase::ReplacingCardJustWon => {
                 let g: &Game = game;
                 let a = express!("You might discard the card you just won and draw a new card instead, in case you have the necessary Nexus or alliance advantage.");
-                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.legacy_initiator()), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
-                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.legacy_initiator()).flatten());
+                let w = express!(g.bidding.winning_bid.as_ref().map(|b| b.initiator), " might replace the card they just won with a card from the deck in case they have the required Nexus or alliance advantage...");
+                let p = g.get_player(g.bidding.winning_bid.as_ref().map(|b| b.initiator).flatten());
                 Self::player_status(a, w, p, None)
             }
 

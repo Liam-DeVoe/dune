@@ -64,12 +64,12 @@ export function LoginComponent() {
   const login = async () => {
     if (isNullOrEmpty(username) || isNullOrEmpty(password)) return;
     setState("Loading");
-    const r = await client.requestLogin(username, await hashPassword(password));
-    if (r.Success) {
+    const error = await client.requestLogin(username, await hashPassword(password));
+    if (error == null) {
       client.rememberLogin(keepSignedIn);
       clearAllInputs();
     } else {
-      setLoginMessage(client.lobby.describeError(r.Error));
+      setLoginMessage(error);
       setState("Login");
     }
   };
@@ -77,13 +77,13 @@ export function LoginComponent() {
   const newAccount = async () => {
     if (!validateNewAccount()) return;
     setState("Loading");
-    const r = await client.requestCreateUser(newUsername!, await hashPassword(newPassword!), newEmail, newPlayerName!);
-    if (r.Success) {
+    const error = await client.requestCreateUser(newUsername!, await hashPassword(newPassword!), newEmail, newPlayerName!);
+    if (error == null) {
       client.rememberLogin(keepSignedIn);
       clearAllInputs();
       setState("Login");
     } else {
-      setNewAccountMessage(client.lobby.describeError(r.Error));
+      setNewAccountMessage(error);
       setState("NewAccount");
     }
   };
@@ -95,12 +95,12 @@ export function LoginComponent() {
     }
     setPasswordResetMessage(null);
     setState("Loading");
-    const r = await client.requestPasswordReset(resetUsernameOrEmail);
-    if (r.Success) {
+    const error = await client.requestPasswordReset(resetUsernameOrEmail);
+    if (error == null) {
       clearAllInputs();
       setState("EnterNewPassword");
     } else {
-      setPasswordResetMessage(client.lobby.describeError(r.Error));
+      setPasswordResetMessage(error);
       setState("RequestPasswordReset");
     }
   };
@@ -113,12 +113,12 @@ export function LoginComponent() {
     setResetPasswordMessage(message);
     if (message != null) return;
     setState("Loading");
-    const r = await client.requestSetPassword(resetUsername, resetToken, await hashPassword(resetPassword));
-    if (r.Success) {
+    const error = await client.requestSetPassword(resetUsername, resetToken, await hashPassword(resetPassword));
+    if (error == null) {
       clearAllInputs();
       setState("Login");
     } else {
-      setResetPasswordMessage(client.lobby.describeError(r.Error));
+      setResetPasswordMessage(error);
       setState("EnterNewPassword");
     }
   };

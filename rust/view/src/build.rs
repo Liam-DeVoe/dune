@@ -105,7 +105,7 @@ pub fn build_view_resolved(game: &mut Game, v: &ResolvedViewer, s: &Seating, d: 
         maximum_players: game.maximum_players(),
         main_phase: name(game.turn.current_main_phase),
         phase: name(game.turn.current_phase),
-        viewer: ViewerInfo { faction: v.faction.map(name), is_host: v.is_host, is_observer: v.is_observer },
+        viewer: ViewerInfo { faction: v.player.map(|_| name_or_absent(v.faction)), is_host: v.is_host, is_observer: v.is_observer },
         players: game.player_indices().map(|p| public_player(game, s, p)).collect(),
         me: me.map(|p| shield::private_player(game, p, &action_types)),
         board: board::board(game, &status, v),

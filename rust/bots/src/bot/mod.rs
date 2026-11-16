@@ -253,7 +253,7 @@ impl ClassicBot {
         self.player = player;
     }
 
-    /// Bots only act for players who have a faction.
+    /// Bots decide only for players who have a faction, except to end a phase.
     pub fn faction(&self, game: &Game) -> Faction {
         game.player(self.player).faction.expect("a bot plays a faction")
     }
@@ -408,8 +408,9 @@ impl ClassicBot {
         }
     }
 
+    /// The only decision a bot also makes before it has a faction.
     pub fn determine_end_phase(&self, game: &Game) -> Rc<EndPhase> {
-        Rc::new(EndPhase::new(game, self.faction(game)))
+        Rc::new(EndPhase::new(game, game.player(self.player).faction))
     }
 
     /// Runs `decide` if the player may submit its event type, and checks the event it comes up

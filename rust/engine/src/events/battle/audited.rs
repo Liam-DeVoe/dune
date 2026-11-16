@@ -14,17 +14,17 @@ impl EventRules for Audited {
         game.log_event(m);
         game.stone(Milestone::Audited);
         // RegisterKnown only adds to the player's KnownCards, so the list does not change.
-        let audited = game.battle.audited_cards.clone();
+        let audited = game.fight().map_or_else(Vec::new, |c| c.audited_cards.clone());
         for card in audited {
             Game::register_known_by_player(game, by.player(), Some(card));
         }
-        let winner_is_none = game.battle.battle_winner == Some(None);
+        let winner_is_none = game.battle_winner().is_none();
         let harkonnen_must_decide = game.harkonnen_must_decide_to_capture();
         // Enter(condition, FinishBattle, ...), with FinishBattle's failure passed on.
         if winner_is_none {
             game.finish_battle()?;
         } else {
-            game.enter_either(harkonnen_must_decide, Phase::CaptureDecision, Phase::BattleConclusion);
+            game.enter_battle(if harkonnen_must_decide { BattleStep::CaptureDecision } else { BattleStep::Conclusion });
         }
         Ok(())
     }

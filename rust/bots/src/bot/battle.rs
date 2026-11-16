@@ -7,7 +7,7 @@ use dotnet_compat::math::cmp_f32;
 /// Whether `battle` is the battle being fought now (the same initiated battle). No battle matches no
 /// current battle.
 pub(crate) fn is_current_battle(game: &Game, battle: Option<&InitiatedBattle>) -> bool {
-    match (battle, game.battle.current_battle.as_ref()) {
+    match (battle, game.current_battle()) {
         (None, None) => true,
         (Some(a), Some(b)) => a == b,
         _ => false,
@@ -52,7 +52,7 @@ struct HeroChoice {
 
 impl ClassicBot {
     pub fn determine_battle_claimed(&self, game: &Game) -> Option<BattleClaimed> {
-        let about = game.battle.battle_about_to_start.as_ref()?;
+        let about = game.battle_about_to_start()?;
         let territory = about.territory;
         let opponent = game.get_player(about.target);
         let ecaz = game.get_player(Some(Faction::Ecaz));
@@ -104,7 +104,7 @@ impl ClassicBot {
     }
 
     pub fn determine_treachery_called(&self, game: &Game) -> Option<TreacheryCalled> {
-        if !game.battle.current_battle.as_ref()?.is_aggressor_or_defender(game, self.player)
+        if !game.current_battle()?.is_aggressor_or_defender(game, self.player)
             && !TreacheryCalled::may_call_treachery(game, self.player)
         {
             return None;
@@ -127,7 +127,7 @@ impl ClassicBot {
 
     pub fn determine_battle_concluded(&self, game: &Game) -> Option<BattleConcluded> {
         let faction = self.faction(game);
-        let current_battle = game.battle.current_battle.as_ref()?;
+        let current_battle = game.current_battle()?;
         let my_battleplan = current_battle.plan_of(game, Some(self.player));
         let opponent = current_battle.opponent_of(game, self.player);
 
@@ -147,7 +147,7 @@ impl ClassicBot {
             discarded.extend(plan.defense().filter(discard_if_useless));
         }
 
-        let kill = match game.battle.harkonnen_victim {
+        let kill = match game.fight().and_then(|c| c.harkonnen_victim) {
             Some(v) => !game.is_skilled(Some(Hero::Leader(v))) && Hero::Leader(v).value() < 4,
             None => false,
         };
@@ -156,11 +156,12 @@ impl ClassicBot {
 
         let mut new_traitor: Option<Hero> = None;
         let mut to_replace: Option<Hero> = None;
-        if !game.battle.traitors_decipherer_can_look_at.is_empty() && game.battle.decipherer_may_replace_traitor {
+        if !game.fight().map_or(true, |c| c.traitors_decipherer_can_look_at.is_empty()) && game.battle_leftovers.decipherer_may_replace_traitor {
             // The most valuable hero card, or living leader of another faction, I may take as a traitor.
             new_traitor = game
-                .battle.traitors_decipherer_can_look_at
-                .iter()
+                .fight()
+                .into_iter()
+                .flat_map(|c| c.traitors_decipherer_can_look_at.iter())
                 .copied()
                 .filter(|t| t.as_treachery_card().is_some() || (t.faction() != Some(faction) && game.is_alive(*t)))
                 .min_by_key(|t| Reverse(t.value()));
@@ -201,7 +202,7 @@ impl ClassicBot {
     /// My battle plan, or `Some(None)` while I wait for prescience. `None` when I can't make a
     /// plan (see `determine_battle_plan`).
     pub fn determine_battle_plan_if_not_waiting_for_prescience(&self, game: &Game, include_leader_in_front_of_shield: bool) -> Option<Option<Battle>> {
-        let current_battle = game.battle.current_battle.as_ref()?;
+        let current_battle = game.current_battle()?;
         let opponent = current_battle.opponent_of(game, self.player);
 
         // Prescience waits for Voice, but I still plan after it.
@@ -216,7 +217,7 @@ impl ClassicBot {
     /// `None` when the battle, my opponent or the territory is missing, or a clairvoyance
     /// question about my plan can't be read.
     pub fn determine_battle_plan(&self, game: &Game, include_leader_in_front_of_shield: bool) -> Option<Battle> {
-        let current_battle = game.battle.current_battle.as_ref()?;
+        let current_battle = game.current_battle()?;
         let opponent = current_battle.opponent_of(game, self.player);
         let territory = current_battle.territory;
 
@@ -357,7 +358,7 @@ impl ClassicBot {
         let stronghold_free_forces = if game.has_stronghold_advantage(
             self.faction(game),
             StrongholdAdvantage::FreeResourcesForBattles,
-            game.battle.current_battle.as_ref()?.territory?,
+            game.current_battle()?.territory?,
         ) {
             2
         } else {
@@ -585,7 +586,7 @@ impl ClassicBot {
         }
 
         let available_defenses =
-            Self::usable_defenses(game, player, chosen_weapon, game.battle.current_battle.as_ref().and_then(|b| b.territory));
+            Self::usable_defenses(game, player, chosen_weapon, game.current_battle().and_then(|b| b.territory));
         let first_defense = |pred: &dyn Fn(TreacheryCard) -> bool| available_defenses.iter().copied().find(|d| pred(*d));
 
         if chosen_weapon.is_some_and(|w| w.is_artillery()) {
@@ -600,7 +601,7 @@ impl ClassicBot {
             return (0.0, first_defense(&|d| d.type_() == TreacheryCardType::Chemistry));
         }
 
-        let opponent_plan = game.battle.current_battle.as_ref().and_then(|b| b.plan_of(game, Some(opponent)));
+        let opponent_plan = game.current_battle().and_then(|b| b.plan_of(game, Some(opponent)));
         if let Some(opponent_plan) = opponent_plan.filter(|_| prescience == Some(PrescienceAspect::Weapon)) {
             return match opponent_plan.weapon().filter(|w| w.type_() != TreacheryCardType::Useless) {
                 None => {
@@ -801,7 +802,7 @@ impl ClassicBot {
         let unknown_cards = Self::cards_unknown_to_player(game, player);
         available_weapons.sort_by_cached_key(|w| Self::number_of_unknown_defenses_that_could_counter_player_weapon(&unknown_cards, Some(*w)));
 
-        let opponent_plan = game.battle.current_battle.as_ref().and_then(|b| b.plan_of(game, Some(opponent)));
+        let opponent_plan = game.current_battle().and_then(|b| b.plan_of(game, Some(opponent)));
 
         let mut opponent_may_be_using_a_weapon = true;
         if let Some(opponent_plan) = &opponent_plan {
@@ -1099,7 +1100,7 @@ impl ClassicBot {
         let i_assume_my_leader_will_die = chance_of_my_hero_surviving < param.battle_minimum_chance_to_assume_my_leader_survives;
         let i_assume_enemy_leader_will_die = chance_of_enemy_hero_surviving < param.battle_minimum_chance_to_assume_enemy_hero_survives;
 
-        let opponent_plan = game.battle.current_battle.as_ref().and_then(|b| b.plan_of(game, Some(opponent)));
+        let opponent_plan = game.current_battle().and_then(|b| b.plan_of(game, Some(opponent)));
         let opponent_weapon = if prescience == Some(PrescienceAspect::Weapon) { opponent_plan.as_ref().and_then(|p| p.weapon()) } else { None };
         let opponent_defense = if prescience == Some(PrescienceAspect::Defense) { opponent_plan.as_ref().and_then(|p| p.defense()) } else { None };
         let lasgun_shield = Self::has_lasgun_shield(weapon, defense, opponent_weapon, opponent_defense);
@@ -1237,9 +1238,9 @@ impl ClassicBot {
     /// Kills with the Rock Melter if I would win the battle. The outcome is predicted on copies of
     /// the plans, so deciding leaves the game as it was.
     pub fn determine_rock_was_melted(&self, game: &Game) -> RockWasMelted {
-        let agg = game.battle.aggressor_plan.as_ref().expect("battle plan");
-        let def = game.battle.defender_plan.as_ref().expect("battle plan");
-        let territory = game.battle.current_battle.as_ref().expect("current battle").territory.expect("territory");
+        let agg = game.aggressor_plan().expect("battle plan");
+        let def = game.defender_plan().expect("battle plan");
+        let territory = game.current_battle().expect("current battle").territory.expect("territory");
         let outcome = Battle::predict_battle_outcome(agg, def, territory, game);
         // Building the message can throw, which cancels the decision.
         let _ = outcome.get_message(game);
@@ -1253,7 +1254,7 @@ impl ClassicBot {
     }
 
     pub fn determine_portable_antidote_used(&self, game: &Game) -> Option<PortableAntidoteUsed> {
-        let current_battle = game.battle.current_battle.as_ref()?;
+        let current_battle = game.current_battle()?;
         let opponent = current_battle.opponent_of(game, self.player);
         let opponent_plan = current_battle.plan_of(game, opponent);
         let my_plan = current_battle.plan_of(game, Some(self.player));
@@ -1273,7 +1274,7 @@ impl ClassicBot {
     }
 
     pub fn determine_thought(&self, game: &Game) -> Option<Thought> {
-        let opponent = game.battle.current_battle.as_ref()?.opponent_of(game, self.player);
+        let opponent = game.current_battle()?.opponent_of(game, self.player);
         let mut valid_cards: Vec<TreacheryCard> = Thought::valid_cards(game).collect();
         valid_cards.sort_by_cached_key(|c| Reverse(self.card_quality(game, *c, opponent)));
 
@@ -1378,7 +1379,7 @@ mod tests {
         let path = format!("{}/../../scripts/fixtures/battle.json", env!("CARGO_MANIFEST_DIR"));
         let state = treachery_legacy::load_any(&std::fs::read_to_string(path).unwrap()).unwrap();
         let mut game = Game::load(&state, &Default::default(), false, false).unwrap();
-        let battle = game.battle.current_battle.clone().unwrap();
+        let battle = game.current_battle().cloned().unwrap();
         let me = game.get_player(Some(battle.aggressor(&game).expect("faction"))).unwrap();
         let opponent = game.get_player(Some(battle.defender(&game).expect("faction"))).unwrap();
         let mirror = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::MirrorWeapon).unwrap();

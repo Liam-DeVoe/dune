@@ -200,7 +200,7 @@ impl ClassicBot {
                 self.is_winning_or_is_opponent_in_battle(game, Faction::Atreides) && !game.prevented(FactionAdvantage::AtreidesBattlePlanPrescience)
             }
 
-            Some(Faction::Harkonnen) | Some(Faction::Tleilaxu) => game.battle.current_battle.as_ref()?.is_involved(game, self.player),
+            Some(Faction::Harkonnen) | Some(Faction::Tleilaxu) => game.current_battle()?.is_involved(game, self.player),
 
             Some(Faction::Fremen) => {
                 (game.turn.current_main_phase == MainPhase::Blow && FremenRidesMonster::is_applicable(game))
@@ -223,7 +223,7 @@ impl ClassicBot {
                         && self.is_winning_or_is_opponent_in_battle(game, Faction::Emperor)
                         && game
                             .player(game.get_player(Some(Faction::Emperor))?)
-                            .special_forces_in_territory(game.battle.current_battle.as_ref()?.territory)
+                            .special_forces_in_territory(game.current_battle()?.territory)
                             >= 3)
             }
 
@@ -306,7 +306,7 @@ impl ClassicBot {
 
     /// False for no faction, which is in no battle.
     pub fn is_winning_or_is_opponent_in_battle(&self, game: &Game, faction: impl Into<Option<Faction>>) -> bool {
-        let Some(battle) = game.battle.current_battle.as_ref() else { return false };
+        let Some(battle) = game.current_battle() else { return false };
         let Some(faction) = faction.into() else { return false };
         Some(faction) != self.ally(game)
             && ((battle.is_involved_faction(game, faction) && self.is_winning_faction(game, faction))
@@ -318,17 +318,17 @@ impl ClassicBot {
         if game.phase() != Phase::BattlePhase {
             return None;
         }
-        game.battle.current_battle.as_ref().filter(|b| b.is_aggressor_or_defender(game, self.player))
+        game.current_battle().filter(|b| b.is_aggressor_or_defender(game, self.player))
     }
 
     /// The aspect to ask about with Atreides prescience from a nexus card, or `None`
     /// to wait: until the opponent has used voice, or when I'm not fighting this battle. Also
     /// `None` without a battle, opponent or territory, which means no decision to both callers.
     fn nexus_prescience_aspect(&self, game: &Game, earlier: Option<PrescienceAspect>) -> Option<PrescienceAspect> {
-        let battle = game.battle.current_battle.as_ref()?;
+        let battle = game.current_battle()?;
         let opponent = battle.opponent_of_faction(game, self.faction(game));
         let voice_still_to_come =
-            Voice::may_use_voice_opt(game, opponent) && game.battle.current_voice.is_none() && battle.plan_of(game, opponent).is_none();
+            Voice::may_use_voice_opt(game, opponent) && game.fight().map_or(true, |c| c.voice.is_none()) && battle.plan_of(game, opponent).is_none();
         if voice_still_to_come || !battle.is_aggressor_or_defender(game, self.player) {
             return None;
         }
@@ -341,7 +341,7 @@ impl ClassicBot {
     /// Plays the nexus card of my own faction for its cunning effect.
     pub fn determine_nexus_played_cunning(&mut self, game: &Game, mut result: NexusPlayed) -> Option<NexusPlayed> {
         let play = match game.player(self.player).nexus {
-            Some(Faction::Atreides) => game.battle.current_prescience.as_ref().is_some_and(|prescience| {
+            Some(Faction::Atreides) => game.fight().and_then(|c| c.prescience.as_ref()).is_some_and(|prescience| {
                 result.atreides_prescience_aspect = self.nexus_prescience_aspect(game, prescience.aspect);
                 result.atreides_prescience_aspect != None
             }),
@@ -351,7 +351,7 @@ impl ClassicBot {
             Some(Faction::Fremen) => !game.blow.monsters.is_empty() && self.determine_moved_battalion(game, true).is_some(),
 
             Some(Faction::Emperor) => {
-                let t = game.battle.current_battle.as_ref()?.territory;
+                let t = game.current_battle()?.territory;
                 game.player(self.player).forces_in_territory(t) >= 4
             }
 
@@ -367,7 +367,7 @@ impl ClassicBot {
             Some(Faction::BeneGesserit) => self.determine_bene_gesserit_battle_announcement(game).is_some(),
 
             Some(Faction::Ixian) => {
-                let t = game.battle.current_battle.as_ref()?.territory;
+                let t = game.current_battle()?.territory;
                 game.player(self.player).forces_in_territory(t) >= 3
             }
 
@@ -400,7 +400,7 @@ impl ClassicBot {
                 !shipment.passed && Shipment::determine_cost(game, self.player, &shipment) > 5
             }
 
-            Some(Faction::BeneGesserit) => game.battle.current_battle.as_ref().is_some_and(|b| b.is_involved(game, self.player)),
+            Some(Faction::BeneGesserit) => game.current_battle().is_some_and(|b| b.is_involved(game, self.player)),
 
             Some(Faction::Ixian) => self.card_quality(game, game.bidding.card_just_won?, Some(self.player)) < 2,
 
@@ -415,7 +415,7 @@ impl ClassicBot {
                     }
                 }
                 MainPhase::Battle => {
-                    let battle = game.battle.current_battle.as_ref()?;
+                    let battle = game.current_battle()?;
                     let auditee = battle.opponent_of(game, self.player);
                     let recent_battle_plan = battle.plan_of(game, auditee);
                     let me = game.player(self.player);
@@ -747,8 +747,8 @@ impl ClassicBot {
         let p1 = || clairvoyance.parameter1(game);
         let card_type = || unbox_enum::<TreacheryCardType>(&p1()).ok().flatten();
         let hero = || cast_hero(&p1()).ok();
-        let in_battle = || game.battle.current_battle.as_ref().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
-        let my_plan = || match game.battle.current_battle.as_ref()?.plan_of(game, Some(self.player)) {
+        let in_battle = || game.current_battle().is_some_and(|b| b.is_aggressor_or_defender(game, self.player));
+        let my_plan = || match game.current_battle()?.plan_of(game, Some(self.player)) {
             Some(plan) => Some(plan),
             None => Some(self.determine_battle_plan(game, true)?.plan(By::new(game, self.faction(game)))),
         };
@@ -787,7 +787,7 @@ impl ClassicBot {
 
             Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle) if in_battle() => {
                 let plan = my_plan()?;
-                let opponent = game.battle.current_battle.as_ref()?.opponent_of(game, self.player)?;
+                let opponent = game.current_battle()?.opponent_of(game, self.player)?;
                 yes_no(plan.dial(game, game.player(opponent).faction?) > unbox_strength(&p1()).ok()?)
             }
 
@@ -1228,7 +1228,7 @@ impl ClassicBot {
     }
 
     pub fn determine_diplomacy(&self, game: &Game) -> Option<Diplomacy> {
-        let opponent_plan = game.battle.current_battle.as_ref()?.plan_of_opponent(game, Some(self.player));
+        let opponent_plan = game.current_battle()?.plan_of_opponent(game, Some(self.player));
         let opponent_plan = opponent_plan?;
         if opponent_plan.weapon().is_some_and(|w| w.countered_by(opponent_plan.defense(), None)) {
             let mut e = Diplomacy::default();

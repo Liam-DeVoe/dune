@@ -217,10 +217,10 @@ impl GameStatus {
             | Phase::AvoidingAudit
             | Phase::Auditing
             | Phase::RevealingFacedancer
-                if game.battle.current_battle.is_some() =>
+                if game.current_battle().is_some() =>
             {
                 // `Territory!` does not throw: a null territory becomes a null element.
-                vec![game.battle.current_battle.as_ref().expect("current battle").territory]
+                vec![game.current_battle().expect("current battle").territory]
             }
 
             _ => vec![],
@@ -229,7 +229,7 @@ impl GameStatus {
 
     pub fn determine_battle_status(game: &Game, me_: Option<PlayerId>) -> GameStatus {
         let g = game;
-        if game.battle.current_battle.is_none() {
+        if game.current_battle().is_none() {
             let a = express!("Please choose whom and where to battle.");
             let next = game.next_player_to_battle().expect("next player to battle");
             let w = express!(game.player(next).faction, " are deciding whom and where to battle...");
@@ -239,7 +239,7 @@ impl GameStatus {
 
         let latest_battle_event = g.latest_event(EventType::BattleInitiated);
         let mut to_make_plan = Self::players_that_need_to_make_a_battle_plan(g);
-        let battle = g.battle.current_battle.clone().expect("current battle");
+        let battle = g.current_battle().cloned().expect("current battle");
         let my_faction = me_.map(|me| g.player(me).faction);
 
         // Prescience waits for Voice, so whoever may use or decline it is waited for too.
@@ -285,22 +285,22 @@ impl GameStatus {
     pub fn players_that_need_to_make_a_battle_plan(game: &Game) -> Vec<Option<PlayerId>> {
         let mut result = vec![];
         // `AggressivePlayer!` does not throw: a null player becomes a null element.
-        if game.battle.aggressor_plan.is_none() {
-            result.push(game.battle.current_battle.as_ref().expect("current battle").aggressive_player(game));
+        if game.aggressor_plan().is_none() {
+            result.push(game.current_battle().expect("current battle").aggressive_player(game));
         }
-        if game.battle.defender_plan.is_none() {
-            result.push(game.battle.current_battle.as_ref().expect("current battle").defending_player(game));
+        if game.defender_plan().is_none() {
+            result.push(game.current_battle().expect("current battle").defending_player(game));
         }
         result
     }
 
     pub fn players_that_need_to_call_traitor(game: &Game) -> Vec<Option<PlayerId>> {
         let mut result = vec![];
-        if game.battle.aggressor_traitor_action.is_none() {
-            result.push(game.battle.current_battle.as_ref().expect("current battle").aggressive_player(game));
+        if game.fight().map_or(true, |c| c.aggressor_traitor_action.is_none()) {
+            result.push(game.current_battle().expect("current battle").aggressive_player(game));
         }
-        if game.battle.defender_traitor_action.is_none() {
-            result.push(game.battle.current_battle.as_ref().expect("current battle").defending_player(game));
+        if game.fight().map_or(true, |c| c.defender_traitor_action.is_none()) {
+            result.push(game.current_battle().expect("current battle").defending_player(game));
         }
         result
     }
@@ -359,8 +359,8 @@ impl GameStatus {
         }
 
         // C# parity: BattleWinner is a Faction?, so a null winner passes this check and flashes "null win!".
-        if g.phase() == Phase::BattleConclusion && g.battle.battle_winner != Some(None) {
-            Self::flash(&mut result, express!(g.battle.battle_winner, " win!"), g.battle.battle_winner);
+        if let Some(winner) = g.battle_winner().filter(|_| g.phase() == Phase::BattleConclusion) {
+            Self::flash(&mut result, express!(Some(winner), " win!"), Some(winner));
             return result;
         }
 
@@ -399,7 +399,7 @@ impl GameStatus {
                 Event::Retreat(_) | Event::Diplomacy(_) => Self::flash_skill_used(g, &mut result, latest, LeaderSkill::Diplomat),
                 Event::Bureaucracy(e) if !e.passed => Self::flash_skill_used(g, &mut result, latest, LeaderSkill::Bureaucrat),
                 Event::Planetology(_) => Self::flash_skill_used(g, &mut result, latest, LeaderSkill::Planetologist),
-                Event::BattleConcluded(_) if g.battle.traitors_decipherer_can_look_at.len() > 0 => {
+                Event::BattleConcluded(_) if g.fight().map_or(0, |c| c.traitors_decipherer_can_look_at.len()) > 0 => {
                     Self::flash_skill_used(g, &mut result, latest, LeaderSkill::Decipherer)
                 }
                 Event::Thought(_) => Self::flash_skill_used(g, &mut result, latest, LeaderSkill::Thinker),
@@ -497,8 +497,8 @@ impl GameStatus {
 
         match &e.event {
             Event::TreacheryCalled(_) => {
-                let victim = game.battle.current_battle.as_ref().expect("current battle").opponent_of_faction(game, e.by);
-                let victim_plan = game.battle.current_battle.as_ref().expect("current battle").plan_of(game, victim);
+                let victim = game.current_battle().expect("current battle").opponent_of_faction(game, e.by);
+                let victim_plan = game.current_battle().expect("current battle").plan_of(game, victim);
                 let msg = express!(victim_plan.as_ref().and_then(|p| p.hero), " is a ", e.by, " traitor!");
                 let hero = victim_plan.as_ref().expect("victim plan").hero;
                 Self::flash(flashes, msg, hero);

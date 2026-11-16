@@ -163,55 +163,26 @@ impl EndPhase {
 
     pub fn enter_battle_phase(&self, game: &mut Game) {
         game.main_phase_start(MainPhase::Battle, true);
-        game.battle.nr_of_battles_fought = 0;
-        game.battle.battle_sequence = Some(PlayerSequence::starting_with_first_player(game));
         game.turn.current_guild_cunning = None;
         game.turn.current_guild_secret_ally = None;
         if game.storm.karma_hms_moves_left != 2 {
             game.storm.karma_hms_moves_left = 0;
         }
         self.reset_battle(game);
-        if game.advance_battle_sequence().is_none() {
+        if !game.begin_battle() {
             enter_spice_collection_phase(game);
-        } else {
-            game.enter(Phase::BeginningOfBattle, true);
         }
     }
 
+    /// Resets the turn's state that lasts one battle. The battle's own state is dropped with it
+    /// (`BattlePhase::current`).
     pub fn reset_battle(&self, game: &mut Game) {
         game.turn.facedancer_was_cancelled = false;
-        game.battle.current_battle = None;
-        game.battle.current_prescience = None;
-        game.battle.prescience_seen_plans.clear();
-        game.battle.current_thought = None;
-        game.battle.current_voice = None;
-        game.battle.voice_declined = false;
         game.turn.current_nexus_prescience = None;
         game.turn.current_bene_gesserit_cunning = None;
         game.turn.current_emperor_cunning = None;
         game.turn.current_ixian_cunning = None;
-        game.battle.harkonnen_victim = None;
-        game.battle.aggressor_plan = None;
-        game.battle.defender_plan = None;
-        game.battle.previous_aggressor_plan = None;
-        game.battle.previous_defender_plan = None;
-        game.battle.aggressor_traitor_action = None;
-        game.battle.defender_traitor_action = None;
-        game.battle.poison_tooth_cancelled = false;
-        game.battle.ixian_special_force_losses_to_take = 0;
-        game.battle.battle_winner = Some(None);
-        game.battle.battle_loser = Some(None);
         game.turn.has_acted_or_passed.clear();
-        game.battle.battle_triggered_bureaucracy = None;
-        game.battle.cards_to_be_discarded_by_loser_after_battle.clear();
-        game.battle.battle_was_concluded_by_winner = false;
-        game.battle.loser_may_try_to_assassinate = false;
-        game.battle.battle_winner_may_choose_to_discard = true;
-        game.battle.battle_about_to_start = None;
-        game.battle.current_ecaz_or_ally_fighter = Some(None);
-        game.battle.current_ecaz_battle_contribution = 0;
-        game.battle.atreides_karma = false;
-        game.battle.ecaz_karma_bonus = 0;
     }
 
     pub fn enter_spice_collection_phase(&self, game: &mut Game) {
@@ -284,17 +255,20 @@ impl EventRules for EndPhase {
 
             Phase::ShipmentAndMoveConcluded => self.enter_battle_phase(game),
 
-            Phase::BeginningOfBattle => game.enter(Phase::BattlePhase, true),
+            Phase::BeginningOfBattle => game.enter_battle(BattleStep::Planning),
 
             Phase::CancellingTraitor => {
-                game.enter(Phase::CallTraitorOrPass, true);
+                game.enter_battle(BattleStep::CallingTraitor);
                 game.handle_revealed_battle_plans()?;
             }
 
             Phase::BattleReport => {
                 self.reset_battle(game);
-                let condition = game.advance_battle_sequence().is_some();
-                game.enter_or_else(condition, Phase::BattlePhase, enter_spice_collection_phase);
+                if game.next_battle_or_end() {
+                    game.enter_battle(BattleStep::Planning);
+                } else {
+                    enter_spice_collection_phase(game);
+                }
             }
 
             Phase::BeginningOfCollection => game.start_collection(),

@@ -39,19 +39,20 @@ fn last_logged_list(g: &Game) -> Vec<Part> {
 }
 
 /// CHOAM's audit shows the audited cards. The next audit clears and refills
-/// `battle.audited_cards`.
+/// the battle's `audited_cards`.
 #[test]
 fn an_audit_message_keeps_the_cards_of_its_audit() {
     let mut g = game_with(&[Faction::Choam, Faction::Emperor]);
     let first = card_of(TreacheryCardType::Laser, 0);
-    g.battle.audited_cards = vec![first];
+    g.enter_battle_state(BattleStep::AvoidingAudit, Some(BattleInitiated::default().battle(By::new(&g, Faction::Choam), EntryId::default())));
+    g.fight_mut().audited_cards = vec![first];
 
     let by = By::new(&g, Faction::Emperor);
     AuditCancelled { cancelled: false }.apply(&mut g, by).unwrap();
     assert_eq!(g.current_report().messages.last().unwrap().to, Audience::Faction(Faction::Emperor));
     assert_eq!(last_logged_list(&g), cards(&[first]));
 
-    g.battle.audited_cards = vec![card_of(TreacheryCardType::Shield, 0), card_of(TreacheryCardType::Shield, 1)];
+    g.fight_mut().audited_cards = vec![card_of(TreacheryCardType::Shield, 0), card_of(TreacheryCardType::Shield, 1)];
     assert_eq!(last_logged_list(&g), cards(&[first]));
 }
 

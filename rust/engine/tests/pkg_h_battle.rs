@@ -92,32 +92,32 @@ fn has_traitor_is_false_for_a_missing_hero() {
 }
 
 #[test]
-fn winner_hero_with_null_battle_winner() {
-    // BattleWinner starts null; `null != Faction.None` is true, and `null == AggressorPlan?.Initiator`
-    // is false when there is a plan, so the defender's plan is used.
+fn winner_hero_is_the_hero_of_the_winning_plan() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    assert_eq!(g.battle.battle_winner, None);
     assert_eq!(g.winner_hero(), None);
-    g.battle.aggressor_plan = Some(plan(&g, Faction::Emperor));
+    g.enter_battle_state(BattleStep::Planning, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
+    g.fight_mut().aggressor_plan = Some(plan(&g, Faction::Emperor));
     let mut d = plan(&g, Faction::Atreides);
     d.hero = Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap()));
-    g.battle.defender_plan = Some(d);
-    assert_eq!(g.winner_hero(), Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap())));
-    assert!(g.winner_battle_action().is_none());
-    g.battle.battle_winner = Some(None);
+    g.fight_mut().defender_plan = Some(d.clone());
+    // Not decided yet, or nobody won.
     assert_eq!(g.winner_hero(), None);
+    assert!(g.winner_battle_action().is_none());
+    g.fight_mut().winner = Some(Faction::Atreides);
+    assert_eq!(g.winner_hero(), Some(Hero::Leader(LeaderManager::get_leaders(Faction::Atreides).next().unwrap())));
+    assert_eq!(g.winner_battle_action(), Some(d));
 }
 
 #[test]
 fn battle_revision_moves_the_plan_aside() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
-    g.battle.current_battle = Some(battle(&g, Faction::Emperor, Faction::Atreides));
+    g.enter_battle_state(BattleStep::Planning, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
     let p = plan(&g, Faction::Atreides);
-    g.battle.defender_plan = Some(p.clone());
+    g.fight_mut().defender_plan = Some(p.clone());
     let by = By::new(&g, Faction::Atreides);
     BattleRevision::default().apply(&mut g, by).unwrap();
-    assert!(g.battle.defender_plan.is_none());
-    assert_eq!(g.battle.previous_defender_plan.as_ref(), Some(&p));
+    assert!(g.defender_plan().is_none());
+    assert_eq!(g.fight().unwrap().previous_defender_plan.as_ref(), Some(&p));
 }
 
 #[test]
@@ -156,7 +156,8 @@ fn opponent_and_plan_lookups() {
     assert!(!b.is_aggressor_or_defender(&g, fremen));
 
     let a = plan(&g, Faction::Emperor);
-    g.battle.aggressor_plan = Some(a.clone());
+    g.enter_battle_state(BattleStep::Planning, Some(b.clone()));
+    g.fight_mut().aggressor_plan = Some(a.clone());
     assert_eq!(b.plan_of_faction(&g, Faction::Emperor), Some(a));
     assert!(b.plan_of_faction(&g, Faction::Fremen).is_none());
 }
@@ -167,7 +168,8 @@ fn treachery_of_matches_ally_initiator() {
     g.player_mut(idx(&g, Faction::Emperor)).ally = Some(Faction::Harkonnen);
     let b = battle(&g, Faction::Emperor, Faction::Atreides);
     let t = call(&g, Faction::Harkonnen, false);
-    g.battle.aggressor_traitor_action = Some(t.clone());
+    g.enter_battle_state(BattleStep::CallingTraitor, Some(b.clone()));
+    g.fight_mut().aggressor_traitor_action = Some(t.clone());
     let emperor = idx(&g, Faction::Emperor);
     assert_eq!(b.treachery_of(&g, Some(emperor)), Some(t.clone()));
     let atreides = idx(&g, Faction::Atreides);
@@ -183,7 +185,7 @@ fn lose_cards_skips_cards_the_player_no_longer_has() {
     // _defenseCardId defaults to 0, which Lookup.Find resolves to card 0 (Battle.cs:63).
     p.set_defense(None);
     g.lose_cards(&p, true).unwrap();
-    assert!(g.battle.cards_to_be_discarded_by_loser_after_battle.is_empty());
+    assert!(g.fight().map_or(true, |c| c.cards_to_be_discarded_by_loser.is_empty()));
 }
 
 #[test]
@@ -191,9 +193,10 @@ fn loser_concluded_applicability() {
     let mut g = game_with(&[Faction::Emperor, Faction::Atreides]);
     let emperor = idx(&g, Faction::Emperor);
     assert!(!LoserConcluded::is_applicable(&g, None));
-    g.battle.battle_loser = Some(Some(Faction::Emperor));
+    g.enter_battle_state(BattleStep::Conclusion, Some(battle(&g, Faction::Emperor, Faction::Atreides)));
+    g.fight_mut().loser = Some(Faction::Emperor);
     assert!(!LoserConcluded::is_applicable(&g, Some(emperor)));
-    g.battle.loser_may_try_to_assassinate = true;
+    g.fight_mut().loser_may_try_to_assassinate = true;
     assert!(LoserConcluded::is_applicable(&g, Some(emperor)));
 }
 

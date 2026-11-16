@@ -6,7 +6,7 @@ pub struct ResidualPlayed {}
 
 impl ResidualPlayed {
     pub fn may_play(g: &Game, p: PlayerId) -> bool {
-        g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
+        g.current_battle().expect("current battle").is_aggressor_or_defender(g, p)
             && g.player(p).treachery_cards.iter().any(|c| c.type_() == TreacheryCardType::Residual)
     }
 }
@@ -18,7 +18,7 @@ impl EventRules for ResidualPlayed {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         game.discard(by.player(), TreacheryCardType::Residual)?;
-        let battle = game.battle.current_battle.clone().required("current battle")?;
+        let battle = game.current_battle().cloned().required("current battle")?;
         let opponent = battle.opponent_of_faction(game, by.faction).required("opponent of faction")?;
         let candidates: Vec<Hero> = game
             .player(opponent)

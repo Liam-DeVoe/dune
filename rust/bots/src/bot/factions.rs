@@ -704,10 +704,10 @@ impl ClassicBot {
     pub fn determine_voice(&mut self, game: &Game) -> Option<Voice> {
         self.voice_plan = None;
 
-        let battle = game.battle.current_battle.clone()?;
+        let battle = game.current_battle().cloned()?;
         if battle.is_aggressor_or_defender(game, self.player) {
             let opponent = battle.opponent_of_faction(game, self.faction(game));
-            let plan = self.best_voice(game, game.battle.current_battle.clone(), self.player, opponent?);
+            let plan = self.best_voice(game, game.current_battle().cloned(), self.player, opponent?);
             let voice = plan.voice.clone();
             self.voice_plan = Some(plan);
             return Some(voice);
@@ -814,10 +814,10 @@ impl ClassicBot {
     // ---- Atreides ----
 
     pub fn determine_prescience(&self, game: &Game) -> Option<Prescience> {
-        let battle = game.battle.current_battle.clone()?;
+        let battle = game.current_battle().cloned()?;
         let opponent = battle.opponent_of_faction(game, self.faction(game));
 
-        if Voice::may_use_voice_opt(game, opponent) && game.battle.current_voice.is_none() && battle.plan_of(game, opponent).is_none() {
+        if Voice::may_use_voice_opt(game, opponent) && game.fight().map_or(true, |c| c.voice.is_none()) && battle.plan_of(game, opponent).is_none() {
             // Wait for voice or a finalized battle plan.
             return None;
         }
@@ -826,7 +826,7 @@ impl ClassicBot {
             return None;
         }
 
-        let existing_aspect = game.battle.current_prescience.as_ref().map_or(None, |p| p.aspect);
+        let existing_aspect = game.fight().and_then(|c| c.prescience.as_ref()).map_or(None, |p| p.aspect);
         let mut e = Prescience::default();
         let territory = battle.territory?;
         let max_dial = ClassicBot::max_dial(game, self.player, territory, opponent, false);
@@ -902,7 +902,7 @@ impl ClassicBot {
             let face_danced_hero_is_living_leader = face_dancer.is_some_and(|f| f.as_leader().is_some() && game.is_alive(f));
 
             if (FaceDanced::maximum_number_of_forces(game, self.player) > 0 || face_danced_hero_is_living_leader)
-                && game.battle.battle_winner != Some(self.ally(game))
+                && game.battle_winner() != self.ally(game)
             {
                 e.passed = false;
             }
@@ -1039,7 +1039,7 @@ impl ClassicBot {
     // ---- Choam ----
 
     pub fn determine_resources_audited(&self, game: &Game) -> Option<ResourcesAudited> {
-        let battle = match &game.battle.current_battle {
+        let battle = match game.current_battle() {
             Some(b) if b.is_aggressor_or_defender(game, self.player) => b.clone(),
             _ => return None,
         };

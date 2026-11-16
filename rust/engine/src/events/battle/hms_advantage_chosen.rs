@@ -9,10 +9,10 @@ pub struct HMSAdvantageChosen {
 impl HMSAdvantageChosen {
     pub fn can_be_played(g: &Game, p: PlayerId) -> bool {
         let hms = g.board.map.hidden_mobile_stronghold();
-        g.battle.chosen_hms_advantage == Some(None)
-            && g.battle.current_battle.is_some()
-            && g.battle.current_battle.as_ref().expect("current battle").is_aggressor_or_defender(g, p)
-            && g.battle.current_battle.as_ref().expect("current battle").territory == Some(hms.location().territory())
+        g.fight().is_some_and(|c| c.chosen_hms_advantage.is_none())
+            && g.current_battle().is_some()
+            && g.current_battle().expect("current battle").is_aggressor_or_defender(g, p)
+            && g.current_battle().expect("current battle").territory == Some(hms.location().territory())
             && g.owns_stronghold(g.player(p).faction, hms.location())
             && !HMSAdvantageChosen::valid_advantages(g, p).is_empty()
     }
@@ -46,7 +46,7 @@ impl EventRules for HMSAdvantageChosen {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        game.battle.chosen_hms_advantage = Some(self.advantage);
+        game.fight_mut().chosen_hms_advantage = self.advantage;
         Ok(())
     }
 

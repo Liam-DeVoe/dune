@@ -47,14 +47,14 @@ impl BattleInitiated {
 
 impl InitiatedBattle {
     pub fn actual_initiator(&self, game: &Game) -> Option<Faction> {
-        match game.battle.current_ecaz_or_ally_fighter.flatten() {
+        match game.fight().and_then(|c| c.ecaz_or_ally_fighter) {
             Some(fighter) if self.initiator() == game.get_ally(Some(fighter)) => Some(fighter),
             _ => self.initiator(),
         }
     }
 
     pub fn actual_target(&self, game: &Game) -> Option<Faction> {
-        match game.battle.current_ecaz_or_ally_fighter.flatten() {
+        match game.fight().and_then(|c| c.ecaz_or_ally_fighter) {
             Some(fighter) if self.target == game.get_ally(Some(fighter)) => Some(fighter),
             _ => self.target,
         }
@@ -143,9 +143,9 @@ impl InitiatedBattle {
         let f = game.player(p).faction;
 
         if f == self.aggressor(game) {
-            return game.battle.aggressor_plan.clone();
+            return game.aggressor_plan().cloned();
         }
-        if f == self.defender(game) { game.battle.defender_plan.clone() } else { None }
+        if f == self.defender(game) { game.defender_plan().cloned() } else { None }
     }
 
     pub fn plan_of_opponent(&self, game: &Game, p: Option<PlayerId>) -> Option<BattlePlan> {
@@ -162,18 +162,18 @@ impl InitiatedBattle {
     pub fn plan_of_faction(&self, game: &Game, f: impl Into<Option<Faction>>) -> Option<BattlePlan> {
         let f: Option<Faction> = f.into();
         if f == self.aggressor(game) {
-            return game.battle.aggressor_plan.clone();
+            return game.aggressor_plan().cloned();
         }
 
-        if f == self.defender(game) { game.battle.defender_plan.clone() } else { None }
+        if f == self.defender(game) { game.defender_plan().cloned() } else { None }
     }
 
     pub fn previous_plan_of(&self, game: &Game, f: Faction) -> Option<BattlePlan> {
         if Some(f) == self.aggressor(game) {
-            return game.battle.previous_aggressor_plan.clone();
+            return game.fight().and_then(|c| c.previous_aggressor_plan.clone());
         }
 
-        if Some(f) == self.defender(game) { game.battle.previous_defender_plan.clone() } else { None }
+        if Some(f) == self.defender(game) { game.fight().and_then(|c| c.previous_defender_plan.clone()) } else { None }
     }
 
     pub fn treachery_of_opponent(&self, game: &Game, p: PlayerId) -> Option<TraitorCall> {
@@ -184,12 +184,12 @@ impl InitiatedBattle {
         let Some(p) = p else { return None };
         let pl = game.player(p);
 
-        if let Some(a) = &game.battle.aggressor_traitor_action {
+        if let Some(a) = game.fight().and_then(|c| c.aggressor_traitor_action.as_ref()) {
             if a.initiator() == pl.faction || a.initiator() == pl.ally {
                 return Some(a.clone());
             }
         }
-        if let Some(d) = &game.battle.defender_traitor_action {
+        if let Some(d) = game.fight().and_then(|c| c.defender_traitor_action.as_ref()) {
             if d.initiator() == pl.faction || d.initiator() == pl.ally {
                 return Some(d.clone());
             }
@@ -240,7 +240,7 @@ impl EventRules for BattleInitiated {
         report.aggressor = aggressor;
         report.defender = defender;
         report.territory = territory;
-        game.battle.battle_about_to_start = Some(battle.clone());
+        game.battle_mut().required("battle phase")?.current = Some(CurrentBattle::new(battle.clone()));
 
         let ecaz = game.get_player(Some(Faction::Ecaz));
         let condition = match ecaz {
@@ -253,7 +253,11 @@ impl EventRules for BattleInitiated {
             }
             None => false,
         };
-        game.enter_or_else(condition, Phase::ClaimingBattle, Game::initiate_battle);
+        if condition {
+            game.enter_battle(BattleStep::Claiming);
+        } else {
+            game.initiate_battle();
+        }
         Ok(())
     }
 

@@ -15,7 +15,7 @@ impl EventRules for KarmaPrescience {
         game.play_karma(me, card, vec!["see the entire enemy battle plan".into()]);
         game.player_mut(me).special_karma_power_used = true;
         game.stone(Milestone::Karma);
-        game.battle.atreides_karma = true;
+        game.fight_mut().atreides_karma = true;
         Ok(())
     }
 

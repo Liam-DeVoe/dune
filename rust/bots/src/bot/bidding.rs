@@ -1,7 +1,34 @@
 use crate::prelude::*;
 
+/// What I think of the card on auction, if I know it.
+struct CardOnAuction {
+    useless: bool,
+    crappy: bool,
+    perfect: bool,
+}
+
 impl ClassicBot {
-    pub fn determine_bid(&self, game: &Game) -> Bid {
+    /// No decision without cards on auction, or when I know the card on auction and there is none.
+    pub fn determine_bid(&self, game: &Game) -> Option<Bid> {
+        let card = self.card_on_auction(game)?;
+        Some(self.bid_for(game, card))
+    }
+
+    fn card_on_auction(&self, game: &Game) -> Option<CardOnAuction> {
+        let me = self.player;
+        let top = game.bidding.cards_on_auction.as_ref()?.top();
+        let is_known_card = game.has_bidding_prescience(me)
+            || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game)?))
+            || top.is_some_and(|top| game.known_cards(me).contains(&top));
+
+        Some(CardOnAuction {
+            useless: is_known_card && !self.may_use_useless_as_karma(game) && top?.type_() == TreacheryCardType::Useless,
+            crappy: is_known_card && !self.wanna_have(game, top?),
+            perfect: is_known_card && self.card_quality(game, top?, Some(me)) == 5,
+        })
+    }
+
+    fn bid_for(&self, game: &Game, card: CardOnAuction) -> Bid {
         let me = self.player;
         let max_bid_of_other_player = game
             .player_indices()
@@ -13,14 +40,7 @@ impl ClassicBot {
 
         let current_bid = game.bidding.current_bid.as_ref().map(|b| b.bid_total_amount()).unwrap_or(0);
         let current_bid_is_from_ally = game.bidding.current_bid.as_ref().is_some_and(|b| b.initiator == self.ally(game));
-        let top = game.bidding.cards_on_auction.as_ref().expect("cards on auction").top();
-        let is_known_card = game.has_bidding_prescience(me)
-            || (game.player(me).has_ally() && game.has_bidding_prescience(self.allied_player(game).expect("allied player")))
-            || top.is_some_and(|top| game.known_cards(me).contains(&top));
-
-        let this_card_is_useless = is_known_card && !self.may_use_useless_as_karma(game) && top.expect("a card on auction").type_() == TreacheryCardType::Useless;
-        let this_card_is_crappy = is_known_card && !self.wanna_have(game, top.expect("a card on auction"));
-        let this_card_is_perfect = is_known_card && self.card_quality(game, top.expect("a card on auction"), Some(me)) == 5;
+        let CardOnAuction { useless: this_card_is_useless, crappy: this_card_is_crappy, perfect: this_card_is_perfect } = card;
 
         let resources_to_keep = if this_card_is_perfect {
             self.param.bidding_resources_to_keep_when_card_is_perfect
@@ -182,13 +202,13 @@ impl ClassicBot {
             || (ty == T::RaiseDead && player.forces_killed > 7)
     }
 
-    pub fn determine_black_market_bid(&self, game: &Game) -> BlackMarketBid {
-        let bid = self.determine_bid(game);
+    pub fn determine_black_market_bid(&self, game: &Game) -> Option<BlackMarketBid> {
+        let bid = self.determine_bid(game)?;
         let mut result = BlackMarketBid::default();
         result.amount = bid.amount;
         result.ally_contribution_amount = bid.ally_contribution_amount;
         result.emperor_contribution_amount = bid.emperor_contribution_amount;
         result.passed = bid.passed;
-        result
+        Some(result)
     }
 }

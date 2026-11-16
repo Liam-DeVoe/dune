@@ -95,17 +95,16 @@ fn parameters() {
 
 /// `try_decide` returns the first decision of the round: a valid event, an event that isn't
 /// allowed or doesn't validate (still a decision, since it ends the round), or nothing when the
-/// decision method returns nothing or panics.
+/// decision method returns nothing.
 #[test]
 fn try_decide_scenarios() {
     let end_phase = [EventType::EndPhase];
     let thought = [EventType::Thought];
     // (scenario, valid, event type that ended the round)
-    let expected: [(&str, bool, Option<&str>); 5] = [
+    let expected: [(&str, bool, Option<&str>); 4] = [
         ("valid", true, Some("EndPhase")),
         ("notAllowed", false, None),
         ("returnsNull", false, None),
-        ("throws", false, None),
         ("invalid", false, Some("Thought")),
     ];
     for (name, valid, action) in expected {
@@ -115,7 +114,6 @@ fn try_decide_scenarios() {
             "valid" => bot.try_decide(&mut game, &end_phase, |_, _| { called.set(true); Some(EndPhase::default()) }),
             "notAllowed" => bot.try_decide(&mut game, &thought, |_, _| { called.set(true); Some(EndPhase::default()) }),
             "returnsNull" => bot.try_decide(&mut game, &thought, |_, _| -> Option<Thought> { called.set(true); None }),
-            "throws" => bot.try_decide(&mut game, &end_phase, |_, _| -> Option<EndPhase> { called.set(true); panic!("boom") }),
             "invalid" => bot.try_decide(&mut game, &thought, |_, _| { called.set(true); Some(Thought::default()) }),
             _ => unreachable!(),
         };
@@ -139,26 +137,25 @@ fn invalid_decision_is_not_submitted() {
     assert!(decision.unwrap().valid().is_none());
 }
 
-/// `try_decide` catches any panic in the decision, including a plain Rust panic such as a
-/// `todo!`. The panic counts as no decision.
+/// `try_decide` doesn't catch panics: a panicking decision is a bug, which goes on to the server's
+/// crash barrier.
 #[test]
-fn a_panicking_decision_counts_as_no_decision() {
+#[should_panic(expected = "somewhere")]
+fn a_panicking_decision_reaches_the_caller() {
     let (mut game, mut bot) = bot(1);
-    let decision = bot.try_decide(&mut game, &[EventType::EndPhase], |_, _| -> Option<EndPhase> { todo!("somewhere") });
-    assert!(decision.is_none());
+    let _ = bot.try_decide(&mut game, &[EventType::EndPhase], |_, _| -> Option<EndPhase> { todo!("somewhere") });
 }
 
-/// Draws made before a decision panics stay.
+/// Draws made before a decision comes up with nothing stay.
 #[test]
-fn draws_before_an_exception_stay() {
+fn draws_before_no_decision_stay() {
     let (mut game, mut bot) = bot(1);
     let r = bot.try_decide(&mut game, &[EventType::EndPhase], |b, _| -> Option<EndPhase> {
         b.d(2, 6);
-        b.d(1, -1);
         None
     });
     assert!(r.is_none());
-    // The two dice of `d(2, 6)` were drawn; `d(1, -1)` panicked without drawing.
+    // The two dice of `d(2, 6)` were drawn.
     let mut expected = treachery_engine::random::new_rng(1);
     for _ in 0..2 {
         expected.random_range(1..=6);

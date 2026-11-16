@@ -1,10 +1,11 @@
 //! Helpers that only the bots need.
 //!
 //! The casts the bots apply to `ClairVoyancePlayed.Parameter1`/`Parameter2`, which hold any
-//! value (a `Part`). They follow the .NET unboxing rules and throw the .NET
-//! exceptions and messages (probed on .NET 10):
+//! value (a `Part`), since the player who asks may put anything there. They follow the .NET
+//! unboxing rules. A cast that .NET refused is an `Err` with the message of the .NET exception
+//! (probed on .NET 10), and a bot that needs the value makes no decision:
 //!
-//! - an unboxing cast (`(TreacheryCardType)o`, `(Faction)o`, `(int)o`, `(float)o`) throws
+//! - an unboxing cast (`(TreacheryCardType)o`, `(Faction)o`, `(int)o`, `(float)o`) fails with
 //!   NullReferenceException for null;
 //! - an enum or `int` unboxes to any enum or to `int`: .NET allows unboxing between an enum and
 //!   its underlying type, and between enums of the same underlying type (every game enum is
@@ -12,7 +13,7 @@
 //! - `(float)o` needs a boxed `float` exactly;
 //! - a reference cast (`(IHero)o`) gives null for null, and the object for a `Leader`, `Messiah`
 //!   or `TreacheryCard`;
-//! - anything else throws InvalidCastException
+//! - anything else fails with InvalidCastException
 //!   "Unable to cast object of type 'X' to type 'Y'.".
 
 use crate::prelude::*;
@@ -45,39 +46,42 @@ pub fn boxed_type_name(o: &Part) -> String {
     }
 }
 
-fn invalid_cast(o: &Part, to: &str) -> ! {
-    panic!("Unable to cast object of type '{}' to type '{}'.", boxed_type_name(o), to)
+/// A cast that .NET refused, with the message of its exception.
+pub type CastResult<T> = Result<T, String>;
+
+fn invalid_cast<T>(o: &Part, to: &str) -> CastResult<T> {
+    Err(format!("Unable to cast object of type '{}' to type '{}'.", boxed_type_name(o), to))
 }
 
-fn null_reference() -> ! {
-    panic!("Object reference not set to an instance of an object.")
+fn null_reference<T>() -> CastResult<T> {
+    Err("Object reference not set to an instance of an object.".to_string())
 }
 
 /// `(E)o` for an enum type `E`: `None` for the absent value of a closed enum, or a number that names no member.
-pub fn unbox_enum<E: GameEnum>(o: &Part) -> Option<E> {
-    match o {
-        Part::Null => null_reference(),
-        other if other.enum_value().is_some() => E::from_value(other.enum_value().expect("an enum").1),
-        Part::Number(i) => E::from_value(*i),
-        other => invalid_cast(other, &format!("Treachery.Shared.{}", E::INFO.name)),
+pub fn unbox_enum<E: GameEnum>(o: &Part) -> CastResult<Option<E>> {
+    match (o, o.enum_value()) {
+        (Part::Null, _) => null_reference(),
+        (_, Some((_, value))) => Ok(E::from_value(value)),
+        (Part::Number(i), _) => Ok(E::from_value(*i)),
+        (other, _) => invalid_cast(other, &format!("Treachery.Shared.{}", E::INFO.name)),
     }
 }
 
 /// `(int)o`
-pub fn unbox_int(o: &Part) -> i32 {
-    match o {
-        Part::Null => null_reference(),
-        other if other.enum_value().is_some() => other.enum_value().expect("an enum").1,
-        Part::Number(i) => *i,
-        other => invalid_cast(other, "System.Int32"),
+pub fn unbox_int(o: &Part) -> CastResult<i32> {
+    match (o, o.enum_value()) {
+        (Part::Null, _) => null_reference(),
+        (_, Some((_, value))) => Ok(value),
+        (Part::Number(i), _) => Ok(*i),
+        (other, _) => invalid_cast(other, "System.Int32"),
     }
 }
 
 /// `(float)o`, for the dial of a Clairvoyance question.
-pub fn unbox_strength(o: &Part) -> HalfPoints {
+pub fn unbox_strength(o: &Part) -> CastResult<HalfPoints> {
     match o {
         Part::Null => null_reference(),
-        Part::Strength(h) => *h,
+        Part::Strength(h) => Ok(*h),
         other => invalid_cast(other, "System.Single"),
     }
 }
@@ -100,10 +104,10 @@ impl treachery_engine::random::RankKey for FloatKey {
 }
 
 /// `(IHero)o`: a reference cast, so null stays null.
-pub fn cast_hero(o: &Part) -> Option<Hero> {
+pub fn cast_hero(o: &Part) -> CastResult<Option<Hero>> {
     match o {
-        Part::Null => None,
-        Part::Leader(_) | Part::Messiah | Part::Card(_) => o.hero(),
+        Part::Null => Ok(None),
+        Part::Leader(_) | Part::Messiah | Part::Card(_) => Ok(o.hero()),
         other => invalid_cast(other, "Treachery.Shared.IHero"),
     }
 }

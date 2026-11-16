@@ -3,6 +3,7 @@
 //! The other seats have no user and never act, so the scene stays as the fixture left it.
 //! Only with `TREACHERY_DEV_SCENE` on.
 
+use treachery_protocol::UserId;
 use treachery_engine::enumerations::Faction;
 
 use super::games::load_savegame;
@@ -33,7 +34,7 @@ impl Server {
             Some(u) => u.id,
             None => {
                 let row = UserRow {
-                    id: 0,
+                    id: UserId(0),
                     name: SCENE_USER.into(),
                     password_hash: crate::passwords::hash(&ids::new_token()),
                     email: String::new(),
@@ -54,8 +55,8 @@ impl Server {
 
         let mut participation = Participation::new();
         let mut game = load_savegame(&savegame, &participation, false)?;
-        let seat = game.get_player(Some(faction)).map(|p| game.player(p).seat).ok_or_else(|| format!("{faction} is not in {fixture}"))?;
-        participation.add_player(&mut game, user, "Scene", seat);
+        let seat = game.get_player(Some(faction)).map(|p| game.player(p).seated()).ok_or_else(|| format!("{faction} is not in {fixture}"))?;
+        participation.add_player(&mut game, user, "Scene", Some(seat));
         participation.set_or_unset_host(user);
         let id = ids::new_id();
         let mut running = RunningGame::new(id.clone(), fixture.to_string(), user, game, participation, self.now());

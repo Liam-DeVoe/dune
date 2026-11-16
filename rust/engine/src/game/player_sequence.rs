@@ -17,7 +17,7 @@ impl PlayerSequence {
     pub fn new(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32, to_start_with: Option<PlayerId>, begin_next_to_that_player: bool) -> Self {
         // Players = [.. _game.Players.OrderBy(p => direction * p.Seat)]  (stable)
         let mut players: Vec<PlayerId> = game.player_indices().collect();
-        players.sort_by_cached_key(|p| direction * game.player(*p).seat);
+        players.sort_by_cached_key(|p| direction * game.player(*p).seated().number());
 
         let mut result = PlayerSequence {
             players,
@@ -227,7 +227,7 @@ impl PlayerSequence {
         let mut position = (g.maximum_players() + start_looking_in_sector) % g.maximum_players();
         let mut i = 0;
         while i < g.maximum_players() {
-            result = g.players.iter().position(|p| p.seat == position).map(|i| g.player_at(i));
+            result = g.players.iter().position(|p| p.seat.is_some_and(|s| s.number() == position)).map(|i| g.player_at(i));
             if let Some(r) = result {
                 return r;
             }
@@ -250,12 +250,12 @@ impl PlayerSequence {
 
         let mut i = 0;
         while i < g.maximum_players() {
-            let position_to_check = (g.player(first_player).seat + i) % g.maximum_players();
+            let position_to_check = (g.player(first_player).seated().number() + i) % g.maximum_players();
 
-            if position_to_check == g.player(b).seat {
+            if position_to_check == g.player(b).seated().number() {
                 return true;
             }
-            if position_to_check == g.player(a).seat {
+            if position_to_check == g.player(a).seated().number() {
                 return false;
             }
             i += 1;

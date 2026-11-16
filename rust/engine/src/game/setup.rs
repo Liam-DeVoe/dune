@@ -49,10 +49,10 @@ impl Game {
     }
 
     pub fn determine_positions_at_table(&mut self) {
-        let mut seats: Deck<i32> = Deck::empty(self.random.clone());
+        let mut seats: Deck<Seat> = Deck::empty(self.random.clone());
         let mut i = 0;
         while i < self.rules.settings.as_ref().expect("settings").number_of_players {
-            seats.put_on_top(i);
+            seats.put_on_top(Seat::from_number(i).expect("at most 255 players"));
             i += 1;
         }
 
@@ -60,7 +60,7 @@ impl Game {
 
         //Seat players
         for p in 0..self.players.len() {
-            self.players[p].seat = seats.draw();
+            self.players[p].seat = Some(seats.draw());
         }
     }
 
@@ -73,7 +73,7 @@ impl Game {
         self.setup.current_trade_offers.clear();
 
         // Players.OrderBy(p => p.Seat) is a stable sort.
-        let mut by_seat: Vec<(i32, Option<Faction>)> = self.players.iter().map(|p| (p.seat, p.faction)).collect();
+        let mut by_seat: Vec<(Option<Seat>, Option<Faction>)> = self.players.iter().map(|p| (p.seat, p.faction)).collect();
         by_seat.sort_by_key(|(seat, _)| *seat);
         let first = by_seat.first().expect("a player").1.expect("faction");
         self.storm.has_battle_wheel.push(first);

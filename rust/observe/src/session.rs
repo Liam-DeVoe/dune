@@ -81,14 +81,18 @@ fn find_exception(m: &Message) -> bool {
 }
 
 /// The human seats and what the views show of them, for `[userId, seat, name]` of each seated
-/// user, as the server derives them from its participation.
-pub fn seats(seated: &[(i32, i32, String)]) -> (IndexSet<i32>, Seating) {
+/// user, as the server derives them from its participation. A seat of -1 is none.
+pub fn seats(seated: &[(i32, i32, String)]) -> (IndexSet<Seat>, Seating) {
     let mut seating = Seating::default();
+    let mut human_seats = IndexSet::new();
     for (_, seat, name) in seated {
-        seating.names.entry(*seat).or_insert_with(|| name.clone());
+        if let Some(seat) = Seat::from_number(*seat) {
+            seating.names.entry(seat).or_insert_with(|| name.clone());
+            human_seats.insert(seat);
+        }
     }
     seating.seated_users = seated.len() as i32;
-    (seated.iter().map(|(_, seat, _)| *seat).collect(), seating)
+    (human_seats, seating)
 }
 
 impl Session {

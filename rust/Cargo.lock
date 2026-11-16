@@ -1701,6 +1701,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "ts-rs",
 ]
 
 [[package]]
@@ -1710,6 +1711,7 @@ dependencies = [
  "chrono",
  "serde",
  "serde_json",
+ "treachery-engine",
  "treachery-view",
  "ts-rs",
 ]

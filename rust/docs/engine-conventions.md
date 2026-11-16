@@ -209,6 +209,8 @@ A C# `Player` is a reference into some game's `Players`. In Rust a player is add
 
 Make one with `game.player_at(i)`, or iterate with `game.player_indices()`.
 
+A player's place at the table is a `Seat`, a number from 0. `Player.seat` is an `Option<Seat>` because a new `Player` has none, but `EstablishPlayers` draws the seats right after it creates the players, so game code reads `player.seated()`, which panics on a player without one. The server and the view use `Option<Seat>` for users, who may wait without a seat. Where the JSON of the lobby, the views or the stored participation needs a seat that may be absent, it writes -1 (`seat_or_minus_one`). Events still carry plain numbers: `FactionSelected.seat` is an `i32`, and a number that is no player's seat selects nobody.
+
 ```rust
 let p: PlayerId = game.get_player(Some(Faction::Emperor)).expect("Emperor");
 game.player(p).resources                                      // p.Resources

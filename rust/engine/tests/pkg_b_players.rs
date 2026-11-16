@@ -8,7 +8,7 @@ fn game_with(factions: &[Faction]) -> Game {
     let mut g = Game::new();
     for (seat, f) in factions.iter().enumerate() {
         let mut p = Player::new(Some(*f));
-        p.seat = seat as i32;
+        p.seat = Seat::from_number(seat);
         g.players.push(p);
     }
     g
@@ -174,14 +174,14 @@ fn determine_first_player_from_storm() {
     for (sector, seat) in [(0, 0), (1, 1), (3, 1), (4, 2), (17, 0), (16, 0), (15, 5)] {
         g.board.sector_in_storm = sector;
         let first = PlayerSequence::determine_first_player(&g);
-        assert_eq!(g.player(first).seat, seat, "sector {sector}");
+        assert_eq!(g.player(first).seat, Seat::from_number(seat), "sector {sector}");
     }
 }
 
 #[test]
 fn determine_first_player_skips_empty_seats_and_panics() {
     let mut g = game_with(&[Faction::Atreides, Faction::Harkonnen]);
-    g.player_mut(g.player_at(1)).seat = 4;
+    g.player_mut(g.player_at(1)).seat = Some(Seat::new(4));
     g.board.sector_in_storm = 6; // starts looking at seat 2
     assert_eq!(PlayerSequence::determine_first_player(&g), g.player_at(1));
 

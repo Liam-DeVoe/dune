@@ -16,10 +16,13 @@ use treachery_view::schema::{DraftResult, GameView, ReportLines};
 use ts_rs::TS;
 
 mod error;
+mod ids;
 mod lobby;
 pub mod time;
 
 pub use error::{CallError, ErrorCode};
+pub use ids::{seated_users, UserId};
+pub use treachery_engine::game::Seat;
 pub use lobby::*;
 
 /// The largest frame a client may send.
@@ -139,21 +142,26 @@ calls! {
 
     /// A null `seat` joins without a particular seat, which works only while the game awaits
     /// players. A particular seat must be one a host opened.
-    "joinGame" JoinGame { game: String, password_hash: Option<String>, seat: Option<i32> } => GameInitInfo;
+    "joinGame" JoinGame { game: String, password_hash: Option<String>, seat: Option<Seat> } => GameInitInfo;
     "observeGame" ObserveGame { game: String, password_hash: Option<String> } => GameInitInfo;
     /// Members: a new connection follows the game again.
     "reconnectGame" ReconnectGame { game: String } => GameInitInfo;
     /// Members.
     "leaveGame" LeaveGame { game: String } => Lobby;
     /// Hosts: `user` must be a player of the game.
-    "setOrUnsetHost" SetOrUnsetHost { game: String, user: i32 } => ();
+    "setOrUnsetHost" SetOrUnsetHost { game: String, user: UserId } => ();
     /// Hosts: `seat` must be a player's seat in the game.
-    "openOrCloseSeat" OpenOrCloseSeat { game: String, seat: i32 } => ();
+    "openOrCloseSeat" OpenOrCloseSeat { game: String, seat: Seat } => ();
     /// Hosts: `user` must be another member of the game.
-    "kick" Kick { game: String, user: i32 } => ();
+    "kick" Kick { game: String, user: UserId } => ();
     /// Hosts: `[userId, seat]` for each player, -1 for no seat. Each user a player of the game,
     /// each seat a player's seat, no user or seat twice.
-    "assignSeats" AssignSeats { game: String, seats: Vec<(i32, i32)> } => ();
+    "assignSeats" AssignSeats {
+        game: String,
+        #[serde(with = "ids::seated_users")]
+        #[ts(type = "Array<[number, number]>")]
+        seats: Vec<(UserId, Option<Seat>)>,
+    } => ();
     /// Hosts: 0 to 4.
     "setBotSpeed" SetBotSpeed { game: String, speed: i32 } => ();
     /// Players: runs the bots' turn at once.
@@ -183,7 +191,7 @@ calls! {
     // Chat
 
     /// Players: to everyone in the game, or with `to` to one member and the sender.
-    "chat" Chat { game: String, to: Option<i32>, body: String } => ();
+    "chat" Chat { game: String, to: Option<UserId>, body: String } => ();
     "globalChat" GlobalChat { body: String } => ();
 
     // Admin: the user named in TREACHERY_ADMIN. Each answers with a text for the admin page.
@@ -202,7 +210,7 @@ calls! {
     "adminDownloadGame" AdminDownloadGame { game: String } => String;
     "adminCancelScheduledGame" AdminCancelScheduledGame { scheduled_game: String } => String;
     /// The admin, or a user deleting their own account.
-    "deleteUser" DeleteUser { user: i32 } => String;
+    "deleteUser" DeleteUser { user: UserId } => String;
     "adminInfo" GetAdminInfo => AdminInfo;
 
     // The game view
@@ -262,16 +270,26 @@ pub enum Notification {
         settings: Value,
     },
     /// A user joined, on `seat` or -1 for none yet.
-    JoinGame { user: i32, name: String, seat: i32 },
-    ObserveGame { user: i32, name: String },
+    JoinGame {
+        user: UserId,
+        name: String,
+        #[serde(with = "treachery_engine::game::seat_or_minus_one")]
+        #[ts(type = "number")]
+        seat: Option<Seat>,
+    },
+    ObserveGame { user: UserId, name: String },
     /// The user became a host, or is no longer one.
-    SetOrUnsetHost { user: i32 },
+    SetOrUnsetHost { user: UserId },
     /// Each seat was opened if it was closed, and closed if it was open.
-    OpenOrCloseSeats { seats: Vec<i32> },
+    OpenOrCloseSeats { seats: Vec<Seat> },
     /// The user left or, with `kick`, was removed for good.
-    RemoveUser { user: i32, kick: bool },
+    RemoveUser { user: UserId, kick: bool },
     /// `[userId, seat]`: the seats every player now has.
-    AssignSeats { seats: Vec<(i32, i32)> },
+    AssignSeats {
+        #[serde(with = "ids::seated_users")]
+        #[ts(type = "Array<[number, number]>")]
+        seats: Vec<(UserId, Option<Seat>)>,
+    },
     BotSpeed { speed: i32 },
     SetTimer { value: i32 },
     SetSkin { skin: String },
@@ -327,13 +345,13 @@ mod tests {
         assert_eq!(call(r#"{"id":1,"call":"serverInfo","args":null}"#), Call::GetServerInfo);
         assert_eq!(
             call(r#"{"id":7,"call":"joinGame","args":{"game":"g","passwordHash":null,"seat":3}}"#),
-            Call::JoinGame { game: "g".into(), password_hash: None, seat: Some(3) }
+            Call::JoinGame { game: "g".into(), password_hash: None, seat: Some(Seat::new(3)) }
         );
         // Optional arguments may be left out.
         assert_eq!(call(r#"{"id":7,"call":"joinGame","args":{"game":"g"}}"#), Call::JoinGame { game: "g".into(), password_hash: None, seat: None });
         assert_eq!(
             call(r#"{"id":8,"call":"assignSeats","args":{"game":"g","seats":[[5,1],[2,-1]]}}"#),
-            Call::AssignSeats { game: "g".into(), seats: vec![(5, 1), (2, -1)] }
+            Call::AssignSeats { game: "g".into(), seats: vec![(UserId(5), Some(Seat::new(1))), (UserId(2), None)] }
         );
         match call(r#"{"id":6,"call":"queryDraft","args":{"game":"g","eventNumber":12,"draft":{"$type":"StormDialled","Amount":3}}}"#) {
             Call::QueryDraft { event_number: 12, draft, .. } => assert_eq!(Value::Object(draft), json!({"$type": "StormDialled", "Amount": 3})),
@@ -348,6 +366,10 @@ mod tests {
             r#"{"id":4,"call":"authenticate"}"#,
             r#"{"id":4,"call":"authenticate","args":{"token":12}}"#,
             r#"{"id":4,"call":"JoinGame","args":{"game":"g"}}"#,
+            // -1 is no seat only where a user may have none; other numbers name no seat.
+            r#"{"id":4,"call":"openOrCloseSeat","args":{"game":"g","seat":-1}}"#,
+            r#"{"id":4,"call":"assignSeats","args":{"game":"g","seats":[[5,-2]]}}"#,
+            r#"{"id":4,"call":"assignSeats","args":{"game":"g","seats":[[5,256]]}}"#,
             r#"{"id":4}"#,
         ] {
             assert!(matches!(decode(text), Ok(Decoded::BadCall { id: 4, .. })), "{text}");
@@ -365,12 +387,12 @@ mod tests {
             r#"{"id":7,"err":{"code":"seatNotAvailableNotOpen","message":"Seat is not available"}}"#
         );
         assert_eq!(
-            ServerMessage::Notify(Notification::JoinGame { user: 2, name: "Bob".into(), seat: -1 }).encode(),
+            ServerMessage::Notify(Notification::JoinGame { user: UserId(2), name: "Bob".into(), seat: None }).encode(),
             r#"{"notify":"joinGame","data":{"user":2,"name":"Bob","seat":-1}}"#
         );
         assert_eq!(ServerMessage::Notify(Notification::SessionEnded).encode(), r#"{"notify":"sessionEnded"}"#);
         let t = time::parse("2026-11-20T19:00:00Z").unwrap();
-        let info = PhaseControlInfo { active: true, waiting_for: vec![1, 2], countdown: true, countdown_ends: Some(t), holding: vec![], reasons: vec![PauseWait { seat: 1, reasons: vec![PauseReason::KaramaSandworm] }] };
+        let info = PhaseControlInfo { active: true, waiting_for: vec![Seat::new(1), Seat::new(2)], countdown: true, countdown_ends: Some(t), holding: vec![], reasons: vec![PauseWait { seat: Seat::new(1), reasons: vec![PauseReason::KaramaSandworm] }] };
         assert_eq!(
             ServerMessage::Notify(Notification::PhaseControl(info)).encode(),
             r#"{"notify":"phaseControl","data":{"active":true,"waitingFor":[1,2],"countdown":true,"countdownEnds":"2026-11-20T19:00:00.000000Z","holding":[],"reasons":[{"seat":1,"reasons":["karamaSandworm"]}]}}"#

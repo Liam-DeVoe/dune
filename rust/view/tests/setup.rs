@@ -24,8 +24,6 @@ fn settings(players: i32, factions: &[Faction]) -> String {
 /// A new game awaiting players: the creator (user 1) is host, user 2 has joined.
 fn awaiting() -> ViewReplica {
     let mut r = ViewReplica::new(Game::LATEST_VERSION);
-    r.game.human_seats.insert(-1);
-    r.seating.names.insert(-1, "Host".to_string());
     r.seating.seated_users = 2;
     r
 }
@@ -33,7 +31,7 @@ fn awaiting() -> ViewReplica {
 #[test]
 fn a_host_without_a_seat_establishes_players() {
     let mut r = awaiting();
-    let host = Viewer { user_id: 1, seat: -1, is_host: true, is_observer: false };
+    let host = Viewer { user_id: 1, seat: None, is_host: true, is_observer: false };
     let view = r.view(host);
     assert_eq!(view.phase, "AwaitingPlayers");
     let a = view.actions.iter().find(|a| a.event_type == "EstablishPlayers").expect("EstablishPlayers for the host");
@@ -48,7 +46,7 @@ fn a_host_without_a_seat_establishes_players() {
     assert_eq!(r.query(host, &settings(3, &two)).unwrap().validation, Some(text("More factions required")));
 
     // A guest has no host actions and can't query them.
-    let guest = Viewer { user_id: 2, seat: -1, is_host: false, is_observer: false };
+    let guest = Viewer { user_id: 2, seat: None, is_host: false, is_observer: false };
     assert!(r.view(guest).actions.is_empty());
     assert_eq!(r.query(guest, &settings(2, &two)), Err(QueryError::NotAPlayer));
 }

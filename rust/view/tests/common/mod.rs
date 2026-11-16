@@ -14,18 +14,18 @@ pub fn fixture(name: &str) -> String {
 }
 
 /// The user id seated in a seat: seat + 1.
-pub fn user_of_seat(seat: i32) -> i32 {
-    seat + 1
+pub fn user_of_seat(seat: Seat) -> i64 {
+    i64::from(seat.number()) + 1
 }
 
 /// The seat whose user hosts the games of [`load`].
-pub const HOST_SEAT: i32 = 0;
+pub const HOST_SEAT: Seat = Seat::new(0);
 
-pub const OBSERVER: Viewer = Viewer { user_id: 100, seat: -1, is_host: false, is_observer: true };
+pub const OBSERVER: Viewer = Viewer { user_id: 100, seat: None, is_host: false, is_observer: true };
 
 /// The user in a seat, as [`load`] seats them.
-pub fn seated_viewer(seat: i32) -> Viewer {
-    Viewer { user_id: user_of_seat(seat), seat, is_host: seat == HOST_SEAT, is_observer: false }
+pub fn seated_viewer(seat: Seat) -> Viewer {
+    Viewer { user_id: user_of_seat(seat), seat: Some(seat), is_host: seat == HOST_SEAT, is_observer: false }
 }
 
 /// Replays a fixture and seats one user per player (user id = seat + 1, named "Player <seat>"),
@@ -36,7 +36,7 @@ pub fn load(name: &str) -> ViewReplica {
 
 pub fn viewer_of(replica: &ViewReplica, faction: Faction) -> Viewer {
     let p = replica.game.get_player(Some(faction)).expect("faction in game");
-    seated_viewer(replica.game.player(p).seat)
+    seated_viewer(replica.game.player(p).seated())
 }
 
 /// The fixture's savegame cut back to its first `n` events (negative: all but the last `-n`).
@@ -135,7 +135,7 @@ pub fn first_bot_state(what: &str, pred: impl Fn(&Game) -> bool) -> ViewReplica 
 }
 
 fn seat_everyone(replica: &mut ViewReplica) {
-    let seats: Vec<i32> = replica.game.players.iter().map(|pl| pl.seat).collect();
+    let seats: Vec<Seat> = replica.game.players.iter().map(|pl| pl.seated()).collect();
     for seat in &seats {
         replica.game.human_seats.insert(*seat);
         replica.seating.names.insert(*seat, format!("Player {seat}"));

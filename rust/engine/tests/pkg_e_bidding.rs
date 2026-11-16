@@ -176,7 +176,7 @@ fn automatic_passes_stop_when_bidding_ends() {
         let mut g = game_with(&[Faction::Atreides, Faction::BeneGesserit, Faction::Harkonnen]);
         for (seat, f) in [Faction::Atreides, Faction::BeneGesserit, Faction::Harkonnen].into_iter().enumerate() {
             let p = idx(&g, f);
-            g.player_mut(p).seat = seat as i32;
+            g.player_mut(p).seat = Seat::from_number(seat);
         }
         let atreides = idx(&g, Faction::Atreides);
         let bene_gesserit = idx(&g, Faction::BeneGesserit);
@@ -227,7 +227,7 @@ fn automatic_passes_stop_when_the_high_bidder_cant_be_reached() {
         let mut g = game_with(&factions);
         for (seat, f) in factions.into_iter().enumerate() {
             let p = idx(&g, f);
-            g.player_mut(p).seat = seat as i32;
+            g.player_mut(p).seat = Seat::from_number(seat);
         }
         for f in [Faction::Harkonnen, Faction::Emperor, Faction::Guild] {
             let mut rule = AutomationConfigured::default();

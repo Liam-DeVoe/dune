@@ -9,7 +9,7 @@
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::GameEvent;
-use treachery_engine::game::{Game, GameState};
+use treachery_engine::game::{Game, GameState, Seat};
 use treachery_engine::json;
 
 // The first two events of a three-player game.
@@ -38,7 +38,7 @@ fn dump(g: &mut Game) -> String {
         lines.push(format!(
             "player {i}: {} seat {} spice {} cards [{}] traitors [{}] leaders [{}] forces [{}] ally {} may: {}",
             treachery_engine::enum_type::name_or_absent(p.faction),
-            p.seat,
+            Seat::number_or_minus_one(p.seat),
             p.resources,
             ids(&mut p.treachery_cards.iter().map(|c| c.id())),
             ids(&mut p.traitors.iter().map(|h| h.id())),
@@ -81,7 +81,7 @@ fn run(g: &mut Game, events: &[&str]) {
 fn game_after(events: &[&str]) -> Game {
     // A user plays seat 2.
     let mut g = Game::new();
-    g.human_seats.insert(2);
+    g.human_seats.insert(Seat::new(2));
     run(&mut g, events);
     g
 }
@@ -177,14 +177,14 @@ fn undo_that_throws_keeps_the_game() {
 #[test]
 fn human_seats_are_kept() {
     let mut g = Game::new();
-    g.human_seats.insert(7);
+    g.human_seats.insert(Seat::new(7));
     g.undo(0);
-    assert!(g.human_seats.contains(&7));
-    g.human_seats.insert(1);
+    assert!(g.human_seats.contains(&Seat::new(7)));
+    g.human_seats.insert(Seat::new(1));
     g.restore_recently_undone();
-    assert!(g.human_seats.contains(&1));
+    assert!(g.human_seats.contains(&Seat::new(1)));
     g.dismiss_recently_undone();
-    assert_eq!(g.human_seats.iter().copied().collect::<Vec<_>>(), vec![7, 1]);
+    assert_eq!(g.human_seats.iter().copied().collect::<Vec<_>>(), vec![Seat::new(7), Seat::new(1)]);
 }
 
 /// Dismiss forgets the previous game, so repeated undos keep a bounded chain of games.

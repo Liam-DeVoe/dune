@@ -43,7 +43,7 @@ impl FactionSelected {
     }
 
     pub fn execute_concrete_event(self: &Rc<Self>, game: &mut Game) -> GameResult {
-        let initiator = game.get_player_by_seat(self.seat);
+        let initiator = Seat::from_number(self.seat).and_then(|s| game.get_player_by_seat(s));
 
         if let Some(initiator) = initiator {
             game.player_mut(initiator).faction = self.faction;

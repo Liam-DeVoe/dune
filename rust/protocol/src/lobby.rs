@@ -7,13 +7,16 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+use treachery_engine::game::Seat;
+
+use crate::ids::UserId;
 use crate::time::{optional_time, serde_time, Time};
 
 /// A user's own account.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Account {
-    pub user_id: i32,
+    pub user_id: UserId,
     pub user_name: String,
     pub player_name: String,
     pub email: String,
@@ -53,7 +56,7 @@ pub struct ServerInfo {
 pub struct GameInfo {
     pub game_id: String,
     pub name: String,
-    pub creator_id: i32,
+    pub creator_id: UserId,
     pub creator_user_name: String,
     #[serde(with = "serde_time")]
     #[ts(type = "string")]
@@ -78,7 +81,9 @@ pub struct GameInfo {
     #[ts(type = "Ruleset")]
     pub ruleset: String,
     /// `[userId, seat]` of each user seated, -1 for a user without a seat yet.
-    pub seated_players: Vec<(i32, i32)>,
+    #[serde(with = "crate::ids::seated_users")]
+    #[ts(type = "Array<[number, number]>")]
+    pub seated_players: Vec<(UserId, Option<Seat>)>,
     /// The seats a host opened for others to join.
     pub available_seats: Vec<AvailableSeat>,
 }
@@ -86,7 +91,7 @@ pub struct GameInfo {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AvailableSeat {
-    pub seat: i32,
+    pub seat: Seat,
     #[ts(type = "Faction")]
     pub faction: String,
     pub is_bot: bool,
@@ -100,7 +105,7 @@ pub struct ScheduledGameInfo {
     #[serde(with = "serde_time")]
     #[ts(type = "string")]
     pub starts: Time,
-    pub creator_id: i32,
+    pub creator_id: UserId,
     pub creator_name: String,
     pub players: i32,
     pub max_turns: i32,
@@ -115,7 +120,7 @@ pub struct ScheduledGameInfo {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct Subscriber {
-    pub user_id: i32,
+    pub user_id: UserId,
     pub user_name: String,
     pub subscription: SubscriptionType,
 }
@@ -167,7 +172,7 @@ pub enum UserStatus {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct SeenUser {
-    pub user_id: i32,
+    pub user_id: UserId,
     pub name: String,
     pub status: UserStatus,
     #[serde(with = "serde_time")]
@@ -202,14 +207,16 @@ pub struct Lobby {
 #[serde(rename_all = "camelCase")]
 pub struct ParticipationInfo {
     /// `[userId, name]` of every player and observer.
-    pub player_names: Vec<(i32, String)>,
+    pub player_names: Vec<(UserId, String)>,
     /// `[userId, seat]` of every player, -1 for one without a seat yet.
-    pub seated_players: Vec<(i32, i32)>,
-    pub observers: Vec<i32>,
-    pub hosts: Vec<i32>,
+    #[serde(with = "crate::ids::seated_users")]
+    #[ts(type = "Array<[number, number]>")]
+    pub seated_players: Vec<(UserId, Option<Seat>)>,
+    pub observers: Vec<UserId>,
+    pub hosts: Vec<UserId>,
     /// The seats a host opened for others to join.
-    pub available_seats: Vec<i32>,
-    pub kicked: Vec<i32>,
+    pub available_seats: Vec<Seat>,
+    pub kicked: Vec<UserId>,
     /// 0 pauses the bots; 1, 2 and 4 divide their delays.
     pub bots_speed: i32,
 }
@@ -221,24 +228,24 @@ pub struct PhaseControlInfo {
     /// False: the host alone continues this pause.
     pub active: bool,
     /// Seats.
-    pub waiting_for: Vec<i32>,
+    pub waiting_for: Vec<Seat>,
     pub countdown: bool,
     /// Set while the countdown runs and nobody holds it.
     #[serde(with = "optional_time")]
     #[ts(type = "string | null")]
     pub countdown_ends: Option<Time>,
     /// Seats.
-    pub holding: Vec<i32>,
+    pub holding: Vec<Seat>,
     /// Why the pause waits for each seat in `waiting_for`, in the same order. Every reason is
     /// something everyone can already see, so it goes to everyone.
     pub reasons: Vec<PauseWait>,
 }
 
 /// What the pause waits for one seat to do.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct PauseWait {
-    pub seat: i32,
+    pub seat: Seat,
     /// One or more things the seat may do here; the client joins them with "or".
     pub reasons: Vec<PauseReason>,
 }
@@ -303,7 +310,7 @@ pub struct AdminInfo {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AdminUser {
-    pub user_id: i32,
+    pub user_id: UserId,
     pub user_name: String,
     pub email: String,
     #[serde(with = "serde_time")]
@@ -316,9 +323,9 @@ pub struct AdminUser {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatMessage {
-    pub from: i32,
+    pub from: UserId,
     /// The one user the message is for; null for everyone in the game.
-    pub to: Option<i32>,
+    pub to: Option<UserId>,
     pub body: String,
 }
 
@@ -326,6 +333,6 @@ pub struct ChatMessage {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct GlobalChatMessage {
-    pub from: i32,
+    pub from: UserId,
     pub body: String,
 }

@@ -59,6 +59,7 @@ Ordering:
 - The engine's enums are sent by member name (`"Atreides"`, `"AwaitingPlayers"`), the names the game view and the skin use. In TypeScript they are the unions of `web/src/generated/enums.ts`. The lobby's own enums (`UserStatus`, `SubscriptionType`, `GameListScope`) are by name too.
 - Times are RFC 3339 strings. The server writes UTC with microseconds, `"2026-09-18T04:14:35.622405Z"`, and reads any offset; a time without one is UTC. The time 0001-01-01 means none (`serverInfo.scheduledMaintenance`).
 - Maps keyed by user id or seat are arrays of `[key, value]` pairs in the server's order: `"seatedPlayers":[[12,3],[5,-1]]`. An object would lose that order, because `JSON.parse` sorts integer keys. A seat of -1 is a user without a seat yet.
+- A seat is a number from 0 to 255. -1 is allowed only where a user may have no seat (`seatedPlayers`, `assignSeats`, the `joinGame` notification); a call with any other number that is no seat is a `badCall`. User ids are integers, the ids of the server's database.
 - Events and game settings are still in the savegame format the engine reads and writes (`engine/src/json/mod.rs`): PascalCase members and enums as numbers, an event `{"$type":"Bid", ...}`. They appear in `submitEvent`, `queryDraft`, `updateSettings` and the `updateSettings` notification.
 
 ## Errors

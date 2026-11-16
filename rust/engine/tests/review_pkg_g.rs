@@ -5,7 +5,7 @@ use treachery_engine::enumerations::{Faction, ShipmentType};
 use treachery_engine::events::Shipment;
 use treachery_engine::events::GameEvent;
 use treachery_engine::events::game_event::GameEventMethods;
-use treachery_engine::game::Game;
+use treachery_engine::game::{Game, Seat};
 use treachery_engine::json;
 
 // Same text as ReviewA.Establish (step 1 of fuzz-2026-00018).
@@ -15,7 +15,7 @@ const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlay
 fn setup() -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::of_version(Game::LATEST_VERSION);
-    g.human_seats.insert(2);
+    g.human_seats.insert(Seat::new(2));
     let e: GameEvent = json::deserialize(ESTABLISH).expect("event json");
     e.initialize_game(&g);
     assert!(e.execute(&mut g, true, true).is_none());

@@ -149,7 +149,7 @@ pub struct ViewerInfo {
 pub struct PublicPlayer {
     #[ts(type = "Faction")]
     pub faction: String,
-    pub seat: i32,
+    pub seat: treachery_engine::game::Seat,
     /// `Game.GetPlayerName(p)`.
     pub name: String,
     pub is_bot: bool,

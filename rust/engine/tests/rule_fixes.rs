@@ -10,7 +10,7 @@ use treachery_engine::prelude::*;
 fn fixture(name: &str) -> Game {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts/fixtures").join(format!("{name}.json"));
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    let state = treachery_legacy::load_any(&text).expect("savegame");
+    let state = treachery_engine::game::GameState::load(&text).expect("savegame");
     let mut game = Game::of_version(state.version);
     for e in state.events.clone() {
         let event_name = e.event_type().name();

@@ -31,7 +31,7 @@ fn all_views(r: &mut ViewedGame) -> Vec<(Option<Faction>, GameView)> {
 /// Calls `each` on every state of a fixture, from the first event on, with everyone seated.
 fn each_state(name: &str, mut each: impl FnMut(&mut ViewedGame, usize)) {
     let v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
-    let events = v["_events"].as_array().unwrap();
+    let events = v["events"].as_array().unwrap();
     let mut r = load_text(&truncated(name, 1));
     each(&mut r, 1);
     for (i, e) in events.iter().enumerate().skip(1) {

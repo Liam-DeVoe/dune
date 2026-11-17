@@ -13,6 +13,4 @@ serde_json = { version = "1", features = ["preserve_order"] }
 ts-rs = { version = "12", default-features = false, features = ["serde-compat"] }
 
 [dev-dependencies]
-# Old savegames and event JSON in test data.
-treachery-legacy = { path = "../legacy" }
 flate2 = "1"

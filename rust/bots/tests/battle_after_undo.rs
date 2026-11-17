@@ -16,15 +16,15 @@ fn savegame() -> Game {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/battle-initiated-again-after-undo.json.gz");
     let mut text = String::new();
     flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()).read_to_string(&mut text).unwrap();
-    Game::load(&treachery_legacy::load_any(&text).unwrap(), &Default::default(), false, false).unwrap()
+    Game::load(&treachery_engine::game::GameState::load(&text).unwrap(), &Default::default(), false, false).unwrap()
 }
 
 fn submit(game: &mut Game, event: &str) {
-    let e: HistoryEntry = treachery_legacy::deserialize(event).unwrap();
+    let e: HistoryEntry = serde_json::from_str(event).unwrap();
     assert_eq!(game.play_for_message(e, true, false), None, "{event}");
 }
 
-const INITIATE: &str = r#"{"$type":"BattleInitiated","Target":50,"_territoryId":4,"Initiator":10,"Time":"2024-01-08T09:03:50+00:00"}"#;
+const INITIATE: &str = r#"{"by":"Fremen","at":"2024-01-08T09:03:50Z","event":{"type":"BattleInitiated","territory":4,"target":"Guild"}}"#;
 
 #[test]
 fn a_battle_initiated_again_after_an_undo_is_a_new_battle() {
@@ -33,7 +33,7 @@ fn a_battle_initiated_again_after_an_undo_is_a_new_battle() {
     let first = game.current_battle().cloned().unwrap();
 
     // Undoing a later event keeps the battle.
-    submit(&mut game, r#"{"$type":"VoiceDeclined","Initiator":50,"Time":"2024-01-08T09:00:23+00:00"}"#);
+    submit(&mut game, r#"{"by":"Guild","at":"2024-01-08T09:00:23Z","event":{"type":"VoiceDeclined"}}"#);
     game.undo(535);
     assert_eq!(game.current_battle(), Some(&first));
 
@@ -60,8 +60,8 @@ fn a_bot_does_not_plan_with_its_voice_from_an_undone_battle() {
 
     game.undo(534);
     submit(&mut game, INITIATE);
-    submit(&mut game, r#"{"$type":"VoiceDeclined","Initiator":60,"Time":"2024-01-08T09:03:59+00:00"}"#);
-    submit(&mut game, r#"{"$type":"Prescience","Aspect":20,"Initiator":10,"Time":"2024-01-08T09:05:23+00:00"}"#);
+    submit(&mut game, r#"{"by":"BeneGesserit","at":"2024-01-08T09:03:59Z","event":{"type":"VoiceDeclined"}}"#);
+    submit(&mut game, r#"{"by":"Fremen","at":"2024-01-08T09:05:23Z","event":{"type":"Prescience","aspect":"Leader"}}"#);
 
     let plan = voiced.determine_battle(&game).unwrap();
     assert_eq!(plan, fresh.determine_battle(&game).unwrap());

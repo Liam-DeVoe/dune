@@ -12,8 +12,7 @@ The Rust workspace (`rust/Cargo.toml`) and how the engine and bots are laid out.
 | `treachery-bots` | `bots` | The bots: `ClassicBot::decide(&Game, ..)` returns the event a bot wants to submit, if any | engine |
 | `treachery-protocol` | `protocol` | Every message between client and server, and their TypeScript types ([protocol.md](protocol.md)) | engine, view |
 | `treachery-server` | `server` | Accounts, lobby, seating, running games, bots, storage ([server.md](server.md)) | all of the above |
-| `treachery-legacy` | `legacy` | Reading the JSON of savegames of game version 190 and before ([engine-conventions.md](engine-conventions.md#json)) | engine |
-| `observe` | `observe` | The behavior harness, which replays recorded games against a reference build ([native-harness.md](native-harness.md)) | engine, legacy, bots, view, skin |
+| `observe` | `observe` | The behavior harness, which replays recorded games against a reference build ([native-harness.md](native-harness.md)) | engine, bots, view, skin |
 
 `rust/tools/check.sh` runs every test of the workspace. [DEVELOPMENT.md](../../DEVELOPMENT.md) says how to build and check a change.
 

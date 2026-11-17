@@ -220,7 +220,7 @@ fn bot_decisions_compare_through_the_working_trees_encoding() {
 #[test]
 fn an_event_that_does_not_decode_counts_as_rejected() {
     let lines = record("fuzz", 2, false);
-    let garbage = serde_json::json!({"$type": "NoSuchEvent", "Initiator": 1});
+    let garbage = serde_json::json!({"by": null, "at": "2024-01-01T00:00:00Z", "event": {"type": "NoSuchEvent"}});
 
     // In place of a rejected event, the message isn't compared.
     let mut t = lines.clone();

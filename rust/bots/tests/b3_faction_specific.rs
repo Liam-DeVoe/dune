@@ -31,7 +31,7 @@ fn voice_plan(p: &VoicePlan, voice: Option<Faction>) -> String {
     format!(
         "battle:{} voice:{} weapon:{} defense:{} survive:{} zero:{}",
         if p.battle.is_some() { "set" } else { "null" },
-        treachery_legacy::serialize(&HistoryEntry::new(voice, p.voice.clone())),
+        serde_json::to_string(&HistoryEntry::new(voice, p.voice.clone())).unwrap(),
         p.weapon_to_use.map_or(-1, |c| c.id()),
         p.defense_to_use.map_or(-1, |c| c.id()),
         title_bool(p.player_hero_will_certainly_survive),

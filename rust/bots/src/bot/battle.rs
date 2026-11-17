@@ -1377,7 +1377,7 @@ mod tests {
     #[test]
     fn a_mirror_weapon_pick_is_kept() {
         let path = format!("{}/../../scripts/fixtures/battle.json", env!("CARGO_MANIFEST_DIR"));
-        let state = treachery_legacy::load_any(&std::fs::read_to_string(path).unwrap()).unwrap();
+        let state = treachery_engine::game::GameState::load(&std::fs::read_to_string(path).unwrap()).unwrap();
         let mut game = Game::load(&state, &Default::default(), false, false).unwrap();
         let battle = game.current_battle().cloned().unwrap();
         let me = game.get_player(Some(battle.aggressor(&game).expect("faction"))).unwrap();

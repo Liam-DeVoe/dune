@@ -392,7 +392,7 @@ Events, history entries, savegames and game settings derive serde's `Serialize` 
 
 `GameState::load` reads a savegame and `GameState::get_state_as_string` writes one. `Game::load(state, human_seats, validate, is_host)` replays it. The engine plays only `Game::LATEST_VERSION` (191). `Game::check_version` refuses any other version.
 
-Savegames of version 190 and before are in an older JSON format, with the same rules as 191. The `treachery-legacy` crate (`rust/legacy`) reads it: `treachery_legacy::load_any` reads a savegame of either format and turns 190 into 191. The server uses it for uploaded savegames, and converted every stored game once in its database migration to schema version 3 (`server/src/db.rs`, `migrate_to_v3`, with `server/src/savegames.rs`). Tests use it for fixtures and recorded games still in the old format, and the harness for traces of a reference build that records it ([native-harness.md](native-harness.md)).
+Savegames of version 190 and before were in an older JSON format (`{"Version":190,"_events":[{"$type":..}]}`). Nothing reads them any more: `GameState::load` refuses them, so the server refuses such an upload and leaves such a stored game out at startup. The fixtures and recorded games of the tests were converted to 191 once. Only the harness's recorder still builds events as maps of the old format, internally (`observe/src/event_maps`, [native-harness.md](native-harness.md)).
 
 The TypeScript types are generated and checked in. `protocol/tests/ts_bindings.rs` writes `web/src/generated/Event.ts` (every event, `HistoryEntry` and `GameSettings`) and `web/src/protocol/`; `view/tests/ts_bindings.rs` writes the rest of `web/src/generated/`, including `enums.ts`, whose list of enums is in that test. Both tests fail when the files are stale. To rewrite them:
 
@@ -420,10 +420,10 @@ Iteration order is observable in many places: the log, the views (spice, strongh
 
 ## Snapshot tests
 
-Several tests compare what the code computes with values recorded in `tests/golden/`: in the engine, the static data, pathfinding and the generator's streams (`static_data.rs`) and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`); the old event JSON (`legacy/tests/event_json.rs`); the bots (`rust/bots/tests`); and the skin (`rust/skin/tests`). A difference is a change in behavior. After a deliberate one, rewrite the snapshots of the crate concerned and review the diff:
+Several tests compare what the code computes with values recorded in `tests/golden/`: in the engine, the static data, pathfinding and the generator's streams (`static_data.rs`) and a few rule walkthroughs (`sync_v188.rs`, `review_pkg_b.rs`, `review_pkg_c.rs`); the bots (`rust/bots/tests`); and the skin (`rust/skin/tests`). A difference is a change in behavior. After a deliberate one, rewrite the snapshots of the crate concerned and review the diff:
 
 ```sh
-UPDATE_GOLDENS=1 cargo test --release -p treachery-engine     # or -p treachery-bots, treachery-skin, treachery-legacy
+UPDATE_GOLDENS=1 cargo test --release -p treachery-engine     # or -p treachery-bots, treachery-skin
 ```
 
 When you add static data, add it to `static_data.rs` too.

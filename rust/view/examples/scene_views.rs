@@ -73,9 +73,6 @@ fn main() {
 fn fixture(name: &str, savegame: &str, out: &Path) -> Result<Value, String> {
     // One load to read the game's factions and facts; each scene then loads its own copy,
     // because a scene seats its viewer and may play the client's automatic passes.
-    // Fixtures are savegames of version 190; `ViewedGame` reads the engine's format.
-    let converted = serde_json::to_string(&treachery_legacy::load_any(savegame)?).expect("savegames serialize");
-    let savegame = converted.as_str();
     let probe = ViewedGame::load(savegame)?;
     let game = &probe.game;
     let factions: Vec<Faction> = game.players.iter().filter_map(|p| p.faction).collect();

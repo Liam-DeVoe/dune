@@ -2,35 +2,24 @@
 //!
 //! The server keeps everything in memory while it runs and writes changes through to the
 //! database, which it reads back only at startup (and on the admin's restore). The schema's
-//! version is SQLite's `user_version`; [`Db::open`] brings any older database up to date before
-//! the server starts, in one transaction:
-//!
-//! - version 0 and empty: creates the version 1 schema, then migrates it to version 2.
-//! - version 0 with the tables of the old C# server (Entity Framework's `__EFMigrationsHistory`
-//!   among them): copies accounts, sessions, games and scheduled games into the version 1
-//!   tables and drops the old ones (see [`migrate_from_csharp`]), then migrates to version 2.
-//! - version 1: passwords were the client's SHA-256 as sent, sessions and reset tokens were
-//!   stored as they are. [`migrate_to_v2`] hashes each password with Argon2id
-//!   (`crate::passwords`) and marks it `password_scheme` 1, stores reset tokens as digests, and
-//!   ends every session: their tokens appeared in URLs and mails.
-//! - version 2: games are stored as savegames of game version 190, in the old JSON format.
-//!   [`migrate_to_v3`] converts each to version 191 (`crate::savegames`).
-//! - version 3: the current schema.
+//! version is SQLite's `user_version`. [`Db::open`] creates the schema in an empty database and
+//! opens a database of [`SCHEMA_VERSION`]. It refuses anything else, so the server doesn't start
+//! on a database of an older schema or one it doesn't know. There are no migrations.
 //!
 //! Times are stored as RFC 3339 text in UTC ([`super::time::format`]). Session, login link and
 //! reset tokens are stored as their SHA-256 digests (`crate::ids::digest`).
 
 use treachery_protocol::UserId;
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions, SqliteRow};
-use sqlx::{Row, Sqlite, Transaction};
+use sqlx::{Row, Sqlite};
 
 use super::passwords;
 use super::time::{self, Time};
 
 pub const SCHEMA_VERSION: i64 = 3;
 
-/// The version 1 schema, which the C# conversion fills. [`migrate_to_v2`] brings it up to date.
-const SCHEMA_V1: &[&str] = &[
+/// The schema of version [`SCHEMA_VERSION`].
+const SCHEMA: &[&str] = &[
     "CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
@@ -38,13 +27,21 @@ const SCHEMA_V1: &[&str] = &[
         email TEXT NOT NULL,
         player_name TEXT NOT NULL,
         last_login TEXT NOT NULL,
-        reset_token TEXT,
-        reset_token_created TEXT
+        reset_token_digest TEXT,
+        reset_token_created TEXT,
+        password_scheme INTEGER NOT NULL DEFAULT 0
     )",
     "CREATE INDEX users_name ON users (name)",
     "CREATE TABLE sessions (
-        token TEXT PRIMARY KEY,
+        token_digest TEXT PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        created TEXT NOT NULL,
+        last_used TEXT NOT NULL
+    )",
+    "CREATE TABLE login_links (
+        token_digest TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+        game_id TEXT NOT NULL,
         created TEXT NOT NULL
     )",
     "CREATE TABLE games (
@@ -255,7 +252,7 @@ impl From<sqlx::Error> for OpenError {
 }
 
 impl Db {
-    /// Opens the database file, creating it if needed, and brings its schema up to date.
+    /// Opens the database file, creating it and its schema if needed.
     pub async fn open(path: &std::path::Path) -> Result<Db, OpenError> {
         let options = SqliteConnectOptions::new().filename(path).create_if_missing(true).foreign_keys(true);
         Self::open_with(options).await
@@ -271,7 +268,7 @@ impl Db {
         // only on its connection.
         let pool = SqlitePoolOptions::new().max_connections(1).connect_with(options).await?;
         let db = Db { pool };
-        db.migrate().await?;
+        db.create_or_check_schema().await?;
         Ok(db)
     }
 
@@ -279,30 +276,25 @@ impl Db {
         self.pool.close().await;
     }
 
-    async fn migrate(&self) -> Result<(), OpenError> {
+    /// Creates the schema in an empty database; refuses a database of another schema version.
+    async fn create_or_check_schema(&self) -> Result<(), OpenError> {
         let version: i64 = sqlx::query("PRAGMA user_version").fetch_one(&self.pool).await?.get(0);
-        if version > SCHEMA_VERSION {
-            return Err(OpenError::Schema(format!("version {version} is newer than this server's ({SCHEMA_VERSION})")));
-        }
         if version == SCHEMA_VERSION {
             return Ok(());
         }
+        let refused = |what: String| OpenError::Schema(format!("{what}; this server opens only a database of version {SCHEMA_VERSION} or an empty one"));
+        if version != 0 {
+            return Err(refused(format!("version {version}")));
+        }
         let mut tx = self.pool.begin().await?;
-        if version == 0 {
-            let tables: Vec<String> =
-                sqlx::query("SELECT name FROM sqlite_master WHERE type = 'table'").fetch_all(&mut *tx).await?.iter().map(|r| r.get(0)).collect();
-            if tables.iter().any(|t| t == "__EFMigrationsHistory") {
-                migrate_from_csharp(&mut tx).await?;
-            } else if tables.iter().any(|t| t != "sqlite_sequence") {
-                return Err(OpenError::Schema(format!("unknown tables {tables:?}")));
-            } else {
-                create_schema_v1(&mut tx).await?;
-            }
+        let tables: Vec<String> =
+            sqlx::query("SELECT name FROM sqlite_master WHERE type = 'table'").fetch_all(&mut *tx).await?.iter().map(|r| r.get(0)).collect();
+        if tables.iter().any(|t| t != "sqlite_sequence") {
+            return Err(refused(format!("no version, and the tables {tables:?}")));
         }
-        if version < 2 {
-            migrate_to_v2(&mut tx).await?;
+        for statement in SCHEMA {
+            sqlx::query(statement).execute(&mut *tx).await?;
         }
-        migrate_to_v3(&mut tx).await?;
         sqlx::query(&format!("PRAGMA user_version = {SCHEMA_VERSION}")).execute(&mut *tx).await?;
         tx.commit().await?;
         Ok(())
@@ -465,212 +457,6 @@ async fn save_scheduled_game<'e>(executor: impl sqlx::Executor<'e, Database = Sq
     Ok(())
 }
 
-async fn create_schema_v1(tx: &mut Transaction<'_, Sqlite>) -> Result<(), sqlx::Error> {
-    for statement in SCHEMA_V1 {
-        sqlx::query(statement).execute(&mut **tx).await?;
-    }
-    Ok(())
-}
-
-/// Version 2 to 3. Each stored game, a savegame of game version 190 in the old JSON format, is
-/// rewritten as a savegame of version 191 (`crate::savegames::convert`), which reads back as the
-/// same events. A game that can't be converted is left as it was, with a line on the console:
-/// the server still loads an old savegame (`treachery_legacy::load_any`), or leaves it out at
-/// startup as before when its version is no longer played.
-pub async fn migrate_to_v3(tx: &mut Transaction<'_, Sqlite>) -> Result<(), OpenError> {
-    let rows: Vec<(String, String)> = sqlx::query("SELECT id, state FROM games").fetch_all(&mut **tx).await?.iter().map(|r| (r.get(0), r.get(1))).collect();
-    let (mut converted, mut kept) = (0, 0);
-    for (id, state) in rows {
-        match crate::savegames::convert(&state) {
-            Ok(new) => {
-                sqlx::query("UPDATE games SET state = ? WHERE id = ?").bind(new).bind(&id).execute(&mut **tx).await?;
-                converted += 1;
-            }
-            Err(crate::savegames::NotConverted::Current) => {}
-            Err(reason) => {
-                println!("game {id} is not converted to version 191: {reason:?}");
-                kept += 1;
-            }
-        }
-    }
-    if converted + kept > 0 {
-        println!("converted {converted} games to version 191, {kept} left as they were");
-    }
-    Ok(())
-}
-
-/// Version 1 to 2. Each stored password, the client's SHA-256 as it was sent, is hashed with
-/// Argon2id once, so the same value from the client still logs in. Pending reset tokens are
-/// kept as digests. Sessions end, because their tokens appeared in URLs and mails; the new
-/// `sessions` table keeps digests and when each was last used. Login links are new.
-pub async fn migrate_to_v2(tx: &mut Transaction<'_, Sqlite>) -> Result<(), OpenError> {
-    for statement in [
-        "ALTER TABLE users ADD COLUMN password_scheme INTEGER NOT NULL DEFAULT 0",
-        "ALTER TABLE users RENAME COLUMN reset_token TO reset_token_digest",
-        "DROP TABLE sessions",
-        "CREATE TABLE sessions (
-            token_digest TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-            created TEXT NOT NULL,
-            last_used TEXT NOT NULL
-        )",
-        "CREATE TABLE login_links (
-            token_digest TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-            game_id TEXT NOT NULL,
-            created TEXT NOT NULL
-        )",
-    ] {
-        sqlx::query(statement).execute(&mut **tx).await?;
-    }
-
-    let users: Vec<(i64, String, Option<String>)> = sqlx::query("SELECT id, password_hash, reset_token_digest FROM users")
-        .fetch_all(&mut **tx)
-        .await?
-        .iter()
-        .map(|r| Ok((r.try_get(0)?, r.try_get(1)?, r.try_get(2)?)))
-        .collect::<Result<_, sqlx::Error>>()?;
-    // Argon2 takes a few tens of milliseconds per hash: spread them over a few threads.
-    let threads = std::thread::available_parallelism().map_or(1, |n| n.get()).min(4);
-    let chunk = users.len().div_ceil(threads).max(1);
-    let hashed: Vec<String> = std::thread::scope(|scope| {
-        let workers: Vec<_> = users.chunks(chunk).map(|part| scope.spawn(move || part.iter().map(|(_, p, _)| passwords::hash(p)).collect::<Vec<_>>())).collect();
-        workers.into_iter().flat_map(|w| w.join().expect("hashing passwords")).collect()
-    });
-    for ((id, _, reset_token), hash) in users.iter().zip(hashed) {
-        sqlx::query("UPDATE users SET password_hash = ?, password_scheme = ?, reset_token_digest = ? WHERE id = ?")
-            .bind(hash)
-            .bind(passwords::SCHEME)
-            .bind(reset_token.as_deref().map(super::ids::digest))
-            .bind(id)
-            .execute(&mut **tx)
-            .await?;
-    }
-    if !users.is_empty() {
-        println!("database version 2: hashed {} passwords with Argon2id; every session ended", users.len());
-    }
-    Ok(())
-}
-
-/// The C# server wrote `0001-01-01 00:00:00+00:00` for "never".
-fn csharp_time(text: Option<String>) -> Option<Time> {
-    let t = time::parse(&text?)?;
-    (t.timestamp() > 0).then_some(t)
-}
-
-/// Converts a database of the old C# server (Entity Framework's schema after its last
-/// migration, `UserTokensAdded`) to the version 1 schema, which [`migrate_to_v2`] then brings
-/// up to date. Accounts and sessions are copied as they are. Games are copied with their savegame and seats; games whose savegame no longer
-/// loads are copied too; the server leaves them out with a log line. The tables
-/// the C# server used only for itself (`ArchivedGames`, which it never wrote, and Entity
-/// Framework's bookkeeping) are dropped.
-pub async fn migrate_from_csharp(tx: &mut Transaction<'_, Sqlite>) -> Result<(), OpenError> {
-    let history: Vec<String> = sqlx::query(r#"SELECT "MigrationId" FROM "__EFMigrationsHistory" ORDER BY "MigrationId""#)
-        .fetch_all(&mut **tx)
-        .await?
-        .iter()
-        .map(|r| r.get(0))
-        .collect();
-    if history.last().map(String::as_str) != Some("20260921083521_UserTokensAdded") {
-        return Err(OpenError::Schema(format!("a C# database at migration {:?}; only the last one (UserTokensAdded) is converted", history.last())));
-    }
-    for old in ["Users", "UserTokens", "PersistedGames", "ScheduledGames"] {
-        sqlx::query(&format!(r#"ALTER TABLE "{old}" RENAME TO "csharp_{old}""#)).execute(&mut **tx).await?;
-    }
-    create_schema_v1(tx).await?;
-
-    let users = sqlx::query(r#"SELECT * FROM "csharp_Users" ORDER BY "Id""#).fetch_all(&mut **tx).await?;
-    for r in &users {
-        let reset_token: Option<String> = r.try_get("PasswordResetToken")?;
-        sqlx::query(
-            "INSERT INTO users (id, name, password_hash, email, player_name, last_login, reset_token, reset_token_created) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(r.try_get::<i64, _>("Id")?)
-        .bind(r.try_get::<String, _>("Name")?)
-        .bind(r.try_get::<String, _>("HashedPassword")?)
-        .bind(r.try_get::<String, _>("Email")?)
-        .bind(r.try_get::<String, _>("PlayerName")?)
-        .bind(time::format(csharp_time(r.try_get("LastLogin")?).unwrap_or_default()))
-        .bind(reset_token.filter(|t| !t.is_empty()))
-        .bind(csharp_time(r.try_get("PasswordResetTokenCreated")?).map(time::format))
-        .execute(&mut **tx)
-        .await?;
-    }
-
-    for r in sqlx::query(r#"SELECT * FROM "csharp_UserTokens" WHERE "UserId" IN (SELECT "Id" FROM "csharp_Users")"#).fetch_all(&mut **tx).await? {
-        sqlx::query("INSERT INTO sessions (token, user_id, created) VALUES (?, ?, ?)")
-            .bind(r.try_get::<String, _>("Token")?)
-            .bind(r.try_get::<i64, _>("UserId")?)
-            .bind(time::format(csharp_time(r.try_get("Created")?).unwrap_or_default()))
-            .execute(&mut **tx)
-            .await?;
-    }
-
-    // A game id could appear more than once; the row written last wins.
-    for r in sqlx::query(r#"SELECT * FROM "csharp_PersistedGames" WHERE "GameId" IS NOT NULL ORDER BY "Id""#).fetch_all(&mut **tx).await? {
-        let created = csharp_time(r.try_get("CreationDate")?).unwrap_or_default();
-        let password: Option<String> = r.try_get("HashedPassword")?;
-        let game = GameRow {
-            id: r.try_get("GameId")?,
-            name: r.try_get::<Option<String>, _>("GameName")?.unwrap_or_default(),
-            creator_id: UserId(r.try_get("CreatorUserId")?),
-            password_hash: password.filter(|p| !p.is_empty()),
-            created,
-            last_activity: csharp_time(r.try_get("LastAction")?).unwrap_or(created),
-            statistics_sent: r.try_get("StatisticsSent")?,
-            last_async_mail: csharp_time(r.try_get("LastAsyncPlayMessageSent")?),
-            participation: r.try_get("GameParticipation")?,
-            state: r.try_get("GameState")?,
-        };
-        sqlx::query(
-            "INSERT OR REPLACE INTO games (id, name, creator_id, password_hash, created, last_activity, statistics_sent, last_async_mail, participation, state)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&game.id)
-        .bind(&game.name)
-        .bind(game.creator_id.0)
-        .bind(&game.password_hash)
-        .bind(time::format(game.created))
-        .bind(time::format(game.last_activity))
-        .bind(game.statistics_sent)
-        .bind(game.last_async_mail.map(time::format))
-        .bind(&game.participation)
-        .bind(&game.state)
-        .execute(&mut **tx)
-        .await?;
-    }
-
-    for r in sqlx::query(r#"SELECT * FROM "csharp_ScheduledGames""#).fetch_all(&mut **tx).await? {
-        // `{"<userId>": <subscription>, ...}`, in subscription order.
-        let text: String = r.try_get("SubscribedUsers")?;
-        let subscriptions: serde_json::Map<String, serde_json::Value> =
-            serde_json::from_str(&text).map_err(|e| OpenError::Schema(format!("ScheduledGames.SubscribedUsers {text:?}: {e}")))?;
-        let factions: String = r.try_get("AllowedFactionsInPlay")?;
-        let game = ScheduledGameRow {
-            id: r.try_get("GameId")?,
-            creator_id: UserId(r.try_get("CreatorUserId")?),
-            creator_player_name: r.try_get("CreatorPlayerName")?,
-            starts: csharp_time(r.try_get("DateTime")?).unwrap_or_default(),
-            ruleset: r.try_get("Ruleset")?,
-            players: r.try_get("NumberOfPlayers")?,
-            max_turns: r.try_get("MaximumTurns")?,
-            factions: serde_json::from_str(&factions).map_err(|e| OpenError::Schema(format!("ScheduledGames.AllowedFactionsInPlay: {e}")))?,
-            async_play: r.try_get("AsyncPlay")?,
-            subscriptions: subscriptions
-                .iter()
-                .filter_map(|(user, kind)| Some((UserId(user.parse().ok()?), kind.as_i64()? as i32)))
-                .collect(),
-        };
-        save_scheduled_game(&mut **tx, &game).await?;
-    }
-
-    for old in ["csharp_Users", "csharp_UserTokens", "csharp_PersistedGames", "csharp_ScheduledGames", "ArchivedGames", "__EFMigrationsHistory", "__EFMigrationsLock"] {
-        sqlx::query(&format!(r#"DROP TABLE IF EXISTS "{old}""#)).execute(&mut **tx).await?;
-    }
-    println!("converted the C# server's database: {} accounts", users.len());
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -750,82 +536,6 @@ mod tests {
         assert!(db.users().await.unwrap().is_empty() && db.sessions().await.unwrap().is_empty() && db.login_links().await.unwrap().is_empty());
     }
 
-    /// A version 1 database: passwords are hashed once, reset tokens become digests, and
-    /// sessions end.
-    #[tokio::test(flavor = "current_thread")]
-    async fn migrates_version_1() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("v1.db");
-        {
-            let pool = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(&path).create_if_missing(true)).await.unwrap();
-            let mut tx = pool.begin().await.unwrap();
-            create_schema_v1(&mut tx).await.unwrap();
-            for (name, hash, reset) in [("alice", "alice-sha", Some("RESET")), ("bobby", "bobby-sha", None)] {
-                sqlx::query("INSERT INTO users (name, password_hash, email, player_name, last_login, reset_token, reset_token_created) VALUES (?, ?, '', ?, ?, ?, ?)")
-                    .bind(name)
-                    .bind(hash)
-                    .bind(name)
-                    .bind("2026-11-01T00:00:00Z")
-                    .bind(reset)
-                    .bind(reset.map(|_| "2026-11-01T00:00:00Z"))
-                    .execute(&mut *tx)
-                    .await
-                    .unwrap();
-            }
-            sqlx::query("INSERT INTO sessions (token, user_id, created) VALUES ('AliceToken123456', 1, '2026-11-01T00:00:00Z')").execute(&mut *tx).await.unwrap();
-            sqlx::query("PRAGMA user_version = 1").execute(&mut *tx).await.unwrap();
-            tx.commit().await.unwrap();
-            pool.close().await;
-        }
-        let db = Db::open(&path).await.unwrap();
-        let users = db.users().await.unwrap();
-        assert!(passwords::verify("alice-sha", &users[0].password_hash) && passwords::verify("bobby-sha", &users[1].password_hash));
-        assert!(!passwords::verify("bobby-sha", &users[0].password_hash));
-        assert_eq!(users[0].reset_token_digest, Some(crate::ids::digest("RESET")));
-        assert_eq!(users[1].reset_token_digest, None);
-        assert!(db.sessions().await.unwrap().is_empty());
-        db.close().await;
-        // Opening it again changes nothing.
-        let db = Db::open(&path).await.unwrap();
-        assert_eq!(db.users().await.unwrap(), users);
-    }
-
-    /// A version 2 database: stored games of version 190 become savegames of version 191, and a
-    /// game that can't be converted stays as it was.
-    #[tokio::test(flavor = "current_thread")]
-    async fn migrates_version_2() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("v2.db");
-        let old = std::fs::read_to_string(format!("{}/../../scripts/fixtures/battle.json", env!("CARGO_MANIFEST_DIR"))).unwrap();
-        let unreadable = r#"{"Version":150,"_events":[]}"#;
-        {
-            let pool = SqlitePoolOptions::new().max_connections(1).connect_with(SqliteConnectOptions::new().filename(&path).create_if_missing(true)).await.unwrap();
-            let mut tx = pool.begin().await.unwrap();
-            create_schema_v1(&mut tx).await.unwrap();
-            migrate_to_v2(&mut tx).await.unwrap();
-            for (id, state) in [("g1", old.as_str()), ("g2", unreadable)] {
-                sqlx::query("INSERT INTO games (id, name, creator_id, created, last_activity, statistics_sent, participation, state) VALUES (?, 'x', 1, '2026-11-01T00:00:00Z', '2026-11-01T00:00:00Z', 0, '{}', ?)")
-                    .bind(id)
-                    .bind(state)
-                    .execute(&mut *tx)
-                    .await
-                    .unwrap();
-            }
-            sqlx::query("PRAGMA user_version = 2").execute(&mut *tx).await.unwrap();
-            tx.commit().await.unwrap();
-            pool.close().await;
-        }
-        let db = Db::open(&path).await.unwrap();
-        let games = db.games().await.unwrap();
-        let state = |id: &str| games.iter().find(|g| g.id == id).unwrap().state.clone();
-        assert_eq!(state("g1"), crate::savegames::convert(&old).unwrap());
-        assert!(state("g1").starts_with(r#"{"version":191,"#));
-        assert_eq!(state("g2"), unreadable);
-        db.close().await;
-        let db = Db::open(&path).await.unwrap();
-        assert_eq!(db.games().await.unwrap().len(), 2);
-    }
-
     #[tokio::test(flavor = "current_thread")]
     async fn refuses_unknown_schemas() {
         let dir = tempfile::tempdir().unwrap();
@@ -839,5 +549,24 @@ mod tests {
         let path = dir.path().join("new.db");
         Db::open(&path).await.unwrap().close().await;
         Db::open(&path).await.unwrap().close().await;
+    }
+
+    /// A database of an older schema (or a newer one) is refused, not migrated.
+    #[tokio::test(flavor = "current_thread")]
+    async fn refuses_other_schema_versions() {
+        let dir = tempfile::tempdir().unwrap();
+        for version in [1, 2, SCHEMA_VERSION + 1] {
+            let path = dir.path().join(format!("v{version}.db"));
+            {
+                let pool = SqlitePoolOptions::new().connect_with(SqliteConnectOptions::new().filename(&path).create_if_missing(true)).await.unwrap();
+                sqlx::query(&format!("PRAGMA user_version = {version}")).execute(&pool).await.unwrap();
+                pool.close().await;
+            }
+            match Db::open(&path).await {
+                Err(OpenError::Schema(m)) => assert!(m.starts_with(&format!("version {version};")), "{m}"),
+                Err(e) => panic!("{e}"),
+                Ok(_) => panic!("version {version} opened"),
+            }
+        }
     }
 }

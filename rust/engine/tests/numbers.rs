@@ -1,25 +1,25 @@
 //! Turns, sectors and amounts as unsigned types (rewrite-plan.md, change 2d): event JSON refuses a
 //! value out of range, and the rules refuse or report what would go below zero.
 
-use treachery_legacy::utilities::Utilities;
 use treachery_engine::game::amounts;
 use treachery_engine::prelude::*;
 
+/// Decodes an event.
 fn decode(json: &str) -> Result<Event, String> {
-    Utilities::deserialize::<HistoryEntry>(json).map(|e| e.expect("an event").event).map_err(|e| e.message)
+    serde_json::from_str::<Event>(json).map_err(|e| e.to_string())
 }
 
 #[test]
 fn a_turn_out_of_range_doesnt_decode() {
-    let prediction = |turn: i64| decode(&format!(r#"{{"$type":"BeneGesseritPrediction","ToWin":10,"Turn":{turn}}}"#));
+    let prediction = |turn: i64| decode(&format!(r#"{{"type":"BeneGesseritPrediction","toWin":"Fremen","turn":{turn}}}"#));
     match prediction(5).unwrap() {
         Event::BeneGesseritPrediction(e) => assert_eq!(e.turn, Turn::new(5)),
         _ => unreachable!(),
     }
-    assert_eq!(prediction(-1).unwrap_err(), "-1 is not a valid turn");
-    assert_eq!(prediction(256).unwrap_err(), "256 is not a valid turn");
-    let settings = |turns: i64| decode(&format!(r#"{{"$type":"EstablishPlayers","Settings":{{"MaximumTurns":{turns}}}}}"#));
-    assert_eq!(settings(-3).unwrap_err(), "-3 is not a valid turn");
+    assert!(prediction(-1).is_err());
+    assert!(prediction(256).is_err());
+    let settings = |turns: i64| decode(&format!(r#"{{"type":"EstablishPlayers","settings":{{"maximumTurns":{turns}}}}}"#));
+    assert!(settings(-3).is_err());
 }
 
 #[test]
@@ -212,39 +212,42 @@ fn a_caravan_cant_be_passed() {
 #[test]
 fn negative_event_amounts_dont_decode() {
     for (event, member) in [
-        ("Bid", "Amount"),
-        ("Bid", "AllyContributionAmount"),
-        ("BlackMarketBid", "EmperorContributionAmount"),
-        ("ResourcesTransferred", "Resources"),
-        ("TakeLosses", "ForceAmount"),
-        ("KarmaFreeRevival", "AmountOfForces"),
-        ("Revival", "AmountOfForces"),
-        ("Shipment", "SmuggledAmount"),
-        ("Shipment", "_noFieldValue"),
-        ("NexusPlayed", "TleilaxuForces"),
-        ("DealOffered", "Price"),
-        ("StormDialled", "Amount"),
+        ("Bid", "amount"),
+        ("Bid", "allyContributionAmount"),
+        ("BlackMarketBid", "emperorContributionAmount"),
+        ("ResourcesTransferred", "resources"),
+        ("TakeLosses", "forceAmount"),
+        ("KarmaFreeRevival", "amountOfForces"),
+        ("Revival", "amountOfForces"),
+        ("Shipment", "smuggledAmount"),
+        ("Shipment", "noFieldValue"),
+        ("NexusPlayed", "tleilaxuForces"),
+        ("DealOffered", "price"),
+        ("StormDialled", "amount"),
     ] {
-        let json = |n: i64| format!(r#"{{"$type":"{event}","{member}":{n}}}"#);
+        let passable = matches!(event, "Bid" | "BlackMarketBid" | "Shipment");
+        let json = |n: i64| {
+            if passable { format!(r#"{{"type":"{event}","play":{{"{member}":{n}}}}}"#) } else { format!(r#"{{"type":"{event}","{member}":{n}}}"#) }
+        };
         assert!(decode(&json(0)).is_ok(), "{event}.{member} 0");
         assert!(decode(&json(65535)).is_ok(), "{event}.{member} 65535");
-        assert_eq!(decode(&json(-1)).unwrap_err(), "-1 is not a valid amount", "{event}.{member}");
-        assert_eq!(decode(&json(65536)).unwrap_err(), "65536 is not a valid amount", "{event}.{member}");
+        assert!(decode(&json(-1)).is_err(), "{event}.{member}");
+        assert!(decode(&json(65536)).is_err(), "{event}.{member}");
     }
-    assert!(decode(r#"{"$type":"Shipment","ForceAmount":-2,"SpecialForceAmount":-1}"#).is_ok());
-    assert!(decode(r#"{"$type":"RicheseSpecifiesAuction","Direction":-1}"#).is_ok());
-    assert!(decode(r#"{"$type":"TestingStationUsed","ValueAdded":-1}"#).is_ok());
+    assert!(decode(r#"{"type":"Shipment","play":{"forceAmount":-2,"specialForceAmount":-1}}"#).is_ok());
+    assert!(decode(r#"{"type":"RicheseSpecifiesAuction","direction":-1}"#).is_ok());
+    assert!(decode(r#"{"type":"TestingStationUsed","valueAdded":-1}"#).is_ok());
 }
 
-/// A force list (`_forceLocations`) with an amount outside 0 to 65535 doesn't decode.
+/// A force list (`forceLocations`) with an amount outside 0 to 65535 doesn't decode.
 #[test]
 fn a_force_list_out_of_range_doesnt_decode() {
-    let mv = |list: &str| decode(&format!(r#"{{"$type":"Move","_toId":5,"_forceLocations":"{list}"}}"#));
-    assert!(mv("12:3|1,14:2|0").is_ok());
-    assert_eq!(mv("12:-3|1").unwrap_err(), "-3 is not a valid amount of forces");
-    assert_eq!(mv("12:3|65536").unwrap_err(), "65536 is not a valid amount of forces");
-    let face_danced = decode(r#"{"$type":"FaceDanced","_targetForceLocations":"12:-1|0"}"#);
-    assert_eq!(face_danced.unwrap_err(), "-1 is not a valid amount of forces");
+    let mv = |list: &str| decode(&format!(r#"{{"type":"Move","play":{{"to":5,"forceLocations":[{list}]}}}}"#));
+    assert!(mv(r#"{"location":12,"forces":3,"specialForces":1},{"location":14,"forces":2,"specialForces":0}"#).is_ok());
+    assert!(mv(r#"{"location":12,"forces":-3,"specialForces":1}"#).is_err());
+    assert!(mv(r#"{"location":12,"forces":3,"specialForces":65536}"#).is_err());
+    let face_danced = decode(r#"{"type":"FaceDanced","play":{"targetForceLocations":[{"location":12,"forces":-1,"specialForces":0}]}}"#);
+    assert!(face_danced.is_err());
 }
 
 /// Spice a player bid in a silent auction can't be given away before the auction ends. It was

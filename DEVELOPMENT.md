@@ -10,7 +10,6 @@ treachery-online is an online version of the Dune board game, running at https:/
 - `rust/protocol`: every message between the web client and the server, with their TypeScript types ([protocol.md](rust/docs/protocol.md)).
 - `rust/server`: the server ([server.md](rust/docs/server.md)). It holds every game and sends views to clients over a WebSocket ([protocol.md](rust/docs/protocol.md)).
 - `rust/skin`: text and image names for log messages ([skin.md](rust/docs/skin.md)).
-- `rust/legacy`: the event and savegame JSON of game version 190 and before, which the server converts once and the harness still reads ([engine-conventions.md](rust/docs/engine-conventions.md), "JSON").
 - `rust/observe`: the behavior harness ([native-harness.md](rust/docs/native-harness.md)).
 - `web/`: the React client ([client.md](rust/docs/client.md)), with its art, fonts and stylesheets.
 - `deploy/`: everything needed to rebuild and deploy the server ([deploy/README.md](deploy/README.md)).

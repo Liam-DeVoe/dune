@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
-/// A savegame: `{"version":191,"events":[HistoryEntry, ..]}`. Savegames of version 190 and
-/// before have another format, which `treachery-legacy` reads.
+/// A savegame: `{"version":191,"events":[HistoryEntry, ..]}`.
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct GameState {

@@ -61,7 +61,7 @@ fn everyone_sees_the_same_story() {
 
 #[test]
 fn the_rules_can_disable_the_story() {
-    let mut r = load_text(&with_rules("mc-ended", &[1015]));
+    let mut r = load_text(&with_rules("mc-ended", &[Rule::DisableEndOfGameReport]));
     let e = r.view(OBSERVER).ending.expect("ending");
     assert!(e.story.is_none());
     assert!(!e.winners.is_empty());

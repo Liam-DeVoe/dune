@@ -42,45 +42,30 @@ pub fn viewer_of(viewed: &ViewedGame, faction: Faction) -> Viewer {
 /// The fixture's savegame cut back to its first `n` events (negative: all but the last `-n`).
 pub fn truncated(name: &str, n: i64) -> String {
     let mut v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
-    let events = v["_events"].as_array_mut().unwrap();
+    let events = v["events"].as_array_mut().unwrap();
     let keep = if n < 0 { events.len() as i64 + n } else { n } as usize;
     events.truncate(keep);
     v.to_string()
 }
 
-/// A savegame of either format (fixtures are in the format of version 190) in the engine's.
-pub fn converted(savegame: &str) -> String {
-    serde_json::to_string(&treachery_legacy::load_any(savegame).expect("savegame reads")).unwrap()
-}
-
-/// A game loaded from a savegame of either format, with nobody seated.
+/// A game loaded from a savegame, with nobody seated.
 pub fn load_raw(savegame: &str) -> Result<ViewedGame, String> {
-    ViewedGame::load(&converted(savegame))
+    ViewedGame::load(savegame)
 }
 
-/// A draft written in the format of version 190 (`{"$type":..}`), as the client sends it now.
-pub fn draft(legacy: &str) -> String {
-    let entry: HistoryEntry = treachery_legacy::deserialize(legacy).expect("draft reads");
-    serde_json::to_string(&entry.event).unwrap()
+/// An event as the client sends it (`{"type":..}`), checked to decode.
+pub fn draft(event: &str) -> String {
+    let e: Event = serde_json::from_str(event).unwrap_or_else(|e| panic!("draft reads: {e}: {event}"));
+    serde_json::to_string(&e).unwrap()
 }
 
-/// An event of a fixture or trace (either format), as `ViewedGame::apply` takes it.
+/// A history entry of a fixture or trace, as `ViewedGame::apply` takes it.
 pub fn event_text(e: &serde_json::Value) -> String {
-    let entry: HistoryEntry = if e.get("$type").is_some() {
-        treachery_legacy::deserialize(&e.to_string()).expect("event reads")
-    } else {
-        serde_json::from_value(e.clone()).expect("event reads")
-    };
+    let entry: HistoryEntry = serde_json::from_value(e.clone()).expect("event reads");
     serde_json::to_string(&entry).unwrap()
 }
 
-/// The game version a recorded game of `version` plays at: 190 is played as 191, which changed
-/// only the format.
-pub fn played_version(version: i32) -> i32 {
-    version.max(treachery_legacy::LAST_LEGACY_VERSION + 1)
-}
-
-/// Like [`load`], from savegame text of either format.
+/// Like [`load`], from savegame text.
 pub fn load_text(savegame: &str) -> ViewedGame {
     let mut viewed = load_raw(savegame).expect("savegame replays");
     seat_everyone(&mut viewed);
@@ -113,8 +98,7 @@ pub fn read_trace(path: &std::path::Path) -> Trace {
     for line in reader.lines() {
         let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
         match v["kind"].as_str() {
-            // Version 190 is played as 191, which changed only the format.
-            Some("header") => version = (v["gameVersion"].as_i64().unwrap() as i32).max(treachery_legacy::LAST_LEGACY_VERSION + 1),
+            Some("header") => version = v["gameVersion"].as_i64().unwrap() as i32,
             Some("step") if v["result"] == "accepted" => events.push(event_text(&v["event"])),
             Some("undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone") => panic!("{}: bot traces have no undo", path.display()),
             _ => {}
@@ -176,10 +160,10 @@ fn seat_everyone(viewed: &mut ViewedGame) {
     viewed.seating.seated_users = seats.len() as i32;
 }
 
-/// A fixture with extra rules in its `EstablishPlayers` settings (rule numbers).
-pub fn with_rules(name: &str, rules: &[i32]) -> String {
+/// A fixture with extra rules in its `EstablishPlayers` settings.
+pub fn with_rules(name: &str, rules: &[Rule]) -> String {
     let mut v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
-    let initial = v["_events"][0]["Settings"]["InitialRules"].as_array_mut().expect("InitialRules");
-    initial.extend(rules.iter().map(|r| serde_json::json!(r)));
+    let initial = v["events"][0]["event"]["settings"]["initialRules"].as_array_mut().expect("initialRules");
+    initial.extend(rules.iter().map(|r| serde_json::to_value(r).unwrap()));
     v.to_string()
 }

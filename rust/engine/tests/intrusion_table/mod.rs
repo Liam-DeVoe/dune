@@ -9,18 +9,16 @@
 #![allow(dead_code)]
 
 
-use treachery_engine::enum_type::GameEnum;
-use treachery_legacy as json;
 use treachery_engine::prelude::*;
 
-pub const BENE_GESSERIT: i32 = 60;
-pub const ECAZ: i32 = 110;
-pub const MORITANI: i32 = 120;
-pub const GUILD: i32 = 50;
-pub const FREMEN: i32 = 10;
-pub const TLEILAXU: i32 = 80;
-pub const CHOAM: i32 = 90;
-pub const ATREIDES: i32 = 20;
+pub const BENE_GESSERIT: &str = "BeneGesserit";
+pub const ECAZ: &str = "Ecaz";
+pub const MORITANI: &str = "Moritani";
+pub const GUILD: &str = "Guild";
+pub const FREMEN: &str = "Fremen";
+pub const TLEILAXU: &str = "Tleilaxu";
+pub const CHOAM: &str = "Choam";
+pub const ATREIDES: &str = "Atreides";
 
 /// The sector the storm is in. Nothing the tests use lies in it.
 pub const STORM: Sector = Sector::new(9);
@@ -74,7 +72,7 @@ pub fn seated(change_rules: impl FnOnce(&mut Vec<Rule>)) -> Game {
         Faction::Choam,
         Faction::Atreides,
     ];
-    assert_eq!(codes, factions.map(|f| f.value()), "the faction numbers in event JSON");
+    assert_eq!(codes.map(|c| serde_json::Value::from(c)), factions.map(|f| serde_json::to_value(f).unwrap()), "the faction names in event JSON");
     seated_with(&factions[..6], change_rules)
 }
 
@@ -116,10 +114,10 @@ pub fn pass_until_shipment_of(g: &mut Game, f: Faction) {
             Phase::NonGuildShip if shippers == [f] => return,
             Phase::GuildShip => accept(g, &shipment_passed(GUILD)),
             Phase::GuildMove => accept(g, &movement_passed(GUILD)),
-            Phase::NonGuildShip => accept(g, &shipment_passed(shippers[0].value())),
+            Phase::NonGuildShip => accept(g, &shipment_passed(&name(shippers[0]))),
             Phase::NonGuildMove => {
                 let movers = asked(g, EventType::Move);
-                accept(g, &movement_passed(movers[0].value()));
+                accept(g, &movement_passed(&name(movers[0])));
             }
             p => panic!("{p:?} while passing to {f:?}'s shipment"),
         }
@@ -136,10 +134,11 @@ pub fn idx(g: &Game, f: Faction) -> PlayerId {
     g.get_player(Some(f)).expect("faction in game")
 }
 
-/// Submits an event given as JSON (without `Time`), with validation. The refusal, if any.
+/// Submits a history entry given as JSON (without `at`), with validation. The refusal, if any.
 pub fn submit(g: &mut Game, event_json: &str) -> Option<String> {
-    let text = format!("{},\"Time\":\"2026-11-15T00:00:00+00:00\"}}", event_json.trim_end().strip_suffix('}').expect("an object"));
-    let e: HistoryEntry = json::deserialize(&text).unwrap_or_else(|e| panic!("{text}: {e:?}"));
+    let mut v: serde_json::Value = serde_json::from_str(event_json).unwrap_or_else(|e| panic!("{event_json}: {e}"));
+    v["at"] = serde_json::Value::from("2026-11-15T00:00:00Z");
+    let e: HistoryEntry = serde_json::from_value(v).unwrap_or_else(|e| panic!("{event_json}: {e}"));
     g.play_for_message(e, true, false).map(|m| m.plain_text())
 }
 
@@ -251,34 +250,45 @@ pub fn an_ambassador(g: &Game) -> Ambassador {
 
 // Events, as JSON.
 
-pub fn shipment(f: i32, to: Location, forces: i32) -> String {
+/// A faction as event JSON names it.
+pub fn name(f: Faction) -> String {
+    serde_json::to_value(f).unwrap().as_str().unwrap().to_string()
+}
+
+pub fn shipment(f: &str, to: Location, forces: i32) -> String {
     format!(
-        r#"{{"$type":"Shipment","ShipmentType":0,"ForceAmount":{forces},"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":{},"_fromId":-1,"_noFieldValue":0,"_cunningNoFieldValue":0,"_karmaCardId":-1,"_forceLocations":"","Passed":false,"Initiator":{f}}}"#,
+        r#"{{"by":"{f}","event":{{"type":"Shipment","play":{{"shipmentType":"Unknown","to":{},"from":null,"forceAmount":{forces},"specialForceAmount":0,"smuggledAmount":0,"smuggledSpecialAmount":0,"noFieldValue":0,"cunningNoFieldValue":0,"allyContributionAmount":0,"karmaCard":null,"useRicheseSecretAlly":false,"forceLocations":[]}}}}}}"#,
         to.id()
     )
 }
 
-pub fn shipment_passed(f: i32) -> String {
+pub fn shipment_passed(f: &str) -> String {
+    format!(r#"{{"by":"{f}","event":{{"type":"Shipment","play":null}}}}"#)
+}
+
+pub fn movement(f: &str, from: Location, to: Location, forces: i32) -> String {
     format!(
-        r#"{{"$type":"Shipment","ShipmentType":0,"ForceAmount":0,"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":-1,"_fromId":-1,"_noFieldValue":0,"_cunningNoFieldValue":0,"_karmaCardId":-1,"_forceLocations":"","Passed":true,"Initiator":{f}}}"#
+        r#"{{"by":"{f}","event":{{"type":"Move","play":{{"asAdvisors":false,"to":{},"forceLocations":[{{"location":{},"forces":{forces},"specialForces":0}}]}}}}}}"#,
+        to.id(),
+        from.id()
     )
 }
 
-pub fn movement(f: i32, from: Location, to: Location, forces: i32) -> String {
-    format!(r#"{{"$type":"Move","AsAdvisors":false,"_toId":{},"_forceLocations":"{}:{forces}|0","Passed":false,"Initiator":{f}}}"#, to.id(), from.id())
+pub fn movement_passed(f: &str) -> String {
+    format!(r#"{{"by":"{f}","event":{{"type":"Move","play":null}}}}"#)
 }
 
-pub fn movement_passed(f: i32) -> String {
-    format!(r#"{{"$type":"Move","AsAdvisors":false,"_toId":-1,"_forceLocations":"","Passed":true,"Initiator":{f}}}"#)
-}
-
-pub fn caravan(f: i32, from: Location, to: Location, forces: i32) -> String {
-    format!(r#"{{"$type":"Caravan","AsAdvisors":false,"_toId":{},"_forceLocations":"{}:{forces}|0","Passed":false,"Initiator":{f}}}"#, to.id(), from.id())
+pub fn caravan(f: &str, from: Location, to: Location, forces: i32) -> String {
+    format!(
+        r#"{{"by":"{f}","event":{{"type":"Caravan","play":{{"asAdvisors":false,"to":{},"forceLocations":[{{"location":{},"forces":{forces},"specialForces":0}}]}}}}}}"#,
+        to.id(),
+        from.id()
+    )
 }
 
 pub fn worm_ride(from: Location, to: Location, forces: i32) -> String {
     format!(
-        r#"{{"$type":"FremenRidesMonster","ForcesFromReserves":0,"SpecialForcesFromReserves":0,"_toId":{},"_forceLocations":"{}:{forces}|0","Passed":false,"Initiator":{FREMEN}}}"#,
+        r#"{{"by":"{FREMEN}","event":{{"type":"FremenRidesMonster","play":{{"forcesFromReserves":0,"specialForcesFromReserves":0,"to":{},"forceLocations":[{{"location":{},"forces":{forces},"specialForces":0}}]}}}}}}"#,
         to.id(),
         from.id()
     )
@@ -287,36 +297,34 @@ pub fn worm_ride(from: Location, to: Location, forces: i32) -> String {
 /// Tleilaxu revive `forces` and put them all at `to`.
 pub fn revival_to(to: Location, forces: i32) -> String {
     format!(
-        r#"{{"$type":"Revival","AmountOfForces":{forces},"AmountOfSpecialForces":0,"ExtraForcesPaidByEmperor":0,"ExtraSpecialForcesPaidByEmperor":0,"NumberOfForcesInLocation":{forces},"NumberOfSpecialForcesInLocation":0,"AssignSkill":false,"UsesEmperorSecretAlly":false,"_locationId":{},"_heroId":-1,"Initiator":{TLEILAXU}}}"#,
+        r#"{{"by":"{TLEILAXU}","event":{{"type":"Revival","amountOfForces":{forces},"amountOfSpecialForces":0,"extraForcesPaidByEmperor":0,"extraSpecialForcesPaidByEmperor":0,"numberOfForcesInLocation":{forces},"numberOfSpecialForcesInLocation":0,"location":{},"hero":null,"assignSkill":false,"usesEmperorSecretAlly":false}}}}"#,
         to.id()
     )
 }
 
 pub fn accompany(to: Location) -> String {
-    format!(r#"{{"$type":"BeneGesseritAccompanies","Accompanies":true,"ExtraAdvisor":false,"_targetId":{},"Initiator":{BENE_GESSERIT}}}"#, to.id())
+    format!(r#"{{"by":"{BENE_GESSERIT}","event":{{"type":"BeneGesseritAccompanies","location":{},"accompanies":true,"extraAdvisor":false}}}}"#, to.id())
 }
 
 pub fn dont_accompany() -> String {
-    format!(r#"{{"$type":"BeneGesseritAccompanies","Accompanies":false,"ExtraAdvisor":false,"_targetId":-1,"Initiator":{BENE_GESSERIT}}}"#)
+    format!(r#"{{"by":"{BENE_GESSERIT}","event":{{"type":"BeneGesseritAccompanies","location":null,"accompanies":false,"extraAdvisor":false}}}}"#)
 }
 
 /// Bene Gesserit answer an intrusion. `as_advisors` false keeps them fighters.
 pub fn flip(as_advisors: bool) -> String {
-    format!(r#"{{"$type":"BeneGesseritFlip","AsAdvisors":{as_advisors},"Initiator":{BENE_GESSERIT}}}"#)
+    format!(r#"{{"by":"{BENE_GESSERIT}","event":{{"type":"BeneGesseritFlip","asAdvisors":{as_advisors}}}}}"#)
 }
 
 pub fn terror_passed() -> String {
-    format!(
-        r#"{{"$type":"TerrorRevealed","AllianceOffered":false,"Type":0,"ForcesInSneakAttack":0,"RobberyTakesCard":false,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":true,"Initiator":{MORITANI}}}"#
-    )
+    format!(r#"{{"by":"{MORITANI}","event":{{"type":"TerrorRevealed","play":null}}}}"#)
 }
 
 pub fn ambassador_passed() -> String {
-    format!(r#"{{"$type":"AmbassadorActivated","Passed":true,"Initiator":{ECAZ}}}"#)
+    format!(r#"{{"by":"{ECAZ}","event":{{"type":"AmbassadorActivated","play":null}}}}"#)
 }
 
-pub fn take_losses(f: i32, forces: i32) -> String {
-    format!(r#"{{"$type":"TakeLosses","ForceAmount":{forces},"SpecialForceAmount":0,"UseUselessCard":false,"Initiator":{f}}}"#)
+pub fn take_losses(f: &str, forces: i32) -> String {
+    format!(r#"{{"by":"{f}","event":{{"type":"TakeLosses","forceAmount":{forces},"specialForceAmount":0,"useUselessCard":false}}}}"#)
 }
 
 pub fn ally(g: &mut Game, a: Faction, b: Faction) {

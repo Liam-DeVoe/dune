@@ -14,7 +14,6 @@ mod common;
 use common::{load, viewer_of};
 use treachery_engine::events::EventType;
 use treachery_engine::messages::part::Part as P;
-use treachery_legacy as json;
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
 use treachery_view::actions::ship_move::{default_draft, options, options_and_validation};
@@ -89,7 +88,7 @@ fn check(game: &Game, p: PlayerId, t: EventType, d: &dyn Describer, seen: &mut S
     let o = opts(game, p, &draft, d);
     seen.add(t);
     // The default draft is already as the component shows it.
-    assert_eq!(json::serialize(&HistoryEntry::new(f, adjusted(game, p, &draft, d))), json::serialize(&HistoryEntry::new(f, draft.clone())), "{}: the default draft is stable", t.name());
+    assert_eq!(serde_json::to_string(&HistoryEntry::new(f, adjusted(game, p, &draft, d))).unwrap(), serde_json::to_string(&HistoryEntry::new(f, draft.clone())).unwrap(), "{}: the default draft is stable", t.name());
     check_adjustments(game, p, &draft, d);
     let pl = game.player(p);
     match (&draft, o) {
@@ -514,7 +513,7 @@ fn view_and_draft_query() {
     let p = r.game.get_player(Some(Faction::Emperor)).unwrap();
     let to = o.targets[0];
     let draft = format!(
-        r#"{{"$type":"Shipment","ShipmentType":1,"ForceAmount":2,"SpecialForceAmount":0,"SmuggledAmount":0,"SmuggledSpecialAmount":0,"AllyContributionAmount":0,"UseRicheseSecretAlly":false,"_toId":{to},"_fromId":-1,"_noFieldValue":0,"_cunningNoFieldValue":0,"_karmaCardId":-1,"_forceLocations":"","Passed":false,"Initiator":0}}"#
+        r#"{{"type":"Shipment","play":{{"shipmentType":"ShipmentNormal","to":{to},"from":null,"forceAmount":2,"specialForceAmount":0,"smuggledAmount":0,"smuggledSpecialAmount":0,"noFieldValue":0,"cunningNoFieldValue":0,"allyContributionAmount":0,"karmaCard":null,"useRicheseSecretAlly":false,"forceLocations":[]}}}}"#
     );
     let answer = r.query(viewer, &common::draft(&draft)).unwrap();
     let Some(ActionOptions::Shipment(q)) = answer.options else { panic!() };
@@ -532,7 +531,7 @@ fn view_and_draft_query() {
     let Some(ActionOptions::Move(o)) = &a.options else { panic!() };
     let src = &o.sources[0];
     let draft = format!(
-        r#"{{"$type":"Move","AsAdvisors":false,"_toId":-1,"_forceLocations":"{}:{}|{}","Passed":false,"Initiator":0}}"#,
+        r#"{{"type":"Move","play":{{"asAdvisors":false,"to":null,"forceLocations":[{{"location":{},"forces":{},"specialForces":{}}}]}}}}"#,
         src.location, src.forces, src.special_forces
     );
     let answer = r.query(viewer, &common::draft(&draft)).unwrap();
@@ -862,7 +861,7 @@ fn check_shipment_adjustments(game: &Game, p: PlayerId, d: &dyn Describer) {
                 e.ally_contribution_amount = 0;
             }
         }
-        assert_eq!(json::serialize(&HistoryEntry::new(f, event(a.clone()))), json::serialize(&HistoryEntry::new(f, event(e))), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
+        assert_eq!(serde_json::to_string(&HistoryEntry::new(f, event(a.clone()))).unwrap(), serde_json::to_string(&HistoryEntry::new(f, event(e))).unwrap(), "shipment adjustments for {:?} to {:?}", ty, s.to.map(|l| l.id()));
         let ActionOptions::Shipment(o) = opts(game, p, &event(s), d) else { panic!() };
         check_shipment_draft(game, p, &a, &o);
     }

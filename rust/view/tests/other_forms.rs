@@ -233,7 +233,7 @@ fn read_until_undo(path: &std::path::Path) -> common::Trace {
     for line in reader.lines() {
         let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
         match v["kind"].as_str() {
-            Some("header") => version = common::played_version(v["gameVersion"].as_i64().unwrap() as i32),
+            Some("header") => version = v["gameVersion"].as_i64().unwrap() as i32,
             Some("step") if v["result"] == "accepted" => events.push(common::event_text(&v["event"])),
             Some("undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone") => break,
             _ => {}
@@ -380,8 +380,8 @@ fn dependent_inputs() {
     let bg = common::viewer_of(&r, Faction::BeneGesserit);
     // Queries are answered for the actions of the viewer's latest view.
     let _ = r.view(bg);
-    let draft = format!(r#"{{"$type":"BeneGesseritPrediction","Initiator":{},"ToWin":{},"Turn":99}}"#, Faction::BeneGesserit.value(), Faction::BeneGesserit.value());
-    let answer = r.query(bg, &common::draft(&draft)).unwrap();
+    let draft = r#"{"type":"BeneGesseritPrediction","toWin":"BeneGesserit","turn":99}"#;
+    let answer = r.query(bg, &common::draft(draft)).unwrap();
     let Some(ActionOptions::BeneGesseritPrediction(o)) = answer.options else { panic!("prediction options") };
     assert_eq!(o.draft["toWin"], serde_json::json!(Faction::from_value(o.targets[0].value).unwrap().to_string()));
     assert_eq!(o.draft["turn"], serde_json::json!(r.game.maximum_turns()));

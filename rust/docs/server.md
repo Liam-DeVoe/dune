@@ -22,7 +22,7 @@ A call's notifications go out as the game thread produces them, then the game vi
 | `connections.rs` | Open sockets, the session each is logged in with, which connection follows which game, notifications |
 | `views.rs` | Each participant's `GameView`, built from the running game (`rust/view`), and the view calls |
 | `pause_rules.rs` | What each pause between phases waits for |
-| `db.rs` | The database and its migrations |
+| `db.rs` | The database and its schema |
 | `settings.rs` | Settings from environment variables |
 | `passwords.rs` | Argon2id hashes of account passwords |
 | `time.rs`, `timers.rs`, `mail.rs`, `ids.rs`, `render.rs`, `static_files.rs` | Clock, delayed work, mail, random tokens and ids and the digests tokens are stored as, text with the default skin, the web client's files |
@@ -45,12 +45,9 @@ The server is the only judge of who acts in a game. Each call checks the caller'
 
 The server keeps everything in memory and writes changes through to the database. Accounts, sessions and scheduled games are written at once. A changed game is saved 5 seconds after its first unsaved change, so a burst of events costs one write. Shutdown saves every unsaved game. At startup the server loads everything back. A game whose savegame no longer loads, for example because an event was renamed, is left out with a log line and stays in the database.
 
-The tables are `users`, `sessions`, `login_links`, `games` and `scheduled_games`. Times are RFC 3339 text in UTC. SQLite's `user_version` holds the schema version, and `Db::open` migrates older databases in one transaction before the server starts:
+The tables are `users`, `sessions`, `login_links`, `games` and `scheduled_games`. Times are RFC 3339 text in UTC. Passwords are Argon2id hashes, marked `users.password_scheme` 1, and the server refuses to load a user with another scheme. Session, login link and reset tokens are stored as digests.
 
-- Version 1 is the first schema. A database of the old C# server (Entity Framework's tables, recognised by `__EFMigrationsHistory`) is converted to it: accounts, sessions, games and scheduled games are copied, and the old tables are dropped.
-- Version 2 hashes each stored password, the client's SHA-256 as sent, with Argon2id once, and marks it `users.password_scheme` 1. The server refuses to load a user with another scheme. Pending reset tokens are kept as digests (`reset_token_digest`). Every session ends, because their tokens had been in URLs and mails; `sessions` now holds token digests and the last use. `login_links` is new.
-
-`tests/persistence.rs` checks both steps on a database the C# server created, and `db.rs`'s unit tests check the version 1 to 2 step.
+SQLite's `user_version` holds the schema version (`db::SCHEMA_VERSION`, 3). `Db::open` creates the schema in an empty database and opens a database of version 3. Anything else, an older version (including the old C# server's database) or a database with tables but no version, is an error, and the server doesn't start. There are no migrations: a change to the schema needs a new database or a hand-written conversion. A stored game in the savegame format of version 190 or before no longer loads, and is left out at startup like any other.
 
 ## Timers
 
@@ -64,7 +61,7 @@ Environment variables, listed with their defaults in `src/settings.rs`. Producti
 
 ## Tests
 
-The tests in `tests/` drive the server through the protocol only: they send the JSON a client sends and read what it gets back. `tests/common/mod.rs` runs a server in process on a temporary database with a manual clock, recorded timers and recorded mail, and can restart it on the same database. The files are by area: `accounts` (logins, sessions, logout, expiry), `authority` (outsiders, observers and other players refused; events rewritten as the caller's), `games` (lobby, seats, chat, the envelope), `play` (events, views, undo, pauses, bots, async mail and its login links), `admin`, `persistence` (restarts, the C# database) and `dev_scene`. The test server draws seed 12345 for every new game (`Services::seeds`), so games started in tests play out the same each time. `TREACHERY_DB=<file> cargo test -p treachery-server --test persistence` also opens a copy of a real database and checks every account is there.
+The tests in `tests/` drive the server through the protocol only: they send the JSON a client sends and read what it gets back. `tests/common/mod.rs` runs a server in process on a temporary database with a manual clock, recorded timers and recorded mail, and can restart it on the same database. The files are by area: `accounts` (logins, sessions, logout, expiry), `authority` (outsiders, observers and other players refused; events rewritten as the caller's), `games` (lobby, seats, chat, the envelope), `play` (events, views, undo, pauses, bots, async mail and its login links), `admin`, `persistence` (restarts, games that no longer load) and `dev_scene`. The test server draws seed 12345 for every new game (`Services::seeds`), so games started in tests play out the same each time.
 
 End to end, `scripts/ui/e2e_server.py` starts the release binary with the web build and drives browsers through Playwright: two players forming an alliance, others joining, leaving, being kicked and observing, undo, a dropped connection, logging in through the form and out, and the dev scene. Its docstring lists every step.
 

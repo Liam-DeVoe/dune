@@ -126,15 +126,26 @@ pub fn write_lines(path: &Path, lines: &[Value]) -> Result<(), String> {
     w.flush().map_err(|e| e.to_string())
 }
 
+/// An event of a file as refit works on it: a map of the format of version 190
+/// (`crate::event_maps`). The files hold the engine's format; an event that doesn't decode stays
+/// as it is, and refit refuses it.
 fn event_object(v: &Value) -> Map<String, Value> {
-    match v {
-        Value::Object(m) => m.clone(),
-        Value::String(s) => match serde_json::from_str(s) {
-            Ok(Value::Object(m)) => m,
-            _ => Map::new(),
-        },
-        _ => Map::new(),
+    let v = match v {
+        Value::String(s) => serde_json::from_str(s).unwrap_or(Value::Null),
+        v => v.clone(),
+    };
+    if crate::events::is_legacy(&v) {
+        return v.as_object().cloned().unwrap_or_default();
     }
+    match crate::events::decode(&v) {
+        Ok(e) => crate::events::legacy_object(&e),
+        Err(_) => v.as_object().cloned().unwrap_or_default(),
+    }
+}
+
+/// An event of refit, as the files hold it: in the engine's format.
+fn event_value(event: &Map<String, Value>) -> Value {
+    crate::events::to_trace(event).0
 }
 
 /// Reads a savegame (`.json`), a recorded trace or a knowledge game. Without `old`, every event
@@ -145,7 +156,7 @@ pub fn read(path: &Path, old: &Old) -> Result<Log, String> {
     if path.extension().is_some_and(|e| e == "json") {
         let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let Value::Object(top) = serde_json::from_str(&text).map_err(|e| e.to_string())? else { return Err("not a savegame".into()) };
-        let events = top.get("_events").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+        let events = top.get("events").and_then(|v| v.as_array()).cloned().unwrap_or_default();
         let items = events.iter().enumerate().map(|(i, e)| Item::Event { event: event_object(e), validate: true, host: true, legit: legit_at(i), at: old_at(i) }).collect();
         return Ok(Log { kind: Kind::Savegame, seated: vec![], items, lines: vec![], other: vec![], savegame: Some(top) });
     }
@@ -247,16 +258,16 @@ pub fn write(path: &Path, log: &Log, r: &Refit) -> Result<(), String> {
     let version = Game::LATEST_VERSION;
     if let Some(top) = &log.savegame {
         let mut top = top.clone();
-        top.insert("Version".into(), Value::from(version));
+        top.insert("version".into(), Value::from(version));
         let events: Vec<Value> = r
             .out
             .iter()
             .filter_map(|o| match &o.item {
-                Item::Event { event, .. } => Some(Value::Object(event.clone())),
+                Item::Event { event, .. } => Some(event_value(event)),
                 _ => None,
             })
             .collect();
-        top.insert("_events".into(), Value::Array(events));
+        top.insert("events".into(), Value::Array(events));
         return std::fs::write(path, serde_json::to_string(&Value::Object(top)).unwrap()).map_err(|e| e.to_string());
     }
     let knowledge = log.kind == Kind::Knowledge;
@@ -266,7 +277,7 @@ pub fn write(path: &Path, log: &Log, r: &Refit) -> Result<(), String> {
         let line = match (&o.item, o.from) {
             (Item::Event { event, validate, host, .. }, Some(i)) => {
                 let mut l = log.lines[i].clone();
-                l["event"] = if knowledge { Value::String(Value::Object(event.clone()).to_string()) } else { Value::Object(event.clone()) };
+                l["event"] = if knowledge { Value::String(event_value(event).to_string()) } else { event_value(event) };
                 if l.get("validate").is_some() || !*validate {
                     l["validate"] = Value::from(*validate);
                 }
@@ -275,9 +286,9 @@ pub fn write(path: &Path, log: &Log, r: &Refit) -> Result<(), String> {
             }
             (Item::Event { event, validate, host, .. }, None) => {
                 if knowledge {
-                    serde_json::json!({"k": "step", "n": 0, "validate": validate, "isHost": host, "event": Value::Object(event.clone()).to_string()})
+                    serde_json::json!({"k": "step", "n": 0, "validate": validate, "isHost": host, "event": event_value(event).to_string()})
                 } else {
-                    serde_json::json!({"kind": "step", "n": 0, "source": "bot", "validate": validate, "isHost": host, "queries": [], "event": Value::Object(event.clone()), "result": "accepted"})
+                    serde_json::json!({"kind": "step", "n": 0, "source": "bot", "validate": validate, "isHost": host, "queries": [], "event": event_value(event), "result": "accepted"})
                 }
             }
             (Item::Undo(n), Some(i)) => {

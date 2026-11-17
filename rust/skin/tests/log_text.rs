@@ -8,11 +8,10 @@ use treachery_engine::game::Deal;
 use treachery_engine::messages::part::Part;
 use treachery_engine::events::{AutomationConfigured, By, EventRules, FlightDiscoveryUsed, FlightUsed, HistoryEntry, Karma, KarmaChoamDiscard, Shipment, Voice};
 use treachery_engine::game::Game;
-use treachery_legacy as json;
 use treachery_engine::messages::message::{Message, MessagePart};
 use treachery_skin::default_skin;
 
-const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[50,10,120,60,40,100,20,90,70,80,30,110],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Guild,Fremen,Moritani,BeneGesserit,Emperor,Richese,Atreides,Choam,Ixian,Tleilaxu,Harkonnen,Ecaz","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
+const ESTABLISH: &str = r#"{"by":null,"at":"2024-01-01T12:02:17Z","event":{"type":"EstablishPlayers","settings":{"numberOfPlayers":3,"maximumTurns":8,"initialRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"allowedFactionsInPlay":["Guild","Fremen","Moritani","BeneGesserit","Emperor","Richese","Atreides","Choam","Ixian","Tleilaxu","Harkonnen","Ecaz"],"autoOpenEmptySeats":true,"asyncPlay":false,"asyncPlayMessageIntervalMinutes":0},"seed":1073548723,"maximumNumberOfPlayers":3,"maximumTurns":8,"applicableRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"players":[],"factionsInPlay":["Guild","Fremen","Moritani","BeneGesserit","Emperor","Richese","Atreides","Choam","Ixian","Tleilaxu","Harkonnen","Ecaz"]}}"#;
 
 /// A started three-player game whose players are Atreides (with the Harkonnen Nexus card),
 /// Guild and Choam.
@@ -20,7 +19,7 @@ fn game() -> Game {
     // User 100 ("Human100") sits in seat 2.
     let mut g = Game::new();
     g.human_seats.insert(treachery_engine::game::Seat::new(2));
-    let e: HistoryEntry = json::deserialize(ESTABLISH).expect("event json");
+    let e: HistoryEntry = serde_json::from_str(ESTABLISH).expect("event json");
     assert!(g.play_for_message(e, true, true).is_none());
     for (player, faction) in g.players.iter_mut().zip([Faction::Atreides, Faction::Guild, Faction::Choam]) {
         player.faction = Some(faction);

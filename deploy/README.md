@@ -22,7 +22,7 @@ just provision
 
 Creates the VM on exe.dev, installs Rust, Caddy and sqlite3, deploys, and creates an `admin` account in the new database. The password is written to `deploy/.admin-password`, which is gitignored. Last, it points the public URL at Caddy. Overrides for the VM name, ssh key, and exe.dev account are at the top of `deploy/env.sh`.
 
-A new box starts with an empty database. To keep the accounts, copy the old box's database to `/opt/treachery/db/treachery.db` (with `sqlite3 old.db ".backup new.db"`) before the first deploy. The server brings an older database, the C# server's included, to its current schema when it starts.
+A new box starts with an empty database. To keep the accounts, copy the old box's database to `/opt/treachery/db/treachery.db` (with `sqlite3 old.db ".backup new.db"`) before the first deploy. The server opens only a database of its current schema version (3) or an empty one, and refuses to start on any other (rust/docs/server.md, "Persistence").
 
 ## On the VM
 

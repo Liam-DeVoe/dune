@@ -3,7 +3,7 @@
 // open from the menu bar's TradePopover), EmperorBidSupportComponent and
 // AutomationConfiguredComponent (opened from the menu bar).
 import { useEffect, useRef, useState } from "react";
-import { type AutomationRuleType, type DealType, DealTypeValue, type Faction, type Phase } from "../../generated/enums";
+import { type AutomationRuleType, type DealType, type Faction, type Phase } from "../../generated/enums";
 import { useGame } from "../../state/context";
 import { ButtonRow } from "../ButtonRow";
 import { Checkbox } from "../Checkbox";
@@ -119,11 +119,6 @@ export function DonatedForm({ action, inPopover = false }: FormProps) {
   );
 }
 
-// DealTypeOption gives a deal type by number, and the event names it.
-const dealTypeName = (v: number): DealType =>
-  (Object.keys(DealTypeValue) as DealType[]).find((t) => DealTypeValue[t] === v) ?? "None";
-const dealTypeValue = (t: unknown): number => DealTypeValue[t as DealType] ?? 0;
-
 // DealOfferedComponent. Every target starts picked, which offers to everyone (`to` empty); a click
 // drops a faction, shift-click offers to that faction alone.
 export function DealOfferedForm({ action, inPopover = false }: FormProps) {
@@ -135,7 +130,7 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
   const [to, setTo] = useState<Faction[] | null>(null);
   const [theyPay, setTheyPay] = useState(true);
   const [amount, setAmount] = useState(0);
-  const [type, setType] = useState<number | null>(null);
+  const [type, setType] = useState<DealType | null>(null);
   const [until, setUntil] = useState<Phase | null>(null);
   const [text, setText] = useState("");
   const all = o?.targets.map((t) => t.faction) ?? [];
@@ -143,7 +138,7 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
   const toField = (p: Faction[]) => (all.every((v) => p.includes(v)) ? [] : p);
   const fields = (): Fields => ({
     to: toField(picked), price: theyPay ? amount : 0, benefit: theyPay ? 0 : amount, text,
-    ...(type != null ? { dealType: dealTypeName(type) } : {}), ...(until != null ? { endPhase: until } : {}),
+    ...(type != null ? { dealType: type } : {}), ...(until != null ? { endPhase: until } : {}),
   });
   const edited = to != null || !theyPay || amount !== 0 || type != null || until != null || text !== "";
   const hadOptions = useRef(o != null);
@@ -158,7 +153,8 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
     setAmount(a);
     void update({ price: pay ? a : 0, benefit: pay ? 0 : a });
   };
-  const dealType = o.dealTypes.find((t) => t.value === (type ?? dealTypeValue(draft.dealType))) ?? o.dealTypes[0];
+  const typeName = type ?? (nameOf(draft.dealType) as DealType | null) ?? "None";
+  const dealType = o.dealTypes.find((t) => t.name === typeName) ?? o.dealTypes[0];
   return (
     <Layout type="DealOffered" header="Offer a Deal" startCollapsed inPopover={inPopover}>
       <SelectManyFromImage values={factionChoices(skin, o.targets)} selected={picked} imageWidth={40} label="Offer to"
@@ -169,8 +165,8 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
                    onChange={(v) => setPayment(v, amount)} />
         <SelectResources value={amount} onChange={(v) => setPayment(theyPay, v)} min={0} max={50} />
       </div>
-      <Select options={o.dealTypes.map((t) => ({ value: t.value, label: t.label }))} value={type ?? dealTypeValue(draft.dealType)}
-              onChange={(v) => { setType(v); void update({ dealType: dealTypeName(v) }); }} label="Type of deal" />
+      <Select options={o.dealTypes.map((t) => ({ value: t.name, label: t.label }))} value={typeName}
+              onChange={(v) => { setType(v); void update({ dealType: v }); }} label="Type of deal" />
       {dealType && (
         <Segmented values={dealType.endPhases.map((p) => ({ value: p.name as Phase, label: p.label }))} value={until ?? (nameOf(draft.endPhase) as Phase)}
                    onChange={(v) => { setUntil(v); void update({ endPhase: v }); }} label="Until" />

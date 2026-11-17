@@ -81,8 +81,9 @@ fn check(game: &Game, p: PlayerId, v: &ResolvedViewer, o: &ActionOptions, at: &s
             assert_eq!(o.card.is_some(), ChoamKarmaPrevention::card_to_use(game, p).is_some(), "{at}");
         }
         ActionOptions::DealOffered(o) => {
-            let types: Vec<i32> = DealOffered::get_standard_deal_types(game, p).into_iter().map(|t| t.value()).collect();
-            assert_eq!(o.deal_types.iter().map(|t| t.value).collect::<Vec<_>>(), types, "{at}");
+            let types = DealOffered::get_standard_deal_types(game, p);
+            assert_eq!(o.deal_types.iter().map(|t| t.value).collect::<Vec<_>>(), types.iter().map(|t| t.value()).collect::<Vec<_>>(), "{at}");
+            assert_eq!(o.deal_types.iter().map(|t| t.name.clone()).collect::<Vec<_>>(), types.iter().map(|t| t.to_string()).collect::<Vec<_>>(), "{at}");
             assert_eq!(targets(&o.targets), factions(game.players_other_than(p).filter(|f| Some(*f) != pl.ally)), "{at}");
         }
         ActionOptions::Discarded(o) | ActionOptions::EmperorDiscarded(o) | ActionOptions::IxianSwappedCardOnBid(o) => assert_eq!(o.cards, hand, "{at}"),

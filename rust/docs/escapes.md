@@ -363,7 +363,7 @@ Every game on the server runs on one thread, so either case would have frozen al
 - `observe live` fails a game that ends with `hung` or `memoryLimit` even when the reference ended the same way, as `runaway` (`observe/src/replay.rs`). No real game should end like that.
 - The server's game thread has a watchdog (`server/src/http.rs`). If one command runs for more than 120 seconds, it prints the call or timer and aborts, and systemd restarts the server from the last saved state.
 
-The weak spot: events that throw halfway through `Execute` still leave partial changes, as in C#. `observe` only sees them when they lead to something visible.
+The weak spot: events that throw halfway through `Execute` still leave partial changes, as in C#. `observe` only sees them when they lead to something visible. Fixed since for Game Errors: the game is rolled back (behavior-changes.md, "A failed event leaves the game as it was").
 
 ## A card trade offered to a faction that isn't the ally (2026-11)
 
@@ -403,7 +403,7 @@ Two fixes, in `events/bidding/bid.rs` and `game/mod.rs`:
 
 **What catches the class now.**
 - `engine/tests/rule_fixes.rs::a_karama_bid_needs_a_karama_card_and_no_pass` and `an_intrusion_left_over_from_an_earlier_phase_is_dropped`.
-- The weak spot stays: any other event that passes validation and then throws leaves changes outside the history, and an undo can then replay a different game. Until 4a (rewrite-plan.md) the server's view replica also replayed the history, so its views differed from the game too. Views now come from the game itself (behavior-changes.md, "Views after an event that failed halfway").
+- Any other event that passes validation and then fails with a Game Error is now rolled back: `Game::play` replays the history, so the game is again the game its history gives, and an undo replays the same game (behavior-changes.md, "A failed event leaves the game as it was"; `engine/tests/rollback.rs`). An event that panics halfway still leaves its changes, since the engine doesn't catch panics.
 
 ## Bots that never shipped back to reserves (2026-11)
 

@@ -237,7 +237,7 @@ game.history.stamp_last(now);                        // set the time after the e
 
 `Game::play` (`game/history.rs`) normalizes a pass ([JSON](#json)), checks that the submitter may play this type now (`get_applicable_events(by.player, is_host)`), runs `try_validate`, clears the recent milestones, runs the pre-event tasks, applies the event, runs the post-event tasks, adds the entry to the history and settles the battle sequence ([Queries](#queries)). `EstablishPlayers` skips the applicability check and keeps the milestones. Unvalidated play is for replaying a history and for tests.
 
-`SubmitError` is `NotApplicable(Message)`, `Rejected(Rejection)` or `Failed(GameError)`, and `message()` gives the text the player sees: "Event '...' is not applicable", the rejection, or "Game Error: ...". A `Failed` event isn't added to the history, but the changes it made before it failed stay ([Errors](#errors)).
+`SubmitError` is `NotApplicable(Message)`, `Rejected(Rejection)` or `Failed(GameError)`, and `message()` gives the text the player sees: "Event '...' is not applicable", the rejection, or "Game Error: ...". A `Failed` event isn't added to the history, and the game is rolled back to how it was before the event ([Errors](#errors)). A refused event changes nothing.
 
 The event sees `at` while it is applied, and the timers read it. The server submits with no time and stamps the entry afterwards, so the timers only count on a replay.
 
@@ -296,7 +296,7 @@ State that depends on what a query would see is written by `play`. The one case 
 
 `game.undo(n)` (`game/history.rs`) replays the first `n` entries of the history into `game.new_like()` and puts the new game in `game`'s place. The entries after them become `history.recently_undone_events`, and the replaced game is kept, unchanged, in `history.previous_game_state`. `restore_recently_undone()` puts that game back. Without one (a game loaded with undone events), it replays the history and the undone events. `dismiss_recently_undone()` replays the history alone. A negative `n` panics and leaves the game as it was.
 
-A replay plays clones of the entries, so they keep their `EntryId`s. Nothing in one game refers to another: an event keeps no game, and a `PlayerId` is only a position in `players`.
+A replay plays clones of the entries, so they keep their `EntryId`s. `Game::play` uses the same replay to roll a game back after an event that fails halfway ([Errors](#errors)), so after a Game Error the game still equals a replay of its history. Nothing in one game refers to another: an event keeps no game, and a `PlayerId` is only a position in `players`.
 
 ## Messages
 
@@ -329,7 +329,7 @@ A message stores a copy of each collection passed to it, so the log keeps showin
 Validation doesn't rule out every event the rules can't handle, so an accepted event can fail while it is applied. That failure is a `GameError` (`error.rs`), and the code on the way to it returns `GameResult<T>`:
 
 - `apply` returns `GameResult`, and so does every game method it calls that can fail: drawing from a deck that can run out (`Deck::try_draw`), changing an amount ([Amounts](#amounts-of-spice-and-forces)), using a phase state outside its phase (`game.revival_mut().required("the revival phase")?`), and the bid and battle resolution around them.
-- `Game::play` returns the error as `SubmitError::Failed`. The state changes made before the failure stay, and the event isn't added to the history.
+- `Game::play` returns the error as `SubmitError::Failed`, and the event isn't added to the history. The changes it made before the failure are undone: `play` replays the history into `new_like()`, as an undo does, and puts that game in place of the half-changed one (`roll_back` in `history.rs`). What the history doesn't hold is carried over: the human seats, the undo state (`recently_undone_events` and `previous_game_state`), the timers and `history.playing`. The timers are copied before an event only when it has a time, since only then can it change them. Every event in the history succeeded in the same sequence, so the replay rebuilds the game exactly. Errors are rare, so this costs nothing on the events that succeed. Replaying a 4,000-event, 12-player game takes about 20 ms (release build). A panic isn't rolled back: nothing in the engine catches it, and the server's crash barrier keeps the game as the panic left it.
 - An event that can't build its message for an event about to be refused (a faction that isn't playing, no card) implements `try_describe`, which the "not applicable" refusal uses.
 - An event that can't even be validated without a value the client left out implements `try_validate`, which `Game::play` calls, so it fails with a Game Error. Its `validate` turns the failure into a refusal for bots and views.
 

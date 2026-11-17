@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 /// The card decks, token piles and discard piles.
+#[derive(Debug)]
 pub struct Decks {
     pub treachery_deck: Option<Deck<TreacheryCard>>,
     pub treachery_discard_pile: Option<Deck<TreacheryCard>>,

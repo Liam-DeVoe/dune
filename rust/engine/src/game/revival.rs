@@ -18,6 +18,7 @@ pub struct RevivalPrevention {
 /// The revival phase (`PhaseState::Revival`): its step, Recruits, the early revivals Tleilaxu
 /// offered, the CHOAM prevention of free revival and the Graveyard tech token's income. It is
 /// dropped when the phase ends. What other phases read is in `turn.revivals`.
+#[derive(Debug)]
 pub struct RevivalState {
     pub step: RevivalStep,
     pub revival_tech_token_income: bool,
@@ -69,6 +70,7 @@ impl RevivalStep {
 /// and views read the counts and limits. Two fields last longer: a request to Tleilaxu stays
 /// until Tleilaxu answers it, and a Karama prevention made after the revivals ended still
 /// applies to the next turn's revivals.
+#[derive(Debug)]
 pub struct Revivals {
     pub total_revivals_this_turn: IndexMap<Faction, i32>,
     pub free_revivals_this_turn: IndexMap<Faction, i32>,

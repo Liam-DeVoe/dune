@@ -17,6 +17,7 @@ pub struct NexusVote {
 /// the Thumper, and the Nexus (votes, and who may draw a Nexus card). It is dropped when the
 /// phase ends. What outlives it is on the board: the latest spice cards, the worms and the
 /// sandtrout.
+#[derive(Debug)]
 pub struct BlowState {
     pub step: BlowStep,
     pub ignored_monsters: Vec<ResourceCard>,

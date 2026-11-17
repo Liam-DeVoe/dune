@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 /// The events played so far, the events undone, and what each event's moment and timing were.
+#[derive(Debug)]
 pub struct History {
     pub entries: Vec<HistoryEntry>,
     pub moments: Vec<Moment>,
@@ -83,7 +84,8 @@ impl Game {
     }
 
     /// A new game of the same version and human seats that has played `events` without
-    /// validating them. An event that fails is left out, as when it was first played.
+    /// validating them. An event that fails is left out and its changes rolled back, as when it
+    /// was first played.
     fn replay(&self, events: &[HistoryEntry]) -> Game {
         let mut result = self.new_like();
         for e in events {
@@ -94,7 +96,7 @@ impl Game {
 
     /// Plays `event` for the submitter `by` (`None` for the host), as of `at`: checks that `by`
     /// may play this kind of event now (`is_host` adds the host's events), validates it, applies
-    /// it and adds it to the history. On an error, the history doesn't change.
+    /// it and adds it to the history. On an error, the game doesn't change.
     ///
     /// `at` is the time the event sees while it is applied (the timers read it). The server
     /// submits with no time and stamps the entry afterwards ([`History::stamp_last`]), as C# did.
@@ -110,18 +112,48 @@ impl Game {
 
     /// [`submit`](Game::submit) of a whole entry, validated or not. Unvalidated play is for
     /// replaying a history and for tests.
+    ///
+    /// An event that fails while it is applied leaves the game as it was before
+    /// ([`SubmitError::Failed`]): the game is rebuilt by replaying its history, as an undo
+    /// does. A refused event changes nothing in the first place.
     pub fn play(&mut self, mut entry: HistoryEntry, validate: bool, is_host: bool) -> Result<(), SubmitError> {
         // A pass carries none of its other fields, as in the savegame.
         entry.event = entry.event.normalized();
         let by = By::new(self, entry.by);
-        self.history.playing = entry.id;
+        let establishing = matches!(entry.event, Event::EstablishPlayers(_));
 
-        if matches!(entry.event, Event::EstablishPlayers(_)) {
-            // Starting the game skips the check for applicable events, keeps the recent
-            // milestones, and always counts as entering the start of a phase.
-            if validate {
+        if validate {
+            if establishing {
+                // Starting the game skips the check for applicable events.
                 entry.event.validate(self, by).map_err(SubmitError::Rejected)?;
+            } else {
+                if !self.get_applicable_events(by.player, is_host).contains(&entry.event_type()) {
+                    return Err(SubmitError::NotApplicable(express!("Event '", entry.event.try_describe(self, by)?, "' is not applicable")));
+                }
+                entry.event.try_validate(self, by)?.map_err(SubmitError::Rejected)?;
             }
+        }
+
+        // From here on the game changes. Only the timers and `playing` aren't rebuilt by a
+        // replay of the history: the timers count the times the events had when they were played,
+        // which the server stamps afterwards. `update_timers` changes them only for an event
+        // with a time, so they are copied only then.
+        let playing = self.history.playing;
+        let timers = (entry.at != DateTimeOffset::default()).then(|| self.history.timers.clone());
+        self.history.playing = entry.id;
+        if let Err(e) = self.apply_entry(entry, by, establishing) {
+            self.roll_back(playing, timers);
+            return Err(SubmitError::Failed(e));
+        }
+        Ok(())
+    }
+
+    /// Applies an accepted entry and adds it to the history. On an error, the changes made so far
+    /// stay and the entry isn't added; [`play`](Game::play) then rolls the game back.
+    fn apply_entry(&mut self, entry: HistoryEntry, by: By, establishing: bool) -> GameResult {
+        if establishing {
+            // Starting the game keeps the recent milestones, and always counts as entering the
+            // start of a phase.
             self.perform_pre_event_tasks(&entry);
             entry.event.apply(self, by)?;
             self.perform_post_event_tasks(entry, true);
@@ -129,14 +161,6 @@ impl Game {
         }
 
         let moment_just_before_event = self.turn.current_moment;
-
-        if validate {
-            if !self.get_applicable_events(by.player, is_host).contains(&entry.event_type()) {
-                return Err(SubmitError::NotApplicable(express!("Event '", entry.event.try_describe(self, by)?, "' is not applicable")));
-            }
-            entry.event.try_validate(self, by)?.map_err(SubmitError::Rejected)?;
-        }
-
         self.turn.recent_milestones.clear();
         self.perform_pre_event_tasks(&entry);
         entry.event.apply(self, by)?;
@@ -144,6 +168,24 @@ impl Game {
         self.perform_post_event_tasks(entry, just_entered_start_of_phase);
         self.settle_battle_sequence();
         Ok(())
+    }
+
+    /// Puts the game back as it was before an event that failed halfway: replays the history
+    /// into a new game, and carries over what the history doesn't hold. That is the human seats
+    /// (`new_like`), the undo state, the timers and the id of the entry played last. `timers`
+    /// holds the timers from before the event when it could have changed them.
+    ///
+    /// The events in the history all succeeded in this same sequence, so none fails in the
+    /// replay. Errors are rare, so this costs nothing on the events that succeed.
+    fn roll_back(&mut self, playing: EntryId, timers: Option<IndexMap<Option<Faction>, Timer<MainPhase>>>) {
+        let mut result = self.replay(&self.history.entries);
+        let history = &mut self.history;
+        result.history.recently_undone_event_count = history.recently_undone_event_count;
+        result.history.recently_undone_events = std::mem::take(&mut history.recently_undone_events);
+        result.history.previous_game_state = history.previous_game_state.take();
+        result.history.timers = timers.unwrap_or_else(|| std::mem::take(&mut history.timers));
+        result.history.playing = playing;
+        *self = result;
     }
 
     /// While a player is to initiate a battle, or the battle report is shown, moves the battle

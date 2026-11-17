@@ -11,6 +11,7 @@
 use crate::prelude::*;
 
 /// The phase the game is in, with that phase's state.
+#[derive(Debug)]
 pub enum PhaseState {
     /// Before the game starts: the host configures it and players join.
     AwaitingPlayers,

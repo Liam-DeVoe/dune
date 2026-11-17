@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 /// The game's version, rules and settings, and the factions allowed to play.
+#[derive(Debug)]
 pub struct Rules {
     pub version: i32,
     pub ruleset: Option<Ruleset>,

@@ -10,6 +10,7 @@ pub struct TradeOffer {
 /// The setup (`PhaseState::Setup`), from choosing factions until the first storm: its step, the
 /// faction trade offers and the extra starting card of Harkonnen. It is dropped when the first
 /// storm phase starts.
+#[derive(Debug)]
 pub struct SetupState {
     pub step: SetupStep,
     pub current_trade_offers: Vec<TradeOffer>,

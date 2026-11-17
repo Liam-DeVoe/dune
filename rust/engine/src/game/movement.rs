@@ -6,6 +6,7 @@ use crate::messages::part::Part;
 /// are interrupts. What outlives the phase is elsewhere: the moves on the board, the flights and
 /// blocked territories in `turn`, the Guild's shipment permissions in `alliances`, the Richese
 /// No-Field values on `board`.
+#[derive(Debug)]
 pub struct ShipMoveState {
     pub step: ShipMoveStep,
     /// Who ships and moves, in turn.

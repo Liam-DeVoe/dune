@@ -144,8 +144,8 @@ pub enum SubmitError {
     NotApplicable(Message),
     /// The rules refuse the event.
     Rejected(Rejection),
-    /// The event was accepted but failed while it was applied. The changes it made before the
-    /// failure stay, and it isn't added to the history.
+    /// The event was accepted but failed while it was applied. It isn't added to the history,
+    /// and the game is rolled back to how it was before the event.
     Failed(GameError),
 }
 

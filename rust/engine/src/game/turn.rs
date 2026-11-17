@@ -49,6 +49,7 @@ impl std::fmt::Display for Turn {
 /// Where the game is (turn and main phase; the phase is `game.phase`) and what lasts only for
 /// the current turn or main phase: who has acted, payments and milestones, prevented advantages,
 /// and cards and Nexus cards in effect.
+#[derive(Debug)]
 pub struct TurnState {
     pub current_turn: Turn,
     pub current_main_phase: MainPhase,

@@ -4,6 +4,7 @@ use crate::messages::part::Part;
 
 /// The spice collection phase (`PhaseState::Collection`): its step, the spice collected, and the
 /// shared collections still to divide. It is dropped when the phase ends.
+#[derive(Debug)]
 pub struct CollectionState {
     pub step: CollectionStep,
     pub resources_collected_by_fremen: i32,

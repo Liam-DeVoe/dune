@@ -2,6 +2,7 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 
 /// The game log: one report per phase, plus the report of messages logged before the game started.
+#[derive(Debug)]
 pub struct Log {
     pub report_list: Vec<Report>,
     pub pre_game_report: Report,

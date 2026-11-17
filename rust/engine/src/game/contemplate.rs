@@ -3,6 +3,7 @@ use crate::messages::part::Part;
 
 /// The Mentat Pause (`PhaseState::Contemplate`): its step, and the extortion and terror of this
 /// turn's pause. It is dropped when the turn ends.
+#[derive(Debug)]
 pub struct ContemplateState {
     pub step: ContemplateStep,
     /// Moritani regain their Extortion token at the end of the pause, unless someone pays.

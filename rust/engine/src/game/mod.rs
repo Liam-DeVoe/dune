@@ -74,6 +74,7 @@ use crate::messages::part::Part;
 
 /// A game: its rules, players and board, and the state of each phase. Each field's type is
 /// defined in the file of its topic under `game/` (see docs/engine.md).
+#[derive(Debug)]
 pub struct Game {
     pub seed: i32,
     /// Every random draw of the game comes from here. `EstablishPlayers` seeds it.

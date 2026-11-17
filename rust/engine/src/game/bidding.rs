@@ -5,6 +5,7 @@ use crate::game::TriggeredBureaucracy;
 /// The bidding phase (`PhaseState::Bidding`): its step, the auctions (Black Market, Richese and
 /// the regular one), the bids and the card just won. It is dropped when the phase ends, except
 /// for what [`BiddingLeftovers`] keeps.
+#[derive(Debug)]
 pub struct BiddingState {
     pub step: BiddingStep,
     pub bid_sequence: Option<PlayerSequence>,
@@ -70,7 +71,7 @@ impl BiddingState {
 /// bidding phase until they are set again. Only `leave_bidding` writes it and only
 /// [`BiddingState::new`] and the accessors read it. known-issues.md, "What a bidding phase
 /// leaves behind", lists what players can see of it.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BiddingLeftovers {
     pub current_auction_type: Option<AuctionType>,
     pub current_bid: Option<PlacedBid>,

@@ -7,6 +7,7 @@ use crate::random::Rng;
 
 /// The storm phase (`PhaseState::Storm`): its step, the dials and whether the Testing Station
 /// was used. It is dropped when the phase ends.
+#[derive(Debug)]
 pub struct StormState {
     pub step: StormStep,
     pub dials: Vec<i32>,

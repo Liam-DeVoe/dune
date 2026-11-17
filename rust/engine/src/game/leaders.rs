@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 /// The state of every leader, and which are captured or assassinated.
+#[derive(Debug)]
 pub struct Leaders {
     pub leader_state: IndexMap<Hero, LeaderState>,
     pub captured_leaders: IndexMap<Leader, Faction>,

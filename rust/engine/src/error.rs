@@ -5,8 +5,9 @@ use std::fmt;
 /// An event that passed validation but couldn't be carried out.
 ///
 /// Validation doesn't rule out every event the rules can't handle, so some accepted events fail
-/// partway through executing. What they changed before failing stays changed, and they are not
-/// added to the history. Players see the failure as a "Game Error" (`SubmitError::Failed`).
+/// partway through executing. They are not added to the history, and `Game::play` rolls back
+/// what they changed before failing. Players see the failure as a "Game Error"
+/// (`SubmitError::Failed`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GameError {
     message: String,

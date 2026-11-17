@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 /// What is on the board besides the players' forces: the map, the storm, spice, terror tokens,
 /// ambassadors, discoveries, stronghold ownership and homeworld occupation.
+#[derive(Debug)]
 pub struct Board {
     pub map: Map,
     pub sector_in_storm: Option<Sector>,

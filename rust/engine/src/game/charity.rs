@@ -5,6 +5,7 @@ use crate::messages::part::Part;
 /// The charity phase (`PhaseState::Charity`): its step, and whether a claim earns the Spice tech
 /// token its income. It is dropped when the phase ends. The CHOAM economics token, which lasts
 /// the game, is `board.choam_economics_status`.
+#[derive(Debug)]
 pub struct CharityState {
     pub step: CharityStep,
     pub resource_tech_token_income: bool,

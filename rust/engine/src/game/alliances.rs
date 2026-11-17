@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 /// Alliance offers, card trades between allies, and what each faction allows its ally.
+#[derive(Debug)]
 pub struct Alliances {
     pub current_alliance_offers: Vec<AllianceOffer>,
     pub last_turn_card_was_traded: Option<Turn>,

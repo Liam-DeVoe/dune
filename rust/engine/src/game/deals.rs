@@ -2,6 +2,7 @@ use crate::prelude::*;
 use crate::messages::part::Part;
 
 /// Deals offered, the responses to them, and the deals in force.
+#[derive(Debug)]
 pub struct Deals {
     pub offers: Vec<DealOffer>,
     pub responses: IndexMap<DealId, IndexMap<Faction, bool>>,

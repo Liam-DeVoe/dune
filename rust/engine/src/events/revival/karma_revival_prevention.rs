@@ -24,7 +24,7 @@ impl EventRules for KarmaRevivalPrevention {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        game.turn.revivals.current_karma_revival_prevention = Some(RevivalPrevention { target: self.target });
+        game.revival_mut().required("the revival phase")?.current_karma_revival_prevention = Some(RevivalPrevention { target: self.target });
         let me = by.player();
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         game.play_karma(me, card, vec!["prevent revival by ".into(), self.target.into()]);

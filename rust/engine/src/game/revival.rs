@@ -15,8 +15,9 @@ pub struct RevivalPrevention {
     pub target: Option<Faction>,
 }
 
-/// The revival phase (`PhaseState::Revival`): its step, Recruits, the early revivals Tleilaxu
-/// offered, the CHOAM prevention of free revival and the Graveyard tech token's income. It is
+/// The revival phase (`PhaseState::Revival`): its step, Recruits, the requests to Tleilaxu and
+/// the early revivals Tleilaxu offered, the CHOAM prevention of free revival, Tleilaxu's Karama
+/// prevention of revival and the Graveyard tech token's income. It is
 /// dropped when the phase ends. What other phases read is in `turn.revivals`.
 #[derive(Debug)]
 pub struct RevivalState {
@@ -29,6 +30,11 @@ pub struct RevivalState {
     // In the order Tleilaxu made the offers.
     pub early_revivals_offers: IndexMap<Hero, i32>,
     pub current_free_revival_prevention: Option<RevivalPrevention>,
+    /// Leader revivals requested from Tleilaxu that they haven't answered yet.
+    pub current_revival_requests: Vec<RevivalRequest>,
+    /// Tleilaxu's Karama prevention of a faction's revival. Cleared when the revivals end,
+    /// before the report.
+    pub current_karma_revival_prevention: Option<RevivalPrevention>,
 }
 
 impl RevivalState {
@@ -40,6 +46,8 @@ impl RevivalState {
             current_recruits_played: false,
             early_revivals_offers: Default::default(),
             current_free_revival_prevention: None,
+            current_revival_requests: Vec::new(),
+            current_karma_revival_prevention: None,
         }
     }
 }
@@ -67,9 +75,7 @@ impl RevivalStep {
 
 /// What revivals leave for other phases (`turn.revivals`). The counts start again when the
 /// revival phase does; Raise Dead and Nexus cards revive in other phases, and shipments, bots
-/// and views read the counts and limits. Two fields last longer: a request to Tleilaxu stays
-/// until Tleilaxu answers it, and a Karama prevention made after the revivals ended still
-/// applies to the next turn's revivals.
+/// and views read the counts and limits.
 #[derive(Debug)]
 pub struct Revivals {
     pub total_revivals_this_turn: IndexMap<Faction, i32>,
@@ -80,9 +86,6 @@ pub struct Revivals {
     /// Set in the bidding report or the revival phase, cleared when ship and move starts.
     /// Null after `SetIncreasedRevivalLimits` with `"Factions":null` executed without validation.
     pub factions_with_increased_revival_limits: Option<Vec<Faction>>,
-    pub current_revival_requests: Vec<RevivalRequest>,
-    /// Cleared when the revivals end.
-    pub current_karma_revival_prevention: Option<RevivalPrevention>,
     /// Ecaz ambassadors placed this turn, in the revival report.
     pub ambassadors_placed_this_turn: i32,
 }
@@ -95,8 +98,6 @@ impl Revivals {
             factions_that_revived_special_forces_this_turn: Vec::new(),
             leader_revivals_this_turn: Default::default(),
             factions_with_increased_revival_limits: Some(Vec::new()),
-            current_revival_requests: Vec::new(),
-            current_karma_revival_prevention: None,
             ambassadors_placed_this_turn: 0,
         }
     }
@@ -256,7 +257,7 @@ impl Game {
 
     pub fn prevented_from_reviving(&self, f: impl Into<Option<Faction>>) -> bool {
         let f: Option<Faction> = f.into();
-        self.turn.revivals.current_karma_revival_prevention.as_ref().is_some_and(|e| e.target == f)
+        self.revival().and_then(|r| r.current_karma_revival_prevention.as_ref()).is_some_and(|e| e.target == f)
     }
 
     pub fn ambassador_in(&self, t: Territory) -> Option<Ambassador> {
@@ -424,7 +425,7 @@ impl Game {
                     result.push(EventType::RequestTleilaxuRevival);
                 }
 
-                if faction == Some(Faction::Tleilaxu) && (!self.turn.revivals.current_revival_requests.is_empty() || self.revival().is_some_and(|r| !r.early_revivals_offers.is_empty())) {
+                if faction == Some(Faction::Tleilaxu) && self.revival().is_some_and(|r| !r.current_revival_requests.is_empty() || !r.early_revivals_offers.is_empty()) {
                     result.push(EventType::AcceptOrCancelTleilaxuRevival);
                 }
                 if self.has_something_to_revive(player) && !self.prevented_from_reviving(faction) {

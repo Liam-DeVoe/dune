@@ -12,7 +12,7 @@ pub use battle::*;
 mod battle_outcome;
 pub use battle_outcome::*;
 mod bidding;
-pub use bidding::{BiddingLeftovers, BiddingState, BiddingStep, PlacedBid};
+pub use bidding::{BiddingState, BiddingStep, PlacedBid};
 pub(crate) use bidding::*;
 mod blow;
 pub use blow::*;

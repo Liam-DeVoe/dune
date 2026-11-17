@@ -974,7 +974,7 @@ impl ClassicBot {
 
     pub fn determine_request_tleilaxu_revival(&mut self, game: &Game) -> Option<RequestTleilaxuRevival> {
         let faction = self.faction(game);
-        if game.turn.revivals.current_revival_requests.iter().any(|r| r.initiator == Some(faction))
+        if game.revival().is_some_and(|rv| rv.current_revival_requests.iter().any(|r| r.initiator == Some(faction)))
             || game.revival().is_some_and(|r| r.early_revivals_offers.keys().any(|h| h.faction() == Some(faction)))
         {
             return None;
@@ -1010,7 +1010,7 @@ impl ClassicBot {
     }
 
     pub fn determine_accept_or_cancel_tleilaxu_revival(&mut self, game: &Game) -> Option<AcceptOrCancelTleilaxuRevival> {
-        let request_to_handle = game.turn.revivals.current_revival_requests.first().cloned()?;
+        let request_to_handle = game.revival()?.current_revival_requests.first().cloned()?;
         let hero = request_to_handle.hero.expect("hero");
 
         let price = if request_to_handle.initiator == self.ally(game) {

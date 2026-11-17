@@ -18,13 +18,6 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 
 2026-11-15: at low threshold, Moritani reveals a terror token only when at least 3 forces enter. The Grumman card says "Low (0-7): ... You can only reveal terror tokens when at least 3 forces enter" (web/assets/art/GrummanCard.gif), and `check_terror_triggered` does that.
 
-## What a bidding phase leaves behind
+## A Karama prevention of revival can be played after the revivals
 
-The code ported from C# never reset some bidding state when a bidding phase ended or the next one began, and kept reading it. Wave 5 keeps that behavior with `turn.last_bidding` (`BiddingLeftovers` in game/bidding.rs), which the next bidding phase starts from:
-
-- The auction type of the last auction. If it was a Richese auction, `has_bidding_prescience` is true for every player until the next bidding phase starts: it decides whether deals sharing bidding prescience can be offered, and how bots value them in the charity phase.
-- The bids of an auction that everyone passed on, and the "Atreides or their ally passed" flag. Until the first auction of the next bidding phase starts, the bidding view shows the old bids, Juice is offered only when they are empty, and the automation rule "pass when Atreides or their ally passed" can pass at once.
-- `richese_bidding_just_finished`, which makes Richese's Nexus betrayal playable at the start of the next bidding phase if the last auction was Richese's and Richese were paid recently.
-- `replacing_bought_card_using_nexus`, set when the Ixian Nexus card let a winner replace a card and they declined. A later replacement through the Ixian alliance then also plays the Nexus card.
-
-Two revival fields last longer than the phase for the same reason (`turn.revivals`): a request to Tleilaxu that Tleilaxu never answered stays until the next revival phase, and a Karama prevention of revival played in the revival report applies to the next turn's revivals. Fix each as a behavior change, with a behavior-changes.md entry.
+Tleilaxu may play their Karama to prevent a faction's revival during the whole revival main phase, the report included. Played in the report, after every revival, it does nothing and still uses up the card and the once-per-game Karama power. Before the fix in behavior-changes.md ("What a bidding or revival phase left behind"), it applied to the next turn's revivals instead. Fix: offer `KarmaRevivalPrevention` only in `Phase::Resurrection` (applicable_events.rs).

@@ -80,8 +80,6 @@ pub struct TurnState {
     pub facedancer_was_cancelled: bool,
     /// What revivals leave for the rest of the turn and later (revival.rs).
     pub revivals: Revivals,
-    /// What the last bidding phase left behind (bidding.rs).
-    pub last_bidding: BiddingLeftovers,
     /// The intrusions waiting for an answer, the next first. The one being answered is also
     /// shown by an `Interrupt::Intrusion`.
     pub intrusions: Vec<Intrusion>,
@@ -140,7 +138,6 @@ impl TurnState {
             harkonnen_traitor_was_cancelled: Default::default(),
             facedancer_was_cancelled: Default::default(),
             revivals: Revivals::new(),
-            last_bidding: BiddingLeftovers::default(),
             intrusions: Vec::new(),
             last_shipment_or_movement: None,
             recent_moves: Vec::new(),

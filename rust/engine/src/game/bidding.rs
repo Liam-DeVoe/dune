@@ -3,8 +3,8 @@ use crate::messages::part::Part;
 use crate::game::TriggeredBureaucracy;
 
 /// The bidding phase (`PhaseState::Bidding`): its step, the auctions (Black Market, Richese and
-/// the regular one), the bids and the card just won. It is dropped when the phase ends, except
-/// for what [`BiddingLeftovers`] keeps.
+/// the regular one), the bids and the card just won. It is dropped when the phase ends, and
+/// nothing of it reaches the next phase.
 #[derive(Debug)]
 pub struct BiddingState {
     pub step: BiddingStep,
@@ -34,17 +34,16 @@ pub struct BiddingState {
 }
 
 impl BiddingState {
-    /// A new bidding phase at `step`, without a bid sequence yet. The fields the old code never
-    /// reset when bidding began start with what the last bidding phase left (`left`).
-    pub fn new(step: BiddingStep, left: &BiddingLeftovers) -> Self {
+    /// A new bidding phase at `step`, without a bid sequence yet.
+    pub fn new(step: BiddingStep) -> Self {
         BiddingState {
             step,
             bid_sequence: None,
             cards_on_auction: Some(Deck::empty()),
             current_auction_type: None,
             card_number: 0,
-            current_bid: left.current_bid.clone(),
-            bids: left.bids.clone(),
+            current_bid: None,
+            bids: IndexMap::new(),
             card_just_won: None,
             winning_bid: None,
             bidding_round_was_started: false,
@@ -54,31 +53,15 @@ impl BiddingState {
             bidding_triggered_bureaucracy: None,
             ixian_swapped_card_on_bid: false,
             faction_that_may_replace_bought_card: None,
-            replacing_bought_card_using_nexus: left.replacing_bought_card_using_nexus,
+            replacing_bought_card_using_nexus: false,
             black_market_auction_type: None,
             card_sold_on_black_market: None,
             richese_auction_should_still_happen: false,
-            richese_bidding_just_finished: left.richese_bidding_just_finished,
+            richese_bidding_just_finished: false,
             richese_occupier_specified_card: false,
-            latest_bid_by_atreides_or_atreides_ally_was_passed: left.latest_bid_by_atreides_or_atreides_ally_was_passed,
+            latest_bid_by_atreides_or_atreides_ally_was_passed: false,
         }
     }
-}
-
-/// What a bidding phase leaves behind (`turn.last_bidding`), because the code ported from C#
-/// kept reading it: the auction type and the current bid outside bidding (who has bidding
-/// prescience, and a card set aside for a Karama bid), and these and three flags in the next
-/// bidding phase until they are set again. Only `leave_bidding` writes it and only
-/// [`BiddingState::new`] and the accessors read it. known-issues.md, "What a bidding phase
-/// leaves behind", lists what players can see of it.
-#[derive(Debug, Clone, Default)]
-pub struct BiddingLeftovers {
-    pub current_auction_type: Option<AuctionType>,
-    pub current_bid: Option<PlacedBid>,
-    pub bids: IndexMap<Faction, PlacedBid>,
-    pub latest_bid_by_atreides_or_atreides_ally_was_passed: bool,
-    pub richese_bidding_just_finished: bool,
-    pub replacing_bought_card_using_nexus: bool,
 }
 
 /// Where the bidding phase is.
@@ -154,27 +137,23 @@ impl Game {
         self.bidding_mut().expect("in the bidding phase")
     }
 
-    /// The type of the current auction, or outside bidding of the last one.
+    /// The type of the current (or, between auctions, the last) auction of this bidding phase.
+    /// None outside bidding.
     pub fn current_auction_type(&self) -> Option<AuctionType> {
-        match self.bidding() {
-            Some(b) => b.current_auction_type,
-            None => self.turn.last_bidding.current_auction_type,
-        }
+        self.bidding().and_then(|b| b.current_auction_type)
     }
 
-    /// The highest bid of the current auction, or outside bidding whatever the last one left.
+    /// The highest bid of the current auction. None outside bidding.
     pub fn current_bid(&self) -> Option<&PlacedBid> {
-        match self.bidding() {
-            Some(b) => b.current_bid.as_ref(),
-            None => self.turn.last_bidding.current_bid.as_ref(),
-        }
+        self.bidding().and_then(|b| b.current_bid.as_ref())
     }
 
-    /// The bids of the current auction, or outside bidding whatever the last one left.
+    /// The bids of the current auction. Empty outside bidding.
     pub fn bids(&self) -> &IndexMap<Faction, PlacedBid> {
+        static NO_BIDS: std::sync::LazyLock<IndexMap<Faction, PlacedBid>> = std::sync::LazyLock::new(IndexMap::new);
         match self.bidding() {
             Some(b) => &b.bids,
-            None => &self.turn.last_bidding.bids,
+            None => &NO_BIDS,
         }
     }
 
@@ -190,7 +169,7 @@ impl Game {
 
     /// Starts the bidding phase (`enter_bidding_phase` does the rest).
     pub fn begin_bidding(&mut self) {
-        let mut state = BiddingState::new(BiddingStep::Beginning, &self.turn.last_bidding);
+        let mut state = BiddingState::new(BiddingStep::Beginning);
         state.bid_sequence = Some(PlayerSequence::starting_with_first_player(self));
         self.enter_state(PhaseState::Bidding(state));
     }
@@ -204,7 +183,7 @@ impl Game {
                 self.remove_ended_deals(step.phase());
             }
             None => {
-                let state = BiddingState::new(step, &self.turn.last_bidding);
+                let state = BiddingState::new(step);
                 self.enter_state(PhaseState::Bidding(state));
             }
         }
@@ -228,19 +207,6 @@ impl Game {
             Interrupt::KarmaHandSwap { number_of_cards, target } => Some((number_of_cards, target)),
             _ => None,
         }
-    }
-
-    /// Keeps what later phases read of the bidding phase that ends ([`BiddingLeftovers`]).
-    pub fn leave_bidding(&mut self) {
-        let Some(b) = self.bidding() else { return };
-        self.turn.last_bidding = BiddingLeftovers {
-            current_auction_type: b.current_auction_type,
-            current_bid: b.current_bid.clone(),
-            bids: b.bids.clone(),
-            latest_bid_by_atreides_or_atreides_ally_was_passed: b.latest_bid_by_atreides_or_atreides_ally_was_passed,
-            richese_bidding_just_finished: b.richese_bidding_just_finished,
-            replacing_bought_card_using_nexus: b.replacing_bought_card_using_nexus,
-        };
     }
 }
 

@@ -461,3 +461,125 @@ fn a_moritani_secret_ally_lets_only_its_own_battle_keep_a_card() {
     let logged = g.log.report_list.iter().flat_map(|r| r.messages.iter()).any(|m| m.plain_text().contains(" keep "));
     assert!(logged, "the kept card is logged");
 }
+
+/// The host ends the current step, as the server's host does.
+fn end_phase(g: &mut Game) {
+    assert!(g.play_for_message(HistoryEntry::new(None, EndPhase::default()), true, true).is_none(), "EndPhase at {:?}", g.phase());
+}
+
+/// The `bid` fixture in its bidding report, with `set` applied to the bidding state, then moved
+/// on to the revival phase.
+fn bidding_then_revival(set: impl FnOnce(&mut BiddingState)) -> Game {
+    let mut g = fixture("bid");
+    set(g.bidding_mut().expect("in bidding"));
+    g.enter_bidding(BiddingStep::Report);
+    end_phase(&mut g);
+    assert!(g.bidding().is_none() && g.revival().is_some());
+    g
+}
+
+/// After a Richese auction, everyone had bidding prescience until the next bidding phase began,
+/// so Atreides could offer to share it and bots valued it in the charity phase.
+#[test]
+fn bidding_prescience_of_a_richese_auction_ends_with_the_bidding_phase() {
+    let g = fixture("bid");
+    let p = g.player_indices().find(|p| !g.has_bidding_prescience(*p)).expect("a player without bidding prescience");
+    let mut g = bidding_then_revival(|b| b.current_auction_type = Some(AuctionType::RicheseSilent));
+    assert_eq!(g.current_auction_type(), None);
+    assert!(!g.has_bidding_prescience(p));
+    g.enter_bidding_phase();
+    assert_eq!(g.current_auction_type(), None);
+    assert!(!g.has_bidding_prescience(p));
+}
+
+/// When everyone passed on a card, the passes and the "Atreides or their ally passed" flag
+/// stayed into the next bidding phase: the bidding view showed the old passes, Juice to go first
+/// wasn't offered, and the automation rule "pass when Atreides or their ally passed" could pass
+/// at once.
+#[test]
+fn the_passes_of_an_auction_everyone_passed_end_with_the_bidding_phase() {
+    let g = fixture("bid");
+    let (p, f) = g.player_indices().find_map(|p| g.player(p).faction.map(|f| (p, f))).expect("a faction");
+    let pass = PlacedBid {
+        number: 1,
+        type_: EventType::Bid,
+        initiator: Some(f),
+        player: Some(p),
+        amount: 0,
+        ally_contribution_amount: 0,
+        emperor_contribution_amount: 0,
+        uses_emperor_secret_ally: false,
+        karma_card: None,
+        karma_bid: false,
+        passed: true,
+    };
+    let mut g = bidding_then_revival(|b| {
+        b.current_bid = None;
+        b.bids.insert(f, pass);
+        b.latest_bid_by_atreides_or_atreides_ally_was_passed = true;
+    });
+    assert!(g.bids().is_empty());
+    g.enter_bidding_phase();
+    let b = g.bidding().expect("in bidding");
+    assert!(b.bids.is_empty());
+    assert!(!b.latest_bid_by_atreides_or_atreides_ally_was_passed);
+    assert!(JuicePlayed::valid_types(&g, p).contains(&JuiceType::GoFirst));
+}
+
+/// Richese's Nexus betrayal is played right after Richese sell a card. Whether their auction
+/// just finished stayed set into the next bidding phase, so the betrayal could be played there
+/// before any card was sold.
+#[test]
+fn a_finished_richese_auction_ends_with_the_bidding_phase() {
+    let mut g = bidding_then_revival(|b| b.richese_bidding_just_finished = true);
+    g.enter_bidding_phase();
+    assert!(!g.bidding().expect("in bidding").richese_bidding_just_finished);
+}
+
+/// A winner offered to replace a card with the Ixian Nexus card who declined left the flag set,
+/// and a later replacement through the Ixian alliance then used up the Nexus card too.
+#[test]
+fn a_declined_nexus_replacement_ends_with_the_bidding_phase() {
+    let mut g = bidding_then_revival(|b| b.replacing_bought_card_using_nexus = true);
+    g.enter_bidding_phase();
+    assert!(!g.bidding().expect("in bidding").replacing_bought_card_using_nexus);
+}
+
+/// A request to Tleilaxu for an early leader revival that Tleilaxu didn't answer stayed until
+/// the next revival phase, where Tleilaxu could still answer it, and a bot that made it wouldn't
+/// revive.
+#[test]
+fn an_unanswered_request_to_tleilaxu_ends_with_the_revival_phase() {
+    let (mut g, p) = revival_fixture("revival-planet");
+    let f = g.player(p).faction;
+    let tleilaxu = idx(&g, Faction::Tleilaxu);
+    let leader = g.player(p).leaders[0];
+    g.kill_hero(Hero::Leader(leader));
+    let request = RevivalRequest { initiator: f, player: Some(p), hero: Some(Hero::Leader(leader)) };
+    g.revival_mut().expect("in revival").current_revival_requests.push(request);
+    assert!(g.get_applicable_events(Some(tleilaxu), false).contains(&EventType::AcceptOrCancelTleilaxuRevival));
+    end_phase(&mut g);
+    assert_eq!(g.phase(), Phase::ResurrectionReport);
+    end_phase(&mut g);
+    assert!(g.revival().is_none());
+    g.enter_revival(RevivalStep::Reviving);
+    assert!(g.revival().expect("in revival").current_revival_requests.is_empty());
+    assert!(!g.get_applicable_events(Some(tleilaxu), false).contains(&EventType::AcceptOrCancelTleilaxuRevival));
+}
+
+/// Tleilaxu's Karama prevention of revival played in the revival report, after the revivals,
+/// applied to the next turn's revivals.
+#[test]
+fn a_karama_revival_prevention_ends_with_the_revival_phase() {
+    let (mut g, p) = revival_fixture("revival");
+    let f = g.player(p).faction;
+    end_phase(&mut g);
+    assert_eq!(g.phase(), Phase::ResurrectionReport);
+    g.revival_mut().expect("in revival").current_karma_revival_prevention = Some(RevivalPrevention { target: f });
+    assert!(g.prevented_from_reviving(f));
+    end_phase(&mut g);
+    assert!(!g.prevented_from_reviving(f));
+    g.enter_revival(RevivalStep::Reviving);
+    assert!(!g.prevented_from_reviving(f));
+    assert!(g.get_applicable_events(Some(p), false).contains(&EventType::Revival));
+}

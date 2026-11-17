@@ -166,9 +166,11 @@ One game is one JSON Lines stream (`observe/src/trace.rs`). Every line has an `o
 - `undo`, `restore`, `dismiss`: `Undo(until)`, `RestoreRecentlyUndone`, `DismissRecentlyUndone`, with observations.
 - `end`: why the game stopped (`gameEnded`, `cap`, `stalled`, `botException`, `panic`, `setupFailed`, `recorderPanic`, `hung`, `memoryLimit`). `recorderPanic` means the recorder's own reads of the game threw, for example a fuzzed state with a null card in a hand; the replay simply stops there. For `hung` and `memoryLimit`, `pending` holds the call that never returned.
 
-Observations are `log` (new messages as `[target, text]`), `logCut` (the log shrank, after undo), `views` (16-hex-digit hashes of each view's JSON: players in order, then the host, then the observer) and, with `--full-views`, `full` (the views themselves, on every line or on the lines `--full-views-from` and `--full-views-to` give). Views are built, as on the server, from a separate replica that executes accepted events without validation, so building them never changes the game.
+Observations are `log` (new messages as `[target, text]`), `logCut` (the log shrank, after undo), `views` (16-hex-digit hashes of each view's JSON: players in order, then the host, then the observer) and, with `--full-views`, `full` (the views themselves, on every line or on the lines `--full-views-from` and `--full-views-to` give). Views are built, as on the server, from the game itself: every engine query they make takes `&Game`, so building them never changes the game.
 
-New traces hash views with `fold64` (`observe/src/view_hash.rs`), a 64-bit multiply-and-fold hash defined in that file, so it never changes with a crate or compiler version. Traces recorded before 2026-11-16 have no `viewHash` and hold the first 8 bytes of each view's SHA-256. The replay hashes views the way the trace's header says, so those traces and the references that record them still work. `record --view-hash sha256` records the old way. `compare-refs` uses it when one recorder writes `fold64` and the other SHA-256: it records the newer one's game again with `--view-hash sha256`. The view JSON goes straight into the hasher, without a buffer. On aarch64, SHA-256 uses the CPU's SHA-2 instructions (`sha256_arm.rs`), so replaying the older traces costs only a little more than `fold64`.
+New traces hash views with `sections` (`Sections` in `observe/src/view_hash.rs`). The views of one game state are built together and share, as `Arc`s, the parts that are the same for every viewer (see "Shared view parts" in [client.md](client.md)). The `sections` hash of a view combines a hash of each of its fields, and the board and the log are combined from their own parts the same way. It hashes a shared part once and remembers the result by the address of its `Arc`, so a part shared by 8 viewers, or by every view of the game like the faction sheets, is hashed once. Every hash in it is `fold64` of some JSON, so views with the same JSON have the same hash.
+
+`fold64` is a 64-bit multiply-and-fold hash defined in that file, so it never changes with a crate or compiler version. Traces recorded from 2026-11-16 until `sections` came hold `fold64` of each view's JSON, and older ones have no `viewHash` and hold the first 8 bytes of each view's SHA-256. The replay hashes views the way the trace's header says, so those traces and the references that record them still work: until the reference is rebuilt, `live` replays with `fold64`, which compares every view's whole JSON. `record --view-hash fold64` or `sha256` records the old ways. When two recorders in `compare-refs` hash differently, it records again with the older hash of the two (`fold64` if both know it, else SHA-256). On aarch64, SHA-256 uses the CPU's SHA-2 instructions (`sha256_arm.rs`), so replaying the oldest traces costs only a little more than `fold64`.
 
 ## How games are made
 
@@ -209,6 +211,18 @@ On 2026-11-16 the replay got faster (load average 3 to 8, CPU time of `observe r
 | bots and fuzz games 0 to 11 | 238 s | 106 s |
 
 Traces of the same 24 games recorded by the new recorder (`fold64`) took 115 s to replay, the same as SHA-256 within the noise of a shared machine. The reference's own recording in `live` keeps its old cost until it is rebuilt from a source with these changes.
+
+Later on 2026-11-16, views of one game state started sharing the parts every viewer sees alike, and the `sections` hash came. Measured on an idle machine, one process at a time, bots and fuzz games 0 to 11 of seed 1:
+
+| Run | before | after |
+|---|---|---|
+| `record --mode bots --seed 1 --game 7 --out /dev/null` | 10.5 s | 3.1 s (`sections`), 8.0 s (`fold64`) |
+| replay of the reference's 24 traces (`fold64`) | 77 s | 59 s |
+| record the 24 games | 78 s | 31 s (`sections`) |
+| replay of those 24 traces (`sections`) | | 29 s |
+| `live` of 12 bots games / 12 fuzz games | 22 s / 36 s | 20 s / 31 s |
+
+`live` gains little until the reference is rebuilt: the reference still records with `fold64` at its old speed, and the replay must hash each view's whole JSON to match.
 
 The C# oracle, which the harness replaced, took about 23 minutes per 200 fuzz games. The harness is faster per game, but its games are longer: every game is at the latest version, and fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
 
@@ -264,4 +278,4 @@ The eight phases still not reached, and the unit tests that cover them instead, 
 
 ## Tests
 
-`cargo test --release -p observe` (part of `check.sh`, about 5 s) checks that clean recordings replay without a difference, that recording is deterministic, and that a trace with any observable changed fails: a log message, a view hash, a rejection message, an event's validity, a bot decision, an applicable-events list, or a cut-off trace. It also checks that full views, on every line or on one, name the differing field, that traces hashed with SHA-256 or `fold64` replay, and that allow rules accept what they cover. Further tests check that events written differently but decoding to the same value replay without a difference, that an event that doesn't decode compares like a rejection, and that `compare-refs` matches the same games with every event in another format but catches any changed observation (`tests/compare_refs.rs`).
+`cargo test --release -p observe` (part of `check.sh`, about 5 s) checks that clean recordings replay without a difference, that recording is deterministic, and that a trace with any observable changed fails: a log message, a view hash, a rejection message, an event's validity, a bot decision, an applicable-events list, or a cut-off trace. It also checks that full views, on every line or on one, name the differing field, that traces hashed with SHA-256, `fold64` or `sections` replay, that a `sections` hash has a section for each JSON field of the view and depends only on the JSON, and that allow rules accept what they cover. Further tests check that events written differently but decoding to the same value replay without a difference, that an event that doesn't decode compares like a rejection, and that `compare-refs` matches the same games with every event in another format but catches any changed observation (`tests/compare_refs.rs`).

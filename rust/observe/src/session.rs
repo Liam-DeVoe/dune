@@ -5,7 +5,8 @@
 //! returns that a player could notice is returned as trace values, which the replayer compares.
 //!
 //! As on the server (`server/src/views.rs`), views are built from the game itself, with a
-//! [`ViewCache`] that starts over after an undo, a restore or a dismiss.
+//! [`ViewCache`] that starts over after an undo, a restore or a dismiss. The views after a call
+//! are built together (`ViewCache::batch`), so they share the parts that don't read the viewer.
 
 use std::panic::{self, AssertUnwindSafe};
 
@@ -21,7 +22,7 @@ use treachery_view::build::{ResolvedViewer, Seating};
 use treachery_view::cache::ViewCache;
 
 use crate::trace::{BotChoice, BotsResult, EventOutcome, Obs, QueryResult, SpecialOutcome};
-use crate::view_hash::ViewHash;
+use crate::view_hash::{Sections, ViewHash};
 
 /// The bot priority levels, in the order the server asks them.
 pub const LEVELS: [&str; 5] = ["Highest", "High", "Middle", "Low", "End"];
@@ -44,6 +45,8 @@ pub struct Session {
     /// How views are hashed: [`ViewHash::LATEST`] when recording, what the trace says when
     /// replaying.
     pub view_hash: ViewHash,
+    /// The hashes of the view parts that the latest views shared, for [`ViewHash::Sections`].
+    sections: Sections,
 }
 
 /// A call that failed in a way the trace can't describe further: the game ends there. The
@@ -98,7 +101,7 @@ impl Session {
         let (human_seats, seating) = seats(seated);
         let mut game = Game::of_version(version);
         game.human_seats = human_seats;
-        Session { game, seating, views: ViewCache::default(), bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, last_decision: None, view_hash: ViewHash::LATEST }
+        Session { game, seating, views: ViewCache::default(), bots: Vec::new(), last_query: Vec::new(), log_seen: 0, full_views, last_decision: None, view_hash: ViewHash::LATEST, sections: Sections::new() }
     }
 
     pub fn player_count(&self) -> usize {
@@ -275,20 +278,25 @@ impl Session {
         let viewers = self.viewers();
         let mut hashes = Vec::new();
         let mut full = Vec::new();
+        let (kind, full_views) = (self.view_hash, self.full_views);
+        // The views of this game state share what is the same for every viewer.
+        let mut batch = self.views.batch(&self.game, &self.seating, -1);
+        let sections = &mut self.sections;
         for (_, rv) in &viewers {
-            let (kind, full_views) = (self.view_hash, self.full_views);
-            let (game, views, seating) = (&self.game, &mut self.views, &self.seating);
             // Without full views, the JSON goes straight into the hasher.
             let built = guarded(|| {
-                let view = views.view_as(game, rv, seating, -1);
-                if full_views {
-                    let bytes = serde_json::to_vec(&view).expect("views serialize");
-                    (kind.of(&bytes), Some(bytes))
-                } else {
-                    let mut h = kind.hasher();
-                    serde_json::to_writer(&mut h, &view).expect("views serialize");
-                    (h.finish(), None)
-                }
+                let view = batch.view_as(rv);
+                let bytes = full_views.then(|| serde_json::to_vec(&view).expect("views serialize"));
+                let hash = match (kind, &bytes) {
+                    (ViewHash::Sections, _) => sections.hash(&view),
+                    (_, Some(bytes)) => kind.of(bytes),
+                    (_, None) => {
+                        let mut h = kind.hasher();
+                        serde_json::to_writer(&mut h, &view).expect("views serialize");
+                        h.finish()
+                    }
+                };
+                (hash, bytes)
             })?;
             match built {
                 Ok((hash, bytes)) => {
@@ -299,12 +307,13 @@ impl Session {
                 }
                 Err(e) => {
                     hashes.push(format!("error: {e}"));
-                    if self.full_views {
+                    if full_views {
                         full.push(Value::String(format!("error: {e}")));
                     }
                 }
             }
         }
+        sections.end_batch();
         obs.views = Some(hashes);
         if self.full_views {
             obs.full = Some(full);

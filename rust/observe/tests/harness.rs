@@ -293,3 +293,62 @@ fn globs() {
     assert!(a.ignores_view("/actions/3/validation/0"));
     assert!(!a.ignores_view("/actions/3/options"));
 }
+
+/// A sections hash is the same whether a line carries full views or not, differs from the
+/// fold64 hash, and replays.
+#[test]
+fn sections_hash_views_like_fold64() {
+    let sections = record_hashed("bots", 1, false, ViewHash::Sections);
+    let fold = record_hashed("bots", 1, false, ViewHash::Fold64);
+    let full = record_hashed("bots", 1, true, ViewHash::Sections);
+    assert_eq!(sections[0]["viewHash"], "sections");
+    let views = |t: &[Value]| t.iter().filter(|l| l["views"].is_array()).map(|l| l["views"].clone()).collect::<Vec<_>>();
+    assert_eq!(views(&sections), views(&full));
+    assert_ne!(views(&sections)[0], views(&fold)[0]);
+    assert!(replay_lines(&sections, Allow::default()).passed());
+    assert!(replay_lines(&full, Allow::default()).passed());
+}
+
+/// The sections of a view are its JSON fields, in order, and its hash depends only on its JSON:
+/// a copy that shares nothing hashes the same, with the memo of the original or a new one.
+#[test]
+fn sections_are_the_json_fields() {
+    use observe::session::Session;
+    use observe::view_hash::Sections;
+    use treachery_view::cache::ViewCache;
+    use treachery_view::schema::GameView;
+
+    let lines = record("bots", 2, false);
+    let header = &lines[0];
+    let seated: Vec<(i32, i32, String)> = serde_json::from_value(header["seated"].clone()).unwrap();
+    let mut sess = Session::new(header["version"].as_i64().unwrap() as i32, &seated, false);
+    let mut checked_lines = false;
+    let mut memo = Sections::new();
+    let keys = |v: &Value| v.as_object().unwrap().keys().cloned().collect::<Vec<_>>();
+    let names = |s: Vec<(&str, u64)>| s.into_iter().map(|(k, _)| k.to_string()).collect::<Vec<_>>();
+    for (n, l) in lines.iter().filter(|l| l["op"] == "event" && l["result"] == "accepted").enumerate() {
+        assert!(sess.submit(&l["event"], l["host"].as_bool().unwrap()).is_ok_and(|o| o.result == "accepted"));
+        if n % 25 != 0 {
+            continue;
+        }
+        let mut cache = ViewCache::default();
+        let mut batch = cache.batch(&sess.game, &sess.seating, -1);
+        for (label, rv) in sess.viewers() {
+            let view = batch.view_as(&rv);
+            let json = serde_json::to_value(&view).unwrap();
+            assert_eq!(names(memo.sections(&view)), keys(&json), "{label}");
+            assert_eq!(names(memo.board(&view.board)), keys(&json["board"]), "{label}");
+            assert_eq!(keys(&json["log"]), ["reports", "latest"]);
+            if let Some(r) = json["log"]["latest"].as_array().and_then(|l| l.first()) {
+                assert_eq!(keys(r), ["index", "lines"]);
+                checked_lines |= !r["lines"].as_array().unwrap().is_empty();
+            }
+            let copy: GameView = serde_json::from_value(json).unwrap();
+            let hash = memo.hash(&view);
+            assert_eq!(memo.hash(&copy), hash, "{label}");
+            assert_eq!(Sections::new().hash(&copy), hash, "{label}");
+        }
+        memo.end_batch();
+    }
+    assert!(checked_lines);
+}

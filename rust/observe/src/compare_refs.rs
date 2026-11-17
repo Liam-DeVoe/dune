@@ -162,17 +162,19 @@ fn check_game(o: &Options, g: &Game) -> (GameResult, Option<(Vec<u8>, Vec<u8>)>)
     let record = |full, lines: &[String]| -> Result<(Vec<u8>, Vec<u8>), String> {
         let mut a = record_with_reference_args(&o.a, g, full, lines, &o.budgets).map_err(|e| format!("A: {e}"))?;
         let mut b = record_with_reference_args(&o.b, g, full, lines, &o.budgets).map_err(|e| format!("B: {e}"))?;
-        // A recorder from before `--view-hash` hashes views with SHA-256. A newer one is asked
-        // to do the same, so their view hashes compare.
+        // A recorder from before `--view-hash` hashes views with SHA-256, and one from before
+        // the sections hash with fold64. The newer one is asked to hash like the older, so
+        // their view hashes compare.
         let (ha, hb) = (view_hash(&a), view_hash(&b));
         if ha != hb {
-            let mut sha = lines.to_vec();
-            sha.extend(["--view-hash".to_string(), ViewHash::Sha256.name().to_string()]);
-            if ha != Some(ViewHash::Sha256) {
-                a = record_with_reference_args(&o.a, g, full, &sha, &o.budgets).map_err(|e| format!("A: {e}"))?;
+            let common = if [ha, hb].contains(&Some(ViewHash::Fold64)) && ![ha, hb].contains(&Some(ViewHash::Sha256)) { ViewHash::Fold64 } else { ViewHash::Sha256 };
+            let mut again = lines.to_vec();
+            again.extend(["--view-hash".to_string(), common.name().to_string()]);
+            if ha != Some(common) {
+                a = record_with_reference_args(&o.a, g, full, &again, &o.budgets).map_err(|e| format!("A: {e}"))?;
             }
-            if hb != Some(ViewHash::Sha256) {
-                b = record_with_reference_args(&o.b, g, full, &sha, &o.budgets).map_err(|e| format!("B: {e}"))?;
+            if hb != Some(common) {
+                b = record_with_reference_args(&o.b, g, full, &again, &o.budgets).map_err(|e| format!("B: {e}"))?;
             }
         }
         Ok((a, b))

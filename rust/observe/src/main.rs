@@ -20,10 +20,10 @@ observe: records games with the reference build and replays them through the wor
 
 Usage:
   observe record --mode bots|fuzz --seed S --game I [--full-views] [--out FILE]
-                 [--full-views-from L] [--full-views-to M] [--view-hash sha256|fold64]
+                 [--full-views-from L] [--full-views-to M] [--view-hash sha256|fold64|sections]
       Record one game and write its trace (JSON Lines) to FILE, or to stdout. This is the
-      command the reference binary runs. Views are hashed with fold64 unless --view-hash says
-      otherwise (sha256 makes a trace that an older recorder's traces compare with). With
+      command the reference binary runs. Views are hashed with sections unless --view-hash says
+      otherwise (fold64 or sha256 make a trace that an older recorder's traces compare with). With
       --full-views-from or -to, only trace lines L to M (the header is line 1) have full views.
   observe live --mode bots|fuzz --seed S --games N [--start I] [--jobs J]
                [--reference BIN] [--allow FILE] [--keep-failures DIR] [-v]
@@ -161,7 +161,7 @@ fn cmd_record(args: &Args) -> Result<bool, String> {
         },
         view_hash: match args.get("view-hash") {
             None => ViewHash::LATEST,
-            Some(name) => ViewHash::parse(name).ok_or_else(|| format!("--view-hash: sha256 or fold64, not {name}"))?,
+            Some(name) => ViewHash::parse(name).ok_or_else(|| format!("--view-hash: sha256, fold64 or sections, not {name}"))?,
         },
         budgets: args.budgets()?,
         reach: args.has("reach"),

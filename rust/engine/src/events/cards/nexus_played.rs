@@ -37,10 +37,6 @@ impl Default for NexusPlayed {
     }
 }
 
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl NexusPlayed {
     pub fn to(&self, _game: &Game) -> Option<Location> {
         self.tleilaxu_location
@@ -267,7 +263,7 @@ impl NexusPlayed {
                     traitor_deck.shuffle(&mut game.rng);
                     game.stone(Milestone::Shuffled);
                     game.turn.harkonnen_traitor_was_cancelled = true;
-                    game.play_nexus_card(actor, elems!["cancel the ", Faction::Harkonnen, " traitor call"]);
+                    game.play_nexus_card(actor, parts!["cancel the ", Faction::Harkonnen, " traitor call"]);
                     game.enter_battle(BattleStep::CallingTraitor);
                     game.handle_revealed_battle_plans()?;
                 }
@@ -301,7 +297,7 @@ impl NexusPlayed {
                     let from: Part =
                         if p.to == None { "the Bank".into() } else { p.to.into() };
                     let actor_faction = game.player(actor).faction;
-                    game.log(elems![actor_faction, " get ", p.amount, " from ", from]);
+                    game.log(parts![actor_faction, " get ", p.amount, " from ", from]);
                     if p.to != None {
                         let get_from = game.get_player(p.to);
                         if let Some(get_from) = get_from {
@@ -339,14 +335,14 @@ impl NexusPlayed {
 
             Some(Faction::Tleilaxu) => {
                 game.turn.facedancer_was_cancelled = true;
-                game.play_nexus_card(actor, elems!["cancel the ", Faction::Tleilaxu, " face dancer reveal"]);
+                game.play_nexus_card(actor, parts!["cancel the ", Faction::Tleilaxu, " face dancer reveal"]);
                 game.finish_battle()?;
             }
 
             Some(Faction::Choam) => {
                 game.play_nexus_card(
                     actor,
-                    elems!["force ", Faction::Choam, " to discard one of their treachery cards at random"],
+                    parts!["force ", Faction::Choam, " to discard one of their treachery cards at random"],
                 );
                 let victim_player = game.get_player(Some(Faction::Choam));
                 if victim_player.map(|v| !game.player(v).treachery_cards.is_empty()) == Some(true) {
@@ -361,7 +357,7 @@ impl NexusPlayed {
                         game.discard_card(Some(card), true)?;
                     }
                 } else {
-                    game.log(elems![Faction::Choam, " have no treachery cards to discard"]);
+                    game.log(parts![Faction::Choam, " have no treachery cards to discard"]);
                 }
             }
 
@@ -373,7 +369,7 @@ impl NexusPlayed {
                         .amount - (if game.turn.was_victim_of_bureaucracy == Some(Faction::Richese) { 2 } else { 0 });
                     game.play_nexus_card(
                         actor,
-                        elems!["let ", Faction::Richese, " return the payment of ", Payment::of(amount_received), " they just received"],
+                        parts!["let ", Faction::Richese, " return the payment of ", Payment::of(amount_received), " they just received"],
                     );
                     if let Some(richese) = richese {
                         let w = game.player_mut(richese);
@@ -383,7 +379,7 @@ impl NexusPlayed {
                     let richese = richese.required("richese")?;
                     game.play_nexus_card(
                         actor,
-                        elems!["force ", Faction::Richese, " to discard the card they just won, refunding payment"],
+                        parts!["force ", Faction::Richese, " to discard the card they just won, refunding payment"],
                     );
                     let card_just_won = game.card_just_won();
                     game.discard_card_of(Some(richese), card_just_won, true);
@@ -419,7 +415,7 @@ impl NexusPlayed {
                     let ecaz_territory = self.ecaz_territory;
                     game.play_nexus_card(
                         actor,
-                        elems!["return all ", ally_faction, " forces in ", ecaz_territory, " to reserves"],
+                        parts!["return all ", ally_faction, " forces in ", ecaz_territory, " to reserves"],
                     );
                     game.flip_bene_gesserit_advisors_when_alone()?;
                 }
@@ -437,7 +433,7 @@ impl NexusPlayed {
                     let moritani_territory = self.moritani_territory;
                     game.play_nexus_card(
                         actor,
-                        elems!["return a terror token from ", moritani_territory, " to reserves"],
+                        parts!["return a terror token from ", moritani_territory, " to reserves"],
                     );
                 }
             }
@@ -453,14 +449,14 @@ impl NexusPlayed {
         match self.faction {
             Some(Faction::Atreides) => {
                 game.turn.current_nexus_prescience = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
-                game.play_nexus_card(actor, elems!["see their opponent's ", self.atreides_prescience_aspect]);
+                game.play_nexus_card(actor, parts!["see their opponent's ", self.atreides_prescience_aspect]);
             }
 
             Some(Faction::Harkonnen) => {
                 if game.decks.traitor_deck.is_none() {
                     return;
                 }
-                game.play_nexus_card(actor, elems!["draw a new traitor"]);
+                game.play_nexus_card(actor, parts!["draw a new traitor"]);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
                 game.interrupt(Interrupt::DiscardingTraitor { faction: by.faction, remaining: 1 });
@@ -470,26 +466,26 @@ impl NexusPlayed {
                 game.turn.current_emperor_cunning = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
                 game.play_nexus_card(
                     actor,
-                    elems!["let 5 ", FactionForce::Emperor, " count as ", FactionSpecialForce::Emperor, " during this battle"],
+                    parts!["let 5 ", FactionForce::Emperor, " count as ", FactionSpecialForce::Emperor, " during this battle"],
                 );
             }
 
             Some(Faction::Guild) => {
                 game.turn.current_guild_cunning = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
-                game.play_nexus_card(actor, elems!["perform an extra shipment after their move"]);
+                game.play_nexus_card(actor, parts!["perform an extra shipment after their move"]);
             }
 
             Some(Faction::BeneGesserit) => {
                 game.turn.current_bene_gesserit_cunning = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
                 game.play_nexus_card(
                     actor,
-                    elems!["be able to flip advisors to fighters during ", MainPhase::ShipmentAndMove],
+                    parts!["be able to flip advisors to fighters during ", MainPhase::ShipmentAndMove],
                 );
             }
 
             Some(Faction::Ixian) => {
                 game.turn.current_ixian_cunning = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
-                game.play_nexus_card(actor, elems!["let ", FactionForce::Ixian, " be full strength during this battle"]);
+                game.play_nexus_card(actor, parts!["let ", FactionForce::Ixian, " be full strength during this battle"]);
             }
 
             Some(Faction::Tleilaxu) => {
@@ -499,7 +495,7 @@ impl NexusPlayed {
                 let Some(tleilaxu) = game.get_player(Some(Faction::Tleilaxu)) else { return };
 
                 let count = game.player(tleilaxu).revealed_face_dancers.len() as i32;
-                game.play_nexus_card(actor, elems!["replace their ", count, " revealed face dancers"]);
+                game.play_nexus_card(actor, parts!["replace their ", count, " revealed face dancers"]);
                 if game.player(tleilaxu).revealed_face_dancers.len() > 0 {
                     let mut i = 0;
                     while i < game.player(tleilaxu).revealed_face_dancers.len() {
@@ -538,7 +534,7 @@ impl NexusPlayed {
                 }
                 game.take_vidal(actor, VidalMoment::EndOfTurn);
                 let vidal = game.vidal();
-                game.play_nexus_card(actor, elems!["take ", vidal, " this turn"]);
+                game.play_nexus_card(actor, parts!["take ", vidal, " this turn"]);
             }
 
             _ => {}
@@ -551,14 +547,14 @@ impl NexusPlayed {
         match self.faction {
             Some(Faction::Atreides) => {
                 game.turn.current_nexus_prescience = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
-                game.play_nexus_card(actor, elems!["see their opponent's ", self.atreides_prescience_aspect]);
+                game.play_nexus_card(actor, parts!["see their opponent's ", self.atreides_prescience_aspect]);
             }
 
             Some(Faction::Harkonnen) => {
                 if game.decks.traitor_deck.is_none() {
                     return Ok(());
                 }
-                game.play_nexus_card(actor, elems!["draw two new traitors"]);
+                game.play_nexus_card(actor, parts!["draw two new traitors"]);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
                 game.player_mut(actor).traitors.push(t);
                 let t = game.decks.traitor_deck.as_mut().expect("traitor deck").draw();
@@ -571,16 +567,16 @@ impl NexusPlayed {
                 if game.turn.current_main_phase == MainPhase::Blow {
                     game.play_nexus_card(
                         actor,
-                        elems!["prevent their forces from being devoured by ", Concept::Monster],
+                        parts!["prevent their forces from being devoured by ", Concept::Monster],
                     );
                 } else if game.turn.current_main_phase == MainPhase::Resurrection {
-                    game.play_nexus_card(actor, elems!["increase their free revival to 3"]);
+                    game.play_nexus_card(actor, parts!["increase their free revival to 3"]);
                 }
             }
 
             Some(Faction::Guild) => {
                 game.turn.current_guild_secret_ally = Some(NexusCardPlayed { submitter: by, atreides_prescience_aspect: self.atreides_prescience_aspect });
-                game.play_nexus_card(actor, elems!["be able to ship as ", Faction::Guild]);
+                game.play_nexus_card(actor, parts!["be able to ship as ", Faction::Guild]);
             }
 
             Some(Faction::Tleilaxu) => {
@@ -609,7 +605,7 @@ impl NexusPlayed {
                 let special_force = game.player(player).special_force();
                 game.play_nexus_card(
                     actor,
-                    elems![
+                    parts![
                         "revive ",
                         express_part_if!(self.tleilaxu_hero.is_some(); self.tleilaxu_hero),
                         express_part_if!(self.tleilaxu_hero.is_some() && total > 0; " and "),
@@ -624,7 +620,7 @@ impl NexusPlayed {
                         Player::ship_special_forces(game, player, tleilaxu_location, 1)?;
                         let tleilaxu_location = self.tleilaxu_location;
                         game.log(
-                            elems![by.faction, " place ", FactionSpecialForce::Fremen, " in ", tleilaxu_location],
+                            parts![by.faction, " place ", FactionSpecialForce::Fremen, " in ", tleilaxu_location],
                         );
                     }
                 }
@@ -634,7 +630,7 @@ impl NexusPlayed {
                 if game.turn.current_main_phase == MainPhase::Collection {
                     game.play_nexus_card(
                         actor,
-                        elems!["discard a ", TreacheryCardType::Useless, " card to get ", Payment::of(2)],
+                        parts!["discard a ", TreacheryCardType::Useless, " card to get ", Payment::of(2)],
                     );
                     let Some(choam_card) = self.choam_card else { return Ok(()) };
                     // C# parity: the card is not validated here.
@@ -660,18 +656,18 @@ impl NexusPlayed {
                     let auditee_faction = game.player(auditee).faction;
                     game.play_nexus_card(
                         actor,
-                        elems!["see a random treachery card in the ", auditee_faction, " hand"],
+                        parts!["see a random treachery card in the ", auditee_faction, " hand"],
                     );
 
                     if !auditable_cards.is_empty() {
                         let audited_card = auditable_cards.iter().copied().random_item(&mut game.rng);
                         if let Some(audited_card) = audited_card {
                             Game::register_known_by_player(game, actor, Some(audited_card));
-                            game.log_to(by.faction.expect("faction"), elems!["You see: ", audited_card]);
-                            game.log_to(auditee_faction.expect("faction"), elems!["You showed them: ", audited_card]);
+                            game.log_to(by.faction.expect("faction"), parts!["You see: ", audited_card]);
+                            game.log_to(auditee_faction.expect("faction"), parts!["You showed them: ", audited_card]);
                         }
                     } else {
-                        game.log(elems![auditee_faction, " don't have cards to audit"]);
+                        game.log(parts![auditee_faction, " don't have cards to audit"]);
                     }
                 }
             }
@@ -679,10 +675,10 @@ impl NexusPlayed {
             Some(Faction::Ecaz) => {
                 game.play_nexus_card(
                     actor,
-                    elems!["force ", self.ecaz_faction, " to reveal if they have an ", Faction::Ecaz, " traitor"],
+                    parts!["force ", self.ecaz_faction, " to reveal if they have an ", Faction::Ecaz, " traitor"],
                 );
                 game.log(
-                    elems![self.ecaz_faction, " reveal to ", by.faction, " if they have a ", by.faction, " traitor"],
+                    parts![self.ecaz_faction, " reveal to ", by.faction, " if they have a ", by.faction, " traitor"],
                 );
                 let initiator = by.faction;
                 let has_traitor = game
@@ -691,7 +687,7 @@ impl NexusPlayed {
                     == Some(true);
                 game.log_to(
                     by.faction.expect("faction"),
-                    elems![
+                    parts![
                         self.ecaz_faction,
                         " reveal that they ",
                         if has_traitor { "DO" } else { "DON'T" },
@@ -702,7 +698,7 @@ impl NexusPlayed {
                 );
                 game.log_to(
                     self.ecaz_faction.expect("faction"),
-                    elems![
+                    parts![
                         " you revealed to them that you ",
                         if has_traitor { "DO" } else { "DON'T" },
                         " have a ",

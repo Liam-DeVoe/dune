@@ -306,3 +306,71 @@ fn card_trade_offer_must_name_the_ally() {
     assert_eq!(offer(Faction::Atreides), None);
     assert_eq!(offer(Faction::Guild).as_deref(), Some("You can only trade cards with your ally"));
 }
+
+// ---------------------------------------------------------------- deal ids across undo
+
+/// A three-player game of Choam, Atreides and Richese, just set up.
+fn established() -> Game {
+    let mut g = Game::of_version(Game::LATEST_VERSION);
+    let factions = vec![Faction::Choam, Faction::Atreides, Faction::Richese];
+    let establish = EstablishPlayers {
+        settings: Some(GameSettings { number_of_players: 3, allowed_factions_in_play: Some(factions), ..Default::default() }),
+        seed: 7,
+        maximum_number_of_players: 3,
+        factions_in_play: Some("Choam,Atreides,Richese".to_string()),
+        ..Default::default()
+    };
+    g.play(HistoryEntry::new(None, establish), true, true).expect("establish");
+    g
+}
+
+/// Offers a custom deal with text `text` from Atreides to everyone, unvalidated (deals are
+/// applicable in every phase after setup).
+fn offer_deal(g: &mut Game, text: &str) {
+    let e = DealOffered { to: Some(vec![]), text: Some(text.to_string()), ..Default::default() };
+    g.play(HistoryEntry::new(Faction::Atreides, e), false, false).expect("offer");
+}
+
+fn deal_ids(g: &Game) -> Vec<(String, usize)> {
+    g.deals.offers.iter().map(|o| (o.text.clone().unwrap_or_default(), o.id.0)).collect()
+}
+
+fn named(ids: &[(&str, usize)]) -> Vec<(String, usize)> {
+    ids.iter().map(|(t, i)| (t.to_string(), *i)).collect()
+}
+
+/// A deal's id names one offer for the whole game. When the id was the offer's place in the
+/// history, an offer made after an undo got the id of an undone offer at the same place, so the
+/// client took it for that offer (no toast, or marked as answered).
+#[test]
+fn deal_ids_survive_undo_and_are_never_given_twice() {
+    let mut g = established();
+    offer_deal(&mut g, "A");
+    let after_a = g.history.entries.len() as i32;
+    offer_deal(&mut g, "B");
+    assert_eq!(deal_ids(&g), named(&[("A", 0), ("B", 1)]));
+
+    // Undo B's offer: A keeps its id, and C, made in B's place in the history, doesn't get B's.
+    g.undo(after_a);
+    assert_eq!(deal_ids(&g), named(&[("A", 0)]));
+    offer_deal(&mut g, "C");
+    assert_eq!(g.history.entries.len() as i32, after_a + 1);
+    assert_eq!(deal_ids(&g), named(&[("A", 0), ("C", 2)]));
+
+    // Dismissing the undone events replays the history: the ids stay.
+    g.dismiss_recently_undone();
+    assert_eq!(deal_ids(&g), named(&[("A", 0), ("C", 2)]));
+
+    // Undo C, offer D, and restore the game before that undo: D's id isn't given again.
+    g.undo(after_a);
+    offer_deal(&mut g, "D");
+    assert_eq!(deal_ids(&g), named(&[("A", 0), ("D", 3)]));
+    g.restore_recently_undone();
+    assert_eq!(deal_ids(&g), named(&[("A", 0), ("C", 2)]));
+    offer_deal(&mut g, "E");
+    assert_eq!(deal_ids(&g), named(&[("A", 0), ("C", 2), ("E", 4)]));
+
+    // The withdrawal of an offer still carries the time of the offer's own entry.
+    let c = &g.deals.offers[1];
+    assert_eq!(c.cancellation(&g).at, g.history.entries[c.entry].at);
+}

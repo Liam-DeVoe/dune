@@ -72,10 +72,17 @@ impl EventRules for DealOffered {
                 game.deals.responses.shift_remove(&same_offer.id);
             }
         } else {
-            // The entry of this event goes into the history right after it is applied.
-            let id = DealId(game.history.entries.len());
+            let id = game.deals.id_for(game.history.playing);
+            // After an undo, an offer also uses up its id in the game a restore returns to, which
+            // the client saw before the undo.
+            let next = game.deals.next_id();
+            if let Some(previous) = game.history.previous_game_state.as_deref_mut() {
+                previous.deals.skip_ids_below(next);
+            }
             game.deals.offers.push(DealOffer {
                 id,
+                // The entry of this event goes into the history right after it is applied.
+                entry: game.history.entries.len(),
                 initiator: by.faction,
                 player: by.player,
                 to: self.to.clone(),

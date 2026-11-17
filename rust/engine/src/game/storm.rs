@@ -2,7 +2,6 @@ use crate::events::TakeLosses;
 use crate::log::storm::{StormDestroyedSpice, StormForecast, StormKilled};
 use crate::game::LossToTake;
 use crate::prelude::*;
-use crate::messages::part::Part;
 use crate::random::Rng;
 
 /// The storm phase (`PhaseState::Storm`): its step, the dials and whether the Testing Station
@@ -54,10 +53,6 @@ impl StormStep {
 }
 
 /// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl Game {
     /// The storm phase's state, while the game is in it (an interrupt may suspend it).
     pub fn storm(&self) -> Option<&StormState> {
@@ -127,7 +122,7 @@ impl Game {
                 self.log_prevention_by_low_threshold(FactionAdvantage::IxianMovingHms);
                 self.determine_storm();
             } else if hms.attached_to_location(&self.board.map).map(|l| l.sector(&self.board.map)) == Some(self.board.sector_in_storm) {
-                self.log(elems!["The storm prevents ", hms, " from moving"]);
+                self.log(parts!["The storm prevents ", hms, " from moving"]);
                 self.determine_storm();
             } else {
                 self.enter_storm(StormStep::HmsMovement);
@@ -156,7 +151,7 @@ impl Game {
         self.turn.has_acted_or_passed.clear();
         let msg = express!("The storm will move ", self.board.next_storm_moves, " sectors...")
             .with_log(StormForecast::new(self.board.next_storm_moves));
-        self.log(elems![msg]);
+        self.log(parts![msg]);
         self.enter_storm(StormStep::MetheorAndStormSpell);
     }
 
@@ -167,7 +162,7 @@ impl Game {
         self.change_resources_on_planet(l, -collected)?;
         let Some(collector) = self.get_player(Some(faction)) else { return Ok(()) };
         crate::game::amounts::gain(&mut self.player_mut(collector).resources, collected, "spice")?;
-        self.log(elems![faction, " collect ", Payment::of(collected), " from ", l]);
+        self.log(parts![faction, " collect ", Payment::of(collected), " from ", l]);
         Ok(())
     }
 
@@ -245,7 +240,7 @@ impl Game {
                 if kill_count > 0 {
                     let msg = express!("The storm kills ", kill_count, battalion.faction, " forces in ", key)
                         .with_log(StormKilled::new(battalion.faction, key, killed_forces, killed_special_forces));
-                    self.log(elems![msg]);
+                    self.log(parts![msg]);
                 }
             }
         }
@@ -264,7 +259,7 @@ impl Game {
                 let Some(ecaz) = self.get_player(Some(Faction::Ecaz)) else { continue };
                 self.board.ambassadors_on_planet.shift_remove(&t);
                 self.player_mut(ecaz).ambassadors.push(ambassador);
-                self.log(elems!["The ambassador in ", t, " returns to ", Faction::Ecaz]);
+                self.log(parts!["The ambassador in ", t, " returns to ", Faction::Ecaz]);
             }
         }
 
@@ -274,7 +269,7 @@ impl Game {
             if removed > 0 {
                 let msg = express!("The storm destroys ", Payment::of(removed), " in ", l)
                     .with_log(StormDestroyedSpice::new(l, removed));
-                self.log(elems![msg]);
+                self.log(parts![msg]);
             }
         }
         Ok(())

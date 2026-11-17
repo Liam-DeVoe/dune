@@ -212,10 +212,6 @@ impl PlanetologyUse {
 }
 
 /// Builds a list of message elements from mixed arguments.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl Game {
     pub fn start_ship_and_move_sequence(&mut self) -> GameResult {
         self.skip_guild_in_turn_order();
@@ -248,7 +244,7 @@ impl Game {
         };
         if guild_has_to_act && guild_is_on_auto_delay && guild_may_delay {
             let m = express!(Faction::Guild, " delay their shipment").with_log(GuildDelayed::default());
-            self.log(elems![m]);
+            self.log(parts![m]);
         }
 
         guild_has_to_act && !(guild_is_on_auto_delay && guild_may_delay)
@@ -332,7 +328,7 @@ impl Game {
                     let pl = self.player_mut(initiator);
                     crate::game::amounts::gain(&mut pl.resources, most_spice, "spice").expect("spice income");
                     let f = self.player(initiator).faction;
-                    self.log(elems![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(most_spice), " along the way"]);
+                    self.log(parts![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(most_spice), " along the way"]);
                 }
             }
         }
@@ -358,7 +354,7 @@ impl Game {
                 let f = self.player(initiator).faction;
                 let m = express!(kill_count, f, " forces are killed by the storm while travelling")
                     .with_log(ShipMoveLoss::new(f.expect("faction"), true, true, kill_count, None));
-                self.log(elems![m]);
+                self.log(parts![m]);
             }
         } else {
             Player::move_forces(self, initiator, from, to, battalion.forces())?;
@@ -403,7 +399,7 @@ impl Game {
             message = message.with_log(MoveLogged::new(faction.expect("faction"), nr, from, force_amount, special_force_amount, to, by_caravan, if bene_gesserit_as { Some(as_advisors) } else { None }));
         }
 
-        self.log(elems![message]);
+        self.log(parts![message]);
     }
 
     pub fn caravan_message(by_caravan: bool) -> MessagePart {
@@ -422,7 +418,7 @@ impl Game {
 
             if self.is_alive(Hero::from(vidal)) {
                 let f = self.player(owner).faction;
-                self.log(elems![f, " lose ", vidal]);
+                self.log(parts![f, " lose ", vidal]);
             }
 
             self.leaders.captured_leaders.shift_remove(&vidal);
@@ -433,7 +429,7 @@ impl Game {
         self.leaders.when_to_set_aside_vidal = Some(when_to_set_aside);
 
         let f = self.player(p).faction;
-        self.log(elems![f, " take ", vidal]);
+        self.log(parts![f, " take ", vidal]);
 
         self.set_in_front_of_shield(vidal, false);
     }
@@ -447,7 +443,7 @@ impl Game {
             let ecaz = self.get_player(Some(Faction::Ecaz));
             self.board.ambassadors_on_planet.shift_remove(&territory);
             self.player_mut(ecaz.expect("ecaz")).ambassadors.push(ambassador);
-            self.log(elems!["The ambassador in ", territory, " returns to ", Faction::Ecaz]);
+            self.log(parts!["The ambassador in ", territory, " returns to ", Faction::Ecaz]);
         }
     }
 
@@ -514,7 +510,7 @@ impl Game {
         }
 
         let m = express!(pf, " pass movement").with_log(MovePassed::new(pf.required("faction")?));
-        self.log(elems![m]);
+        self.log(parts![m]);
 
         self.determine_next_shipment_and_move_sub_phase()?;
         self.check_if_forces_should_be_destroyed_by_ally_presence(player)?;
@@ -660,7 +656,7 @@ impl Game {
                 if !(special_forces_are_allowed && self.player(p).special_forces_in_territory(Some(t)) > 0) && self.player(p).any_forces_in_territory(Some(t)) > 0 {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
                         .with_log(ShipMoveLoss::new(p_faction.expect("faction"), false, false, 0, Some(t)));
-                    self.log(elems![m]);
+                    self.log(parts![m]);
                     self.reveal_current_no_field_in_territory(p, t)?;
                     Player::kill_all_forces_in_territory(self, p, t, false)?;
                 }
@@ -694,7 +690,7 @@ impl Game {
                 for t in to_kill {
                     let m = express!("All ", p_faction, " forces in ", t, " were killed due to ally presence")
                         .with_log(ShipMoveLoss::new(p_faction.expect("faction"), false, false, 0, Some(t)));
-                    self.log(elems![m]);
+                    self.log(parts![m]);
                     self.reveal_current_no_field_in_territory(p, t)?;
                     Player::kill_all_forces_in_territory(self, p, t, false)?;
                 }
@@ -806,7 +802,7 @@ impl Game {
                 let pl = self.player_mut(owner);
                 crate::game::amounts::gain(&mut pl.resources, amount, "spice").expect("spice income");
                 let f = self.player(owner).faction;
-                self.log(elems![f, " receive ", Payment::of(amount), " from ", TechToken::Ships]);
+                self.log(parts![f, " receive ", Payment::of(amount), " from ", TechToken::Ships]);
             }
         }
     }

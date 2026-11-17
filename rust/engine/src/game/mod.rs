@@ -408,10 +408,13 @@ impl Game {
         .with_log(AsideLog::aside())
     }
 
-    /// A new game with no events, of this game's version and with its human seats.
+    /// A new game with no events, of this game's version and with its human seats. It goes on
+    /// numbering deal offers where this game left off, keeping the ids of offers it replays
+    /// ([`Deals::continue_ids`]), since an undo replays the history into such a game.
     pub fn new_like(&self) -> Game {
         let mut game = Game::of_version(self.rules.version);
         game.human_seats = self.human_seats.clone();
+        game.deals.continue_ids(&self.deals);
         game
     }
 

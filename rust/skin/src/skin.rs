@@ -296,6 +296,31 @@ pub(crate) fn to_upper_invariant(s: &str) -> String {
         .collect()
 }
 
+/// The first (or last) part of `p` that shows anything, looking into the parts that hold other
+/// parts.
+fn edge(p: &Part, last: bool) -> Option<&Part> {
+    let inner: &[Part] = match p {
+        Part::Null => return None,
+        Part::Phrase(parts) => parts,
+        Part::Message(m) => &m.parts,
+        _ => return Some(p),
+    };
+    if last { inner.iter().rev().find_map(|q| edge(q, true)) } else { inner.iter().find_map(|q| edge(q, false)) }
+}
+
+/// Whether the client draws the edge of `p` as a token of its own: anything but text, which
+/// carries its own spaces.
+fn is_token(p: &Part, last: bool) -> bool {
+    edge(p, last).is_some_and(|e| !matches!(e, Part::Text(_)))
+}
+
+/// Whether `before` followed by `after` would read as one word.
+fn runs_together(before: &str, after: &str) -> bool {
+    let end = before.chars().next_back().is_some_and(char::is_alphanumeric);
+    let start = after.chars().next().is_some_and(char::is_alphanumeric);
+    end && start
+}
+
 impl Skin {
     pub const LATEST_VERSION: i32 = 151;
 
@@ -306,9 +331,25 @@ impl Skin {
         self.render_parts(&m.parts)
     }
 
-    /// The text of these parts, each described, one after the other.
+    /// The text of these parts, each described, one after the other. Two neighbouring parts that
+    /// the client draws as separate tokens (a number, a faction, a force icon, ...) get a space
+    /// between them where their texts would otherwise run together, as in "3 forces" or
+    /// "Emperor 3 forces". The client draws its own gap between such tokens, so this only
+    /// changes plain text.
     pub fn render_parts(&self, parts: &[Part]) -> String {
-        parts.iter().map(|p| self.describe(p)).collect()
+        let mut out = String::new();
+        let mut previous: Option<(&Part, String)> = None;
+        for p in parts {
+            let text = self.describe(p);
+            if let Some((before, before_text)) = &previous {
+                if is_token(before, true) && is_token(p, false) && runs_together(before_text, &text) {
+                    out.push(' ');
+                }
+            }
+            out.push_str(&text);
+            previous = Some((p, text));
+        }
+        out
     }
 
     /// The described items joined with `", "`, or `"-"` when that is empty.

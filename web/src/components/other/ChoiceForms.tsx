@@ -378,7 +378,7 @@ export function KarmaForm({ action, inPopover = false }: FormProps) {
     <Layout type="Karma" header={<>Use {karma} to prevent a faction from using one of their advantages</>} inPopover={inPopover}>
       <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
       <Select options={o.advantages.map((a) => ({ value: a.name as FactionAdvantage, label: a.label }))} value={nameOf(draft.prevented) as FactionAdvantage | null} onChange={(v) => update({ prevented: v })}
-              label={<>Advantage to prevent <InfoIcon contents="Prevention of an advantages with a * cannot be done automatically and must be done verbally between players. This might require an undo-action by the host after the action you want to prevent has occured." /></>} />
+              label={<>Advantage to prevent <InfoIcon contents="Prevention of advantages marked with a * cannot be done automatically and must be agreed verbally between players. This might require an undo by the host after the action you want to prevent has occurred." /></>} />
       <ButtonRow confirm={() => submit()} confirmText={fmt("Use {0}", karma)} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>

@@ -1,6 +1,5 @@
 use crate::log::charity::CharityClaim;
 use crate::prelude::*;
-use crate::messages::part::Part;
 
 /// The charity phase (`PhaseState::Charity`): its step, and whether a claim earns the Spice tech
 /// token its income. It is dropped when the phase ends. The CHOAM economics token, which lasts
@@ -39,10 +38,6 @@ impl CharityStep {
 }
 
 /// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl Game {
     /// The charity phase's state, while the game is in it (an interrupt may suspend it).
     pub fn charity(&self) -> Option<&CharityState> {
@@ -86,7 +81,7 @@ impl Game {
             let amount = self.player(owner).tech_tokens.len() as i32;
             crate::game::amounts::gain(&mut self.player_mut(owner).resources, amount, "spice").expect("tech token income");
             let faction = self.player(owner).faction;
-            self.log(elems![faction, " receive ", Payment::of(amount), " from ", token]);
+            self.log(parts![faction, " receive ", Payment::of(amount), " from ", token]);
         }
     }
 
@@ -128,7 +123,7 @@ impl Game {
             Some(choam) if !self.prevented(FactionAdvantage::ChoamControllingCharity) => {
                 if i32::from(self.player(choam).resources) >= basic_amount {
                     crate::game::amounts::spend(&mut self.player_mut(choam).resources, basic_amount, "spice").expect("charity paid by CHOAM");
-                    self.log(elems![
+                    self.log(parts![
                         to_faction,
                         " get ",
                         Payment::of(basic_amount),
@@ -138,7 +133,7 @@ impl Game {
                     ]);
                 } else {
                     // C# parity: the claimant was already paid above, even though Choam cannot pay.
-                    self.log(elems![
+                    self.log(parts![
                         to_faction,
                         " are unable to claim ",
                         Payment::of(basic_amount),
@@ -151,7 +146,7 @@ impl Game {
             _ => {
                 let amount = basic_amount + homeworld_bonus;
                 let msg = express!(to_faction, " claim ", Payment::of(amount)).with_log(CharityClaim::new(to_faction.expect("faction"), amount));
-                self.log(elems![msg]);
+                self.log(parts![msg]);
             }
         }
     }

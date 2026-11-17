@@ -31,7 +31,7 @@ How `rust/engine` represents a game, and the rules to follow when you change it.
 
 A new field goes into the state of its phase if only that phase reads it ([Phases](#phases)). Otherwise it goes into the struct of its topic, or into `turn` if it lasts a turn.
 
-`human_seats` is all the engine knows about who sits at the table: the seats users play. Every other seat is a bot's (`Game::is_bot`), which a few rules ask (Clairvoyance questions, card trades, deals with a bot). The server owns everything else about seating (names, hosts, observers, open seats, bot speed; `server/src/participation.rs`) and updates `human_seats` whenever seats change. The seats aren't part of the history: `Game::load` takes them, `Game::new_like` copies them into a game that replays the history, and `restore_recently_undone` keeps the current ones.
+`human_seats` is all the engine knows about who sits at the table: the seats users play. Every other seat is a bot's (`Game::is_bot`), which a few rules ask (Clairvoyance questions, card trades, deals with a bot). The server owns everything else about seating (names, hosts, observers, open seats, bot speed; `server/src/participation.rs`) and updates `human_seats` whenever seats change. The seats aren't part of the history: `Game::load` takes them, `Game::new_like` copies them (and the deal-id numbering, `Deals::continue_ids`) into a game that replays the history, and `restore_recently_undone` keeps the current ones.
 
 Game state is plain owned data. `Game` holds no `Rc`, `RefCell` or `Cell`, so it is `Send`; a compile-time check under the struct in `game/mod.rs` keeps it that way. `Game` is not `Clone`: to get a second game, replay the history into `game.new_like()`. No game state lives outside `Game`, so games on one thread don't affect each other. The two statics that look like exceptions aren't game state: `EntryId::fresh` (`events/rules.rs`) hands out process-unique ids, and the thread-local `QUIET` in `error.rs` only tells the panic hook whether to print.
 
@@ -77,7 +77,7 @@ Numbers that name something get their own type:
 | `Seat(u8)` | a place at the table, from 0 (`game/seats.rs`) | `Player.seat` is `Option<Seat>`, but `EstablishPlayers` seats every player, so game code reads `player.seated()`. Where JSON needs an absent seat it writes -1 (`seat_or_minus_one`) |
 | `Turn(u8)` | a turn, from 1 (`game/turn.rs`) | `Turn::BEFORE_START` (0) is the setup, a real moment with its own report, so it isn't `Option<Turn>` |
 | `Sector(u8)` | one of the 18 sectors, 0 to 17 (`map/sector.rs`) | Homeworlds and unplaced attached locations have none, so `Location::sector` is `Option<Sector>`. The storm's arithmetic modulo 18 is only in `Sector::moved`. Views and the log write -1 for none |
-| `DealId(usize)` | a deal offer: the place of its `DealOffered` in the history (`game/deals.rs`) | Keys `deals.responses` |
+| `DealId(usize)` | a deal offer, numbered in the order offers are made. An undo keeps the ids of the offers it replays, and no id is given twice in a game (`game/deals.rs`) | Keys `deals.responses`; the deals view's `id` |
 | `EntryId` | one submission of an event (`events/rules.rs`) | See [State instead of events](#state-instead-of-events) |
 | `HalfPoints` | a battle strength or dial | See [Battle strength](#battle-strength) |
 | `UserId(i64)` | a user | In `treachery-protocol` only. The engine knows seats, not users |

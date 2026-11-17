@@ -71,7 +71,7 @@ fn enums() -> (Vec<&'static str>, String) {
         ("AutomationRuleType", union::<AutomationRuleType>()),
         ("ClairVoyanceAnswer", union::<ClairVoyanceAnswer>()),
         ("ClairvoyanceQuestion", union::<ClairvoyanceQuestion>()),
-        ("DealType", union::<DealType>() + &values::<DealType>()),
+        ("DealType", union::<DealType>()),
         ("FactionAdvantage", union::<FactionAdvantage>()),
         ("ItemAction", union::<ItemAction>()),
         ("JuiceType", union::<JuiceType>()),

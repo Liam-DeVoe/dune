@@ -193,6 +193,9 @@ pub struct ChoamKarmaPreventionOptions {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DealTypeOption {
+    /// The `DealType` member, as the event names it.
+    #[ts(type = "DealType")]
+    pub name: String,
     pub value: i32,
     /// `Deal.Express(DealType).ToString(Skin)`.
     pub label: String,

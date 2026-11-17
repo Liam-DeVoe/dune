@@ -583,6 +583,7 @@ fn options(game: &Game, p: PlayerId, v: &ResolvedViewer, draft: &Event, d: &dyn 
             deal_types: DealOffered::get_standard_deal_types(game, p)
                 .into_iter()
                 .map(|t| DealTypeOption {
+                    name: t.to_string(),
                     value: t.value(),
                     label: plain(&message(&Deal::express(t, P::Null), d)),
                     end_phases: deal_end_phases(t).into_iter().map(|ph| enum_option_opt(d, ph)).collect(),

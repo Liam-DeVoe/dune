@@ -14,10 +14,9 @@ fn text(s: &str) -> RichText {
 }
 
 fn settings(players: i32, factions: &[Faction]) -> String {
-    let f: Vec<String> = factions.iter().map(|f| (*f as i32).to_string()).collect();
+    let f = serde_json::to_string(factions).unwrap();
     format!(
-        r#"{{"$type":"EstablishPlayers","Initiator":0,"Settings":{{"NumberOfPlayers":{players},"MaximumTurns":10,"InitialRules":[],"AllowedFactionsInPlay":[{}],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0}},"Seed":7}}"#,
-        f.join(",")
+        r#"{{"type":"EstablishPlayers","settings":{{"numberOfPlayers":{players},"maximumTurns":10,"initialRules":[],"allowedFactionsInPlay":{f},"autoOpenEmptySeats":true,"asyncPlay":false,"asyncPlayMessageIntervalMinutes":0}},"seed":7}}"#
     )
 }
 
@@ -69,7 +68,7 @@ fn perform_setup_offers_the_next_factions_reserves() {
 
     // PerformSetup.Validate: no more forces than the reserves.
     let location = o.locations[0];
-    let draft = |n: i32| format!(r#"{{"$type":"PerformSetup","Initiator":0,"Passed":false,"Resources":5,"_forceLocations":"{location}:{n}|0"}}"#);
+    let draft = |n: i32| format!(r#"{{"type":"PerformSetup","play":{{"resources":5,"forceLocations":[{{"location":{location},"forces":{n},"specialForces":0}}]}}}}"#);
     assert_eq!(r.query(host, &common::draft(&draft(o.forces_in_reserve))).unwrap().validation, None);
     assert!(r.query(host, &common::draft(&draft(o.forces_in_reserve + 1))).unwrap().validation.is_some());
 }

@@ -958,7 +958,6 @@ dependencies = [
  "sha2",
  "treachery-bots",
  "treachery-engine",
- "treachery-legacy",
  "treachery-skin",
  "treachery-view",
 ]
@@ -1681,7 +1680,6 @@ dependencies = [
  "flate2",
  "serde_json",
  "treachery-engine",
- "treachery-legacy",
 ]
 
 [[package]]
@@ -1694,17 +1692,7 @@ dependencies = [
  "rand_chacha",
  "serde",
  "serde_json",
- "treachery-legacy",
  "ts-rs",
-]
-
-[[package]]
-name = "treachery-legacy"
-version = "0.1.0"
-dependencies = [
- "indexmap",
- "serde_json",
- "treachery-engine",
 ]
 
 [[package]]
@@ -1737,7 +1725,6 @@ dependencies = [
  "tokio",
  "treachery-bots",
  "treachery-engine",
- "treachery-legacy",
  "treachery-protocol",
  "treachery-skin",
  "treachery-view",
@@ -1750,7 +1737,6 @@ dependencies = [
  "flate2",
  "serde_json",
  "treachery-engine",
- "treachery-legacy",
 ]
 
 [[package]]
@@ -1761,7 +1747,6 @@ dependencies = [
  "serde",
  "serde_json",
  "treachery-engine",
- "treachery-legacy",
  "treachery-skin",
  "ts-rs",
 ]

@@ -98,7 +98,7 @@ fn milestones_follow_each_event() {
     let mut nonempty = 0;
     for name in ["bid", "blow", "mc-discard", "battle"] {
         let v: serde_json::Value = serde_json::from_str(&fixture(name)).unwrap();
-        let events = v["_events"].as_array().unwrap();
+        let events = v["events"].as_array().unwrap();
         let mut r = load_text(&truncated(name, 1));
         for e in events.iter().skip(1) {
             r.apply(&common::event_text(e)).unwrap();

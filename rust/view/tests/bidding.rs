@@ -184,7 +184,7 @@ fn bidding_options_equal_the_helpers_in_every_state() {
     let d = default_describer();
     let mut seen = Seen::default();
     for path in fixtures() {
-        let state = treachery_legacy::load_any(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
+        let state = treachery_engine::game::GameState::load(&std::fs::read_to_string(&path).unwrap()).expect("savegame");
         let mut game = Game::of_version(state.version);
         let name = path.file_stem().unwrap().to_string_lossy().to_string();
         for (i, e) in state.events.iter().enumerate() {
@@ -259,12 +259,12 @@ fn karma_card_lifts_the_limit_in_a_draft_query() {
     assert_eq!(*max_amount, i32::from(r.game.player(p).resources));
     let card = karma_cards[0];
     let over = i32::from(r.game.player(p).resources) + 5;
-    let draft = |karma: i32| {
-        format!(r#"{{"$type":"Bid","Amount":{over},"AllyContributionAmount":0,"EmperorContributionAmount":0,"UsesEmperorSecretAlly":false,"KarmaBid":false,"_karmaCardId":{karma},"Passed":false,"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#)
+    let draft = |karma: String| {
+        format!(r#"{{"type":"Bid","play":{{"amount":{over},"allyContributionAmount":0,"emperorContributionAmount":0,"usesEmperorSecretAlly":false,"karmaCard":{karma},"karmaBid":false}}}}"#)
     };
-    let with = r.query(viewer, &common::draft(&draft(card))).unwrap();
+    let with = r.query(viewer, &common::draft(&draft(card.to_string()))).unwrap();
     assert!(matches!(with.options, Some(ActionOptions::Bid { max_amount: 100, .. })));
-    let without = r.query(viewer, &common::draft(&draft(-1))).unwrap();
+    let without = r.query(viewer, &common::draft(&draft("null".to_string()))).unwrap();
     assert!(without.validation.is_some(), "bidding more than one has needs Karma");
     if over > r.game.current_bid().map_or(0, |b| b.bid_total_amount()) {
         assert_eq!(with.validation, None);

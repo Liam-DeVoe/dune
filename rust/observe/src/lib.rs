@@ -14,6 +14,7 @@ pub mod fuzz;
 pub mod record;
 pub mod watch;
 pub mod allow;
+pub mod event_maps;
 pub mod events;
 pub mod compare;
 pub mod compare_refs;

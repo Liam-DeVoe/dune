@@ -206,17 +206,17 @@ fn draft_queries() {
     let mut r = load("alliance");
     let emperor = viewer_of(&r, Faction::Emperor);
     let _ = r.view(emperor);
-    let ev = |t: &str, extra: &str| common::draft(&format!(r#"{{"$type":"{t}"{extra},"Initiator":0,"Time":"2026-01-01T00:00:00+00:00"}}"#));
+    let ev = |t: &str, extra: &str| common::draft(&format!(r#"{{"type":"{t}"{extra}}}"#));
 
-    let ok = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, (Faction::BeneGesserit as i32)))).unwrap();
+    let ok = r.query(emperor, &ev("AllianceOffered", r#","target":"BeneGesserit""#)).unwrap();
     assert_eq!(ok.event_type, "AllianceOffered");
     assert_eq!(ok.validation, None);
     assert!(matches!(ok.options, Some(ActionOptions::AllianceOffered { .. })));
 
-    let own = r.query(emperor, &ev("AllianceOffered", &format!(r#","Target":{}"#, (Faction::Emperor as i32)))).unwrap();
+    let own = r.query(emperor, &ev("AllianceOffered", r#","target":"Emperor""#)).unwrap();
     assert_eq!(own.validation, Some(text("Invalid faction")));
 
-    assert_eq!(r.query(emperor, &ev("StormDialled", r#","Amount":3"#)), Err(QueryError::NotApplicable));
+    assert_eq!(r.query(emperor, &ev("StormDialled", r#","amount":3"#)), Err(QueryError::NotApplicable));
     assert_eq!(r.query(OBSERVER, &ev("AllianceOffered", "")), Err(QueryError::NotAPlayer));
     assert!(matches!(r.query(emperor, "{not json"), Err(QueryError::BadJson(_))));
     assert!(EventType::ALL.contains(&EventType::AllianceOffered));
@@ -227,8 +227,7 @@ fn draft_queries() {
 fn views_follow_events() {
     let mut r = load("alliance");
     let before = r.view(OBSERVER).event_number;
-    let emperor = Faction::Emperor as i32;
-    r.apply(&common::event_text(&serde_json::from_str(&format!(r#"{{"$type":"AlliancePassed","Initiator":{emperor},"Time":"2026-01-01T00:00:00+00:00"}}"#)).unwrap())).unwrap();
+    r.apply(r#"{"by":"Emperor","at":"2026-01-01T00:00:00Z","event":{"type":"AlliancePassed"}}"#).unwrap();
     let view = r.view(OBSERVER);
     assert_eq!(view.event_number, before + 1);
     assert!(!view.status.waiting_for.contains(&"Emperor".to_string()));
@@ -240,7 +239,7 @@ fn views_follow_events() {
 /// other seat without a user (a bot).
 #[test]
 fn scene_seats_one_user_and_bots() {
-    let (mut r, viewer) = treachery_view::cache::ViewedGame::scene(&common::converted(&common::fixture("alliance")), Faction::Atreides).unwrap();
+    let (mut r, viewer) = treachery_view::cache::ViewedGame::scene(&common::fixture("alliance"), Faction::Atreides).unwrap();
     let view = r.view(viewer);
     assert_eq!(view.viewer.faction.as_deref(), Some("Atreides"));
     assert!(view.viewer.is_host && !view.viewer.is_observer);
@@ -250,7 +249,7 @@ fn scene_seats_one_user_and_bots() {
             assert_eq!(p.name, "Scene");
         }
     }
-    assert!(treachery_view::cache::ViewedGame::scene(&common::converted(&common::fixture("alliance")), Faction::Ecaz).is_err());
+    assert!(treachery_view::cache::ViewedGame::scene(&common::fixture("alliance"), Faction::Ecaz).is_err());
 }
 
 /// One game and view cache serve every viewer, so views must not depend on the order in which

@@ -255,18 +255,18 @@ intrusion!(ambassador_by_worm_ride_b, WormRideB, Ambassador, AmbassadorTriggered
 
 fn terror_offering_alliance() -> String {
     format!(
-        r#"{{"$type":"TerrorRevealed","AllianceOffered":true,"Type":0,"ForcesInSneakAttack":0,"RobberyTakesCard":false,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":false,"Initiator":{MORITANI}}}"#
+        r#"{{"by":"{MORITANI}","event":{{"type":"TerrorRevealed","play":{{"allianceOffered":true,"terrorType":null,"forcesInSneakAttack":0,"sneakAttackTo":null,"robberyTakesCard":false,"cardToGiveInSabotage":null}}}}}}"#
     )
 }
 
 fn terror_robbery() -> String {
     format!(
-        r#"{{"$type":"TerrorRevealed","AllianceOffered":false,"Type":60,"ForcesInSneakAttack":0,"RobberyTakesCard":false,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":false,"Initiator":{MORITANI}}}"#
+        r#"{{"by":"{MORITANI}","event":{{"type":"TerrorRevealed","play":{{"allianceOffered":false,"terrorType":"Robbery","forcesInSneakAttack":0,"sneakAttackTo":null,"robberyTakesCard":false,"cardToGiveInSabotage":null}}}}}}"#
     )
 }
 
-fn alliance_by_terror(f: i32, accept: bool) -> String {
-    format!(r#"{{"$type":"AllianceByTerror","Passed":{},"Initiator":{f}}}"#, !accept)
+fn alliance_by_terror(f: &str, accept: bool) -> String {
+    format!(r#"{{"by":"{f}","event":{{"type":"AllianceByTerror","play":{}}}}}"#, if accept { "{}" } else { "null" })
 }
 
 #[test]
@@ -299,11 +299,11 @@ fn an_accepted_alliance_by_terror_returns_the_terror_and_goes_on() {
 }
 
 fn ecaz_offering_alliance() -> String {
-    format!(r#"{{"$type":"AmbassadorActivated","EcazOfferAlliance":true,"EcazGiveVidalToAlly":false,"EcazTakeVidal":false,"Passed":false,"Initiator":{ECAZ}}}"#)
+    format!(r#"{{"by":"{ECAZ}","event":{{"type":"AmbassadorActivated","play":{{"ecazOfferAlliance":true,"ecazGiveVidalToAlly":false,"ecazTakeVidal":false}}}}}}"#)
 }
 
-fn alliance_by_ambassador(f: i32, accept: bool) -> String {
-    format!(r#"{{"$type":"AllianceByAmbassador","Passed":{},"Initiator":{f}}}"#, !accept)
+fn alliance_by_ambassador(f: &str, accept: bool) -> String {
+    format!(r#"{{"by":"{f}","event":{{"type":"AllianceByAmbassador","play":{}}}}}"#, if accept { "{}" } else { "null" })
 }
 
 fn after_ecaz_ambassador(accept_offer: bool) -> Game {

@@ -248,7 +248,6 @@ fn storm_losses_taken_during_a_shipment_go_back_to_the_shipment() {
 /// discard interrupts the phase the shipment went on to, and the game comes back to it.
 #[test]
 fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
-    use treachery_engine::enum_type::GameEnum;
 
     let mut g = table();
     let moritani = idx(&g, Faction::Moritani);
@@ -263,8 +262,7 @@ fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
     assert_eq!(phase(&g), Phase::TerrorTriggeredByNonGuildShip);
 
     let robbery = format!(
-        r#"{{"$type":"TerrorRevealed","AllianceOffered":false,"Type":{},"ForcesInSneakAttack":0,"RobberyTakesCard":true,"_sneakAttackTo":-1,"_cardToGiveInSabotageId":-1,"Passed":false,"Initiator":{MORITANI}}}"#,
-        TerrorType::Robbery.value()
+        r#"{{"by":"{MORITANI}","event":{{"type":"TerrorRevealed","play":{{"allianceOffered":false,"terrorType":"Robbery","forcesInSneakAttack":0,"sneakAttackTo":null,"robberyTakesCard":true,"cardToGiveInSabotage":null}}}}}}"#
     );
     accept(&mut g, &robbery);
     assert_eq!(phase(&g), Phase::Discarding);
@@ -273,7 +271,7 @@ fn discarding_after_robbery_returns_to_the_phase_after_the_terror() {
     assert_eq!(g.player(moritani).treachery_cards.len(), 5);
 
     let card = g.player(moritani).treachery_cards[0];
-    accept(&mut g, &format!(r#"{{"$type":"Discarded","_cardId":{},"Initiator":{MORITANI}}}"#, card.id()));
+    accept(&mut g, &format!(r#"{{"by":"{MORITANI}","event":{{"type":"Discarded","card":{}}}}}"#, card.id()));
     assert_eq!(phase(&g), Phase::BeneGesseritAccompaniesNonGuildShip);
     assert_eq!(asked(&mut g, EventType::BeneGesseritAccompanies), [Faction::BeneGesserit]);
     assert_eq!(g.player(moritani).treachery_cards.len(), 4);
@@ -296,7 +294,7 @@ fn auditing_goes_on_to_the_battle_conclusion() {
     g.fight_mut().audited_cards = vec![card];
     assert_eq!(asked(&mut g, EventType::Audited), [Faction::Choam]);
 
-    accept(&mut g, &format!(r#"{{"$type":"Audited","Initiator":{CHOAM}}}"#));
+    accept(&mut g, &format!(r#"{{"by":"{CHOAM}","event":{{"type":"Audited"}}}}"#));
     assert_eq!(phase(&g), Phase::BattleConclusion);
     assert!(g.player(choam).known_cards.contains(&card));
 }

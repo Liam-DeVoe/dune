@@ -7,8 +7,6 @@ description = "Observable-behavior harness: records bot and fuzz games with a fr
 
 [dependencies]
 treachery-engine = { path = "../engine" }
-# Reads and writes events of a reference that records the format of version 190 (src/events.rs).
-treachery-legacy = { path = "../legacy" }
 treachery-bots = { path = "../bots" }
 treachery-view = { path = "../view" }
 treachery-skin = { path = "../skin" }

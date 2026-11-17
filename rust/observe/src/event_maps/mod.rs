@@ -1,34 +1,20 @@
-//! The event and savegame JSON of game version 190 and before: byte-exact System.Text.Json, as
-//! the C# version configured it in `Model/Utilities.cs` (`new JsonSerializerOptions {
-//! IncludeFields = true }`). The per-type member lists are in members.rs.
+//! Events as JSON objects in the format of game version 190 (`{"$type":"Move","_toId":5,
+//! "Passed":false,"Initiator":20,..}`): System.Text.Json's format, as the C# version wrote it.
 //!
-//! Version 191 replaced this format with the engine's serde format (rewrite-plan.md, "Wire
-//! format"). This crate reads the old one, to convert a savegame or a stored game once
-//! ([`load_savegame`]), and the harness reads and writes it for traces of a reference that
-//! records the old format (native-harness.md).
+//! The recorder's fuzzer builds and changes events as maps of this format, because its field
+//! heuristics key on these member names (fuzz.rs), and `observe refit` works on the same maps.
+//! Each event is converted to the engine's format before it is submitted and recorded
+//! (`events::to_trace`), so traces and savegames hold the engine's format. Moving the fuzzer to the
+//! engine's names changes the games it makes, so it waits for a change that rebuilds the shared
+//! reference anyway (native-harness.md).
 //!
-//! Writing is hand-rolled so the output matches .NET byte for byte: members in
-//! the order C# declares them, enums as numbers, nulls written, compact, and the
-//! default `JavaScriptEncoder` escaping (all non-ASCII and `"&'+<>\`` as `\uXXXX`).
-//!
-//! Reading goes through `serde_json::Value` (order-preserving). Differences from
-//! .NET that only matter for malformed input:
-//! - a duplicate key keeps its first position and last value (.NET: last value wins too);
-//!   a duplicate `$type` is not detected;
-//! - nesting deeper than 64 is accepted up to serde_json's limit of 128;
-//! - a `DateTimeOffset` without an offset is read as UTC, not machine-local time;
-//! - `-0.0` is accepted as the integer 0 (`-0` is accepted by both).
-//!
-//! Error messages are not .NET's: callers only learn that reading failed. The
-//! one exception is an unknown event `$type` (an old savegame after an event
-//! was renamed, escapes.md): its message, path and position are .NET's, see
-//! [`JsonError::unrecognized_discriminator`].
+//! Writing matches .NET: members in the order C# declares them, enums as numbers, nulls written,
+//! compact, and the default `JavaScriptEncoder` escaping. Reading goes through `serde_json::Value`.
+//! The per-type member lists are in members.rs.
 pub mod members;
-pub mod utilities;
 
 use std::fmt::Write as _;
 
-use indexmap::IndexMap;
 
 use treachery_engine::enum_type::GameEnum;
 use treachery_engine::prelude::*;
@@ -40,38 +26,11 @@ pub type JsonValue = serde_json::Value;
 pub struct JsonError {
     pub kind: &'static str,
     pub message: String,
-    /// For an error whose message is .NET's: where in the document .NET's reader
-    /// throws, outermost first. [`locate`] appends the path and position to the message.
-    pub path: Option<Vec<JsonPathSegment>>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum JsonPathSegment {
-    Member(&'static str),
-    Index(usize),
 }
 
 impl JsonError {
     pub fn new(kind: &'static str, message: impl Into<String>) -> Self {
-        JsonError { kind, message: message.into(), path: None }
-    }
-
-    /// `ThrowHelper.ThrowJsonException_UnrecognizedTypeDiscriminator`, thrown with the
-    /// reader just past the token after the discriminator value.
-    fn unrecognized_discriminator(id: &str) -> Self {
-        JsonError {
-            kind: "JsonException",
-            message: format!("Read unrecognized type discriminator id '{id}'."),
-            path: Some(Vec::new()),
-        }
-    }
-
-    /// The error met inside the value at `segment` of its parent.
-    pub fn within(mut self, segment: JsonPathSegment) -> Self {
-        if let Some(path) = &mut self.path {
-            path.insert(0, segment);
-        }
-        self
+        JsonError { kind, message: message.into() }
     }
 
     fn invalid(what: &str, v: &JsonValue) -> Self {
@@ -293,157 +252,10 @@ pub fn serialize<T: ToJson + ?Sized>(value: &T) -> String {
     w.finish()
 }
 
-/// `JsonSerializer.Deserialize<T>(text, Options)` (not the legacy Newtonsoft path).
+/// `JsonSerializer.Deserialize<T>(text, Options)`.
 pub fn deserialize<T: FromJson>(text: &str) -> Result<T, JsonError> {
     let v: JsonValue = serde_json::from_str(text).map_err(|e| JsonError::new("JsonException", e.to_string()))?;
-    T::from_json(&v).map_err(|e| locate(text, e))
-}
-
-/// Completes an error that has a `path` the way `JsonException` messages from
-/// `JsonSerializer` end: `" Path: $._events[1] | LineNumber: 0 | BytePositionInLine: 96."`.
-/// Only the unrecognized discriminator has a path, and .NET throws it after reading the
-/// discriminator value and one more token: the next property name with its colon, or the
-/// object's closing brace. The line number counts `\n`; the position is in UTF-8 bytes.
-pub fn locate(text: &str, mut e: JsonError) -> JsonError {
-    let Some(path) = e.path.take() else {
-        return e;
-    };
-    let mut r = PositionReader { bytes: text.as_bytes(), at: 0 };
-    let Some(()) = r.find_discriminator_end(&path) else {
-        return e;
-    };
-    let consumed = &text.as_bytes()[..r.at];
-    let line = consumed.iter().filter(|&&b| b == b'\n').count();
-    let line_start = consumed.iter().rposition(|&b| b == b'\n').map_or(0, |i| i + 1);
-    let mut path_text = String::from("$");
-    for segment in &path {
-        match segment {
-            JsonPathSegment::Member(name) => {
-                path_text.push('.');
-                path_text.push_str(name);
-            }
-            JsonPathSegment::Index(i) => {
-                let _ = write!(path_text, "[{i}]");
-            }
-        }
-    }
-    let _ = write!(e.message, " Path: {path_text} | LineNumber: {line} | BytePositionInLine: {}.", r.at - line_start);
-    e
-}
-
-/// Walks a document serde_json already accepted, for [`locate`].
-struct PositionReader<'a> {
-    bytes: &'a [u8],
-    at: usize,
-}
-
-impl PositionReader<'_> {
-    fn skip_whitespace(&mut self) {
-        while matches!(self.bytes.get(self.at), Some(b' ' | b'\t' | b'\n' | b'\r')) {
-            self.at += 1;
-        }
-    }
-
-    /// Skips whitespace and one expected byte.
-    fn expect(&mut self, b: u8) -> Option<()> {
-        self.skip_whitespace();
-        (self.bytes.get(self.at) == Some(&b)).then(|| self.at += 1)
-    }
-
-    /// A string token; returns it decoded.
-    fn string(&mut self) -> Option<String> {
-        self.skip_whitespace();
-        let start = self.at;
-        self.expect(b'"')?;
-        loop {
-            match self.bytes.get(self.at)? {
-                b'\\' => self.at += 2,
-                b'"' => {
-                    self.at += 1;
-                    break;
-                }
-                _ => self.at += 1,
-            }
-        }
-        serde_json::from_slice(&self.bytes[start..self.at]).ok()
-    }
-
-    fn skip_value(&mut self) -> Option<()> {
-        self.skip_whitespace();
-        match self.bytes.get(self.at)? {
-            b'"' => self.string().map(|_| ()),
-            b'{' | b'[' => {
-                let mut depth = 0usize;
-                loop {
-                    match self.bytes.get(self.at)? {
-                        b'"' => {
-                            self.string()?;
-                            continue;
-                        }
-                        b'{' | b'[' => depth += 1,
-                        b'}' | b']' => {
-                            depth -= 1;
-                            if depth == 0 {
-                                self.at += 1;
-                                return Some(());
-                            }
-                        }
-                        _ => {}
-                    }
-                    self.at += 1;
-                }
-            }
-            _ => {
-                while !matches!(self.bytes.get(self.at)?, b',' | b'}' | b']' | b' ' | b'\t' | b'\n' | b'\r') {
-                    self.at += 1;
-                }
-                Some(())
-            }
-        }
-    }
-
-    /// Moves to the start of the value at `path`, then past the discriminator value
-    /// and the token after it.
-    fn find_discriminator_end(&mut self, path: &[JsonPathSegment]) -> Option<()> {
-        for segment in path {
-            match segment {
-                // The first member of that name: .NET reads in document order.
-                JsonPathSegment::Member(name) => {
-                    self.expect(b'{')?;
-                    loop {
-                        let key = self.string()?;
-                        self.expect(b':')?;
-                        if key == *name {
-                            break;
-                        }
-                        self.skip_value()?;
-                        self.expect(b',')?;
-                    }
-                }
-                JsonPathSegment::Index(i) => {
-                    self.expect(b'[')?;
-                    for _ in 0..*i {
-                        self.skip_value()?;
-                        self.expect(b',')?;
-                    }
-                }
-            }
-        }
-        self.expect(b'{')?;
-        self.string()?;
-        self.expect(b':')?;
-        self.skip_value()?;
-        self.skip_whitespace();
-        match self.bytes.get(self.at)? {
-            b'}' => self.at += 1,
-            _ => {
-                self.expect(b',')?;
-                self.string()?;
-                self.expect(b':')?;
-            }
-        }
-        Some(())
-    }
+    T::from_json(&v)
 }
 
 // ---- primitives ----
@@ -751,7 +563,7 @@ impl FromJson for HistoryEntry {
         if let Some((k, _)) = members.get(1).filter(|(k, _)| matches!(k.as_str(), "$id" | "$ref" | "$type" | "$values")) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
         }
-        let t = EventType::from_name(name).ok_or_else(|| JsonError::unrecognized_discriminator(name))?;
+        let t = EventType::from_name(name).ok_or_else(|| JsonError::new("JsonException", format!("Read unrecognized type discriminator id '{name}'.")))?;
         // A polymorphic type rejects any other metadata member.
         if let Some((k, _)) = members[1..].iter().find(|(k, _)| k.starts_with('$')) {
             return Err(JsonError::new("JsonException", format!("unexpected metadata property {k}")));
@@ -770,92 +582,9 @@ impl FromJson for HistoryEntry {
     }
 }
 
-/// A savegame in the old format: `{"Version":...,"_events":[...]}`.
-#[derive(Clone, Debug, Default)]
-pub struct LegacyGameState {
-    pub version: i32,
-    pub events: Option<Vec<HistoryEntry>>,
-}
-
-impl ToJson for LegacyGameState {
-    fn write_json(&self, w: &mut JsonWriter) {
-        w.object_value();
-        w.member("Version", &self.version);
-        w.member("_events", &self.events);
-        w.end_object();
-    }
-}
-
-impl FromJson for LegacyGameState {
-    fn from_json(v: &JsonValue) -> Result<Self, JsonError> {
-        let mut result = LegacyGameState { version: 0, events: Some(Vec::new()) };
-        for (k, v) in object_members(v)? {
-            match k.as_str() {
-                "Version" => result.version = FromJson::from_json(&v)?,
-                "_events" => {
-                    // Vec<HistoryEntry>'s reader, keeping the index for an error's path.
-                    result.events = match &v {
-                        JsonValue::Array(items) => Some(
-                            items
-                                .iter()
-                                .enumerate()
-                                .map(|(i, item)| {
-                                    HistoryEntry::from_json(item).map_err(|e| e.within(JsonPathSegment::Index(i)).within(JsonPathSegment::Member("_events")))
-                                })
-                                .collect::<Result<Vec<HistoryEntry>, _>>()?,
-                        ),
-                        _ => FromJson::from_json(&v)?,
-                    }
-                }
-                // GameState is not polymorphic: .NET skips `$` members as unknown ones.
-                _ => {}
-            }
-        }
-        Ok(result)
-    }
-}
-
-/// The last game version whose savegames are in this format. Its rules are those of the
-/// version after it, which changed only the format.
-pub const LAST_LEGACY_VERSION: i32 = 190;
-
-/// Whether `text` looks like a savegame in the old format (`Version` and `_events`), rather
-/// than the engine's (`version` and `events`). It only looks at the first member name.
-pub fn is_legacy_savegame(text: &str) -> bool {
-    let rest = text.trim_start().strip_prefix('{').unwrap_or("").trim_start();
-    rest.starts_with("\"Version\"") || rest.starts_with("\"_events\"") || rest.starts_with("\"$")
-}
-
-/// Reads a savegame in the old format as it was written.
-pub fn read_savegame(data: &str) -> Result<LegacyGameState, JsonError> {
-    // Old savegames named their types "Treachery.online.*". The replacement also changes
-    // any text in the savegame that contains the string, which players could see.
-    let data = data.replace("Treachery.online", "Treachery");
-    let v: JsonValue = serde_json::from_str(&data).map_err(|e| JsonError::new("JsonException", e.to_string()))?;
-    if v.is_null() {
-        return Err(JsonError::new("JsonException", "Cannot load game state"));
-    }
-    LegacyGameState::from_json(&v).map_err(|e| locate(&data, e))
-}
-
-/// Reads a savegame in the old format and converts it: a game of version
-/// [`LAST_LEGACY_VERSION`] becomes a game of the next version, which has the same rules. Other
-/// versions keep theirs, and the engine refuses them as before.
-pub fn load_savegame(data: &str) -> Result<treachery_engine::game::GameState, JsonError> {
-    let state = read_savegame(data)?;
-    let events = state.events.ok_or_else(|| JsonError::new("JsonException", "A savegame without events"))?;
-    let version = if state.version == LAST_LEGACY_VERSION { LAST_LEGACY_VERSION + 1 } else { state.version };
-    Ok(treachery_engine::game::GameState { version, events })
-}
-
-/// Reads a savegame in either format, converting an old one ([`load_savegame`]).
-pub fn load_any(data: &str) -> Result<treachery_engine::game::GameState, String> {
-    if is_legacy_savegame(data) { load_savegame(data).map_err(|e| e.message) } else { treachery_engine::game::GameState::load(data) }
-}
-
 /// Declares the members of every event: [`write_event_members`] and [`read_event`]. A missing
 /// or extra event type is a compile error, because both match exhaustively.
-macro_rules! legacy_events {
+macro_rules! event_members {
     ($($name:ident),* $(,)?) => {
         /// The event's members, without `$type`, `Initiator` and `Time`.
         pub fn write_event_members(e: &Event, w: &mut JsonWriter) {
@@ -878,7 +607,7 @@ macro_rules! legacy_events {
     };
 }
 
-legacy_events! {
+event_members! {
     AcceptOrCancelTleilaxuRevival, AllianceBroken, AllianceByAmbassador, AllianceByTerror, AllianceOffered, AlliancePassed, AllyPermission,
     AmalPlayed, AmbassadorActivated, AmbassadorPlaced, AuditCancelled, Audited, AutomationConfigured, Battle, BattleClaimed,
     BattleConcluded, BattleInitiated, BattleRevision, BeneGesseritAccompanies, BeneGesseritBattleAnnouncement, BeneGesseritFlip,

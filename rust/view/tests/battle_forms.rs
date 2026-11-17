@@ -345,7 +345,7 @@ fn read_until_undo(path: &std::path::Path) -> common::Trace {
     for line in reader.lines() {
         let v: serde_json::Value = serde_json::from_str(&line.unwrap()).unwrap();
         match v["kind"].as_str() {
-            Some("header") => version = common::played_version(v["gameVersion"].as_i64().unwrap() as i32),
+            Some("header") => version = v["gameVersion"].as_i64().unwrap() as i32,
             Some("step") if v["result"] == "accepted" => events.push(common::event_text(&v["event"])),
             Some("undo" | "restoreRecentlyUndone" | "dismissRecentlyUndone") => break,
             _ => {}

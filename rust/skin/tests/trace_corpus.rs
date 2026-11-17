@@ -90,8 +90,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
         let line: Value = serde_json::from_str(&text).unwrap();
         let kind = line["kind"].as_str().unwrap();
         if kind == "header" {
-            // Version 190 is played as 191, which changed only the format.
-            let mut g = Game::of_version((line["gameVersion"].as_i64().unwrap() as i32).max(treachery_legacy::LAST_LEGACY_VERSION + 1));
+            let mut g = Game::of_version(line["gameVersion"].as_i64().unwrap() as i32);
             g.human_seats = human_seats(&line["participation"]);
             game = Some(g);
             continue;
@@ -125,7 +124,7 @@ fn render_trace(path: &Path, skin: &Skin) -> Vec<(i64, String, String)> {
 
         match kind {
             "step" => {
-                let entry: HistoryEntry = treachery_legacy::deserialize(&line["event"].to_string()).expect("event JSON");
+                let entry: HistoryEntry = serde_json::from_value(line["event"].clone()).expect("event JSON");
                 let ev: Event = entry.event.clone();
                 let by = By::new(g, entry.by);
                 let result = catch_any(|| {

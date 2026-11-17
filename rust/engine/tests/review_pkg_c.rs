@@ -8,21 +8,20 @@ mod common;
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::*;
 use treachery_engine::game::Game;
-use treachery_legacy as json;
 use treachery_engine::prelude::*;
 
-const T: &str = r#""Time":"2024-01-01T12:00:00+00:00""#;
+const T: &str = r#""at":"2024-01-01T12:00:00Z""#;
 
 fn establish() -> String {
     format!(
-        r#"{{"$type":"EstablishPlayers","Settings":{{"NumberOfPlayers":4,"MaximumTurns":5,"InitialRules":[998,400,1013],"AllowedFactionsInPlay":[20,50,60,70,110],"AutoOpenEmptySeats":true}},"Seed":31337,"Initiator":0,{T}}}"#
+        r#"{{"by":null,{T},"event":{{"type":"EstablishPlayers","settings":{{"numberOfPlayers":4,"maximumTurns":5,"initialRules":["FillWithBots","LeaderSkills","BattleWithoutLeader"],"allowedFactionsInPlay":["Atreides","Guild","BeneGesserit","Ixian","Ecaz"],"autoOpenEmptySeats":true}},"seed":31337}}}}"#
     )
 }
 
 fn run(events: &[String]) -> Game {
     let mut g = Game::of_version(Game::LATEST_VERSION);
     for text in events {
-        let e: HistoryEntry = json::deserialize(text).expect("event json");
+        let e: HistoryEntry = serde_json::from_str(text).expect("event json");
         let r = g.play_for_message(e, true, true);
         assert!(r.is_none(), "event rejected: {text}");
     }
@@ -109,7 +108,7 @@ fn static_helpers_and_getters() {
 /// "accepted", "rejected:<message>", "error" for a GameError, or "escaped:<message>" for a panic
 /// out of `execute`.
 fn exec(g: &mut Game, text: &str, validate: bool) -> String {
-    let e: HistoryEntry = json::deserialize(text).expect("event json");
+    let e: HistoryEntry = serde_json::from_str(text).expect("event json");
     match catch_panic(|| g.play_for_message(e, validate, true)) {
         Ok(None) => "accepted".to_string(),
         Ok(Some(m)) => {
@@ -131,8 +130,8 @@ fn validate_off() {
     // PerformHmsPlacement twice: a real target, then none.
     {
         let mut g = run(&[establish()]);
-        let first = treachery_engine::enum_type::value_or_absent(g.players[0].faction);
-        let r = exec(&mut g, &format!(r#"{{"$type":"PerformHmsPlacement","_targetId":5,"Initiator":{first},{T}}}"#), false);
+        let first = serde_json::to_string(&g.players[0].faction).unwrap();
+        let r = exec(&mut g, &format!(r#"{{"by":{first},{T},"event":{{"type":"PerformHmsPlacement","target":5}}}}"#), false);
         out.push(format!("hms.first = {r}"));
         let target = g.board.map.location_lookup().find(5).unwrap();
         let hms: Location = g.board.map.hidden_mobile_stronghold().into();
@@ -140,7 +139,7 @@ fn validate_off() {
             "hms.neighbourOfTarget.before = {}",
             if target.neighbours(&g.board.map).contains(&hms) { "True" } else { "False" }
         ));
-        let r = exec(&mut g, &format!(r#"{{"$type":"PerformHmsPlacement","_targetId":-1,"Initiator":{first},{T}}}"#), false);
+        let r = exec(&mut g, &format!(r#"{{"by":{first},{T},"event":{{"type":"PerformHmsPlacement","target":null}}}}"#), false);
         out.push(format!("hms.second = {r}"));
         out.push(format!(
             "hms.neighbourOfTarget.after = {}",

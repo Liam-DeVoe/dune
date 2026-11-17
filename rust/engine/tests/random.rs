@@ -117,15 +117,15 @@ fn keys_are_computed_once_per_item() {
 
 // ---------------------------------------------------------------- whole games
 
-const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":6,"MaximumTurns":10,"InitialRules":[10000,10001,998,40,85],"AllowedFactionsInPlay":[20,30,40,50,10,60,70,80,90,100,110,120],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":SEED,"MaximumNumberOfPlayers":6,"MaximumTurns":10,"ApplicableRules":[],"_players":"","_factionsInPlay":"","Initiator":0,"Time":"2026-09-19T20:35:59+00:00"}"#;
-const END_PHASE: &str = r#"{"$type":"EndPhase","Initiator":0,"Time":"2026-09-19T20:36:00+00:00"}"#;
+const ESTABLISH: &str = r#"{"by":null,"at":"2026-09-19T20:35:59Z","event":{"type":"EstablishPlayers","settings":{"numberOfPlayers":6,"maximumTurns":10,"initialRules":["BasicTreacheryCards","HasCharityPhase","FillWithBots","FremenSpecialForces","EmperorSpecialForces"],"allowedFactionsInPlay":["Atreides","Harkonnen","Emperor","Guild","Fremen","BeneGesserit","Ixian","Tleilaxu","Choam","Richese","Ecaz","Moritani"],"autoOpenEmptySeats":true,"asyncPlay":false,"asyncPlayMessageIntervalMinutes":0},"seed":SEED,"maximumNumberOfPlayers":6,"maximumTurns":10,"applicableRules":[],"players":[],"factionsInPlay":[]}}"#;
+const END_PHASE: &str = r#"{"by":null,"at":"2026-09-19T20:36:00Z","event":{"type":"EndPhase"}}"#;
 
 /// Establishes a game with `seed` and ends the first phases, then describes what the draws
 /// decided: the factions in play and their seats, each player's traitors and the deck order.
 fn game_from_seed(seed: i32) -> String {
     let events = format!("[{},{END_PHASE},{END_PHASE}]", ESTABLISH.replace("SEED", &seed.to_string()));
-    let savegame = format!(r#"{{"Version":{},"_events":{events}}}"#, Game::LATEST_VERSION);
-    let state = treachery_legacy::load_any(&savegame).unwrap();
+    let savegame = format!(r#"{{"version":{},"events":{events}}}"#, Game::LATEST_VERSION);
+    let state = treachery_engine::game::GameState::load(&savegame).unwrap();
     let mut game = Game::of_version(state.version);
     for e in &state.events {
         assert!(game.play_for_message(e.clone(), false, true).is_none());

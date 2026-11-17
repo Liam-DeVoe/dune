@@ -93,7 +93,7 @@ fn resource_deck_top_under_prescience() {
 /// own `Player.KnownCards` only), spice and victory points. Observers get none of it.
 #[test]
 fn notekeeping_shows_discard_piles_and_notes() {
-    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping as i32]));
+    let mut r = load_text(&with_rules("mc-concluded", &[Rule::AssistedNotekeeping]));
     assert!(r.game.applicable(Rule::AssistedNotekeeping));
     let mut known_somewhere = 0;
     let mut unknown_somewhere = 0;

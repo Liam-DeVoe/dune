@@ -10,11 +10,10 @@
 use treachery_engine::error::catch_panic;
 use treachery_engine::events::HistoryEntry;
 use treachery_engine::game::{Game, GameState, Seat};
-use treachery_legacy as json;
 
 // The first two events of a three-player game.
-const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[50,10,120,60,40,100,20,90,70,80,30,110],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Guild,Fremen,Moritani,BeneGesserit,Emperor,Richese,Atreides,Choam,Ixian,Tleilaxu,Harkonnen,Ecaz","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
-const END_PHASE: &str = r#"{"$type":"EndPhase","Initiator":0,"Time":"2024-01-01T12:02:32+00:00"}"#;
+const ESTABLISH: &str = r#"{"by":null,"at":"2024-01-01T12:02:17Z","event":{"type":"EstablishPlayers","settings":{"numberOfPlayers":3,"maximumTurns":8,"initialRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"allowedFactionsInPlay":["Guild","Fremen","Moritani","BeneGesserit","Emperor","Richese","Atreides","Choam","Ixian","Tleilaxu","Harkonnen","Ecaz"],"autoOpenEmptySeats":true,"asyncPlay":false,"asyncPlayMessageIntervalMinutes":0},"seed":1073548723,"maximumNumberOfPlayers":3,"maximumTurns":8,"applicableRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"players":[],"factionsInPlay":["Guild","Fremen","Moritani","BeneGesserit","Emperor","Richese","Atreides","Choam","Ixian","Tleilaxu","Harkonnen","Ecaz"]}}"#;
+const END_PHASE: &str = r#"{"by":null,"at":"2024-01-01T12:02:32Z","event":{"type":"EndPhase"}}"#;
 
 /// What players and later events can see of a game, one line per item.
 fn dump(g: &mut Game) -> String {
@@ -72,7 +71,7 @@ fn same_dump(what: &str, actual: &str, want: &str) {
 /// As a client submits an event: initialize, then execute with validation.
 fn run(g: &mut Game, events: &[&str]) {
     for text in events {
-        let e: HistoryEntry = json::deserialize(text).expect("event json");
+        let e: HistoryEntry = serde_json::from_str(text).expect("event json");
         let _ = catch_panic(|| g.play_for_message(e, true, true));
     }
 }

@@ -2,7 +2,7 @@
 //! the host's other controls.
 
 use treachery_protocol::UserId;
-use treachery_engine::game::{Game, Seat};
+use treachery_engine::game::{Game, GameState, Seat};
 use treachery_engine::game::GameSettings;
 
 use super::{refuse, Answer, CallError, RunningGame, Server, MAX_BOT_SPEED, MAX_GAMES_PER_USER};
@@ -12,10 +12,9 @@ use crate::ids;
 use crate::participation::{self, Participation};
 use treachery_protocol::{GameInitInfo, GameListScope, Lobby};
 
-/// Loads a savegame into a game whose seats the participation gives, or says why it can't. A
-/// savegame of version 190 or before is converted (`treachery_legacy::load_any`).
+/// Loads a savegame into a game whose seats the participation gives, or says why it can't.
 pub fn load_savegame(savegame: &str, participation: &Participation, restoring: bool) -> Result<Game, String> {
-    let state = treachery_legacy::load_any(savegame)?;
+    let state = GameState::load(savegame)?;
     Game::load(&state, &participation.human_seats(), false, restoring).map_err(|m| crate::render::message_to_string(&m))
 }
 

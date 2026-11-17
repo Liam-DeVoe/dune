@@ -321,8 +321,8 @@ fn load_a_savegame_into_a_game() {
 
         let savegame = fixture_text("alliance");
         assert_eq!(s.err(bobby.conn, "loadGame", json!({"game": game, "savegame": savegame, "skin": ""})).await, error::NO_HOST);
-        let bad = s.call(alice.conn, "loadGame", json!({"game": game, "savegame": "{\"Version\":0,\"_events\":[]}", "skin": ""})).await;
-        assert!(is_ok(&bad) || code(&bad) == error::INVALID_GAME_EVENT, "{bad}");
+        let bad = s.call(alice.conn, "loadGame", json!({"game": game, "savegame": "{\"version\":0,\"events\":[]}", "skin": ""})).await;
+        assert_eq!(code(&bad), error::INVALID_GAME_EVENT, "{bad}");
 
         s.ok(alice.conn, "loadGame", json!({"game": game, "savegame": savegame, "skin": "{}"})).await;
         let received = s.received(bobby.conn);

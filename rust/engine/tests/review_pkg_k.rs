@@ -2,10 +2,9 @@
 
 use treachery_engine::events::HistoryEntry;
 use treachery_engine::game::{Game, Seat};
-use treachery_legacy as json;
 
 // ReviewA.Establish with AllowedFactionsInPlay [Choam, Atreides, Richese] (same text as ReviewJ.cs).
-const ESTABLISH: &str = r#"{"$type":"EstablishPlayers","Settings":{"NumberOfPlayers":3,"MaximumTurns":8,"InitialRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"AllowedFactionsInPlay":[90,20,100],"AutoOpenEmptySeats":true,"AsyncPlay":false,"AsyncPlayMessageIntervalMinutes":0},"Seed":1073548723,"MaximumNumberOfPlayers":3,"MaximumTurns":8,"ApplicableRules":[301,300,65,60,20,1013,15,700,105,80,85,604,90,998,30,701,40,107,10,70,50,25,209,999,112],"_players":"","_factionsInPlay":"Choam,Atreides,Richese","Initiator":0,"Time":"2024-01-01T12:02:17+00:00"}"#;
+const ESTABLISH: &str = r#"{"by":null,"at":"2024-01-01T12:02:17Z","event":{"type":"EstablishPlayers","settings":{"numberOfPlayers":3,"maximumTurns":8,"initialRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"allowedFactionsInPlay":["Choam","Atreides","Richese"],"autoOpenEmptySeats":true,"asyncPlay":false,"asyncPlayMessageIntervalMinutes":0},"seed":1073548723,"maximumNumberOfPlayers":3,"maximumTurns":8,"applicableRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"players":[],"factionsInPlay":["Choam","Atreides","Richese"]}}"#;
 
 
 fn new_game() -> Game {
@@ -18,7 +17,7 @@ fn new_game() -> Game {
 }
 
 fn ev(_g: &Game, text: &str) -> HistoryEntry {
-    json::deserialize(text).expect("event json")
+    serde_json::from_str(text).expect("event json")
 }
 
 /// `DealOffered.Same` ends with `offeredDeal.To.SequenceEqual(To)`. Both are
@@ -40,14 +39,14 @@ fn deal_cancel_with_null_to_matches_empty_to() {
     let mut g = new_game();
     let offer = ev(
         &g,
-        r#"{"$type":"DealOffered","To":[],"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":false,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
+        r#"{"by":"Choam","at":"2024-01-01T12:02:40Z","event":{"type":"DealOffered","to":[],"dealType":"None","dealParameter1":null,"dealParameter2":null,"text":"x","endPhase":null,"price":0,"benefit":0,"cancel":false}}"#,
     );
     assert!(g.play_for_message(offer, false, true).is_none());
     assert_eq!(g.deals.offers.len(), 1);
 
     let cancel = ev(
         &g,
-        r#"{"$type":"DealOffered","To":null,"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":true,"Initiator":90,"Time":"2024-01-01T12:02:41+00:00"}"#,
+        r#"{"by":"Choam","at":"2024-01-01T12:02:41Z","event":{"type":"DealOffered","to":null,"dealType":"None","dealParameter1":null,"dealParameter2":null,"text":"x","endPhase":null,"price":0,"benefit":0,"cancel":true}}"#,
     );
     let r = g.play_for_message(cancel, false, true);
     assert!(r.is_none(), "C# accepts the cancellation; Rust: {r:?}");
@@ -69,14 +68,14 @@ fn deal_offer_with_null_to_cancelled_by_empty_to() {
     let mut g = new_game();
     let offer = ev(
         &g,
-        r#"{"$type":"DealOffered","To":null,"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":false,"Initiator":90,"Time":"2024-01-01T12:02:40+00:00"}"#,
+        r#"{"by":"Choam","at":"2024-01-01T12:02:40Z","event":{"type":"DealOffered","to":null,"dealType":"None","dealParameter1":null,"dealParameter2":null,"text":"x","endPhase":null,"price":0,"benefit":0,"cancel":false}}"#,
     );
     assert!(g.play_for_message(offer, false, true).is_none());
     assert_eq!(g.deals.offers.len(), 1);
 
     let cancel = ev(
         &g,
-        r#"{"$type":"DealOffered","To":[],"Type":0,"Text":"x","EndPhase":0,"Price":0,"Benefit":0,"Cancel":true,"Initiator":90,"Time":"2024-01-01T12:02:41+00:00"}"#,
+        r#"{"by":"Choam","at":"2024-01-01T12:02:41Z","event":{"type":"DealOffered","to":[],"dealType":"None","dealParameter1":null,"dealParameter2":null,"text":"x","endPhase":null,"price":0,"benefit":0,"cancel":true}}"#,
     );
     let r = g.play_for_message(cancel, false, true);
     assert!(r.is_none(), "C# accepts the cancellation; Rust: {r:?}");

@@ -9,7 +9,6 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use treachery_engine::events::HistoryEntry;
-use treachery_legacy as json;
 
 fn traces(dir: &Path, out: &mut Vec<PathBuf>) {
     for entry in std::fs::read_dir(dir).unwrap() {
@@ -39,8 +38,8 @@ fn accepted_events_of_recorded_games_decode() {
                 continue;
             }
             let text = v["event"].to_string();
-            if let Err(e) = json::deserialize::<HistoryEntry>(&text) {
-                failures.push(format!("{} line {}: {}: {text}", path.strip_prefix(&root).unwrap().display(), i + 1, e.message));
+            if let Err(e) = serde_json::from_str::<HistoryEntry>(&text) {
+                failures.push(format!("{} line {}: {e}: {text}", path.strip_prefix(&root).unwrap().display(), i + 1));
             }
         }
     }

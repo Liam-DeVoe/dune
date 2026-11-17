@@ -20,7 +20,7 @@ use std::panic::{self, AssertUnwindSafe};
 use serde_json::{Map, Value};
 use treachery_engine::events::{EventType, HistoryEntry};
 use treachery_engine::game::Game;
-use treachery_legacy as json;
+use crate::event_maps as json;
 use treachery_engine::prelude::*;
 use treachery_engine::enum_type::GameEnum;
 use treachery_view::build::{ResolvedViewer, Seating};

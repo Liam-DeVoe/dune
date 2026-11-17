@@ -7,8 +7,6 @@ description = "The treachery.online server: accounts, lobby, games and bots over
 
 [dependencies]
 treachery-engine = { path = "../engine" }
-# Converts savegames and stored games of version 190 and before (src/server/savegames.rs).
-treachery-legacy = { path = "../legacy" }
 treachery-skin = { path = "../skin" }
 # The bots that play seats without a user.
 treachery-bots = { path = "../bots" }

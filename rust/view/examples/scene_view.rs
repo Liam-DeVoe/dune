@@ -12,8 +12,6 @@ fn main() {
     let path = format!("{}/../../scripts/fixtures/{fixture}.json", env!("CARGO_MANIFEST_DIR"));
     let savegame = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
     let faction = Faction::ALL.iter().copied().find(|f| f.to_string() == *faction).unwrap_or_else(|| panic!("unknown faction {faction}"));
-    // Fixtures are savegames of version 190.
-    let savegame = serde_json::to_string(&treachery_legacy::load_any(&savegame).unwrap()).unwrap();
     let (mut viewed, viewer) = ViewedGame::scene(&savegame, faction).unwrap();
     println!("{}", serde_json::to_string_pretty(&viewed.view(viewer)).unwrap());
 }

@@ -107,8 +107,7 @@ const _: fn() = || { fn send<T: Send>() {} send::<Game>(); };
 
 impl Game {
     /// The game version of new games, and the only one the engine plays. 191 changed only how
-    /// events and savegames are written (rewrite-plan.md, "Wire format"); `treachery-legacy`
-    /// converts a savegame of 190.
+    /// events and savegames are written (rewrite-plan.md, "Wire format").
     pub const LATEST_VERSION: i32 = 191;
 
     pub fn maximum_turns(&self) -> Turn {

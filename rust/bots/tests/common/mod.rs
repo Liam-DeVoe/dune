@@ -29,7 +29,7 @@ use treachery_engine::error::catch_panic;
 #[allow(dead_code)]
 pub fn decision<R: treachery_bots::bot::IntoDecision>(bot: &ClassicBot, game: &Game, e: R) -> String {
     match e.into_entry(bot.by(game).faction) {
-        Some(e) => treachery_legacy::serialize(&e),
+        Some(e) => serde_json::to_string(&e).unwrap(),
         None => "null".to_string(),
     }
 }
@@ -87,14 +87,13 @@ pub fn replay(name: &str, mut at_step: impl FnMut(&mut Game, i64)) {
     for o in lines(&format!("knowledge-{name}.jsonl.gz")) {
         match o["k"].as_str().unwrap() {
             "header" => {
-                // Version 190 is played as 191, which changed only the format.
-                let mut g = Game::of_version((o["version"].as_i64().unwrap() as i32).max(treachery_legacy::LAST_LEGACY_VERSION + 1));
+                let mut g = Game::of_version(o["version"].as_i64().unwrap() as i32);
                 g.human_seats = human_seats(&o["participation"]);
                 game = Some(g);
             }
             "step" => {
                 let game = game.as_mut().unwrap();
-                let e: HistoryEntry = treachery_legacy::deserialize(o["event"].as_str().unwrap()).unwrap();
+                let e: HistoryEntry = serde_json::from_str(o["event"].as_str().unwrap()).unwrap();
                 let (validate, is_host) = (o["validate"].as_bool().unwrap(), o["isHost"].as_bool().unwrap());
                 let _ = catch_panic(|| game.play_for_message(e, validate, is_host));
                 at_step(game, o["n"].as_i64().unwrap());

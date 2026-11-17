@@ -20,7 +20,7 @@ use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, Event, EventType, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
-use treachery_legacy as json;
+use crate::event_maps as json;
 use treachery_engine::prelude::*;
 
 use crate::fuzz::Fuzzer;

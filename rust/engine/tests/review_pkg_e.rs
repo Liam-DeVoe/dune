@@ -49,21 +49,3 @@ fn bureaucracy_dynamic_message_nested() {
     let outer = Message::express(vec![inner.into()]);
     assert_eq!(outer.plain_text(), "Atreides apply Bureaucracy → Emperor lose Treachery.Shared.Payment");
 }
-
-/// `EmperorBidSupport.Amounts` read from JSON when two keys name the same faction:
-/// .NET keeps the first key's position and the last value.
-///
-/// Probe: `emperor_bid_support.json.dup_case`, `.dup_number`, `.dup_exact` (all `Atreides=2,Harkonnen=5`).
-#[test]
-fn emperor_bid_support_amounts_duplicate_keys() {
-    for json in [
-        r#"{"$type":"EmperorBidSupport","Amounts":{"Atreides":1,"Harkonnen":5,"atreides":2},"Initiator":10}"#,
-        r#"{"$type":"EmperorBidSupport","Amounts":{"Atreides":1,"Harkonnen":5,"20":2},"Initiator":10}"#,
-        r#"{"$type":"EmperorBidSupport","Amounts":{"Atreides":1,"Harkonnen":5,"Atreides":2},"Initiator":10}"#,
-    ] {
-        let e: HistoryEntry = treachery_legacy::deserialize(json).expect("event json");
-        let Event::EmperorBidSupport(e) = e.event else { panic!("not a EmperorBidSupport") };
-        let got: Vec<String> = e.amounts.as_ref().unwrap().iter().map(|(k, v)| format!("{}={}", k, v)).collect();
-        assert_eq!(got.join(","), "Atreides=2,Harkonnen=5", "{json}");
-    }
-}

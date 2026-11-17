@@ -4,19 +4,18 @@
 //! decodes each event into the working tree's `Event` and compares the working tree's own
 //! encoding of it, so a change in how events are written doesn't show up as a difference.
 //!
-//! Version 191 changed the format (rewrite-plan.md, wave 4b): an entry is
-//! `{"by":..,"at":..,"event":{"type":..}}`, where version 190 wrote `{"$type":..,"Initiator":..,
-//! "Time":..}`. The recorder's fuzzer still builds events as maps of the old format, with the old
-//! member names its heuristics key on, so it makes the same games as before (fuzz.rs).
-//! [`decode`] reads both formats, and [`to_trace`] converts each fuzzed event to the new format
-//! before it is submitted and written.
+//! The recorder's fuzzer and `observe refit` build and change events as maps of the format of
+//! version 190 (`crate::event_maps`), with the old member names the fuzzer's heuristics key on, so
+//! the fuzzer makes the same games as before the format changed (fuzz.rs). [`to_trace`] converts
+//! each such event to the engine's format before it is submitted and written. An event the
+//! engine's format can't write stays a map in the trace, so [`decode`] reads both.
 
 use serde_json::{Map, Value};
 use treachery_engine::events::{Event, HistoryEntry};
 use treachery_engine::prelude::Faction;
-use treachery_legacy::{self as legacy, FromJson};
+use crate::event_maps::{self, FromJson};
 
-/// Whether `v` is an event in the format of version 190.
+/// Whether `v` is an event map in the format of version 190 (`crate::event_maps`).
 pub fn is_legacy(v: &Value) -> bool {
     v.get("$type").is_some()
 }
@@ -63,7 +62,7 @@ pub fn type_name(v: &Value) -> &str {
 
 /// An entry as an object of the old format, as the fuzzer builds and changes events.
 pub fn legacy_object(e: &HistoryEntry) -> Map<String, Value> {
-    match serde_json::from_str(&legacy::serialize(e)) {
+    match serde_json::from_str(&event_maps::serialize(e)) {
         Ok(Value::Object(m)) => m,
         _ => Map::new(),
     }

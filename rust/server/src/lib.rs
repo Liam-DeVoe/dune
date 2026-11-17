@@ -7,7 +7,7 @@
 //! - [`protocol`]: decoding calls and encoding replies (the messages are `treachery-protocol`).
 //! - [`connections`]: which connection follows which game; notifications.
 //! - [`views`]: each participant's view of a game.
-//! - [`db`]: the database, and the conversion of the old C# server's database.
+//! - [`db`]: the database.
 //! - [`pause_rules`]: what each pause between phases waits for.
 //! - [`passwords`]: account password hashes; [`ids`]: tokens and their digests.
 //! - [`settings`], [`time`], [`timers`], [`mail`], [`participation`],
@@ -23,7 +23,6 @@ pub mod passwords;
 pub mod pause_rules;
 pub mod protocol;
 pub mod render;
-pub mod savegames;
 pub mod server;
 pub mod settings;
 pub mod socket;

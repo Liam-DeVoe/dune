@@ -171,8 +171,7 @@ impl ViewedGame {
         ViewedGame { game, cache: ViewCache::default(), timer: -1, seating: Seating::default() }
     }
 
-    /// Loads a savegame (of version 191: `treachery_legacy::load_any` converts an older one) in a
-    /// game that bots play.
+    /// Loads a savegame (of version 191; any other version is refused) in a game that bots play.
     pub fn load(savegame: &str) -> Result<ViewedGame, String> {
         let state: GameState = GameState::load(savegame)?;
         Game::check_version(state.version)?;

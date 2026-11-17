@@ -4,7 +4,6 @@ use crate::log::blow::{
     WormSurvivedLog,
 };
 use crate::prelude::*;
-use crate::messages::part::Part;
 
 /// One faction's vote in a Nexus (`NexusVoted`): `passed` is a vote against alliances.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -114,10 +113,6 @@ impl BlowStep {
 }
 
 /// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl Game {
     /// The spice blow phase's state, while the game is in it (an interrupt may suspend it).
     pub fn blow(&self) -> Option<&BlowState> {
@@ -242,7 +237,7 @@ impl Game {
 
         self.board.sand_trout = None;
         self.board.sand_trout_doubles_resources = true;
-        self.log(elems![Concept::Monster, " is ignored due to ", Concept::BabyMonster]);
+        self.log(parts![Concept::Monster, " is ignored due to ", Concept::BabyMonster]);
         Ok(false)
     }
 
@@ -251,7 +246,7 @@ impl Game {
     fn sand_trout_drawn(&mut self, d: ResourceCard) {
         if self.turn.current_turn > Turn::FIRST {
             self.stone(Milestone::BabyMonster);
-            self.log(elems![Concept::BabyMonster, " detected! All alliances are cancelled."]);
+            self.log(parts![Concept::BabyMonster, " detected! All alliances are cancelled."]);
             self.cancel_all_alliances();
             let pile = self.current_discard_pile_mut().expect("current discard pile");
             if let Some(i) = pile.items.iter().position(|c| *c == d) {
@@ -259,7 +254,7 @@ impl Game {
             }
             self.board.sand_trout = Some(d);
         } else {
-            self.log(elems![Concept::BabyMonster, " on turn 1 was ignored"]);
+            self.log(parts![Concept::BabyMonster, " on turn 1 was ignored"]);
             let c = self.current_discard_pile_mut().expect("current discard pile").draw();
             self.blow_state().ignored_sandtrout = Some(c);
         }
@@ -275,10 +270,10 @@ impl Game {
 
     pub fn log_ignored_monster(&mut self, is_great_monster: bool) {
         if is_great_monster {
-            self.log(elems![Concept::GreatMonster, " on turn 1 was ignored"]);
+            self.log(parts![Concept::GreatMonster, " on turn 1 was ignored"]);
         } else {
             let msg = express!(Concept::Monster, " on turn 1 was ignored").with_log(WormIgnoredLog::default());
-            self.log(elems![msg]);
+            self.log(parts![msg]);
         }
     }
 
@@ -309,18 +304,18 @@ impl Game {
         if self.applicable(Rule::IncreasedResourceFlow) {
             let count_a = self.decks.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len() as i32;
             let count_b = self.decks.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.len() as i32;
-            self.log(elems![count_a + count_b, " cards were shuffled from ", Concept::Resource, " discard piles A and B into a new deck."]);
+            self.log(parts![count_a + count_b, " cards were shuffled from ", Concept::Resource, " discard piles A and B into a new deck."]);
         } else {
             let count_a = self.decks.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.len() as i32;
             let msg = express!(count_a, " cards were shuffled from the ", Concept::Resource, " discard pile into a new deck")
                 .with_log(BlowReshuffleLog::new(count_a));
-            self.log(elems![msg]);
+            self.log(parts![msg]);
         }
 
         if self.decks.resource_card_discard_pile_a.as_ref().expect("resource card discard pile a").items.iter().any(|c| c.is_discovery())
             || self.decks.resource_card_discard_pile_b.as_ref().expect("resource card discard pile b").items.iter().any(|c| c.is_discovery())
         {
-            self.log(elems!["Discovery cards were removed from the game"]);
+            self.log(parts!["Discovery cards were removed from the game"]);
         }
 
         // foreach over a lazy Where: the predicate runs on each card just before its Add, so a
@@ -361,7 +356,7 @@ impl Game {
             }
 
             let devoured_resources = self.remove_resources_territory(territory);
-            self.log_if(devoured_resources > 0, elems![Payment::of(devoured_resources), " in ", territory, " is destroyed"]);
+            self.log_if(devoured_resources > 0, parts![Payment::of(devoured_resources), " in ", territory, " is destroyed"]);
 
             let mut drawn_token = None;
             let discovery_location = blow_card.discovery_location().expect("discovery location");
@@ -371,7 +366,7 @@ impl Game {
                     drawn_token = Some(token);
                     self.board.discoveries_on_planet.insert_new(discovery_location, Discovery::new(token, DiscoveryTokenType::Guild, discovery_location));
                 } else {
-                    self.log(elems!["There are no more ", DiscoveryTokenType::Guild, " discoveries left"]);
+                    self.log(parts!["There are no more ", DiscoveryTokenType::Guild, " discoveries left"]);
                 }
             } else if discovery_location.discovery_token_type() == Some(DiscoveryTokenType::Fremen) {
                 if !self.decks.fremen_discovery_tokens.as_ref().expect("fremen discovery tokens").is_empty() {
@@ -379,13 +374,13 @@ impl Game {
                     drawn_token = Some(token);
                     self.board.discoveries_on_planet.insert_new(discovery_location, Discovery::new(token, DiscoveryTokenType::Fremen, discovery_location));
                 } else {
-                    self.log(elems!["There are no more ", DiscoveryTokenType::Fremen, " discoveries left"]);
+                    self.log(parts!["There are no more ", DiscoveryTokenType::Fremen, " discoveries left"]);
                 }
             }
 
             if drawn_token != None {
                 self.stone(Milestone::DiscoveryAppeared);
-                self.log(elems!["A ", discovery_location.discovery_token_type(), " discovery awaits in ", discovery_location.territory(), "..."]);
+                self.log(parts!["A ", discovery_location.discovery_token_type(), " discovery awaits in ", discovery_location.territory(), "..."]);
             }
         }
 
@@ -396,7 +391,7 @@ impl Game {
         if !Sector::in_storm(location.sector(&self.board.map), self.board.sector_in_storm) {
             let msg = express!(Payment::of(spice_amount), " detected in ", location, Game::sandtrout_message(self.board.sand_trout_doubles_resources))
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, false, self.board.sand_trout_doubles_resources));
-            self.log(elems![msg]);
+            self.log(parts![msg]);
             self.board.sand_trout_doubles_resources = false;
             self.change_resources_on_planet(location, spice_amount)?;
         } else {
@@ -404,7 +399,7 @@ impl Game {
             // to the storm.
             let msg = express!(Payment::of(spice_amount), " in ", location, " is lost in the storm")
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, true, false));
-            self.log(elems![msg]);
+            self.log(parts![msg]);
         }
 
         if self.applicable(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal) {
@@ -452,7 +447,7 @@ impl Game {
 
                 let appeared = WormAppearedLog::new(m.territory, (self.board.monsters.len() as i32) + 1);
                 if m.is_great_monster {
-                    self.log(elems![Concept::GreatMonster, " appears in ", m.territory]);
+                    self.log(parts![Concept::GreatMonster, " appears in ", m.territory]);
                 } else if !self.board.monsters.is_empty() {
                     let msg = express!(
                         Concept::Monster,
@@ -462,10 +457,10 @@ impl Game {
                         MainPhase::Blow
                     )
                     .with_log(appeared);
-                    self.log(elems![msg]);
+                    self.log(parts![msg]);
                 } else {
                     let msg = express!(Concept::Monster, " appears in ", m.territory).with_log(appeared);
-                    self.log(elems![msg]);
+                    self.log(parts![msg]);
                 }
 
                 if !self.board.monsters.is_empty() {
@@ -512,7 +507,7 @@ impl Game {
                                 l,
                             ));
                         }
-                        self.log(elems![devoured]);
+                        self.log(parts![devoured]);
                         Player::kill_all_forces(self, p, l, false)?;
 
                         if self.player(p).is(Faction::Fremen) {
@@ -530,7 +525,7 @@ impl Game {
                         if !m.is_great_monster {
                             survived = survived.with_log(WormSurvivedLog::new(faction.expect("faction"), l));
                         }
-                        self.log(elems![survived]);
+                        self.log(parts![survived]);
                     }
                 }
             }
@@ -542,7 +537,7 @@ impl Game {
             if !m.is_great_monster {
                 devoured = devoured.with_log(WormDevouredSpiceLog::new(devoured_resources, m.territory));
             }
-            self.log(elems![devoured]);
+            self.log(parts![devoured]);
         }
 
         self.flip_bene_gesserit_advisors_when_alone()?;
@@ -554,7 +549,7 @@ impl Game {
         self.enter_blow(BlowStep::BlowA);
         if self.applicable(Rule::IncreasedResourceFlow) {
             let msg = express!("Deck A").as_heading(Concept::Resource).with_log(BlowDeckLog::new("A".to_string()));
-            self.log(elems![msg]);
+            self.log(parts![msg]);
         }
         self.draw_resource_card()?;
         self.let_factions_discard_surplus_cards();
@@ -565,7 +560,7 @@ impl Game {
         self.board.monsters.clear();
         self.enter_blow(BlowStep::BlowB);
         let msg = express!("Deck B").as_heading(Concept::Resource).with_log(BlowDeckLog::new("B".to_string()));
-        self.log(elems![msg]);
+        self.log(parts![msg]);
         self.draw_resource_card()?;
         self.let_factions_discard_surplus_cards();
         Ok(())
@@ -643,7 +638,7 @@ impl Game {
         let nexus = self.player(p).nexus;
         if nexus != None {
             let faction = self.player(p).faction;
-            self.log(elems![faction, " discard the ", nexus, " Nexus Card"]);
+            self.log(parts![faction, " discard the ", nexus, " Nexus Card"]);
             self.stone(Milestone::NexusPlayed);
             self.decks.nexus_discard_pile.push(nexus.expect("faction"));
             self.player_mut(p).nexus = None;
@@ -664,7 +659,7 @@ impl Game {
         let ignored_sandtrout = self.blow_state().ignored_sandtrout;
         if !ignored.is_empty() || ignored_sandtrout.is_some() {
             if !ignored.is_empty() {
-                self.log(elems![
+                self.log(parts![
                     ignored.len() as i32,
                     " ignored ",
                     Concept::Monster,
@@ -678,7 +673,7 @@ impl Game {
             }
 
             if let Some(sandtrout) = ignored_sandtrout {
-                self.log(elems![Concept::BabyMonster, " card was shuffled back into the ", Concept::Resource, " deck"]);
+                self.log(parts![Concept::BabyMonster, " card was shuffled back into the ", Concept::Resource, " deck"]);
                 self.decks.resource_card_deck.as_mut().expect("resource card deck").items.push(sandtrout);
             }
 

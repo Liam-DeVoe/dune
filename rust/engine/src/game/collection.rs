@@ -1,6 +1,5 @@
 use crate::log::collection::SpiceCollected;
 use crate::prelude::*;
-use crate::messages::part::Part;
 
 /// The spice collection phase (`PhaseState::Collection`): its step, the spice collected, and the
 /// shared collections still to divide. It is dropped when the phase ends.
@@ -49,10 +48,6 @@ impl CollectionStep {
 }
 
 /// `params object?[]` element list for `Log(...)`.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 /// The division of shared spice that the first faction proposed (`DivideResources`).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct DivisionProposal {
@@ -132,7 +127,7 @@ impl Game {
     pub fn gain_collected_resources(&mut self, faction: Faction, from: Territory, amount: i32, field: Option<Location>, income: bool) {
         let msg = express!(faction, " collect ", Payment::of(amount), " from ", from)
             .with_log(SpiceCollected::new(faction, from, amount, field, income));
-        self.log(elems![msg]);
+        self.log(parts![msg]);
         if let Some(player) = self.get_player(Some(faction)) {
             crate::game::amounts::gain(&mut self.player_mut(player).resources, amount, "spice").expect("collected spice");
         }
@@ -166,7 +161,7 @@ impl Game {
             // C# parity: logs "0 ... goes to occupier" whenever there is an occupier.
             let from_faction = self.player(from).faction;
             let occupier_faction = self.player(occupier).faction;
-            self.log(elems![Payment::of(amount_lost), " received by ", from_faction, " goes to ", occupier_faction, " due to occupation"]);
+            self.log(parts![Payment::of(amount_lost), " received by ", from_faction, " goes to ", occupier_faction, " due to occupation"]);
         }
     }
 
@@ -236,7 +231,7 @@ impl Game {
                         crate::game::amounts::gain(&mut self.player_mut(t).resources, 1, "spice").expect("stolen spice");
                         let thief_faction = self.player(t).faction;
                         let p_faction = self.player(p).faction;
-                        self.log(elems![
+                        self.log(parts![
                             thief_faction,
                             " steal ",
                             Payment::of(1),
@@ -279,7 +274,7 @@ impl Game {
                     territory: key.territory(),
                 };
                 self.collection_mut().expect("in the collection phase").collected_resources_to_be_divided.push(to_be_divided);
-                self.log(elems![
+                self.log(parts![
                     first_faction,
                     " and ",
                     other_faction,
@@ -310,7 +305,7 @@ impl Game {
             if let Some(harkonnen) = harkonnen.filter(|b| self.player(*b).has_any_high_threshold(self)) {
                 let r = &mut self.player_mut(harkonnen).resources;
                 *r += 2;
-                self.log(elems![Faction::Harkonnen, " get ", Payment::of(2), " extra as they collected from desert or homeworld"]);
+                self.log(parts![Faction::Harkonnen, " get ", Payment::of(2), " extra as they collected from desert or homeworld"]);
             }
         }
 

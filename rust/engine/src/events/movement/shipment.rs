@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use crate::messages::part::Part;
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase", default, deny_unknown_fields)]
@@ -46,10 +45,6 @@ impl Default for Shipment {
 }
 
 /// Builds a list of message elements from mixed arguments.
-macro_rules! elems {
-    ($($e:expr),* $(,)?) => { vec![$(Part::from($e)),*] };
-}
-
 impl Shipment {
     pub fn source_location_for_shipment_to_reserves(&self) -> Option<Location> {
         self.to
@@ -719,7 +714,7 @@ impl Shipment {
                     Player::ship_special_forces(game, richese, self.to.required("to")?, 1)?;
                     game.board.current_no_field_value = self.cunning_no_field_value();
                     let me = by.player();
-                    game.play_nexus_card(me, elems!["ship and reveal a second ", FactionSpecialForce::Richese]);
+                    game.play_nexus_card(me, parts!["ship and reveal a second ", FactionSpecialForce::Richese]);
                 }
 
                 game.reveal_current_no_field(richese, None)?;
@@ -774,7 +769,7 @@ impl Shipment {
             }
 
             if self.use_richese_secret_ally {
-                game.play_nexus_card(by.player(), elems!["ship from reserves as if shipping ", 1]);
+                game.play_nexus_card(by.player(), parts!["ship from reserves as if shipping ", 1]);
             }
 
             if !by.is(Faction::Fremen) {
@@ -795,7 +790,7 @@ impl Shipment {
             let m = self
                 .get_verbose_message(game, by, total_cost, &received_payment_message, owner_of_karma)
                 .with_log(self.log_record(game, by, total_cost, received_payment, guild_income_prevented));
-            game.log(elems![m]);
+            game.log(parts![m]);
 
             if (total_cost - received_payment) >= 4 {
                 game.activate_banker(by.player());
@@ -806,7 +801,7 @@ impl Shipment {
             game.determine_occupation_location(to);
         } else {
             let m = self.get_verbose_message(game, by, total_cost, &received_payment_message, None).with_log(self.log_record(game, by, 0, 0, false));
-            game.log(elems![m]);
+            game.log(parts![m]);
             game.determine_next_shipment_and_move_sub_phase()?;
         }
         Ok(())
@@ -946,7 +941,7 @@ impl Shipment {
                     forces: kill_count,
                     territory: None,
                 });
-                game.log(elems![m]);
+                game.log(parts![m]);
             }
         }
 

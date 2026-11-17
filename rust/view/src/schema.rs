@@ -1082,7 +1082,8 @@ pub struct DealsView {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct DealOfferView {
-    /// The offer's event number (its place in `Game.History`), which names it across views.
+    /// Names the offer across views, also across an undo, and never names another offer of
+    /// the game (`DealId`). Loading a savegame numbers its offers again.
     pub id: i32,
     #[ts(type = "Faction")]
     pub initiator: String,

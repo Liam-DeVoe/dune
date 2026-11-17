@@ -6,6 +6,10 @@ pub struct Deals {
     pub offers: Vec<DealOffer>,
     pub responses: IndexMap<DealId, IndexMap<Faction, bool>>,
     pub agreed: Vec<Deal>,
+    /// The id the next new offer gets.
+    next_id: usize,
+    /// The id of every offer made so far, by the history entry that made it.
+    ids: IndexMap<EntryId, DealId>,
 }
 
 impl Deals {
@@ -14,12 +18,52 @@ impl Deals {
             offers: Vec::new(),
             responses: Default::default(),
             agreed: Vec::new(),
+            next_id: 0,
+            ids: Default::default(),
         }
+    }
+
+    /// Takes over the deal ids of `earlier`, the game this one replays (see [`Game::new_like`]):
+    /// an entry that made an offer there makes it with the same id here, and new offers get
+    /// ids that `earlier` never gave.
+    pub fn continue_ids(&mut self, earlier: &Deals) {
+        self.next_id = earlier.next_id;
+        self.ids = earlier.ids.clone();
+    }
+
+    /// The id of the offer that history entry `entry` makes: the one it got when it was first
+    /// played, or else the next one.
+    pub fn id_for(&mut self, entry: EntryId) -> DealId {
+        // Entries built without an id (`EntryId::default()`, in tests) are all new offers.
+        if entry != EntryId::default() {
+            if let Some(id) = self.ids.get(&entry) {
+                return *id;
+            }
+        }
+        let id = DealId(self.next_id);
+        self.next_id += 1;
+        if entry != EntryId::default() {
+            self.ids.insert(entry, id);
+        }
+        id
+    }
+
+    /// The id the next new offer gets.
+    pub fn next_id(&self) -> usize {
+        self.next_id
+    }
+
+    /// Makes sure the next new offer gets `next` or later.
+    pub fn skip_ids_below(&mut self, next: usize) {
+        self.next_id = self.next_id.max(next);
     }
 }
 
-/// A deal offer: the place of its `DealOffered` in the history, which names it in views and
-/// keeps apart two offers with the same terms.
+/// A deal offer's id, which names it in views and keeps apart two offers with the same terms.
+/// Offers are numbered from 0 in the order they are made. An undo keeps the ids of the offers
+/// it replays, and an offer made after an undo, a restore or a dismissal gets an id that no
+/// offer had before it, so a client never sees an id name two different offers. Loading a
+/// savegame numbers its offers from 0 again.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct DealId(pub usize);
 
@@ -27,6 +71,8 @@ pub struct DealId(pub usize);
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DealOffer {
     pub id: DealId,
+    /// The place of its `DealOffered` in the history.
+    pub entry: usize,
     pub initiator: Option<Faction>,
     pub player: Option<PlayerId>,
     pub to: Option<Vec<Faction>>,
@@ -74,7 +120,7 @@ impl DealOffer {
     /// The withdrawal of the offer: a copy of its history entry (submitter and time included)
     /// with `cancel` set. Anyone may submit it, and bots do for other factions' offers.
     pub fn cancellation(&self, game: &Game) -> HistoryEntry {
-        let at = game.history.entries.get(self.id.0).map(|e| e.at).unwrap_or_default();
+        let at = game.history.entries.get(self.entry).map(|e| e.at).unwrap_or_default();
         HistoryEntry { by: self.initiator, at, event: Event::from(DealOffered { cancel: true, ..self.event() }), id: EntryId::fresh() }
     }
 

@@ -25,7 +25,7 @@ fn event_json(e: Event) -> serde_json::Value {
 pub fn deals(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> Option<DealsView> {
     let p = v.player.filter(|_| !v.is_observer)?;
     let faction = game.player(p).faction;
-    // An offer's id is its place in the history, which names it across views.
+    // An offer's id names it across views, also across undo (`DealId`).
     let id_of = |o: &DealOffer| o.id.0 as i32;
     let acceptable = DealAccepted::acceptable_deals(game, Some(p))
         .map(|o| {

@@ -45,11 +45,11 @@ fn parse_event(v: &serde_json::Value) -> HistoryEntry {
     HistoryEntry::new(None, serde_json::from_value::<Event>(v.clone()).unwrap_or_else(|e| panic!("{v}: {e}")))
 }
 
-/// The offer an id names, which the `DealOffered` at that place in the history made.
+/// The offer an id names, which the `DealOffered` at the offer's place in the history made.
 fn offer_at(game: &Game, id: i32) -> DealOffer {
-    let entry = &game.history.entries[id as usize];
-    let Event::DealOffered(e) = &entry.event else { panic!("deal id {id} is a {}", entry.event_type().name()) };
     let offer = game.deals.offers.iter().find(|o| o.id == DealId(id as usize)).unwrap_or_else(|| panic!("no open offer {id}"));
+    let entry = &game.history.entries[offer.entry];
+    let Event::DealOffered(e) = &entry.event else { panic!("deal id {id} is a {}", entry.event_type().name()) };
     assert!(!e.cancel && offer.same(e) && offer.initiator == entry.by, "deal id {id}: another offer");
     offer.clone()
 }

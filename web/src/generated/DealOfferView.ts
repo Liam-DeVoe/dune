@@ -8,7 +8,8 @@ import type { Part } from "./Part";
  */
 export type DealOfferView = { 
 /**
- * The offer's event number (its place in `Game.History`), which names it across views.
+ * Names the offer across views, also across an undo, and never names another offer of
+ * the game (`DealId`). Loading a savegame numbers its offers again.
  */
 id: number, initiator: Faction, price: number, 
 /**

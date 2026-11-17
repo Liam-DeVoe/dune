@@ -156,7 +156,7 @@ impl ClassicBot {
 
         let mut new_traitor: Option<Hero> = None;
         let mut to_replace: Option<Hero> = None;
-        if !game.fight().map_or(true, |c| c.traitors_decipherer_can_look_at.is_empty()) && game.battle_leftovers.decipherer_may_replace_traitor {
+        if game.fight().is_some_and(|c| !c.traitors_decipherer_can_look_at.is_empty() && c.decipherer_may_replace_traitor) {
             // The most valuable hero card, or living leader of another faction, I may take as a traitor.
             new_traitor = game
                 .fight()

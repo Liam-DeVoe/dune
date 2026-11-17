@@ -112,6 +112,10 @@ pub struct CurrentBattle {
     pub poison_tooth_cancelled: bool,
     pub rock_was_melted: Option<RockMelted>,
     pub traitors_decipherer_can_look_at: Vec<Hero>,
+    /// A leader with the Decipherer skill fights, and the winner has a traitor to replace.
+    pub decipherer_may_replace_traitor: bool,
+    /// The loser may keep a card through the Moritani secret ally, which `LoserConcluded` then plays.
+    pub secret_ally_allows_keeping_cards_after_losing_battle: bool,
     pub loser_may_try_to_assassinate: bool,
     pub winner_may_choose_to_discard: bool,
     pub cards_to_be_discarded_by_loser: Vec<TreacheryCard>,
@@ -153,6 +157,8 @@ impl CurrentBattle {
             poison_tooth_cancelled: false,
             rock_was_melted: None,
             traitors_decipherer_can_look_at: Vec::new(),
+            decipherer_may_replace_traitor: false,
+            secret_ally_allows_keeping_cards_after_losing_battle: false,
             loser_may_try_to_assassinate: false,
             winner_may_choose_to_discard: true,
             cards_to_be_discarded_by_loser: Vec::new(),
@@ -169,15 +175,6 @@ impl CurrentBattle {
             ecaz_karma_bonus: 0,
         }
     }
-}
-
-/// Two battle flags that were never reset, so they outlive the battle that set them and apply
-/// to later battles (known-issues.md, "Two battle flags outlive their battle"). They belong in
-/// [`CurrentBattle`]; moving them there changes behavior.
-#[derive(Clone, Debug, Default)]
-pub struct BattleLeftovers {
-    pub decipherer_may_replace_traitor: bool,
-    pub secret_ally_allows_keeping_cards_after_losing_battle: bool,
 }
 
 impl Game {
@@ -753,7 +750,7 @@ impl Game {
             self.fight_mut().traitors_decipherer_can_look_at.push(traitor);
             self.player_mut(p).known_non_traitors.insert(traitor);
 
-            self.battle_leftovers.decipherer_may_replace_traitor = leader_is_skilled && !BattleConcluded::valid_traitors_to_replace(self, p).next().is_none();
+            self.fight_mut().decipherer_may_replace_traitor = leader_is_skilled && !BattleConcluded::valid_traitors_to_replace(self, p).next().is_none();
         }
     }
 
@@ -1827,7 +1824,7 @@ impl Game {
             && self.player(p).nexus == Some(Faction::Moritani)
             && NexusPlayed::can_use_secret_ally(self, p)
         {
-            self.battle_leftovers.secret_ally_allows_keeping_cards_after_losing_battle = true;
+            self.fight_mut().secret_ally_allows_keeping_cards_after_losing_battle = true;
         }
 
         if may_choose_to_keep_one {

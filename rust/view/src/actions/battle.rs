@@ -433,7 +433,7 @@ fn battle_concluded_options(game: &Game, p: PlayerId, d: &dyn Describer, draft: 
         }),
         tech_tokens: if winner { loser(game).map(|l| game.player(l).tech_tokens.iter().map(|t| enum_choice(*t, d)).collect()).unwrap_or_default() } else { vec![] },
         decipherer_traitors: if winner { game.fight().map_or_else(Vec::new, |c| c.traitors_decipherer_can_look_at.iter().map(|h| form_hero(*h, d)).collect()) } else { vec![] },
-        traitors_to_replace: (winner && !game.fight().map_or(true, |c| c.traitors_decipherer_can_look_at.is_empty()) && game.battle_leftovers.decipherer_may_replace_traitor)
+        traitors_to_replace: (winner && game.fight().is_some_and(|c| !c.traitors_decipherer_can_look_at.is_empty() && c.decipherer_may_replace_traitor))
             .then(|| BattleConcluded::valid_traitors_to_replace(game, p).map(|h| form_hero(h, d)).collect()),
         add_extra_force_in: (winner && BattleConcluded::may_add_extra_force(game, p))
             .then(|| game.current_battle().and_then(|b| b.territory).map_or(-1, |t| t.id())),

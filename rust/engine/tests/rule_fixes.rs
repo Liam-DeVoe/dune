@@ -393,3 +393,71 @@ fn a_living_ghola_can_be_taken_back() {
     assert!(g.player(p).leaders.contains(&leader));
     assert!(!g.player(tleilaxu).leaders.contains(&leader));
 }
+
+/// The battle of the `battle` fixture, started again as a new battle at `step`, as when the next
+/// battle of the phase begins.
+fn start_next_battle(g: &mut Game, step: BattleStep) {
+    let battle = g.current_battle().cloned().expect("a battle");
+    let aggressor = battle.aggressor(g).expect("aggressor");
+    let defender = battle.defender(g).expect("defender");
+    let (aggressor_plan, defender_plan) = (Battle::default().plan(By::new(g, aggressor)), Battle::default().plan(By::new(g, defender)));
+    g.enter_battle_state(step, Some(battle));
+    g.fight_mut().aggressor_plan = Some(aggressor_plan);
+    g.fight_mut().defender_plan = Some(defender_plan);
+    g.fight_mut().aggressor_traitor_action = Some(TraitorCall { submitter: By::new(g, aggressor), traitor_called: false });
+    g.fight_mut().defender_traitor_action = Some(TraitorCall { submitter: By::new(g, defender), traitor_called: false });
+}
+
+/// A Decipherer leader lets the winner replace a traitor in its own battle only. Before the fix
+/// the permission stayed, so a later winner without a Decipherer could replace a traitor.
+#[test]
+fn a_decipherer_lets_only_its_own_battle_replace_a_traitor() {
+    let mut g = fixture("battle");
+    let battle = g.current_battle().cloned().expect("a battle");
+    let winner = g.get_player(battle.aggressor(&g)).expect("aggressor");
+    let faction = g.player(winner).faction;
+    let leader = g.player(winner).leaders[0];
+    g.set_skill(leader, Some(LeaderSkill::Decipherer));
+    let mut plan = Battle::default().plan(By::new(&g, faction.expect("faction")));
+    plan.hero = Some(Hero::Leader(leader));
+    g.activate_decipherer_if_applicable(&plan);
+    assert!(g.fight().unwrap().decipherer_may_replace_traitor, "the Decipherer's own battle allows it");
+    g.finish_decipherer_if_applicable();
+    g.set_skill(leader, None);
+
+    start_next_battle(&mut g, BattleStep::Conclusion);
+    g.fight_mut().winner = faction;
+    let traitors = g.player(winner).traitors.clone();
+    let old = *traitors.first().expect("the winner has a traitor");
+    let new = g.decks.traitor_deck.as_ref().expect("traitor deck").items.first().copied().expect("a traitor in the deck");
+    let refusal = submit_by(&mut g, faction, |_| Event::from(BattleConcluded { traitor_to_replace: Some(old), new_traitor: Some(new), ..Default::default() }));
+    assert_eq!(refusal, None);
+    assert_eq!(g.player(winner).traitors, traitors, "no traitor replaced");
+}
+
+/// A Moritani secret ally that let a loser keep a card plays the Nexus card in its own battle only.
+/// Before the fix an unused permission stayed, so a later loser keeping a card played the Nexus card.
+#[test]
+fn a_moritani_secret_ally_lets_only_its_own_battle_keep_a_card() {
+    let mut g = fixture("battle");
+    assert!(!g.is_playing(Some(Faction::Moritani)));
+    let battle = g.current_battle().cloned().expect("a battle");
+    let loser = g.get_player(battle.defender(&g)).expect("defender");
+    let faction = g.player(loser).faction;
+    g.player_mut(loser).nexus = Some(Faction::Moritani);
+    let plan = Battle::default().plan(By::new(&g, faction.expect("faction")));
+    g.lose_cards(&plan, false).unwrap();
+    assert!(g.fight().unwrap().secret_ally_allows_keeping_cards_after_losing_battle, "the battle it was lost in allows it");
+
+    start_next_battle(&mut g, BattleStep::Conclusion);
+    let kept = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Shield).expect("a shield");
+    g.player_mut(loser).treachery_cards.push(kept);
+    g.fight_mut().loser = faction;
+    g.fight_mut().cards_to_be_discarded_by_loser = vec![kept];
+    let refusal = submit_by(&mut g, faction, |_| Event::from(LoserConcluded { kept_card: Some(kept), ..Default::default() }));
+    assert_eq!(refusal, None);
+    assert_eq!(g.player(loser).nexus, Some(Faction::Moritani), "the Nexus card wasn't played");
+    assert!(g.player(loser).has(Some(kept)));
+    let logged = g.log.report_list.iter().flat_map(|r| r.messages.iter()).any(|m| m.plain_text().contains(" keep "));
+    assert!(logged, "the kept card is logged");
+}

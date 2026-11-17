@@ -44,7 +44,6 @@ fn fingerprint(game: &Game) -> String {
         format!("stream position: {:?}", game.rng.get_word_pos()),
         format!("phase: {} {} {} turn {} milestones {:?}", game.phase(), game.turn.current_main_phase, name_or_absent(game.turn.current_moment), game.turn.current_turn, game.turn.recent_milestones),
         format!("battle phase: {:?}", game.battle()),
-        format!("battle leftovers: {:?}", game.battle_leftovers),
         format!("leaders: {:?}", game.leaders.leader_state),
         format!("spice on planet: {:?}", game.board.resources_on_planet),
         format!("treachery deck: {:?}", game.decks.treachery_deck),

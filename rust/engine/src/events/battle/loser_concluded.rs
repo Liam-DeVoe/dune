@@ -138,8 +138,8 @@ impl EventRules for LoserConcluded {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         if let Some(kept_card) = self.kept_card {
-            if game.battle_leftovers.secret_ally_allows_keeping_cards_after_losing_battle {
-                game.battle_leftovers.secret_ally_allows_keeping_cards_after_losing_battle = false;
+            if game.fight().is_some_and(|c| c.secret_ally_allows_keeping_cards_after_losing_battle) {
+                game.fight_mut().secret_ally_allows_keeping_cards_after_losing_battle = false;
                 game.play_nexus_card(by.player(), vec!["keep ".into(), kept_card.into()]);
             } else {
                 game.log(vec![by.faction.into(), " keep ".into(), kept_card.into()]);

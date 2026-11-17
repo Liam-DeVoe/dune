@@ -25,7 +25,6 @@ How `rust/engine` represents a game, and the rules to follow when you change it.
 | `turn` | `TurnState` | `turn.rs` | turn and main phase, and what lasts for a turn or longer: payments, milestones, prevented advantages, cards and Nexus cards in effect, the intrusion queue, storm losses to take |
 | `phase` | `PhaseState` | `phase.rs` | the phase the game is in, with that phase's own state ([Phases](#phases)) |
 | `interrupts` | `Vec<Interrupt>` | `phase.rs` | what suspends the phase, the latest last ([Phases](#phases)) |
-| `battle_leftovers` | `BattleLeftovers` | `battle.rs` | two battle flags that are never reset and outlive their battle ([known-issues.md](known-issues.md)) |
 | `history` | `History` | `history.rs` | the played events (`entries`), undone events, the game before an undo, moments and timers |
 | `log` | `Log` | `log.rs` | the reports |
 | `counters` | `Counters` | `counters.rs` | numbers handed out in order, such as the leader deaths' `time_of_death` |
@@ -66,7 +65,7 @@ To change a phase, change its state struct, its step enum and the functions abov
 3. Add its prompt and actions in the phase's status and actions functions, and its `EndPhase` arm if the host moves it on.
 4. Check who reads the flat phase: the bots (`rust/bots`), the views (`rust/view`), and `server/src/pause_rules.rs`, which decides what each pause between phases waits for.
 
-Some state outlives its phase on purpose and lives elsewhere: in `turn` (the intrusion queue `turn.intrusions`, storm losses still to take, what the last bidding left in `turn.last_bidding`), in `board` (the latest spice cards, worms) or in `battle_leftovers`. Before you move such a field into a phase state, check every reader. The bots read some of them long after the phase.
+Some state outlives its phase on purpose and lives elsewhere: in `turn` (the intrusion queue `turn.intrusions`, storm losses still to take, what the last bidding left in `turn.last_bidding`) or in `board` (the latest spice cards, worms). Before you move such a field into a phase state, check every reader. The bots read some of them long after the phase.
 
 ## Ids and newtypes
 

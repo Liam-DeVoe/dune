@@ -345,7 +345,7 @@ impl EventRules for BattleConcluded {
             return Err(Rejection(express!("Invalid amount of replacement forces")));
         }
 
-        if game.battle_leftovers.decipherer_may_replace_traitor {
+        if game.fight().is_some_and(|c| c.decipherer_may_replace_traitor) {
             if self.new_traitor.is_some() && self.traitor_to_replace.is_none() {
                 return Err(Rejection(express!("Select a traitor to be replaced by ", self.new_traitor)));
             }
@@ -397,7 +397,7 @@ impl EventRules for BattleConcluded {
             game.log(vec![by.faction.into(), " look at ".into(), count.into(), " leaders in the traitor deck".into()]);
         }
 
-        if self.traitor_to_replace.is_some() && self.new_traitor.is_some() && game.battle_leftovers.decipherer_may_replace_traitor {
+        if self.traitor_to_replace.is_some() && self.new_traitor.is_some() && game.fight().is_some_and(|c| c.decipherer_may_replace_traitor) {
             self.decipherer_replaces_traitors(game, by);
         }
 

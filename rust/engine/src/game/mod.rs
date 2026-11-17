@@ -97,9 +97,6 @@ pub struct Game {
     pub phase: PhaseState,
     /// What suspends the phase, the latest last.
     pub interrupts: Vec<Interrupt>,
-
-    // Two battle flags that outlive their battle, so they are kept whatever the current phase.
-    pub battle_leftovers: BattleLeftovers,
 }
 
 // A game can move to another thread: it holds no `Rc` or `Cell`.
@@ -157,7 +154,6 @@ impl Game {
             counters: Counters::default(),
             phase: PhaseState::AwaitingPlayers,
             interrupts: Vec::new(),
-            battle_leftovers: BattleLeftovers::default(),
         };
 
         game.initialize_leader_state();

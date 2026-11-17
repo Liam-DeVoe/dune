@@ -74,14 +74,15 @@ impl GameViews {
             }
             let seating = g.participation.seating();
             let built = caught(|| -> Vec<(ConnectionId, String)> {
-                let cache = entry.cache(g);
+                // The views of this call share what is the same for every viewer.
+                let mut batch = entry.cache(g).batch(&g.game, &seating, g.timer);
                 let mut by_user: BTreeMap<UserId, String> = BTreeMap::new();
                 targets
                     .into_iter()
                     .map(|(connection, user_id)| {
                         let text = by_user
                             .entry(user_id)
-                            .or_insert_with(|| protocol::notify(Notification::GameView(Box::new(cache.view(&g.game, g.participation.viewer(user_id), &seating, g.timer)))))
+                            .or_insert_with(|| protocol::notify(Notification::GameView(Box::new(batch.view(g.participation.viewer(user_id))))))
                             .clone();
                         (connection, text)
                     })

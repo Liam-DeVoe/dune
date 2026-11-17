@@ -7,6 +7,8 @@
 //! Also the milestones of the latest event (`Game::recent_milestones`), for the sounds the
 //! client plays after each event.
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use treachery_engine::messages::part::Part as P;
 use treachery_engine::prelude::*;
@@ -72,7 +74,8 @@ pub fn faction_sheets(game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
 
 /// The faction sheets of the last view built, reused while what they're made from stays the
 /// same. A [`crate::cache::ViewCache`] keeps one, so its views don't build the sheets again
-/// for every viewer after every event (they are about half of a view's JSON).
+/// for every viewer after every event (they are about half of a view's JSON). Every view gets
+/// the same `Arc` while the key matches.
 ///
 /// The sheets read the skin, the game's rules (`Game::applicable`, which reads the active rules
 /// and the rules for bots), which factions play and in what order, and fixed locations of the
@@ -80,7 +83,7 @@ pub fn faction_sheets(game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
 /// skin changes, and the map's named locations don't change.
 #[derive(Default)]
 pub struct FactionSheetCache {
-    cached: Option<(SheetKey, Vec<FactionSheetView>)>,
+    cached: Option<(SheetKey, Arc<Vec<FactionSheetView>>)>,
 }
 
 #[derive(PartialEq)]
@@ -105,12 +108,12 @@ impl SheetKey {
 impl FactionSheetCache {
     /// [`faction_sheets`], from the cache when its key matches. `d` must have the skin the
     /// cache was filled with: call [`FactionSheetCache::clear`] when it changes.
-    pub fn get(&mut self, game: &Game, d: &dyn Describer) -> Vec<FactionSheetView> {
+    pub fn get(&mut self, game: &Game, d: &dyn Describer) -> Arc<Vec<FactionSheetView>> {
         let key = SheetKey::of(game);
         match &self.cached {
             Some((k, sheets)) if *k == key => sheets.clone(),
             _ => {
-                let sheets = faction_sheets(game, d);
+                let sheets = Arc::new(faction_sheets(game, d));
                 self.cached = Some((key, sheets.clone()));
                 sheets
             }
@@ -191,6 +194,34 @@ pub fn rule_labels(game: &Game, d: &dyn Describer) -> RuleLabels {
             .into_iter()
             .map(|(g, rules)| RuleGroupLabels { group: d.describe(&P::from(g)), rules })
             .collect(),
+    }
+}
+
+/// The rule labels of the last view built, reused while the rules stay the same, as
+/// [`FactionSheetCache`] does for the sheets. [`rule_labels`] reads the active rules, the
+/// ruleset and the skin's descriptions of them, rule groups and ruleset: the key holds the
+/// rules and the ruleset, and whoever owns the cache clears it when the skin changes.
+#[derive(Default)]
+pub struct RuleLabelsCache {
+    cached: Option<((Vec<Rule>, Option<Ruleset>), Arc<RuleLabels>)>,
+}
+
+impl RuleLabelsCache {
+    /// [`rule_labels`], from the cache when its key matches. `d` must have the skin the cache
+    /// was filled with.
+    pub fn get(&mut self, game: &Game, d: &dyn Describer) -> Arc<RuleLabels> {
+        match &self.cached {
+            Some(((active, ruleset), labels)) if *active == game.rules.active && *ruleset == game.rules.ruleset => labels.clone(),
+            _ => {
+                let labels = Arc::new(rule_labels(game, d));
+                self.cached = Some(((game.rules.active.clone(), game.rules.ruleset), labels.clone()));
+                labels
+            }
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.cached = None;
     }
 }
 

@@ -2,6 +2,8 @@
 //! the battle plans. A field that only some viewers may see is filled only for them (protocol.md,
 //! Visibility).
 
+use std::sync::Arc;
+
 use treachery_engine::game::{FlashInfo, GameStatus};
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::identity::Identifiable;
@@ -26,9 +28,23 @@ fn viewer_faction(v: &ResolvedViewer) -> Option<Faction> {
     v.player.and(v.faction)
 }
 
-/// The planet: everything on the map except the piles, tanks, bids and plans.
-pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView {
-    let me = viewer_faction(v);
+/// The parts of the planet that every viewer sees alike, which the views of one game state
+/// share (`build::StateParts`). Built in the order [`board`] would build them.
+#[derive(Clone)]
+pub(crate) struct PublicBoard {
+    forces: Arc<Vec<ForcesInLocation>>,
+    attached: Arc<Vec<AttachedLocationView>>,
+    leaders: Arc<Vec<LeaderOnPlanet>>,
+    recent_moves: Arc<Vec<MoveArrow>>,
+    spice: Arc<Vec<SpiceInLocation>>,
+    strongholds: Arc<Vec<StrongholdOwner>>,
+    ambassadors: Arc<Vec<AmbassadorOnPlanet>>,
+    monsters: Arc<Vec<MonsterView>>,
+    special_strongholds: Arc<Vec<i32>>,
+    protected_from_storm: Arc<Vec<i32>>,
+}
+
+pub(crate) fn public_board(game: &Game) -> PublicBoard {
     let mut forces = Vec::new();
     for (location, battalions) in game.forces_on_planet_excluding_empty_locations(true).iter() {
         for b in battalions {
@@ -91,23 +107,46 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
         }
     }
 
+    PublicBoard {
+        forces: Arc::new(forces),
+        attached: Arc::new(attached),
+        leaders: Arc::new(leaders),
+        recent_moves: Arc::new(recent_moves),
+        spice: Arc::new(game.board.resources_on_planet.iter().map(|(l, a)| SpiceInLocation { location: l.id(), amount: i32::from(*a) }).collect()),
+        strongholds: Arc::new(game.board.stronghold_ownership.iter().map(|(l, f)| StrongholdOwner { location: l.id(), owner: name(*f) }).collect()),
+        ambassadors: Arc::new(
+            game.board.ambassadors_on_planet.iter().map(|(t, a)| AmbassadorOnPlanet { territory: t.id(), ambassador: name(*a) }).collect(),
+        ),
+        monsters: Arc::new(game.board.monsters.iter().map(|m| MonsterView { territory: m.territory.id(), is_great_monster: m.is_great_monster }).collect()),
+        special_strongholds: Arc::new(map.territories(true).filter(|t| game.is_special_stronghold(*t)).map(|t| t.id()).collect()),
+        protected_from_storm: Arc::new(map.locations(false).filter(|l| game.is_protected_from_storm(*l)).map(|l| l.id()).collect()),
+    }
+}
+
+/// The planet: everything on the map except the piles, tanks, bids and plans.
+pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView {
+    board_shared(game, status, v, public_board(game))
+}
+
+/// [`board`] with the parts every viewer sees alike already built. The rest reads the viewer
+/// or their status. Nothing in it can panic, so building the public parts first, which `board`
+/// built before them or between them, makes no difference.
+pub(crate) fn board_shared(game: &Game, status: &GameStatus, v: &ResolvedViewer, public: PublicBoard) -> BoardView {
+    let me = viewer_faction(v);
+    let PublicBoard { forces, attached, leaders, recent_moves, spice, strongholds, ambassadors, monsters, special_strongholds, protected_from_storm } = public;
     BoardView {
         sector_in_storm: Sector::number_or_none(game.board.sector_in_storm),
         shield_wall_destroyed: game.board.shield_wall_destroyed,
         forces,
-        spice: game.board.resources_on_planet.iter().map(|(l, a)| SpiceInLocation { location: l.id(), amount: i32::from(*a) }).collect(),
+        spice,
         highlighted_territories: status.highlighted_territories.iter().flatten().map(|t| t.id()).collect(),
-        strongholds: game.board.stronghold_ownership.iter().map(|(l, f)| StrongholdOwner { location: l.id(), owner: name(*f) }).collect(),
+        strongholds,
         terror: game
             .board.terror_on_planet
             .iter()
             .map(|(token, t)| TerrorOnPlanet { territory: t.id(), token: (me == Some(Faction::Moritani)).then(|| name(*token)) })
             .collect(),
-        ambassadors: game
-            .board.ambassadors_on_planet
-            .iter()
-            .map(|(t, a)| AmbassadorOnPlanet { territory: t.id(), ambassador: name(*a) })
-            .collect(),
+        ambassadors,
         discoveries: game
             .board.discoveries_on_planet
             .iter()
@@ -119,11 +158,11 @@ pub fn board(game: &Game, status: &GameStatus, v: &ResolvedViewer) -> BoardView 
             .collect(),
         attached,
         leaders,
-        monsters: game.board.monsters.iter().map(|m| MonsterView { territory: m.territory.id(), is_great_monster: m.is_great_monster }).collect(),
+        monsters,
         number_of_monsters: game.board.number_of_monsters,
-        special_strongholds: map.territories(true).filter(|t| game.is_special_stronghold(*t)).map(|t| t.id()).collect(),
+        special_strongholds,
         atomics_aftermath: game.board.atomics_aftermath.map(|t| t.id()),
-        protected_from_storm: map.locations(false).filter(|l| game.is_protected_from_storm(*l)).map(|l| l.id()).collect(),
+        protected_from_storm,
         // The value for Richese, "?" for everyone else.
         no_field_value: (me == Some(Faction::Richese)).then_some(game.board.current_no_field_value),
         storm_prescience_moves: game.has_storm_prescience(v.player).then_some(game.board.next_storm_moves),

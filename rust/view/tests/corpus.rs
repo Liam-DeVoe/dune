@@ -199,7 +199,7 @@ fn count_fields(view: &GameView, seen: &mut Seen) {
     if view.board.forces.iter().any(|f| f.threatened) {
         seen.add("threatened forces");
     }
-    for p in &view.players {
+    for p in view.players.iter() {
         if p.homeworlds.iter().any(|h| h.occupier.is_some()) {
             seen.add("occupied homeworld");
         }

@@ -244,7 +244,7 @@ fn scene_seats_one_user_and_bots() {
     let view = r.view(viewer);
     assert_eq!(view.viewer.faction.as_deref(), Some("Atreides"));
     assert!(view.viewer.is_host && !view.viewer.is_observer);
-    for p in &view.players {
+    for p in view.players.iter() {
         assert_eq!(p.is_bot, p.faction != "Atreides", "{}", p.faction);
         if p.faction == "Atreides" {
             assert_eq!(p.name, "Scene");

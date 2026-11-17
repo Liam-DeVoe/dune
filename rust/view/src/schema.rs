@@ -7,6 +7,8 @@
 //! cards, resource cards) are sent by id; the client gets names, images and map positions from
 //! the skin and the static data file, never from the view.
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -121,7 +123,7 @@ pub struct ReportHeader {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct LogView {
-    pub reports: Vec<ReportHeader>,
+    pub reports: Arc<Vec<ReportHeader>>,
     /// Lines of the reports in `latest`, in order, filtered to what this viewer may read.
     pub latest: Vec<ReportLines>,
 }
@@ -130,7 +132,7 @@ pub struct LogView {
 #[serde(rename_all = "camelCase")]
 pub struct ReportLines {
     pub index: i32,
-    pub lines: Vec<LogLine>,
+    pub lines: Vec<Arc<LogLine>>,
 }
 
 /// Who is looking, derived from the game's participation.
@@ -311,39 +313,39 @@ pub struct BoardView {
     pub shield_wall_destroyed: bool,
     /// `Game.ForcesOnPlanetExcludingEmptyLocations(true)`, one entry per location and faction,
     /// homeworlds included.
-    pub forces: Vec<ForcesInLocation>,
+    pub forces: Arc<Vec<ForcesInLocation>>,
     /// `Game.ResourcesOnPlanet`.
-    pub spice: Vec<SpiceInLocation>,
+    pub spice: Arc<Vec<SpiceInLocation>>,
     /// `GameStatus.HighlightedTerritories`.
     pub highlighted_territories: Vec<i32>,
     /// `Game.StrongholdOwnership`: the owner's token on a stronghold, and its advantage's popover
     /// (the advantage is in the static data).
-    pub strongholds: Vec<StrongholdOwner>,
+    pub strongholds: Arc<Vec<StrongholdOwner>>,
     /// `Game.TerrorIn(territory)`: one entry per placed token. The token's identity is sent to
     /// Moritani only; others see a token.
     pub terror: Vec<TerrorOnPlanet>,
     /// `Game.AmbassadorIn(territory)` for every territory with one.
-    pub ambassadors: Vec<AmbassadorOnPlanet>,
+    pub ambassadors: Arc<Vec<AmbassadorOnPlanet>>,
     /// `Game.DiscoveriesOnPlanet`: unrevealed discovery tokens. The token is sent to Fremen for
     /// the Fremen type and to the Guild for the Guild type.
     pub discoveries: Vec<DiscoveryOnPlanet>,
     /// The Hidden Mobile Stronghold and the discovered strongholds that are on the map
     /// (`Location.Visible`), with the location each is attached to. The skin places them
     /// relative to it (`Skin.GetCenter`).
-    pub attached: Vec<AttachedLocationView>,
+    pub attached: Arc<Vec<AttachedLocationView>>,
     /// Living leaders and the Messiah standing in a territory (`LeaderState.CurrentTerritory`),
     /// drawn with the forces.
-    pub leaders: Vec<LeaderOnPlanet>,
+    pub leaders: Arc<Vec<LeaderOnPlanet>>,
     /// `Game.Monsters`: worms on the planet now.
-    pub monsters: Vec<MonsterView>,
+    pub monsters: Arc<Vec<MonsterView>>,
     /// `Game.NumberOfMonsters`: worm tokens on the Shield Wall under `Rule.Ssw`.
     pub number_of_monsters: i32,
     /// Territories for which `Game.IsSpecialStronghold` holds (the Shield Wall under SSW).
-    pub special_strongholds: Vec<i32>,
+    pub special_strongholds: Arc<Vec<i32>>,
     /// `Game.AtomicsAftermath`.
     pub atomics_aftermath: Option<i32>,
     /// Locations for which `Game.IsProtectedFromStorm(l)` holds (the territory tooltip).
-    pub protected_from_storm: Vec<i32>,
+    pub protected_from_storm: Arc<Vec<i32>>,
     /// Richese only: `Game.CurrentNoFieldValue`, the value of the No-Field token on the planet.
     /// Others see "?".
     pub no_field_value: Option<i32>,
@@ -352,7 +354,7 @@ pub struct BoardView {
     pub storm_prescience_moves: Option<i32>,
     /// During ship and move, an arrow per origin of each of `Game.RecentMoves`, following
     /// `Map.FindFirstShortestPath` through the Polar Sink.
-    pub recent_moves: Vec<MoveArrow>,
+    pub recent_moves: Arc<Vec<MoveArrow>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
@@ -699,6 +701,8 @@ pub struct DraftResult {
 }
 
 /// The whole view of one game for one viewer, sent after every event.
+// The `Arc` fields of a view (here, in `BoardView`, `LogView` and `ReportLines`) are shared with
+// the other views built with it (`cache::ViewBatch`). They serialize like the values they hold.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct GameView {
@@ -719,7 +723,7 @@ pub struct GameView {
     pub phase: String,
     pub viewer: ViewerInfo,
     /// Every player, in seat order.
-    pub players: Vec<PublicPlayer>,
+    pub players: Arc<Vec<PublicPlayer>>,
     /// The viewer's own faction, if they hold a seat.
     pub me: Option<PrivatePlayer>,
     pub board: BoardView,
@@ -731,10 +735,10 @@ pub struct GameView {
     pub ruleset: String,
     /// `Game.Rules`. `Game.Applicable(rule)` is true for these and for `rulesForBots`.
     #[ts(type = "Array<Rule>")]
-    pub rules: Vec<String>,
+    pub rules: Arc<Vec<String>>,
     /// `Game.RulesForBots`.
     #[ts(type = "Array<Rule>")]
-    pub rules_for_bots: Vec<String>,
+    pub rules_for_bots: Arc<Vec<String>>,
     /// `Game.EconomicsStatus`, drawn by the Charity phase name.
     #[ts(type = "ChoamEconomicsStatus")]
     pub economics_status: String,
@@ -751,7 +755,7 @@ pub struct GameView {
     /// could have noted of every other player.
     pub notes: Option<NotesView>,
     /// Game start, durations and the bidding timer.
-    pub timing: TimingView,
+    pub timing: Arc<TimingView>,
     /// The viewer's deals; null for observers.
     pub deals: Option<DealsView>,
     /// `Participation.BotsSpeed`: 0 paused, 1, 2 or 4 (the host's menu).
@@ -759,14 +763,14 @@ pub struct GameView {
     /// Atreides's card tracker; null for everyone else.
     pub tracker: Option<TrackerView>,
     /// The cards of the menu's "List of Cards". The same for everyone.
-    pub mentat: MentatView,
+    pub mentat: Arc<MentatView>,
     /// After `GameEnded`: the winners and the story of the game. Built in `ending.rs`.
-    pub ending: Option<crate::ending::EndingView>,
+    pub ending: Option<Arc<crate::ending::EndingView>>,
     /// The rules sheets of the factions in the game, in player order, for the faction popover on
     /// the map. The same for everyone. Built in `skin_texts.rs`.
-    pub faction_sheets: Vec<crate::skin_texts::FactionSheetView>,
+    pub faction_sheets: Arc<Vec<crate::skin_texts::FactionSheetView>>,
     /// The ruleset and rules as the turn popover names them.
-    pub rule_labels: crate::skin_texts::RuleLabels,
+    pub rule_labels: Arc<crate::skin_texts::RuleLabels>,
     /// The milestones of the latest event, whose sounds the client plays. The same for
     /// everyone.
     #[ts(type = "Array<Milestone>")]

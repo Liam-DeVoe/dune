@@ -7,6 +7,9 @@
 //! client can draw them like any other rich text and knows their names. `tests/log_lines.rs`
 //! keeps snapshots of the lines.
 
+use std::collections::HashMap;
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use treachery_engine::heroes::hero::Hero;
 use treachery_engine::enum_type::name_or_absent;
@@ -31,8 +34,37 @@ fn name<T: ToString>(v: T) -> String {
 /// ([`crate::describe::InGame`]): old messages show the game's current contents of the
 /// collections they hold.
 pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
+    log_view_shared(game, v, d, &mut SharedLog::default())
+}
+
+/// What the logs of several views of one game state share: the report headers, and each line
+/// built so far, by report and message index. Neither reads the viewer, so they are the same
+/// for every viewer. Each is built when the first view needs it, so a view builds what it built
+/// alone, in the same order (and an engine panic happens where it would have).
+#[derive(Default)]
+pub(crate) struct SharedLog {
+    headers: Option<Arc<Vec<ReportHeader>>>,
+    lines: HashMap<(usize, usize), Arc<LogLine>>,
+}
+
+/// [`log_view`], with what the views of this game state share in `shared`.
+pub(crate) fn log_view_shared(game: &Game, v: &ResolvedViewer, d: &dyn Describer, shared: &mut SharedLog) -> LogView {
     let reports = game.reports();
-    let headers: Vec<ReportHeader> = reports
+    let headers = shared.headers.get_or_insert_with(|| Arc::new(report_headers(reports))).clone();
+    let latest = match reports.last() {
+        Some(last) => reports
+            .iter()
+            .enumerate()
+            .filter(|(_, r)| r.turn == last.turn && r.about == last.about)
+            .map(|(i, r)| report_lines_shared(i, r, v, d, &mut shared.lines))
+            .collect(),
+        None => vec![],
+    };
+    LogView { reports: headers, latest }
+}
+
+fn report_headers(reports: &[Report]) -> Vec<ReportHeader> {
+    reports
         .iter()
         .enumerate()
         .map(|(i, r)| ReportHeader {
@@ -46,29 +78,26 @@ pub fn log_view(game: &Game, v: &ResolvedViewer, d: &dyn Describer) -> LogView {
             battle_decided: r.battle_decided,
             battle_winner: name_or_absent(r.battle_winner),
         })
-        .collect();
-    let latest = match reports.last() {
-        Some(last) => reports
-            .iter()
-            .enumerate()
-            .filter(|(_, r)| r.turn == last.turn && r.about == last.about)
-            .map(|(i, r)| report_lines(i, r, v, d))
-            .collect(),
-        None => vec![],
-    };
-    LogView { reports: headers, latest }
+        .collect()
 }
 
 /// The lines of one report that the viewer may read (`RequestReport`). See [`log_view`] for `d`.
 pub fn report_lines(index: usize, r: &Report, v: &ResolvedViewer, d: &dyn Describer) -> ReportLines {
+    report_lines_shared(index, r, v, d, &mut HashMap::new())
+}
+
+/// [`report_lines`], with the lines already built for other viewers in `built`, by report and
+/// message index.
+fn report_lines_shared(index: usize, r: &Report, v: &ResolvedViewer, d: &dyn Describer, built: &mut HashMap<(usize, usize), Arc<LogLine>>) -> ReportLines {
     let lines = r
         .messages
         .iter()
-        .filter(|msg| match msg.to {
+        .enumerate()
+        .filter(|(_, msg)| match msg.to {
             m::Audience::Everyone => true,
             m::Audience::Faction(f) => Some(f) == v.faction,
         })
-        .map(|msg| log_line(msg, d))
+        .map(|(k, msg)| built.entry((index, k)).or_insert_with(|| Arc::new(log_line(msg, d))).clone())
         .collect();
     ReportLines { index: index as i32, lines }
 }

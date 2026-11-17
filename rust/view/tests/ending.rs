@@ -11,7 +11,7 @@ fn endings(name: &str) -> Vec<EndingView> {
     let factions: Vec<Faction> = r.game.players.iter().filter_map(|p| p.faction).collect();
     let mut viewers: Vec<Viewer> = factions.iter().map(|f| viewer_of(&r, *f)).collect();
     viewers.push(OBSERVER);
-    viewers.into_iter().map(|v| r.view(v).ending.expect("ending after GameEnded")).collect()
+    viewers.into_iter().map(|v| (*r.view(v).ending.expect("ending after GameEnded")).clone()).collect()
 }
 
 fn rows(story: &[StoryBlock]) -> Vec<&StoryRow> {

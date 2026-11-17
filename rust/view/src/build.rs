@@ -4,7 +4,7 @@
 //! field is filled only for the viewers who may see it under the game rules.
 
 use std::collections::BTreeMap;
-
+use std::sync::Arc;
 
 use treachery_engine::game::GameStatus;
 use treachery_engine::prelude::*;
@@ -12,7 +12,9 @@ use treachery_engine::prelude::*;
 use crate::actions;
 use crate::board;
 use crate::shield;
-use crate::skin_texts::FactionSheetCache;
+use crate::ending::EndingView;
+use crate::log::SharedLog;
+use crate::skin_texts::{FactionSheetCache, RuleLabelsCache};
 use crate::describe::Describer;
 use crate::expr::{self, message};
 pub use crate::log::report_lines;
@@ -86,12 +88,64 @@ pub fn build_view(game: &Game, viewer: Viewer, s: &Seating, d: &dyn Describer, t
 /// [`build_view`] for a viewer already resolved against the game. Tests use it to look at games
 /// without seated users (the bot-game corpus).
 pub fn build_view_resolved(game: &Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32) -> GameView {
-    build_view_cached(game, v, s, d, timer, &mut FactionSheetCache::default())
+    build_view_cached(game, v, s, d, timer, &mut RulesParts::default(), &mut StateParts::default())
 }
 
-/// [`build_view_resolved`] with the faction sheets taken from `sheets` when they haven't changed.
-/// A [`crate::cache::ViewCache`] keeps the sheets between views.
-pub(crate) fn build_view_cached(game: &Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32, sheets: &mut FactionSheetCache) -> GameView {
+/// The parts of a view made only from the game's rules, which factions play and the skin. A
+/// [`crate::cache::ViewCache`] keeps them between game states, and gives every view the same
+/// `Arc` while they stay the same. Each part's key holds what it reads of the game; whoever
+/// owns them calls [`RulesParts::clear`] when the skin changes.
+#[derive(Default)]
+pub(crate) struct RulesParts {
+    sheets: FactionSheetCache,
+    labels: RuleLabelsCache,
+    rules: Option<(Vec<Rule>, Arc<Vec<String>>)>,
+    rules_for_bots: Option<(Vec<Rule>, Arc<Vec<String>>)>,
+}
+
+impl RulesParts {
+    pub(crate) fn clear(&mut self) {
+        *self = RulesParts::default();
+    }
+}
+
+/// The names of `rules`, from `cached` when it holds the same rules.
+fn rule_names(cached: &mut Option<(Vec<Rule>, Arc<Vec<String>>)>, rules: &[Rule]) -> Arc<Vec<String>> {
+    match cached {
+        Some((key, names)) if key.as_slice() == rules => names.clone(),
+        _ => {
+            let names = Arc::new(rules.iter().map(|r| name(*r)).collect::<Vec<_>>());
+            *cached = Some((rules.to_vec(), names.clone()));
+            names
+        }
+    }
+}
+
+/// The parts of a view that don't read the viewer, for the views of one game state with one
+/// seating and timer (a [`crate::cache::ViewBatch`]): the views share them. None of the
+/// functions that build them gets the viewer.
+///
+/// Each part is built when the first view needs it, at the point where that view would build it
+/// alone, and kept only if it was built without a panic. So each view builds the same things in
+/// the same order as on its own, and a panic in the engine happens in the same view and place.
+#[derive(Default)]
+pub(crate) struct StateParts {
+    players: Option<Arc<Vec<PublicPlayer>>>,
+    board: Option<board::PublicBoard>,
+    log: SharedLog,
+    timing: Option<Arc<TimingView>>,
+    mentat: Option<Arc<MentatView>>,
+    ending: Option<Option<Arc<EndingView>>>,
+}
+
+fn shared<T: Clone>(slot: &mut Option<T>, build: impl FnOnce() -> T) -> T {
+    slot.get_or_insert_with(build).clone()
+}
+
+/// [`build_view_resolved`] with the parts that are the same for other views taken from `rules`
+/// (between game states) and `state` (between the views of this game state). `state` must
+/// only ever see this game state, `s` and `timer`.
+pub(crate) fn build_view_cached(game: &Game, v: &ResolvedViewer, s: &Seating, d: &dyn Describer, timer: i32, rules: &mut RulesParts, state: &mut StateParts) -> GameView {
     let status = GameStatus::determine_status(game, v.player, !v.is_observer);
     let action_types = game.get_applicable_events(v.player, v.is_host);
 
@@ -99,6 +153,7 @@ pub(crate) fn build_view_cached(game: &Game, v: &ResolvedViewer, s: &Seating, d:
     let in_game = crate::describe::InGame::new(d, game);
     let d: &dyn Describer = &in_game;
     let me = v.player.filter(|_| !v.is_observer);
+    // The fields are built in the order they are written.
     GameView {
         event_number: game.event_count(),
         version: game.rules.version,
@@ -108,30 +163,30 @@ pub(crate) fn build_view_cached(game: &Game, v: &ResolvedViewer, s: &Seating, d:
         main_phase: name(game.turn.current_main_phase),
         phase: name(game.phase()),
         viewer: ViewerInfo { faction: v.player.map(|_| name_or_absent(v.faction)), is_host: v.is_host, is_observer: v.is_observer },
-        players: game.player_indices().map(|p| public_player(game, s, p)).collect(),
+        players: shared(&mut state.players, || Arc::new(game.player_indices().map(|p| public_player(game, s, p)).collect())),
         me: me.map(|p| shield::private_player(game, p, &action_types)),
-        board: board::board(game, &status, v),
+        board: board::board_shared(game, &status, v, shared(&mut state.board, || board::public_board(game))),
         status: status_view(game, &status, v, d),
         actions: action_types.iter().map(|t| actions::action_view(game, v, s, *t, d)).collect(),
         waiting_actions: me.map_or_else(Vec::new, |p| waiting_actions(game, p, d)),
-        log: crate::log::log_view(game, v, d),
+        log: crate::log::log_view_shared(game, v, d, &mut state.log),
         ruleset: name_or_absent(game.rules.ruleset),
-        rules: game.rules.active.iter().map(|r| name(*r)).collect(),
-        rules_for_bots: game.rules.rules_for_bots.iter().map(|r| name(*r)).collect(),
+        rules: rule_names(&mut rules.rules, &game.rules.active),
+        rules_for_bots: rule_names(&mut rules.rules_for_bots, &game.rules.rules_for_bots),
         economics_status: name_or_absent(game.board.choam_economics_status),
         piles: board::piles(game, v),
         tanks: board::tanks(game, v),
         bidding: board::bidding(game, v),
         battle: board::battle(game, v),
         notes: me.and_then(|p| shield::notes(game, p)),
-        timing: board::timing(game, timer),
+        timing: shared(&mut state.timing, || Arc::new(board::timing(game, timer))),
         deals: crate::side::deals(game, v, d),
         bots_speed: s.bots_speed,
         tracker: crate::side::tracker(game, v),
-        mentat: crate::side::mentat(game),
-        ending: crate::ending::ending(game, s, d),
-        faction_sheets: sheets.get(game, d),
-        rule_labels: crate::skin_texts::rule_labels(game, d),
+        mentat: shared(&mut state.mentat, || Arc::new(crate::side::mentat(game))),
+        ending: shared(&mut state.ending, || crate::ending::ending(game, s, d).map(Arc::new)),
+        faction_sheets: rules.sheets.get(game, d),
+        rule_labels: rules.labels.get(game, d),
         recent_milestones: crate::skin_texts::recent_milestones(game),
     }
 }

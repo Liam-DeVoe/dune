@@ -5,29 +5,58 @@
 //! sends views of, next to the game (`server/src/views.rs`). Tools and tests that hold a game of
 //! their own use [`ViewedGame`], which keeps the two together.
 //!
+//! Views share the parts that are the same for every viewer, as `Arc`s, which serialize like
+//! the values they hold. A [`ViewBatch`] builds the views of one game state: it borrows the
+//! game, so the game can't change while it lives, and its views share the parts that don't
+//! read the viewer (`build::StateParts`). The cache keeps the parts made only from the rules,
+//! the factions and the skin between game states (`build::RulesParts`), each with a key that
+//! holds what it reads of the game.
+//!
 //! [`GameStatus::determine_status`]: treachery_engine::game::GameStatus::determine_status
 
 use treachery_engine::game::GameState;
 use treachery_engine::prelude::*;
 
 use crate::actions::QueryError;
-use crate::build::{self, ResolvedViewer, Seating, Viewer};
+use crate::build::{self, ResolvedViewer, RulesParts, Seating, StateParts, Viewer};
 use crate::describe::{default_describer, Describer, InGame};
 use crate::schema::{DraftResult, GameView, ReportLines, RichText};
-use crate::skin_texts::FactionSheetCache;
 
-/// The skin a game's views are written in, and the faction sheets of the last view, which the
-/// next views reuse while they stay the same.
+/// The skin a game's views are written in, and the parts of the last view made only from the
+/// rules, the factions and the skin (the faction sheets, the rule labels), which the next views
+/// reuse while they stay the same.
 pub struct ViewCache {
     /// `DefaultSkin.Default` until the server replaces it with the host's skin. Private, so that
-    /// only [`ViewCache::set_skin`] changes it, which clears `sheets`.
+    /// only [`ViewCache::set_skin`] changes it, which clears `rules`.
     describer: Box<dyn Describer>,
-    sheets: FactionSheetCache,
+    rules: RulesParts,
 }
 
 impl Default for ViewCache {
     fn default() -> Self {
-        ViewCache { describer: default_describer(), sheets: FactionSheetCache::default() }
+        ViewCache { describer: default_describer(), rules: RulesParts::default() }
+    }
+}
+
+/// Builds the views of one game state, with one seating and bidding timer. Its views share the
+/// parts that don't read the viewer, built once for all of them. It borrows the game, the
+/// seating and the cache, so none of them can change while it lives.
+pub struct ViewBatch<'a> {
+    describer: &'a dyn Describer,
+    rules: &'a mut RulesParts,
+    game: &'a Game,
+    seating: &'a Seating,
+    timer: i32,
+    state: StateParts,
+}
+
+impl ViewBatch<'_> {
+    pub fn view(&mut self, viewer: Viewer) -> GameView {
+        self.view_as(&viewer.resolve(self.game))
+    }
+
+    pub fn view_as(&mut self, v: &ResolvedViewer) -> GameView {
+        build::build_view_cached(self.game, v, self.seating, self.describer, self.timer, self.rules, &mut self.state)
     }
 }
 
@@ -36,19 +65,25 @@ impl ViewCache {
     pub fn set_skin(&mut self, skin_json: &str) -> Result<(), String> {
         let skin = treachery_skin::Skin::load(skin_json, treachery_skin::default_skin()).map_err(|e| e.to_string())?;
         self.describer = Box::new(skin);
-        self.sheets.clear();
+        self.rules.clear();
         Ok(())
     }
 
-    /// The view of `viewer`. `timer` is the bidding time limit the host set, or -1.
+    /// The view of `viewer`. `timer` is the bidding time limit the host set, or -1. For several
+    /// views of the same game state, a [`ViewBatch`] builds what they share once.
     pub fn view(&mut self, game: &Game, viewer: Viewer, s: &Seating, timer: i32) -> GameView {
-        self.view_as(game, &viewer.resolve(game), s, timer)
+        self.batch(game, s, timer).view(viewer)
     }
 
     /// The view of a viewer resolved by the caller, for games whose participation seats no
     /// users (the bot-game traces).
     pub fn view_as(&mut self, game: &Game, v: &ResolvedViewer, s: &Seating, timer: i32) -> GameView {
-        build::build_view_cached(game, v, s, self.describer.as_ref(), timer, &mut self.sheets)
+        self.batch(game, s, timer).view_as(v)
+    }
+
+    /// A builder of views of `game` as it is now, with seating `s` and bidding timer `timer`.
+    pub fn batch<'a>(&'a mut self, game: &'a Game, s: &'a Seating, timer: i32) -> ViewBatch<'a> {
+        ViewBatch { describer: self.describer.as_ref(), rules: &mut self.rules, game, seating: s, timer, state: StateParts::default() }
     }
 
     /// A draft query for `viewer`. Refused unless the draft's type is one of the viewer's

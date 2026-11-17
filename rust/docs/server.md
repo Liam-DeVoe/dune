@@ -27,7 +27,7 @@ A call's notifications go out as the game thread produces them, then the game vi
 | `passwords.rs` | Argon2id hashes of account passwords |
 | `time.rs`, `timers.rs`, `mail.rs`, `ids.rs`, `render.rs`, `static_files.rs` | Clock, delayed work, mail, random tokens and ids and the digests tokens are stored as, text with the default skin, the web client's files |
 
-Views are built from the running game itself, since every engine query takes `&Game`. Each followed game has a `ViewCache` (`views.rs`, `rust/view/src/cache.rs`) with the skin and the faction sheets of the last view; it starts over when the game is replaced or a view fails to build. The participation's names and bot speed and the host's timer are passed in with each build.
+Views are built from the running game itself, since every engine query takes `&Game`. Each followed game has a `ViewCache` (`views.rs`, `rust/view/src/cache.rs`) with the skin and the parts of the last view made from the rules (the faction sheets, the rule labels); it starts over when the game is replaced or a view fails to build. The views one call sends are built together (`ViewCache::batch`), so the parts every viewer sees alike are built once for all of them. The participation's names and bot speed and the host's timer are passed in with each batch.
 
 ## Accounts and sessions
 

@@ -202,7 +202,7 @@ fn mentat() {
         saw_richese |= !expected.richese_cards.is_empty();
         assert!(!expected.treachery_cards.is_empty() && !expected.resource_cards.is_empty());
         for (f, view) in views {
-            assert_eq!(view.mentat, expected, "{fx} {f:?}");
+            assert_eq!(*view.mentat, expected, "{fx} {f:?}");
         }
     }
     let _ = saw_richese;

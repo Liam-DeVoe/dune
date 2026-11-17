@@ -527,7 +527,7 @@ fn board_basics() {
         for (f, view) in all_views(&mut r) {
             let g = &r.game;
             let b = &view.board;
-            for fv in &b.forces {
+            for fv in b.forces.iter() {
                 let p = player(&r, Faction::ALL.iter().copied().find(|x| x.to_string() == fv.faction).unwrap());
                 let l = g.board.map.locations(true).find(|l| l.id() == fv.location).unwrap();
                 assert_eq!(fv.threatened, g.threatened_by_ally_presence(p, l.territory()));
@@ -684,7 +684,7 @@ fn timing() {
     }
     assert!(view.timing.time_spent.iter().any(|t| t.bidding > 0.0));
     assert_eq!(view.ruleset, name_or_absent(g.rules.ruleset));
-    assert_eq!(view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
+    assert_eq!(*view.rules, g.rules.active.iter().map(|r| name(*r)).collect::<Vec<_>>());
     assert_eq!(view.economics_status, name_or_absent(g.board.choam_economics_status));
 }
 

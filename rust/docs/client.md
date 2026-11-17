@@ -21,9 +21,22 @@ Each generated file is checked in, and its test fails when it is stale. After ch
 
 Views are built from the server's own game. Every engine query that a view or draft query makes takes `&Game` ([Queries](engine-conventions.md#queries)), so building a view can't change the game, and views of different viewers can be built in any order.
 
-What a game's views keep between builds is a `ViewCache` (`rust/view/src/cache.rs`): the skin and the faction sheets of the last view, which later views reuse while the factions and rules stay the same. Its methods are the view calls: `view`, `query` (a draft query, refused unless the draft's type is one of the viewer's current actions), `report`, `undo_list` and `preview` (the view at an earlier point, from a replay into a new game). The server keeps one cache per followed game and starts it over when the game is replaced (undo, restore, dismiss, load) or a view fails to build (`server/src/views.rs`). Tools and tests that hold a game of their own use `ViewedGame`, a game together with its cache, seating and timer.
+What a game's views keep between builds is a `ViewCache` (`rust/view/src/cache.rs`): the skin, and the parts of the last view made only from the rules, the factions and the skin (the faction sheets, the rule labels, the rule names), which later views reuse while what they read stays the same. Its methods are the view calls: `view`, `query` (a draft query, refused unless the draft's type is one of the viewer's current actions), `report`, `undo_list` and `preview` (the view at an earlier point, from a replay into a new game). The server keeps one cache per followed game and starts it over when the game is replaced (undo, restore, dismiss, load) or a view fails to build (`server/src/views.rs`). Tools and tests that hold a game of their own use `ViewedGame`, a game together with its cache, seating and timer.
 
 `rust/view/src/build.rs` builds a view from the game, a `Viewer` (the user's seat, and whether they host or observe; `resolve` finds their player and faction in the game), a `Seating` (player names and the bot speed, which the server knows and the engine doesn't) and a skin. `tests/slice.rs` builds every viewer's view in different orders and requires the same views.
+
+### Shared view parts
+
+The server and the harness build the views of every viewer after each event, and much of each view is the same for all of them. A `ViewBatch` (`ViewCache::batch`) builds the views of one game state, with one seating and timer. It borrows the game, so the game can't change while it lives, and its views share the parts that don't read the viewer as `Arc`s. serde's `rc` feature serializes an `Arc` like the value it holds, so the JSON doesn't change.
+
+| Shared | For how long | Why it's the same for every viewer |
+|---|---|---|
+| `players`, `timing`, `mentat`, `ending`, `log.reports` | the batch | built by functions that don't get the viewer |
+| the lines of `log.latest` | the batch | a line doesn't read the viewer; each viewer still gets only the lines they may read |
+| `board`: `forces`, `spice`, `strongholds`, `ambassadors`, `attached`, `leaders`, `monsters`, `specialStrongholds`, `protectedFromStorm`, `recentMoves` | the batch | the rest of the board reads the viewer (terror tokens, discoveries, No-Field, storm prescience) or their status (highlighted territories), and stays per viewer |
+| `factionSheets`, `ruleLabels`, `rules`, `rulesForBots` | while what they read stays the same | made from the rules, the factions and the skin; the `ViewCache` keeps each with a key of what it reads, and clears them when the skin changes |
+
+A shared part is built when the first view of the batch needs it, at the point where that view would build it on its own, and kept only when it was built without a panic. So an engine panic happens in the same view and place as without sharing. `tests/shared_parts.rs` checks that views built together have the JSON of views built alone, after events, an undo and a restore, a rejected event and an event that failed after changing the game. `piles`, `tanks` and the rest of the view read the viewer and are built for each one.
 
 ## Visibility
 

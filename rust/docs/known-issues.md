@@ -15,7 +15,6 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 - `TraitorDiscarded` logs that the traitor deck is shuffled, but the deck isn't shuffled. Either the rule or the text is wrong. Check the rulebook.
 - "X is a Y facedancer!" and "CHOAM The Economics Token flips ..." read badly.
 - A custom skin missing any default key is replaced by the default skin entirely (C#'s `FixDictionary`), so its custom names are lost.
-- The web client's Karama help text has typos ("an advantages ... occured").
 
 ## Checked and correct
 

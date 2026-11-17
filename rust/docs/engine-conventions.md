@@ -66,7 +66,7 @@ To change a phase, change its state struct, its step enum and the functions abov
 3. Add its prompt and actions in the phase's status and actions functions, and its `EndPhase` arm if the host moves it on.
 4. Check who reads the flat phase: the bots (`rust/bots`), the views (`rust/view`), and `server/src/pause_rules.rs`, which decides what each pause between phases waits for.
 
-Some state outlives its phase on purpose and lives elsewhere: in `turn` (the intrusion queue `turn.intrusions`, storm losses still to take, what the last bidding left in `turn.last_bidding`), in `board` (the latest spice cards, worms) or in `battle_leftovers`. Before you move such a field into a phase state, check every reader. The bots read some of them long after the phase.
+Some state outlives its phase on purpose and lives elsewhere: in `turn` (the intrusion queue `turn.intrusions`, storm losses still to take), in `board` (the latest spice cards, worms) or in `battle_leftovers`. Before you move such a field into a phase state, check every reader. The bots read some of them long after the phase.
 
 ## Ids and newtypes
 

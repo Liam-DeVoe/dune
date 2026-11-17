@@ -100,7 +100,7 @@ fn deny_all_requests_adds_max_offers() {
     g.enter_revival(RevivalStep::Reviving);
     let emperor_leaders: Vec<Leader> = LeaderManager::get_leaders(Faction::Emperor).collect();
     let emperor = g.get_player(Some(Faction::Emperor));
-    g.turn.revivals.current_revival_requests.push(RevivalRequest { initiator: Some(Faction::Emperor), player: emperor, hero: Some(Hero::Leader(emperor_leaders[0])) });
+    g.revival_mut().unwrap().current_revival_requests.push(RevivalRequest { initiator: Some(Faction::Emperor), player: emperor, hero: Some(Hero::Leader(emperor_leaders[0])) });
 
     // _heroId defaults to 0, and HeroLookup.Find(0) is treachery card 0, not null
     // (LeaderManager.cs:137). Deny-all is Hero == null, i.e. _heroId -1.
@@ -110,7 +110,7 @@ fn deny_all_requests_adds_max_offers() {
     let by = By::new(&g, Faction::Tleilaxu);
     deny.apply(&mut g, by).unwrap();
     assert_eq!(g.revival().unwrap().early_revivals_offers[&Hero::Leader(emperor_leaders[0])], i32::MAX);
-    assert!(g.turn.revivals.current_revival_requests.is_empty());
+    assert!(g.revival().unwrap().current_revival_requests.is_empty());
 }
 
 #[test]

@@ -1009,7 +1009,7 @@ impl ClassicBot {
 
     pub fn determine_revival(&self, game: &Game) -> Option<Revival> {
         let faction = self.faction(game);
-        if game.turn.revivals.current_revival_requests.iter().any(|r| r.initiator == Some(faction)) {
+        if game.revival().is_some_and(|rv| rv.current_revival_requests.iter().any(|r| r.initiator == Some(faction))) {
             return None;
         }
 

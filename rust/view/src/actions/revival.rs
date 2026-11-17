@@ -179,7 +179,7 @@ fn normalize_once(game: &Game, p: PlayerId, draft: &Event) -> Event {
         Event::AcceptOrCancelTleilaxuRevival(e) => {
             let mut e = e.clone();
             e.cancel = false;
-            if !game.turn.revivals.current_revival_requests.is_empty() {
+            if game.revival().is_some_and(|r| !r.current_revival_requests.is_empty()) {
                 let heroes = request_heroes(game);
                 if !e.hero.is_some_and(|h| heroes.contains(&h)) {
                     e.hero = heroes.first().copied();
@@ -212,7 +212,7 @@ fn raise_dead_on_planet(game: &Game, p: PlayerId, e: &RaiseDeadPlayed) -> i32 {
 }
 
 fn request_heroes(game: &Game) -> Vec<Hero> {
-    game.turn.revivals.current_revival_requests.iter().filter_map(|r| r.hero).collect()
+    game.revival().map_or_else(Vec::new, |rv| rv.current_revival_requests.iter().filter_map(|r| r.hero).collect())
 }
 
 /// The options and validation of a revival form for `draft`, or `None` for other event types.
@@ -292,7 +292,7 @@ fn options(game: &Game, p: PlayerId, draft: &Event, d: &dyn Describer) -> Action
         }),
         Event::AcceptOrCancelTleilaxuRevival(e) => ActionOptions::AcceptOrCancelTleilaxuRevival(AcceptOrCancelTleilaxuRevivalOptions {
             requests: hero_options(request_heroes(game)),
-            bot_awaits: game.turn.revivals.current_revival_requests.iter().any(|r| game.player(r.player.expect("the request has a player")).is_bot(game)),
+            bot_awaits: game.revival().into_iter().flat_map(|rv| rv.current_revival_requests.iter()).any(|r| game.player(r.player.expect("the request has a player")).is_bot(game)),
             offers: game
                 .revival()
                 .into_iter()

@@ -35,13 +35,15 @@ impl EventRules for AcceptOrCancelTleilaxuRevival {
 
         match self.hero {
             None => {
-                let requests = game.turn.revivals.current_revival_requests.clone();
+                let requests = game.revival().map(|r| r.current_revival_requests.clone()).unwrap_or_default();
                 for r in requests.iter() {
                     let Some(h) = r.hero else { game_error!("A revival request has no leader") };
                     game.revival_mut().required("the revival phase")?.early_revivals_offers.insert_new(h, i32::MAX);
                 }
 
-                game.turn.revivals.current_revival_requests.clear();
+                if let Some(r) = game.revival_mut() {
+                    r.current_revival_requests.clear();
+                }
             }
             Some(hero) => {
                 game.revival_mut().required("the revival phase")?.early_revivals_offers.shift_remove(&hero);
@@ -51,8 +53,9 @@ impl EventRules for AcceptOrCancelTleilaxuRevival {
                 }
 
                 // C# removed the first request for the hero, by reference.
-                if let Some(i) = game.turn.revivals.current_revival_requests.iter().position(|r| r.hero == Some(hero)) {
-                    game.turn.revivals.current_revival_requests.remove(i);
+                let requests = &mut game.revival_mut().required("the revival phase")?.current_revival_requests;
+                if let Some(i) = requests.iter().position(|r| r.hero == Some(hero)) {
+                    requests.remove(i);
                 }
             }
         }

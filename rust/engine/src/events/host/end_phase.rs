@@ -103,7 +103,6 @@ impl EndPhase {
     }
 
     pub fn enter_revival_phase(&self, game: &mut Game) {
-        game.leave_bidding();
         game.main_phase_start(MainPhase::Resurrection, true);
         game.allow(FactionAdvantage::HarkonnenFreeCard);
         game.allow(FactionAdvantage::EmperorReceiveBid);
@@ -122,9 +121,10 @@ impl EndPhase {
         if game.revival().expect("in the revival phase").revival_tech_token_income {
             game.receive_tech_income(TechToken::Graveyard);
         }
-        game.turn.revivals.current_karma_revival_prevention = None;
         game.turn.current_fremen_secret_ally = None;
-        game.revival_mut().expect("in the revival phase").current_recruits_played = false;
+        let r = game.revival_mut().expect("in the revival phase");
+        r.current_karma_revival_prevention = None;
+        r.current_recruits_played = false;
 
         game.main_phase_end();
         game.enter_revival(RevivalStep::Report);

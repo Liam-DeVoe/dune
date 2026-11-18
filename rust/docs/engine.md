@@ -34,7 +34,7 @@ The Rust workspace (`rust/Cargo.toml`) and how the engine and bots are laid out.
 | `identity.rs` | The `Identifiable` and `Fetcher` traits for looking objects up by id. |
 | `iter.rs` | Iterator and map helpers std lacks (`distinct`, `remove_first`, `contains_opt`, `get_opt`, `insert_new`). |
 | `error.rs` | `GameError`, `GameResult`, `Required` ([Errors](engine-conventions.md#errors)). |
-| `parse.rs` | Reading the numbers and enum names that events carry as text (force lists, deal and Clairvoyance parameters), with the C# version's grammar and messages. |
+| `parse.rs` | Reading the numbers and enum names that events carry as text (force lists, deal and Clairvoyance parameters). A refused event shows its error message to the player. |
 | `compat/` | `DateTimeOffset` and `TimeSpan`, the time of history entries and the timers. |
 | `prelude.rs` | The common import, `use crate::prelude::*;`. |
 

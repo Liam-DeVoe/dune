@@ -7,7 +7,7 @@
 }
 
 :8080 {
-	# The Rust site was a beta under /beta/ before it replaced the C# site. Old links land on
+	# The site ran as a beta under /beta/ before it moved to the root. Old links land on
 	# the same path at the root.
 	redir /beta / 301
 	handle_path /beta/* {

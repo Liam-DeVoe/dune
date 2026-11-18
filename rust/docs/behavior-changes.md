@@ -367,7 +367,7 @@ Not part of the review. Each has an escapes.md entry with the details.
 - The engine holds no floats. A strength or dial is `HalfPoints`, a whole number of halves, and halving a cost uses integers (`half_rounded_up`). Every strength, cost and log text of a well-formed game is the same as with C#'s `float`, because each was already a multiple of 0.5 well inside a `float`'s exact range.
 - A Clairvoyance question "is your dial higher than X?" takes a whole or half number. Any other number, such as "2.7", fails the event like a parameter that isn't a number: "The input string '2.7' is not a whole or half number." The form only offers 0 to 25 in halves. A dial is always a multiple of 0.5, so the answer to a question with X in between is the same as with X rounded down to a half.
 - Costs of more than 16,777,216 forces are now exact. C# halved them in `float`, which rounded first: shipping 16,777,217 forces back to reserves cost 8,388,608, and now costs 8,388,609. Only a crafted event can hold such an amount.
-- Tests: `strength_plain_text` and `halves_round_like_dotnet` in `engine/tests/review_foundation.rs`, `clairvoyance_parameters_parse_like_dotnet` in `engine/tests/pkg_j_faction_specials.rs`, `shipment_costs_match_csharp_at_the_edges` in `engine/tests/review_pkg_g.rs`.
+- Tests: `strength_plain_text` and `halves_round_like_float_ceil_truncate_and_floor` in `engine/tests/review_foundation.rs`, `clairvoyance_parameters_parse_numbers_and_names` in `engine/tests/pkg_j_faction_specials.rs`, `shipment_costs_at_the_edges` in `engine/tests/review_pkg_g.rs`.
 
 ## The history keeps a battle plan as it was submitted
 
@@ -448,3 +448,28 @@ Not part of the review. Each has an escapes.md entry with the details.
 - What happened: a deal offer's id, which the deals panel sends as `id`, was the place of its `DealOffered` in the history. After an undo, an offer made at the place of an undone offer got that offer's id. The client keeps the ids it has seen (the toasts) and answered (`answeredDeals`), so it showed no toast for the new offer, or took it as answered.
 - Done: offers are numbered 0, 1, 2, ... in the order they are made (`DealId`, game/deals.rs). The game remembers each offer's id by its history entry (`EntryId`), and `Game::new_like` passes the numbering on. So an undo or a dismissal, which replay the history into such a game, keeps the ids of the offers they replay, and an offer made afterwards gets an id never given before. An offer made after an undo also uses up its id in the game a restore returns to. Loading a savegame numbers its offers from 0 again. Events carry no deal ids (accepting or declining names the offer by its terms), so savegames and bots are unaffected. Test: `deal_ids_survive_undo_and_are_never_given_twice` in engine/tests/pkg_k_alliances_deals_status.rs.
 - Harness (12 bots and 12 fuzz games, seed 1, against the shared reference): with the DealTypeOption name and the plain-text spacing put back, 10 bots and 12 fuzz games differ, each first at a view after a `DealOffered` where only the offer's `id` changes (bots game 0: `/deals/acceptable/0/id` 4 -> 0; fuzz game 4: 25 -> 0). With the view's id set back to the offer's place in the history, all 24 pass, so the numbering changes nothing else.
+
+## The server's rewrite
+
+The server was first a line-by-line port of the C# `GameHub`. These differences were made on purpose when it was rewritten (2026-11-11):
+
+- A refused event's message no longer ends in `*`.
+- An invalid `EstablishPlayers` is refused like any other event, and the seats stay as they were.
+- Async-play mail goes out when the game starts. Before, the seats were assigned after the mail, so nobody got the first one.
+- Each login starts its own session; logging in again no longer returns the token of an earlier session.
+- Calls carry no token: a connection logs in once and acts as that user. Session tokens are random 32-byte values stored as digests, expire after 30 idle or 90 days, and end on logout, a new password or the account's deletion. Async-play mails link with a single-use login token, not a session token.
+- Passwords are stored as Argon2id hashes of the client's SHA-256, not the SHA-256 itself.
+- The server sets who submitted an event, `FactionSelected`'s seat and name, and the game's seed; only hosts start a game. Before, any user who knew a game's id could act as any faction in it.
+- Observers and users outside a game can't submit events, query drafts, chat in it, take part in pauses or nudge its bots; outsiders can't read its reports.
+- Chat messages carry the caller as their source, and a message to one user goes only to that user and the sender.
+- Settings are for hosts, not the creator alone. Hosts can only make players hosts, kick members of the game, open real seats and seat players on real seats, and set bot speeds of 0 to 4. A user joins a particular seat only once it is open, and a kicked user can't observe.
+- `reconnectGame` returns the game's name.
+- Leaving a game or being kicked stops every connection of that user from following it, not only the last one.
+- Changes are saved within seconds and on shutdown, not every five minutes.
+- The admin's `adminReloadAll` (C# `AdminRestoreState`) loads the saved games that aren't running and leaves running games alone. `adminCloseGame` also deletes the game from the database.
+- Deleting a user ends their sessions, and they leave every game they joined, as if they had left it themselves.
+- A mail to an address that doesn't parse is skipped with a log line. The call that sends it still succeeds.
+- The lobby is computed for each request instead of from a copy refreshed every 6 seconds.
+- A bot speed change is sent to the game's members only, not to every connection on the server.
+- The messages are typed and camelCase, enums go by name, and errors carry a code and a text (protocol.md). The C# hub's `Result` objects, PascalCase members and numbered `ErrorType` are gone.
+- The errors for too many games give the server's limits, 10 running and 3 scheduled games per user. The texts had the two numbers the other way round.

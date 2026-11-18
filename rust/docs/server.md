@@ -31,7 +31,7 @@ Views are built from the running game itself, since every engine query takes `&G
 
 ## Accounts and sessions
 
-The client sends the SHA-256 of a password, as the C# client did. The server stores an Argon2id hash of that value (`passwords.rs`: a random 16-byte salt, 19 MiB, 2 passes, 1 lane, OWASP's minimum), as a PHC string that names its own parameters. Hashing a password takes a few tens of milliseconds on the game thread, once per login, account or password change.
+The client sends the SHA-256 of a password, never the password itself. The server stores an Argon2id hash of that value (`passwords.rs`: a random 16-byte salt, 19 MiB, 2 passes, 1 lane, OWASP's minimum), as a PHC string that names its own parameters. Hashing a password takes a few tens of milliseconds on the game thread, once per login, account or password change.
 
 Each connection is logged in with at most one session (`Connections::log_in`). `authenticate` and the calls that start a session bind one; every other call takes its user from there (`Server::caller`), and none carries a token. Session tokens are 32 random bytes from the operating system. The server keeps only their SHA-256, in memory and in the database. A session ends 90 days after it started or 30 days after a connection last authenticated with it, and a user keeps at most 20. Logout, a new password and deleting the account end sessions (`end_session`), which sends `sessionEnded` to their connections, logs them out and stops them following games. A call on a connection whose session expired since it logged in ends it the same way.
 
@@ -47,7 +47,7 @@ The server keeps everything in memory and writes changes through to the database
 
 The tables are `users`, `sessions`, `login_links`, `games` and `scheduled_games`. Times are RFC 3339 text in UTC. Passwords are Argon2id hashes, marked `users.password_scheme` 1, and the server refuses to load a user with another scheme. Session, login link and reset tokens are stored as digests.
 
-SQLite's `user_version` holds the schema version (`db::SCHEMA_VERSION`, 3). `Db::open` creates the schema in an empty database and opens a database of version 3. Anything else, an older version (including the old C# server's database) or a database with tables but no version, is an error, and the server doesn't start. There are no migrations: a change to the schema needs a new database or a hand-written conversion. A stored game in the savegame format of version 190 or before no longer loads, and is left out at startup like any other.
+SQLite's `user_version` holds the schema version (`db::SCHEMA_VERSION`, 3). `Db::open` creates the schema in an empty database and opens a database of version 3. Anything else, an older version or a database with tables but no version, is an error, and the server doesn't start. There are no migrations: a change to the schema needs a new database or a hand-written conversion. A stored game in the savegame format of version 190 or before no longer loads, and is left out at startup like any other.
 
 ## Timers
 
@@ -64,28 +64,3 @@ Environment variables, listed with their defaults in `src/settings.rs`. Producti
 The tests in `tests/` drive the server through the protocol only: they send the JSON a client sends and read what it gets back. `tests/common/mod.rs` runs a server in process on a temporary database with a manual clock, recorded timers and recorded mail, and can restart it on the same database. The files are by area: `accounts` (logins, sessions, logout, expiry), `authority` (outsiders, observers and other players refused; events rewritten as the caller's), `games` (lobby, seats, chat, the envelope), `play` (events, views, undo, pauses, bots, async mail and its login links), `admin`, `persistence` (restarts, games that no longer load) and `dev_scene`. The test server draws seed 12345 for every new game (`Services::seeds`), so games started in tests play out the same each time.
 
 End to end, `scripts/ui/e2e_server.py` starts the release binary with the web build and drives browsers through Playwright: two players forming an alliance, others joining, leaving, being kicked and observing, undo, a dropped connection, logging in through the form and out, and the dev scene. Its docstring lists every step.
-
-## Behaviour that differs from the C# server
-
-The server was first a line-by-line port of the C# `GameHub`. These differences were made on purpose when it was rewritten:
-
-- A refused event's message no longer ends in `*`.
-- An invalid `EstablishPlayers` is refused like any other event, and the seats stay as they were.
-- Async-play mail goes out when the game starts. Before, the seats were assigned after the mail, so nobody got the first one.
-- Each login starts its own session; logging in again no longer returns the token of an earlier session.
-- Calls carry no token: a connection logs in once and acts as that user. Session tokens are random 32-byte values stored as digests, expire after 30 idle or 90 days, and end on logout, a new password or the account's deletion. Async-play mails link with a single-use login token, not a session token.
-- Passwords are stored as Argon2id hashes of the client's SHA-256, not the SHA-256 itself.
-- The server sets who submitted an event, `FactionSelected`'s seat and name, and the game's seed; only hosts start a game. Before, any user who knew a game's id could act as any faction in it.
-- Observers and users outside a game can't submit events, query drafts, chat in it, take part in pauses or nudge its bots; outsiders can't read its reports.
-- Chat messages carry the caller as their source, and a message to one user goes only to that user and the sender.
-- Settings are for hosts, not the creator alone. Hosts can only make players hosts, kick members of the game, open real seats and seat players on real seats, and set bot speeds of 0 to 4. A user joins a particular seat only once it is open, and a kicked user can't observe.
-- `reconnectGame` returns the game's name.
-- Leaving a game or being kicked stops every connection of that user from following it, not only the last one.
-- Changes are saved within seconds and on shutdown, not every five minutes.
-- The admin's `adminReloadAll` (C# `AdminRestoreState`) loads the saved games that aren't running and leaves running games alone. `adminCloseGame` also deletes the game from the database.
-- Deleting a user ends their sessions, and they leave every game they joined, as if they had left it themselves.
-- A mail to an address that doesn't parse is skipped with a log line. The call that sends it still succeeds.
-- The lobby is computed for each request instead of from a copy refreshed every 6 seconds.
-- A bot speed change is sent to the game's members only, not to every connection on the server.
-- The messages are typed and camelCase, enums go by name, and errors carry a code and a text (protocol.md). The C# hub's `Result` objects, PascalCase members and numbered `ErrorType` are gone.
-- The errors for too many games give the server's limits, 10 running and 3 scheduled games per user. The texts had the two numbers the other way round.

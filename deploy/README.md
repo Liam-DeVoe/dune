@@ -1,6 +1,6 @@
 # treachery-online
 
-Self-hosted copy of [treachery.online](https://github.com/ronaldossendrijver/treachery.online), running at https://treachery.exe.xyz/. The site is the Rust server (`rust/server`) and the React client (`web/`), with the art, fonts, scripts and PDFs in `web/assets` and the SCSS in `web/styles`. The Rust code started as a port of the original C# code, which was brought in with `git subtree` as `treachery-online/` and deleted on 2026-11-13; it is in git history.
+Self-hosted copy of [treachery.online](https://github.com/ronaldossendrijver/treachery.online), running at https://treachery.exe.xyz/. The site is the Rust server (`rust/server`) and the React client (`web/`), with the art, fonts, scripts and PDFs in `web/assets` and the SCSS in `web/styles`. The Rust code started as a port of the original C# code, which was brought in with `git subtree` as `treachery-online/` and deleted on 2026-11-13; it is in git history before commit f794887.
 
 - `deploy/` is everything needed to rebuild the box from scratch. The VM is disposable; this repo is the source of truth.
 
@@ -12,7 +12,7 @@ just deploy
 
 That runs `deploy/deploy.sh`. It builds `web/` here, compiles the stylesheet with Dart Sass, and rsyncs the web build, the assets and `rust/` to the VM. Then it builds the server there with cargo (about 3 minutes from scratch, under a minute after) and restarts the service. If `deploy/treachery.service` or `deploy/Caddyfile` changed, it installs them too. The database on the VM is never touched.
 
-exe.dev forwards https://treachery.exe.xyz/ to Caddy on port 8080 of the VM ([`deploy/Caddyfile`](Caddyfile)), which proxies everything to the Rust server on port 8000. `/beta/...`, where the Rust site ran before it replaced the C# one, redirects to the same path at the root. The server sends no mail, because no SMTP user is set. Its settings are environment variables in `deploy/treachery.service`, described in `rust/server/src/settings.rs`; [rust/docs/server.md](../rust/docs/server.md) describes the server.
+exe.dev forwards https://treachery.exe.xyz/ to Caddy on port 8080 of the VM ([`deploy/Caddyfile`](Caddyfile)), which proxies everything to the Rust server on port 8000. `/beta/...`, where the site ran during its beta, redirects to the same path at the root. The server sends no mail, because no SMTP user is set. Its settings are environment variables in `deploy/treachery.service`, described in `rust/server/src/settings.rs`; [rust/docs/server.md](../rust/docs/server.md) describes the server.
 
 ## Rebuilding the box
 

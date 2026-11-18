@@ -280,8 +280,6 @@ impl Game {
                 if EXPANSION_LEVEL < 2 {
                     empty
                 } else {
-                    // Known quirk (known-issues.md): StrongholdBonus is listed twice in this
-                    // ruleset.
                     &[
                         Rule::LeaderSkills,
                         Rule::Expansion2TreacheryCards,
@@ -290,7 +288,6 @@ impl Game {
                         Rule::TleilaxuGholas,
                         Rule::ChoamAuditor,
                         Rule::RicheseBlackMarket,
-                        Rule::StrongholdBonus,
                         Rule::MoritaniAssassinate,
                         Rule::EcazLoyalty,
                     ]

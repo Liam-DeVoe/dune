@@ -118,11 +118,14 @@ impl Game {
         let choam = self.get_player(Some(Faction::Choam));
 
         let to_faction = self.player(to).faction;
-        crate::game::amounts::gain(&mut self.player_mut(to).resources, basic_amount + homeworld_bonus, "spice").expect("charity");
+        // The homeworld bonus comes from the bank. The basic amount comes from CHOAM when they
+        // control charity, and only if they can pay all of it.
+        crate::game::amounts::gain(&mut self.player_mut(to).resources, homeworld_bonus, "spice").expect("charity");
         match choam {
             Some(choam) if !self.prevented(FactionAdvantage::ChoamControllingCharity) => {
                 if i32::from(self.player(choam).resources) >= basic_amount {
                     crate::game::amounts::spend(&mut self.player_mut(choam).resources, basic_amount, "spice").expect("charity paid by CHOAM");
+                    crate::game::amounts::gain(&mut self.player_mut(to).resources, basic_amount, "spice").expect("charity");
                     self.log(parts![
                         to_faction,
                         " get ",
@@ -132,8 +135,6 @@ impl Game {
                         express_part_if!(homeworld_bonus > 0; " and ", Payment::of(homeworld_bonus), " from the bank")
                     ]);
                 } else {
-                    // Known quirk (known-issues.md): the claimant was already paid above, from the
-                    // bank, even though Choam cannot pay.
                     self.log(parts![
                         to_faction,
                         " are unable to claim ",
@@ -145,6 +146,7 @@ impl Game {
                 }
             }
             _ => {
+                crate::game::amounts::gain(&mut self.player_mut(to).resources, basic_amount, "spice").expect("charity");
                 let amount = basic_amount + homeworld_bonus;
                 let msg = express!(to_faction, " claim ", Payment::of(amount)).with_log(CharityClaim::new(to_faction.expect("faction"), amount));
                 self.log(parts![msg]);

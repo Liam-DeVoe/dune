@@ -21,7 +21,7 @@ import type { ImageChoice } from "../SelectFromImage";
 // GameEventComponentLayout's collapse state, kept per component type for the session.
 const collapsedByType = new Map<string, boolean>();
 
-// GenericComponents/GameEventComponentLayout.razor: a card with a collapsible header. Panels
+// A card with a collapsible header. Panels
 // opened from a popover (the hand's card plays) start open and don't fade in.
 export function Layout({ type, header, urgent = false, inPopover = false, className = "", children }: {
   type: string;
@@ -59,7 +59,8 @@ export function useBattleDraft<F extends WithDraft["form"]>(action: ActionView, 
   const submit = async (changes: Fields = {}) => setError(await source.submit(withChanges(changes)));
   const submitPass = async () => setError(await source.submit(pass()));
   // A submission the form makes by itself (BattleInitiated with one fight, TreacheryCalled when
-  // there is nothing to call): C# only logs a refusal to the console.
+  // there is nothing to call): a refusal only goes to the console, because the player didn't ask
+  // for it.
   const autoSubmit = async (changes: Fields = {}) => {
     const refused = await source.submit(withChanges(changes));
     if (refused) console.log(refused);
@@ -72,7 +73,7 @@ export function SubmitError({ error }: { error: string | null }) {
   return error ? <div className="text-danger small">{error}</div> : null;
 }
 
-// GenericComponents/RadioComponent.razor: one radio per value, with an optional label above.
+// One radio per value, with an optional label above.
 export function Radio<T>({ values, labels, value, onChange, label }: {
   values: T[];
   labels: string[];
@@ -95,7 +96,7 @@ export function Radio<T>({ values, labels, value, onChange, label }: {
   );
 }
 
-// GenericComponents/SelectForcesComponent.razor: a number picker with the faction's force or
+// A number picker with the faction's force or
 // special force token as its symbol.
 export function SelectForces({ value, onChange, onStep, min, max, faction, special, label = "" }: {
   value: number;
@@ -118,14 +119,13 @@ export function SelectForces({ value, onChange, onStep, min, max, faction, speci
   );
 }
 
-// Skin.GetImageUrl(IHero).
 export function heroImage(skin: Skin, h: HeroRef): string {
   if (h.t === "leader") return skin.personImage(h.id);
   if (h.t === "messiah") return skin.url(skin.str("Messiah_URL"));
   return skin.cardImage(h.id);
 }
 
-// Skin.GetPopup(IHero, Game): a skilled leader shows its skill card.
+// A skilled leader shows its skill card.
 export function heroPopup(skin: Skin, view: GameView, h: HeroRef): string {
   if (h.t === "treacheryCard") return treacheryCardPopup(skin, h.id);
   if (h.t === "messiah") return messiahPopup(skin);
@@ -161,7 +161,7 @@ export function PinActions({ label, validation, cancel, confirm }: { label: stri
   );
 }
 
-// GenericComponents/MapForceStepper.razor: a small force counter for panels pinned on the map.
+// A small force counter for panels pinned on the map.
 export function MapForceStepper({ value, onChange, min, max, faction, special }: {
   value: number;
   onChange: (v: number) => void;

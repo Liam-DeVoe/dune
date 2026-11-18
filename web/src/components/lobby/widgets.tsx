@@ -1,12 +1,12 @@
-// The generic C# components the lobby and setup screens use, for pages without a game view (the
-// shared ones in components/ read the skin from the game context). Each names its razor file.
+// The generic components the lobby and setup screens use, for pages without a game view (the
+// shared ones in components/ read the skin from the game context).
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { Faction } from "../../generated/enums";
 import { useLobbyClient } from "../../lobby/context";
 import "../Image.css";
 import "./lobby.css";
 
-/** GenericComponents/CommandButton.razor: disabled while its click runs. */
+/** Disabled while its click runs. */
 export function CommandButton({ onClick, children, className = "btn-primary", small = false, enabled = true, marginClass = "me-1", paddingClass = "", title = "" }: {
   onClick: () => unknown;
   children?: ReactNode;
@@ -32,7 +32,7 @@ export function CommandButton({ onClick, children, className = "btn-primary", sm
   return <button className={classes} onClick={click} disabled={!enabled || busy} title={title}>{children}</button>;
 }
 
-/** GenericComponents/FactionComponent.razor, with the lobby's skin. */
+/** FactionComponent, with the lobby's skin. */
 export function FactionImage({ faction, title = "", diameter = 30, hasShadow = true, marginClass = "", onClick }: {
   faction: Faction;
   title?: string;
@@ -48,7 +48,7 @@ export function FactionImage({ faction, title = "", diameter = 30, hasShadow = t
 }
 
 /**
- * GenericComponents/Image.razor with `Shown` a faction: the sigil, its name as the tooltip (a
+ * Image with `Shown` a faction: the sigil, its name as the tooltip (a
  * faction has no rich popover), and the image classes.
  */
 export function FactionShown({ faction, width, noShadow = false, darkened = false, pointer = false, highlightOnHover = false, onClick }: {
@@ -68,7 +68,7 @@ export function FactionShown({ faction, width, noShadow = false, darkened = fals
   return <img alt={name} className={classes} width={String(width)} src={skin.factionImage(faction)} onClick={onClick} title={name} />;
 }
 
-/** GenericComponents/SelectFromImageComponent.razor with `Selected`: a multiple choice of factions. */
+/** SelectFromImageComponent with `Selected`: a multiple choice of factions. */
 export function SelectFactions({ values, selected, onChange, imageWidth = 60, label }: {
   values: Faction[];
   selected: Faction[];
@@ -94,7 +94,7 @@ export function SelectFactions({ values, selected, onChange, imageWidth = 60, la
   );
 }
 
-/** GenericComponents/SelectFromImageComponent.razor with `Value`: a single faction, or none when not required. */
+/** SelectFromImageComponent with `Value`: a single faction, or none when not required. */
 export function SelectFaction({ values, value, onChange, imageWidth = 60, required = true }: {
   values: Faction[];
   value: Faction | null;
@@ -124,7 +124,7 @@ function clampInto(value: number, min: number, max: number): number {
 }
 
 /**
- * GenericComponents/SelectNumberComponent.razor around NumberPickerComponent: a label and a
+ * SelectNumberComponent around NumberPickerComponent: a label and a
  * typeable number with arrows. A value outside [min, max] is moved into it.
  */
 export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown = 1, label = "", disabled = false, size = 36 }: {
@@ -184,7 +184,7 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
   );
 }
 
-/** GenericComponents/ChecklistItemComponent.razor: a checkbox labelled with the value's description. */
+/** A checkbox labelled with the value's description. */
 export function ChecklistItem({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
@@ -197,8 +197,8 @@ export function ChecklistItem({ label, checked, onChange, disabled = false }: { 
 
 /**
  * A Bootstrap dropdown button (`btn-group` with `data-bs-toggle="dropdown"`), as
- * SubscribeComponent and UserStatusComponent draw them. Bootstrap's script opens the menu in the
- * C# client; here React toggles the `show` classes the same way.
+ * SubscribeComponent and UserStatusComponent draw them. React toggles the `show` classes that
+ * Bootstrap's script would.
  */
 export function DropdownButton({ buttonClass, label, items, disabled = false, groupClass = "btn-group" }: {
   buttonClass: string;
@@ -248,7 +248,7 @@ export function DropdownButton({ buttonClass, label, items, disabled = false, gr
   );
 }
 
-/** GenericComponents/DateTimePicker.razor: a date and a time in the browser's time zone. */
+/** A date and a time in the browser's time zone. */
 export function DateTimePicker({ value, onChange, label = "Select Date", timeLabel = "Select Time" }: {
   value: Date;
   onChange: (d: Date) => void;
@@ -278,7 +278,7 @@ export function DateTimePicker({ value, onChange, label = "Select Date", timeLab
   );
 }
 
-/** A `DateTimeOffset` as .NET writes it in JSON: local time with the offset, `2026-09-18T00:14:35.6224050-04:00`. */
+/** ISO 8601 local time with seven fraction digits and the offset: `2026-09-18T00:14:35.6224050-04:00`. */
 export function toDateTimeOffset(d: Date): string {
   const pad = (n: number, w = 2) => String(Math.abs(n)).padStart(w, "0");
   const off = -d.getTimezoneOffset();
@@ -286,7 +286,7 @@ export function toDateTimeOffset(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}0000${sign}${pad(Math.trunc(off / 60))}:${pad(off % 60)}`;
 }
 
-/** `.ToLocalTime().ToString("dd-MM HH:mm")`. */
+/** Local time as "dd-MM HH:mm". */
 export function shortDate(s: string): string {
   const d = new Date(s);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -294,8 +294,7 @@ export function shortDate(s: string): string {
 }
 
 /**
- * `DateTime.ToString()` (and `DateTimeOffset.ToString()` with `withOffset`) in en-US, the culture
- * the C# client runs in for an English browser: `11/10/2026 7:51:03 PM -08:00`.
+ * A date and time as en-US writes it, with the offset if `withOffset`: `11/10/2026 7:51:03 PM -08:00`.
  */
 export function longDate(s: string | Date, withOffset = false): string {
   const d = typeof s === "string" ? new Date(s) : s;

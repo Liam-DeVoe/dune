@@ -1,4 +1,4 @@
-// OtherComponents/Log/MentatLog.razor: bribes collected, one row per faction; when the game ends,
+// Bribes collected, one row per faction; when the game ends,
 // a result block with the winners and the game's reason line. If a Bene Gesserit prediction took
 // over the win, the earlier reason stays a plain line where it was. Other lines keep their place.
 import { Fragment } from "react";

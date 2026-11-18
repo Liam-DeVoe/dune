@@ -1,4 +1,4 @@
-// MenuState.cs: what the menu bar under the map has open. The bar (MenuComponent) and the panels
+// What the menu bar under the map has open. The bar (MenuComponent) and the panels
 // it opens at the top of the side column (MenuPanels) are in different columns, so they share
 // this store instead of one holding the other. UI state only; nothing here comes from the view.
 import { useSyncExternalStore } from "react";

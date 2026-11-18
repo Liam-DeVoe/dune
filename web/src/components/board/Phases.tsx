@@ -1,4 +1,4 @@
-// MapComponents/Phases.razor (the turn and the phases, top right) and CardPiles.razor (the decks
+// Phases (the turn and the phases, top right) and CardPiles (the decks
 // and discard piles, bottom left and bottom right).
 import type React from "react";
 import { MainPhaseValue, type MainPhase } from "../../generated/enums";
@@ -25,7 +25,6 @@ export function Phases() {
   if (MainPhaseValue[v.mainPhase] > MainPhaseValue.Setup) {
     let posY = f(f(0.7) * TURN_FONT_HEIGHT);
     const economics = v.economicsStatus !== "None" && v.economicsStatus !== "RemovedFromGame";
-    // Skin.Describe(ChoamEconomicsStatus).
     const economicsText = ({ Cancel: "Cancel", CancelFlipped: "Cancel", Double: "Double", DoubleFlipped: "Double", RemovedFromGame: "Removed from game" } as Record<string, string>)[v.economicsStatus] ?? "None";
     for (const phase of PHASES) {
       const name = b.skin.enumValue("MainPhase", phase);
@@ -54,7 +53,6 @@ export function Phases() {
   return <>{out}</>;
 }
 
-// CardPiles.razor.
 export function CardPiles({ which }: { which: "spice" | "treachery" }) {
   const b = useBoard();
   const v = b.view;

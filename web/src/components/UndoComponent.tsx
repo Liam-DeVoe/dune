@@ -1,4 +1,4 @@
-// OtherComponents/UndoComponent.razor: the host's undo panel. Opening it starts an undo session:
+// The host's undo panel. Opening it starts an undo session:
 // the host drags the timeline under the map (UndoTimeline) to a moment. The panel says where the
 // game goes back to and lists what would be undone. Escape cancels.
 import { Fragment, useEffect } from "react";
@@ -10,7 +10,7 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
   const { skin, source } = useGame();
   const session = useUndoSession();
 
-  // Client.OpenUndo on first render, Client.CloseUndo when the panel goes.
+  // Opens the undo session on first render, and closes it when the panel goes.
   useEffect(() => {
     undoSession.open(() => source.undoList?.() ?? Promise.resolve([]), source.undoPreview?.bind(source));
     return () => undoSession.close();

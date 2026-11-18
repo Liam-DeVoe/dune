@@ -1,4 +1,4 @@
-// Pages/Main.razor: the start screen. Not connected, then login, then the lobby, then the game the
+// The start screen. Not connected, then login, then the lobby, then the game the
 // user is in: its setup (EstablishPlayers for the host, AwaitingGame for the others), seating,
 // and the game screen.
 import { useEffect, useState, type ReactNode } from "react";

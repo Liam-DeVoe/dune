@@ -49,8 +49,8 @@ export function KarmaMonsterForm({ action, inPopover = false }: FormProps) {
   );
 }
 
-// The line of a Nexus case. The razor writes its words as bare text between the chips, so text
-// parts are not wrapped in RichText's spans.
+// The line of a Nexus case. Its words are bare text between the chips: text parts are not wrapped
+// in RichText's spans.
 function NexusText({ parts }: { parts: Part[] }) {
   return <>{parts.map((p, i) => (p.t === "text" ? <Fragment key={i}>{p.v}</Fragment> : <RichText key={i} parts={[p]} />))}</>;
 }

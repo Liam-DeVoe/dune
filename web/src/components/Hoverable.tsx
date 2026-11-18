@@ -1,4 +1,4 @@
-// GenericComponents/Hoverable.razor: a div whose hover shows a popover (HTML, popups.ts).
+// A div whose hover shows a popover (HTML, popups.ts).
 import type { CSSProperties, ReactNode } from "react";
 import { popoverAttributes, usePopover } from "../popover";
 

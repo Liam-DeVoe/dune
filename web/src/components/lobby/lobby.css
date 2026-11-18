@@ -1,7 +1,6 @@
-/* The razor-scoped styles of the lobby components, which Blazor scoped with b-xxxx attributes.
-   The selectors keep the C# class names, which the comparison checks. */
+/* The styles of single lobby components. */
 
-/* GenericComponents/DateTimePicker.razor.css (its "label" rule is scoped to the picker's labels) */
+/* DateTimePicker (its "label" rule is scoped to the picker's labels) */
 label[for="datePicker"], label[for="timePicker"] {
   font-weight: bold;
 }
@@ -12,7 +11,7 @@ input[type=date], input[type=time] {
   color-scheme: dark;
 }
 
-/* OtherComponents/RunningGamesComponent.razor.css */
+/* RunningGamesComponent */
 .table-running-games td:nth-child(1) { width: 15%; overflow-wrap: anywhere; }
 .table-running-games td:nth-child(2) { width: 10%; overflow-wrap: anywhere; }
 .table-running-games td:nth-child(3) { width: 45%; word-break: break-word; }
@@ -42,7 +41,7 @@ input[type=date], input[type=time] {
   color: var(--text-3);
 }
 
-/* GenericComponents/NumberPickerComponent.razor.css (SelectNumber in widgets.tsx) */
+/* NumberPickerComponent (SelectNumber in widgets.tsx) */
 .num.sm {
   height: 28px;
 }

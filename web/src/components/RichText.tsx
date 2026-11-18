@@ -1,11 +1,11 @@
-// GenericComponents/ExpressionComponent.razor: draws a message the server rendered to parts
+// Draws a message the server rendered to parts
 // (rust/view/src/expr.rs, which picks each part by the same switch). Labels come from the server
-// (Skin.Describe with the game's skin); images, colours and popovers from the client's skin.
+// (described with the game's skin); images, colours and popovers from the client's skin.
 //
-// size is the component's Size (14 by default, 20 in the log and prompts). logStyle draws a
+// size is the text size (14 by default, 20 in the log and prompts). logStyle draws a
 // leader as its disc and a treachery card as a chip with its art, as the log does. textBorder
-// is the TextBorder style, which C# applies to text, names and bold enums but not to parts of
-// nested messages. The view flattens nested messages, so a caller that sets textBorder passes
+// is a text border, for text, names and bold enums but not for parts of nested messages. The
+// view flattens nested messages, so a caller that sets textBorder passes
 // bordered (FlashView.bordered) to say which parts get it; without it every part does.
 import type { CSSProperties } from "react";
 import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, TechToken, TerrorType } from "../generated/enums";
@@ -27,7 +27,7 @@ import { SpiceComponent } from "./SpiceComponent";
 // The enum types ExpressionComponent draws bold, with spice amounts as icons.
 const bold = new Set(["AuctionType", "ChoamEconomicsStatus", "TreacheryCardType", "StrongholdAdvantage", "FactionAdvantage", "Ruleset", "Rule"]);
 
-// Support.HasStarredSpecialForce: special forces with a star badge.
+// Special forces with a star badge.
 const starred = new Set(["Fremen", "Emperor", "Ixian"]);
 
 export interface RichTextProps {

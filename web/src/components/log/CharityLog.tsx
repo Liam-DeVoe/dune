@@ -1,4 +1,4 @@
-// OtherComponents/Log/CharityLog.razor: one row per claim, faction pills down the left and the
+// One row per claim, faction pills down the left and the
 // amounts down the right. Other lines keep their place: those before the first claim above the
 // table, the rest below it.
 import { Fragment } from "react";

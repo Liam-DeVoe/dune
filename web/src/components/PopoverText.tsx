@@ -1,4 +1,4 @@
-// GenericComponents/RichText.razor: a name (or other content) in a span whose hover shows a
+// A name (or other content) in a span whose hover shows a
 // popover: a card, a leader, a token. `popover` is the popover's HTML (popups.ts).
 import type { CSSProperties, ReactNode } from "react";
 import { popoverAttributes, usePopover } from "../popover";

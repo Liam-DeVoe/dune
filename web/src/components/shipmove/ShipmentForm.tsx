@@ -1,4 +1,4 @@
-// GameEventComponents/ShipmentComponent.razor. A shipment is made on the map. From reserves:
+// ShipmentComponent. A shipment is made on the map. From reserves:
 // click the destination, and the arrow runs from your token on the map's edge. Site-to-site
 // (Guild): click the sector to ship from, then the destination. Back to reserves: click the
 // sector, then "To reserves" in the pinned panel. Counters, cost and every option that applies
@@ -95,8 +95,8 @@ export function ShipmentForm({ action }: { action: ActionView }) {
   oRef.current = o;
   useMapInteraction();
 
-  // ShipmentComponent.OnParametersSet runs ResetSelection only when the game object is replaced (an undo
-  // or a load): a new event keeps the selection, and useDraft asks the server about it again.
+  // The selection is reset only when the game is replaced (an undo or a load): a new event keeps
+  // the selection, and useDraft asks the server about it again.
   useViewChanges((change) => { if (change !== "event") update(reset()); });
 
   // The server answers with the draft as PinContent leaves it (an input that no longer applies

@@ -1,10 +1,10 @@
-// OtherComponents/BiddingPanel.razor with NormalBiddingPanel.razor (Bid, Phase.Bidding) and
-// BlackMarketBiddingPanel.razor (BlackMarketBid, Phase.BlackMarketBidding). ActionPanel draws it
+// The bidding panel, for normal bidding (Bid, Phase.Bidding) and the black market (BlackMarketBid,
+// Phase.BlackMarketBidding). ActionPanel draws it
 // by phase for every viewer: the lot (view.bidding.panel) for all, the inputs (the Bid or
 // BlackMarketBid action) for the bidder, and auto-pass for players.
 //
-// Like the C# panel, the inputs restart at the lowest winning bid after every event outside
-// silent auctions (OnParametersSetAsync), and auto-pass and the bidding timer pass for the player.
+// Outside silent auctions, the inputs restart at the lowest winning bid after every event, because
+// each bid raises it. Auto-pass and the bidding timer pass for the player.
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ActionOptions } from "../generated/ActionOptions";
 import type { ActionView } from "../generated/ActionView";
@@ -24,8 +24,8 @@ import { SelectFromImage } from "./SelectFromImage";
 import { SpiceComponent } from "./SpiceComponent";
 import { passOf, useViewChanges } from "./formDraft";
 
-// Client.AutoPass, BidAutoPassThreshold and KeepAutoPassSetting: client state that outlives the
-// panel (it is remounted for every auction) but not the page, as in the C# Client.
+// Auto-pass, its threshold and whether to keep it: client state that outlives the panel (it is
+// remounted for every auction) but not the page.
 interface AutoPassState { autoPass: boolean; threshold: number; keep: boolean }
 let autoPassState: AutoPassState = { autoPass: false, threshold: 0, keep: false };
 const listeners = new Set<() => void>();
@@ -41,7 +41,7 @@ const autoPassStore = {
   },
 };
 
-// Client.ResetAutoPassThreshold, after every event in the bidding main phase: auto-pass ends
+// After every event in the bidding main phase, auto-pass ends
 // with the auction unless it is to repeat, and always with the bidding.
 export function useAutoPassReset() {
   const { view } = useGame();
@@ -56,7 +56,7 @@ type BidOptions = Extract<ActionOptions, { form: "Bid" } | { form: "BlackMarketB
 
 interface Draft { amount: number; ally: number; emperor: number; karmaCard: number | null; secretAlly: boolean }
 
-// InfoComponent.razor: the info icon with a popover.
+// The info icon with a popover.
 function Info({ contents }: { contents: string }) {
   const html = `<div class='pop'>${contents}</div>`;
   const ref = usePopover<HTMLDivElement>(html);
@@ -111,7 +111,7 @@ function karmaBid(karmaCard: number | null): Event {
   return { type: "Bid", play: { amount: 0, allyContributionAmount: 0, emperorContributionAmount: 0, usesEmperorSecretAlly: false, karmaBid: true, karmaCard } };
 }
 
-// The bidder's inputs and buttons (BiddingPanel.razor:41-107).
+// The bidder's inputs and buttons.
 function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelView }) {
   const { view, skin, source } = useGame();
   const viewOptions = action.options?.form === "Bid" || action.options?.form === "BlackMarketBid" ? action.options : null;
@@ -127,8 +127,8 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
   const current = useRef(draft);
   current.current = draft;
 
-  // OnParametersSetAsync after each event: outside silent auctions the amounts restart at the
-  // lowest winning bid. The other inputs are kept, as the component's fields are, and the draft is
+  // After each event, outside silent auctions, the amounts restart at the lowest winning bid. The
+  // other inputs are kept, and the draft is
   // validated again (formDraft.ts).
   const seen = useRef(view.eventNumber);
   useViewChanges(() => {
@@ -198,9 +198,9 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
   );
 }
 
-// The auto-pass setting (BiddingPanel.razor:109-123), and passing for the player: by auto-pass
-// when it becomes their turn and the bid to beat is above the threshold, after a short delay
-// (OnParametersSetAsync), and when the bidding timer runs out (CycleAsync).
+// The auto-pass setting, and passing for the player: by auto-pass
+// when it becomes their turn and the bid to beat is above the threshold, after a short delay,
+// and when the bidding timer runs out.
 function AutoPass({ action, panel }: { action: ActionView | undefined; panel: BiddingPanelView }) {
   const { view, source } = useGame();
   const state = useSyncExternalStore(autoPassStore.subscribe, autoPassStore.get);

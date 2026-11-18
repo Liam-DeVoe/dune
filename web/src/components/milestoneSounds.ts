@@ -1,7 +1,6 @@
-// Client.PlaySoundsForMilestones: after each event, the sound of every milestone it reached
-// (`view.recentMilestones`, Skin.GetSound), at the effect volume. C# plays them in
-// PerformPostEventTasks, which runs after an event, an undo and a (re)load of the game; so they
-// play for the first view and for every view of another event number, not for views the server
+// After each event, the sound of every milestone it reached
+// (`view.recentMilestones`), at the effect volume. They play after an event, an undo and a
+// (re)load of the game: for the first view and for every view of another event number, not for views the server
 // resends for the same event (participation, timer, skin).
 import { useEffect, useRef } from "react";
 import type { GameView } from "../generated/GameView";

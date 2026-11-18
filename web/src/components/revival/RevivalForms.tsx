@@ -44,7 +44,7 @@ function useFaction(): Faction {
   return (view.me?.faction ?? view.viewer.faction ?? "None") as Faction;
 }
 
-// Skin.Describe(Player.Force): the force name used as the token's title.
+// The force name used as the token's title.
 function useForceName(faction: Faction): string {
   const { skin } = useGame();
   return skin.get("ForceName_STR", faction);
@@ -54,7 +54,6 @@ function territoryOf(skin: ReturnType<typeof useGame>["skin"], l: number): numbe
   return skin.locationInfo(l)?.territory ?? -1;
 }
 
-// RevivalComponent.razor.
 function RevivalEventForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin, view } = useGame();
   const faction = useFaction();
@@ -125,7 +124,6 @@ function RevivalEventForm({ action, inPopover }: { action: ActionView; inPopover
   );
 }
 
-// RaiseDeadComponent.razor.
 function RaiseDeadForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin, view } = useGame();
   const faction = useFaction();
@@ -175,7 +173,6 @@ function RaiseDeadForm({ action, inPopover }: { action: ActionView; inPopover: b
   );
 }
 
-// KarmaFreeRevivalComponent.razor.
 function KarmaFreeRevivalForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin, view } = useGame();
   const faction = useFaction();
@@ -199,7 +196,6 @@ function KarmaFreeRevivalForm({ action, inPopover }: { action: ActionView; inPop
   );
 }
 
-// KarmaRevivalPreventionComponent.razor.
 function KarmaRevivalPreventionForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useRevivalDraft(action, "KarmaRevivalPrevention");
@@ -213,7 +209,6 @@ function KarmaRevivalPreventionForm({ action, inPopover }: { action: ActionView;
   );
 }
 
-// ChoamFreeRevivalPreventionComponent.razor.
 function ChoamFreeRevivalPreventionForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useRevivalDraft(action, "ChoamFreeRevivalPrevention");
@@ -228,7 +223,6 @@ function ChoamFreeRevivalPreventionForm({ action, inPopover }: { action: ActionV
   );
 }
 
-// RequestTleilaxuRevivalComponent.razor.
 function RequestTleilaxuRevivalForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin, view } = useGame();
   const { options: o, draft, validation, update, submit, error } = useRevivalDraft(action, "RequestTleilaxuRevival");
@@ -243,7 +237,6 @@ function RequestTleilaxuRevivalForm({ action, inPopover }: { action: ActionView;
   );
 }
 
-// AcceptOrCancelTleilaxuRevivalComponent.razor.
 function AcceptOrCancelTleilaxuRevivalForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin, view } = useGame();
   const { options: o, draft, validation, update, submit, error } = useRevivalDraft(action, "AcceptOrCancelTleilaxuRevival");
@@ -287,7 +280,7 @@ function AcceptOrCancelTleilaxuRevivalForm({ action, inPopover }: { action: Acti
   );
 }
 
-// SetIncreasedRevivalLimitsComponent.razor: a multiple choice; a click toggles a faction,
+// A multiple choice; a click toggles a faction,
 // shift-click picks only that one.
 function SetIncreasedRevivalLimitsForm({ action, inPopover }: { action: ActionView; inPopover: boolean }) {
   const { skin } = useGame();
@@ -313,7 +306,7 @@ function SetIncreasedRevivalLimitsForm({ action, inPopover }: { action: ActionVi
   );
 }
 
-// ActionPanel.razor's cases for the revival events. ActionPanel leaves out events played from a
+// ActionPanel's cases for the revival events. ActionPanel leaves out events played from a
 // card in hand (CardPlays.PlayedFromHand); the hand's popover draws them with `inPopover`.
 export function RevivalForm({ action, inPopover = false }: { action: ActionView; inPopover?: boolean }) {
   const props = { action, inPopover };

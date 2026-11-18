@@ -1,4 +1,4 @@
-// OtherComponents/OwnGamesComponent.razor: your games (started and scheduled), creating or
+// Your games (started and scheduled), creating or
 // loading a game, scheduling one, and your account.
 import { useState } from "react";
 import type { Faction, Ruleset } from "../../generated/enums";

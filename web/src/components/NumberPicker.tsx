@@ -1,31 +1,30 @@
-// GenericComponents/NumberPickerComponent.razor, with its two spice wrappers
-// SelectResourcesComponent and SelectResourcesFromFactionComponent. A value outside [min, max]
-// is moved into it whenever the range changes (OnParametersSetAsync), so a form's draft follows
+// A number picker, with its two spice wrappers SelectResources and SelectResourcesFromFaction. A
+// value outside [min, max] is moved into it whenever the range changes, so a form's draft follows
 // its options.
 import { useEffect, useState } from "react";
 import type { Faction } from "../generated/enums";
 import { useGame } from "../state/context";
 
 function clampInto(value: number, min: number, max: number): number {
-  // Min wins when max < min, as the C# checks Min first.
+  // Min wins when max < min.
   return value < min ? min : value > max ? max : value;
 }
 
 export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, symbolStarred = false, symbolFill, spice = false, disabled = false, title = "" }: {
   value: number;
   onChange: (v: number) => void;
-  // OnUp/OnDown without a bound Value, as ForceSelectionComponent uses the picker: the buttons
-  // and arrow keys step the owner's value, and a typed number only changes what the picker
-  // shows (its own Value) until the owner's value changes.
+  // Stepping without a bound value, as ForceSelection uses the picker: the buttons and arrow keys
+  // step the owner's value. Known quirk (known-issues.md): a typed number only changes what the
+  // picker shows until the owner's value changes, not the owner's value.
   onStep?: (delta: number) => void;
   min: number;
   max: number;
   symbolSrc?: string;
-  // SymbolStarred: a starred special force, drawn with the star badge.
+  // A starred special force, drawn with the star badge.
   symbolStarred?: boolean;
-  // SymbolBackgroundFillColor: a force symbol's faction colour (IconStyle "--fc").
+  // A force symbol's faction colour (IconStyle "--fc").
   symbolFill?: string;
-  // SymbolBackgroundBorderColor "#FF5400": the spice style of the symbol.
+  // Border colour "#FF5400": the spice style of the symbol.
   spice?: boolean;
   disabled?: boolean;
   title?: string;
@@ -38,7 +37,7 @@ export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, sym
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, min, max]);
 
-  // The picker's own Value: the owner's, or with onStep the last number typed.
+  // The picker's own value: the owner's, or with onStep the last number typed.
   const [own, setOwn] = useState(value);
   useEffect(() => setOwn(clampInto(value, min, max)), [value, min, max]);
   const set = (v: number) => {
@@ -84,7 +83,7 @@ export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, sym
   );
 }
 
-// GenericComponents/SelectResourcesComponent.razor: a spice amount.
+// A spice amount.
 export function SelectResources({ value, onChange, min, max, label = "" }: {
   value: number; onChange: (v: number) => void; min: number; max: number; label?: string;
 }) {
@@ -97,7 +96,7 @@ export function SelectResources({ value, onChange, min, max, label = "" }: {
   );
 }
 
-// GenericComponents/SelectResourcesFromFactionComponent.razor: spice paid by a faction, with its
+// Spice paid by a faction, with its
 // sigil as the symbol.
 export function SelectResourcesFromFaction({ value, onChange, min, max, faction }: {
   value: number; onChange: (v: number) => void; min: number; max: number; faction: Faction;

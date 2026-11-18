@@ -1,4 +1,4 @@
-// GameEventComponents/PlacementComponent.razor and its subclasses MoveComponent,
+// PlacementComponent and its subclasses MoveComponent,
 // CaravanComponent and FremenRideComponent. A move is made on the map: click the sector to move
 // from, then the sector to move to. The force counter and the confirm button appear on the map,
 // pinned to the arrow; this panel only explains the next step and offers Pass.
@@ -70,8 +70,8 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   const fromReserves = o?.fromReserves ?? false;
   const owns = mapInteraction.isOwnedBy(self.current);
 
-  // PlacementComponent.OnParametersSet runs ResetSelection only when the game object is replaced (an undo
-  // or a load): a new event keeps the selection, and useDraft asks the server about it again.
+  // The selection is reset only when the game is replaced (an undo or a load): a new event keeps
+  // the selection, and useDraft asks the server about it again.
   useViewChanges((change) => { if (change !== "event") update(reset()); });
 
   const update = (next: State) => {

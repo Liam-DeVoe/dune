@@ -1,5 +1,5 @@
 // The "other events" forms that pick cards, factions, heroes or a number (package 7e): one
-// component per C# GameEventComponents/<Event>Component.razor, with its layout and labels.
+// component per event type.
 // Options and the adjusted draft come from rust/view/src/actions/other.rs.
 import { useRef, useState } from "react";
 import type { ActionView } from "../../generated/ActionView";
@@ -385,7 +385,7 @@ export function KarmaForm({ action, inPopover = false }: FormProps) {
   );
 }
 
-// GenericComponents/InfoComponent.razor: the gold "i" with a popover.
+// The gold "i" with a popover.
 function InfoIcon({ contents }: { contents: string }) {
   return (
     <Hoverable popover={`<div class='pop'>${contents}</div>`} className="d-inline">
@@ -562,7 +562,7 @@ function StormDial({ action, min, max, inPopover, submit }: { action: ActionView
     setAmount(v);
     void ask(v);
   };
-  // The dial is kept across views, as the C# field is; a new view validates it again (formDraft.ts).
+  // The dial is kept across views (formDraft.ts); a new view validates it again.
   useViewChanges(() => { setError(null); void ask(amount); });
   return (
     <Layout type="StormDialled" header="Please dial a number to determine storm movement" urgent inPopover={inPopover}>
@@ -595,8 +595,7 @@ export function AllianceOfferedForm({ action, inPopover = false }: FormProps) {
     setTarget(v);
     void ask(v);
   };
-  // The target is kept across views, as the C# field is; a new view validates it again
-  // (formDraft.ts).
+  // The target is kept across views; a new view validates it again (formDraft.ts).
   useViewChanges(() => { setError(null); void ask(chosen); });
   if (!o) return null;
   return (

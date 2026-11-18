@@ -1,4 +1,4 @@
-// OtherComponents/TradePopover.razor: what the trade icons in the menu bar open, in a popover above
+// What the trade icons in the menu bar open, in a popover above
 // the bar. Deals, Offer a Deal and Give Spice to a faction as tabs; the alliance; or the Card
 // Tracker and the notekeeping assistant. The panels are the ones the action column used to show,
 // opened up. A click outside, Escape, or the icon again closes it.

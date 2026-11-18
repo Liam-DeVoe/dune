@@ -1,6 +1,6 @@
-// OtherComponents/TurnBanner.razor: "Your turn" and how long the game has waited, across the top
+// "Your turn" and how long the game has waited, across the top
 // of the screen while the viewer is awaited. The game screen leaves room for it through
-// --turn-banner-h (GameScreen.cs, turnBannerStyle below).
+// --turn-banner-h (turnBannerStyle below).
 import type { GameView } from "../generated/GameView";
 import { useGame } from "../state/context";
 import { since, useClock } from "./turnClock";

@@ -1,6 +1,6 @@
 // The map-driven selection of the action that owns the map (mapInteraction.ts):
-// MapComponents/MapSelectionHighlights.razor (sources, the reachable region, the selection),
-// MapSelectionOverlay.razor (arrows and the pinned panel) and StagedForces.razor (forces placed
+// MapSelectionHighlights (sources, the reachable region, the selection),
+// MapSelectionOverlay (arrows and the pinned panel) and StagedForces (forces placed
 // but not yet confirmed).
 import type React from "react";
 import { Fragment, useEffect, useRef } from "react";
@@ -233,7 +233,7 @@ export function MapSelectionOverlay() {
   );
 }
 
-// StagedForces.razor: drawn to the right of the real tokens in the sector.
+// Drawn to the right of the real tokens in the sector.
 export function StagedForces() {
   const b = useBoard();
   const map = useMapInteraction();

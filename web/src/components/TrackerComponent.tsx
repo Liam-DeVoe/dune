@@ -1,11 +1,10 @@
-// OtherComponents/TrackerComponent.razor, CardPickerComponent.razor and AtreidesIntelligence.cs:
 // Atreides's card tracker. Atreides notes which cards each player holds, which traitors were
 // revealed or discarded, the top spice card and the discarded treachery cards. The notes stay in
-// the browser's local storage per game, in AtreidesIntelligence's text format; the game data
+// the browser's local storage per game, as text; the game data
 // they choose from is the view's `tracker`.
 //
-// C# keys the notes by Game.Seed, which the view must not carry (it would give away the decks), so
-// they are keyed by the game's start time.
+// The notes are keyed by the game's start time. The seed would be unique too, but the view must
+// not carry it, because it would give away the decks.
 import { useEffect, useMemo, useState } from "react";
 import type { Faction } from "../generated/enums";
 import type { HeroRef } from "../generated/HeroRef";
@@ -24,7 +23,7 @@ import { PopoverText } from "./PopoverText";
 const UNKNOWN = -1;
 const NONE = -2;
 
-// AtreidesIntelligence: the notes.
+// The notes.
 interface Notes {
   cards: Map<Faction, number[]>;
   traitors: Map<string, number>; // "<faction>,<nr>" -> hero id
@@ -43,7 +42,7 @@ function fresh(t: TrackerView): Notes {
   return { cards, traitors: new Map(), discardedTraitors: new Map(), spiceCard: null, discarded: [], removed: [] };
 }
 
-// AtreidesIntelligence.ToString.
+// The notes as text, for local storage.
 function write(n: Notes): string {
   let r = "";
   const w = (x: unknown) => { r += x === null ? ";" : `${String(x)};`; };
@@ -58,7 +57,7 @@ function write(n: Notes): string {
   return r;
 }
 
-// AtreidesIntelligence.Parse: fresh notes when the text doesn't parse.
+// Reads the notes back: fresh notes when the text doesn't parse.
 function parse(t: TrackerView, data: string): Notes {
   const e = data.split(";");
   let i = 0;
@@ -326,7 +325,6 @@ function heroPick(skin: Skin, h: HeroRef): PickItem<number> {
   return { key: heroId(h), src, alt: heroName(skin, h), popover };
 }
 
-// Skin.Describe(ResourceCard).
 function resourceName(skin: Skin, skinId: number): string {
   const c = skin.resourceCardInfo(skinId);
   if (!c) return "?";

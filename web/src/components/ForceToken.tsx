@@ -1,5 +1,5 @@
-// GenericComponents/ForceToken.razor: a faction's force or special force token. Starred special
-// forces (Support.HasStarredSpecialForce) get a star badge on the edge.
+// A faction's force or special force token. Starred special
+// forces get a star badge on the edge.
 import type { CSSProperties } from "react";
 import type { Faction } from "../generated/enums";
 import { useGame } from "../state/context";

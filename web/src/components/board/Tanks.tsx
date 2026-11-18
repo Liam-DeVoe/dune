@@ -1,4 +1,4 @@
-// MapComponents/Tanks.razor: the forces and leaders in the tanks, top left, with one popover
+// The forces and leaders in the tanks, top left, with one popover
 // over all of them.
 import type React from "react";
 import { PhaseValue } from "../../generated/enums";

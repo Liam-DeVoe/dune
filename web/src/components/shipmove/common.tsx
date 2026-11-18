@@ -1,5 +1,5 @@
 // Shared pieces of the ship-and-move forms: the event panel
-// (GenericComponents/GameEventComponentLayout.razor with its CollapseButton), the draft and its
+// (GameEventComponentLayout with its CollapseButton), the draft and its
 // queries (GameEventComponent's ConfirmedResult and Validation), the pinned map panel's parts
 // (MapPickComponent.PinActions, MapForceStepper) and the encodings of draft inputs.
 import { useMemo, useRef, useState, type ReactNode } from "react";
@@ -68,24 +68,23 @@ export function optionsOf<F extends ActionOptions["form"]>(o: ActionOptions | nu
   return o != null && o.form === form ? (o as Extract<ActionOptions, { form: F }>) : null;
 }
 
-// The inputs of the draft a form's options carry: the event with the inputs as the C# component
-// shows them, after the server made the component's render-time adjustments
-// (rust/view/src/schema/ship_move.rs).
+// The inputs of the draft a form's options carry: the event with the inputs as the form shows
+// them, after the server's adjustments (rust/view/src/schema/ship_move.rs).
 function draftOf(o: ActionOptions | null | undefined): Draft | null {
   const d = (o as { draft?: unknown } | null | undefined)?.draft;
   return d != null && typeof d === "object" ? fieldsOf(d as Record<string, unknown>) : null;
 }
 
 // Runs after the answer to a draft arrives, with the options for that draft and the adjusted
-// draft: a click handler whose next step depends on the new options (InitializeAmounts after a
+// draft: a click handler whose next step depends on the new options (the amounts after a
 // destination is picked). Returns the next draft, or null to stop.
 export type Then = (options: ActionOptions, draft: Draft) => Draft | null;
 
-// The form's draft (the C# component's fields, as the event's inputs) and the server's
+// The form's draft (its inputs, as an event) and the server's
 // answer for it. `set` changes the draft and asks again; the answer replaces the draft with the
 // server's adjusted one. Answers to older drafts are dropped, and the previous options stay on
 // screen until the answer arrives. A new view keeps the draft and asks again for it
-// (../formDraft.ts); forms whose C# component resets part of its input when the game is replaced
+// (../formDraft.ts); forms that reset part of their input when the game is replaced
 // (a map selection) do so themselves.
 export function useDraft(action: ActionView, initial: () => Draft) {
   const { source } = useGame();
@@ -185,7 +184,7 @@ export function idOf(v: unknown): number | null {
   return typeof v === "number" && v >= 0 ? v : null;
 }
 
-// The faction's force and special force names (Skin.Describe(Player.Force)).
+// The faction's force and special force names.
 export function useForceNames(faction: Faction): { force: string; special: string } {
   const { skin } = useGame();
   const info = skin.statics.factions.find((f) => f.faction === faction);
@@ -195,7 +194,7 @@ export function useForceNames(faction: Faction): { force: string; special: strin
   };
 }
 
-// GenericComponents/MapForceStepper.razor: a small counter for panels pinned on the map.
+// A small counter for panels pinned on the map.
 export function MapForceStepper({ value, onChange, min = 0, max, faction, special = false, spice = false, label }: {
   value: number;
   onChange: (v: number) => void;

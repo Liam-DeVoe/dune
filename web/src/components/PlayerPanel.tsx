@@ -1,11 +1,9 @@
-// OtherComponents/PlayerPanel.razor for the viewer's own faction: spice and reserves in a bar, the
+// The panel of the viewer's own faction: spice and reserves in a bar, the
 // leaders with the traitors (or face dancers) in a recessed well at the right, any faction
 // extras, and the hand of cards under a rule. Styles in _player-panel.scss.
 //
-// The C# panel can also show another player's panel under a collapsible header, for a seated
-// viewer without a faction (GameColumns.razor). Factions are assigned before TradingFactions
-// ends, so that never happens in a game this client shows; the view has no other player's
-// shield to draw.
+// There is no panel for another player: factions are assigned before TradingFactions ends, so a
+// seated viewer always has one, and the view has no other player's shield to draw.
 import { Fragment, type CSSProperties } from "react";
 import type { Faction, LeaderSkill, TerrorType } from "../generated/enums";
 import { PhaseValue } from "../generated/enums";
@@ -149,7 +147,7 @@ function Well({ title, heroes }: { title: string; heroes: HeroCard[] }) {
   );
 }
 
-// An IHero's image, faction and popover (Skin.GetPopup(IHero, Game)).
+// An IHero's image, faction and popover.
 function hero(skin: Skin, h: HeroCard): { src: string; faction: Faction; popover: string } {
   switch (h.hero.t) {
     case "leader":
@@ -174,8 +172,8 @@ function Messiah({ forcesKilled, available }: { forcesKilled: number; available:
   );
 }
 
-// PlayerPanel.ResourcesText: spice now, then what comes later (bribes and extortion at the end of
-// the turn, spice after bidding, banked spice at Mentat Pause), through Skin.Format.
+// Spice now, then what comes later (bribes and extortion at the end of
+// the turn, spice after bidding, banked spice at Mentat Pause).
 function resourcesText(skin: Skin, me: PrivatePlayer, p: PublicPlayer): string {
   const phase = (ph: string) => skin.enumValue("MainPhase", ph);
   const later = p.bribes + p.extortion;
@@ -216,7 +214,7 @@ function terrorParts(skin: Skin, tokens: string[]): Part[] {
   });
 }
 
-// A resource card as rich text, named as Skin.Describe(ResourceCard) names it.
+// A resource card as rich text, with the skin's name for it.
 function resourceCardPart(skin: Skin, skinId: number): Part {
   const c = skin.resourceCardInfo(skinId);
   const label = !c ? "?"

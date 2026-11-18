@@ -1,4 +1,4 @@
-// OtherComponents/AwaitingGameComponent.razor: what a non-host sees while the host sets up the
+// What a non-host sees while the host sets up the
 // game: the host's settings (sent every few seconds by UpdateSettings) and who has joined.
 import type { RuleGroup } from "../../generated/enums";
 import { useLobby } from "../../lobby/context";

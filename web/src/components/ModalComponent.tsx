@@ -1,6 +1,6 @@
-// GenericComponents/ModalComponent.razor: a Bootstrap modal, opened by a button with
+// A Bootstrap modal, opened by a button with
 // data-bs-toggle="modal" and data-bs-target="#<id>". Bootstrap's own script (index.html) shows
-// and hides it, as in C#; React never changes the classes it sets, because the props stay the same.
+// and hides it; React never changes the classes it sets, because the props stay the same.
 import type { ReactNode } from "react";
 
 export function ModalComponent({ id, title, size = "", scrolling = false, printable = false, children }: {
@@ -39,7 +39,7 @@ export function ModalComponent({ id, title, size = "", scrolling = false, printa
   );
 }
 
-// Browser.Print (wwwroot/index.html's Print): a copy of the element in #printSection, which the
+// Printing: a copy of the element in #printSection, which the
 // stylesheet's print rules show alone, then the browser's print dialog.
 function print(elementId: string) {
   const elem = document.getElementById(elementId);

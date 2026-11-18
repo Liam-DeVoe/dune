@@ -1,4 +1,4 @@
-// GenericComponents/FactionComponent.razor: a faction's sigil as an image.
+// A faction's sigil as an image.
 import type { Faction } from "../generated/enums";
 import { useGame } from "../state/context";
 

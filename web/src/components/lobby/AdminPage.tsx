@@ -1,4 +1,4 @@
-// Pages/Admin.razor: server info, the maintenance window, persisting and restoring, users, running
+// Server info, the maintenance window, persisting and restoring, users, running
 // and scheduled games, with a log of the answers.
 import { useState } from "react";
 import { useLobby } from "../../lobby/context";

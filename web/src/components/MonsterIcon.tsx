@@ -1,4 +1,4 @@
-// GenericComponents/MonsterIcon.razor: the worm.
+// The worm.
 import { useGame } from "../state/context";
 
 export function MonsterIcon({ size = 20 }: { size?: number }) {

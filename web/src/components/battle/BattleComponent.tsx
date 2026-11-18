@@ -1,7 +1,7 @@
-// GameEventComponents/BattleComponent.razor: the battle plan. Forces are a row of tokens per
+// The battle plan. Forces are a row of tokens per
 // force type, each out, at half strength or at full strength; the dial and spice steppers move
-// the tokens through the affordable mixes the server lists (BattleOptions.mixes, the C#
-// component's Mixes). Leader, weapon and defense choices come from the server for the draft, as
+// the tokens through the affordable mixes the server lists (BattleOptions.mixes).
+// Leader, weapon and defense choices come from the server for the draft, as
 // does the leader's part of the strength.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ActionView } from "../../generated/ActionView";
@@ -75,8 +75,8 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
   const [special, setSpecial] = useState<Commit[]>([]);
   const started = useRef(false);
 
-  // The rows start from the draft (the previous plan, when there is one), as C#'s OnInitialized.
-  // Later they keep their order across views, like the component's fields, and only follow the
+  // The rows start from the draft (the previous plan, when there is one). Later they keep their
+  // order across views, and only follow the
   // draft when the server's answer changed its counts.
   useEffect(() => {
     if (!o) return;

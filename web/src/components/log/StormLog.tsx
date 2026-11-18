@@ -1,4 +1,4 @@
-// OtherComponents/Log/StormLog.razor: a ring of the board's 18 sectors with the stretch the storm
+// A ring of the board's 18 sectors with the stretch the storm
 // swept in red and the distance in the middle, the dials under it, and one box per place the
 // storm hit with each loss on its own line. Flips, Weather Control and Family Atomics are asides
 // above the ring. Hovering a box lights its sectors on the ring (and on the map), and hovering a

@@ -1,14 +1,14 @@
-// Map interaction: the C# client's MapInteraction.cs, MapPicker.cs and Client.LocationClick.
+// Map interaction: which action form owns the map, what it lets the player click, and the clicks.
 //
 // One action form at a time owns the map. It says which sectors may be clicked as a source, which
 // are valid destinations, and what the panel pinned at the chosen destination shows; the map
 // layers (MapSelectionHighlights, MapSelectionOverlay, StagedForces) only read this and redraw
-// when it changes. Clicks on the map go to every listener, as Client.OnLocationSelected and its
-// shift, ctrl and right-click variants do.
+// when it changes. Every click on the map, plain, with a modifier or right, goes to every
+// listener.
 //
-// For action forms: `useMapPicker` is MapPicker (and MapPickComponent's wiring); forms that draw
+// For action forms: `useMapPicker` picks a location or territory; forms that draw
 // on the map in another way (staged placements) use `mapInteraction` and `onLocationClick`
-// directly, as StagedPlacementComponent does.
+// directly.
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import type { Faction } from "../../generated/enums";
 import type { Point } from "./geometry";
@@ -122,7 +122,7 @@ export class MapInteraction {
   }
 }
 
-// Client.MapInteraction: one per page.
+// One per page.
 export const mapInteraction = new MapInteraction();
 
 // The pinned panel's content, redrawn on every push of the owner.
@@ -148,8 +148,7 @@ export interface LocationClick {
 
 const clickListeners = new Set<(c: LocationClick) => void>();
 
-// Every click on a location of the map. Client.LocationClick splits these into OnLocationSelected
-// (a plain click), ...WithShift, ...WithCtrlOrAlt and OnLocationRightClicked.
+// Every click on a location of the map: plain, with Shift, with Ctrl or Alt, or right.
 export function onLocationClick(listener: (c: LocationClick) => void): () => void {
   clickListeners.add(listener);
   return () => clickListeners.delete(listener);
@@ -159,7 +158,7 @@ export function locationClick(c: LocationClick): void {
   for (const l of [...clickListeners]) l(c);
 }
 
-// A plain click (Client.OnLocationSelected).
+// A plain click.
 export function isPlainClick(c: LocationClick): boolean {
   return !c.right && !c.shift && !c.ctrl && !c.alt;
 }

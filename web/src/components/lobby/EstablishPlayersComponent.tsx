@@ -1,11 +1,11 @@
-// GameEventComponents/EstablishPlayersComponent.razor: the host's game settings while players
+// The host's game settings while players
 // join, sent to the server every 3.6 s (updateSettings) so joiners see them, and the
 // EstablishPlayers event that starts the game.
 //
-// Bots: seats that no user takes become bots when the game starts (version 170 and later), as on
-// the C# server. "AI Players" lists the rules of RuleGroup.Bots ("Bots may not initiate
-// alliances"); the rules that add bots are in no group, so the C# form never offered them either.
-// A refused start is written to the console, as GameComponent.Request does.
+// Bots: seats that no user takes become bots when the game starts. "AI Players" lists the rules
+// of RuleGroup.Bots ("Bots may not initiate alliances"); the rules that add bots are in no group,
+// because the empty seats already decide that. The form shows the draft's validation before Start,
+// so a refused start only goes to the console.
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { Faction, Rule } from "../../generated/enums";
 import type { Event } from "../../generated/Event";
@@ -20,8 +20,9 @@ import { Select } from "../Select";
 
 const SETTINGS_KEY = "treachery.online;setting.establishPlayersSettings";
 
-/** `EstablishPlayersComponent.EstablishPlayersSettings` as the C# client stores it: the settings
- * in the savegame format, with PascalCase members and enums as numbers. */
+/** The host's last settings in local storage: the settings in the savegame format, with PascalCase
+ * members and enums as numbers. The site has always stored them this way, so hosts keep the
+ * settings they used before. */
 interface Stored {
   Settings: StoredSettings | null;
   AdvancedOptions: boolean;
@@ -131,7 +132,7 @@ export function EstablishPlayersComponent() {
     change({ initialRules: on ? [...settings.initialRules, rule] : settings.initialRules.filter((r) => r !== rule) });
   };
   const sortedRules = (group: string) =>
-    // OrderBy(r => Name(r)): ordinal in the browser's .NET (uppercase before lowercase).
+    // By name, comparing UTF-16 code units (uppercase before lowercase).
     [...(lobby.data.rulesInGroup[group] ?? [])].sort((a, b) => {
       const la = lobby.labelOf("Rule", a);
       const lb = lobby.labelOf("Rule", b);

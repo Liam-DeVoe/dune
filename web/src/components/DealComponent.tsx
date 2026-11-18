@@ -1,4 +1,4 @@
-// OtherComponents/DealComponent.razor: the viewer's deals. Offers made to them (Accept, Decline),
+// The viewer's deals. Offers made to them (Accept, Decline),
 // their own offers with each recipient's answer (Withdraw), and every deal in force. The events
 // to submit come built in the view (`deals`).
 import "./DealComponent.css";

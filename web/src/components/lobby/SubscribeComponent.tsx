@@ -1,4 +1,4 @@
-// OtherComponents/SubscribeComponent.razor and UserStatusComponent.razor: a dropdown button with
+// SubscribeComponent and UserStatusComponent: a dropdown button with
 // the current choice, listing the others.
 import { useState } from "react";
 import { useLobby } from "../../lobby/context";

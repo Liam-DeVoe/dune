@@ -1,4 +1,4 @@
-// OtherComponents/CreditComponent.razor: the menu's "Credits" modal.
+// The menu's "Credits" modal.
 import { ModalComponent } from "./ModalComponent";
 
 const row = (label: string, value: React.ReactNode) => (

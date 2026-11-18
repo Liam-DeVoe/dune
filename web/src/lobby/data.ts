@@ -1,7 +1,7 @@
 // The lobby data (web/public/static/lobby.json, written by rust/view/src/lobby.rs): every enum
 // the lobby screens show, with its member names, numbers (which game settings in the savegame
-// format use) and DefaultSkin descriptions, and the static tables of the C# lobby screens
-// (EstablishPlayers.AvailableFactions, rulesets, rule groups, ...).
+// format use) and default skin descriptions, and the static tables of the lobby screens
+// (available factions, rulesets, rule groups, ...).
 import type { LobbyData } from "../generated/LobbyData";
 import type { EnumMember } from "../generated/EnumMember";
 import { withBase } from "../base";

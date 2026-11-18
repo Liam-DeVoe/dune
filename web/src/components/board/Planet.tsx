@@ -1,5 +1,5 @@
-// The planet's sectors: MapComponents/Planet.razor (sector clips, storm, highlighted territories
-// and the clickable locations), MapHover.razor (the sector under the mouse) and RecentBlows.razor
+// The planet's sectors: Planet (sector clips, storm, highlighted territories
+// and the clickable locations), MapHover (the sector under the mouse) and RecentBlows
 // (where spice blew this turn).
 import { Fragment } from "react";
 import { useBoard, sectorClipId, wedgeEdges, wedgePath, SECTORS, num, type Board } from "./geometry";
@@ -66,7 +66,7 @@ export function Planet() {
   );
 }
 
-// A clickable location of Planet.razor, with its intel popover.
+// A clickable location of Planet, with its intel popover.
 function LocationShape({ b, id, click }: { b: Board; id: number; click: ReturnType<typeof useMapClick> }) {
   const { ref, attributes } = useMapPopover<SVGGElement>(locationIntel(b, id), { delay: 50 });
   return (
@@ -80,7 +80,7 @@ function LocationShape({ b, id, click }: { b: Board; id: number; click: ReturnTy
   );
 }
 
-// MapHover.razor: a hidden outline per sector; hover.ts shows the one under the mouse.
+// A hidden outline per sector; hover.ts shows the one under the mouse.
 export function MapHover() {
   const b = useBoard();
   const { X: w, Y: h } = b.point("MapDimensions");
@@ -124,7 +124,7 @@ export function MapHover() {
   );
 }
 
-// RecentBlows.razor: tints the sectors spice blew in this turn, during the blow phase.
+// Tints the sectors spice blew in this turn, during the blow phase.
 export function RecentBlows() {
   const b = useBoard();
   const piles = b.view.piles;

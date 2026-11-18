@@ -1,5 +1,4 @@
-/* Pages/MainLayout.razor.css, the parts the in-game pages use. Blazor scoped these to the
-   layout; plain selectors under .page keep the C# class names, which the comparison checks. */
+/* The main layout, the parts the in-game pages use. */
 .page {
   position: relative;
   display: flex;

@@ -1,4 +1,4 @@
-// OtherComponents/CardPlayPopover.razor: the panel for playing a treachery card, opened by
+// The panel for playing a treachery card, opened by
 // clicking the card in your faction panel (PlayerPanel). It floats to the left of the side
 // column, over the board, at the height the card was clicked, and shows the forms of every action
 // that plays this card (the card's `playableWith`). It closes on a click outside, and draws

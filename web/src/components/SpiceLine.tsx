@@ -1,4 +1,4 @@
-// Support.SpiceLineHtml: each number in the text as a spice amount (the first one larger), the
+// Each number in the text as a spice amount (the first one larger), the
 // rest in bold. The faction panel and the notekeeping assistant draw spice with it.
 import { useGame } from "../state/context";
 

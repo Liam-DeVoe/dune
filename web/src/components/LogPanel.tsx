@@ -1,4 +1,4 @@
-// OtherComponents/ReportComponent.razor: the game's log, one phase at a time. The arrows step
+// The game's log, one phase at a time. The arrows step
 // through every phase of the game, and the dots jump within the turn on show. The panel follows
 // each new phase as it starts, unless the player has stepped back to an earlier one. Then it
 // stays put until they return to the latest phase.

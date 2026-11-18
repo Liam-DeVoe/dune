@@ -1,4 +1,4 @@
-// GenericComponents/Image.razor, for the images rich text draws: a leader disc, a force token,
+// The images rich text draws: a leader disc, a force token,
 // an ambassador. A rich popover (`popover`) or a tooltip (`tooltip`). The state classes
 // (highlighted, darkened, blurred, greyed) are the faction panel's; their styles are Image.css.
 import { popoverAttributes, usePopover } from "../popover";

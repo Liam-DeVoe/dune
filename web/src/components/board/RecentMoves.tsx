@@ -1,6 +1,6 @@
-// MapComponents/RecentMoves.razor and Arrow.razor: during ship and move, an arc of small arrows
+// RecentMoves and Arrow: during ship and move, an arc of small arrows
 // for each recent move, along the sphere of the planet. The view lists the segments
-// (board.recentMoves, already split at the Polar Sink as RecentMoves.razor does).
+// (board.recentMoves, already split at the Polar Sink).
 import { useId } from "react";
 import type { Faction } from "../../generated/enums";
 import { f, num, useBoard, type Point } from "./geometry";
@@ -24,13 +24,13 @@ const cross = (a: number[], c: number[]) => [a[1] * c[2] - a[2] * c[1], a[2] * c
 const inner = (a: number[], c: number[]) => a.reduce((s, x, i) => s + x * c[i], 0);
 const length = (a: number[]) => Math.sqrt(a.reduce((s, x) => s + x * x, 0));
 
-// Arrow.razor, with MarginX = MarginY = 0, ArrowScale 0.05, shadow distance 4 and blur 1.
+// An arrow, with no margin, scale 0.05, shadow distance 4 and blur 1.
 function Arrow({ faction, from, to, radius }: { faction: Faction; from: Point; to: Point; radius: number }) {
   const b = useBoard();
   const id = useId().replace(/:/g, "");
   const fillColor = b.factionColor(faction);
   const strokeColor = b.factionColor(faction) + "bb";
-  // (int) of a double saturates in .NET 9 and later: NaN becomes 0.
+  // Truncates to a whole number; NaN becomes 0.
   const toInt = (x: number) => (Number.isNaN(x) ? 0 : Math.trunc(x));
   const fromA = [from.X - radius, from.Y - radius, 0];
   fromA[2] = toInt(Math.pow(radius * radius - fromA[0] * fromA[0] - fromA[1] * fromA[1], 0.5));

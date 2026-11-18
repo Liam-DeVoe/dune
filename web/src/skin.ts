@@ -1,10 +1,9 @@
 // The skin: names, images and colours, read from public/skin/default.json, plus the engine's
-// static data (rust/view/examples/static_data.rs). default.json started as an export of the C#
-// DefaultSkin and is now edited by hand. The server's text labels come from rust/skin, a separate
-// copy, so a name changed here must be changed there too.
-// A port of the parts of Shared/Model/Skin.cs that turn ids and enum values into text and URLs.
-// The view never carries names or URLs; everything visual comes from here, so a custom skin
-// (setSkin) is a different JSON file and nothing else.
+// static data (rust/view/examples/static_data.rs). default.json is edited by hand. The server's
+// text labels come from rust/skin, a separate copy, so a name changed here must be changed there
+// too. The Skin class turns ids and enum values into text and URLs. The view never carries names
+// or URLs; everything visual comes from here, so a custom skin (setSkin) is a different JSON file
+// and nothing else.
 import type { Faction, TreacheryCardType } from "./generated/enums";
 import type { StaticData } from "./generated/StaticData";
 import { BASE, withBase } from "./base";
@@ -50,13 +49,13 @@ export class Skin {
     return dict?.[String(key)] ?? String(key);
   }
 
-  // Skin.GetLabel: the entry, or "" when it is missing, as in C#. Popover markup uses this.
+  // The entry, or "" when it is missing. Popover markup uses this, so a missing entry shows nothing.
   get(dict: string, key: string | number): string {
     return (this.data[dict] as Dict | undefined)?.[String(key)] ?? "";
   }
 
-  // Skin URLs start with "." (DefaultSkin.DEFAULT_ART_LOCATION); the app serves web/assets at its
-  // base path. Markup built as strings (popovers) keeps the skin's URL as C# does; index.html's
+  // Skin URLs start with "." ; the app serves web/assets at its
+  // base path. Markup built as strings (popovers) keeps the skin's URL as it is; index.html's
   // <base href> (the base path) resolves it.
   url(u: string | undefined): string {
     return u ? u.replace(/^\.\//, BASE) : "";
@@ -88,7 +87,7 @@ export class Skin {
   get planetCenter(): Point { return this.data.PlanetCenter as Point; }
   get planetRadius(): number { return this.data.PlanetRadius as number; }
 
-  // Skin.Describe(Location): "<territory> (<orientation> Sector)", or just the territory.
+  // "<territory> (<orientation> Sector)", or just the territory.
   location(id: number): string {
     const l = this.locations.get(id);
     if (!l) return `Location ${id}`;
@@ -96,7 +95,7 @@ export class Skin {
     return l.orientation ? `${t} (${l.orientation} Sector)` : t;
   }
 
-  // Skin.Describe(object) for enum values: the type's own dictionary when the skin has one
+  // The type's own dictionary when the skin has one
   // (Concept_STR, MainPhase_STR, TreacheryCardType_STR, ...), the member name otherwise.
   // Text the game writes arrives described by the server; this is for the client's own labels.
   enumValue(type: string, value: string): string {

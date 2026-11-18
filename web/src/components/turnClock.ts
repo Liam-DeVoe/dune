@@ -1,4 +1,4 @@
-// TurnClock.cs: one clock for every "how long has the game been waiting" display (the turn
+// One clock for every "how long has the game been waiting" display (the turn
 // banner and the prompt's timer), so they show the same time and change together. It ticks on
 // whole seconds; `now` is the time of the latest tick.
 import { useSyncExternalStore } from "react";
@@ -41,7 +41,7 @@ export function since(clock: number, from: string): string {
   return h >= 1 ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
-// The seconds since `since` on the clock, as C#'s TimeSpan.TotalSeconds.
+// The seconds since `since` on the clock, with fractions.
 export function secondsSince(clock: number, from: string): number {
   return (clock - Date.parse(from)) / 1000;
 }

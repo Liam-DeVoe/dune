@@ -1,4 +1,4 @@
-// OtherComponents/MenuPanels.razor: what the menu bar under the map (MenuComponent) opens, shown
+// What the menu bar under the map (MenuComponent) opens, shown
 // at the top of the side column: the players list, the automation rules, the host's undo panel,
 // and errors from loading a game or skin.
 import { useContext } from "react";

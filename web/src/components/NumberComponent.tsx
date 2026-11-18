@@ -1,12 +1,11 @@
-// GenericComponents/NumberComponent.razor: a number drawn over a symbol (a faction sigil, a card
+// A number drawn over a symbol (a faction sigil, a card
 // back), centred or in the bottom right corner on a small disc. Offsets are computed in single
-// precision where C# does (0.4f * Size), so the CSS lengths come out as in C#.
+// precision (0.4f * size).
 import type { CSSProperties } from "react";
 import { supportRound } from "../text";
 
 export type NumberAlignment = "Center" | "BottomRight";
 
-// C# double.ToString() of a float widened to double, or of a double.
 const px = (x: number) => `${x}px`;
 const f32 = (k: number, size: number) => Math.fround(Math.fround(k) * size);
 

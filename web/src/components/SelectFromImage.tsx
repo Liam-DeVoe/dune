@@ -1,4 +1,4 @@
-// GenericComponents/SelectFromImageComponent.razor, single choice: a row of images, the chosen
+// A single choice from images: a row of images, the chosen
 // one lit, the rest darkened. With `required`, a value not among the choices becomes the first
 // choice; without, clicking the chosen image clears it.
 import { useEffect, type ReactNode } from "react";
@@ -9,7 +9,7 @@ export interface ImageChoice<T> {
   src: string;
   alt: string;
   popover: string | null;
-  // Image.razor's tooltip (title) for values without a rich popover, such as a faction.
+  // The image's tooltip (title) for values without a rich popover, such as a faction.
   tooltip?: string | null;
 }
 

@@ -1,4 +1,4 @@
-// OtherComponents/ImageFlashComponent.razor: the cards, leaders or factions the latest event
+// The cards, leaders or factions the latest event
 // revealed (status.flash) flash over the board for a few seconds, centred in the window.
 import { useEffect, useState, type CSSProperties } from "react";
 import type { GameView } from "../generated/GameView";
@@ -10,7 +10,6 @@ import { RichText } from "./RichText";
 
 const SPACING_X = Math.fround(1.1);
 
-// Skin.GetImageUrl(object) for what a flash shows.
 function imageUrl(skin: Skin, p: Part): string {
   switch (p.t) {
     case "faction": return skin.url(skin.get("FactionImage_URL", p.v));
@@ -33,18 +32,17 @@ function name(p: Part): string {
   return "label" in p ? p.label : "";
 }
 
-// Support.TextBorder(2, "var(--ink-0)").
+// A text border of width 2.
 const border: CSSProperties = { WebkitTextStroke: "0.6px var(--ink-0)", textShadow: "0 0 4px var(--ink-0)" };
 
 // `view` is the live game's view, not an undo preview's: leaving a preview must not flash again.
 export function ImageFlash({ view }: { view: GameView }) {
   const { skin } = useGame();
-  // A flash after every new event that brings one, not only on the first render as in C#
-  // (flashTrigger.ts).
+  // A flash after every new event that brings one (flashTrigger.ts).
   const [state, setState] = useState(() => initialFlash(view.eventNumber, view.status.flash));
   const next = nextFlash(state, view.eventNumber, view.status.flash);
   if (next !== state) setState(next);
-  // The window size when the flash starts (ImageFlashComponent.ApplyDimensions).
+  // The window size when the flash starts.
   const [size, setSize] = useState({ key: state.key, w: window.innerWidth, h: window.innerHeight });
   if (size.key !== next.key) setSize({ key: next.key, w: window.innerWidth, h: window.innerHeight });
   const [hidden, setHidden] = useState(0);

@@ -1,12 +1,11 @@
-// OtherComponents/DealToasts.razor: a toast above the Deals icon for each deal offered to the
+// A toast above the Deals icon for each deal offered to the
 // viewer. It shows the game's own log line for the offer and goes after five seconds, or stays
 // while the mouse is over it. Clicking it opens Deals with the offer marked; × closes it and leaves
 // the offer waiting. Answering the offer removes it. If the offer leaves unanswered, it says
 // "Offer withdrawn" for two seconds, then goes. Offers already there when the game loads get no
 // toast.
 //
-// C# tells a withdrawn offer from an answered one by the game's deal responses. The view has
-// only the open offers, so an offer that goes counts as answered when this client answered it
+// The view has only the open offers, so an offer that goes counts as answered when this client answered it
 // (answeredDeals, which DealComponent fills).
 import { useEffect, useRef, useState } from "react";
 import type { DealOfferView } from "../generated/DealOfferView";

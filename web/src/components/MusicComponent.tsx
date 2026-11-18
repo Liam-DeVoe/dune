@@ -1,6 +1,6 @@
-// OtherComponents/MusicComponent.razor: the volume sliders, drawn inside the menu. The component
+// The volume sliders, drawn inside the menu. The component
 // stays mounted while they are hidden, because it also plays the music: a soundtrack per main
-// phase from the skin. IGameService.ChatEnabled is false in C#, so there is no chat volume slider.
+// phase from the skin. Nothing plays a sound for chat, so there is no chat volume slider.
 import { useEffect, useRef, useState } from "react";
 import { PhaseValue } from "../generated/enums";
 import type { GameView } from "../generated/GameView";
@@ -47,8 +47,7 @@ export function MusicComponent({ visible }: { visible: boolean }) {
     }
   });
 
-  // Leaving the game stops the music. (C# kept the last soundtrack playing on the main screen,
-  // where the web client has no sound controls.)
+  // Leaving the game stops the music: the main screen has no sound controls.
   useEffect(() => () => stopSounds(), []);
 
   if (!visible) return null;

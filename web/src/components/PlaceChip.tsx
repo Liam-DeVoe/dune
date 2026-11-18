@@ -1,4 +1,4 @@
-// GenericComponents/PlaceChip.razor (Support.PlaceChipHtml): a location or territory as a pill
+// A location or territory as a pill
 // with a glyph of the planet showing where it lies, its territory name and its compass word.
 // data-ref-locations is for the map's hover tinting. The markup is popups.ts's placeChipHtml,
 // as JSX.

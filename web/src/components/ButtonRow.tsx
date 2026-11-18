@@ -1,4 +1,4 @@
-// GenericComponents/ButtonRowComponent.razor: Other, Pass and Confirm, in that order. The
+// Other, Pass and Confirm, in that order. The
 // validation message (ConfirmError) disables only the confirm button.
 import type { Part } from "../generated/Part";
 

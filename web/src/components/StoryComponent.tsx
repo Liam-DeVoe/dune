@@ -25,7 +25,7 @@ const NBSP = " ";
 
 export function StoryComponent({ id, story }: { id: string; story: StoryBlock[] }) {
   return (
-    <ModalComponent id={id} title="The story of this game..." size="modal-xl" scrolling printable>
+    <ModalComponent id={id} title="The story of this game..." size="xlarge" scrolling printable>
       {story.map((b, i) => <Block key={i} block={b} />)}
     </ModalComponent>
   );

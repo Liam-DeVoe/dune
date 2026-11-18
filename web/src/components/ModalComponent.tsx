@@ -1,41 +1,76 @@
-// GenericComponents/ModalComponent.razor: a Bootstrap modal, opened by a button with
-// data-bs-toggle="modal" and data-bs-target="#<id>". Bootstrap's own script (index.html) shows
-// and hides it, as in C#; React never changes the classes it sets, because the props stay the same.
-import type { ReactNode } from "react";
+// GenericComponents/ModalComponent.razor: a modal <dialog>, opened with openModal(id) by the button
+// that shows it. Escape, the close button and a click beside the box close it, with a short fade
+// (components/_modal.scss). The browser keeps focus inside while it is open and gives it back to
+// the element that had it when it closes.
+import { useRef, type ReactNode } from "react";
+import { hidePopoversIn } from "../popover";
 
-export function ModalComponent({ id, title, size = "", scrolling = false, printable = false, children }: {
+const FADE = 150; // ms, the closing fade (.modal--closing)
+
+function dialog(id: string): HTMLDialogElement | null {
+  const d = document.getElementById(id);
+  return d instanceof HTMLDialogElement ? d : null;
+}
+
+export function openModal(id: string): void {
+  const d = dialog(id);
+  if (!d || d.open) return;
+  d.showModal();
+  // The dialog itself, not its first button, as Bootstrap's modal did.
+  d.focus();
+}
+
+export function closeModal(id: string): void {
+  const d = dialog(id);
+  if (d) hide(d);
+}
+
+function hide(d: HTMLDialogElement) {
+  if (!d.open || d.classList.contains("modal--closing")) return;
+  hidePopoversIn(d);
+  d.classList.add("modal--closing");
+  window.setTimeout(() => d.close(), FADE);
+}
+
+export function ModalComponent({ id, title, size, scrolling = false, printable = false, children }: {
   id: string;
   title: string;
-  size?: string; // modal-sm, modal-lg, modal-xl
+  size?: "small" | "large" | "xlarge";
   scrolling?: boolean;
   printable?: boolean;
   children: ReactNode;
 }) {
   const labelId = `${id}Label`;
   const bodyId = `${id}Body`;
+  // A click closes the modal only when it both starts and ends beside the box.
+  const pressedOutside = useRef(false);
   return (
-    <div className="modal fade" id={id} tabIndex={-1} role="dialog" aria-labelledby={labelId} aria-hidden="true">
-      <div className={`modal-dialog ${size}`} role="document">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title" id={labelId}>{title}</h5>
-            {" "}
+    <dialog className="modal" id={id} role="dialog" tabIndex={-1} aria-labelledby={labelId}
+            onCancel={(e) => { e.preventDefault(); hide(e.currentTarget); }}
+            onClose={(e) => e.currentTarget.classList.remove("modal--closing")}
+            onMouseDown={(e) => { pressedOutside.current = e.target === e.currentTarget; }}
+            onClick={(e) => { if (pressedOutside.current && e.target === e.currentTarget) hide(e.currentTarget); }}>
+      <div className={size ? `modal__dialog modal__dialog--${size}` : "modal__dialog"}>
+        <div className="modal__content">
+          <div className="modal__header">
+            <h5 className="modal__title" id={labelId}>{title}</h5>
+            {" "}
             {printable && (
-              <button className="btn btn-link modal-component__print" type="button" onClick={() => print(bodyId)}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-printer" viewBox="0 0 16 16">
+              <button className="button button--link modal-component__print" type="button" onClick={() => print(bodyId)}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z" />
                   <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z" />
                 </svg>
               </button>
             )}
-            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close" />
+            <button type="button" className="close-button" aria-label="Close" onClick={() => closeModal(id)} />
           </div>
-          <div className={`modal-body ${scrolling ? "modal-component__body--scroll" : ""}`} id={bodyId}>
+          <div className={`modal__body ${scrolling ? "modal-component__body--scroll" : ""}`} id={bodyId}>
             {children}
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }
 

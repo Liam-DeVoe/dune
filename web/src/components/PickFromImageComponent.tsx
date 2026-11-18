@@ -3,19 +3,13 @@
 import { useId, type ReactNode } from "react";
 import { supportRound } from "../text";
 import { Image } from "./Image";
-import { ModalComponent } from "./ModalComponent";
+import { closeModal, ModalComponent, openModal } from "./ModalComponent";
 
 export interface PickItem<K> {
   key: K;
   src: string;
   alt: string;
   popover: string | null;
-}
-
-function hideModal(id: string) {
-  const el = document.getElementById(id);
-  const bs = (window as unknown as { bootstrap?: { Modal: { getInstance(e: Element): { hide(): void } | null } } }).bootstrap;
-  if (el && bs) bs.Modal.getInstance(el)?.hide();
 }
 
 function Unknown({ width }: { width: number }) {
@@ -38,7 +32,7 @@ export function PickFromImageComponent<K>({ value, values, onChanged, title, ima
 }) {
   const id = "picker" + useId().replace(/[^a-zA-Z0-9]/g, "");
   // Picking the chosen value again clears it (Required is false wherever this is used).
-  const click = (k: K | null) => { onChanged(value !== null && k === value.key ? null : k); hideModal(id); };
+  const click = (k: K | null) => { onChanged(value !== null && k === value.key ? null : k); closeModal(id); };
   return (
     <>
       <ModalComponent id={id} title={title}>
@@ -58,7 +52,7 @@ export function PickFromImageComponent<K>({ value, values, onChanged, title, ima
           ))}
         </div>
       </ModalComponent>
-      <a className="btn btn-link pick-from-image__trigger" data-bs-toggle="modal" data-bs-target={`#${id}`}>
+      <a className="button button--link pick-from-image__trigger" onClick={() => openModal(id)}>
         {value !== null
           ? <Image src={value.src} alt={value.alt} width={imageWidth} popover={value.popover} pointer />
           : placeholder ?? <Unknown width={imageWidth} />}

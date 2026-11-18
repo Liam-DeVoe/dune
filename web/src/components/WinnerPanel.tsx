@@ -2,6 +2,7 @@
 // game unless the rules disable it. ActionPanel draws it after GameEnded (view.ending).
 import type { EndingView } from "../generated/EndingView";
 import { useGame } from "../state/context";
+import { openModal } from "./ModalComponent";
 import { StoryComponent } from "./StoryComponent";
 
 export function WinnerPanel({ ending }: { ending: EndingView }) {
@@ -15,7 +16,7 @@ export function WinnerPanel({ ending }: { ending: EndingView }) {
         ))}
         {ending.story && (
           <>
-            <button className="btn btn-primary winner-panel__story" data-bs-toggle="modal" data-bs-target="#storyModal">Read the story of this game...</button>
+            <button className="button button--primary winner-panel__story" onClick={() => openModal("storyModal")}>Read the story of this game...</button>
             <StoryComponent id="storyModal" story={ending.story} />
           </>
         )}

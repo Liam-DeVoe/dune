@@ -16,7 +16,7 @@ import { useGame } from "../state/context";
 import { CollapseButton } from "./CollapseButton";
 import { Hoverable } from "./Hoverable";
 import { Image } from "./Image";
-import { ModalComponent } from "./ModalComponent";
+import { closeModal, ModalComponent, openModal } from "./ModalComponent";
 import { PickFromImageComponent, type PickItem } from "./PickFromImageComponent";
 import { PopoverText } from "./PopoverText";
 
@@ -110,7 +110,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
   const save = (n: Notes) => { setNotes({ ...n }); localStorage.setItem(key, write(n)); };
   const players = [...t.players].sort((a, b) => skin.faction(a.faction).localeCompare(skin.faction(b.faction)));
   const toggle = (s: Shown) => setShown(same(s, shown) ? null : s);
-  const style = (s: Shown) => (same(s, shown) ? "btn-primary" : "btn-outline-primary");
+  const style = (s: Shown) => (same(s, shown) ? "button--primary" : "button--outline-primary");
   const heroItem = (id: number): PickItem<number> | null => {
     const h = traitors.find((x) => heroId(x) === id);
     return h ? heroPick(skin, h) : null;
@@ -130,7 +130,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
     if (!picking) return;
     notes.cards.get(picking[0])![picking[1]] = card;
     save(notes);
-    hideModal("picker");
+    closeModal("picker");
   };
   const discard = () => {
     if (!picking || current === NONE || current === UNKNOWN) return;
@@ -138,7 +138,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
     if (skin.cardType(current) === "Metheor") notes.removed.push(current);
     else notes.discarded.push(current);
     save(notes);
-    hideModal("picker");
+    closeModal("picker");
   };
   const notDiscarded = (c: number) => {
     if (skin.cardType(c) === "Metheor") notes.removed = notes.removed.filter((x) => x !== c);
@@ -211,14 +211,14 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
           <div className="card-body">
             <div className="tracker__toggles">
               {players.map((p) => (
-                <button key={p.faction} className={`btn ${style({ faction: p.faction })} tracker__toggle`} onClick={() => toggle({ faction: p.faction })} data-bs-toggle="tooltip" title={skin.faction(p.faction)}>
+                <button key={p.faction} className={`button ${style({ faction: p.faction })} tracker__toggle`} onClick={() => toggle({ faction: p.faction })} title={skin.faction(p.faction)}>
                   <img className="tracker__toggle-img" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", p.faction))} alt={skin.faction(p.faction)} />
                 </button>
               ))}
-              <button className={`btn ${style("discarded")} tracker__toggle`} onClick={() => toggle("discarded")} data-bs-toggle="tooltip" title="Discarded Treachery Cards">
+              <button className={`button ${style("discarded")} tracker__toggle`} onClick={() => toggle("discarded")} title="Discarded Treachery Cards">
                 <img className="tracker__toggle-img tracker__toggle-img--pile" width="21" height="29" src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} alt="" />
               </button>
-              <button className={`btn ${style("spice")} tracker__toggle`} onClick={() => toggle("spice")} data-bs-toggle="tooltip" title="Discarded Spice Cards">
+              <button className={`button ${style("spice")} tracker__toggle`} onClick={() => toggle("spice")} title="Discarded Spice Cards">
                 <img className="tracker__toggle-img tracker__toggle-img--pile" width="21" height="29" src={skin.url(skin.str("CardBack_ResourceCard_URL"))} alt="" />
               </button>
             </div>
@@ -228,7 +228,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
                 <div>Treachery cards</div>
                 <div className="tracker__cards">
                   {(notes.cards.get(shownPlayer.faction) ?? []).map((c, i) => (
-                    <a key={i} className="btn btn-link tracker__card" data-bs-toggle="modal" data-bs-target="#picker" onMouseDown={() => setPicking([shownPlayer.faction, i])}
+                    <a key={i} className="button button--link tracker__card" onMouseDown={() => setPicking([shownPlayer.faction, i])} onClick={() => openModal("picker")}
                        title={c === UNKNOWN ? "Unknown" : c === NONE ? "None" : ""}>
                       {c === NONE
                         ? (
@@ -302,12 +302,6 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
 function same(a: Shown, b: Shown): boolean {
   if (a === null || b === null || typeof a === "string" || typeof b === "string") return a === b;
   return a.faction === b.faction;
-}
-
-function hideModal(id: string) {
-  const el = document.getElementById(id);
-  const bs = (window as unknown as { bootstrap?: { Modal: { getInstance(e: Element): { hide(): void } | null } } }).bootstrap;
-  if (el && bs) bs.Modal.getInstance(el)?.hide();
 }
 
 // The id LeaderManager.HeroLookup finds a hero by: a leader's id, the Messiah's, a card's.

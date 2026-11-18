@@ -157,7 +157,7 @@ export function listenForMapCancel(cancel: (() => void) | null): void {
   if (cancel == null) return;
   cancelKey = (e) => {
     if (e.key !== "Escape") return;
-    if (document.querySelector('.modal.show, [aria-expanded="true"]') != null) return;
+    if (document.querySelector('.modal[open], [aria-expanded="true"]') != null) return;
     const t = e.target as Element | null;
     const outsideMap = t == null || t.closest == null || t.closest("#planetmap_inner") == null;
     if (outsideMap && t != null && t.matches != null && t.matches("input, textarea, select, [contenteditable]")) return;

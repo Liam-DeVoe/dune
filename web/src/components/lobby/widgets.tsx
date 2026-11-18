@@ -1,6 +1,7 @@
 // The generic C# components the lobby and setup screens use, for pages without a game view (the
 // shared ones in components/ read the skin from the game context). Each names its razor file.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { Faction } from "../../generated/enums";
 import { useLobbyClient } from "../../lobby/context";
 import "../Image.css";
@@ -196,16 +197,16 @@ export function ChecklistItem({ label, checked, onChange, disabled = false }: { 
 }
 
 /**
- * A Bootstrap dropdown button (`btn-group` with `data-bs-toggle="dropdown"`), as
- * SubscribeComponent and UserStatusComponent draw them. Bootstrap's script opens the menu in the
- * C# client; here React toggles the `show` classes the same way.
+ * A dropdown button, as SubscribeComponent and UserStatusComponent draw them: the toggle opens a
+ * menu of items below it. A click outside, Escape, or tabbing away closes it; the arrow keys move
+ * through the items. Styles in components/_dropdown.scss.
  */
-export function DropdownButton({ buttonClass, label, items, disabled = false, groupClass = "btn-group" }: {
+export function DropdownButton({ buttonClass, label, items, disabled = false, className = "" }: {
   buttonClass: string;
   label: string;
   items: { label: string; onClick: () => void }[];
   disabled?: boolean;
-  groupClass?: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -213,12 +214,17 @@ export function DropdownButton({ buttonClass, label, items, disabled = false, gr
   const menu = useRef<HTMLUListElement>(null);
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("click", close, true);
-    return () => document.removeEventListener("click", close, true);
+    const outside = (e: Event) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const tabbedAway = (e: KeyboardEvent) => { if (e.key === "Tab") outside(e); };
+    document.addEventListener("click", outside, true);
+    document.addEventListener("keyup", tabbedAway);
+    return () => {
+      document.removeEventListener("click", outside, true);
+      document.removeEventListener("keyup", tabbedAway);
+    };
   }, [open]);
-  // Popper as Bootstrap configures it: below the button with a 2 px gap, at its start; flipped to
-  // its end when the menu would leave the nearest clipping ancestor (or the window).
+  // Below the button with a 2 px gap, at its start; at its end when the menu would leave the
+  // nearest clipping ancestor (or the window).
   useLayoutEffect(() => {
     const m = menu.current;
     const b = button.current;
@@ -228,20 +234,41 @@ export function DropdownButton({ buttonClass, label, items, disabled = false, gr
       if (getComputedStyle(e).overflowX !== "visible") { right = e.getBoundingClientRect().right; break; }
     }
     const br = b.getBoundingClientRect();
-    // Popper's offsets: fractional rectangles, rounded once at the end (roundOffsetsByDPR).
     const mw = m.getBoundingClientRect().width;
     const x = br.left + mw > right ? br.width - mw : 0;
-    m.style.cssText = `position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(${Math.round(x)}px, ${Math.round(br.height + 2)}px);`;
+    m.style.transform = `translate(${Math.round(x)}px, ${Math.round(br.height + 2)}px)`;
   }, [open]);
+  // Escape closes the menu and returns to the toggle. The arrow keys open it and move through its
+  // items: from the toggle, down to the first and up to the last; within it, without wrapping.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      if (!open) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+      button.current?.focus();
+      return;
+    }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!open) flushSync(() => setOpen(true));
+    const list = [...(menu.current?.querySelectorAll<HTMLElement>(".dropdown__item") ?? [])];
+    if (list.length === 0) return;
+    const down = e.key === "ArrowDown";
+    const i = list.indexOf(e.target as HTMLElement);
+    const next = i < 0 ? (down ? 0 : list.length - 1) : Math.max(0, Math.min(i + (down ? 1 : -1), list.length - 1));
+    list[next].focus();
+  };
   return (
-    <div className={groupClass} ref={ref}>
-      <button ref={button} type="button" className={`btn ${buttonClass} dropdown-toggle btn-sm ${open ? "show" : ""}`} data-bs-toggle="dropdown" aria-expanded={open ? "true" : "false"}
+    <div className={className ? `dropdown ${className}` : "dropdown"} ref={ref} onKeyDown={onKeyDown}>
+      <button ref={button} type="button" className={`button ${buttonClass} button--small dropdown__toggle`} aria-expanded={open ? "true" : "false"}
               disabled={disabled} onClick={() => setOpen(!open)}>
         {label}
       </button>
-      <ul ref={menu} className={`dropdown-menu ${open ? "show" : ""}`}>
+      <ul ref={menu} className={open ? "dropdown__menu dropdown__menu--open" : "dropdown__menu"}>
         {items.map((it, i) => (
-          <li key={i}><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); setOpen(false); it.onClick(); }}>{it.label}</a></li>
+          <li key={i}><a className="dropdown__item" href="#" onClick={(e) => { e.preventDefault(); setOpen(false); it.onClick(); }}>{it.label}</a></li>
         ))}
       </ul>
     </div>

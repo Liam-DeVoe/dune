@@ -1,0 +1,164 @@
+@use "../shared";
+
+// A modal (ModalComponent.tsx): a <dialog> shown with showModal(). The dialog
+// covers the window and scrolls when the box is taller than it; the box is
+// __content, centred in __dialog. A click on the dialog itself, beside the
+// box, closes it. Opening fades the dialog in and slides the box down;
+// closing (--closing, while the script waits) does the reverse.
+.modal {
+  --modal-width: 500px;
+  --modal-margin: 0.5rem;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  animation: modal-fade-in 0.15s linear;
+
+  &::backdrop {
+    background: rgb(18 8 0 / 0.7); // --ink-0 at 70%
+    animation: modal-fade-in 0.15s linear;
+  }
+
+  &--closing,
+  &--closing::backdrop {
+    animation: modal-fade-out 0.15s linear forwards;
+  }
+
+  @media (min-width: 576px) {
+    --modal-margin: 1.75rem;
+  }
+
+  &__dialog {
+    position: relative;
+    width: auto;
+    margin: var(--modal-margin);
+    pointer-events: none;
+    animation: modal-slide-in 0.3s ease-out;
+
+    @media (min-width: 576px) {
+      max-width: var(--modal-width);
+      margin-right: auto;
+      margin-left: auto;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  &--closing &__dialog {
+    animation: modal-slide-out 0.3s ease-out forwards;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  }
+
+  &__dialog--small {
+    @media (min-width: 576px) {
+      --modal-width: 300px;
+    }
+  }
+
+  &__dialog--large,
+  &__dialog--xlarge {
+    @media (min-width: 992px) {
+      --modal-width: 800px;
+    }
+  }
+
+  &__dialog--xlarge {
+    @media (min-width: 1200px) {
+      --modal-width: 1140px;
+    }
+  }
+
+  &__content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    color: var(--parchment);
+    pointer-events: auto;
+    background-color: var(--ink-2);
+    background-clip: padding-box;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--r-2);
+    outline: 0;
+  }
+
+  &__header {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid shared.$hairline;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+
+    .close-button {
+      padding: 0.5rem;
+      margin: -0.5rem -0.5rem -0.5rem auto;
+    }
+  }
+
+  &__title {
+    margin-bottom: 0;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--sand);
+  }
+
+  &__body {
+    position: relative;
+    flex: 1 1 auto;
+    padding: 1rem;
+  }
+}
+
+// The page behind an open modal doesn't scroll.
+body:has(.modal[open]) {
+  overflow: hidden;
+}
+
+@media print {
+  .modal::backdrop {
+    display: none;
+  }
+}
+
+@keyframes modal-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-slide-in {
+  from {
+    transform: translate(0, -50px);
+  }
+}
+
+@keyframes modal-slide-out {
+  to {
+    transform: translate(0, -50px);
+  }
+}

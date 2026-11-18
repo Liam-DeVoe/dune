@@ -7,7 +7,7 @@ use treachery_engine::events::HistoryEntry;
 use treachery_engine::game::{Game, Seat};
 
 // Same text as ReviewA.Establish (step 1 of fuzz-2026-00018).
-// The seed deals Fremen, Ecaz and Richese, as the probes below expect (game version 189).
+// The seed deals Fremen, Ecaz and Richese, as the tests below expect.
 const ESTABLISH: &str = r#"{"by":null,"at":"2024-01-01T12:02:17Z","event":{"type":"EstablishPlayers","settings":{"numberOfPlayers":3,"maximumTurns":8,"initialRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"allowedFactionsInPlay":["Guild","Fremen","Moritani","BeneGesserit","Emperor","Richese","Atreides","Choam","Ixian","Tleilaxu","Harkonnen","Ecaz"],"autoOpenEmptySeats":true,"asyncPlay":false,"asyncPlayMessageIntervalMinutes":0},"seed":1073559628,"maximumNumberOfPlayers":3,"maximumTurns":8,"applicableRules":["TleilaxuGholas","IxianSwappingCardOnBid","BeneGesseritWorthlessAsKarma","BeneGesseritAutoCharity","AdvancedKarama","BattleWithoutLeader","IncreasedResourceFlow","MoritaniAssassinate","Ssw","GuildDetermineShipment","EmperorSpecialForces","Expansion3TreacheryCards","BribesAreImmediate","FillWithBots","FremenStormLosses","EcazLoyalty","FremenSpecialForces","FullPhaseKarma","AdvancedCombat","BeneGesseritAdvisors","HarkonnenCapturesOrKillsLeaders","FremenDeterminesStorm","ExpansionTreacheryCards","ExtraKaramaCards","AssistedNotekeeping"],"players":[],"factionsInPlay":["Guild","Fremen","Moritani","BeneGesserit","Emperor","Richese","Atreides","Choam","Ixian","Tleilaxu","Harkonnen","Ecaz"]}}"#;
 
 fn setup() -> Game {
@@ -37,7 +37,7 @@ fn parse(g: &Game, s: &str) -> String {
 }
 
 #[test]
-fn force_location_strings_throw_like_csharp() {
+fn malformed_force_location_strings_fail() {
     let g = setup();
     assert_eq!(parse(&g, "abc:1|1"), "FormatException: The input string 'abc' was not in a correct format.");
     assert_eq!(parse(&g, "42:1|0,42:2|0"), "duplicate key Location(42)");
@@ -48,7 +48,7 @@ fn force_location_strings_throw_like_csharp() {
 }
 
 #[test]
-fn shipment_costs_match_csharp_at_the_edges() {
+fn shipment_costs_at_the_edges() {
     let g = setup();
     let pl = g.player_indices().find(|p| g.player(*p).faction != Some(Faction::Fremen)).unwrap();
     assert_eq!(g.player(pl).faction, Some(Faction::Ecaz), "probe: player0 = Ecaz");
@@ -62,8 +62,8 @@ fn shipment_costs_match_csharp_at_the_edges() {
         show(|| Shipment::determine_cost_of_forces(&g, pl, f, s, to, karma, back, false, false, false))
     };
     assert_eq!(cost(1073741824, 0, false, false), "-2147483648");
-    // C# halved in `float`, which rounds 16777217 to 16777216 first; integers don't
-    // (behavior-changes.md, "Battle strength in halves").
+    // Halving is exact integer arithmetic, even above 2^24 (behavior-changes.md, "Battle strength
+    // in halves").
     assert_eq!(cost(16777217, 0, false, true), "8388609");
     assert_eq!(cost(i32::MAX, 0, false, true), "1073741824");
     assert_eq!(cost(-3, 0, false, true), "-1");
@@ -84,20 +84,14 @@ fn shipment_costs_match_csharp_at_the_edges() {
     assert_eq!(show(|| s2.validate(&g, By::new(&g, faction)).err().map(|r| r.0.plain_text()).unwrap_or("null".into())), "You can't ship back to reserves");
 
     let valid: Vec<_> = Shipment::valid_shipment_locations(&g, pl, false, false).collect();
-    // Before the first storm. C# counted the Polar Sink (sector -1, like the storm) as in the storm,
-    // so it listed 85 locations from id 1 (behavior-changes.md, "Turns, sectors and amounts out of range").
+    // Before the first storm nothing is in the storm, so the Polar Sink (id 0) is listed too
+    // (behavior-changes.md, "Turns, sectors and amounts out of range").
     assert_eq!(valid.len(), 86, "probe: validLocations.count");
     assert_eq!(valid[0].id(), 0, "probe: validLocations.first");
 }
 
-/// `ChoamRemoveForce` with no location, executed without validation (as
-/// `Game.TryLoad(..., performValidation: false, ...)` does for savegames on the server).
-/// C# passes the null location into `Player.ForcesToReserves`/`SpecialForcesToReserves`
-/// (`ChoamRemoveForce.cs:116-119`), which call `AddForcesToReserves` and then
-/// `ForcesInLocations.TryGetValue(null)`, which throws, so `Execute` returns a Game Error.
-/// The Rust event must fail the same way rather than panic.
-///
-/// Probe: `choamRemoveForce.normal.result`, `choamRemoveForce.special.result`.
+/// `ChoamRemoveForce` with no location, executed without validation (as loading a savegame on
+/// the server does). The event needs a location, so it fails with a Game Error rather than panic.
 #[test]
 fn choam_remove_force_without_location_fails() {
     for special in [false, true] {

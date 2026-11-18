@@ -19,7 +19,7 @@ impl ClairVoyancePlayed {
     }
 
     /// The boxed value as a message element: an enum, an `IHero`, a `Territory`, a strength, or null.
-    /// Panics like .NET's parse when the parameter doesn't fit the question.
+    /// Panics when the parameter doesn't fit the question; [`try_parameter1`](Self::try_parameter1) fails instead.
     pub fn parameter1(&self, game: &Game) -> Part {
         self.parse_parameter1(game).unwrap_or_else(|e| panic!("{e}"))
     }
@@ -97,7 +97,7 @@ impl ClairVoyancePlayed {
         }
     }
 
-    /// Panics like .NET's parse when the parameter isn't a number.
+    /// Panics when the parameter isn't a number; [`try_parameter2`](Self::try_parameter2) fails instead.
     pub fn parameter2(&self) -> Part {
         self.parse_parameter2().unwrap_or_else(|e| panic!("{e}"))
     }

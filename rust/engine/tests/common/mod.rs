@@ -149,8 +149,8 @@ pub fn snapshot_lines(file: &str, lines: &[String]) {
     assert!(failures.is_empty(), "{file}: {} differences:\n{}", failures.len(), failures.join("\n"));
 }
 
-/// A panic message as an encoded exception: `"x:Type:Message"` when it names a .NET exception
-/// (the engine's text parsing panics that way), `"x:panic:<message>"` otherwise.
+/// A panic message as an encoded exception: `"x:Type:Message"` when it starts with an exception
+/// name (the engine's text parsing panics that way), `"x:panic:<message>"` otherwise.
 pub fn exception(message: &str) -> Value {
     match message.split_once(": ") {
         Some((t, m)) if t.ends_with("Exception") && t.chars().all(|c| c.is_ascii_alphabetic()) => json!(format!("x:{t}:{m}")),
@@ -158,8 +158,8 @@ pub fn exception(message: &str) -> Value {
     }
 }
 
-/// Runs `f`: its result, or the panic encoded as a value. A panic that names a .NET exception
-/// (`"NullReferenceException: ..."`) is encoded as that exception (`"x:Type:Message"`), any
+/// Runs `f`: its result, or the panic encoded as a value. A panic that starts with an exception
+/// name (`"NullReferenceException: ..."`) is encoded as that exception (`"x:Type:Message"`), any
 /// other panic as `"x:panic:<panic message>"`.
 pub fn catch_any<R>(f: impl FnOnce() -> R) -> Result<R, Value> {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catch_panic(f))) {
@@ -342,7 +342,7 @@ fn tagged<'a>(v: &'a Value, tag: &str) -> &'a str {
     v.as_str().and_then(|s| s.strip_prefix(tag)).unwrap_or_else(|| panic!("expected {tag}...: {v}"))
 }
 
-/// Parses .NET invariant `ToString()` of a float ("NaN", "-Infinity", "1E-05").
+/// Parses a float as the snapshots write it ("NaN", "-Infinity", "1E-05").
 fn parse_net_float(s: &str) -> f64 {
     match s {
         "NaN" => f64::NAN,

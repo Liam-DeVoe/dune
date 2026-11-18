@@ -132,7 +132,8 @@ impl Game {
                         express_part_if!(homeworld_bonus > 0; " and ", Payment::of(homeworld_bonus), " from the bank")
                     ]);
                 } else {
-                    // C# parity: the claimant was already paid above, even though Choam cannot pay.
+                    // Known quirk (known-issues.md): the claimant was already paid above, from the
+                    // bank, even though Choam cannot pay.
                     self.log(parts![
                         to_faction,
                         " are unable to claim ",

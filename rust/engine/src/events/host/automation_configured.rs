@@ -139,8 +139,8 @@ impl EventRules for AutomationConfigured {
             }
 
             ItemAction::Delete => {
-                // C# parity: an unknown id fails the event (C#'s First throws),
-                // and ownership is not checked.
+                // An unknown id fails the event. Known quirk (known-issues.md): validation doesn't
+                // check that the rule is the submitter's own.
                 let id = self.automation_rule_id;
                 let Some(i) = game.rules.automation_rules.iter().position(|x| x.id == id) else {
                     game_error!("There is no automation rule {id}");
@@ -149,7 +149,7 @@ impl EventRules for AutomationConfigured {
             }
 
             ItemAction::Update => {
-                // C# parity: Update does nothing.
+                // The client never sends Update. It is accepted and does nothing.
             }
 
         }

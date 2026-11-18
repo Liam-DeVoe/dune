@@ -44,8 +44,8 @@ fn the_storm_moves_modulo_18_sectors() {
     assert_eq!(Sector::number_or_none(None), -1);
 }
 
-/// Before the first storm, nothing is in the storm. C# compared sector numbers, and a homeworld's
-/// sector and the storm's were both -1, so homeworlds counted as in the storm until it was placed.
+/// Before the first storm, nothing is in the storm, homeworlds included (they have no sector
+/// either).
 #[test]
 fn nothing_is_in_the_storm_before_the_first_storm() {
     let mut g = Game::new();
@@ -148,8 +148,8 @@ fn home(g: &Game, w: World) -> Homeworld {
     g.board.map.homeworlds().find(|h| h.world() == w).unwrap()
 }
 
-/// Forces never go below zero. C# ignored a change that would, so a move from a location with
-/// too few forces still added them at the destination.
+/// Forces never go below zero. A move from a location with too few forces is a Game Error and
+/// adds nothing at the destination.
 #[test]
 fn forces_below_zero_are_a_game_error_and_change_nothing() {
     let mut g = game_with(&[Faction::Atreides]);
@@ -176,8 +176,8 @@ fn spice_on_the_board_below_zero_is_a_game_error() {
     assert!(!g.board.resources_on_planet.contains_key(&l));
 }
 
-/// Reinforcements kill forces in reserve wherever they are. C# took them only from the homeworld
-/// of normal forces, and counted them in the tanks even when it held fewer.
+/// Reinforcements kill forces in reserve wherever they are, and count in the tanks only the
+/// forces actually killed.
 #[test]
 fn reinforcements_come_from_every_homeworld() {
     let mut g = game_with(&[Faction::Emperor]);

@@ -94,7 +94,7 @@ impl EventRules for BeneGesseritAccompanies {
             let Some(location) = location else {
                 return Err(Rejection(express!("To not selected")));
             };
-            // C# parity: unreachable, the first check already returned.
+            // Unreachable: the reserves check above already refused this.
             if self.accompanies && game.player(by.player()).forces_in_reserve() == 0 {
                 return Err(Rejection(express!("No forces available")));
             }

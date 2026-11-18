@@ -51,9 +51,8 @@ impl Report {
         self.add(m);
     }
 
-    /// `Express(Event e) => Messages.AddLast(e.GetMessage())`. Takes the
-    /// message, because `GetMessage` needs the game, which owns this report:
-    /// `let m = e.get_message(game); game.current_report_mut().express_message(m)`.
+    /// Adds an event's message. It takes the message rather than the event, because building
+    /// the message needs the game, which owns this report.
     pub fn express_event(&mut self, message_of_event: Message) {
         self.add(message_of_event);
     }

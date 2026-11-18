@@ -312,8 +312,8 @@ pub struct InitiatedBattle {
     pub territory: Option<Territory>,
     pub target: Option<Faction>,
     /// Tells two battles with the same factions and territory apart: the history entry of the
-    /// `BattleInitiated` that started it. C# compared the events by reference, so a battle
-    /// initiated again after an undo is a different battle, at the same place in the history.
+    /// `BattleInitiated` that started it. A battle initiated again after an undo is a different
+    /// battle, even at the same place in the history.
     pub id: EntryId,
 }
 
@@ -1517,7 +1517,7 @@ impl Game {
         Ok(())
     }
 
-    /// C# parity: never sets BattleWinner or BattleLoser.
+    /// Both sides lose, so neither a winner nor a loser is recorded.
     pub fn two_traitors_called(&mut self, agg: &BattlePlan, def: &BattlePlan, aggressor: PlayerId, defender: PlayerId, territory: Territory, agg_leader: Hero, def_leader: Hero) -> GameResult {
         let had_messiah_before_losses = self.player(aggressor).messiah_available(self) || self.player(defender).messiah_available(self);
 
@@ -1734,7 +1734,9 @@ impl Game {
         }
     }
 
-    /// C# parity: a different occupation rule from `DetermineOccupationAtStartOrEndOfTurn`.
+    /// Known quirk (known-issues.md): this uses a different occupation rule from
+    /// `determine_occupation_at_start_or_end_of_turn`. A homeworld changes hands only when exactly
+    /// one battalion is left in it, whatever kind of forces it holds.
     pub fn determine_occupation_location(&mut self, location: Option<Location>) {
         let Some(hw) = location.and_then(|l| l.as_homeworld()) else {
             return;

@@ -126,14 +126,6 @@ impl FremenRidesMonster {
                     && (!g.player(p).has_ally() || *l == g.board.map.polar_sink() || !g.player(g.player(p).allied_player(g).expect("allied player")).occupies(g, Some(*l)))
             })
     }
-
-    pub fn is_either_valid_discovery_or_no_discovery(l: Location, map: &Map) -> bool {
-        // C# parity: never called in C#.
-        match l.as_discovered_location() {
-            None => true,
-            Some(ds) => ds.location().visible(map),
-        }
-    }
 }
 
 impl EventRules for FremenRidesMonster {
@@ -271,7 +263,7 @@ impl EventRules for FremenRidesMonster {
     }
 }
 
-/// The force list, as placement events read it (`PlacementEvent` in C#).
+/// The force list, read as every placement event reads it ([`PlacementEvent`]).
 impl FremenRidesMonster {
     /// The battalions in the force list, of the submitter `by`.
     pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {

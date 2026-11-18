@@ -182,7 +182,7 @@ impl EventRules for TerrorRevealed {
                 game.board.terror_on_planet.shift_remove(&type_);
             }
 
-            // C# parity: Passed is always false here.
+            // `passed` is always false in this branch.
             if self.passed || TerrorRevealed::terror_in(game, territory).next().is_none() {
                 game.dequeue_intrusion(IntrusionType::Terror)?;
             }
@@ -233,7 +233,7 @@ impl EventRules for TerrorRevealed {
                         }
                     }
 
-                    // C# parity: Atomics records the Metheor milestone.
+                    // Atomics has no milestone of its own; it uses the Metheor's.
                     game.stone(Milestone::MetheorUsed);
                     game.log(parts![by.faction, " DETONATE ATOMICS in ", territory]);
                 }
@@ -306,7 +306,8 @@ impl EventRules for TerrorRevealed {
             game.determine_next_shipment_and_move_sub_phase()?;
         }
 
-        // C# parity: also runs when an alliance was offered (Passed is false then).
+        // Also runs when an alliance was offered instead. The hand didn't grow then, so it only
+        // matters if it was already over the limit.
         if !self.passed && self.type_ == Some(TerrorType::Robbery) && self.robbery_takes_card {
             let me = by.player();
             if game.player(me).treachery_cards.len() as i32 > game.player(me).maximum_number_of_cards(game) {

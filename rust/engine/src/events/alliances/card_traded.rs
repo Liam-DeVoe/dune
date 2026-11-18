@@ -34,16 +34,16 @@ impl EventRules for CardTraded {
         }
         let ally = game.player(me).allied_player(game).expect("allied player");
         if !game.player(ally).treachery_cards.iter().any(|_| true) {
-            // C# parity: the message is built but never returned, so this check has no effect.
+            // Known quirk (known-issues.md): the message is built but never returned, so an offer
+            // to an ally without cards is accepted.
             let _ = express!("Your ally does not have cards to trade");
         }
 
         let target_player = game.get_player(self.target);
         let Some(target_player) = target_player else { return Err(Rejection(express!("Invalid target player"))) };
-        // Not in C#, which accepted an offer to any faction. The client always names the ally, but an
-        // offer to another faction put the game in TradingCards waiting for a player whose answer
-        // can't be validated without an ally, so the game stopped there (fuzz seed 1 game 31,
-        // rust/docs/escapes.md).
+        // Only the ally can be offered a trade. An offer to another faction would put the game in
+        // TradingCards waiting for an answer that can't be validated without an ally, and the game
+        // would stop there (fuzz seed 1 game 31, rust/docs/escapes.md).
         if self.target != game.player(me).ally {
             return Err(Rejection(express!("You can only trade cards with your ally")));
         }

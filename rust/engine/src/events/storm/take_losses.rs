@@ -40,7 +40,7 @@ impl TakeLosses {
     }
 
     pub fn half_of(amount_of_forces: i32, amount_of_special_forces: i32) -> i32 {
-        // The int addition wraps, as in C#.
+        // Wraps instead of panicking on absurd amounts.
         half_rounded_up(amount_of_forces.wrapping_add(amount_of_special_forces))
     }
 }

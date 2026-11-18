@@ -32,5 +32,5 @@ pub mod iter;
 // Randomness
 pub mod random;
 
-// .NET runtime behavior the engine still relies on
+// Time stamps of events
 pub mod compat;

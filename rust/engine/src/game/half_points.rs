@@ -1,8 +1,7 @@
 //! Battle strength in half points, and halving whole amounts without floats.
 
 /// A battle strength or a dial, counted in halves: a force without spice support counts half,
-/// so every strength is a multiple of 0.5. It prints as `13` or `2.5`, the way C# printed the
-/// `float` it replaces.
+/// so every strength is a multiple of 0.5. It prints as `13` or `2.5`.
 ///
 /// It is signed because a total can go below zero: a Bureaucrat's penalty is subtracted from the
 /// opponent's total whatever it is (`Battle::determine_skill_penalty`), and a total of -1 loses

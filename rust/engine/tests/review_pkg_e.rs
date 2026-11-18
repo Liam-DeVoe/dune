@@ -2,7 +2,6 @@
 
 use treachery_engine::prelude::*;
 
-/// Probe: `emperor_bid_support.message`, `emperor_bid_support.message_none`.
 #[test]
 fn emperor_bid_support_message_lists_the_support() {
     let g = Game::new();
@@ -25,10 +24,7 @@ fn emperor_bid_support_message_lists_the_support() {
     assert_eq!(e.describe(&g, by).plain_text(), "Emperor doesn't support bids by other factions");
 }
 
-/// The silent-auction log of `Bid.HandleRicheseBid` (Bid.cs:296) and
-/// `BlackMarketBid.HandleBlackMarketSpecialBid` (BlackMarketBid.cs:117).
-///
-/// Probe: `silent_bids.richese`, `silent_bids.black_market`.
+/// The silent-auction log of a Richese bid and a black market bid.
 #[test]
 fn silent_bids_log_lists_the_bids() {
     let parts: Vec<MessagePart> = vec![
@@ -41,8 +37,7 @@ fn silent_bids_log_lists_the_bids() {
     assert_eq!(black_market.plain_text(), "[AtreidesTreachery.Shared.Payment , HarkonnenTreachery.Shared.Payment ]");
 }
 
-/// `Bureaucracy` logs `GetDynamicMessage()` as the only element of a new message
-/// (Bureaucracy.cs:39). Probe: `bureaucracy.nested`.
+/// `Bureaucracy` logs its message as the only element of a new message.
 #[test]
 fn bureaucracy_dynamic_message_nested() {
     let inner = express!(Faction::Atreides, " apply Bureaucracy → ", Faction::Emperor, " lose ", Payment::of(2));

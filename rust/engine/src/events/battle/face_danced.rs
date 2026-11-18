@@ -238,8 +238,8 @@ impl EventRules for FaceDanced {
             return Err(Rejection(express!("Place ", maximum_forces, " or fewer forces")));
         }
 
-        // C# checked neither, so the forces came from reserves and locations that didn't hold
-        // them (escapes.md, "Forces below zero").
+        // The forces must come from reserves and locations that hold them (escapes.md, "Forces
+        // below zero").
         let pl = game.player(p);
         if i32::from(self.forces_from_reserve) > pl.forces_in_reserve() {
             return Err(Rejection(express!("Invalid number of forces from reserves")));
@@ -266,8 +266,7 @@ impl EventRules for FaceDanced {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let me = by.player();
-        // C#: FaceDancers.First(f => WinnerHero.IsFaceDancer(f)) throws when no face dancer
-        // matches the winner (or there is no winner).
+        // A Game Error when no face dancer matches the winner (or there is no winner).
         let winner = game.winner_hero();
         let facedancer = game
             .player(me)

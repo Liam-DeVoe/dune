@@ -9,8 +9,8 @@ pub struct EmperorBidSupport {
 
 impl EventRules for EmperorBidSupport {
     fn validate(&self, _game: &Game, by: By) -> Result<(), Rejection> {
-        // Not in C#, which accepted any amounts. Support for the Emperor's own bids let the
-        // Emperor bid their spice twice, and paying left them with less than zero
+        // Support for the Emperor's own bids would let the Emperor bid their spice twice, and
+        // a negative amount would take spice. Either could leave a player below zero
         // (behavior-changes.md, "Turns, sectors and amounts out of range").
         if let Some(amounts) = &self.amounts {
             if amounts.get_opt(by.faction).is_some() {

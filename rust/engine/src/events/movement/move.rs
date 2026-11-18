@@ -117,10 +117,8 @@ impl EventRules for Move {
     }
 }
 
-/// `Game.ContainsConflictingAlly(Player, To)` where `To` may be null.
-///
-/// `to` is only dereferenced after the early returns, so a null
-/// `To` gives `false` there and fails the event after them (C#: NullReferenceException).
+/// [`Game::contains_conflicting_ally`] where `to` may be missing: `false` where the early
+/// returns don't need `to`, and a Game Error after them.
 pub(crate) fn contains_conflicting_ally_opt(game: &Game, initiator: PlayerId, to: Option<Location>) -> GameResult<bool> {
     match to {
         Some(to) => Ok(game.contains_conflicting_ally(initiator, to)),

@@ -32,9 +32,9 @@ impl BlackMarketBid {
         false
     }
 
-    /// What the bid offers: nothing for a pass. Not in C#, where a pass in a silent or once-around
-    /// auction counted its amounts, which validation never checks, so a pass could win and pay
-    /// more than the bidder had (behavior-changes.md, "Turns, sectors and amounts out of range").
+    /// What the bid offers: nothing for a pass. Validation doesn't check a pass's amounts, so
+    /// counting them would let a pass win a silent or once-around auction and pay more than the
+    /// bidder has (behavior-changes.md, "Turns, sectors and amounts out of range").
     pub fn total_amount(&self) -> i32 {
         if self.passed {
             return 0;
@@ -201,15 +201,15 @@ impl BlackMarketBid {
             return Some(express!("your ally won't pay that much"));
         }
 
-        // Not in C#, which checked only the Emperor's spice, not what the Emperor offered
+        // The Emperor's support is limited to what the Emperor offered, not just to their spice
         // (behavior-changes.md, "Turns, sectors and amounts out of range").
         if i32::from(self.emperor_contribution_amount) > 0 && i32::from(self.emperor_contribution_amount) > by.faction.map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
             return Some(express!(Faction::Emperor, " won't pay that much"));
         }
 
-        // Not in C#, where a normal Black Market bid could be more than the bidder had, and
-        // paying it left them with less than zero (behavior-changes.md, "Turns, sectors and
-        // amounts out of range"). `Bid` checks the same.
+        // A normal Black Market bid can't be more than the bidder has, or paying it would leave
+        // them below zero (behavior-changes.md, "Turns, sectors and amounts out of range"). `Bid`
+        // checks the same.
         if i32::from(self.amount) > i32::from(game.player(by.player()).resources) {
             return Some(express!("You can't pay ", Payment::of(i32::from(self.amount))));
         }

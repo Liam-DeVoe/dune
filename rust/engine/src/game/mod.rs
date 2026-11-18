@@ -255,8 +255,8 @@ impl Game {
 
         for p in &self.players {
             if include_homeworlds {
-                // C# parity: Map.Locations(true) already holds every homeworld, so this
-                // Add throws ArgumentException for the first homeworld (no caller passes true).
+                // `locations(true)` already holds every homeworld, so this panics on the first
+                // homeworld. No caller passes true.
                 for w in &p.home_worlds {
                     result.insert_new(w.location(), Vec::new());
                 }
@@ -471,7 +471,6 @@ impl Game {
     }
 
     pub fn owner_of(&self, hero: Hero) -> Option<PlayerId> {
-        // Enumerable.Contains<IHero> over a List<Leader>: Equals on each leader
         self.players.iter().position(|p| p.leaders.iter().any(|l| Hero::Leader(*l) == hero)).map(|i| self.player_at(i))
     }
 
@@ -563,8 +562,6 @@ impl Game {
     }
 
     pub fn is_not_full(&self, p: PlayerId, l: Location) -> bool {
-        // C# dereferences `p` only after the first clause, so a null player passes for
-        // locations outside strongholds and homeworlds (boundary.rs lazy cases).
         if !(l.territory().is_stronghold() || l.territory().is_homeworld()) {
             return true;
         }
@@ -643,8 +640,6 @@ impl Game {
     pub fn traitors_in_play(&self) -> Vec<Hero> {
         let mut result: Vec<Hero> = Vec::new();
 
-        // `var factionsInPlay = Players.Select(p => p.Faction)` is lazy: each Contains below
-        // runs the Select again, up to the first match.
         let factions_in_play = self.players.iter().map(|p| p.faction);
         result.extend(
             LeaderManager::leaders()

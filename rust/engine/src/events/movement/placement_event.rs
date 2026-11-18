@@ -12,8 +12,8 @@ impl PlacementEvent {
             .join(",")
     }
 
-    /// An amount in a force list. Panics on text that isn't a number, as C# threw. The JSON
-    /// reader has refused amounts outside 0 to 65535 (`wire::force_list`).
+    /// An amount in a force list. Panics on text that isn't a number; the JSON reader writes
+    /// only numbers, and has refused amounts outside 0 to 65535 (`wire::force_list`).
     pub fn parse_force_amount(s: &str) -> u16 {
         let n = crate::parse::int_or_panic(s);
         u16::try_from(n).expect("an amount of forces the event JSON reader accepted")
@@ -47,7 +47,7 @@ impl PlacementEvent {
     }
 
     /// `ForceLocations` of a plain placement event submitted by `by`: the list `s` parsed for
-    /// the submitter's faction. Panics without a player or a list, as C# threw.
+    /// the submitter's faction. Panics without a player or a list.
     pub fn force_locations_by(game: &Game, by: By, s: &Option<String>) -> IndexMap<Location, Battalion> {
         let faction = game.player(by.player()).faction;
         PlacementEvent::parse_force_locations(game, faction.expect("faction"), s.as_deref().expect("field force locations"))

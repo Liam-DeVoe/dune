@@ -99,13 +99,12 @@ impl Game {
     /// it and adds it to the history. On an error, the game doesn't change.
     ///
     /// `at` is the time the event sees while it is applied (the timers read it). The server
-    /// submits with no time and stamps the entry afterwards ([`History::stamp_last`]), as C# did.
+    /// submits with no time and stamps the entry afterwards ([`History::stamp_last`]).
     pub fn submit(&mut self, by: Option<Faction>, event: Event, at: DateTimeOffset, is_host: bool) -> Result<(), SubmitError> {
         self.play(HistoryEntry { by, at, event, id: EntryId::fresh() }, true, is_host)
     }
 
-    /// [`play`](Game::play), with an error as the message the player sees, as C#'s `Execute`
-    /// returned it. For tests and tools that compare those messages.
+    /// [`play`](Game::play), with an error as the message the player sees. For tests and tools that compare those messages.
     pub fn play_for_message(&mut self, entry: HistoryEntry, validate: bool, is_host: bool) -> Option<Message> {
         self.play(entry, validate, is_host).err().map(|e| e.message())
     }
@@ -210,7 +209,7 @@ impl Game {
 
             let Some(previous_event) = previous_event else { return };
 
-            // DateTimeOffset.Subtract compares UTC instants.
+            // Compares UTC instants.
             let elapsed_time = TimeSpan::from_ticks(e.at.utc_ticks() - previous_event.at.utc_ticks());
             if elapsed_time >= TimeSpan::ONE_HOUR {
                 return;

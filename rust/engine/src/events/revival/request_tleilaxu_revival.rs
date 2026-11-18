@@ -43,7 +43,7 @@ impl EventRules for RequestTleilaxuRevival {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let hero = self.hero;
         let requests = &mut game.revival_mut().required("the revival phase")?.current_revival_requests;
-        // C# removed the first request for the hero, by reference.
+        // Replaces an earlier request for the same hero.
         if let Some(i) = requests.iter().position(|r| r.hero == hero) {
             requests.remove(i);
         }

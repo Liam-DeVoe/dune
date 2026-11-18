@@ -78,13 +78,13 @@ impl Leader {
         self.id()
     }
 
-    /// `IsTraitor(hero) => hero == this` (reference equality)
+    /// Whether `hero` is this leader.
     #[track_caller]
     pub fn is_traitor(self, hero: Hero) -> bool {
         hero == Hero::Leader(self)
     }
 
-    /// `IsFaceDancer(hero) => hero == this` (reference equality)
+    /// Whether `hero` is this leader.
     #[track_caller]
     pub fn is_face_dancer(self, hero: Hero) -> bool {
         hero == Hero::Leader(self)

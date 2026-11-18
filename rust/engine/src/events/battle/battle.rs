@@ -228,7 +228,7 @@ impl BattlePlan {
 
     /// Puts back the cards `swap_in_dynamic_weapons` replaced. A replaced card that was no card
     /// isn't put back, so a Diplomat's or Portable Antidote's card stays in a plan without a
-    /// defense, as in C#.
+    /// defense.
     pub fn deactivate_dynamic_weapons(&mut self) {
         if self.original_weapon.is_some() {
             self.set_weapon(self.original_weapon);
@@ -857,7 +857,8 @@ impl Battle {
 
                     result.push(Fight::new(occupied_location.territory(), faction));
 
-                    // C# parity: `break` only leaves the innermost loop.
+                    // `break` only leaves the faction loop, so more than one fight can still be
+                    // returned. Every caller passes `false`.
                     if return_only_one_battle {
                         break;
                     }

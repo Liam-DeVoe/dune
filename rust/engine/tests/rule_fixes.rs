@@ -1,4 +1,4 @@
-//! Rules bugs copied from C# and fixed on purpose (rust/docs/behavior-changes.md). Each test
+//! Rules bugs fixed on purpose (rust/docs/behavior-changes.md). Each test
 //! replays a design fixture (scripts/fixtures), adjusts the state where the fixture lacks the
 //! situation, and submits events with validation, as the server does.
 
@@ -290,9 +290,9 @@ fn an_intrusion_left_over_from_an_earlier_phase_is_dropped() {
     assert!(g.turn.intrusions.is_empty());
 }
 
-/// An ally pays for a shipment only spice it has and has offered. C# checked neither, so a
-/// refitted game shipped with spice the ally didn't have and left it at -1 (the `alliance-allied`
-/// fixture, after the change to ChaCha8). Bid and Battle already checked both.
+/// An ally pays for a shipment only spice it has and has offered. Without the check, a refitted
+/// game shipped with spice the ally didn't have and left it at -1 (the `alliance-allied`
+/// fixture, after the change to ChaCha8). Bid and Battle check both too.
 #[test]
 fn an_ally_pays_for_a_shipment_only_spice_it_has_and_offered() {
     let mut g = fixture("ship");

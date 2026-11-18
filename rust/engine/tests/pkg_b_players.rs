@@ -32,7 +32,7 @@ fn exception_text<R>(f: impl FnOnce() -> R) -> String {
 // ---------------------------------------------------------------- Battalion
 
 /// A change that would leave fewer than zero forces, or more than a u16 holds, is a Game Error
-/// and changes nothing. C# ignored such a change silently.
+/// and changes nothing.
 #[test]
 fn battalion_change_below_zero_is_an_error() {
     let l = Location::from_id(1).unwrap();
@@ -76,9 +76,7 @@ fn change_forces_zero_leaves_a_hole() {
 }
 
 /// `some_forces_in_territory_to_reserves` takes from each location what it holds, up to what is
-/// left to take. C# sent everything left to the reserves at every location and skipped the
-/// removal where the location held fewer, which made forces out of nothing (escapes.md, "Forces
-/// below zero").
+/// left to take, so no forces are made out of nothing (escapes.md, "Forces below zero").
 #[test]
 fn forces_to_reserves_territory_takes_what_each_location_holds() {
     let mut g = game_with(&[Faction::Atreides]);
@@ -156,8 +154,7 @@ fn private_forces_to_reserves_panics_without_forces_there() {
     let mut g = game_with(&[Faction::Atreides]);
     let me = idx(&g, Faction::Atreides);
     let l = Location::from_id(1).unwrap();
-    // BTreeMap's message. The .NET one was "KeyNotFoundException: The given key
-    // 'Treachery.Shared.Location' was not present in the dictionary."
+    // The map lookup's own message.
     assert_eq!(exception_text(|| Player::forces_to_reserves(&mut g, me, l)), "no entry found for key");
 }
 
@@ -194,7 +191,7 @@ fn determine_first_player_skips_empty_seats_and_panics() {
 
     let mut g = game_with(&[]);
     g.rules.settings.as_mut().unwrap().number_of_players = 3;
-    // No player in any seat: a plain panic (C# threw "Could not determine the first player.").
+    // No player in any seat: a plain panic.
     assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| PlayerSequence::determine_first_player(&g))).is_err());
 }
 

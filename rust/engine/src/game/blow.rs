@@ -166,7 +166,7 @@ impl Game {
     pub fn draw_resource_card(&mut self) -> GameResult {
         let mut drawn: Option<ResourceCard> = None;
         loop {
-            // while (ThumperCalledShaiHulud || !(drawn = DrawAndDiscardResourceCard(CurrentDiscardPile!)).IsSpiceBlow)
+            // Draw until a spice blow, unless a Thumper's worm comes first.
             let condition = if self.blow_state().thumper_called_shai_hulud {
                 true
             } else {
@@ -187,7 +187,9 @@ impl Game {
                 || drawn.is_some_and(|d| d.is_great_maker())
             {
                 if self.monster_drawn(drawn)? {
-                    // C# parity: this break skips the `ThumperCalledShaiHulud = false` below.
+                    // This break skips the reset of `thumper_called_shai_hulud` below. That never
+                    // matters: a Thumper's worm is the first of its blow, and Fremen send only
+                    // later ones.
                     break;
                 }
             } else if let Some(d) = drawn.filter(|d| d.is_sand_trout()) {
@@ -396,8 +398,8 @@ impl Game {
             self.board.sand_trout_doubles_resources = false;
             self.change_resources_on_planet(location, spice_amount)?;
         } else {
-            // C# parity: SandTroutDoublesResources is not reset when the doubled blow is lost
-            // to the storm.
+            // Known quirk (known-issues.md): `sand_trout_doubles_resources` is not reset when the
+            // doubled blow is lost to the storm, so the next blow is doubled instead.
             let msg = express!(Payment::of(spice_amount), " in ", location, " is lost in the storm")
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, true, false));
             self.log(parts![msg]);

@@ -197,13 +197,10 @@ impl TreacheryCard {
     /// Whether `defense` counters this weapon. Callers may pass `None` for either
     /// (the bot passes a plan's defense, which can be missing).
     ///
-    /// C# parity: a missing `defense` panics only on the branches that read it. Each
-    /// clause tests the type first, so only a weapon of type PoisonTooth, Poison,
-    /// Chemistry, Projectile, WeirdingWay or ProjectileAndPoison reads it; any other
-    /// type returns false (a mirror weapon with no combined weapon returns true).
-    ///
-    /// C# parity: a mirror weapon combined with a mirror weapon recurses
-    /// forever and overflows the stack, which kills the process.
+    /// Known quirk (known-issues.md): a missing `defense` panics, but only on the branches
+    /// that read it. Each clause tests the type first, so only a weapon of type PoisonTooth,
+    /// Poison, Chemistry, Projectile, WeirdingWay or ProjectileAndPoison reads it. Any other
+    /// type returns false, and a mirror weapon with no combined weapon returns true.
     #[track_caller]
     pub fn countered_by(self, defense: Option<TreacheryCard>, combined_with_weapon: Option<TreacheryCard>) -> bool {
         let t = self.type_();

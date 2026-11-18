@@ -25,7 +25,7 @@ impl EventRules for SetShipmentPermission {
         self.try_validate(game, by).unwrap_or_else(|e| Err(Rejection(express!(e.to_string()))))
     }
 
-    /// Fails without factions (C#: ArgumentNullException from Enumerable.Any on a null array).
+    /// Fails without factions.
     fn try_validate(&self, game: &Game, by: By) -> GameResult<Result<(), Rejection>> {
         let factions = self.factions.as_ref().required("factions")?;
         if factions.is_empty() {

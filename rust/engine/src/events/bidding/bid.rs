@@ -31,9 +31,9 @@ impl Bid {
         }
     }
 
-    /// What the bid offers: nothing for a pass. Not in C#, where a pass in a silent or once-around
-    /// auction counted its amounts, which validation never checks, so a pass could win and pay
-    /// more than the bidder had (behavior-changes.md, "Turns, sectors and amounts out of range").
+    /// What the bid offers: nothing for a pass. Validation doesn't check a pass's amounts, so
+    /// counting them would let a pass win a silent or once-around auction and pay more than the
+    /// bidder has (behavior-changes.md, "Turns, sectors and amounts out of range").
     pub fn total_amount(&self) -> i32 {
         if self.passed {
             return 0;
@@ -53,7 +53,7 @@ impl Bid {
         // A Karama bid wins at once (`win_with_karma`), so with `Passed` it would win the card, and
         // without a Karama card of the bidder's it threw halfway through, after changing the game.
         // Those changes aren't in the history, so an undo later replayed a different game (fuzz seed
-        // 42 game 110, escapes.md). The client never sends either; C# accepted both.
+        // 42 game 110, escapes.md). The client never sends either.
         if self.passed && self.karma_bid {
             return Some(express!("You can't pass and use ", TreacheryCardType::Karma, " in the same bid"));
         }
@@ -92,7 +92,7 @@ impl Bid {
             return Some(express!("your ally won't pay that much"));
         }
 
-        // Not in C#, which checked only the Emperor's spice, not what the Emperor offered
+        // The Emperor's support is limited to what the Emperor offered, not just to their spice
         // (behavior-changes.md, "Turns, sectors and amounts out of range").
         if i32::from(self.emperor_contribution_amount) > 0 && i32::from(self.emperor_contribution_amount) > by.faction.map_or(0, |f| game.spice_for_bids_emperor_can_pay(f)) {
             return Some(express!(Faction::Emperor, " won't pay that much"));
@@ -190,12 +190,13 @@ impl Bid {
         // applies again until someone really bids, so a second automatic pass by the same player
         // means the auction went around without reaching the high bidder. That happened when
         // the high bidder's hand filled up during the auction, so the sequence skipped them
-        // forever (fuzz seed 1 game 176, rust/docs/escapes.md). C# has no such limit.
+        // forever (fuzz seed 1 game 176, rust/docs/escapes.md).
         let mut auto_passed: Vec<PlayerId> = Vec::new();
         let mut player_to_bid_with_pass_normal_bid = Bid::first_auto_passing_player(game);
         while let Some(p) = player_to_bid_with_pass_normal_bid.filter(|p| !auto_passed.contains(p)) {
             auto_passed.push(p);
-            // C# parity: executed through Game.ExecuteBid, not Execute, so no pre/post-event tasks and no History entry.
+            // Executed through `execute_bid`, not as a submitted event: no history entry, because
+            // replaying the bid that triggered it passes again.
             let faction = game.player(p).faction;
             let auto_by = By::new(game, faction.required("faction")?);
             let auto_bid = Bid { passed: true, ..Bid::default() }.placed(game, auto_by);
@@ -206,10 +207,10 @@ impl Bid {
     }
 
     /// The first player whose automation rule passes for them now. Only during `Phase::Bidding`,
-    /// the only phase that offers `Bid`. The C# loop checked just `MayBePlayed`, which
-    /// stays true after bidding ends. When everyone passed on a card while the next bidder's rule
-    /// was active, every automatic pass ended the bidding phase again, so the loop never
-    /// stopped (fuzz seed 1 game 2, rust/docs/escapes.md).
+    /// the only phase that offers `Bid`. `may_be_played` alone stays true after bidding ends.
+    /// When everyone passed on a card while the next bidder's rule was active, every automatic
+    /// pass would end the bidding phase again, and the loop would never stop (fuzz seed 1 game 2,
+    /// rust/docs/escapes.md).
     fn first_auto_passing_player(game: &Game) -> Option<PlayerId> {
         if game.phase() != Phase::Bidding {
             return None;

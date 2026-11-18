@@ -27,8 +27,8 @@ use crate::messages::payment::Payment;
 
 /// An enum that has its own [`Part`] variant.
 pub trait PartEnum: GameEnum {
-    /// The value if `part` is of this enum: `Some(None)` for the absent value of an enum whose
-    /// C# `None` member is absence in Rust.
+    /// The value if `part` is of this enum: `Some(None)` for the absent value of an enum that
+    /// declares an absent `None` member.
     fn from_part(part: &Part) -> Option<Option<Self>>;
     /// The part of a value, or of the absent value. For an enum without one, absence is
     /// [`Part::Null`].
@@ -36,14 +36,14 @@ pub trait PartEnum: GameEnum {
 }
 
 /// Declares [`Part`]. `plain` enums are logged as themselves. `optional` enums are those whose
-/// C# `None` member is `Option::None` in Rust (`absent None = 0;` in `game_enum!`): their part
+/// `None` member is `Option::None` in Rust (`absent None = 0;` in `game_enum!`): their part
 /// holds an `Option`, because the skin and the views name the absent value "None".
 macro_rules! part {
     (plain [$($p:ident),* $(,)?] optional [$($o:ident),* $(,)?]) => {
         /// One piece of a message. Enum variants are named after their enum.
         #[derive(Clone, Debug, PartialEq)]
         pub enum Part {
-            /// No value (a C# `null`): no text, and a bold "none" in the client.
+            /// No value: no text, and a bold "none" in the client.
             Null,
             Text(Cow<'static, str>),
             /// "Yes" or "No".
@@ -96,7 +96,7 @@ macro_rules! part {
                     Part::$o(Some(v))
                 }
             }
-            /// Absent is the C# `None` member, which the skin names.
+            /// Absent is the `None` member, which the skin names.
             impl From<Option<$o>> for Part {
                 fn from(v: Option<$o>) -> Self {
                     Part::$o(v)
@@ -155,7 +155,7 @@ impl Part {
     }
 
     /// The text without a skin, for tests and debugging: enum values by member name, game
-    /// objects by the type name the C# engine printed for them, list items in brackets.
+    /// objects by a type name such as "Treachery.Shared.Territory", list items in brackets.
     pub fn plain_text(&self) -> String {
         match self {
             Part::Null => String::new(),
@@ -287,7 +287,7 @@ impl From<ResourceCard> for Part {
         Part::SpiceCard(v)
     }
 }
-/// A `Player` object (only the Nexus card play logs one) prints as its C# type name.
+/// A player prints as the type name "Treachery.Shared.Player".
 impl From<crate::game::PlayerId> for Part {
     fn from(_: crate::game::PlayerId) -> Self {
         Part::Text(Cow::Borrowed("Treachery.Shared.Player"))
@@ -314,7 +314,7 @@ impl From<MessagePart> for Part {
     }
 }
 
-/// A type whose absence is [`Part::Null`] in a message. An enum whose absent value is its C#
+/// A type whose absence is [`Part::Null`] in a message. An enum whose absent value is its
 /// `None` member doesn't have it: its `Option` logs that member.
 pub trait NullPart {}
 impl NullPart for &str {}
@@ -341,8 +341,8 @@ impl<T: Into<Part> + NullPart> From<Option<T>> for Part {
         }
     }
 }
-/// A C# nullable of an enum whose `None` member is absence in Rust (`Faction?`): `None` is the
-/// C# `null` and prints nothing, `Some(None)` is the `None` member, which the skin names.
+/// An optional value of an enum whose `None` member is absence in Rust: the outer `None` prints
+/// nothing, and `Some(None)` is the `None` member, which the skin names.
 impl<T: PartEnum> From<Option<Option<T>>> for Part {
     fn from(v: Option<Option<T>>) -> Self {
         match v {

@@ -23,6 +23,8 @@ pub struct Shipment {
     pub passed: bool,
 }
 
+// Known quirk (known-issues.md): the default names card 0 (a Lasgun) as the Karama card, so event
+// JSON without `karmaCard` is refused as an invalid Karama shipment.
 impl Default for Shipment {
     fn default() -> Self {
         Shipment {
@@ -167,7 +169,7 @@ impl Shipment {
             return None;
         }
 
-        // `var p = Player;` may be null: it throws only where C# dereferences it.
+        // The submitter may have no player (a seatless host): only the checks that need one panic.
         let p_opt = by.player;
         let p = || p_opt.expect("player");
 
@@ -236,8 +238,8 @@ impl Shipment {
         if cost < i32::from(self.ally_contribution_amount) {
             return Some(express!("Your ally is paying more than needed"));
         }
-        // Not in C#, which let an ally pay spice it didn't have or hadn't offered
-        // (behavior-changes.md). Bid and Battle check the same limit.
+        // An ally pays no more than it has and offered (behavior-changes.md). Bid and Battle
+        // check the same limit.
         if i32::from(self.ally_contribution_amount) > 0 && i32::from(self.ally_contribution_amount) > game.resources_your_ally_can_pay(p()) {
             return Some(express!("Your ally won't pay that much"));
         }
@@ -281,7 +283,8 @@ impl Shipment {
             return Some(express!("Invalid Cunning No-Field value"));
         }
 
-        // C# parity: the sums wrap, so int.MaxValue + 1 passes the check.
+        // In a release build the sum wraps for amounts near `i32::MAX`, so such a shipment passes
+        // this check. Moving the forces fails later, because amounts can't go below zero.
         if !self.is_site_to_site() && (self.force_amount + i32::from(self.smuggled_amount)) > game.player(p()).forces_in_reserve() {
             return Some(express!("Not enough ", game.player(p()).force(), " in reserve"));
         }
@@ -458,7 +461,7 @@ impl Shipment {
             return 0;
         }
 
-        // The int product wraps, as in C#.
+        // Wraps instead of panicking on an absurd amount; the reserves check refuses that shipment.
         let cost_of_shipment = total_forces.wrapping_abs().wrapping_mul(if to.territory().has_reduced_shipping_cost() { 1 } else { 2 });
 
         if Shipment::may_ship_with_discount(g, p) || karama_shipment || (site_to_site && g.has_shipment_permission(p, ShipmentPermission::GUILD_RATE)) {

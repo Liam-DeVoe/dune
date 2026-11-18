@@ -802,9 +802,9 @@ game_enum! {
     get_values [Dial, Leader, Weapon, Defense]
 }
 
-/// What the Guild allows a faction to do with its shipments. C# had a `[Flags]` enum (`Cross` 1,
-/// `ToHomeworld` 2, `GuildRate` 4), which the savegames of version 190 and before still hold.
-/// Events write the three bools.
+/// What the Guild allows a faction to do with its shipments. Events write the three bools. The
+/// savegames of version 190 and before hold a flag number (`Cross` 1, `ToHomeworld` 2,
+/// `GuildRate` 4).
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize, ts_rs::TS)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ShipmentPermission {
@@ -822,7 +822,7 @@ impl ShipmentPermission {
     pub const TO_HOMEWORLD: ShipmentPermission = ShipmentPermission { to_homeworld: true, ..Self::NONE };
     pub const GUILD_RATE: ShipmentPermission = ShipmentPermission { guild_rate: true, ..Self::NONE };
 
-    /// The members of the C# enum.
+    /// No permission and each single permission.
     pub const ALL: &'static [ShipmentPermission] = &[Self::NONE, Self::CROSS, Self::TO_HOMEWORLD, Self::GUILD_RATE];
 
     pub const INFO: crate::enum_type::EnumTypeInfo = crate::enum_type::EnumTypeInfo {
@@ -851,7 +851,7 @@ impl GameEnum for ShipmentPermission {
     const INFO: &'static crate::enum_type::EnumTypeInfo = &ShipmentPermission::INFO;
     const ALL: &'static [Self] = ShipmentPermission::ALL;
 
-    /// The C# flag number.
+    /// The flag number.
     fn value(self) -> i32 {
         self.cross as i32 | (self.to_homeworld as i32) << 1 | (self.guild_rate as i32) << 2
     }
@@ -865,7 +865,7 @@ impl GameEnum for ShipmentPermission {
     }
 }
 
-/// By flag number, like C#.
+/// By flag number.
 impl Ord for ShipmentPermission {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.value().cmp(&other.value())

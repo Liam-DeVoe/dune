@@ -47,7 +47,7 @@ impl EventRules for SkillAssigned {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        // C# parity: Passed is ignored.
+        // `passed` isn't read: a pass has no leader, so it fails below.
         let m = self.describe(game, by);
         game.log_event(m);
         let leader = match self.leader {

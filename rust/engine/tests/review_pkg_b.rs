@@ -170,7 +170,7 @@ fn rust_lines() -> Vec<String> {
                 }) {
                     Ok(Ok(Some(v))) => v.to_string(),
                     Ok(Ok(None)) => "-".to_string(),
-                    // A change below zero, which C# ignored.
+                    // A change below zero.
                     Ok(Err(_)) => "error".to_string(),
                     Err(()) => "exception".to_string(),
                 };

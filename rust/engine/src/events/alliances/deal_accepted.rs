@@ -117,8 +117,8 @@ impl EventRules for DealAccepted {
         if self.open_offer(game, by).is_none() {
             return Err(Rejection(express!("You already answered this offer")));
         }
-        // Not in C#, which let a player give away spice they still had to pay for a bid
-        // (escapes.md, "Forces below zero").
+        // Spice still owed for a bid can't be given away, or paying the bid would take the
+        // player below zero (escapes.md, "Forces below zero").
         if !game.may_give_away_spice(by.player(), i32::from(self.price)) {
             return Err(Rejection(express!("You need that spice to pay your bid")));
         }

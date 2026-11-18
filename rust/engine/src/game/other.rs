@@ -7,7 +7,6 @@ impl Game {
             return Ok(());
         }
 
-        // FirstOrDefault(...).Key: the default KeyValuePair has a null key.
         let no_field_location = self
             .player(player)
             .forces_in_locations

@@ -37,7 +37,7 @@ impl By {
         self.faction.required("faction")
     }
 
-    /// Whether `f` submitted the event (`Event.By(f)` in C#).
+    /// Whether `f` submitted the event.
     pub fn is(self, f: impl Into<Option<Faction>>) -> bool {
         self.faction == f.into()
     }
@@ -92,10 +92,9 @@ pub struct HistoryEntry {
     pub id: EntryId,
 }
 
-/// Tells history entries apart, as C# told its event objects apart by reference: an undo
-/// replayed the same objects, so a battle kept its identity, and a battle initiated again after
-/// the undo was a different one even at the same place in the history. Unique within the
-/// process; never saved or shown.
+/// Tells history entries apart. An undo replays the same entries, so a battle keeps its
+/// identity, and a battle initiated again after the undo is a different one even at the same
+/// place in the history. Unique within the process; never saved or shown.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct EntryId(u64);
 
@@ -150,7 +149,7 @@ pub enum SubmitError {
 }
 
 impl SubmitError {
-    /// The message the player sees, as the C# `Execute` returned it.
+    /// The message the player sees.
     pub fn message(&self) -> Message {
         match self {
             SubmitError::NotApplicable(m) => m.clone(),

@@ -33,9 +33,8 @@ impl BattleInitiated {
         })
     }
 
-    /// `IsTargetByJuice` with a possibly null `initiator`.
-    ///
-    /// C# parity: the same predicate as IsInitiatorByJuice apart from the Juice type.
+    /// Whether the initiator played Juice to go last and comes after `target` in the storm
+    /// order. The same check as `is_initiator_by_juice_opt`, for Go Last instead of Go First.
     fn is_target_by_juice_opt(g: &Game, initiator: Option<PlayerId>, target: PlayerId) -> bool {
         g.turn.current_juice.as_ref().is_some_and(|j| {
             j.type_ == Some(JuiceType::GoLast)

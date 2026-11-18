@@ -52,7 +52,7 @@ impl EventRules for AcceptOrCancelTleilaxuRevival {
                     game.revival_mut().required("the revival phase")?.early_revivals_offers.insert_new(hero, self.price);
                 }
 
-                // C# removed the first request for the hero, by reference.
+                // Removes the first request for the hero.
                 let requests = &mut game.revival_mut().required("the revival phase")?.current_revival_requests;
                 if let Some(i) = requests.iter().position(|r| r.hero == Some(hero)) {
                     requests.remove(i);

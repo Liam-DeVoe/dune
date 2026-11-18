@@ -115,7 +115,7 @@ impl Player {
     }
 
     /// Adds `nr_of_forces` (negative to remove) at `location`. A Game Error if fewer than zero
-    /// would be left, a change C# ignored.
+    /// would be left.
     pub fn change_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) -> GameResult {
         let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
@@ -127,7 +127,7 @@ impl Player {
     }
 
     /// Adds `nr_of_forces` special forces (negative to remove) at `location`. A Game Error if
-    /// fewer than zero would be left, a change C# ignored.
+    /// fewer than zero would be left.
     pub fn change_special_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32) -> GameResult {
         let me_ = game.player_mut(me);
         let result = me_.get_and_create_if_needed(location);
@@ -141,7 +141,7 @@ impl Player {
     }
 
     /// From reserves, the forces come from the first homeworld that holds all of them. A Game
-    /// Error if none does, where C# placed nothing.
+    /// Error if none does.
     pub fn add_forces(game: &mut Game, me: PlayerId, location: Location, nr_of_forces: i32, from_reserves: bool) -> GameResult {
         if from_reserves {
             let p = game.player(me);
@@ -321,15 +321,15 @@ impl Player {
         if amount > 0 {
             let mut to_remove_in_total = amount;
             let mut locations: Vec<Location> = t.locations().to_vec();
-            locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
+            locations.sort_by_cached_key(|l| l.spice_blow_amount()); // stable
             for l in locations {
                 let p = game.player(me);
                 let forces_in = if special { p.special_forces_in(Some(l)) } else { p.forces_in(Some(l)) };
                 if forces_in > 0 {
                     let to_remove_in_this_location = std::cmp::min(forces_in, to_remove_in_total);
 
-                    // C# sent all of `to_remove_in_total` to the reserves here, and skipped the
-                    // removal when this location held fewer (escapes.md, "Forces below zero").
+                    // Only what this location holds goes to the reserves; the rest comes from the
+                    // next locations (escapes.md, "Forces below zero").
                     let faction = game.player(me).faction;
                     if special && faction != Some(Faction::BeneGesserit) {
                         Player::add_special_forces_to_reserves(game, me, to_remove_in_this_location)?;
@@ -390,7 +390,7 @@ impl Player {
     }
 
     /// Kills forces at `location` and returns how many died. A Game Error if `location` holds
-    /// fewer, where C# put them in the tanks without taking them off the board.
+    /// fewer.
     pub fn kill_forces(game: &mut Game, me: PlayerId, location: Location, amount_of_forces: i32, amount_of_special_forces: i32, in_battle: bool) -> GameResult<i32> {
         Player::change_forces(game, me, location, -amount_of_forces)?;
         Player::change_special_forces(game, me, location, -amount_of_special_forces)?;
@@ -418,7 +418,7 @@ impl Player {
     pub fn kill_forces_in_territory(game: &mut Game, me: PlayerId, t: Territory, amount: i32, special: bool, in_battle: bool) -> GameResult {
         let mut to_kill = amount;
         let mut locations: Vec<Location> = t.locations().to_vec();
-        locations.sort_by_cached_key(|l| l.spice_blow_amount()); // OrderBy: stable
+        locations.sort_by_cached_key(|l| l.spice_blow_amount()); // stable
         for l in locations {
             let p = game.player(me);
             let forces_in = if special { p.special_forces_in(Some(l)) } else { p.forces_in(Some(l)) };
@@ -441,8 +441,6 @@ impl Player {
 
     /// Kills `amount` forces (or special forces) in reserve: first on the homeworld of that kind
     /// of force, then on the other homeworlds in order. A Game Error if the reserves hold fewer.
-    /// C# took them only from the first homeworld, and put them in the tanks even when it held
-    /// fewer.
     pub fn kill_forces_in_reserves(game: &mut Game, me: PlayerId, amount: i32, special: bool) -> GameResult {
         let p = game.player(me);
         let mut worlds: Vec<Homeworld> = p.home_worlds.iter().copied().filter(|w| if special { w.is_home_of_special_forces() } else { w.is_home_of_normal_forces() }).collect();
@@ -505,13 +503,13 @@ impl Player {
     }
 
     /// Bene Gesserit forces from reserves to `l` as advisors. A Game Error if the reserves hold
-    /// fewer, where C# placed the advisors anyway.
+    /// fewer.
     pub fn ship_advisors(game: &mut Game, me: PlayerId, l: Location, amount: i32) -> GameResult {
         Player::add_forces_to_reserves(game, me, -amount)?;
         Player::change_special_forces(game, me, l, amount)
     }
 
-    /// A Game Error if `from` holds fewer than `amount`, where C# added them to `to` anyway.
+    /// A Game Error if `from` holds fewer than `amount`.
     pub fn move_forces(game: &mut Game, me: PlayerId, from: Location, to: Location, amount: i32) -> GameResult {
         Player::change_forces(game, me, from, -amount)?;
         Player::change_forces(game, me, to, amount)
@@ -863,12 +861,10 @@ impl Player {
     }
 
     pub fn is_native_homeworld(&self, hw: Homeworld) -> bool {
-                // List<Homeworld>.Contains uses Location.Equals (by Id).
         self.home_worlds.iter().any(|h| h.location() == hw.location())
     }
 
     pub fn have_forces_on_each_others_home_worlds(&self, game: &Game, other: PlayerId) -> bool {
-        // HomeWorlds.Contains(l) with a Location argument: Enumerable.Contains, Location.Equals (by Id).
         let other = game.player(other);
         self.forces_in_locations.keys().any(|l| other.home_worlds.iter().any(|hw| hw.location() == *l))
             || other.forces_in_locations.keys().any(|l| self.home_worlds.iter().any(|hw| hw.location() == *l))

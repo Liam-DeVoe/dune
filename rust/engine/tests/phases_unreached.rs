@@ -22,8 +22,8 @@ fn moritani_to_low_threshold(g: &mut Game) {
 //
 // `TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip` and `...GuildShip` are never entered:
 // `Interrupt::intrusion` counts a token triggered by accompanying forces as triggered by the
-// shipment itself, as C# did. The game then goes on to the move without asking Bene Gesserit to
-// accompany again.
+// shipment itself. The game then goes on to the move without asking Bene Gesserit to accompany
+// again.
 //
 // Bene Gesserit can only accompany into the shipment's territory (or the Polar Sink), so the
 // shipment itself mustn't trigger the token: here Moritani, or its ally, ship.

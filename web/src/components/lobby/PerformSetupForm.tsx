@@ -108,7 +108,7 @@ export function PerformSetupForm({ action }: { action: ActionView }) {
     <EventLayout type="PerformSetup" urgent header={<>Set <FactionChip faction={faction} /> initial {spice} and forces.</>}>
       <SelectResources value={resources} onChange={(v) => { setResources(v); set({ resources: v }); }} min={0} max={o?.maxResources ?? 100} label={spice} />
       <div className="small mt-2">Use the map to place forces.</div>
-      <div className="small text-2">
+      <div className="small">
         <div><ClickHint button="Lmb" /> place <ForceToken faction={faction} size={18} imgClass="setup-hint-force" title={names.force} /></div>
         {o?.mayStageSpecial && <div><ClickHint button="Lmb" shift /> place <ForceToken faction={faction} special size={18} imgClass="setup-hint-force" title={names.special} /></div>}
         <div><ClickHint button="Rmb" /> remove force</div>

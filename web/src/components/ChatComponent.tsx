@@ -77,7 +77,7 @@ export function ChatComponent(p: ChatProps) {
   };
 
   return (
-    <div className="card border-none" style={{ backgroundColor: p.backgroundColor ?? "transparent", border: "none" }}>
+    <div className="card" style={{ backgroundColor: p.backgroundColor ?? "transparent", border: "none" }}>
       <div className="card-header">Chat</div>
       <div className="card-body">
         <div className="d-flex flex-row-reverse">

@@ -39,7 +39,7 @@ export function NoteComponent({ open = false }: { open?: boolean }) {
           <div className="notes__factions">
             {players.map((x) => (
               <button key={x.faction} className={`button ${x.faction === shown ? "button--primary" : "button--outline-primary"} notes__faction`}
-                      onClick={() => setShown(x.faction === shown ? null : x.faction)} data-bs-toggle="tooltip" title={skin.faction(x.faction)}>
+                      onClick={() => setShown(x.faction === shown ? null : x.faction)} title={skin.faction(x.faction)}>
                 <img className="notes__faction-img" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", x.faction))} />
               </button>
             ))}

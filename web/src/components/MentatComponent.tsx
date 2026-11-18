@@ -56,7 +56,7 @@ export function MentatComponent({ id }: { id: string }) {
   const applicable = (r: Rule) => view.rules.includes(r) || view.rulesForBots.includes(r);
   const isPlaying = (f: Faction) => view.players.some((p) => p.faction === f);
   return (
-    <ModalComponent id={id} title="Card and Token Reference" size="modal-xl">
+    <ModalComponent id={id} title="Card and Token Reference" size="xlarge">
       <h5>Treachery Cards</h5>
       <div className="mentat__grid">
         {m.treacheryCards.map((c) => <Card key={c} popover={treacheryCardPopup(skin, c)} src={skin.get("TreacheryCardImage_URL", skin.cardSkinId(c))} alt={skin.card(c)} />)}

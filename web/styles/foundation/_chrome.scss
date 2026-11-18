@@ -1,5 +1,4 @@
-// App chrome: the map container, the top row, popover and tooltip sizing and
-// svg selection behaviour.
+// App chrome: the map container, the top row and svg selection behaviour.
 
 // The map image is absolutely positioned inside its container so overlays
 // can stack on top of it.
@@ -10,26 +9,6 @@
 #mapimg {
   position: absolute;
   z-index: 1;
-}
-
-// Popovers and tooltips are display-only: large enough for card images and
-// never intercept the pointer.
-.popover {
-  max-width: 800px;
-  max-height: 1000px;
-  background-color: transparent;
-  border: none;
-  pointer-events: none;
-}
-
-.tooltip {
-  pointer-events: none;
-}
-
-.tooltip-inner {
-  max-width: 800px;
-  max-height: 1000px;
-  pointer-events: none;
 }
 
 // Map svg must not be selectable or trigger the touch callout.

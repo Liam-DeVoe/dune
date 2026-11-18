@@ -1,8 +1,8 @@
 @use "../shared";
 
 // The bar under the map (MenuComponent) and the menu that opens upward from
-// it. The menu is Bootstrap's .dropdown-menu, which the bootstrap layer
-// already maps onto the language; these are the rows inside it.
+// it. The menu's rows are dropdown items (_dropdown.scss) laid out as icon,
+// words and a trailing mark.
 .menu-bar {
   position: relative;
   display: flex;
@@ -46,20 +46,13 @@
   stroke-linejoin: round;
 }
 
-// Bootstrap's dropdown menu look, without its .dropdown-menu class: Bootstrap
-// handles keys pressed inside any .dropdown-menu and throws on Escape when
-// the menu has no Bootstrap toggle, which this one doesn't.
+// The dropdown menu's box, opening upward, with a shadow.
 .menu-overflow {
-  @include shared.dropdown-colours;
-  --bs-dropdown-divider-margin-y: 0.5rem;
+  @include shared.dropdown-box;
   display: none;
   margin: 0;
   list-style: none;
-  color: var(--bs-dropdown-color);
-  background: var(--bs-dropdown-bg);
-  border: 1px solid var(--bs-dropdown-border-color);
-  border-radius: var(--bs-dropdown-border-radius);
-  box-shadow: var(--bs-dropdown-box-shadow);
+  box-shadow: var(--shadow-3);
   position: absolute;
   left: 0;
   bottom: calc(100% + 4px);
@@ -134,8 +127,8 @@
     padding: 0 0 4px 36px;
   }
 
-  // Doubled with the base class so the colour still beats Bootstrap's
-  // .dropdown-item:focus and :active, which weigh (0,2,0).
+  // Doubled with the base class so the colour still beats
+  // .dropdown__item:focus and :active, which weigh (0,2,0).
   &__item.menu-overflow__item--nested {
     font-size: 15px;
     color: var(--text-2);

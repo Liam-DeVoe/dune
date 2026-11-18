@@ -1,0 +1,99 @@
+@use "../shared";
+
+// A button that opens a menu below it (DropdownButton in lobby/widgets.tsx).
+// The script places the open menu with a transform. The rows (__item,
+// __header, __divider) also make up the game's menu (.menu-overflow in
+// _menu.scss), which lays them out its own way.
+.dropdown {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+
+  &__toggle {
+    position: relative;
+    flex: 1 1 auto;
+    white-space: nowrap;
+
+    // The caret.
+    &::after {
+      display: inline-block;
+      margin-left: 0.255em;
+      vertical-align: 0.255em;
+      content: "";
+      border-top: 0.3em solid;
+      border-right: 0.3em solid transparent;
+      border-bottom: 0;
+      border-left: 0.3em solid transparent;
+    }
+  }
+
+  &__menu {
+    @include shared.dropdown-box;
+    position: absolute;
+    inset: 0 auto auto 0;
+    z-index: 1000;
+    display: none;
+    min-width: 10rem;
+    padding: 0.5rem 0;
+    margin: 0;
+    font-size: 1rem;
+    text-align: left;
+    list-style: none;
+    background-clip: padding-box;
+
+    &--open {
+      display: block;
+    }
+  }
+
+  &__item {
+    display: block;
+    width: 100%;
+    padding: 0.25rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: var(--parchment);
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+    border-radius: 0;
+
+    &:hover,
+    &:focus {
+      color: var(--gold);
+      background-color: rgba(231, 191, 60, 0.1);
+    }
+
+    &:active {
+      color: var(--ink-0);
+      text-decoration: none;
+      background-color: var(--gold);
+    }
+
+    &:disabled {
+      color: var(--text-3);
+      pointer-events: none;
+      background-color: transparent;
+    }
+  }
+
+  &__header {
+    display: block;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0;
+    font-size: 0.875rem;
+    color: var(--text-3);
+    white-space: nowrap;
+  }
+
+  &__divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border: 0;
+    border-top: 1px solid shared.$hairline;
+    opacity: 1;
+  }
+}

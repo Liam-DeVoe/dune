@@ -13,7 +13,7 @@ import type { DraftResult } from "../generated/DraftResult";
 import type { Faction } from "../generated/enums";
 import type { Event } from "../generated/Event";
 import { factionChipHtml, treacheryCardPopup } from "../popups";
-import { usePopover, popoverAttributes } from "../popover";
+import { IMAGE_POPOVER, usePopover } from "../popover";
 import { useGame } from "../state/context";
 import { ButtonRow } from "./ButtonRow";
 import { Checkbox } from "./Checkbox";
@@ -59,9 +59,9 @@ interface Draft { amount: number; ally: number; emperor: number; karmaCard: numb
 // InfoComponent.razor: the info icon with a popover.
 function Info({ contents }: { contents: string }) {
   const html = `<div class='pop'>${contents}</div>`;
-  const ref = usePopover<HTMLDivElement>(html);
+  const ref = usePopover<HTMLDivElement>(html, IMAGE_POPOVER);
   return (
-    <div ref={ref} className="bidding-panel__info" {...popoverAttributes(html, "image")}>
+    <div ref={ref} className="bidding-panel__info">
       <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="var(--ink-0)" viewBox="0 0 16 16">
         <circle cx="8" cy="8" r="8" fill="var(--gold)" />
         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />

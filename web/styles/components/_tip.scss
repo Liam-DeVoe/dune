@@ -3,8 +3,13 @@
 // shows the element's title text as it is, wrapping at 260px and keeping any
 // line breaks the text has.
 .tip {
+  // A native popover, so it shows over an open modal; these undo the
+  // browser's popover box. Browsers without popovers use the z-index.
   position: fixed;
-  z-index: 2000; // over Bootstrap's popovers (1070) and modals (1055)
+  inset: auto;
+  margin: 0;
+  overflow: visible;
+  z-index: 2000;
   max-width: 260px;
   padding: 5px 9px;
   border: 1px solid rgba(29, 12, 0, 0.25);

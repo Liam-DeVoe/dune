@@ -169,22 +169,36 @@ fn juice_valid_types_before_and_after_the_battle_is_decided() {
 }
 
 #[test]
-fn traitor_discarded_appends_without_shuffling() {
+fn traitor_discarded_is_shuffled_into_the_deck() {
+    // "Draw two traitor cards, then shuffle two back" (faction2nexus.gif). Before the fix the
+    // traitor went to the bottom of the deck, so the discarder knew where it was.
     let mut g = game_with(&[Faction::Harkonnen, Faction::Emperor]);
+    g.rng = treachery_engine::random::new_rng(7);
     let harkonnen = idx(&g, Faction::Harkonnen);
-    let leaders: Vec<Hero> = LeaderManager::get_leaders(Faction::Emperor).take(3).map(Hero::Leader).collect();
-    g.decks.traitor_deck = Some(Deck::new(vec![leaders[0]]));
-    g.player_mut(harkonnen).traitors = vec![leaders[1], leaders[2]];
+    let leaders: Vec<Hero> = LeaderManager::get_leaders(Faction::Emperor)
+        .chain(LeaderManager::get_leaders(Faction::Atreides))
+        .take(8)
+        .map(Hero::Leader)
+        .collect();
+    let deck: Vec<Hero> = leaders[..6].to_vec();
+    g.decks.traitor_deck = Some(Deck::new(deck.clone()));
+    g.player_mut(harkonnen).traitors = vec![leaders[6], leaders[7]];
     g.enter_battle_state(BattleStep::Planning, None);
     g.interrupt(Interrupt::DiscardingTraitor { faction: Some(Faction::Harkonnen), remaining: 1 });
 
     let by = By::new(&g, Faction::Harkonnen);
     let mut e = TraitorDiscarded::default();
-    e.traitor = Some(leaders[2]);
+    e.traitor = Some(leaders[7]);
     assert!(e.validate(&g, by).is_ok());
     e.apply(&mut g, by).unwrap();
-    assert_eq!(g.decks.traitor_deck.as_ref().unwrap().items, vec![leaders[0], leaders[2]]);
-    assert_eq!(g.player(harkonnen).traitors, vec![leaders[1]]);
+    let items = g.decks.traitor_deck.as_ref().unwrap().items.clone();
+    let appended: Vec<Hero> = deck.iter().copied().chain([leaders[7]]).collect();
+    assert_ne!(items, appended, "the deck was not shuffled");
+    let (mut sorted, mut expected) = (items.clone(), appended.clone());
+    sorted.sort_by_key(|h| h.id());
+    expected.sort_by_key(|h| h.id());
+    assert_eq!(sorted, expected);
+    assert_eq!(g.player(harkonnen).traitors, vec![leaders[6]]);
     assert_eq!(g.traitors_to_discard(), None);
     assert_eq!(g.phase(), Phase::BattlePhase);
 

@@ -6,7 +6,8 @@ import { useMemo } from "react";
 import { placeChipData, type Place } from "../popups";
 import { useGame } from "../state/context";
 
-export function PlaceChip({ place }: { place: Place }) {
+// sectorClass is a class the compass word takes as well, for a table that sets it like its own labels.
+export function PlaceChip({ place, sectorClass = "" }: { place: Place; sectorClass?: string }) {
   const { skin, view } = useGame();
   // A Hidden Mobile Stronghold or discovered stronghold takes its host's sector (Location.Sector).
   const attached = "location" in place ? view.board?.attached?.find((a) => a.location === place.location) : undefined;
@@ -31,7 +32,7 @@ export function PlaceChip({ place }: { place: Place }) {
         <circle className="chip__ring" cx={c.cx} cy={c.cy} r={c.r} vectorEffect="non-scaling-stroke" />
       </svg>
       <span className="chip__name">{c.name}</span>
-      {c.orientation !== "" && <span className="chip__sector">{c.orientation}</span>}
+      {c.orientation !== "" && <span className={`chip__sector ${sectorClass}`}>{c.orientation}</span>}
     </span>
   );
 }

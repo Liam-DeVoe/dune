@@ -1,30 +1,25 @@
 // Ship & Move log design: one block per faction turn. See
 // design/battle-log/log-matrix.html (Ship & Move, "One block per turn").
 
-// A faction's turn, on a .log-box: its pill, then the rows.
+// A faction's turn, on a .log-box: its pill in the box's head, then the rows.
 .shipmove-turn {
-  &__head {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
   // Label column (SHIP, MOVE, +) and content column.
   &__rows {
     display: grid;
-    grid-template-columns: 38px 1fr;
-    gap: 3px 6px;
+    grid-template-columns: minmax(44px, max-content) 1fr;
+    gap: var(--s-0) var(--s-1);
     align-items: start;
-    margin: 4px 0 0 20px;
-    font-size: 14px;
+    margin: var(--s-1) 0 0 var(--s-5);
+    font-size: var(--fs-3);
     color: var(--parchment);
   }
 
-  // A row's label, on a .log-label.
+  // A row's label, on a .log-label. The padding centres it on the route's
+  // first line.
   &__label {
-    padding-top: 5px;
-    font-size: 9.5px;
+    padding-top: var(--s-1);
     letter-spacing: 0.1em;
+    white-space: nowrap;
   }
 
   &__label--plus {
@@ -39,19 +34,13 @@
   &__route {
     display: flex;
     align-items: center;
-    gap: 3px 4px;
+    gap: var(--s-0) var(--s-1);
     flex-wrap: wrap;
     min-height: 24px;
   }
 
-  &__forces {
-    display: inline-flex;
-    align-items: center;
-    gap: 1px;
-  }
-
-  &__small {
-    font-size: 13.5px;
+  &__note {
+    font-size: var(--fs-2);
   }
 
   // "Karama" when the card itself isn't known.
@@ -60,12 +49,12 @@
   }
 }
 
-// "Guild delay their turn", between blocks.
+// "Guild delay their turn", between blocks, lined up with the turns' rows.
 .shipmove-delay {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 2px 0 2px 26px;
-  font-size: 13.5px;
+  gap: var(--s-1);
+  margin: var(--s-0) 0 var(--s-0) var(--s-5);
+  font-size: var(--fs-2);
   color: var(--parchment);
 }

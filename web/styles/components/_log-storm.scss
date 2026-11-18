@@ -5,20 +5,20 @@
 
 .storm-ring {
   display: block;
-  margin: 2px auto 4px;
+  margin: var(--s-0) auto var(--s-1);
 
   &__wedge {
-    fill: #2a1607;
-    stroke: #1d0c00;
+    fill: var(--ink-2);
+    stroke: var(--ink-1);
     stroke-width: 2;
     transition: fill 0.1s;
     cursor: pointer;
 
-    &--start { fill: rgba(195, 50, 50, 0.22); }
-    &--swept { fill: rgba(195, 50, 50, 0.55); }
-    &--end { fill: rgba(195, 50, 50, 0.8); }
-    &--hot { fill: rgba(252, 249, 209, 0.28); }
-    &--start#{&}--hot, &--swept#{&}--hot, &--end#{&}--hot { fill: #e05a4a; }
+    &--start { fill: var(--storm-wash-22); }
+    &--swept { fill: var(--storm-wash-50); }
+    &--end { fill: var(--storm-wash-80); }
+    &--hot { fill: var(--wash-light-30); }
+    &--start#{&}--hot, &--swept#{&}--hot, &--end#{&}--hot { fill: var(--storm-hot); }
   }
 
   &__rim {
@@ -36,8 +36,10 @@
     stroke-linecap: round;
   }
 
-  &__head { fill: var(--parchment); }
+  &__arrowhead { fill: var(--parchment); }
 
+  // The two texts are in the ring's 200-unit viewBox, which the log draws
+  // at 170px, so their sizes are part of the ring's geometry.
   &__distance {
     font-family: var(--font-display);
     font-size: 38px;
@@ -58,37 +60,18 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--s-1);
   color: var(--parchment);
 
-  &__plus { margin: 0 2px; }
+  &__plus { margin: 0 var(--s-0); }
 }
 
-// A place box, on a .log-box.
+// A place box, on a .log-box, with each loss a .log-box__line.
 .storm-place {
   transition: background 0.1s;
 
   &--hot {
-    background: rgba(195, 50, 50, 0.22);
-    border-color: rgba(195, 50, 50, 0.5);
+    background: var(--storm-wash-22);
+    border-color: var(--storm-wash-50);
   }
-
-  // One loss, a direct child of the box's .log-box__lines.
-  &__loss {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    color: var(--parchment);
-  }
-}
-
-// A count and its force icon, kept together.
-.storm-forces {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  white-space: nowrap;
-
-  .force-token { margin: 0; }
 }

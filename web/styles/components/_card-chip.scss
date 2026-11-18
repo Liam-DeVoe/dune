@@ -1,0 +1,24 @@
+// A treachery card named in a log line (RichText's log style), and in the
+// Kwisatz Haderach's popover (the server's and popups.ts's markup): its art
+// and name in a chip, near-square because only tokens are round. The
+// popover sets its own size in _pop.scss.
+.card-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-0) var(--s-2) var(--s-0) var(--s-0);
+  border-radius: var(--r-1);
+  background: var(--wash-dark-55);
+  border: 1px solid var(--wash-light-12);
+  font-weight: 700;
+  font-size: var(--fs-3);
+  line-height: 1;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  &__img {
+    width: 16px;
+    height: 22px;
+    border-radius: var(--r-1);
+  }
+}

@@ -32,8 +32,8 @@ export function RevivalLog({ lines, line }: PhaseLogProps) {
                   <Fragment key={r}>
                     <div className={`log-table__cell ${edge}`}><FactionChip faction={row.faction} /></div>
                     <div className={`log-table__cell revival-table__what ${edge}`}>
-                      {row.hero?.t === "leader" && <HeroImage hero={row.hero} width={26} className="leader-disc" />}
-                      {row.hero?.t === "messiah" && <PopoverText className="" popover={messiahPopup(skin)}><img className="kh" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} /></PopoverText>}
+                      {row.hero?.t === "leader" && <HeroImage hero={row.hero} width={26} className="leader-disc revival-table__leader" />}
+                      {row.hero?.t === "messiah" && <PopoverText className="" popover={messiahPopup(skin)}><img className="revival-table__kh" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} /></PopoverText>}
                       {row.asGhola && <span className="revival-table__note">as Ghola</span>}
                       {Array.from({ length: row.forces }, (_, n) => <ForceToken key={`f${n}`} faction={row.faction} size={18} />)}
                       {Array.from({ length: row.specialForces }, (_, n) => <ForceToken key={`s${n}`} faction={row.faction} special size={18} />)}
@@ -65,7 +65,7 @@ export function RevivalLog({ lines, line }: PhaseLogProps) {
 // A faction's sigil, small, named on hover.
 function Sigil({ faction }: { faction: Faction }) {
   const { skin } = useGame();
-  return <img className="revival-table__sig" src={skin.factionImage(faction)} alt={skin.faction(faction)} title={skin.faction(faction)} />;
+  return <img className="revival-table__sigil" src={skin.factionImage(faction)} alt={skin.faction(faction)} title={skin.faction(faction)} />;
 }
 
 // The discard straight after a revival done by that card.

@@ -53,7 +53,7 @@
   }
 
   // Who is in the fight: you on the left, them on the right, the territory
-  // between. Mirrors the battle report's faceoff (see _report.scss).
+  // between. Mirrors the battle report's faceoff (see _log-faceoff.scss).
   &__matchup {
     display: grid;
     grid-template-columns: 1fr auto 1fr;

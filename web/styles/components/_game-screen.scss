@@ -76,16 +76,25 @@
       height: 100%;
       overflow-y: auto;
       // A column so the report panel can take the height left under the
-      // panels above it (see _report.scss).
+      // panels above it (.game-screen__report).
       display: flex;
       flex-direction: column;
 
       // Panels keep their height. A panel with overflow: hidden (the prompt
       // card) would otherwise shrink to nothing and clip its contents. The
-      // report panel opts back into shrinking in _report.scss.
+      // report panel opts back into shrinking below.
       > * {
         flex-shrink: 0;
       }
+    }
+
+    // The report panel (.report, on the LogPanel) shrinks to the height left
+    // under the panels above it and its body scrolls, so the column itself
+    // only scrolls once the panel is down to its minimum height.
+    &__report {
+      flex: 0 1 auto;
+      min-height: 320px;
+      --report-body-max-height: none;
     }
   }
 }

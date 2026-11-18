@@ -243,6 +243,7 @@ impl Game {
                 && !p.special_karma_power_used
                 && p.has_karma(self)
                 && self.turn.current_main_phase == MainPhase::Resurrection
+                && self.revival().is_some_and(|r| r.step != RevivalStep::Report)
                 && self.applicable(Rule::AdvancedKarama)
             {
                 result.push(EventType::KarmaRevivalPrevention);

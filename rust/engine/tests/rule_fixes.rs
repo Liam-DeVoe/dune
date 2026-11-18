@@ -583,3 +583,21 @@ fn a_karama_revival_prevention_ends_with_the_revival_phase() {
     assert!(!g.prevented_from_reviving(f));
     assert!(g.get_applicable_events(Some(p), false).contains(&EventType::Revival));
 }
+
+/// Tleilaxu's Karama prevention of revival was offered in the revival report too, after every
+/// revival, where it did nothing but use up the card and the once-per-game Karama power.
+#[test]
+fn a_karama_revival_prevention_is_offered_only_while_factions_revive() {
+    let (mut g, p) = revival_fixture("revival");
+    let tleilaxu = g.player_indices().find(|t| *t != p).expect("another player");
+    g.player_mut(tleilaxu).faction = Some(Faction::Tleilaxu);
+    g.rules.active.push(Rule::AdvancedKarama);
+    let held: Vec<TreacheryCard> = g.player_indices().flat_map(|q| g.player(q).treachery_cards.clone()).collect();
+    let karama = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Karma && !held.contains(c)).unwrap();
+    g.player_mut(tleilaxu).treachery_cards.push(karama);
+    assert_eq!(g.phase(), Phase::Resurrection);
+    assert!(g.get_applicable_events(Some(tleilaxu), false).contains(&EventType::KarmaRevivalPrevention));
+    end_phase(&mut g);
+    assert_eq!(g.phase(), Phase::ResurrectionReport);
+    assert!(!g.get_applicable_events(Some(tleilaxu), false).contains(&EventType::KarmaRevivalPrevention));
+}

@@ -15,7 +15,3 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 ## Checked and correct
 
 2026-11-15: at low threshold, Moritani reveals a terror token only when at least 3 forces enter. The Grumman card says "Low (0-7): ... You can only reveal terror tokens when at least 3 forces enter" (web/assets/art/GrummanCard.gif), and `check_terror_triggered` does that.
-
-## A Karama prevention of revival can be played after the revivals
-
-Tleilaxu may play their Karama to prevent a faction's revival during the whole revival main phase, the report included. Played in the report, after every revival, it does nothing and still uses up the card and the once-per-game Karama power. Before the fix in behavior-changes.md ("What a bidding or revival phase left behind"), it applied to the next turn's revivals instead. Fix: offer `KarmaRevivalPrevention` only in `Phase::Resurrection` (applicable_events.rs).

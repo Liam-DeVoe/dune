@@ -78,8 +78,29 @@ web/
 - **State.** One connection per tab. The latest `GameView` replaces the previous one whole. Components derive what they draw from it and the skin, and keep only UI state: a form's draft, the log phase shown, collapsed panels, the map selection. A form keeps its draft across views and sends it back as a draft query after each one, so the server adjusts it to the new game. The draft is dropped when the form's event type leaves `actions` or the viewer's seat changes. Draft query answers older than the form's latest query are dropped. Preferences (sound volumes, auto-pass, collapse states, the Atreides tracker's notes) are in local storage.
 - **Map interaction.** `components/board/mapInteraction.ts` holds the page's one map interaction. One form owns it at a time. The owner sets what is selectable, selected and targeted, and the board's layers only read it. Every location click goes to listeners, and a form acts on clicks only while it owns the map. Valid locations come from the action's options.
 - **Routes.** `/` (login, then the lobby), `/game/:gameId` (reconnect to a game), `/link/:linkToken` (the single-use login link of an async-play mail, which then shows the game), `/scenes` and `/scene/:fixture/:faction` (a fixture from `scripts/fixtures` seen by one faction: played on a server started with `TREACHERY_DEV_SCENE`, or drawn from the saved views without one), and `/admin`. Inside a game, the screens follow the game's phase. `TREACHERY_BASE=/prefix/ npx vite build` serves the app under a path prefix, and every absolute URL goes through `withBase` (`src/base.ts`).
-- **CSS, fonts, art.** The stylesheet (SCSS in `web/styles`, compiled by `npm run build:css`), Bootstrap, fonts and art live in `web/assets`, which Vite (dev, preview) and the Rust server (production) serve under `/art`, `/css`, `/fonts`, `/js` and `/docs`. Design work follows `design/design-language.html` at the repository root, which is kept out of git.
+- **CSS, fonts, art.** The stylesheet (SCSS in `web/styles`, compiled by `npm run build:css`), fonts and art live in `web/assets`, which Vite (dev, preview) and the Rust server (production) serve under `/art`, `/css`, `/fonts`, `/js` and `/docs`. Design work follows `design/design-language.html` at the repository root, which is kept out of git.
 - **Text.** Every rich-text part arrives with its `label`, rendered on the server, so the client needs no text rules of its own. Popovers are HTML built in `src/popups.ts` from the skin JSON and shown on hover by `src/popover.ts`.
+
+### CSS
+
+The stylesheet is our own, with no CSS framework. `web/styles/treachery.scss` loads three layers in order: `foundation` (the reboot, fonts, design tokens, page rules, animations), `components` (one file per component) and `app` (rules for this app's screens). A few components keep a plain `.css` file next to their TSX, which Vite bundles after `treachery.css`.
+
+Class names follow BEM:
+
+- A block is a component: `.chip`, `.panel`, `.battle-plan`. Its file is `components/_<block>.scss`.
+- A part of a block is `block__element`: `.chip__name`, `.panel__header`. A part gets its own class rather than being styled by tag or by its position inside the block.
+- A variant or state is `block--modifier` or `block__element--modifier`, next to the base class in the markup: `class="chip chip--place"`, `seg__button seg__button--on`. A state word like `on` or `you` is never a class of its own.
+- In SCSS, elements and modifiers nest with `&__x` and `&--y`. Where a rule needs more weight than one class to keep winning over another rule, it says why in a comment.
+- There are no utility classes. Spacing, alignment and text styles that a component needs are elements or modifiers of that component.
+
+Ids stay as hooks where scripts look for them (`#mapdiv`, `#tip`, `#printSection`). The server emits some of these classes in its HTML (`rust/skin/src/skin.rs`: chips, spice amounts, popover bodies), so renaming one of those changes the views the harness compares.
+
+Behavior that a framework's script used to provide is our own TypeScript:
+
+- **Popovers** (`src/popover.ts`): `usePopover` shows the HTML of `src/popups.ts` beside an element while the mouse is over it, after a short delay. The box is a native `popover="manual"` element, so it sits in the top layer, over an open modal too. It is placed on the preferred side, flips to another side when it doesn't fit, and shifts to stay inside the window. It is placed again when its size changes, since card art often loads after it opens. The map's popovers (`components/board/popover.ts`) use the same hook with their own frame.
+- **Modals** (`components/ModalComponent.tsx`): a `<dialog>` opened with `openModal(id)` and closed with `closeModal(id)`, the close button, Escape or a click beside the box. The browser keeps focus inside while it is open and returns it to the opener when it closes.
+- **Dropdowns** (`DropdownButton` in `components/lobby/widgets.tsx`, the game menu in `MenuComponent.tsx`): React state opens the menu, and a click outside or Escape closes it. In `DropdownButton` the arrow keys also move through the items.
+- **Tooltips** (`web/assets/js/tooltip.js`): any element with a `title` shows it in the shared `.tip` box after a delay, in place of the browser's tooltip.
 
 ## Checks
 

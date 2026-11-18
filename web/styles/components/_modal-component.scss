@@ -1,0 +1,11 @@
+// ModalComponent's own parts: the print button in the header and the body
+// of a scrolling modal.
+.modal-component {
+  &__print {
+    padding: 0;
+  }
+
+  &__body--scroll {
+    overflow: auto;
+  }
+}

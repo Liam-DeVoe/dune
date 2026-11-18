@@ -87,7 +87,7 @@ export function MapHover() {
   const locations = b.planetLocations().filter((l) => b.hasBorder(l.id));
   const territories = [...new Set(locations.map((l) => l.territory))];
   return (
-    <svg className="maphover" data-sectors={SECTORS} width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+    <svg className="map-hover" data-sectors={SECTORS} width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%" }} pointerEvents="none">
       <defs>
         {territories.map((t) => <clipPath key={t} id={`maphover-t-${t}`}><path d={b.border(t)} /></clipPath>)}
@@ -98,21 +98,21 @@ export function MapHover() {
         const center = b.hasCenter(l.id) ? b.getCenter(l.id) : null;
         const edges = sector >= 0 ? wedgeEdges(b, sector) : null;
         return (
-          <g key={l.id} className="hover-shape" data-location-id={l.id} data-territory-id={l.territory} data-sector={sector}
+          <g key={l.id} className="map-hover__shape" data-location-id={l.id} data-territory-id={l.territory} data-sector={sector}
             data-cx={center ? num(center.X) : undefined} data-cy={center ? num(center.Y) : undefined}>
             <g clipPath={`url(#${sectorClipId(sector)})`}>
-              <path d={border} className="fill" />
+              <path d={border} className="map-hover__fill" />
               <g clipPath={`url(#maphover-t-${l.territory})`}>
-                <path d={border} className="core" />
-                <path d={border} className="edge" />
+                <path d={border} className="map-hover__core" />
+                <path d={border} className="map-hover__edge" />
                 {edges && (
                   <>
-                    <path d={edges[0]} className="core radial start" />
-                    <path d={edges[1]} className="core radial end" />
-                    <path d={edges[2]} className="core radial" />
-                    <path d={edges[0]} className="edge radial start" />
-                    <path d={edges[1]} className="edge radial end" />
-                    <path d={edges[2]} className="edge radial" />
+                    <path d={edges[0]} className="map-hover__core map-hover__core--radial map-hover__core--start" />
+                    <path d={edges[1]} className="map-hover__core map-hover__core--radial map-hover__core--end" />
+                    <path d={edges[2]} className="map-hover__core map-hover__core--radial" />
+                    <path d={edges[0]} className="map-hover__edge map-hover__edge--radial map-hover__edge--start" />
+                    <path d={edges[1]} className="map-hover__edge map-hover__edge--radial map-hover__edge--end" />
+                    <path d={edges[2]} className="map-hover__edge map-hover__edge--radial" />
                   </>
                 )}
               </g>
@@ -136,7 +136,7 @@ export function RecentBlows() {
   const { X: w, Y: h } = b.point("MapDimensions");
   const territories = [...new Set(blown.map((l) => b.territoryOf(l)))];
   return (
-    <svg className="mapblow" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+    <svg className="map-blow" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%" }} pointerEvents="none">
       <defs>
         {territories.map((t) => <clipPath key={t} id={`mapblow-t-${t}`}><path d={b.border(t)} /></clipPath>)}
@@ -148,15 +148,15 @@ export function RecentBlows() {
         return (
           <Fragment key={i}>
             <g clipPath={`url(#${clip})`}>
-              <path d={border} className="fill" />
-              <path d={border} className="core" />
-              <path d={border} className="edge" />
+              <path d={border} className="map-blow__fill" />
+              <path d={border} className="map-blow__core" />
+              <path d={border} className="map-blow__edge" />
             </g>
             {sector >= 0 && (
               <g clipPath={`url(#mapblow-t-${b.territoryOf(l)})`}>
                 <g clipPath={`url(#${clip})`}>
-                  <path d={wedgePath(b, sector)} className="core radial" />
-                  <path d={wedgePath(b, sector)} className="edge radial" />
+                  <path d={wedgePath(b, sector)} className="map-blow__core map-blow__core--radial" />
+                  <path d={wedgePath(b, sector)} className="map-blow__edge map-blow__edge--radial" />
                 </g>
               </g>
             )}

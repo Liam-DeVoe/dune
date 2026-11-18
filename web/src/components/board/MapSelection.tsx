@@ -31,15 +31,15 @@ function Highlight({ b, l, cls }: { b: Board; l: number; cls: string }) {
     return (
       <g className={cls}>
         <g clipPath={`url(#${clip})`}>
-          <path d={border} className="fill" />
-          <path d={border} className="core" />
-          <path d={border} className="edge" />
+          <path d={border} className="map-select__fill" />
+          <path d={border} className="map-select__core" />
+          <path d={border} className="map-select__edge" />
         </g>
         {sector >= 0 && (
           <g clipPath={`url(#mapsel-t-${b.territoryOf(l)})`}>
             <g clipPath={`url(#${clip})`}>
-              <path d={wedgePath(b, sector)} className="core radial" />
-              <path d={wedgePath(b, sector)} className="edge radial" />
+              <path d={wedgePath(b, sector)} className="map-select__core map-select__core--radial" />
+              <path d={wedgePath(b, sector)} className="map-select__edge map-select__edge--radial" />
             </g>
           </g>
         )}
@@ -50,8 +50,8 @@ function Highlight({ b, l, cls }: { b: Board; l: number; cls: string }) {
   const radius = b.isHms(l) ? b.hmsRadius : Math.fround(2.2 * b.tokenRadius);
   return (
     <g className={cls}>
-      <circle cx={num(center.X)} cy={num(center.Y)} r={num(radius)} className="fill" />
-      <circle cx={num(center.X)} cy={num(center.Y)} r={num(radius)} className="edge" />
+      <circle cx={num(center.X)} cy={num(center.Y)} r={num(radius)} className="map-select__fill" />
+      <circle cx={num(center.X)} cy={num(center.Y)} r={num(radius)} className="map-select__edge" />
     </g>
   );
 }
@@ -69,7 +69,7 @@ export function MapSelectionHighlights() {
   const sectors = [...new Set(traced.map((l) => b.sector(l)).filter((s) => s >= 0))];
   const kinds = ["line", "halo"];
   return (
-    <svg className="mapsel" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+    <svg className="map-select" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
       style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", ["--c" as string]: faction }} pointerEvents="none">
       <defs>
         {territories.map((t) => <clipPath key={`t${t}`} id={`mapsel-t-${t}`}><path d={b.border(t)} /></clipPath>)}
@@ -77,18 +77,18 @@ export function MapSelectionHighlights() {
           <Fragment key={kind}>
             {sectors.map((s) => (
               <mask key={s} id={`mapsel-grow-${kind}-${s}`} maskUnits="userSpaceOnUse" x="0" y="0" width={w} height={h}>
-                <path d={wedgePath(b, s)} className={`near-${kind}`} />
+                <path d={wedgePath(b, s)} className={`map-select__near-${kind}`} />
               </mask>
             ))}
             <mask id={`mapsel-near-${kind}`} maskUnits="userSpaceOnUse" x="0" y="0" width={w} height={h}>
               {traced.map((l) => (
                 <Fragment key={l}>
                   <g mask={`url(#mapsel-grow-${kind}-${b.sector(l)})`}>
-                    <path d={b.border(b.territoryOf(l))} className={`near-${kind}`} />
+                    <path d={b.border(b.territoryOf(l))} className={`map-select__near-${kind}`} />
                   </g>
                   {b.sector(l) >= 0 && (
                     <g clipPath={`url(#mapsel-t-${b.territoryOf(l)})`}>
-                      <path d={wedgePath(b, b.sector(l))} className={`near-${kind}`} />
+                      <path d={wedgePath(b, b.sector(l))} className={`map-select__near-${kind}`} />
                     </g>
                   )}
                 </Fragment>
@@ -101,17 +101,17 @@ export function MapSelectionHighlights() {
           {traced.map((l) => <Shape key={l} b={b} l={l} fill="#000" />)}
         </mask>
       </defs>
-      {[...map.selectable].filter((l) => !map.selected.includes(l) && b.hasCenter(l)).map((l) => <Highlight key={`s${l}`} b={b} l={l} cls="mapsel-selectable" />)}
-      <g className="mapsel-contour">
-        {traced.map((l) => <Shape key={l} b={b} l={l} fill="#fff" cls="wash" />)}
+      {[...map.selectable].filter((l) => !map.selected.includes(l) && b.hasCenter(l)).map((l) => <Highlight key={`s${l}`} b={b} l={l} cls="map-select__highlight map-select__highlight--selectable" />)}
+      <g>
+        {traced.map((l) => <Shape key={l} b={b} l={l} fill="#fff" cls="map-select__contour-wash" />)}
         <g mask="url(#mapsel-outside)">
-          <rect x="0" y="0" width={w} height={h} className="halo" mask="url(#mapsel-near-halo)" />
-          <rect x="0" y="0" width={w} height={h} className="line" mask="url(#mapsel-near-line)" />
+          <rect x="0" y="0" width={w} height={h} className="map-select__contour-halo" mask="url(#mapsel-near-halo)" />
+          <rect x="0" y="0" width={w} height={h} className="map-select__contour-line" mask="url(#mapsel-near-line)" />
         </g>
       </g>
-      {destinations.filter((l) => l !== map.target && !b.hasBorder(l)).map((l) => <Highlight key={`d${l}`} b={b} l={l} cls="mapsel-target" />)}
-      {map.selected.filter((l) => b.hasCenter(l)).map((l) => <Highlight key={`x${l}`} b={b} l={l} cls="mapsel-selected" />)}
-      {map.target != null && b.hasCenter(map.target) && <Highlight b={b} l={map.target} cls="mapsel-pinned" />}
+      {destinations.filter((l) => l !== map.target && !b.hasBorder(l)).map((l) => <Highlight key={`d${l}`} b={b} l={l} cls="map-select__highlight map-select__highlight--target" />)}
+      {map.selected.filter((l) => b.hasCenter(l)).map((l) => <Highlight key={`x${l}`} b={b} l={l} cls="map-select__highlight map-select__highlight--selected" />)}
+      {map.target != null && b.hasCenter(map.target) && <Highlight b={b} l={map.target} cls="map-select__highlight map-select__highlight--pinned" />}
     </svg>
   );
 }
@@ -201,11 +201,11 @@ export function MapSelectionOverlay() {
   return (
     <>
       {arrows && (
-        <svg className="maparrows" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+        <svg className="map-arrows" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
           style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%", ["--c" as string]: faction }} pointerEvents="none" data-targets={cursorTargets}>
           <defs>
             <marker id="mapsel-head" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="4" markerHeight="4" orient="auto-start-reverse" markerUnits="strokeWidth" overflow="visible">
-              <path d="M0,0 L12,6 L0,12 Z" className="head" />
+              <path d="M0,0 L12,6 L0,12 Z" className="map-arrow__head" />
             </marker>
           </defs>
           {starts.map((a, i) => {
@@ -213,16 +213,16 @@ export function MapSelectionOverlay() {
               const [p, q] = trim(a, end, 10, 12);
               return (
                 <Fragment key={i}>
-                  <line className="arrow-outline" x1={num(p.X)} y1={num(p.Y)} x2={num(q.X)} y2={num(q.Y)} />
-                  <line className="arrow" x1={num(p.X)} y1={num(p.Y)} x2={num(q.X)} y2={num(q.Y)} markerEnd="url(#mapsel-head)" />
+                  <line className="map-arrow__outline" x1={num(p.X)} y1={num(p.Y)} x2={num(q.X)} y2={num(q.Y)} />
+                  <line className="map-arrow__line" x1={num(p.X)} y1={num(p.Y)} x2={num(q.X)} y2={num(q.Y)} markerEnd="url(#mapsel-head)" />
                 </Fragment>
               );
             }
             if (!map.showCursorArrow) return null;
             return (
               <Fragment key={i}>
-                <line className="arrow-outline mapsel-cursor" visibility="hidden" data-x1={num(a.X)} data-y1={num(a.Y)} x1={num(a.X)} y1={num(a.Y)} x2={num(a.X)} y2={num(a.Y)} />
-                <line className="arrow mapsel-cursor" visibility="hidden" data-x1={num(a.X)} data-y1={num(a.Y)} x1={num(a.X)} y1={num(a.Y)} x2={num(a.X)} y2={num(a.Y)} markerEnd="url(#mapsel-head)" />
+                <line className="map-arrow__outline map-arrows__cursor" visibility="hidden" data-x1={num(a.X)} data-y1={num(a.Y)} x1={num(a.X)} y1={num(a.Y)} x2={num(a.X)} y2={num(a.Y)} />
+                <line className="map-arrow__line map-arrows__cursor" visibility="hidden" data-x1={num(a.X)} data-y1={num(a.Y)} x1={num(a.X)} y1={num(a.Y)} x2={num(a.X)} y2={num(a.Y)} markerEnd="url(#mapsel-head)" />
               </Fragment>
             );
           })}

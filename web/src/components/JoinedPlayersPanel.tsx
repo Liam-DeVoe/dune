@@ -13,17 +13,17 @@ export function JoinedPlayersPanel() {
   const players = [...view.players].sort((a, b) => a.seat - b.seat);
   const leave = async () => setResult((await source.gameCall?.("leaveGame", {})) ?? "");
   return (
-    <div className="mt-2 p-1 border">
+    <div className="joined-players">
       {players.map((p, i) => (
         <div key={p.seat} className={i === 0 ? "" : "hairline-top"} style={{ minHeight: "2rem" }}>
           {p.faction !== "None" && <FactionComponent faction={p.faction} diameter={20} />}
           {p.isBot
             ? <BotIcon size={18} />
-            : <span className={`m-1 ${view.viewer.faction === p.faction && !view.viewer.isObserver ? "player-name player-name--you" : "player-name"}`}>{p.name}</span>}
+            : <span className={`joined-players__name ${view.viewer.faction === p.faction && !view.viewer.isObserver ? "player-name player-name--you" : "player-name"}`}>{p.name}</span>}
         </div>
       ))}
-      <div className="text-danger align-bottom">{result}</div>
-      <button className="btn btn-danger btn-sm mt-2" onClick={leave}>Leave game</button>
+      <div className="joined-players__result">{result}</div>
+      <button className="btn btn-danger btn-sm joined-players__leave" onClick={leave}>Leave game</button>
     </div>
   );
 }

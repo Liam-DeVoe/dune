@@ -20,7 +20,7 @@ export function SubscribeComponent({ scheduledGame }: { scheduledGame: Scheduled
   };
   const items = lobby.members("SubscriptionType").filter((m) => m.name !== "None" && m.name !== current)
     .map((m) => ({ label: m.label, onClick: () => void set(m.name as SubscriptionType) }));
-  return <DropdownButton groupClass="btn-group align-self-end" buttonClass={btn} label={lobby.labelOf("SubscriptionType", current)} items={items} disabled={busy} />;
+  return <DropdownButton groupClass="btn-group subscribe" buttonClass={btn} label={lobby.labelOf("SubscriptionType", current)} items={items} disabled={busy} />;
 }
 
 export function UserStatusComponent() {

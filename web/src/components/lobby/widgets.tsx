@@ -7,7 +7,7 @@ import "../Image.css";
 import "./lobby.css";
 
 /** GenericComponents/CommandButton.razor: disabled while its click runs. */
-export function CommandButton({ onClick, children, className = "btn-primary", small = false, enabled = true, marginClass = "me-1", paddingClass = "", title = "" }: {
+export function CommandButton({ onClick, children, className = "btn-primary", small = false, enabled = true, marginClass = "command-button", paddingClass = "", title = "" }: {
   onClick: () => unknown;
   children?: ReactNode;
   className?: string;
@@ -44,7 +44,7 @@ export function FactionImage({ faction, title = "", diameter = 30, hasShadow = t
   const { skin } = useLobbyClient();
   const t = title || skin.faction(faction);
   const style = { ...(hasShadow ? { filter: "drop-shadow(1px 1px 1px black)" } : {}), ...(onClick ? { cursor: "pointer" } : {}) };
-  return <img className={`img-fluid ${marginClass}`} src={skin.factionImage(faction)} width={diameter} height={diameter} alt={t} title={t} style={style} onClick={onClick} />;
+  return <img className={`faction-image ${marginClass}`} src={skin.factionImage(faction)} width={diameter} height={diameter} alt={t} title={t} style={style} onClick={onClick} />;
 }
 
 /**
@@ -84,7 +84,7 @@ export function SelectFactions({ values, selected, onChange, imageWidth = 60, la
   };
   return (
     <>
-      {label != null && <label className="d-block mt-1 mb-0">{label}</label>}
+      {label != null && <label className="select-factions__label">{label}</label>}
       <div className="img-choices">
         {values.map((f) => (
           <FactionShown key={f} faction={f} width={imageWidth} darkened={!selected.includes(f)} pointer highlightOnHover onClick={(e) => click(f, e)} />
@@ -166,8 +166,8 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
   const mayIncrease = !disabled && value < max;
   const mayDecrease = !disabled && value > min;
   return (
-    <div className="d-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="select-number">
+      {label !== "" && <label className="select-number__label">{label}</label>}
       <div className={`num ${size <= 30 ? "num--sm" : ""} ${disabled ? "num--off" : ""}`} title="">
         <button type="button" className="num__button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(value - stepDown)}>−</button>
         <input type="text" className="num__input" inputMode="numeric" value={text} disabled={disabled} aria-label=""
@@ -265,12 +265,12 @@ export function DateTimePicker({ value, onChange, label = "Select Date", timeLab
     return new Date(y, m - 1, day, h, min, 0, 0);
   };
   return (
-    <div className="row mb-1">
-      <div className="col">
+    <div className="date-time-picker">
+      <div className="date-time-picker__col">
         <label htmlFor="datePicker">{label}</label>
         <input type="date" id="datePicker" className="form-control" value={date} onChange={(e) => onChange(build(e.target.value, time))} />
       </div>
-      <div className="col">
+      <div className="date-time-picker__col">
         <label htmlFor="timePicker">{timeLabel}</label>
         <input type="time" id="timePicker" className="form-control" value={time} onChange={(e) => onChange(build(date, e.target.value))} />
       </div>

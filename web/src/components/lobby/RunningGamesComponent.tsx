@@ -50,15 +50,15 @@ export function RunningGamesComponent() {
     const style = activityColor(av, 15);
     const password = passwords[av.gameId] ?? "";
     return (
-      <tr key={av.gameId} className="small table-dark">
+      <tr key={av.gameId} className="table-dark games-table__row">
         <td style={style}><span style={{ fontSize: "14px" }}>{av.name}</span></td>
         <td style={style}>
           {av.phase === "AwaitingPlayers" ? (
-            <div><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.players}/{av.maxPlayers}</span></div>
+            <div><UserIcon size={20} title="Players" marginClass="" /><span className="games-table__count">{av.players}/{av.maxPlayers}</span></div>
           ) : (
             <>
-              <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.players}</span></div>
-              {av.bots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="me-1" /><span>{av.bots}</span></div>}
+              <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="games-table__count">{av.players}</span></div>
+              {av.bots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="games-table__bots-icon" /><span>{av.bots}</span></div>}
             </>
           )}
         </td>
@@ -80,21 +80,21 @@ export function RunningGamesComponent() {
                        onChange={(e) => setPasswords((p) => ({ ...p, [av.gameId]: e.target.value }))} />
               )}
               {av.phase === "AwaitingPlayers" ? (
-                <CommandButton small onClick={() => joinAsPlayer(av.gameId, password, -1)} title="Join game" marginClass="m-1">Join</CommandButton>
+                <CommandButton small onClick={() => joinAsPlayer(av.gameId, password, -1)} title="Join game" marginClass="games-table__action">Join</CommandButton>
               ) : av.phase !== "SelectingFactions" ? (
                 av.availableSeats.map((s) => (
-                  <CommandButton key={s.seat} small onClick={() => joinAsPlayer(av.gameId, password, s.seat)} marginClass="m-1" paddingClass="p-1"
+                  <CommandButton key={s.seat} small onClick={() => joinAsPlayer(av.gameId, password, s.seat)} marginClass="games-table__action" paddingClass="games-table__seat"
                                  title={`Join game as ${lobby.labelOf("Faction", s.faction)}`}>
                     <FactionImage faction={s.faction} diameter={20} />
                   </CommandButton>
                 ))
               ) : null}
-              <CommandButton small onClick={() => joinAsObserver(av.gameId, password)} title="Observe game" marginClass="m-1">👁</CommandButton>
+              <CommandButton small onClick={() => joinAsObserver(av.gameId, password)} title="Observe game" marginClass="games-table__action">👁</CommandButton>
             </>
           ) : (
-            <CommandButton small onClick={() => joinAsPlayer(av.gameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="m-1"><PlayIcon /></CommandButton>
+            <CommandButton small onClick={() => joinAsPlayer(av.gameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="games-table__action"><PlayIcon /></CommandButton>
           )}
-          <div className="text-danger">{joinErrors[av.gameId] ?? ""}</div>
+          <div className="games-table__error">{joinErrors[av.gameId] ?? ""}</div>
         </td>
       </tr>
     );
@@ -104,11 +104,11 @@ export function RunningGamesComponent() {
     const style = activityColor(av, 20);
     const password = passwords[av.gameId] ?? "";
     return (
-      <tr key={av.gameId} className="small table-dark">
+      <tr key={av.gameId} className="table-dark games-table__row">
         <td style={style}><span style={{ fontSize: "14px" }}>{av.name}</span></td>
         <td style={style}>
-          <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="me-1">{av.players}</span></div>
-          {av.bots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="me-1" /><span>{av.bots}</span></div>}
+          <div style={{ display: "inline-block" }}><UserIcon size={20} title="Players" marginClass="" /><span className="games-table__count">{av.players}</span></div>
+          {av.bots > 0 && <div style={{ display: "inline-block" }}><BotIcon size={16} title="Bots" marginClass="games-table__bots-icon" /><span>{av.bots}</span></div>}
         </td>
         <td style={style}>
           {av.phase === "AwaitingPlayers" ? (
@@ -124,27 +124,27 @@ export function RunningGamesComponent() {
           {!youAreIn(av, userId) ? (
             <>
               <span className="full-tag" title="No open seats">Full</span>
-              <CommandButton small onClick={() => joinAsObserver(av.gameId, password)} title="Observe game" marginClass="m-1">👁</CommandButton>
+              <CommandButton small onClick={() => joinAsObserver(av.gameId, password)} title="Observe game" marginClass="games-table__action">👁</CommandButton>
             </>
           ) : (
-            <CommandButton small onClick={() => joinAsPlayer(av.gameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="m-1"><PlayIcon /></CommandButton>
+            <CommandButton small onClick={() => joinAsPlayer(av.gameId, "", yourCurrentSeat(av, userId))} title="Resume game" marginClass="games-table__action"><PlayIcon /></CommandButton>
           )}
-          <div className="text-danger">{joinErrors[av.gameId] ?? ""}</div>
+          <div className="games-table__error">{joinErrors[av.gameId] ?? ""}</div>
         </td>
       </tr>
     );
   };
 
   return (
-    <div className="card mb-2 shadow-lg" style={{ animation: "fadeIn 1s" }}>
+    <div className="card running-games" style={{ animation: "fadeIn 1s" }}>
       <div className="card-header">
-        <div className="d-flex justify-content-between">
+        <div className="running-games__header">
           <div>Active games</div>
         </div>
       </div>
       <div className="card-body">
         {open.length === 0 && full.length === 0 && state.scheduledGames.length === 0 ? (
-          <div className="text-info">No games...</div>
+          <div className="running-games__empty">No games...</div>
         ) : (
           <>
             {(open.length > 0 || full.length > 0) && (
@@ -160,7 +160,7 @@ export function RunningGamesComponent() {
                 <div className="games-section-label">Scheduled</div>
                 <table className="table table-sm games-table games-table--scheduled">
                   <thead>
-                    <tr className="small table-dark">
+                    <tr className="table-dark games-table__row">
                       <th scope="col">Host</th>
                       <th scope="col">When</th>
                       <th scope="col">Game info</th>
@@ -170,7 +170,7 @@ export function RunningGamesComponent() {
                   </thead>
                   <tbody>
                     {state.scheduledGames.map((game) => (
-                      <tr key={game.scheduledGameId} className="small table-dark">
+                      <tr key={game.scheduledGameId} className="table-dark games-table__row">
                         <td><span style={{ fontSize: "18px" }}>{game.creatorName}</span></td>
                         <td>{shortDate(game.starts)}</td>
                         <td>
@@ -204,9 +204,9 @@ export function Subscribers({ game, size }: { game: ScheduledGameInfo; size: num
   return (
     <>
       {game.subscribers.filter((s) => s.subscription !== "DontParticipate").map((s) => (
-        <div key={s.userId} className="me-1">
+        <div key={s.userId} className="subscribers__entry">
           <span style={{ fontSize: `${size}px` }}>{s.userName}</span>{" "}
-          <span className="badge text-bg-primary ms-1">{client.lobby.labelOf("SubscriptionType", s.subscription)}</span>
+          <span className="badge text-bg-primary subscribers__badge">{client.lobby.labelOf("SubscriptionType", s.subscription)}</span>
         </div>
       ))}
     </>

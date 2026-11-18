@@ -144,10 +144,10 @@ export function LoginComponent() {
   );
 
   return (
-    <div className="card mb-2 shadow-lg" style={{ animation: "fadeIn 3s" }}>
+    <div className="card login" style={{ animation: "fadeIn 3s" }}>
       <div className="card-header">Welcome to treachery.online!</div>
       <div className="card-body">
-        <ul className="nav nav-tabs mb-2">
+        <ul className="nav nav-tabs login__tabs">
           {tab("Login", "Login", true)}
           {tab("NewAccount", "Create account")}
           {tab("RequestPasswordReset", "Forgot password?")}
@@ -157,50 +157,50 @@ export function LoginComponent() {
         {state === "Login" && (
           <>
             <div>Please enter your user name and password</div>
-            <input ref={focusField} className="form-control mt-1 mt-1" value={username} onChange={(e) => setUsername(e.target.value)} maxLength={40} placeholder="User name" onKeyUp={enter(login)} />
-            <input type="password" className="form-control mt-1" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={80} placeholder="Password" onKeyUp={enter(login)} />
-            <div className="form-check mt-2">
+            <input ref={focusField} className="form-control login__field" value={username} onChange={(e) => setUsername(e.target.value)} maxLength={40} placeholder="User name" onKeyUp={enter(login)} />
+            <input type="password" className="form-control login__field" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={80} placeholder="Password" onKeyUp={enter(login)} />
+            <div className="form-check login__keep">
               <input id="keepSignedIn" className="form-check-input" type="checkbox" checked={keepSignedIn} onChange={(e) => setKeepSignedIn(e.target.checked)} />
               <label htmlFor="keepSignedIn" className="form-check-label">Keep me signed in on this device</label>
             </div>
-            <div className="text-danger small">{loginMessage}</div>
-            <button className="btn btn-primary mt-1" onClick={login}>Log in</button>
+            <div className="login__error">{loginMessage}</div>
+            <button className="btn btn-primary login__submit" onClick={login}>Log in</button>
           </>
         )}
         {state === "NewAccount" && (
           <>
-            <input ref={focusField} className="form-control mt-1" value={newUsername ?? ""} onChange={(e) => setNewUsername(e.target.value)} onBlur={onUserNameChanged} maxLength={40} placeholder="User name (used to log in)" onKeyUp={enter(newAccount)} />
-            <input type="password" className="form-control mt-1" value={newPassword ?? ""} onChange={(e) => setNewPassword(e.target.value)} maxLength={80} placeholder="Password" autoComplete="new-password" onKeyUp={enter(newAccount)} />
-            <input type="password" className="form-control mt-1" value={newPasswordConfirm ?? ""} onChange={(e) => setNewPasswordConfirm(e.target.value)} maxLength={80} placeholder="Repeat password" autoComplete="new-password" onKeyUp={enter(newAccount)} />
-            <input className="form-control mt-1" value={newEmail ?? ""} onChange={(e) => setNewEmail(e.target.value)} maxLength={80} placeholder="E-mail address (optional, needed only to reset your password)" onKeyUp={enter(newAccount)} />
-            <input className="form-control mt-1" value={newPlayerName ?? ""} onChange={(e) => setNewPlayerName(e.target.value)} maxLength={80} placeholder="Player name (visible to other players)" onKeyUp={enter(newAccount)} />
-            <div className="text-danger small">{newAccountMessage}</div>
-            <button className="btn btn-primary mt-1" onClick={newAccount}>Create account</button>
+            <input ref={focusField} className="form-control login__field" value={newUsername ?? ""} onChange={(e) => setNewUsername(e.target.value)} onBlur={onUserNameChanged} maxLength={40} placeholder="User name (used to log in)" onKeyUp={enter(newAccount)} />
+            <input type="password" className="form-control login__field" value={newPassword ?? ""} onChange={(e) => setNewPassword(e.target.value)} maxLength={80} placeholder="Password" autoComplete="new-password" onKeyUp={enter(newAccount)} />
+            <input type="password" className="form-control login__field" value={newPasswordConfirm ?? ""} onChange={(e) => setNewPasswordConfirm(e.target.value)} maxLength={80} placeholder="Repeat password" autoComplete="new-password" onKeyUp={enter(newAccount)} />
+            <input className="form-control login__field" value={newEmail ?? ""} onChange={(e) => setNewEmail(e.target.value)} maxLength={80} placeholder="E-mail address (optional, needed only to reset your password)" onKeyUp={enter(newAccount)} />
+            <input className="form-control login__field" value={newPlayerName ?? ""} onChange={(e) => setNewPlayerName(e.target.value)} maxLength={80} placeholder="Player name (visible to other players)" onKeyUp={enter(newAccount)} />
+            <div className="login__error">{newAccountMessage}</div>
+            <button className="btn btn-primary login__submit" onClick={newAccount}>Create account</button>
           </>
         )}
         {state === "RequestPasswordReset" && (
           <>
             <div>Enter the username or e-mail address associated to your account to receive a password reset token</div>
-            <input ref={focusField} className="form-control mt-1" value={resetUsernameOrEmail} onChange={(e) => setResetUsernameOrEmail(e.target.value)} maxLength={80} placeholder="Username or e-mail address" onKeyUp={enter(passwordReset)} />
-            <div className="text-danger small">{passwordResetMessage}</div>
-            <button className="btn btn-primary mt-1" onClick={passwordReset}>Request password reset</button>
+            <input ref={focusField} className="form-control login__field" value={resetUsernameOrEmail} onChange={(e) => setResetUsernameOrEmail(e.target.value)} maxLength={80} placeholder="Username or e-mail address" onKeyUp={enter(passwordReset)} />
+            <div className="login__error">{passwordResetMessage}</div>
+            <button className="btn btn-primary login__submit" onClick={passwordReset}>Request password reset</button>
           </>
         )}
         {state === "EnterNewPassword" && (
           <>
             <div>Enter the password reset token you received by email, your username and your new password</div>
-            <input ref={focusField} className="form-control mt-1" value={resetToken} onChange={(e) => setResetToken(e.target.value)} maxLength={80} placeholder="Reset token" onKeyUp={enter(newPasswordSubmit)} />
-            <input className="form-control mt-1" value={resetUsername} onChange={(e) => setResetUsername(e.target.value)} maxLength={40} placeholder="User name" onKeyUp={enter(newPasswordSubmit)} />
-            <input type="password" className="form-control mt-1" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} maxLength={80} placeholder="Password" autoComplete="new-password" onKeyUp={enter(newPasswordSubmit)} />
-            <input type="password" className="form-control mt-1" value={resetPasswordConfirm} onChange={(e) => setResetPasswordConfirm(e.target.value)} maxLength={80} placeholder="Repeat password" autoComplete="new-password" onKeyUp={enter(newPasswordSubmit)} />
-            <div className="text-danger small">{resetPasswordMessage}</div>
-            <button className="btn btn-primary mt-1" onClick={newPasswordSubmit}>Set new password</button>
+            <input ref={focusField} className="form-control login__field" value={resetToken} onChange={(e) => setResetToken(e.target.value)} maxLength={80} placeholder="Reset token" onKeyUp={enter(newPasswordSubmit)} />
+            <input className="form-control login__field" value={resetUsername} onChange={(e) => setResetUsername(e.target.value)} maxLength={40} placeholder="User name" onKeyUp={enter(newPasswordSubmit)} />
+            <input type="password" className="form-control login__field" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} maxLength={80} placeholder="Password" autoComplete="new-password" onKeyUp={enter(newPasswordSubmit)} />
+            <input type="password" className="form-control login__field" value={resetPasswordConfirm} onChange={(e) => setResetPasswordConfirm(e.target.value)} maxLength={80} placeholder="Repeat password" autoComplete="new-password" onKeyUp={enter(newPasswordSubmit)} />
+            <div className="login__error">{resetPasswordMessage}</div>
+            <button className="btn btn-primary login__submit" onClick={newPasswordSubmit}>Set new password</button>
           </>
         )}
       </div>
       <div className="card-footer">
-        <div className="row">
-          <span className="col">Version {client.lobby.data.latestVersion} (October 2025)</span>
+        <div className="login__footer-row">
+          <span className="login__version">Version {client.lobby.data.latestVersion} (October 2025)</span>
         </div>
       </div>
     </div>

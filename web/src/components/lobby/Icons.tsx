@@ -5,7 +5,7 @@ function iconStyle(onClick?: () => void) {
   return onClick ? { cursor: "pointer" } : undefined;
 }
 
-export function UserIcon({ size = 20, title = "User", marginClass = "m-1", onClick }: { size?: number; title?: string; marginClass?: string; onClick?: () => void }) {
+export function UserIcon({ size = 20, title = "User", marginClass = "lobby-icon", onClick }: { size?: number; title?: string; marginClass?: string; onClick?: () => void }) {
   // UserIcon.razor draws at 16 px whatever its Size.
   void size;
   return (
@@ -17,7 +17,7 @@ export function UserIcon({ size = 20, title = "User", marginClass = "m-1", onCli
   );
 }
 
-export function BotIcon({ size = 20, title = "Bot", marginClass = "m-1", onClick }: { size?: number; title?: string; marginClass?: string; onClick?: () => void }) {
+export function BotIcon({ size = 20, title = "Bot", marginClass = "lobby-icon", onClick }: { size?: number; title?: string; marginClass?: string; onClick?: () => void }) {
   return (
     <span className={marginClass} onClick={onClick} style={iconStyle(onClick)} title={title}>
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill="currentColor" className="bi bi-cpu" viewBox="0 0 16 16">
@@ -27,7 +27,7 @@ export function BotIcon({ size = 20, title = "Bot", marginClass = "m-1", onClick
   );
 }
 
-export function HostIcon({ size = 20, fill = "currentColor", marginClass = "m-1", onClick }: { size?: number; fill?: string; marginClass?: string; onClick?: () => void }) {
+export function HostIcon({ size = 20, fill = "currentColor", marginClass = "lobby-icon", onClick }: { size?: number; fill?: string; marginClass?: string; onClick?: () => void }) {
   return (
     <span className={marginClass} onClick={onClick} style={iconStyle(onClick)} title="Host">
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} fill={fill} className="bi bi-award-fill" viewBox="0 0 16 16">

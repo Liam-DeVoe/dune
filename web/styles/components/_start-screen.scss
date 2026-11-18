@@ -10,7 +10,7 @@
     min-height: 0;
     overflow: hidden;
 
-    > [class*="col-"] {
+    > .start-row__col {
       max-height: 100%;
       overflow-y: auto;
     }

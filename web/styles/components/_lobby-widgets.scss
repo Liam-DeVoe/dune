@@ -1,0 +1,47 @@
+// The small blocks of the lobby's generic components (lobby/widgets.tsx,
+// lobby/Icons.tsx). Each is too small for a file of its own.
+
+// CommandButton with its default spacing. A caller that passes its own
+// marginClass replaces this class.
+.command-button {
+  margin-right: 0.25rem;
+}
+
+// UserIcon, BotIcon and HostIcon with their default spacing. A caller that
+// passes its own marginClass replaces this class.
+.lobby-icon {
+  margin: 0.25rem;
+}
+
+// A labelled number (SelectNumber).
+.select-number {
+  display: flex;
+  align-items: center;
+
+  &__label {
+    margin-right: 0.25rem;
+  }
+}
+
+// The label over a row of faction sigils (SelectFactions).
+.select-factions__label {
+  display: block;
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+// A date and a time side by side (DateTimePicker), in two equal columns
+// with 0.75rem of padding a side that the row takes back.
+.date-time-picker {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.75rem 0.25rem;
+
+  &__col {
+    flex: 1 0 0%;
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}

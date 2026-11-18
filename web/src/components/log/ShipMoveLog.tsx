@@ -178,7 +178,7 @@ function Forces({ faction, forces, specialForces }: { faction: Faction; forces: 
 
 function Card({ card }: { card: Part | null }) {
   const { skin } = useGame();
-  return card != null ? <PartText part={card} /> : <span className="fw-bold">{skin.enumValue("TreacheryCardType", "Karma")}</span>;
+  return card != null ? <PartText part={card} /> : <span className="shipmove-turn__karama">{skin.enumValue("TreacheryCardType", "Karma")}</span>;
 }
 
 function ShipRow({ faction, message, board }: { faction: Faction; message: LogLine; board: Board }) {

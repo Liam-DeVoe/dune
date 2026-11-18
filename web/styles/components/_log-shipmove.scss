@@ -53,6 +53,11 @@
   &__small {
     font-size: 13.5px;
   }
+
+  // "Karama" when the card itself isn't known.
+  &__karama {
+    font-weight: 700;
+  }
 }
 
 // "Guild delay their turn", between blocks.

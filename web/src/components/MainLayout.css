@@ -1,12 +1,12 @@
 /* Pages/MainLayout.razor.css, the parts the in-game pages use. Blazor scoped these to the
-   layout; plain selectors under .page keep the C# class names, which the comparison checks. */
+   layout; here they are the page block's own classes. */
 .page {
   position: relative;
   display: flex;
   flex-direction: column;
 }
 
-.page > .main {
+.page__main {
   flex: 1;
 }
 
@@ -15,7 +15,8 @@
     flex-direction: row;
   }
 
-  .page > .main > div {
+  /* Two classes, so these win over the content div's px-3 (also !important) whatever the order. */
+  .page__main > .page__content {
     padding-left: 2rem !important;
     padding-right: 1.5rem !important;
   }

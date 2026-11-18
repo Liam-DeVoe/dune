@@ -194,13 +194,13 @@ export function clampMapPin(): void {
 
 // ShowMapRefs: while the mouse is over a chip that names sectors (data-ref-locations) and maybe
 // a faction (data-ref-faction), those sectors show their hover shape and anything tagged
-// data-faction-of that faction gets .ref-hi. A log line with data-ref-arrow draws its journey.
+// data-faction-of that faction gets .faction-ref--lit. A log line with data-ref-arrow draws its journey.
 function showMapRefs(chip: HTMLElement | null): void {
   document.querySelectorAll<SVGElement>(".map-hover__shape--ref").forEach((shape) => {
     shape.classList.remove("map-hover__shape--ref", "map-hover__shape--joined-start", "map-hover__shape--joined-end");
     shape.style.removeProperty("--c");
   });
-  document.querySelectorAll(".ref-hi").forEach((el) => el.classList.remove("ref-hi"));
+  document.querySelectorAll(".faction-ref--lit").forEach((el) => el.classList.remove("faction-ref--lit"));
   const lines = document.querySelector(".map-refs__lines");
   if (lines != null) lines.replaceChildren();
   if (chip == null) return;
@@ -244,7 +244,7 @@ function showMapRefs(chip: HTMLElement | null): void {
     if (litKeys.has(t + ":" + ((sector + 1) % sectors))) shape.classList.add("map-hover__shape--joined-end");
   });
   const faction = chip.dataset.refFaction;
-  if (faction) document.querySelectorAll(`[data-faction-of="${faction}"]`).forEach((el) => el.classList.add("ref-hi"));
+  if (faction) document.querySelectorAll(`[data-faction-of="${faction}"]`).forEach((el) => el.classList.add("faction-ref--lit"));
 }
 
 let refsListening = false;

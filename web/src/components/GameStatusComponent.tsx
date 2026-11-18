@@ -173,9 +173,9 @@ function TimeLimit({ view }: { view: GameView }) {
       {set && (
         <>
           <span className="num">
-            <button onClick={() => change(limit - down)}>−</button>
-            <input value={limit} readOnly />
-            <button onClick={() => change(limit + up)}>+</button>
+            <button className="num__button" onClick={() => change(limit - down)}>−</button>
+            <input className="num__input" value={limit} readOnly />
+            <button className="num__button" onClick={() => change(limit + up)}>+</button>
           </span>
           s
         </>

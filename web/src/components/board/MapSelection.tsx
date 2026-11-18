@@ -249,9 +249,9 @@ export function StagedForces() {
     let x = center.X - 0.5 * diameter + Math.max(1, columns) * diameter + 0.2 * diameter;
     const y = center.Y - 0.5 * diameter;
     const token = (key: string, src: string, amount: number, tx: number, starred: boolean) => (
-      <div key={key} className={`staged-force ${starred ? "force-token starred" : ""}`}
+      <div key={key} className={`staged-force ${starred ? "force-token force-token--starred" : ""}`}
         style={{ position: "absolute", left: px(tx), top: px(y), width: px(diameter), height: px(diameter), ["--d" as string]: px(diameter) }}>
-        <img className="staged-force__img" src={src} alt="Staged force" />
+        <img className={starred ? "staged-force__img force-token__img" : "staged-force__img"} src={src} alt="Staged force" />
         <span className="staged-force__count" style={{ font }}>{amount}</span>
       </div>
     );

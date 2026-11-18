@@ -11,14 +11,14 @@
 .game-screen {
   overflow-y: hidden;
 
-  > #mapdiv > .board-area {
+  &__board-area {
     position: relative;
   }
 }
 
 @media (min-width: 992px) {
   .game-screen {
-    // .content above it has 0.75rem of padding, and the turn banner (when
+    // .page__content above it has 0.75rem of padding, and the turn banner (when
     // it's the player's turn) takes --turn-banner-h more.
     --screen-h: calc(100dvh - 0.75rem - var(--turn-banner-h, 0px));
     --side-w: clamp(340px, 26vw, 480px);
@@ -33,23 +33,23 @@
       height: 100%;
       display: flex;
       flex-direction: column;
+    }
 
-      > .board-area {
-        flex: 1 1 0;
-        min-height: 0;
-        overflow: clip;
+    &__board-area {
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: clip;
 
-        // The menu bar sits in the board's bottom-left corner.
-        > .menu-bar {
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          z-index: 20;
-        }
+      // The menu bar sits in the board's bottom-left corner.
+      > .menu-bar {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        z-index: 20;
       }
     }
 
-    > .side-column {
+    &__side-column {
       flex: 0 0 var(--side-w);
       width: var(--side-w);
       min-width: 0;

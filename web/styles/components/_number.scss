@@ -1,7 +1,7 @@
 @use "../shared";
 
 // Number input: a minus / value / plus control that replaces the browser's
-// arrow stepper. An optional .ic cell on the left shows what is being counted
+// arrow stepper. An optional __ic cell on the left shows what is being counted
 // (a force or spice icon).
 .num {
   display: inline-flex;
@@ -20,7 +20,7 @@
     flex: none;
   }
 
-  button {
+  &__button {
     background: transparent;
     border: 0;
     color: var(--sand);
@@ -35,7 +35,7 @@
     }
   }
 
-  input {
+  &__input {
     width: 44px;
     text-align: center;
     border: 0;
@@ -53,28 +53,28 @@
     }
   }
 
-  .ic {
+  &__ic {
     display: inline-grid;
     place-items: center;
     width: 30px;
     background: rgba(255, 255, 255, 0.06);
     border-right: 1px solid shared.$hairline-mid;
-
-    img {
-      width: 18px;
-      height: 18px;
-    }
-
-    // Counting forces: the cell takes the faction colour.
-    &.force {
-      background: var(--fc, var(--ink-3));
-    }
-
-    &.force img {
-      filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
-    }
-
-    // Counting spice: the spice icon is already orange, so the cell keeps the
-    // neutral background and lets the icon show.
   }
+
+  &__ic-img {
+    width: 18px;
+    height: 18px;
+  }
+
+  // Counting forces: the cell takes the faction colour.
+  &__ic--force {
+    background: var(--fc, var(--ink-3));
+  }
+
+  &__ic--force &__ic-img {
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
+  }
+
+  // Counting spice: the spice icon is already orange, so the cell keeps the
+  // neutral background and lets the icon show.
 }

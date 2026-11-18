@@ -159,13 +159,13 @@ export function Select<T>({ options, value, onChange, label, className = "mt-1",
   return (
     <div className={`select ${className}`}>
       {label != null && <label className="mb-0" id={`${id}-label`} htmlFor={id}>{label}</label>}
-      <button type="button" id={id} ref={trigger} className={`select-trigger form-select ${small ? "form-select-sm" : ""}`}
+      <button type="button" id={id} ref={trigger} className={`select__trigger form-select ${small ? "form-select-sm" : ""}`}
               role="combobox" aria-haspopup="listbox" aria-expanded={open ? "true" : "false"} aria-controls={`${id}-list`}
               aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
               disabled={disabled} onClick={() => (open ? setOpen(false) : openList())} onKeyDown={onKeyDown}>
         {options[selectedIndex]?.label ?? ""}
       </button>
-      <ul className="select-list" id={`${id}-list`} role="listbox" ref={list} {...{ popover: "manual" }}>
+      <ul className="select__list" id={`${id}-list`} role="listbox" ref={list} {...{ popover: "manual" }}>
         {options.map((o, i) => (
           <SelectRow key={i} option={o} heading={o.group != null && (i === 0 || options[i - 1].group !== o.group)}
                      selected={i === selectedIndex} active={open && i === active} id={optionId(i)}
@@ -182,9 +182,9 @@ function SelectRow<T>({ option, heading, selected, active, id, onPointerMove, on
 }) {
   return (
     <>
-      {heading && <li className="select-group" role="presentation">{option.group}</li>}
+      {heading && <li className="select__group" role="presentation">{option.group}</li>}
       <li id={id} role="option" aria-selected={selected ? "true" : "false"}
-          className={`select-option ${selected ? "is-selected" : ""} ${active ? "is-active" : ""}`}
+          className={`select__option ${selected ? "select__option--selected" : ""} ${active ? "select__option--active" : ""}`}
           onPointerMove={onPointerMove} onClick={onClick}>
         {option.label}
       </li>

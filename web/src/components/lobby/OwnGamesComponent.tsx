@@ -173,14 +173,14 @@ export function OwnGamesComponent() {
                     <tbody>
                       {myScheduledGames.map((game) => (
                         <tr key={game.scheduledGameId} className="small table-dark">
-                          <td className="w-20">{shortDate(game.starts)}</td>
-                          <td className="w-40">
+                          <td>{shortDate(game.starts)}</td>
+                          <td>
                             <div>{lobby.labelOf("Ruleset", game.ruleset)}, {game.players} players, {game.maxTurns} turns
                               {" "}{game.allowedFactions.length === 12 ? <span>(all factions)</span> : factionIcons(game.allowedFactions)}
                             </div>
                           </td>
-                          <td className="w-20" style={{ textAlign: "right" }}><Subscribers game={game} size={18} /></td>
-                          <td className="w-20"><CommandButton small onClick={() => client.requestCancelGame(game.scheduledGameId)}><CancelIcon /></CommandButton></td>
+                          <td style={{ textAlign: "right" }}><Subscribers game={game} size={18} /></td>
+                          <td><CommandButton small onClick={() => client.requestCancelGame(game.scheduledGameId)}><CancelIcon /></CommandButton></td>
                         </tr>
                       ))}
                     </tbody>

@@ -147,8 +147,8 @@ export function hasStarredSpecialForce(faction: Faction): boolean {
 
 // Support.ForceTokenHtml.
 export function forceTokenHtml(src: string, faction: Faction, special: boolean, sizePx: number, title = ""): string {
-  const starred = special && hasStarredSpecialForce(faction) ? " starred" : "";
-  return `<span class='force-token${starred}' style='--d:${sizePx}px' title='${title}'><img src='${src}' width='${sizePx}' height='${sizePx}' alt='${title}'/></span>`;
+  const starred = special && hasStarredSpecialForce(faction) ? " force-token--starred" : "";
+  return `<span class='force-token${starred}' style='--d:${sizePx}px' title='${title}'><img class='force-token__img' src='${src}' width='${sizePx}' height='${sizePx}' alt='${title}'/></span>`;
 }
 
 // MapForce.razor: a stack of force tokens with its count.
@@ -177,8 +177,8 @@ export function MapForce({ x, y, special, amount, faction, threatened = false, s
     const look: CSSProperties = { width: px(d), filter: `drop-shadow(${px(shadowSize)} ${px(shadowSize)} ${px(shadowBlur)} ${shadowColor})` };
     if (starred && i === amount - 1) {
       tokens.push(
-        <span key={i} className="force-token starred" style={{ ...position, ["--d" as string]: px(d) }}>
-          <img src={src} style={look} alt="Token" />
+        <span key={i} className="force-token force-token--starred" style={{ ...position, ["--d" as string]: px(d) }}>
+          <img className="force-token__img" src={src} style={look} alt="Token" />
         </span>,
       );
     } else {

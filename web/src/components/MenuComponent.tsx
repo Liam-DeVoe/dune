@@ -253,10 +253,10 @@ export function MenuComponent() {
               <li className="menu-overflow__bots">
                 <svg className="menu-overflow__icon" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2" /><path d="M12 8V4M9 13v1M15 13v1" /></svg><span>Bots</span>{" "}
                 <span className="seg menu-overflow__seg">
-                  <button className={view.botsSpeed === 0 ? "on" : ""} title="Bots are paused" onClick={() => setBotSpeed(0)}>Pause</button>{" "}
-                  <button className={view.botsSpeed === 1 ? "on" : ""} title="Bots at normal speed" onClick={() => setBotSpeed(1)}>1×</button>{" "}
-                  <button className={view.botsSpeed === 2 ? "on" : ""} title="Bots at higher speed" onClick={() => setBotSpeed(2)}>2×</button>{" "}
-                  <button className={view.botsSpeed === 4 ? "on" : ""} title="Bots at highest speed" onClick={() => setBotSpeed(4)}>4×</button>
+                  <button className={view.botsSpeed === 0 ? "seg__button seg__button--on" : "seg__button"} title="Bots are paused" onClick={() => setBotSpeed(0)}>Pause</button>{" "}
+                  <button className={view.botsSpeed === 1 ? "seg__button seg__button--on" : "seg__button"} title="Bots at normal speed" onClick={() => setBotSpeed(1)}>1×</button>{" "}
+                  <button className={view.botsSpeed === 2 ? "seg__button seg__button--on" : "seg__button"} title="Bots at higher speed" onClick={() => setBotSpeed(2)}>2×</button>{" "}
+                  <button className={view.botsSpeed === 4 ? "seg__button seg__button--on" : "seg__button"} title="Bots at highest speed" onClick={() => setBotSpeed(4)}>4×</button>
                 </span>
               </li>
             )}

@@ -2,7 +2,7 @@
 // parchment, like the prompt panel, with a caret pointing at the element. It
 // shows the element's title text as it is, wrapping at 260px and keeping any
 // line breaks the text has.
-#tip {
+.tip {
   position: fixed;
   z-index: 2000; // over Bootstrap's popovers (1070) and modals (1055)
   max-width: 260px;
@@ -24,7 +24,7 @@
     opacity 90ms ease,
     visibility 0s linear 90ms;
 
-  &.on {
+  &--on {
     opacity: 1;
     visibility: visible;
     transition: opacity 90ms ease;
@@ -45,7 +45,7 @@
     border-left: 0;
   }
 
-  &.below::after {
+  &--below::after {
     top: -5px;
     bottom: auto;
     border: 1px solid rgba(29, 12, 0, 0.25);

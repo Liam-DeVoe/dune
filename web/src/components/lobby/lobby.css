@@ -1,5 +1,4 @@
-/* The razor-scoped styles of the lobby components, which Blazor scoped with b-xxxx attributes.
-   The selectors keep the C# class names, which the comparison checks. */
+/* The razor-scoped styles of the lobby components, which Blazor scoped with b-xxxx attributes. */
 
 /* GenericComponents/DateTimePicker.razor.css (its "label" rule is scoped to the picker's labels) */
 label[for="datePicker"], label[for="timePicker"] {
@@ -13,16 +12,16 @@ input[type=date], input[type=time] {
 }
 
 /* OtherComponents/RunningGamesComponent.razor.css */
-.table-running-games td:nth-child(1) { width: 15%; overflow-wrap: anywhere; }
-.table-running-games td:nth-child(2) { width: 10%; overflow-wrap: anywhere; }
-.table-running-games td:nth-child(3) { width: 45%; word-break: break-word; }
-.table-running-games td:nth-child(4) { width: 30%; overflow-wrap: anywhere; text-align: right; }
+.games-table--running td:nth-child(1) { width: 15%; overflow-wrap: anywhere; }
+.games-table--running td:nth-child(2) { width: 10%; overflow-wrap: anywhere; }
+.games-table--running td:nth-child(3) { width: 45%; word-break: break-word; }
+.games-table--running td:nth-child(4) { width: 30%; overflow-wrap: anywhere; text-align: right; }
 
-.table-scheduled-games td:nth-child(1) { width: 15%; overflow-wrap: anywhere; }
-.table-scheduled-games td:nth-child(2) { width: 10%; word-break: break-word; }
-.table-scheduled-games td:nth-child(3) { width: 45%; word-break: break-word; }
-.table-scheduled-games td:nth-child(4) { width: 20%; overflow-wrap: anywhere; }
-.table-scheduled-games td:nth-child(5) { width: 10%; overflow-wrap: anywhere; text-align: right; }
+.games-table--scheduled td:nth-child(1) { width: 15%; overflow-wrap: anywhere; }
+.games-table--scheduled td:nth-child(2) { width: 10%; word-break: break-word; }
+.games-table--scheduled td:nth-child(3) { width: 45%; word-break: break-word; }
+.games-table--scheduled td:nth-child(4) { width: 20%; overflow-wrap: anywhere; }
+.games-table--scheduled td:nth-child(5) { width: 10%; overflow-wrap: anywhere; text-align: right; }
 
 .games-section-label {
   margin: 16px 0 4px;
@@ -43,38 +42,31 @@ input[type=date], input[type=time] {
 }
 
 /* GenericComponents/NumberPickerComponent.razor.css (SelectNumber in widgets.tsx) */
-.num.sm {
+.num--sm {
   height: 28px;
 }
-.num.sm button {
+.num--sm .num__button {
   width: 26px;
   font-size: 14px;
 }
-.num.sm input {
+.num--sm .num__input {
   width: 40px;
   font-size: 16px;
 }
-.num.sm .ic {
-  width: 26px;
-}
-.num.sm .ic img {
-  width: 16px;
-  height: 16px;
-}
-.num button:disabled {
+.num__button:disabled {
   opacity: 0.35;
   cursor: default;
 }
-.num button:disabled:hover {
+.num__button:disabled:hover {
   background: transparent;
 }
-.num.off {
+.num--off {
   opacity: 0.4;
 }
-.num.off button,
-.num.off input {
+.num--off .num__button,
+.num--off .num__input {
   cursor: not-allowed;
 }
-.num input:disabled {
+.num__input:disabled {
   color: inherit;
 }

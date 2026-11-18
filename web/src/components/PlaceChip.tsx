@@ -14,24 +14,24 @@ export function PlaceChip({ place }: { place: Place }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const c = useMemo(() => placeChipData(skin, attached ? { ...place, sector: attached.sector } : place), [skin, key]);
   return (
-    <span className="chip place" data-ref-locations={c.locations.join(",")} title={c.title}>
-      <svg className="wedge" viewBox={c.view} aria-hidden="true">
+    <span className="chip chip--place" data-ref-locations={c.locations.join(",")} title={c.title}>
+      <svg className="chip__wedge" viewBox={c.view} aria-hidden="true">
         <defs>
           <clipPath id={`${c.id}-disc`}><circle cx={c.cx} cy={c.cy} r={c.r} /></clipPath>
           {c.wedge !== null && <clipPath id={`${c.id}-sector`}><path d={c.wedge} /></clipPath>}
         </defs>
         <g clipPath={`url(#${c.id}-disc)`}>
-          <circle className="disc" cx={c.cx} cy={c.cy} r={c.r} />
+          <circle className="chip__disc" cx={c.cx} cy={c.cy} r={c.r} />
           {c.border !== "" && (
             <g transform={c.transform}>
-              <g clipPath={c.wedge !== null ? `url(#${c.id}-sector)` : undefined}><path className="w" d={c.border} /></g>
+              <g clipPath={c.wedge !== null ? `url(#${c.id}-sector)` : undefined}><path className="chip__outline" d={c.border} /></g>
             </g>
           )}
         </g>
-        <circle className="ring" cx={c.cx} cy={c.cy} r={c.r} vectorEffect="non-scaling-stroke" />
+        <circle className="chip__ring" cx={c.cx} cy={c.cy} r={c.r} vectorEffect="non-scaling-stroke" />
       </svg>
-      <span className="name">{c.name}</span>
-      {c.orientation !== "" && <span className="sector">{c.orientation}</span>}
+      <span className="chip__name">{c.name}</span>
+      {c.orientation !== "" && <span className="chip__sector">{c.orientation}</span>}
     </span>
   );
 }

@@ -181,7 +181,7 @@ export function MapForceStepper({ value, onChange, min, max, faction, special }:
     <div className="pin-step" title={title}>
       <span className="pin-step__ic" style={{ background: skin.factionColor(faction) }}>
         {special && hasStarredSpecialForce(faction)
-          ? <span className="force-token starred" style={{ ["--d" as string]: "16px" }}><img className="pin-step__ic-img" src={src} alt="" /></span>
+          ? <span className="force-token force-token--starred" style={{ ["--d" as string]: "16px" }}><img className="pin-step__ic-img force-token__img" src={src} alt="" /></span>
           : <img className="pin-step__ic-img" src={src} alt="" />}
       </span>
       <button type="button" tabIndex={-1} className="pin-step__button" aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>

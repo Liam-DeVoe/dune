@@ -1,5 +1,5 @@
 // MapComponents/GameBoard.razor: the map and its layers, in the razor file's order, scaled to
-// the board's area by setPlanetMapScale. Lives in GameColumns' .board-area.
+// the board's area by setPlanetMapScale. Lives in GameColumns' .game-screen__board-area.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
 import { PhaseValue } from "../../generated/enums";
 import { useGame } from "../../state/context";

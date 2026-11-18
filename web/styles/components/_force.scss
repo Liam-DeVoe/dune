@@ -9,14 +9,14 @@
   line-height: 0;
   vertical-align: middle;
 
-  > img {
+  &__img {
     display: block;
   }
 }
 
 // The star badge: 44% of the token, sitting just past its top-right edge,
 // ink with a parchment star and a thin parchment and ink outline.
-.force-token.starred::after {
+.force-token--starred::after {
   content: "★";
   position: absolute;
   z-index: 1;

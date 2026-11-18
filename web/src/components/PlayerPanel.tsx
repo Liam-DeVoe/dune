@@ -52,21 +52,21 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
   const dead = me.leaders.filter((l) => !l.alive);
   return (
     <>
-      <div className="pp-bar">
+      <div className="player-panel__bar">
         <FactionChip faction={faction} />
-        <span className="pp-stat"><SpiceLine text={resourcesText(skin, me, pub)} size={24} /></span>
-        <span className="pp-stat">
+        <span className="player-panel__stat"><SpiceLine text={resourcesText(skin, me, pub)} size={24} /></span>
+        <span className="player-panel__stat">
           <ForceToken faction={faction} size={22} imgClass="m-0 p-0" title={skin.get("ForceName_STR", faction)} />{pub.forcesInReserve}
         </span>
         {pub.hasSpecialForces && (
-          <span className="pp-stat">
+          <span className="player-panel__stat">
             <ForceToken faction={faction} special size={22} imgClass="m-0 p-0" title={skin.get("SpecialForceName_STR", faction)} />{pub.specialForcesInReserve}
           </span>
         )}
       </div>
 
       {/* Leaders, then the traitors held (or face dancers) in a recessed well at the right. */}
-      <div className="pp-people">
+      <div className="player-panel__people">
         {alive.map((l) => (
           <Image key={l.id} src={skin.personImage(l.id)} alt="" highlighted={l.skilled} width={44} noShadow popover={leaderPopup(skin, l.id, l.skill)} />
         ))}
@@ -78,7 +78,7 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
           : me.traitors.length > 0 && <Well title={me.traitors.length === 1 ? "Your traitor" : "Your traitors"} heroes={me.traitors} />}
       </div>
 
-      <div className="pp-extras">
+      <div className="player-panel__extras">
         {me.nextStormMoves !== null && (
           <div>The next storm will move <SimpleNumber>{me.nextStormMoves}</SimpleNumber> sectors.</div>
         )}
@@ -107,12 +107,12 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
 
       {/* The hand, under a rule. It keeps its height when empty. A card you can play now glows;
           clicking it opens its panel (CardPlayPopover). */}
-      <div className="pp-cards">
+      <div className="player-panel__cards">
         {me.hand.map((c, i) => {
-          const card = <Image src={skin.cardImage(c.id)} alt={skin.card(c.id)} width={48} noShadow popover={treacheryCardPopup(skin, c.id)} />;
+          const card = <Image src={skin.cardImage(c.id)} alt={skin.card(c.id)} width={48} className="player-panel__card-img" noShadow popover={treacheryCardPopup(skin, c.id)} />;
           return c.playableWith.length > 0
             ? (
-              <span key={i} className={`pp-card playable ${menu.cardPlay === c.id ? "open" : ""}`}
+              <span key={i} className={`player-panel__playable ${menu.cardPlay === c.id ? "player-panel__playable--open" : ""}`}
                     onClick={(e) => menu.toggleCardPlay(c.id, e.clientY)}>
                 {card}
               </span>
@@ -120,12 +120,12 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
             : <Fragment key={i}>{card}</Fragment>;
         })}
         {me.cardSetAside !== null && (
-          <Image src={skin.cardImage(me.cardSetAside)} alt={skin.card(me.cardSetAside)} width={48} noShadow popover={treacheryCardPopup(skin, me.cardSetAside)} />
+          <Image src={skin.cardImage(me.cardSetAside)} alt={skin.card(me.cardSetAside)} width={48} className="player-panel__card-img" noShadow popover={treacheryCardPopup(skin, me.cardSetAside)} />
         )}
       </div>
 
       {me.nexus !== null && (
-        <div className="pp-extras">Nexus: <Image width={30} alt="" src={skin.url(skin.get("FactionFacedownImage_URL", me.nexus))}
+        <div className="player-panel__extras">Nexus: <Image width={30} alt="" src={skin.url(skin.get("FactionFacedownImage_URL", me.nexus))}
           popover={`<div class='pop-art'><img class='pop-art__img' src='${skin.get("NexusCardImage_URL", me.nexus)}'/></div>`} /></div>
       )}
     </>
@@ -136,12 +136,12 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
 function Well({ title, heroes }: { title: string; heroes: HeroCard[] }) {
   const { skin } = useGame();
   return (
-    <span className="pp-well" title={title}>
+    <span className="player-panel__well" title={title}>
       {heroes.map((h, i) => {
         const { src, faction, popover } = hero(skin, h);
         return (
-          <span key={i} data-faction-of={faction}>
-            <Image src={src} alt="" blurred={h.revealed} width={38} noShadow popover={popover} />
+          <span key={i} className="faction-ref" data-faction-of={faction}>
+            <Image src={src} alt="" blurred={h.revealed} width={38} className="faction-ref__img" noShadow popover={popover} />
           </span>
         );
       })}

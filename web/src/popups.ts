@@ -10,7 +10,7 @@ import { htmlEncode, replaceSpiceAmounts, supportRound, utilitiesRound } from ".
 // Skin.SpiceHtml: a spice amount drawn on the harvester icon.
 export function spiceHtml(skin: Skin, amount: string, size = 18): string {
   const name = skin.concept("Resource");
-  return `<span class='spice-amt' style='--s:${size}px' title='${name}'><img src='${skin.str("Harvester_URL")}' alt='${name}'/><b>${amount}</b></span>`;
+  return `<span class='spice-amt' style='--s:${size}px' title='${name}'><img class='spice-amt__img' src='${skin.str("Harvester_URL")}' alt='${name}'/><b class='spice-amt__value'>${amount}</b></span>`;
 }
 
 // Skin.WithSpiceIcons: the text as HTML, with each amount of spice in it drawn by spiceHtml.
@@ -24,7 +24,7 @@ export function withSpiceIcons(skin: Skin, text: string, size = 18, encode = tru
 export function factionChipHtml(skin: Skin, f: Faction, you = false, locationIds: number[] | null = null): string {
   const name = htmlEncode(skin.get("FactionName_STR", f));
   const locations = locationIds ? locationIds.join(",") : "";
-  return `<span class='chip faction${you ? " you" : ""}' data-ref-faction='${f}' data-ref-locations='${locations}' style='--fc:${skin.data.FactionColor[f] ?? ""}' title='${name}'><img src='${skin.get("FactionImage_URL", f)}' alt=''/><span class='name'>${name}</span></span>`;
+  return `<span class='chip chip--faction${you ? " chip--you" : ""}' data-ref-faction='${f}' data-ref-locations='${locations}' style='--fc:${skin.data.FactionColor[f] ?? ""}' title='${name}'><img class='chip__img' src='${skin.get("FactionImage_URL", f)}' alt=''/><span class='chip__name'>${name}</span></span>`;
 }
 
 const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
@@ -335,17 +335,17 @@ export function placeChipData(skin: Skin, place: Place): PlaceChipData {
 // lies, the territory name, and for a sector its compass word. PlaceChip.tsx draws the same.
 export function placeChipHtml(skin: Skin, place: Place): string {
   const c = placeChipData(skin, place);
-  let html = `<span class="chip place" data-ref-locations="${c.locations.join(",")}" title="${c.title}">`;
-  html += `<svg class="wedge" viewBox="${c.view}" aria-hidden="true"><defs>`;
+  let html = `<span class="chip chip--place" data-ref-locations="${c.locations.join(",")}" title="${c.title}">`;
+  html += `<svg class="chip__wedge" viewBox="${c.view}" aria-hidden="true"><defs>`;
   html += `<clipPath id="${c.id}-disc"><circle cx="${c.cx}" cy="${c.cy}" r="${c.r}"/></clipPath>`;
   if (c.wedge !== null) html += `<clipPath id="${c.id}-sector"><path d="${c.wedge}"/></clipPath>`;
-  html += `</defs><g clip-path="url(#${c.id}-disc)"><circle class="disc" cx="${c.cx}" cy="${c.cy}" r="${c.r}"/>`;
+  html += `</defs><g clip-path="url(#${c.id}-disc)"><circle class="chip__disc" cx="${c.cx}" cy="${c.cy}" r="${c.r}"/>`;
   if (c.border !== "") {
     const clip = c.wedge !== null ? ` clip-path="url(#${c.id}-sector)"` : "";
-    html += `<g transform="${c.transform}"><g${clip}><path class="w" d="${c.border}"/></g></g>`;
+    html += `<g transform="${c.transform}"><g${clip}><path class="chip__outline" d="${c.border}"/></g></g>`;
   }
-  html += `</g><circle class="ring" cx="${c.cx}" cy="${c.cy}" r="${c.r}" vector-effect="non-scaling-stroke"/></svg>`;
-  html += `<span class="name">${c.name}</span>`;
-  if (c.orientation !== "") html += `<span class="sector">${c.orientation}</span>`;
+  html += `</g><circle class="chip__ring" cx="${c.cx}" cy="${c.cy}" r="${c.r}" vector-effect="non-scaling-stroke"/></svg>`;
+  html += `<span class="chip__name">${c.name}</span>`;
+  if (c.orientation !== "") html += `<span class="chip__sector">${c.orientation}</span>`;
   return html + "</span>";
 }

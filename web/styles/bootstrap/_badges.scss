@@ -15,19 +15,9 @@
   background: var(--gold);
   color: var(--ink-0);
 
-  &.spice {
+  &--spice {
     background: var(--spice);
     color: var(--parchment);
-  }
-
-  &.storm {
-    background: var(--storm);
-    color: var(--parchment);
-  }
-
-  &.quiet {
-    background: rgba(252, 249, 209, 0.12);
-    color: var(--text-2);
   }
 }
 

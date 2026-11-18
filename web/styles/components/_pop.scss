@@ -425,6 +425,13 @@
   }
 }
 
+// A popover that is just an image (Skin.GetImageHoverHtml): 300px wide by its
+// width attribute, narrower when the popover is.
+.pop-image {
+  max-width: 100%;
+  height: auto;
+}
+
 // Tech token popover: the round token on a dark panel at the left, its name
 // and rules text beside it, like the treachery card popover.
 .pop-token {

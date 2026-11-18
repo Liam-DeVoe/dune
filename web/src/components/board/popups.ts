@@ -10,7 +10,7 @@ import { htmlEncode } from "../../text";
 import type { Board } from "./geometry";
 import { forceTokenHtml } from "./primitives";
 
-const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
+const imageHover = (url: string) => `<img src='${url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 export function treacheryCard(b: Board, id: number): string { return shared.treacheryCardPopup(b.skin, id); }
 export function leaderSkill(b: Board, s: LeaderSkill): string { return shared.leaderSkillPopup(b.skin, s); }

@@ -1276,7 +1276,7 @@ fn get_treachery_card_category(c: TreacheryCard) -> (&'static str, &'static str)
 }
 
 fn get_image_hover_html(image_url: &str) -> String {
-    format!("<img src='{image_url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>")
+    format!("<img src='{image_url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>")
 }
 
 pub fn get_faction_faction_force(f: Option<FactionForce>) -> Option<Faction> {

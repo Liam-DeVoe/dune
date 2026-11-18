@@ -22,7 +22,7 @@ const DISCOVERIES: DiscoveryToken[] = ["Jacurutu", "Shrine", "TestingStation", "
 
 // Skin.GetFramedCardHtml and GetImageHoverHtml.
 const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
-const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
+const imageHover = (url: string) => `<img src='${url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 // Skin.Describe(ResourceCard).
 function resourceCardName(skin: Skin, skinId: number): string {

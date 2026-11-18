@@ -28,7 +28,7 @@ export function factionChipHtml(skin: Skin, f: Faction, you = false, locationIds
 }
 
 const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
-const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
+const imageHover = (url: string) => `<img src='${url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 function tokenPopup(skin: Skin, imageUrl: string | null, name: string, rulesText: string): string {
   const art = imageUrl ? `<div class='pop-token__art'><img class='pop-token__img' src='${imageUrl}'/></div>` : "";

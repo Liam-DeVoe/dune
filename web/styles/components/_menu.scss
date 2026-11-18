@@ -63,7 +63,7 @@
   max-height: calc(100dvh - 60px);
   overflow-y: auto;
   padding: var(--s-1);
-  font-size: var(--fs-3);
+  font-size: var(--fs-body);
 
   &--open {
     display: block;

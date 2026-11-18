@@ -44,7 +44,7 @@
   box-shadow: var(--shadow-3);
   color: var(--parchment);
   font-family: var(--font-body);
-  font-size: var(--fs-3);
+  font-size: var(--fs-body);
   z-index: 2000; // browsers without the popover attribute
 
   &:not(:popover-open) {

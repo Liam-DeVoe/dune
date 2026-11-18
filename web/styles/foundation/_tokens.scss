@@ -150,7 +150,8 @@
   // component's own size (spice digits, force stars).
   --fs-1: 11px; // labels, captions, small caps
   --fs-2: 13px; // secondary text, small controls
-  --fs-3: 15px; // body text
+  --fs-3: 15px; // UI text: chips, controls, panel rows
+  --fs-body: 16px; // the page's reading text, form fields and buttons (16px keeps iOS from zooming a focused field)
   --fs-4: 18px; // card titles, large values
   --fs-5: 22px; // headings in popovers and panels
   --fs-6: 30px;

@@ -70,11 +70,3 @@ All in `rust/bots/src/bot/`.
 - **Testing Station scoring doesn't wrap around the board.** The sectors before 0 and after 17 score nothing, so a storm ending at sector 0 or 17 is misjudged. Where: `other.rs`, `determine_testing_station_used`. Players notice: a poor storm adjustment near the 17/0 boundary. Fix: use `Sector::moved`.
 - **A predicted win doesn't change the bot's Voice.** The branch for a predicted win only sets two flags that nothing afterwards reads. Where: `factions.rs`, `best_voice`. Players notice: a slightly weaker bot. Fix: decide what the prediction should do, or drop the branch.
 
-### Web client
-
-All in `web/src/`.
-
-- **A typed number in a force picker doesn't change the placement.** With `onStep`, typing only changes the shown number; the buttons and arrow keys change the placement. Where: `components/NumberPicker.tsx`, used by `ForceSelection` in `components/battle/BattleForms.tsx`. Players notice: they type 3, see 3, and submit another amount. Fix: commit typed values through `onChange`.
-- **The turn popover's times are UTC, unlabeled, and drop whole days.** `longDate` prints UTC without saying so, `hms` wraps hours at 24 (25 hours shows as 1:00:00), and the labels open with `<string>` instead of `<strong>`, so they aren't bold. Where: `components/board/popups.ts`. Players notice: wrong clock times outside UTC, short durations, plain labels. Fix: local time, no wrap, `<strong>`.
-- **The story table shows no terror-token image.** Terror tokens get `src=""`. Where: `components/StoryComponent.tsx`. Players notice: alt text or a broken image. Fix: use the skin's terror token image.
-

@@ -105,10 +105,9 @@ export function Radio<T>({ values, labels, value, onChange, label }: {
 
 // A number picker with the faction's force or
 // special force token as its symbol.
-export function SelectForces({ value, onChange, onStep, min, max, faction, special, label = "" }: {
+export function SelectForces({ value, onChange, min, max, faction, special, label = "" }: {
   value: number;
   onChange: (v: number) => void;
-  onStep?: (delta: number) => void;
   min: number;
   max: number;
   faction: Faction;
@@ -120,7 +119,7 @@ export function SelectForces({ value, onChange, onStep, min, max, faction, speci
   return (
     <div className="event-form__stepper">
       {label !== "" && <label className="event-form__stepper-label">{label}</label>}
-      <NumberPicker value={value} onChange={onChange} onStep={onStep} min={min} max={max} symbolSrc={src}
+      <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolSrc={src}
                     symbolStarred={special && hasStarredSpecialForce(faction)} symbolFill={skin.factionColor(faction)} />
     </div>
   );

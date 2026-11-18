@@ -504,3 +504,24 @@ The client fixes of known-issues.md's "Quirks kept from the C# version". Paths a
 - What happened: the client's lists of players and seats put a user who joined after someone left into the leaver's place. The server lists them last (an `IndexMap` with `shift_remove`, rust/server/src/participation.rs), so a reload moved them.
 - Done: `OrderedDict`, a wrapper around a `Map`, replaces `SlotDict`. A removed user's place closes up, a new user goes last, and a user set again keeps their place, as on the server.
 - Test: check:client removes a seated player, adds another, and checks the order of both lists.
+
+### A typed number in a force picker sets the placement
+
+- Area: client, the Face Dancer replacement form (`components/battle/BattleForms.tsx`, `ForceSelection`, and `components/NumberPicker.tsx`)
+- What happened: the force pickers stepped the placement by one with their buttons and arrow keys, but a typed number only changed what the picker showed. A player typed 3, saw 3, and submitted another amount.
+- Done: `NumberPicker` lost its stepping mode (`onStep`). The force pickers show the placement's number and set it through `onChange`, typed numbers included, clamped to the picker's range.
+- Test: step 15 of e2e_server.py opens the face-danced scene as Tleilaxu, types 2 into a force picker, clicks +, and checks that it shows 3, which it didn't before.
+
+### The turn popover's times
+
+- Area: client, the board's turn popover (`components/board/popups.ts`)
+- What happened: the start and last activity were printed in UTC without saying so. The players' times wrapped at 24 hours, so 25 hours showed as 1:00:00. The timer labels opened with `<string>` instead of `<strong>`, so they weren't bold.
+- Done: times are in the browser's time zone, hours don't wrap, and the labels are `<strong>`.
+- Test: check:client runs in the Asia/Kolkata time zone and checks `longDate`, `hms` and the popover's markup. Step 16 of e2e_server.py hovers the turn in a browser set to that time zone.
+
+### The story's terror tokens have an image
+
+- Area: client, the strongholds table of the end-of-game story (`components/StoryComponent.tsx`)
+- What happened: each terror token was an image with `src=""`, so only its alt text or a broken image showed.
+- Done: the skin has no terror token image. The board's location popover (`components/board/intel.ts`) draws a terror token as Moritani's sigil turned by `hue-rotate(180deg)`, and the story now draws it the same way. Both use `Skin.terrorTokenImage` and `TERROR_TOKEN_FILTER` (`skin.ts`). `Image` takes a `style` for the filter.
+- Test: step 16 of e2e_server.py opens a static scene whose view has an ending with terror tokens, and checks that each token's image loads and has the filter.

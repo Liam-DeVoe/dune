@@ -10,13 +10,9 @@ function clampInto(value: number, min: number, max: number): number {
   return value < min ? min : value > max ? max : value;
 }
 
-export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, symbolStarred = false, symbolFill, spice = false, disabled = false, title = "" }: {
+export function NumberPicker({ value, onChange, min, max, symbolSrc, symbolStarred = false, symbolFill, spice = false, disabled = false, title = "" }: {
   value: number;
   onChange: (v: number) => void;
-  // Stepping without a bound value, as ForceSelection uses the picker: the buttons and arrow keys
-  // step the owner's value. Known quirk (known-issues.md): a typed number only changes what the
-  // picker shows until the owner's value changes, not the owner's value.
-  onStep?: (delta: number) => void;
   min: number;
   max: number;
   symbolSrc?: string;
@@ -37,28 +33,18 @@ export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, sym
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, min, max]);
 
-  // The picker's own value: the owner's, or with onStep the last number typed.
-  const [own, setOwn] = useState(value);
-  useEffect(() => setOwn(clampInto(value, min, max)), [value, min, max]);
   const set = (v: number) => {
-    if (onStep) {
-      if (v !== own) onStep(v > own ? 1 : -1);
-      setOwn(v);
-    } else if (v !== value) onChange(v);
+    if (v !== value) onChange(v);
     setText(String(v));
   };
+  // A typed number goes to the owner like a step, clamped into [min, max].
   const commit = (typed: string) => {
     const n = Number.parseInt(typed.trim(), 10);
-    if (Number.isNaN(n) || !/^[+-]?\d+$/.test(typed.trim())) setText(String(onStep ? own : value));
-    else if (onStep) {
-      const v = clampInto(n, min, max);
-      setOwn(v);
-      setText(String(v));
-    } else set(clampInto(n, min, max));
+    if (Number.isNaN(n) || !/^[+-]?\d+$/.test(typed.trim())) setText(String(value));
+    else set(clampInto(n, min, max));
   };
-  const current = onStep ? own : value;
-  const mayIncrease = !disabled && current < max;
-  const mayDecrease = !disabled && current > min;
+  const mayIncrease = !disabled && value < max;
+  const mayDecrease = !disabled && value > min;
   return (
     <div className={`num ${disabled ? "num--off" : ""}`} title={title}>
       {symbolSrc !== undefined && (
@@ -69,16 +55,16 @@ export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, sym
             : <img className="num__ic-img" src={symbolSrc} alt="" />}
         </span>
       )}
-      <button type="button" className="num__button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(current - 1)}>−</button>
+      <button type="button" className="num__button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(value - 1)}>−</button>
       <input type="text" className="num__input" inputMode="numeric" value={text} disabled={disabled} aria-label={title}
              onChange={(e) => setText(e.target.value)}
              onBlur={(e) => commit(e.target.value)}
              onKeyDown={(e) => {
                if (e.key === "Enter") commit((e.target as HTMLInputElement).value);
-               else if (e.key === "ArrowUp" && mayIncrease) set(current + 1);
-               else if (e.key === "ArrowDown" && mayDecrease) set(current - 1);
+               else if (e.key === "ArrowUp" && mayIncrease) set(value + 1);
+               else if (e.key === "ArrowDown" && mayDecrease) set(value - 1);
              }} />
-      <button type="button" className="num__button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(current + 1)}>+</button>
+      <button type="button" className="num__button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(value + 1)}>+</button>
     </div>
   );
 }

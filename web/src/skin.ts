@@ -29,6 +29,9 @@ export type { StaticData };
 
 export interface Point { X: number; Y: number }
 
+// The CSS filter that turns Moritani's sigil into a terror token (Skin.terrorTokenImage).
+export const TERROR_TOKEN_FILTER = "hue-rotate(180deg)";
+
 export class Skin {
   private readonly locations: Map<number, StaticData["locations"][number]>;
   private readonly cards: Map<number, StaticData["treacheryCards"][number]>;
@@ -63,6 +66,9 @@ export class Skin {
 
   faction(f: Faction): string { return this.label(this.data.FactionName_STR, f); }
   factionImage(f: Faction): string { return this.url(this.data.FactionImage_URL[f]); }
+  // The skin has no terror token image, so a terror token is Moritani's sigil drawn with
+  // TERROR_TOKEN_FILTER.
+  terrorTokenImage(): string { return this.factionImage("Moritani"); }
   factionColor(f: Faction): string { return this.data.FactionColor[f] ?? "#646464"; }
   territory(id: number): string { return this.label(this.data.TerritoryName_STR, id); }
   // Treachery cards are keyed by SkinId in the skin and by Id in the view.

@@ -50,6 +50,12 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
     username passes.
 14. The admin (TREACHERY_ADMIN=admin) logs in on /admin and clicks Persist data, which saves
     the games.
+15. In the face-danced scene, Tleilaxu type 2 into a force picker, and + then makes it 3: the
+    typed number is the placement's.
+16. A static scene (/dev/scene answers 404 in the page, and the view is the alliance scene's,
+    taken from the server, with an ending added) in the Asia/Kolkata time zone: the story's
+    terror tokens show the hue-rotated Moritani sigil, and the turn popover shows local times,
+    25 hours as 25:00:00, and bold timer labels.
 
 Everything after step 2 is done by clicking, except where the client has no screen for it:
 - Steps 1 and 2 log in, create, seat and join through the web client's connection code
@@ -71,6 +77,7 @@ Exits non-zero on the first failed check, after a screenshot of every open page.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -557,6 +564,77 @@ def persist_data(browser, base: str) -> None:
     page.context.close()
 
 
+def force_picker(browser, base: str, shots: Path) -> None:
+    """Step 15: a typed number in a force picker sets the placement."""
+    page = new_page(browser, "face-danced")
+    page.goto(base + "/scene/face-danced/Tleilaxu")
+    page.wait_for_function("() => document.documentElement.dataset.scene !== 'loading'", timeout=20000)
+    check(page.evaluate("document.documentElement.dataset.scene") == "ready", "the face-danced scene opened on the server")
+    form = page.locator(".card", has_text="Choose which forces to replace by your own")
+    picker = form.locator(".event-form__placement .num").first
+    field = picker.locator("input")
+    field.fill("2")
+    field.press("Enter")
+    # The draft goes to the server and back.
+    page.wait_for_timeout(1000)
+    check(field.input_value() == "2", "a number typed into a force picker stays after the draft comes back")
+    picker.get_by_role("button", name="Increase").click()
+    page.wait_for_function("(f) => f.value === '3'", arg=field.element_handle(), timeout=5000)
+    check(True, "+ after typing 2 gives 3: the typed number is the placement's")
+    page.screenshot(path=str(shots / "5-force-picker.png"))
+    page.context.close()
+
+
+def story_and_turn(browser, base: str, shots: Path) -> None:
+    """Step 16: the story's terror tokens and the turn popover, in a static scene."""
+    grab = new_page(browser, "grab")
+    frames: list[str] = []
+    grab.on("websocket", lambda ws: ws.on("framereceived", lambda f: isinstance(f, str) and '"gameView"' in f and frames.append(f)))
+    grab.goto(base + "/scene/alliance/Emperor")
+    grab.wait_for_function("() => document.documentElement.dataset.scene === 'ready'", timeout=20000)
+    grab.context.close()
+    view = json.loads(frames[-1])["data"]
+    view["timing"]["timeSpent"][0]["bidding"] = 25 * 3600.0
+    view["ending"] = {
+        "winners": [{"faction": "Emperor", "name": "Emperor player", "method": "default"}],
+        "story": [{"kind": "strongholds", "ownerColumn": False, "terrorColumn": True,
+                   "rows": [{"location": view["board"]["forces"][0]["location"], "battalions": [], "owner": None, "ambassador": None,
+                             "terror": ["Atomics", "Robbery"]}]}],
+    }
+    # Not watch(): the 404 from /dev/scene is the answer this page asks for.
+    page = browser.new_context(viewport=VIEWPORT, timezone_id="Asia/Kolkata").new_page()
+    page.on("pageerror", lambda e: print(f"page error: {e}"))
+    PAGES["story"] = page
+    page.route("**/dev/scene", lambda r: r.fulfill(status=404, body=""))
+    page.route("**/views/e2e-ending-Emperor.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(view)))
+    page.route("**/views/e2e-ending-Emperor.reports.json", lambda r: r.fulfill(status=200, content_type="application/json", body="[]"))
+    page.goto(base + "/scene/e2e-ending/Emperor")
+    page.wait_for_function("() => document.documentElement.dataset.scene !== 'loading'", timeout=20000)
+    check(page.evaluate("document.documentElement.dataset.scene") == "ready", "the static scene with an ending opened")
+
+    page.get_by_role("button", name="Read the story of this game...").click()
+    tokens = page.locator("#storyModal img[alt='Atomics'], #storyModal img[alt='Robbery']")
+    tokens.first.wait_for(timeout=10000)
+    page.wait_for_function("() => [...document.querySelectorAll('#storyModal img[alt=Atomics]')].every(i => i.complete)")
+    info = tokens.evaluate_all("els => els.map(i => ({src: i.getAttribute('src'), w: i.naturalWidth, filter: getComputedStyle(i).filter}))")
+    check(len(info) == 2 and all(i["src"] and i["w"] > 0 and "hue-rotate" in i["filter"] for i in info),
+          f"the story's terror tokens show the hue-rotated Moritani sigil: {info}")
+    page.screenshot(path=str(shots / "6-story.png"))
+    page.reload()
+    page.wait_for_function("() => document.documentElement.dataset.scene === 'ready'", timeout=20000)
+
+    page.get_by_text(re.compile(r"^Turn \d+ of \d+$")).hover()
+    label = page.locator(".turn-pop strong", has_text="Game started:")
+    label.wait_for(timeout=10000)
+    html = page.locator(".turn-pop").inner_html()
+    check(int(label.evaluate("el => getComputedStyle(el).fontWeight")) >= 600, "the turn popover's timer labels are bold")
+    # The fixture starts at 2026-01-01T00:00:00Z.
+    check("Thursday, 01 January 2026 5:30:00" in html, "the turn popover shows the start in the browser's time zone")
+    check("<td>25:00:00</td>" in html, "the turn popover shows 25 hours as 25:00:00")
+    page.screenshot(path=str(shots / "7-turn.png"))
+    page.context.close()
+
+
 def run(browser, base: str, shots: Path) -> None:
     alice = new_page(browser, "alice")
     bob = new_page(browser, "bob")
@@ -614,9 +692,11 @@ def run(browser, base: str, shots: Path) -> None:
     # 12: the scene route on the server, after other clients.
     play_scene(browser, base, shots, "3-scene")
 
-    # 13-14: the new-account form and the admin page.
+    # 13-16: forms, the admin page, the story and the turn popover.
     new_account_checks(browser, base)
     persist_data(browser, base)
+    force_picker(browser, base, shots)
+    story_and_turn(browser, base, shots)
 
 
 def main() -> None:

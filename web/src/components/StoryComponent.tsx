@@ -8,7 +8,7 @@ import type { StoryBlock } from "../generated/StoryBlock";
 import type { StoryPlan } from "../generated/StoryPlan";
 import type { StoryTable } from "../generated/StoryTable";
 import { leaderPopup, messiahPopup, techTokenPopup, ambassadorPopup, terrorPopup, treacheryCardPopup } from "../popups";
-import type { Skin } from "../skin";
+import { TERROR_TOKEN_FILTER, type Skin } from "../skin";
 import { useGame } from "../state/context";
 import { FactionChip } from "./FactionChip";
 import { ForceToken } from "./ForceToken";
@@ -153,8 +153,8 @@ function Block({ block: b }: { block: StoryBlock }) {
                       <Image width={24} src={skin.url(skin.get("AmbassadorImage_URL", r.ambassador))} alt={skin.get("AmbassadorName_STR", r.ambassador)} popover={ambassadorPopup(skin, r.ambassador)} />
                     )}
                     {r.terror.map((t, i) => (
-                      // Known quirk (known-issues.md): a terror token has no image here, only its alt text.
-                      <Image key={i} width={24} src="" alt={skin.get("TerrorTokenName_STR", t)} popover={terrorPopup(skin, t)} />
+                      <Image key={i} width={24} src={skin.terrorTokenImage()} style={{ filter: TERROR_TOKEN_FILTER }} noShadow
+                             alt={skin.get("TerrorTokenName_STR", t)} popover={terrorPopup(skin, t)} />
                     ))}
                   </td>
                 )}

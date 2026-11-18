@@ -4,18 +4,18 @@ import type { Board } from "./geometry";
 import { forceTokenHtml } from "./primitives";
 import { strongholdAdvantage } from "./popups";
 
-const STORM_GLYPH =
-  "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'>" +
+const stormGlyph = (className: string) =>
+  `<svg class='${className}' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'>` +
   "<path d='M3 7h9.5a2.5 2.5 0 1 0-2.5-2.5'/><path d='M3 12h15a2.5 2.5 0 1 1-2.5 2.5'/><path d='M3 17h7a2 2 0 1 1-2 2'/></svg>";
 
 function feature(title: string, body: string, icon = ""): string {
-  return `<div class='feat'><div class='ic'>${icon}</div><div><b>${title}</b><span>${body}</span></div></div>`;
+  return `<div class='intel-feat'><div class='intel-feat__icon'>${icon}</div><div><b class='intel-feat__title'>${title}</b><span class='intel-feat__text'>${body}</span></div></div>`;
 }
 
 function hazard(protectedFrom: boolean, icon: string): string {
-  const classes = protectedFrom ? "chip hazard protected" : "chip hazard exposed";
+  const classes = protectedFrom ? "chip chip--hazard chip--protected" : "chip chip--hazard chip--exposed";
   const word = protectedFrom ? "Protected" : "Exposed";
-  return `<span class='${classes}'>${icon}<span class='name'>${word}</span></span>`;
+  return `<span class='${classes}'>${icon}<span class='chip__name'>${word}</span></span>`;
 }
 
 export function locationIntel(b: Board, id: number): string {
@@ -30,12 +30,12 @@ export function locationIntel(b: Board, id: number): string {
   if (owner !== undefined) {
     result += strongholdAdvantage(b, t.advantage, owner);
   } else {
-    const sector = l.orientation !== "" ? ` <span class='sector'>${l.orientation}</span>` : "";
+    const sector = l.orientation !== "" ? ` <span class='intel__sector'>${l.orientation}</span>` : "";
     result += `<h5>${skin.territory(l.territory)}${sector}</h5>`;
   }
   if (b.d.ShowVerboseToolipsOnMap) {
-    if (b.sector(id) === board.sectorInStorm) result += `<div class='in-storm'>${STORM_GLYPH}<span>In storm</span></div>`;
-    result += "<div class='feats'>";
+    if (b.sector(id) === board.sectorInStorm) result += `<div class='intel__storm'>${stormGlyph("intel__storm-icon")}<span>In storm</span></div>`;
+    result += "<div class='intel__feats'>";
     if (id === map.polarSink) result += feature("Safe haven", "No battles are fought here.");
     if (t.isStronghold || board.specialStrongholds.includes(l.territory)) result += feature("Stronghold", "Yields a victory point at end of turn.");
     if (l.kind === "discovered" && l.discovery) {
@@ -54,9 +54,9 @@ export function locationIntel(b: Board, id: number): string {
     if (l.spiceBlowAmount > 0) {
       result += feature(`${resource} blow`, `May contain ${shared.spiceHtml(skin, String(l.spiceBlowAmount), 18)} after ${skin.enumValue("MainPhase", "Blow")}.`);
     }
-    result += "</div><div class='hazards'>";
-    result += hazard(t.isProtectedFromWorm, `<img src='${b.s("Monster_URL")}' />`);
-    result += hazard(board.protectedFromStorm.includes(id), STORM_GLYPH);
+    result += "</div><div class='intel__hazards'>";
+    result += hazard(t.isProtectedFromWorm, `<img class='chip__icon' src='${b.s("Monster_URL")}' />`);
+    result += hazard(board.protectedFromStorm.includes(id), stormGlyph("chip__icon"));
     result += "</div>";
   }
   result += spiceAndForceAndTokenInfo(b, id);

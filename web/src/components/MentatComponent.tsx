@@ -21,7 +21,7 @@ const TERROR: TerrorType[] = ["Assassination", "Atomics", "Extortion", "Robbery"
 const DISCOVERIES: DiscoveryToken[] = ["Jacurutu", "Shrine", "TestingStation", "Cistern", "ProcessingStation", "CardStash", "ResourceStash", "Flight"];
 
 // Skin.GetFramedCardHtml and GetImageHoverHtml.
-const framedCard = (url: string) => `<div class='pop-art'><img src='${url}'/></div>`;
+const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
 const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 // Skin.Describe(ResourceCard).

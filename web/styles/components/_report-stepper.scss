@@ -22,7 +22,7 @@
 
     &:hover:not(:disabled) {
       color: var(--gold);
-      background: rgba(252, 249, 209, 0.05);
+      background: var(--wash-light-05);
     }
 
     &:disabled {

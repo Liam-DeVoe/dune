@@ -8,8 +8,8 @@
   margin: 0 0 var(--s-2);
   padding: var(--s-1);
   border-radius: var(--r-2);
-  background: rgba(18, 8, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--wash-dark-35);
+  border: 1px solid var(--hairline-faint);
 
   &--plans {
     margin-top: var(--s-1);
@@ -17,6 +17,6 @@
   }
 
   &__rule {
-    background: rgba(252, 249, 209, 0.08);
+    background: var(--wash-light-08);
   }
 }

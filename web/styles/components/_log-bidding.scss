@@ -9,7 +9,7 @@
   padding: var(--s-1) var(--s-2);
   border-radius: var(--r-2);
   background: var(--ink-1);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--hairline-faint);
 
   &__head {
     display: flex;
@@ -63,6 +63,6 @@
   // Everyone passed on this card: nobody bought it.
   &--unsold {
     border-style: dashed;
-    border-color: rgba(252, 249, 209, 0.18);
+    border-color: var(--wash-light-20);
   }
 }

@@ -92,4 +92,29 @@
   --fs-5: 22px;
   --fs-6: 30px;
   --fs-7: 40px;
+  --fs-body: 16px;
+
+  // T's colour names (bem3-T) that the report and log files use, with T's
+  // values, so this branch builds before the merge.
+  --gold-wash-strong: rgba(231, 191, 60, 0.12);
+  --gold-wash-45: rgba(231, 191, 60, 0.45);
+  --gold-wash-55: rgba(231, 191, 60, 0.55);
+  --green-deep: #2c4a1c;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-faint: rgba(255, 255, 255, 0.06);
+  --shade-22: rgba(0, 0, 0, 0.22);
+  --shade-50: rgba(0, 0, 0, 0.5);
+  --shade-60: rgba(0, 0, 0, 0.6);
+  --storm-hot: #e05a4a;
+  --storm-wash-22: rgba(195, 50, 50, 0.22);
+  --storm-wash-50: rgba(195, 50, 50, 0.5);
+  --storm-wash-80: rgba(195, 50, 50, 0.8);
+  --wash-dark-25: rgba(18, 8, 0, 0.25);
+  --wash-dark-35: rgba(18, 8, 0, 0.35);
+  --wash-dark-55: rgba(18, 8, 0, 0.55);
+  --wash-light-05: rgba(252, 249, 209, 0.05);
+  --wash-light-08: rgba(252, 249, 209, 0.08);
+  --wash-light-12: rgba(252, 249, 209, 0.12);
+  --wash-light-20: rgba(252, 249, 209, 0.2);
+  --wash-light-30: rgba(252, 249, 209, 0.3);
 }

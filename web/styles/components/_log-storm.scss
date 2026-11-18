@@ -8,17 +8,17 @@
   margin: var(--s-0) auto var(--s-1);
 
   &__wedge {
-    fill: #2a1607;
-    stroke: #1d0c00;
+    fill: var(--ink-2);
+    stroke: var(--ink-1);
     stroke-width: 2;
     transition: fill 0.1s;
     cursor: pointer;
 
-    &--start { fill: rgba(195, 50, 50, 0.22); }
-    &--swept { fill: rgba(195, 50, 50, 0.55); }
-    &--end { fill: rgba(195, 50, 50, 0.8); }
-    &--hot { fill: rgba(252, 249, 209, 0.28); }
-    &--start#{&}--hot, &--swept#{&}--hot, &--end#{&}--hot { fill: #e05a4a; }
+    &--start { fill: var(--storm-wash-22); }
+    &--swept { fill: var(--storm-wash-50); }
+    &--end { fill: var(--storm-wash-80); }
+    &--hot { fill: var(--wash-light-30); }
+    &--start#{&}--hot, &--swept#{&}--hot, &--end#{&}--hot { fill: var(--storm-hot); }
   }
 
   &__rim {
@@ -71,7 +71,7 @@
   transition: background 0.1s;
 
   &--hot {
-    background: rgba(195, 50, 50, 0.22);
-    border-color: rgba(195, 50, 50, 0.5);
+    background: var(--storm-wash-22);
+    border-color: var(--storm-wash-50);
   }
 }

@@ -45,7 +45,7 @@
     padding: var(--s-0) var(--s-2) var(--s-0) var(--s-0);
     border-radius: var(--r-pill);
     background: var(--ink-0);
-    border: 1px solid rgba(252, 249, 209, 0.12);
+    border: 1px solid var(--wash-light-12);
     font-family: var(--font-display);
     font-size: var(--fs-3);
     line-height: 1;
@@ -68,7 +68,7 @@
     place-items: center;
     border-radius: var(--r-round);
     background: var(--ink-0);
-    border: 1px solid rgba(252, 249, 209, 0.18);
+    border: 1px solid var(--wash-light-20);
   }
 
   &__skull-icon {

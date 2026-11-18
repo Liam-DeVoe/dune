@@ -19,7 +19,7 @@
     height: 82px;
     border-radius: var(--r-1);
     object-fit: cover;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 1px var(--shade-60), 0 2px 6px var(--shade-50);
 
     &--lost {
       filter: grayscale(1) brightness(0.6);

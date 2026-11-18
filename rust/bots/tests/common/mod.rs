@@ -69,8 +69,8 @@ pub fn write_json(name: &str, v: &Value) {
     std::fs::write(golden_path(name), serde_json::to_string_pretty(v).unwrap() + "\n").unwrap();
 }
 
-/// The seats users play, from the participation in a recorded game's header (.NET `Participation`
-/// JSON): the seats of `SeatedPlayers`.
+/// The seats users play, from the participation in a recorded game's header (the old
+/// `Participation` JSON): the seats of `SeatedPlayers`.
 pub fn human_seats(o: &Value) -> IndexSet<treachery_engine::game::Seat> {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
     let mut seated: IndexMap<i32, i32> = IndexMap::new();

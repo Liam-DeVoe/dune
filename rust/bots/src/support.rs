@@ -1,26 +1,23 @@
 //! Helpers that only the bots need.
 //!
 //! The casts the bots apply to `ClairVoyancePlayed.Parameter1`/`Parameter2`, which hold any
-//! value (a `Part`), since the player who asks may put anything there. They follow the .NET
-//! unboxing rules. A cast that .NET refused is an `Err` with the message of the .NET exception
-//! (probed on .NET 10), and a bot that needs the value makes no decision:
+//! value (a `Part`), since the player who asks may put anything there. A cast that fails is an
+//! `Err` with a message, and a bot that needs the value makes no decision:
 //!
-//! - an unboxing cast (`(TreacheryCardType)o`, `(Faction)o`, `(int)o`, `(float)o`) fails with
-//!   NullReferenceException for null;
-//! - an enum or `int` unboxes to any enum or to `int`: .NET allows unboxing between an enum and
-//!   its underlying type, and between enums of the same underlying type (every game enum is
-//!   `int`). `(Faction)(object)TreacheryCardType.Laser` is `Faction.Fremen` (10);
-//! - `(float)o` needs a boxed `float` exactly;
-//! - a reference cast (`(IHero)o`) gives null for null, and the object for a `Leader`, `Messiah`
-//!   or `TreacheryCard`;
-//! - anything else fails with InvalidCastException
-//!   "Unable to cast object of type 'X' to type 'Y'.".
+//! - a cast to an enum, an `int` or a strength (`unbox_enum`, `unbox_int`, `unbox_strength`)
+//!   fails for null;
+//! - an enum or `int` casts to any enum or to `int` by its number, so a `TreacheryCardType.Laser`
+//!   read as a `Faction` is `Faction.Fremen` (10);
+//! - a strength needs a strength exactly;
+//! - a hero cast (`cast_hero`) gives `None` for null, and the hero for a leader, the Messiah or a
+//!   treachery card;
+//! - anything else fails with "Unable to cast object of type 'X' to type 'Y'.".
 
 use crate::prelude::*;
 use treachery_engine::messages::part::Part;
 use treachery_engine::enum_type::GameEnum;
 
-/// The runtime type name of a boxed value (`o.GetType().FullName`).
+/// The type name that cast error messages give for a value.
 pub fn boxed_type_name(o: &Part) -> String {
     match o {
         Part::Null => "null".to_string(),
@@ -46,7 +43,7 @@ pub fn boxed_type_name(o: &Part) -> String {
     }
 }
 
-/// A cast that .NET refused, with the message of its exception.
+/// A cast that failed, with its error message.
 pub type CastResult<T> = Result<T, String>;
 
 fn invalid_cast<T>(o: &Part, to: &str) -> CastResult<T> {
@@ -57,7 +54,7 @@ fn null_reference<T>() -> CastResult<T> {
     Err("Object reference not set to an instance of an object.".to_string())
 }
 
-/// `(E)o` for an enum type `E`: `None` for the absent value of a closed enum, or a number that names no member.
+/// A parameter as an enum `E`: `None` for the absent value of a closed enum, or a number that names no member.
 pub fn unbox_enum<E: GameEnum>(o: &Part) -> CastResult<Option<E>> {
     match (o, o.enum_value()) {
         (Part::Null, _) => null_reference(),
@@ -67,7 +64,7 @@ pub fn unbox_enum<E: GameEnum>(o: &Part) -> CastResult<Option<E>> {
     }
 }
 
-/// `(int)o`
+/// A parameter as an `int`.
 pub fn unbox_int(o: &Part) -> CastResult<i32> {
     match (o, o.enum_value()) {
         (Part::Null, _) => null_reference(),
@@ -77,7 +74,7 @@ pub fn unbox_int(o: &Part) -> CastResult<i32> {
     }
 }
 
-/// `(float)o`, for the dial of a Clairvoyance question.
+/// A parameter as a strength, for the dial of a Clairvoyance question.
 pub fn unbox_strength(o: &Part) -> CastResult<HalfPoints> {
     match o {
         Part::Null => null_reference(),
@@ -130,7 +127,7 @@ pub fn min_or_nan(a: f32, b: f32) -> f32 {
     if a.is_sign_negative() { a } else { b }
 }
 
-/// `(IHero)o`: a reference cast, so null stays null.
+/// A parameter as a hero: null gives `None`.
 pub fn cast_hero(o: &Part) -> CastResult<Option<Hero>> {
     match o {
         Part::Null => Ok(None),

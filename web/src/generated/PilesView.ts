@@ -26,7 +26,7 @@ treacheryDiscard: Array<number | null> | null,
  */
 resourceDeckCount: number, 
 /**
- * `ResourceCardDeck.Top` during ship and move under `HasResourceDeckPrescience(Player)`;
+ * The top of the spice deck during ship and move under `Game::has_resource_deck_prescience`;
  * shown on the deck and in the faction panel.
  */
 resourceDeckTop: number | null, 

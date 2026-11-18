@@ -703,7 +703,8 @@ impl ClassicBot {
         let p = game.player(player);
         let mut count_forces_for_richese = 0;
         if p.faction == Some(Faction::Richese) && p.special_forces_in_territory(Some(t)) > 0 {
-            // C# parity: the condition is always true here, so the else branch is dead.
+            // Only Richese gets here, so this always counts the current No-Field value and the
+            // other two branches never run.
             count_forces_for_richese = if p.faction == Some(Faction::Richese) || p.ally == Some(Faction::Richese) {
                 game.board.current_no_field_value
             } else if game.board.latest_revealed_no_field_value == 5 {
@@ -910,8 +911,8 @@ impl ClassicBot {
     }
 }
 
-/// The sector the bots count the storm's moves from. Before the first storm C# counted from sector
-/// -1, which lands where moving from sector 17 does.
+/// The sector the bots count the storm's moves from. Before the first storm there is none, and
+/// they count from sector 17, as if the storm stood just before sector 0.
 pub fn storm_or_before_first(game: &Game) -> Sector {
     game.board.sector_in_storm.unwrap_or(Sector::new(17))
 }

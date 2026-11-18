@@ -40,8 +40,7 @@ heroes: Array<BattleFormHero>,
  */
 leaderRequired: boolean, 
 /**
- * `Battle.ValidWeapons(Game, Player, defense, hero, territory)` and
- * `ValidDefenses(Game, Player, weapon, territory)` for the draft, by name.
+ * `Battle::valid_weapons` and `Battle::valid_defenses` for the draft, by name.
  */
 weapons: Array<number>, defenses: Array<number>, 
 /**

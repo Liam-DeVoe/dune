@@ -11,7 +11,7 @@
 //! - `valid_shipment_locations` is lazy, and `any`/`find` on it stop early. That decides which
 //!   neighbour searches run, and the map caches those.
 //! - Dials are `f32`. Rounding up widens to `f64` first, and `min_or_nan`/`max_or_nan` keep a
-//!   NaN, as the C# bots' `Math.Min`/`Math.Max` did.
+//!   NaN where `f32::min`/`max` would drop it.
 
 use crate::prelude::*;
 use crate::support::{max_or_nan, min_or_nan};
@@ -819,8 +819,7 @@ impl ClassicBot {
         result.set_cunning_no_field_value(size.cunning_no_field_value);
         result.passed = false;
         // A negative size takes forces off the planet (`plan_back_to_reserves`). It has to say so, as
-        // the shipment form does: a normal shipment of negative amounts is refused. C# sent it as
-        // normal, so its bots never shipped back.
+        // the shipment form does: a normal shipment of negative amounts is refused.
         result.shipment_type = if size.forces + size.special_forces < 0 { ShipmentType::ShipmentBack } else { ShipmentType::ShipmentNormal };
         result.from = None;
         result.karma_card = None;

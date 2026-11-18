@@ -116,7 +116,7 @@ pub(super) fn enum_option<T: GameEnum + Into<P> + Copy + ToString>(d: &dyn Descr
     EnumOption { name: v.to_string(), value: v.value(), label: describe(d, v) }
 }
 
-/// [`enum_option`] for an enum whose C# `None` member is `None` in Rust.
+/// [`enum_option`] for an enum with an absent member, which `None` stands for.
 pub(super) fn enum_option_opt<T: GameEnum>(d: &dyn Describer, v: Option<T>) -> EnumOption
 where
     Option<T>: Into<P>,
@@ -167,7 +167,7 @@ pub fn default_draft(game: &Game, s: &Seating, faction: Option<Faction>, t: Even
     let pl = game.player(p);
     Some(match t {
         EventType::AllyPermission => {
-            // OnParametersSet while not edited: the permissions in force.
+            // Before the player edits the form: the permissions in force.
             let mut e = AllyPermission::default();
             current_permissions(game, faction.expect("faction"), &mut e);
             event(e)

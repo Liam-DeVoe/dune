@@ -7,6 +7,6 @@ import type { Part } from "./Part";
  */
 export type CurrentDeal = { bound: Faction, consuming: Faction, 
 /**
- * `DealContentsDescription(Game)`.
+ * `Deal::deal_contents_description`.
  */
 description: Array<Part>, };

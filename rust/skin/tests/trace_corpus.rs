@@ -26,8 +26,8 @@ use treachery_engine::messages::report::Report;
 use treachery_engine::messages::part::Part;
 use treachery_skin::{default_skin, Skin};
 
-/// The seats users play, from the participation in a recorded game's header (.NET `Participation`
-/// JSON): the seats of `SeatedPlayers`.
+/// The seats users play, from the participation in a recorded game's header (the old
+/// `Participation` JSON): the seats of `SeatedPlayers`.
 fn human_seats(o: &Value) -> IndexSet<treachery_engine::game::Seat> {
     let int = |v: &Value| v.as_i64().unwrap() as i32;
     let mut seated: IndexMap<i32, i32> = IndexMap::new();

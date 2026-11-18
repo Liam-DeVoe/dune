@@ -9,10 +9,10 @@ export type EnumMember = {
  */
 name: string, 
 /**
- * The C# member value.
+ * The member's number.
  */
 value: number, 
 /**
- * `Skin.Describe(value)` with the default skin.
+ * The member described by the default skin.
  */
 label: string, };

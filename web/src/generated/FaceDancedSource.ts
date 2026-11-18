@@ -2,6 +2,6 @@
 
 export type FaceDancedSource = { location: number, 
 /**
- * `Player.ForcesIn(location)` and `SpecialForcesIn(location)`.
+ * The player's forces and special forces in `location`.
  */
 forces: number, specialForces: number, };

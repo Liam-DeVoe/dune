@@ -55,7 +55,7 @@ pub enum Part {
     /// the drawing by type (bold for `TreacheryCardType`, a force token for `FactionForce`, the
     /// worm icon for `Concept.Monster`, ...).
     Enum { ty: String, v: String, label: String },
-    /// A place chip. `label` is `Describe(Location)` (the chip's title); the chip's name and
+    /// A place chip. `label` is the skin's description of the location (the chip's title); the chip's name and
     /// sector come from the skin and the static data.
     Location { id: i32, label: String },
     Territory { id: i32, label: String },
@@ -283,7 +283,7 @@ pub struct PrivatePlayer {
     /// The Nexus card held (`Player.Nexus`).
     #[ts(type = "Faction | null")]
     pub nexus: Option<String>,
-    /// `Game.NextStormMoves` while `HasStormPrescience(Player)` and the storm is dialled.
+    /// `board.next_storm_moves` while `Game::has_storm_prescience` and the storm is dialled.
     pub next_storm_moves: Option<i32>,
     /// Atreides only, with `Rule.AtreidesMessiah`: the Messiah's state.
     pub messiah: Option<MessiahState>,
@@ -453,7 +453,7 @@ pub struct StatusView {
     /// `GameStatus.GetMessage(Player, IsHost)`: the awaited text when the viewer is awaited,
     /// the waiting text otherwise. Observers get the waiting text.
     pub message: RichText,
-    /// `WaitingForMe(Player, IsHost)`.
+    /// `GameStatus::waiting_for_me`.
     pub waiting_for_me: bool,
     pub waiting_for_host: bool,
     #[ts(type = "Array<Faction>")]
@@ -513,7 +513,7 @@ pub struct ActionView {
     /// The choices the form offers, for the form's default inputs. `None` for event types whose
     /// option builder is not written yet: the client then shows only the event's name.
     pub options: Option<ActionOptions>,
-    /// `Validate()` of the event the form would send with its default inputs, rendered.
+    /// The validation error of the event the form would send with its default inputs, rendered.
     /// The confirm button shows it and is disabled while it is set.
     pub validation: Option<RichText>,
 }
@@ -596,9 +596,8 @@ pub enum ActionOptions {
         karma_cards: Vec<i32>,
         /// `Bid.MayUseEmperorSecretAlly(Game, Player)`: the Nexus card checkbox.
         may_use_emperor_secret_ally: bool,
-        /// The form's starting `Amount` and `AllyContributionAmount`
-        /// (`BiddingPanel.OnParametersSetAsync`: the lowest bid that beats the current one,
-        /// paid by the ally first, then clamped by the pickers). 0 in silent auctions.
+        /// The form's starting amount and ally contribution: the lowest bid that beats the
+        /// current one, paid by the ally first, then clamped by the pickers. 0 in silent auctions.
         default_amount: i32,
         default_ally_amount: i32,
     },
@@ -792,7 +791,7 @@ pub struct PilesView {
     pub treachery_discard: Option<Vec<Option<i32>>>,
     /// `ResourceCardDeck.Items.Count`.
     pub resource_deck_count: i32,
-    /// `ResourceCardDeck.Top` during ship and move under `HasResourceDeckPrescience(Player)`;
+    /// The top of the spice deck during ship and move under `Game::has_resource_deck_prescience`;
     /// shown on the deck and in the faction panel.
     pub resource_deck_top: Option<i32>,
     /// `Game.LatestSpiceCardA` and `B`.
@@ -1088,19 +1087,19 @@ pub struct DealOfferView {
     #[ts(type = "Faction")]
     pub initiator: String,
     pub price: i32,
-    /// `GetDealDescription()`.
+    /// `get_deal_description`.
     pub description: RichText,
-    /// `GetMessage()`, for the toast announcing the offer.
+    /// The offer's message, for the toast announcing it.
     pub message: RichText,
-    /// `Acceptance(Faction).Validate()`: Accept is disabled while it is set.
+    /// Why the viewer's acceptance would be refused: Accept is disabled while it is set.
     pub accept_error: Option<RichText>,
-    /// `Acceptance(Faction)` and `Rejection(Faction)` in savegame JSON, to submit as they are
+    /// The offer's `acceptance` and `rejection` as event JSON, to submit as they are
     /// (null for the viewer's own offers).
     #[ts(type = "Record<string, unknown> | null")]
     pub accept: serde_json::Value,
     #[ts(type = "Record<string, unknown> | null")]
     pub decline: serde_json::Value,
-    /// `Cancellation()` in savegame JSON, for the viewer's own offers.
+    /// The offer's `cancellation` as event JSON, for the viewer's own offers.
     #[ts(type = "Record<string, unknown> | null")]
     pub withdraw: Option<serde_json::Value>,
     /// For the viewer's own offers: `Game.DealRecipients(offer)` with `Game.DealResponse`
@@ -1124,7 +1123,7 @@ pub struct CurrentDeal {
     pub bound: String,
     #[ts(type = "Faction")]
     pub consuming: String,
-    /// `DealContentsDescription(Game)`.
+    /// `Deal::deal_contents_description`.
     pub description: RichText,
 }
 

@@ -57,7 +57,7 @@ defaultNoFieldSpecialForceAmount: number,
  */
 richeseHighThreshold: boolean, 
 /**
- * `HomeworldsToShipFrom(Player, false)` and `(Player, true)`, merged.
+ * `Shipment::homeworlds_to_ship_from` for normal and special forces, merged.
  */
 homeworlds: Array<ShipmentWorld>, 
 /**

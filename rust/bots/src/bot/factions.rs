@@ -728,8 +728,8 @@ impl ClassicBot {
     pub fn best_voice(&self, game: &Game, battle: Option<InitiatedBattle>, p: PlayerId, opponent: PlayerId) -> VoicePlan {
         use TreacheryCardType as T;
 
-        // C# parity: when I predicted this opponent's win, a voice forcing a lasgun was built here
-        // and then overwritten below; only these two flags remain.
+        // Known quirk (known-issues.md): a predicted win only sets these two flags. The voice
+        // chosen below doesn't use the prediction.
         let win_predicted = self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction.expect("faction"));
         let mut result = VoicePlan {
             battle,
@@ -1205,7 +1205,8 @@ impl ClassicBot {
     pub fn determine_terror_revealed(&self, game: &Game) -> TerrorRevealed {
         // For now this is mostly random.
         let territory = TerrorRevealed::get_territory(game);
-        // C# parity: `AlliedPlayer?.AnyForcesIn(territory) == 0` is false without an ally.
+        // Known quirk (known-issues.md): Atomics also need an ally with no forces in the territory,
+        // so a bot without an ally never reveals Atomics.
         let may_use_atomics = self.opponents(game).iter().map(|o| game.player(*o).any_forces_in_territory(territory)).sum::<i32>() > 5
             && self.allied_player(game).map(|a| game.player(a).any_forces_in_territory(territory)) == Some(0);
 

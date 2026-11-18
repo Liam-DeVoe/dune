@@ -14,7 +14,7 @@ export type StatusView = {
  */
 message: Array<Part>, 
 /**
- * `WaitingForMe(Player, IsHost)`.
+ * `GameStatus::waiting_for_me`.
  */
 waitingForMe: boolean, waitingForHost: boolean, waitingFor: Array<Faction>, 
 /**

@@ -16,7 +16,7 @@ eventType: string,
  */
 options: ActionOptions | null, 
 /**
- * `Validate()` of the event the form would send with its default inputs, rendered.
+ * The validation error of the event the form would send with its default inputs, rendered.
  * The confirm button shows it and is disabled while it is set.
  */
 validation: Array<Part> | null, };

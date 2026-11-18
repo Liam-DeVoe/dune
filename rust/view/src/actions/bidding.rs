@@ -26,8 +26,7 @@ fn is_richese_bidding(game: &Game) -> bool {
     game.current_auction_type() == Some(AuctionType::RicheseOnceAround) || game.current_auction_type() == Some(AuctionType::RicheseSilent)
 }
 
-/// The amounts the panel starts with, before the pickers clamp them:
-/// `BiddingPanel.OnParametersSetAsync`. Outside silent auctions the form proposes the lowest bid
+/// The amounts the panel starts with, before the pickers clamp them. Outside silent auctions the form proposes the lowest bid
 /// that beats the current one, paid by the ally as far as the ally permits. In silent auctions
 /// the fields keep their initializers (0).
 fn starting_amounts(game: &Game, p: PlayerId) -> (i32, i32) {

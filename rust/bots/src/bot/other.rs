@@ -76,7 +76,7 @@ impl ClassicBot {
         let score = |sector: Option<Sector>| {
             let locations: Vec<Location> =
                 game.board.map.locations(false).filter(|l| Sector::in_storm(l.sector(&game.board.map), sector) && !l.is_protected_from_storm()).collect();
-            // Mine and my ally's (C# had `&&`, which no faction matches, so it always counted 0).
+            // Mine and my ally's.
             let my_forces_killed = forces_in(game, &locations, |f| f == faction || (ally != None && Some(f) == ally));
             let my_strongholds = locations
                 .iter()
@@ -90,7 +90,8 @@ impl ClassicBot {
             enemy_forces_killed + my_strongholds * 3 - my_forces_killed - enemy_strongholds * 3
         };
 
-        // C# parity: the sectors before 0 and after 17 are numbered 18 and -1, so they score nothing.
+        // Known quirk (known-issues.md): the sector before 0 and the one after 17 don't wrap around,
+        // so they score nothing.
         let score_if_minus1 = score(storm_end.number().checked_sub(1).map(Sector::new));
         let score_if_passed = score_if_minus1 + score(Some(storm_end));
         let score_if_plus1 = score_if_passed + score((storm_end.number() + 1 < Sector::COUNT).then(|| storm_end.moved(1)));
@@ -740,7 +741,7 @@ impl ClassicBot {
     }
 
     /// My answer to `clairvoyance`. Parameters are cast only when the answer needs them, so a
-    /// parameter of the wrong type fails the answer only where .NET threw.
+    /// parameter of the wrong type fails only the answers that read it.
     fn clairvoyance_answer(&self, game: &Game, clairvoyance: &ClairvoyanceAsked) -> Option<ClairVoyanceAnswer> {
         let question = clairvoyance.question;
 
@@ -935,7 +936,7 @@ impl ClassicBot {
         let faction = self.faction(game);
         let mut matching = game.setup()?.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
         let m = matching.next()?;
-        // No decision when two factions offer me a trade (C#'s SingleOrDefault threw).
+        // Known quirk (known-issues.md): no decision when two factions offer me a trade.
         if matching.next().is_some() {
             return None;
         }

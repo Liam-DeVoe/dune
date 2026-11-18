@@ -10,7 +10,7 @@ export type TerrorPlantedOptions = {
  */
 mayRemove: boolean, 
 /**
- * `ValidTerrorTypes(Game, true)` and `(Game, false)`.
+ * `TerrorPlanted::valid_terror_types` to remove and to place.
  */
 removeTypes: Array<TerrorType>, placeTypes: Array<TerrorType>, 
 /**

@@ -51,18 +51,20 @@ pub fn write_lines(path: &Path, lines: &[Value]) {
 }
 
 /// The result of a call as the snapshots hold it: the text, or `!Type: message` for a panic that
-/// names a .NET exception (as the skin's own errors do), `!panic: message` for any other panic.
+/// starts with an exception name (as the skin's own errors do), `!panic: message` for any other
+/// panic.
 pub fn outcome(f: impl FnOnce() -> String) -> String {
     match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| catch_panic(f))) {
         Ok(Ok(s)) => s,
-        Ok(Err(message)) if is_dotnet_exception(&message) => format!("!{message}"),
+        Ok(Err(message)) if names_an_exception(&message) => format!("!{message}"),
         Ok(Err(message)) => format!("!panic: {message}"),
         Err(p) => format!("!panic: {}", treachery_engine::error::panic_message(p.as_ref())),
     }
 }
 
-/// Whether a panic message names a .NET exception, as the skin's own .NET-style errors do.
-fn is_dotnet_exception(message: &str) -> bool {
+/// Whether a panic message starts with an exception name (`FormatException: ...`), as the skin's
+/// own errors do.
+fn names_an_exception(message: &str) -> bool {
     message.split_once(": ").is_some_and(|(t, _)| t.ends_with("Exception") && t.chars().all(|c| c.is_ascii_alphabetic()))
 }
 
@@ -135,7 +137,7 @@ pub fn element(tok: &Value) -> Part {
     try_element(tok).unwrap_or_else(|| panic!("{tok} names no value"))
 }
 
-/// The enum value of a token, as an optional `T`: `None` for the C# `None` member of a closed enum.
+/// The enum value of a token, as an optional `T`: `None` for the absent member of a closed enum.
 pub fn enum_arg_opt<T: PartEnum>(tok: &Value) -> Option<T> {
     element(tok).get_opt::<T>().unwrap_or_else(|| panic!("{tok} is not a {}", T::INFO.name))
 }

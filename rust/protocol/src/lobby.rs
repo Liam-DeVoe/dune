@@ -144,12 +144,12 @@ impl SubscriptionType {
         (SubscriptionType::CertainAsHost, 50),
     ];
 
-    /// The number the database keeps (the C# `SubscriptionType`).
+    /// The number the database keeps. Existing databases hold these numbers, so they can't change.
     pub fn stored(self) -> i32 {
         Self::STORED.iter().find(|(s, _)| *s == self).map(|(_, n)| *n).expect("every type is stored")
     }
 
-    /// The type a stored number stands for. None for 0, which the C# server used for "none".
+    /// The type a stored number stands for. None for 0, which databases hold for "none".
     pub fn from_stored(n: i32) -> Option<SubscriptionType> {
         Self::STORED.iter().find(|(_, v)| *v == n).map(|(s, _)| *s)
     }

@@ -916,3 +916,17 @@ fn distrans_in_the_black_market_passes_in_the_black_market() {
     assert_ne!(g.phase(), Phase::BlackMarketBidding);
     assert!(g.history.entries.iter().all(|h| h.event_type() != EventType::Bid));
 }
+
+/// Income from an occupied homeworld at high threshold loses nothing, and logged
+/// "0 ... goes to <occupier>" anyway.
+#[test]
+fn occupied_homeworld_income_logs_only_a_loss() {
+    let mut g = homeworld_game(&[Faction::Atreides, Faction::Harkonnen], &[]);
+    let world = g.player(idx(&g, Faction::Atreides)).primary_homeworld();
+    g.board.homeworld_occupation.insert(world, Faction::Harkonnen);
+    let before = g.current_report().messages.len();
+    let mut amount = 6;
+    g.modify_income_because_of_low_threshold_or_occupation(idx(&g, Faction::Atreides), &mut amount);
+    assert_eq!(amount, 6);
+    assert_eq!(g.current_report().messages.len(), before);
+}

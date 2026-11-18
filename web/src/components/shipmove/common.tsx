@@ -42,7 +42,7 @@ export function EventLayout({ type, urgent = false, header, children }: { type: 
     setCollapsed(!collapsed);
   };
   return (
-    <div className={`card  ${urgent ? "card-urgent" : ""}  mb-2`} style={{ animation: "fadeIn 1s" }}>
+    <div className={`card  ${urgent ? "card--urgent" : ""}  mb-2`} style={{ animation: "fadeIn 1s" }}>
       {header != null && (
         <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />

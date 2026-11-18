@@ -19,7 +19,7 @@ export function JoinedPlayersPanel() {
           {p.faction !== "None" && <FactionComponent faction={p.faction} diameter={20} />}
           {p.isBot
             ? <BotIcon size={18} />
-            : <span className={`m-1 ${view.viewer.faction === p.faction && !view.viewer.isObserver ? "player-name you" : "player-name"}`}>{p.name}</span>}
+            : <span className={`m-1 ${view.viewer.faction === p.faction && !view.viewer.isObserver ? "player-name player-name--you" : "player-name"}`}>{p.name}</span>}
         </div>
       ))}
       <div className="text-danger align-bottom">{result}</div>

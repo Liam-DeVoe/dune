@@ -20,7 +20,6 @@ use serde_json::{Map, Value};
 use treachery_bots::{BotParameters, ClassicBot, Priority};
 use treachery_engine::events::{AlliancePassed, CardsDetermined, EndPhase, Event, EventType, PerformHmsPlacement, PerformSetup};
 use treachery_engine::game::Game;
-use crate::event_maps as json;
 use treachery_engine::prelude::*;
 
 use crate::fuzz::Fuzzer;
@@ -118,15 +117,12 @@ fn quiet<R>(f: impl FnOnce() -> R) -> Option<R> {
 }
 
 fn type_of(event: &Map<String, Value>) -> Option<EventType> {
-    let name = event.get("$type")?.as_str()?;
-    EventType::ALL.iter().copied().find(|t| t.name() == name)
+    EventType::from_name(event.get("type")?.as_str()?)
 }
 
+/// An event as refit and the fuzzer change events: a flat map (events.rs).
 fn to_object(e: &HistoryEntry) -> Map<String, Value> {
-    match serde_json::from_str(&json::serialize(e)) {
-        Ok(Value::Object(m)) => m,
-        _ => Map::new(),
-    }
+    crate::events::flatten(e).unwrap_or_default()
 }
 
 impl Refit {
@@ -148,7 +144,7 @@ impl Refit {
 
     /// Executes an event; true if it was accepted (it joined the history).
     fn execute(&mut self, event: &Map<String, Value>, validate: bool, host: bool) -> bool {
-        let Ok(e) = crate::events::decode(&Value::Object(event.clone())) else { return false };
+        let Ok(e) = crate::events::to_trace(event).1 else { return false };
         let before = self.game.history.entries.len();
         let game = &mut self.game;
         let r = quiet(|| game.play(e, validate, host));
@@ -167,8 +163,7 @@ impl Refit {
         let events: Vec<HistoryEntry> = self.game.history.entries.iter().take(n).cloned().collect();
         let mut game = self.game.new_like();
         for e in events {
-            let text = json::serialize(&e);
-            let e: HistoryEntry = json::deserialize(&text).expect("a history event reads back");
+            let e = HistoryEntry { id: treachery_engine::events::EntryId::fresh(), ..e };
             quiet(|| game.play(e, false, true));
         }
         self.game = game;
@@ -205,14 +200,8 @@ impl Refit {
         let player = self.game.players.iter().position(|p| p.faction == faction);
         for _ in 0..BUILD_TRIES {
             let candidate = quiet(|| self.fuzz.build(&self.game, player, t)).flatten()?;
-            let text = Value::Object(candidate.clone()).to_string();
             let game = &self.game;
-            let valid = quiet(|| {
-                let e: HistoryEntry = json::deserialize(&text).ok()?;
-                Some(e.validate(game).is_ok())
-            })
-            .flatten()
-            .unwrap_or(false);
+            let valid = quiet(|| crate::events::to_trace(&candidate).1.ok().map(|e| e.validate(game).is_ok())).flatten().unwrap_or(false);
             if valid {
                 return Some(candidate);
             }
@@ -232,7 +221,7 @@ impl Refit {
                 let (bot, game) = (&mut self.bots[b].1, &self.game);
                 if let Some(Some(e)) = quiet(|| bot.decide(game, level, &allowed)) {
                     let mut event = to_object(&e);
-                    event.insert("Time".into(), time.clone());
+                    event.insert("at".into(), time.clone());
                     if self.execute(&event, true, false) {
                         self.push(None, Item::Event { event, validate: true, host: false, legit: true, at: None }, Fate::Added);
                         self.stats.added += 1;
@@ -298,7 +287,7 @@ impl Refit {
 
     /// Executes an event the refit adds, and records it. True if it was accepted.
     fn add(&mut self, mut event: Map<String, Value>, host: bool, time: &Value) -> bool {
-        event.insert("Time".into(), time.clone());
+        event.insert("at".into(), time.clone());
         if self.execute(&event, true, host) {
             self.push(None, Item::Event { event, validate: true, host, legit: true, at: None }, Fate::Added);
             self.stats.added += 1;
@@ -321,10 +310,17 @@ impl Refit {
         if !legit {
             return false;
         }
-        let (Some(t), Some(initiator)) = (type_of(event), event.get("Initiator").and_then(|v| v.as_i64())) else { return false };
-        let Some(mut replacement) = self.replacement(t, treachery_engine::enum_type::from_value_or_absent::<Faction>(initiator as i32).ok().flatten()) else { return false };
-        if let Some(time) = event.get("Time") {
-            replacement.insert("Time".into(), time.clone());
+        let Some(t) = type_of(event) else { return false };
+        let by = match event.get("by") {
+            Some(Value::String(name)) => match crate::session::parse_faction(name) {
+                Some(f) => Some(f),
+                None => return false,
+            },
+            _ => None,
+        };
+        let Some(mut replacement) = self.replacement(t, by) else { return false };
+        if let Some(time) = event.get("at") {
+            replacement.insert("at".into(), time.clone());
         }
         if self.execute(&replacement, true, host) {
             self.push(Some(index), Item::Event { event: replacement, validate: true, host, legit, at: None }, Fate::Replaced);
@@ -369,7 +365,7 @@ impl Refit {
     /// executed it in; an event whose moment has passed is dropped. Then the event as it is, or a
     /// replacement, possibly after a few more bot rounds in the same turn and main phase.
     fn feed_event(&mut self, index: usize, event: &Map<String, Value>, validate: bool, host: bool, legit: bool, at: Option<Position>) -> bool {
-        let time = event.get("Time").cloned().unwrap_or(Value::Null);
+        let time = event.get("at").cloned().unwrap_or(Value::Null);
         if legit {
             if let Some(at) = at {
                 self.catch_up(at, &time);
@@ -467,12 +463,12 @@ pub fn refit(version: i32, seated: &[(i32, i32, String)], items: &[Item], end: &
     let mut time = Value::Null;
     for (i, item) in items.iter().enumerate() {
         if let Item::Event { event, .. } = item {
-            time = event.get("Time").cloned().unwrap_or(Value::Null);
+            time = event.get("at").cloned().unwrap_or(Value::Null);
         }
         match (item, seed) {
-            (Item::Event { event, validate, host, legit, at }, Some(seed)) if event.get("$type").and_then(|v| v.as_str()) == Some("EstablishPlayers") => {
+            (Item::Event { event, validate, host, legit, at }, Some(seed)) if type_of(event) == Some(EventType::EstablishPlayers) => {
                 let mut event = event.clone();
-                event.insert("Seed".into(), Value::from(seed));
+                event.insert("seed".into(), Value::from(seed));
                 r.feed(i, &Item::Event { event, validate: *validate, host: *host, legit: *legit, at: *at });
             }
             _ => r.feed(i, item),

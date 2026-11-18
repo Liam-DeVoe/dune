@@ -65,13 +65,10 @@ fn time_text(secs: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}+00:00", rem / 3600, rem / 60 % 60, rem % 60)
 }
 
-/// An event as the fuzzer builds and changes events: an object of the old format (fuzz.rs).
+/// An event as the fuzzer builds and changes events: a flat map (events.rs). The events the
+/// recorder makes itself are always writable.
 fn to_object(e: &HistoryEntry) -> Map<String, Value> {
-    crate::events::legacy_object(e)
-}
-
-fn json_object(e: &HistoryEntry) -> Map<String, Value> {
-    to_object(e)
+    crate::events::flatten(e).unwrap_or_default()
 }
 
 impl<'a> Recorder<'a> {
@@ -113,13 +110,13 @@ impl<'a> Recorder<'a> {
     fn submit(&mut self, mut event: Map<String, Value>, src: &str, p: Option<usize>, host: bool) -> Result<bool, Stop> {
         let r = self.rng.f64();
         self.clock += if r < 0.02 { 7200 + self.rng.range(0, 3600) as i64 } else { self.rng.range(1, 120) as i64 };
-        event.insert("Time".into(), Value::String(time_text(self.clock)));
-        // The trace and the game get the event in the engine's format (events.rs).
+        event.insert("at".into(), Value::String(time_text(self.clock)));
+        // The trace and the game get the event as a history entry (events.rs).
         let (recorded, decoded) = crate::events::to_trace(&event);
         let event = Value::Object(event);
         self.events += 1;
         let phase = self.sess.game.phase();
-        let type_name = event.get("$type").and_then(|t| t.as_str()).unwrap_or("").to_string();
+        let type_name = event.get("type").and_then(|t| t.as_str()).unwrap_or("").to_string();
         let mut line = Line::Event { src: src.into(), p, host, event: recorded, outcome: Default::default() };
         self.begin(&line);
         let outcome = match decoded {
@@ -149,8 +146,9 @@ impl<'a> Recorder<'a> {
                 }
                 match type_name.as_str() {
                     "Battle" => {
-                        if let (Value::Object(m), Some(i)) = (&event, event.get("Initiator").and_then(|v| v.as_i64())) {
-                            f.plans.insert(i as i32, m.clone());
+                        let by = event.get("by").and_then(|v| v.as_str()).and_then(crate::session::parse_faction);
+                        if let (Value::Object(m), Some(by)) = (&event, by) {
+                            f.plans.insert(by as i32, m.clone());
                         }
                     }
                     "BattleInitiated" | "BattleConcluded" => f.plans.clear(),
@@ -495,9 +493,9 @@ impl<'a> Recorder<'a> {
             };
 
             let host = self.cfg.style == HostStyle::Tests || choice.level == "End";
-            // The decision as the bot made it, in the old format the fuzzer changes events in.
-            let event = match self.sess.last_decision.take() {
-                Some(e) => json_object(&e),
+            // The decision as the bot made it, as the flat map the fuzzer changes events in.
+            let event = match self.sess.last_decision.take().and_then(|e| crate::events::flatten(&e)) {
+                Some(e) => e,
                 None => return Err(Stop("botException".into(), Some("bot event did not serialize".into()))),
             };
             if self.fuzz.is_some() {
@@ -505,7 +503,7 @@ impl<'a> Recorder<'a> {
                 // permissions can't settle) would use up the game's events: mostly let the fuzzer
                 // act instead.
                 let mut key = event.clone();
-                key.remove("Time");
+                key.remove("at");
                 let g = &self.sess.game;
                 let key = (choice.p, format!("{} {} {}", g.turn.current_turn, g.phase(), Value::Object(key)));
                 let f = self.fuzz.as_mut().unwrap();
@@ -521,7 +519,7 @@ impl<'a> Recorder<'a> {
                 let mut m = event.clone();
                 let f = self.fuzz.as_mut().unwrap();
                 let shadow = &self.shadow.as_ref().unwrap().game;
-                let t = m.get("$type").and_then(|t| t.as_str()).and_then(|n| EventType::ALL.iter().copied().find(|t| t.name() == n));
+                let t = m.get("type").and_then(|t| t.as_str()).and_then(EventType::from_name);
                 let changed = match t {
                     Some(t) => fuzz::mutate_steered(&mut m, shadow, &f.seating, choice.p, t, &mut f.rng),
                     None => fuzz::mutate(&mut m, shadow, Some(choice.p), 1, &mut f.rng),

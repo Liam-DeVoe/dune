@@ -392,7 +392,7 @@ Events, history entries, savegames and game settings derive serde's `Serialize` 
 
 `GameState::load` reads a savegame and `GameState::get_state_as_string` writes one. `Game::load(state, human_seats, validate, is_host)` replays it. The engine plays only `Game::LATEST_VERSION` (191). `Game::check_version` refuses any other version.
 
-Savegames of version 190 and before were in an older JSON format (`{"Version":190,"_events":[{"$type":..}]}`). Nothing reads them any more: `GameState::load` refuses them, so the server refuses such an upload and leaves such a stored game out at startup. The fixtures and recorded games of the tests were converted to 191 once. Only the harness's recorder still builds events as maps of the old format, internally (`observe/src/event_maps`, [native-harness.md](native-harness.md)).
+Savegames of version 190 and before were in an older JSON format (`{"Version":190,"_events":[{"$type":..}]}`). Nothing reads them any more: `GameState::load` refuses them, so the server refuses such an upload and leaves such a stored game out at startup. The fixtures and recorded games of the tests were converted to 191 once.
 
 The TypeScript types are generated and checked in. `protocol/tests/ts_bindings.rs` writes `web/src/generated/Event.ts` (every event, `HistoryEntry` and `GameSettings`) and `web/src/protocol/`; `view/tests/ts_bindings.rs` writes the rest of `web/src/generated/`, including `enums.ts`, whose list of enums is in that test. Both tests fail when the files are stale. To rewrite them:
 

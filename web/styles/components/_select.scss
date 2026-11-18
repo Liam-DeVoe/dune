@@ -8,6 +8,11 @@
 // over.
 .select {
   position: relative;
+  margin-top: 0.25rem;
+}
+
+.select__label {
+  margin-bottom: 0;
 }
 
 .select__trigger {

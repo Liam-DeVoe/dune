@@ -1,0 +1,10 @@
+// The winners' card at the end of a game (WinnerPanel), with the button that
+// opens the story.
+.winner-panel {
+  margin-bottom: 0.5rem;
+  padding: 0.25rem;
+
+  &__story {
+    margin-top: 0.25rem;
+  }
+}

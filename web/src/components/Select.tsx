@@ -21,7 +21,7 @@ const GAP = 4; // px between trigger and list
 const MARGIN = 8; // px kept clear of the viewport edge
 const TYPE_AHEAD_RESET_MS = 600;
 
-export function Select<T>({ options, value, onChange, label, className = "mt-1", small = false, disabled = false, required = false }: {
+export function Select<T>({ options, value, onChange, label, className = "", small = false, disabled = false, required = false }: {
   options: SelectOption<T>[];
   value: T | null;
   onChange: (v: T) => void;
@@ -158,7 +158,7 @@ export function Select<T>({ options, value, onChange, label, className = "mt-1",
 
   return (
     <div className={`select ${className}`}>
-      {label != null && <label className="mb-0" id={`${id}-label`} htmlFor={id}>{label}</label>}
+      {label != null && <label className="select__label" id={`${id}-label`} htmlFor={id}>{label}</label>}
       <button type="button" id={id} ref={trigger} className={`select__trigger form-select ${small ? "form-select-sm" : ""}`}
               role="combobox" aria-haspopup="listbox" aria-expanded={open ? "true" : "false"} aria-controls={`${id}-list`}
               aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}

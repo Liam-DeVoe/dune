@@ -179,7 +179,7 @@ export function Segmented<T>({ values, value, onChange, label, className = "mt-1
       {label != null && <label className="mb-0 d-block" id={`${id}-label`}>{label}</label>}
       <div className="seg" role="radiogroup" aria-labelledby={label != null ? `${id}-label` : undefined}>
         {values.map((c, i) => (
-          <button key={i} type="button" role="radio" aria-checked={c.value === value} className={c.value === value ? "on" : ""}
+          <button key={i} type="button" role="radio" aria-checked={c.value === value} className={c.value === value ? "seg__button seg__button--on" : "seg__button"}
                   onClick={() => onChange(c.value)}>
             {c.label}
           </button>

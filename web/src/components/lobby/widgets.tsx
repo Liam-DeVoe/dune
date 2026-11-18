@@ -63,7 +63,7 @@ export function FactionShown({ faction, width, noShadow = false, darkened = fals
   const { skin } = useLobbyClient();
   const name = skin.faction(faction);
   // JointClass: image, Class, shadowy, pointer (a tooltip counts), highlighted, darkened, ...
-  const classes = [highlightOnHover ? "image-hover" : "image", "", noShadow ? "" : "shadowy", "pointer", "", darkened ? "darkened" : "", "", ""].join(" ");
+  const classes = [highlightOnHover ? "image image--hover" : "image", "", noShadow ? "" : "image--shadowy", "image--pointer", "", darkened ? "image--darkened" : "", "", ""].join(" ");
   void pointer;
   return <img alt={name} className={classes} width={String(width)} src={skin.factionImage(faction)} onClick={onClick} title={name} />;
 }
@@ -168,9 +168,9 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
   return (
     <div className="d-flex align-items-center">
       {label !== "" && <label className="me-1">{label}</label>}
-      <div className={`num ${size <= 30 ? "sm" : ""} ${disabled ? "off" : ""}`} title="">
-        <button type="button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(value - stepDown)}>−</button>
-        <input type="text" inputMode="numeric" value={text} disabled={disabled} aria-label=""
+      <div className={`num ${size <= 30 ? "num--sm" : ""} ${disabled ? "num--off" : ""}`} title="">
+        <button type="button" className="num__button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(value - stepDown)}>−</button>
+        <input type="text" className="num__input" inputMode="numeric" value={text} disabled={disabled} aria-label=""
                onChange={(e) => setText(e.target.value)}
                onBlur={(e) => commit(e.target.value)}
                onKeyDown={(e) => {
@@ -178,7 +178,7 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
                  else if (e.key === "ArrowUp" && mayIncrease) set(value + stepUp);
                  else if (e.key === "ArrowDown" && mayDecrease) set(value - stepDown);
                }} />
-        <button type="button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(value + stepUp)}>+</button>
+        <button type="button" className="num__button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(value + stepUp)}>+</button>
       </div>
     </div>
   );

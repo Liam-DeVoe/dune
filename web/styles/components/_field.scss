@@ -1,13 +1,13 @@
 @use "../shared";
 
-// Segmented control: a row of buttons where one is .on.
+// Segmented control: a row of buttons where one is --on.
 .seg {
   display: inline-flex;
   border: 1px solid shared.$hairline-strong;
   border-radius: var(--r-2);
   overflow: hidden;
 
-  button {
+  &__button {
     font-family: var(--font-body);
     font-size: 15px;
     padding: 7px 14px;
@@ -16,7 +16,7 @@
     color: var(--text-2);
     cursor: pointer;
 
-    &.on {
+    &--on {
       background: var(--gold);
       color: var(--ink-0);
       font-weight: 700;

@@ -76,7 +76,7 @@ export function RunningGamesComponent() {
           {!youAreIn(av, userId) ? (
             <>
               {av.hasPassword && (
-                <input className="form-inline form-control-sm" style={{ maxWidth: "80px" }} value={password} maxLength={24} placeholder="Password"
+                <input className="form-control-sm" style={{ maxWidth: "80px" }} value={password} maxLength={24} placeholder="Password"
                        onChange={(e) => setPasswords((p) => ({ ...p, [av.gameId]: e.target.value }))} />
               )}
               {av.phase === "AwaitingPlayers" ? (
@@ -148,7 +148,7 @@ export function RunningGamesComponent() {
         ) : (
           <>
             {(open.length > 0 || full.length > 0) && (
-              <table className="table table-sm table-running-games">
+              <table className="table table-sm games-table games-table--running">
                 <tbody>
                   {open.map(openRow)}
                   {full.map(fullRow)}
@@ -158,7 +158,7 @@ export function RunningGamesComponent() {
             {state.scheduledGames.length > 0 && (
               <>
                 <div className="games-section-label">Scheduled</div>
-                <table className="table table-sm table-scheduled-games">
+                <table className="table table-sm games-table games-table--scheduled">
                   <thead>
                     <tr className="small table-dark">
                       <th scope="col">Host</th>

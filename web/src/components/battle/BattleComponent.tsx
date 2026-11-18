@@ -251,7 +251,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
                 <span className="bp-what">{skin.concept("Resource")}</span>
                 <StepperInput value={Number.isFinite(cost) ? String(cost) : "0"}
                               mayDown={allCosts.some((c) => c < cost)} mayUp={allCosts.some((c) => c > cost)} step={stepCost} typed={typeCost}
-                              icon={<span className="ic"><img src={harvester} alt="" /></span>} />
+                              icon={<span className="num__ic"><img className="num__ic-img" src={harvester} alt="" /></span>} />
               </div>
               {o.allyCap > 0 && cost > 0 && (
                 <div className="bp-ctl">
@@ -331,14 +331,14 @@ function StepperInput({ value, mayDown, mayUp, step, typed, icon }: {
   return (
     <div className="num">
       {icon}
-      <button type="button" disabled={!mayDown} onClick={() => step(-1)}>−</button>
-      <input value={text} onChange={(e) => setText(e.target.value)} onBlur={(e) => typed(e.target.value)}
+      <button type="button" className="num__button" disabled={!mayDown} onClick={() => step(-1)}>−</button>
+      <input className="num__input" value={text} onChange={(e) => setText(e.target.value)} onBlur={(e) => typed(e.target.value)}
              onKeyDown={(e) => {
                if (e.key === "ArrowUp") step(1);
                else if (e.key === "ArrowDown") step(-1);
                else if (e.key === "Enter") typed((e.target as HTMLInputElement).value);
              }} />
-      <button type="button" disabled={!mayUp} onClick={() => step(1)}>+</button>
+      <button type="button" className="num__button" disabled={!mayUp} onClick={() => step(1)}>+</button>
     </div>
   );
 }

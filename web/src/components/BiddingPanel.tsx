@@ -85,11 +85,11 @@ function Lot({ panel }: { panel: BiddingPanelView }) {
       {panel.card != null
         ? <Image src={skin.cardImage(panel.card)} alt={skin.card(panel.card)} width={64} popover={treacheryCardPopup(skin, panel.card)} />
         : <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} width={64} alt="Card on sale" />}
-      <div className="lot-text">
-        <div className="lot-title" dangerouslySetInnerHTML={{ __html: title }} />
+      <div className="lot__text">
+        <div className="lot__title" dangerouslySetInnerHTML={{ __html: title }} />
         {panel.currentBid
-          ? <div className="lot-bid"><FactionChip faction={panel.currentBid.faction as Faction} /> <SpiceComponent amount={String(panel.currentBid.amount)} /></div>
-          : !panel.silent && <div className="lot-bid">No bids yet</div>}
+          ? <div className="lot__bid"><FactionChip faction={panel.currentBid.faction as Faction} /> <SpiceComponent amount={String(panel.currentBid.amount)} /></div>
+          : !panel.silent && <div className="lot__bid">No bids yet</div>}
       </div>
     </div>
   );
@@ -239,7 +239,7 @@ function AutoPass({ action, panel }: { action: ActionView | undefined; panel: Bi
   if (view.viewer.isObserver || view.viewer.faction == null || view.viewer.faction === "None") return null;
   const resources = view.me?.resources ?? 0;
   return (
-    <div className="autopass">
+    <div>
       <Checkbox value={state.autoPass} onChange={(v) => {
         // AutoPassChanged: a threshold above one's spice starts at min(spice, 5).
         autoPassStore.set(v && state.threshold > resources ? { autoPass: v, threshold: Math.min(resources, 5) } : { autoPass: v });
@@ -260,7 +260,7 @@ export function BiddingPanel({ panel }: { panel: BiddingPanelView }) {
   const { view } = useGame();
   const action = view.actions.find((a) => a.eventType === (panel.blackMarket ? "BlackMarketBid" : "Bid"));
   return (
-    <div className="card p-1 mb-2 bidding-panel" style={{ animation: "fadeIn 1s" }}>
+    <div className="card p-1 mb-2" style={{ animation: "fadeIn 1s" }}>
       <div className="card-body">
         <Lot panel={panel} />
         {action && <BidInputs key={`${action.eventType}`} action={action} panel={panel} />}

@@ -144,8 +144,8 @@ export function GameStatusComponent() {
             </>
           )}
         {(showContinue || showTimeLimit) && (
-          <div className="host-strip">
-            <span className="kicker">Host</span>
+          <div className="prompt-act__host-strip">
+            <span className="prompt-act__kicker prompt-act__kicker--host">Host</span>
             {showTimeLimit && <TimeLimit view={view} />}
             <span className="flex-grow-1" />
             {showContinue && (

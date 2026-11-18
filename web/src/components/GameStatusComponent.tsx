@@ -91,11 +91,11 @@ export function GameStatusComponent() {
   };
 
   return (
-    <div className="card p-0 mb-2 prompt-act" style={{ animation: "fadeIn 1s" }}>
-      <div className="card-body bg-transparent border-bottom-0">
+    <div className="card prompt-act game-status" style={{ animation: "fadeIn 1s" }}>
+      <div className="card-body">
         {s.timedEventTime !== null && <Timer view={view} from={s.timedEventTime} />}
         {showRow && (
-          <div className="row row-cols-6 d-flex justify-content-center mt-2 mb-3">
+          <div className="game-status__players">
             <Players view={view} waitingFor={waitingFor} />
           </div>
         )}
@@ -107,18 +107,18 @@ export function GameStatusComponent() {
                   <>
                     {amWaitedFor && <OwnLines view={view} reasons={reasonsOf(mySeat!)} style={statusStyle} />}
                     {waitingSeats.filter((p) => p.seat !== mySeat).map((p) => (
-                      <div key={p.seat} className={`text-dark text-center mt-1${amWaitedFor ? "" : " fw-bold"}`}>
+                      <div key={p.seat} className={amWaitedFor ? "game-status__line" : "game-status__line game-status__line--bold"}>
                         <WaitingLine faction={p.faction} reasons={reasonsOf(p.seat)} />
                       </div>
                     ))}
                   </>
                 )
-                : <div className="text-dark fw-bold text-center" style={statusStyle}>{pauseMessage()}</div>}
+                : <div className="game-status__message" style={statusStyle}>{pauseMessage()}</div>}
               {nextCard && <NextCard card={nextCard.card} />}
-              {holders.length > 0 && <div className="text-dark text-center">Held by {holders.map((p) => <FactionChip key={p.faction} faction={p.faction} />)}</div>}
+              {holders.length > 0 && <div className="game-status__held">Held by {holders.map((p) => <FactionChip key={p.faction} faction={p.faction} />)}</div>}
               {(canHold || amWaitedFor || amHolding) && (
-                <div className="mt-2 text-end">
-                  {canHold && <button className="btn btn-outline-secondary me-1" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
+                <div className="game-status__actions">
+                  {canHold && <button className="btn btn-outline-secondary game-status__hold" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
                   {(amWaitedFor || amHolding) && (
                     <button className="btn btn-primary" onClick={() => void source.gameCall?.(amWaitedFor ? "phaseDone" : "phaseRelease", {})}>
                       {amWaitedFor ? (nextCard ? "Open bidding" : "Done") : "Release hold"}
@@ -130,12 +130,12 @@ export function GameStatusComponent() {
           )
           : (
             <>
-              <div className="text-dark fw-bold text-center" style={statusStyle}>
+              <div className="game-status__message" style={statusStyle}>
                 <RichText parts={s.message} size={20} />
               </div>
               {nextCard && <NextCard card={nextCard.card} />}
               {endPhase && (
-                <div className="mt-2 text-end">
+                <div className="game-status__actions">
                   <button className="btn btn-primary" disabled={endPhase.validation !== null}
                           title={error ?? undefined}
                           onClick={async () => setError(await source.submit({ type: "EndPhase" }))}>{nextCard ? "Open bidding" : "Continue"}</button>
@@ -147,7 +147,7 @@ export function GameStatusComponent() {
           <div className="prompt-act__host-strip">
             <span className="prompt-act__kicker prompt-act__kicker--host">Host</span>
             {showTimeLimit && <TimeLimit view={view} />}
-            <span className="flex-grow-1" />
+            <span className="game-status__host-gap" />
             {showContinue && (
               <button className="btn btn-outline-secondary btn-sm" onClick={() => void source.gameCall?.("phaseContinue", { eventNumber: view.eventNumber })}>Continue for everyone</button>
             )}
@@ -168,8 +168,8 @@ function TimeLimit({ view }: { view: GameView }) {
   const down = limit > 60 ? 30 : limit > 20 ? 10 : 5;
   const change = (v: number) => { const c = Math.min(600, Math.max(10, v)); setLimit(c); update(c); };
   return (
-    <div className="d-flex align-items-center gap-2">
-      <Checkbox className="mb-0" value={set} onChange={(v: boolean) => update(v ? limit : -1)}>Time limit</Checkbox>
+    <div className="game-status__time-limit">
+      <Checkbox className="game-status__time-check" value={set} onChange={(v: boolean) => update(v ? limit : -1)}>Time limit</Checkbox>
       {set && (
         <>
           <span className="num">
@@ -212,7 +212,7 @@ function Players({ view, waitingFor }: { view: GameView; waitingFor: Faction[] }
       if (!p) return null;
       const big = se.faction === hasTurn || (showTurnInSequence && se.hasTurn);
       return (
-        <div key={se.faction} className="col" style={{ filter: "drop-shadow(1px 1px 1px black)" }}>
+        <div key={se.faction} style={{ filter: "drop-shadow(1px 1px 1px black)" }}>
           <NumberComponent value={p.cardsOwned} size={big ? 38 : 32} symbolSrc={skin.factionImage(se.faction)}
             behindNumberSrc={skin.url(skin.str("CardBack_TreacheryCard_URL"))} title={p.name}
             numberColor={p.hasRoomForCards ? "black" : "red"} numberBorderColor="white" numberBorderWidth={1}
@@ -235,13 +235,13 @@ function Players({ view, waitingFor }: { view: GameView; waitingFor: Faction[] }
   if (waitingFor.length > 1) {
     return waitingFor.map((f) => (
       <div key={f} style={{ position: "relative", width: "48px" }}>
-        <img className="p-2" title={name(f)} src={skin.factionImage(f)} style={{ filter: shadow, width: "48px" }} alt={name(f)} />
+        <img className="game-status__sigil" title={name(f)} src={skin.factionImage(f)} style={{ filter: shadow, width: "48px" }} alt={name(f)} />
       </div>
     ));
   }
 
   return s.waitingInSequence.map((se) => (
-    <div key={se.faction} className="align-self-center p-0 m-0" style={{ position: "relative", width: "64px" }}>
+    <div key={se.faction} className="game-status__seat" style={{ position: "relative", width: "64px" }}>
       {se.hasTurn
         ? (
           <>
@@ -249,7 +249,7 @@ function Players({ view, waitingFor }: { view: GameView; waitingFor: Faction[] }
             <img src={withBase("art/worm.gif")} style={{ position: "absolute", top: "-12px", left: "-18px", filter: "drop-shadow(1px 1px 1px black)", width: "90px" }} alt="Worm" />
           </>
         )
-        : <img className="align-self-center p-2" title={name(se.faction)} src={skin.factionImage(se.faction)} width="48" style={{ position: "relative", filter: shadow }} alt={name(se.faction)} />}
+        : <img className="game-status__sigil" title={name(se.faction)} src={skin.factionImage(se.faction)} width="48" style={{ position: "relative", filter: shadow }} alt={name(se.faction)} />}
     </div>
   ));
 }

@@ -191,9 +191,9 @@ export function ShipmentForm({ action }: { action: ActionView }) {
   const change = (c: Partial<State>) => update({ ...st.current, ...c });
 
   const sourcePin = (
-    <div className="pin-body">
-      <div className="pin-hint">Click where to ship to</div>
-      <div className="pin-actions">
+    <div>
+      <div className="map-pin__hint">Click where to ship to</div>
+      <div className="map-pin__actions">
         <button type="button" className="btn btn-secondary" onClick={clearSelection}>Cancel</button>
         {o?.mayShipHereFromReserves && <button type="button" className="btn btn-secondary" onClick={shipHereFromReserves}>Here from reserves</button>}
         {o?.mayShipToReserves && <button type="button" className="btn btn-secondary" onClick={shipBackToReserves}>To reserves</button>}
@@ -211,8 +211,8 @@ export function ShipmentForm({ action }: { action: ActionView }) {
     const chooseNormal = worlds.filter((w) => w.normal).length > 1;
     const chooseSpecial = worlds.filter((w) => w.special).length > 1;
     return (
-      <div className="pin-body">
-        {s.type === "ShipmentBack" && s.to != null && <div className="pin-hint">Back to reserves from <PlaceChip place={{ location: s.to }} /></div>}
+      <div>
+        {s.type === "ShipmentBack" && s.to != null && <div className="map-pin__hint">Back to reserves from <PlaceChip place={{ location: s.to }} /></div>}
         {canChooseType && (
           <PinChoice values={["ShipmentNormal", "ShipmentRicheseSecretAlly"] as ShipmentType[]} value={s.type} onChange={setType}
                      label={(t) => (t === "ShipmentNormal" ? "Normal" : `${skin.faction("Richese")} secret ally`)} />
@@ -227,7 +227,7 @@ export function ShipmentForm({ action }: { action: ActionView }) {
             )}
           </>
         )}
-        <div className="pin-row">
+        <div className="map-pin__row">
           {o.maxForces > 0 && !richeseNoField && (
             <MapForceStepper value={s.forces} onChange={(v) => change({ forces: v })} max={o.maxForces} faction={faction} />
           )}
@@ -237,12 +237,12 @@ export function ShipmentForm({ action }: { action: ActionView }) {
         </div>
         {(chooseNormal || chooseSpecial) && (
           <>
-            <div className="pin-hint">From which worlds:</div>
+            <div className="map-pin__hint">From which worlds:</div>
             {worlds.map((w) => {
               const origin = s.origins.find(([l]) => l === w.location)?.[1];
               return (
-                <div key={w.location} className="pin-row">
-                  <span className="pin-from">{w.label}</span>
+                <div key={w.location} className="map-pin__row">
+                  <span className="map-pin__from">{w.label}</span>
                   {chooseNormal && w.forces > 0 && (
                     <MapForceStepper value={origin?.forces ?? 0} onChange={(v) => setOrigin(w.location, v, false)} max={w.forces} faction={faction} />
                   )}
@@ -255,8 +255,8 @@ export function ShipmentForm({ action }: { action: ActionView }) {
           </>
         )}
         {fromReserves && faction !== "Fremen" && (s.forces > 0 || s.specialForces > 0) && o.maySmuggle && (
-          <div className="pin-row">
-            <span className="pin-from">Smuggle 1 for free</span>
+          <div className="map-pin__row">
+            <span className="map-pin__from">Smuggle 1 for free</span>
             {(me?.forcesInReserve ?? 0) > 0 && <MapForceStepper value={s.smuggled} onChange={(v) => change({ smuggled: v })} max={1} faction={faction} />}
             {(me?.specialForcesInReserve ?? 0) > 0 && faction !== "Richese" && (
               <MapForceStepper value={s.smuggledSpecial} onChange={(v) => change({ smuggledSpecial: v })} max={1} faction={faction} special />
@@ -265,27 +265,27 @@ export function ShipmentForm({ action }: { action: ActionView }) {
         )}
         {o.mayKarma && (
           <>
-            <div className="pin-hint">{skin.enumValue("TreacheryCardType", "Karma")} for <FactionChip faction="Guild" /> rate:</div>
+            <div className="map-pin__hint">{skin.enumValue("TreacheryCardType", "Karma")} for <FactionChip faction="Guild" /> rate:</div>
             <PinChoice values={[null, ...o.karmaCards.map((k) => k.card)]} value={s.karmaCard} onChange={(v) => change({ karmaCard: v })}
                        label={(v) => (v == null ? "None" : `${skin.card(v)}${o.karmaCards.find((k) => k.card === v)?.own ? "" : " (ally)"}`)} />
           </>
         )}
-        <div className="pin-row pin-cost">
+        <div className="map-pin__row map-pin__row--cost">
           <img src={skin.url(skin.str("Resource_URL"))} alt="" />
           <span>Cost {o.cost}</span>
           {o.allyCanPay > 0 && (
             <>
-              <span className="pin-from">ally pays</span>
+              <span className="map-pin__from">ally pays</span>
               <MapForceStepper value={s.ally} onChange={(v) => change({ ally: v })} max={Math.min(o.allyCanPay, o.cost)}
                                faction={(me?.ally ?? "None") as Faction} spice />
             </>
           )}
         </div>
         {destinationOf(s) != null && o.conflictingAlly && (
-          <div className="pin-warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>
+          <div className="map-pin__warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>
         )}
         <Validation parts={validation} />
-        <div className="pin-actions">
+        <div className="map-pin__actions">
           <button type="button" className="btn btn-secondary" onClick={clearSelection}>Cancel</button>
           <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>Ship</button>
         </div>

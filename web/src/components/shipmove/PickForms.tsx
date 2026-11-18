@@ -85,7 +85,7 @@ export function LocationPickForm({ action }: { action: ActionView }) {
     targets: o?.targets ?? [],
     fields: () => ({}),
     toDraft: (target) => ({ target }),
-    pin: () => <div className="pin-body"><PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label={label} /></div>,
+    pin: () => <div><PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label={label} /></div>,
   });
   const hms = <PlaceChip place={{ location: skin.statics.map.hiddenMobileStronghold }} />;
   const header: ReactNode = {
@@ -116,7 +116,7 @@ export function FremenSentMonsterForm({ action }: { action: ActionView }) {
     fields: () => ({}),
     toDraft: (target) => ({ territory: target != null ? p.territoryOf(target) : null }),
     pin: (target) => (
-      <div className="pin-body">
+      <div>
         <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label={`Appear in ${skin.territory(p.territoryOf(target))}`} />
       </div>
     ),
@@ -135,10 +135,10 @@ export function BeneGesseritAccompaniesForm({ action }: { action: ActionView }) 
     pin: () => {
       const may = optionsOf(p.options, "BeneGesseritAccompanies")?.maySendExtraAdvisor ?? false;
       return (
-        <div className="pin-body">
+        <div>
           {may && (
             <>
-              <div className="pin-hint">How many <ForceToken faction={faction} special size={20} /> {names.special}?</div>
+              <div className="map-pin__hint">How many <ForceToken faction={faction} special size={20} /> {names.special}?</div>
               <PinChoice values={[false, true]} value={p.draft.extraAdvisor === true} onChange={(v) => p.set({ extraAdvisor: v })} label={(v) => (v ? "2" : "1")} />
             </>
           )}
@@ -168,7 +168,7 @@ export function ChoamMovePreventionForm({ action }: { action: ActionView }) {
     byTerritory: true,
     fields: () => ({}),
     toDraft: (target) => ({ territory: target != null ? p.territoryOf(target) : null }),
-    pin: () => <div className="pin-body"><PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Prevent move" /></div>,
+    pin: () => <div><PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Prevent move" /></div>,
   });
   return (
     <EventLayout type="ChoamMovePrevention" header={<>Use <CardOrCunning card={o?.card ?? null} /> to prevent the current player from moving forces into a territory you occupy?</>}>
@@ -193,14 +193,14 @@ export function ChoamRemoveForceForm({ action }: { action: ActionView }) {
       const choices = factions.find((f) => f.faction === target)?.specialChoices ?? [];
       const info = skin.statics.factions.find((f) => f.faction === target);
       return (
-        <div className="pin-body">
+        <div>
           {factions.length > 1 && (
             <>
-              <div className="pin-hint">Whose force?</div>
+              <div className="map-pin__hint">Whose force?</div>
               <PinChoice values={factions.map((f) => f.faction)} value={target} onChange={(f) => p.set({ target: f })} label={(f) => skin.faction(f)} />
             </>
           )}
-          {factions.length === 1 && <div className="pin-hint"><FactionChip faction={factions[0].faction} /></div>}
+          {factions.length === 1 && <div className="map-pin__hint"><FactionChip faction={factions[0].faction} /></div>}
           {choices.length > 1 && info && (
             <PinChoice values={[false, true]} value={special} onChange={(v) => p.set({ specialForce: v })}
                        label={(v) => (v ? skin.get("SpecialForceName_STR", info.specialForce) : skin.get("ForceName_STR", info.force))} />
@@ -230,7 +230,7 @@ export function DiscoveryEnteredForm({ action }: { action: ActionView }) {
       const forces = forceMap(p.draft.forceLocations);
       const sources = optionsOf(p.options, "DiscoveryEntered")?.sources ?? [];
       return (
-        <div className="pin-body">
+        <div>
           {forces.map(([l, b]) => {
             const s = sources.find((x) => x.location === l);
             const amount = (v: number, special: boolean) => {
@@ -238,8 +238,8 @@ export function DiscoveryEnteredForm({ action }: { action: ActionView }) {
               p.set({ forceLocations: forceEntries(next) });
             };
             return (
-              <div key={l} className="pin-row">
-                {forces.length > 1 && <span className="pin-from"><PlaceChip place={{ location: l }} /></span>}
+              <div key={l} className="map-pin__row">
+                {forces.length > 1 && <span className="map-pin__from"><PlaceChip place={{ location: l }} /></span>}
                 {(s?.forces ?? 0) > 0 && <MapForceStepper value={b.forces} onChange={(v) => amount(v, false)} max={s!.forces} faction={faction} />}
                 {(s?.specialForces ?? 0) > 0 && <MapForceStepper value={b.specialForces} onChange={(v) => amount(v, true)} max={s!.specialForces} faction={faction} special />}
               </div>
@@ -268,8 +268,8 @@ export function AmbassadorPlacedForm({ action }: { action: ActionView }) {
     fields: () => ({ ambassador: (o?.ambassadors[0] ?? null) as Ambassador | null }),
     toDraft: (target) => ({ stronghold: target != null ? p.territoryOf(target) : null }),
     pin: () => (
-      <div className="pin-body">
-        <div className="pin-row">
+      <div>
+        <div className="map-pin__row">
           {ambassador !== "None" && <Image src={skin.url(skin.get("AmbassadorImage_URL", ambassador))} alt={skin.get("AmbassadorName_STR", ambassador)} width={28} popover={ambassadorPopup(skin, ambassador)} />}
           <span>{ambassador !== "None" ? skin.get("AmbassadorName_STR", ambassador) : ""} ambassador</span>
         </div>
@@ -307,9 +307,9 @@ export function TerrorPlantedForm({ action }: { action: ActionView }) {
       const types = (o?.placeTypes ?? []) as TerrorType[];
       const current = enumName<TerrorType>(p.draft.terrorType, "None");
       return (
-        <div className="pin-body">
+        <div>
           <PinChoice wrap values={types} value={current} onChange={choose} label={(t) => skin.get("TerrorTokenName_STR", t)} />
-          <div className="pin-text">{describe(current)}</div>
+          <div className="map-pin__text">{describe(current)}</div>
           <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm}
                       label={(o?.unplaced ?? []).includes(current) ? "Place token" : "Move token"} />
         </div>
@@ -371,8 +371,8 @@ export function TerrorRevealedForm({ action }: { action: ActionView }) {
       if (target != null && p.get().forcesInSneakAttack === 0) p.set({ forcesInSneakAttack: o?.maxSneakAttackForces ?? 0 });
     },
     pin: () => (
-      <div className="pin-body">
-        <div className="pin-row">
+      <div>
+        <div className="map-pin__row">
           <MapForceStepper value={(p.draft.forcesInSneakAttack as number) ?? 0} onChange={(v) => p.set({ forcesInSneakAttack: v })} max={o?.maxSneakAttackForces ?? 0} faction={faction} />
         </div>
         <PinActions validation={p.validation} cancel={p.pick.clear} confirm={p.confirm} label="Sneak attack" />

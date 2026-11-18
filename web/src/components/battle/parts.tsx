@@ -152,8 +152,8 @@ export function idOrNull(v: unknown): number | null {
 export function PinActions({ label, validation, cancel, confirm }: { label: string; validation: Part[] | null; cancel: () => void; confirm: () => void }) {
   return (
     <>
-      {validation && <div className="pin-error"><RichText parts={validation} /></div>}
-      <div className="pin-actions">
+      {validation && <div className="map-pin__error"><RichText parts={validation} /></div>}
+      <div className="map-pin__actions">
         <button type="button" className="btn btn-secondary" onClick={cancel}>Cancel</button>
         <button type="button" className="btn btn-primary" disabled={validation !== null} onClick={confirm}>{label}</button>
       </div>
@@ -179,14 +179,14 @@ export function MapForceStepper({ value, onChange, min, max, faction, special }:
   };
   return (
     <div className="pin-step" title={title}>
-      <span className="ic" style={{ background: skin.factionColor(faction) }}>
+      <span className="pin-step__ic" style={{ background: skin.factionColor(faction) }}>
         {special && hasStarredSpecialForce(faction)
-          ? <span className="force-token starred" style={{ ["--d" as string]: "16px" }}><img src={src} alt="" /></span>
-          : <img src={src} alt="" />}
+          ? <span className="force-token starred" style={{ ["--d" as string]: "16px" }}><img className="pin-step__ic-img" src={src} alt="" /></span>
+          : <img className="pin-step__ic-img" src={src} alt="" />}
       </span>
-      <button type="button" tabIndex={-1} aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>
-      <span className="val">{value}</span>
-      <button type="button" tabIndex={-1} aria-label="More" disabled={value >= max} onClick={() => change(1)}>+</button>
+      <button type="button" tabIndex={-1} className="pin-step__button" aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>
+      <span className="pin-step__value">{value}</span>
+      <button type="button" tabIndex={-1} className="pin-step__button" aria-label="More" disabled={value >= max} onClick={() => change(1)}>+</button>
     </div>
   );
 }

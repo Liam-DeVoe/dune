@@ -134,7 +134,7 @@ function BeneGesseritBattleAnnouncementComponent({ action, inPopover }: Props) {
     byTerritory: true,
     territoryOf,
     faction: (view.viewer.faction ?? "BeneGesserit") as Faction,
-    pin: () => <div className="pin-body"><PinActions label="Flip to fighters" validation={validation} cancel={() => pick.clear()} confirm={() => void submit()} /></div>,
+    pin: () => <div><PinActions label="Flip to fighters" validation={validation} cancel={() => pick.clear()} confirm={() => void submit()} /></div>,
   });
   useEffect(() => {
     const t = pick.target != null ? territoryOf(pick.target) : null;
@@ -515,8 +515,8 @@ function RetreatComponent({ action, inPopover }: Props) {
     territoryOf,
     faction,
     pin: () => o && (
-      <div className="pin-body">
-        <div className="pin-row">
+      <div>
+        <div className="map-pin__row">
           {o.maxForces > 0 && <MapForceStepper value={draft.forces as number} onChange={(v) => void update({ forces: v })} min={0} max={o.maxForces} faction={faction} special={false} />}
           {o.maxSpecialForces > 0 && <MapForceStepper value={draft.specialForces as number} onChange={(v) => void update({ specialForces: v })} min={0} max={o.maxSpecialForces} faction={faction} special />}
         </div>

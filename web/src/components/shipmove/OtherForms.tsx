@@ -347,14 +347,14 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
     territoryOf,
     faction,
     pin: () => (
-      <div className="pin-body">
+      <div>
         {movesForces ? (
           <>
             {fremenForces.map(([l, b]) => {
               const s = o?.fremenSources.find((x) => x.location === l);
               return (
-                <div key={l} className="pin-row">
-                  {fremenForces.length > 1 && <span className="pin-from"><PlaceChip place={{ location: l }} /></span>}
+                <div key={l} className="map-pin__row">
+                  {fremenForces.length > 1 && <span className="map-pin__from"><PlaceChip place={{ location: l }} /></span>}
                   {(s?.forces ?? 0) > 0 && <MapForceStepper value={b.forces} onChange={(v) => setFremen(l, v, false)} max={s!.forces} faction={faction} />}
                   {(s?.specialForces ?? 0) > 0 && <MapForceStepper value={b.specialForces} onChange={(v) => setFremen(l, v, true)} max={s!.specialForces} faction={faction} special />}
                 </div>
@@ -364,7 +364,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
           </>
         ) : (
           <>
-            <div className="pin-row">
+            <div className="map-pin__row">
               <MapForceStepper value={guildAmount} onChange={(v) => d.set({ guildForceAmount: v })} max={o?.guildMaxForces ?? 0} faction={faction} />
             </div>
             <PinActions validation={d.validation} cancel={pick.clear} confirm={d.confirm} label="Send" />

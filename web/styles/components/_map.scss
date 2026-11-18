@@ -273,7 +273,7 @@
     transform: translateX(-50%) rotate(45deg);
   }
 
-  &.below {
+  &--below {
     transform: translate(calc(-50% + var(--dx)), 12px);
 
     &::after {
@@ -283,7 +283,7 @@
     }
   }
 
-  .pin-row {
+  &__row {
     display: flex;
     gap: 5px;
     align-items: center;
@@ -294,48 +294,48 @@
     }
   }
 
-  .pin-from {
+  &__from {
     color: var(--text-2);
     min-width: 60px;
   }
 
-  .pin-warn {
+  &__warn {
     color: #ff8f7a;
     margin-top: 4px;
     max-width: 180px;
     white-space: normal;
   }
 
-  .pin-error {
+  &__error {
     color: var(--text-3);
     margin-top: 4px;
     max-width: 180px;
     white-space: normal;
   }
 
-  .pin-choice {
+  &__choice {
     display: inline-flex;
     margin-top: 4px;
     border: 1px solid shared.$hairline-strong;
     border-radius: var(--r-2);
     overflow: hidden;
+  }
 
-    button {
-      background: transparent;
-      border: 0;
-      color: var(--sand);
-      font-size: 11px;
-      padding: 2px 7px;
-      cursor: pointer;
+  &__choice-button {
+    background: transparent;
+    border: 0;
+    color: var(--sand);
+    font-size: 11px;
+    padding: 2px 7px;
+    cursor: pointer;
 
-      &.on {
-        background: shared.$gold-wash-strong;
-        color: var(--parchment);
-      }
+    &--on {
+      background: shared.$gold-wash-strong;
+      color: var(--parchment);
     }
   }
 
-  .pin-actions {
+  &__actions {
     display: flex;
     gap: 5px;
     justify-content: flex-end;
@@ -359,20 +359,20 @@
   background: var(--ink-1);
   height: 22px;
 
-  .ic {
+  &__ic {
     display: inline-grid;
     place-items: center;
     width: 22px;
     border-right: 1px solid shared.$hairline-mid;
-
-    img {
-      width: 16px;
-      height: 16px;
-      filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
-    }
   }
 
-  button {
+  &__ic-img {
+    width: 16px;
+    height: 16px;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+  }
+
+  &__button {
     background: transparent;
     border: 0;
     color: var(--sand);
@@ -392,7 +392,7 @@
     }
   }
 
-  .val {
+  &__value {
     display: inline-grid;
     place-items: center;
     min-width: 22px;
@@ -405,12 +405,14 @@
 }
 
 .map-pin {
-  .pin-hint {
+  &__hint {
     color: var(--text-2);
     margin-bottom: 4px;
   }
 
-  .pin-cost {
+  // The img selector also takes in a spice .pin-step's icon in this row and,
+  // being more specific than .pin-step__ic-img, sizes it like the cost's own.
+  &__row--cost {
     color: var(--parchment);
 
     img {
@@ -454,11 +456,11 @@
 
 // Extra pieces for single-pick panels: a choice row that may wrap, and a short note.
 .map-pin {
-  .pin-choice.wrap {
+  &__choice--wrap {
     flex-wrap: wrap;
   }
 
-  .pin-text {
+  &__text {
     color: var(--text-2);
     margin-top: 4px;
     max-width: 220px;

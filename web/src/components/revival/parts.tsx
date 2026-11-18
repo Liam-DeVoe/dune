@@ -139,9 +139,9 @@ export function SubmitError({ error }: { error: string | null }) {
 // MapPickComponent.PinActions: the validation, Cancel and the confirm button, beside the pin.
 export function PinActions({ label, validation, cancel, confirm }: { label: string; validation: Part[] | null; cancel: () => void; confirm: () => void }) {
   return (
-    <div className="pin-body">
-      {validation && <div className="pin-error"><RichText parts={validation} /></div>}
-      <div className="pin-actions">
+    <div>
+      {validation && <div className="map-pin__error"><RichText parts={validation} /></div>}
+      <div className="map-pin__actions">
         <button type="button" className="btn btn-secondary" onClick={cancel}>Cancel</button>
         <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>{label}</button>
       </div>

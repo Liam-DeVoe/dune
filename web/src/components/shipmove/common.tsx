@@ -55,7 +55,7 @@ export function EventLayout({ type, urgent = false, header, children }: { type: 
 }
 
 // The validation message ExpressionComponent draws.
-export function Validation({ parts, className = "pin-error" }: { parts: Part[] | null; className?: string }) {
+export function Validation({ parts, className = "map-pin__error" }: { parts: Part[] | null; className?: string }) {
   if (!parts) return null;
   return <div className={className}><RichText parts={parts} /></div>;
 }
@@ -220,12 +220,12 @@ export function MapForceStepper({ value, onChange, min = 0, max, faction, specia
   };
   return (
     <div className="pin-step" title={title}>
-      <span className="ic" style={{ background }}>
-        {starred ? <span className="force-token starred" style={{ ["--d" as string]: "16px" }}><img src={src} alt="" /></span> : <img src={src} alt="" />}
+      <span className="pin-step__ic" style={{ background }}>
+        {starred ? <span className="force-token starred" style={{ ["--d" as string]: "16px" }}><img className="pin-step__ic-img" src={src} alt="" /></span> : <img className="pin-step__ic-img" src={src} alt="" />}
       </span>
-      <button type="button" tabIndex={-1} aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>
-      <span className="val">{value}</span>
-      <button type="button" tabIndex={-1} aria-label="More" disabled={value >= max} onClick={() => change(1)}>+</button>
+      <button type="button" tabIndex={-1} className="pin-step__button" aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>
+      <span className="pin-step__value">{value}</span>
+      <button type="button" tabIndex={-1} className="pin-step__button" aria-label="More" disabled={value >= max} onClick={() => change(1)}>+</button>
     </div>
   );
 }
@@ -235,7 +235,7 @@ export function PinActions({ validation, cancel, confirm, label }: { validation:
   return (
     <>
       <Validation parts={validation} />
-      <div className="pin-actions">
+      <div className="map-pin__actions">
         <button type="button" className="btn btn-secondary" onClick={cancel}>Cancel</button>
         <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>{label}</button>
       </div>
@@ -243,7 +243,7 @@ export function PinActions({ validation, cancel, confirm, label }: { validation:
   );
 }
 
-// A row of mutually exclusive buttons in a pinned panel (.pin-choice).
+// A row of mutually exclusive buttons in a pinned panel (.map-pin__choice).
 export function PinChoice<T>({ values, value, label, onChange, wrap = false }: {
   values: T[];
   value: T;
@@ -252,8 +252,8 @@ export function PinChoice<T>({ values, value, label, onChange, wrap = false }: {
   wrap?: boolean;
 }) {
   return (
-    <div className={`pin-choice ${wrap ? "wrap" : ""}`}>
-      {values.map((v, i) => <button key={i} type="button" className={v === value ? "on" : ""} onClick={() => onChange(v)}>{label(v)}</button>)}
+    <div className={`map-pin__choice ${wrap ? "map-pin__choice--wrap" : ""}`}>
+      {values.map((v, i) => <button key={i} type="button" className={`map-pin__choice-button ${v === value ? "map-pin__choice-button--on" : ""}`} onClick={() => onChange(v)}>{label(v)}</button>)}
     </div>
   );
 }

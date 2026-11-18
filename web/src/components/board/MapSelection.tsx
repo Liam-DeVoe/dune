@@ -193,7 +193,7 @@ export function MapSelectionOverlay() {
   if (map.owner != null && showPin) {
     const [anchor, below] = pinAnchor(b, map, starts, end);
     pin = (
-      <div className={`map-pin ${below ? "below" : ""}`} style={{ left: px(anchor.X), top: px(anchor.Y), ["--c" as string]: faction }}>
+      <div className={`map-pin ${below ? "map-pin--below" : ""}`} style={{ left: px(anchor.X), top: px(anchor.Y), ["--c" as string]: faction }}>
         <Pin />
       </div>
     );

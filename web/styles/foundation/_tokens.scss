@@ -79,3 +79,29 @@
   --t-base: 200ms;
   --t-slow: 420ms;
 }
+
+// phase 3 scales and colours (X, temporary): the names agent T defines, so
+// this branch builds before T's merge. The coordinator drops this block.
+:root {
+  --s-0: 2px;
+  --r-3: 12px;
+  --r-round: 50%;
+  --fs-1: 11px;
+  --fs-2: 13px;
+  --fs-3: 15px;
+  --fs-4: 18px;
+  --fs-5: 22px;
+  --fs-6: 30px;
+  --fs-7: 40px;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-mid: rgba(255, 255, 255, 0.12);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-line-soft: rgba(29, 12, 0, 0.2);
+  --ink-line: rgba(29, 12, 0, 0.3);
+  --ink-line-strong: rgba(29, 12, 0, 0.35);
+  --ink-tint: rgba(29, 12, 0, 0.06);
+  --gold-wash: rgba(231, 191, 60, 0.08);
+  --gold-wash-strong: rgba(231, 191, 60, 0.12);
+  --parchment-input-bg: rgba(255, 255, 255, 0.55);
+  --parchment-check-bg: rgba(255, 255, 255, 0.6);
+}

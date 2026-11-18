@@ -532,7 +532,7 @@ impl Skin {
     pub fn spice_html(&self, amount: &str, size: i32) -> String {
         let name = self.describe_concept(Some(Concept::Resource));
         format!(
-            "<span class='spice-amt' style='--s:{size}px' title='{name}'><img src='{}' alt='{name}'/><b>{amount}</b></span>",
+            "<span class='spice-amt' style='--s:{size}px' title='{name}'><img class='spice-amt__img' src='{}' alt='{name}'/><b class='spice-amt__value'>{amount}</b></span>",
             self.harvester_url
         )
     }
@@ -551,10 +551,10 @@ impl Skin {
     fn get_token_popup(&self, image_url: Option<&str>, name: &str, rules_text: &str) -> String {
         let art = match image_url {
             None | Some("") => String::new(),
-            Some(url) => format!("<div class='pop-token-art'><img src='{url}'/></div>"),
+            Some(url) => format!("<div class='pop-token__art'><img class='pop-token__img' src='{url}'/></div>"),
         };
         format!(
-            "<div class='pop-token'>{art}<div class='pop-token-body'><h6>{name}</h6><p>{}</p></div></div>",
+            "<div class='pop-token'>{art}<div class='pop-token__body'><h6 class='pop-token__title'>{name}</h6><p class='pop-token__text'>{}</p></div></div>",
             self.with_spice_icons(rules_text, 18, true)
         )
     }
@@ -604,7 +604,7 @@ impl Skin {
         let Some(c) = c else { return String::new() };
         let (category, type_) = get_treachery_card_category(c);
         format!(
-            "<div class='pop-card'><img class='pop-card-art' src='{}'/><div class='pop-card-body'><h6>{}</h6><div class='pop-card-type'><i class='{category}'></i>{type_}</div><p>{}</p></div></div>",
+            "<div class='pop-card'><img class='pop-card__art' src='{}'/><div class='pop-card__body'><h6 class='pop-card__title'>{}</h6><div class='pop-card__type'><i class='pop-card__swatch pop-card__swatch--{category}'></i>{type_}</div><p class='pop-card__text'>{}</p></div></div>",
             self.get_image_url_treachery_card(Some(c)),
             self.describe_treachery_card(c),
             self.with_spice_icons(&self.get_treachery_card_rules_text(c), 18, true)
@@ -655,39 +655,39 @@ impl Skin {
         let card = |t: TreacheryCardType| {
             let first = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == t);
             format!(
-                "<span class='card-chip'><img src='{}' alt=''/>{}</span>",
+                "<span class='card-chip'><img class='card-chip__img' src='{}' alt=''/>{}</span>",
                 self.get_image_url_treachery_card(first),
                 self.describe_treachery_card_type(Some(t))
             )
         };
         let cheap_hero = card(TreacheryCardType::Mercenary);
         let forces = format!(
-            "<span class='forces'>7<img src='{}' alt='forces' title='forces'/></span>",
+            "<span class='pop-leader__forces'>7<img class='pop-leader__force' src='{}' alt='forces' title='forces'/></span>",
             self.get_faction_force_image_url(Faction::Atreides)
         );
         let rules = [
             format!("After losing a total of at least {forces} in battle, you may use {kh}."),
-            format!("It cannot be used alone in battle but may add its <span class='plus'>+2</span> strength to any one leader or {cheap_hero} per turn."),
+            format!("It cannot be used alone in battle but may add its <span class='pop-leader__plus'>+2</span> strength to any one leader or {cheap_hero} per turn."),
             format!("If the leader or {cheap_hero} is killed, {kh} has no effect in the battle."),
-            format!("A leader accompanied by {kh} <b>cannot turn traitor</b>."),
+            format!("A leader accompanied by {kh} <b class='pop-leader__em'>cannot turn traitor</b>."),
             format!(
-                "{kh} can only be killed if blown up by a <span class='nowrap'>{}/{}</span> explosion.",
+                "{kh} can only be killed if blown up by a <span class='pop-leader__nowrap'>{}/{}</span> explosion.",
                 card(TreacheryCardType::Laser),
                 card(TreacheryCardType::Shield)
             ),
             format!("If killed, {kh} must be revived like any other leader."),
             format!("{kh} has no effect on {chip} leader revival."),
         ];
-        let rules: String = rules.iter().map(|r| format!("<p>{r}</p>")).collect();
+        let rules: String = rules.iter().map(|r| format!("<p class='pop-leader__line'>{r}</p>")).collect();
         format!(
-            "<div class='pop-leader pop-messiah'><div class='pop-leader-art' style='--fc:{color}'><img src='{image}'/></div><div class='pop-leader-body'><h6>{name}</h6><div class='pop-messiah-head'>{chip}<span class='plus'>+2</span></div><div class='pop-messiah-rules'>{rules}</div></div></div>"
+            "<div class='pop-leader pop-leader--messiah'><div class='pop-leader__art' style='--fc:{color}'><img class='pop-leader__img' src='{image}'/></div><div class='pop-leader__body'><h6 class='pop-leader__title'>{name}</h6><div class='pop-leader__head'>{chip}<span class='pop-leader__plus pop-leader__plus--head'>+2</span></div><div class='pop-leader__rules'>{rules}</div></div></div>"
         )
     }
 
     fn get_leader_popup(&self, l: Leader) -> String {
         let color = self.get_faction_color(l.faction());
         format!(
-            "<div class='pop-leader'><div class='pop-leader-art' style='--fc:{color}'><img src='{}'/></div><div class='pop-leader-body'><h6>{}</h6>{}</div></div>",
+            "<div class='pop-leader'><div class='pop-leader__art' style='--fc:{color}'><img class='pop-leader__img' src='{}'/></div><div class='pop-leader__body'><h6 class='pop-leader__title'>{}</h6>{}</div></div>",
             self.get_image_url_hero(Some(Hero::Leader(l))),
             self.describe_hero(Some(Hero::Leader(l))),
             self.faction_chip_html(l.faction(), false, None)
@@ -703,8 +703,8 @@ impl Skin {
             None => String::new(),
         };
         format!(
-            "<span class='chip faction{}' data-ref-faction='{f}' data-ref-locations='{locations}' style='--fc:{}' title='{name}'><img src='{}' alt=''/><span class='name'>{name}</span></span>",
-            if you { " you" } else { "" },
+            "<span class='chip chip--faction{}' data-ref-faction='{f}' data-ref-locations='{locations}' style='--fc:{}' title='{name}'><img class='chip__img' src='{}' alt=''/><span class='chip__name'>{name}</span></span>",
+            if you { " chip--you" } else { "" },
             self.get_faction_color(f),
             self.get_image_url_faction(f)
         )
@@ -1254,7 +1254,7 @@ pub fn describe_subscription_type(st: SubscriptionType) -> String {
 }
 
 fn get_framed_card_html(image_url: &str) -> String {
-    format!("<div class='pop-art'><img src='{image_url}'/></div>")
+    format!("<div class='pop-art'><img class='pop-art__img' src='{image_url}'/></div>")
 }
 
 fn get_treachery_card_category(c: TreacheryCard) -> (&'static str, &'static str) {

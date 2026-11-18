@@ -5,12 +5,12 @@
 .card {
   --card-bg: var(--ink-2);
   --card-color: var(--parchment);
-  --card-border-color: rgba(255, 255, 255, 0.09);
+  --card-border-color: var(--hairline);
   --card-cap-bg: transparent;
   --card-cap-color: var(--sand);
-  --card-spacer-x: 1rem;
-  --card-spacer-y: 1rem;
-  --card-inner-radius: 5px;
+  --card-spacer-x: var(--s-4);
+  --card-spacer-y: var(--s-4);
+  --card-inner-radius: calc(var(--r-2) - 1px); // inside the 1px border
   position: relative;
   display: flex;
   flex-direction: column;
@@ -31,16 +31,16 @@
   // An action panel the game flags as urgent gets the brighter hairline the
   // language uses on controls.
   &--urgent {
-    --card-border-color: rgba(255, 255, 255, 0.25);
+    --card-border-color: var(--hairline-bright);
   }
 
   // Titled headers ("Chat", "Victory!", "Your games") are set in the display face.
   &__header {
-    padding: 0.5rem 1rem;
+    padding: var(--s-2) var(--s-4);
     margin-bottom: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 18px;
+    font-size: var(--fs-4);
     letter-spacing: 0.02em;
     color: var(--card-cap-color);
     background-color: var(--card-cap-bg);
@@ -56,7 +56,7 @@
     &:has(> .button--link.collapse-button) {
       font-family: var(--font-body);
       font-weight: 600;
-      font-size: 16px;
+      font-size: var(--fs-3);
       letter-spacing: 0;
       color: var(--parchment);
     }
@@ -76,7 +76,7 @@
   }
 
   &__footer {
-    padding: 0.5rem 1rem;
+    padding: var(--s-2) var(--s-4);
     color: var(--card-cap-color);
     background-color: var(--card-cap-bg);
     border-top: 1px solid var(--card-border-color);

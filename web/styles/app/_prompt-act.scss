@@ -22,10 +22,10 @@
   .button--secondary,
   .button--outline-secondary {
     --button-color: var(--ink-1);
-    --button-border: #{shared.$ink-line-strong};
-    --button-hover-bg: #{shared.$ink-tint};
+    --button-border: #{var(--ink-line-strong)};
+    --button-hover-bg: #{var(--ink-tint)};
     --button-hover-border: var(--ink-1);
-    --button-active-bg: rgba(29, 12, 0, 0.1);
+    --button-active-bg: var(--ink-tint-strong);
     --button-active-border: var(--ink-1);
   }
 }
@@ -53,8 +53,8 @@
 .prompt-act,
 .act-stack > .card:not(.battle-plan) {
   .check__input {
-    --check-bg: #{shared.$parchment-check-bg};
-    border-color: shared.$ink-line-strong;
+    --check-bg: #{var(--parchment-check-bg)};
+    border-color: var(--ink-line-strong);
 
     &:checked {
       background-color: var(--gold);
@@ -64,9 +64,9 @@
 
   .input,
   .native-select {
-    background-color: shared.$parchment-input-bg;
+    background-color: var(--parchment-input-bg);
     color: var(--ink-1);
-    border-color: shared.$ink-line;
+    border-color: var(--ink-line);
   }
 
   .input::placeholder {
@@ -74,8 +74,8 @@
   }
 
   .num {
-    background: shared.$parchment-input-bg;
-    border-color: shared.$ink-line;
+    background: var(--parchment-input-bg);
+    border-color: var(--ink-line);
   }
 
   .num__input,
@@ -84,12 +84,12 @@
   }
 
   .num__ic {
-    border-right-color: shared.$ink-line-soft;
+    border-right-color: var(--ink-line-soft);
   }
 
   .seg {
-    border-color: shared.$ink-line;
-    background: shared.$parchment-input-bg;
+    border-color: var(--ink-line);
+    background: var(--parchment-input-bg);
   }
 
   .seg__button {
@@ -102,14 +102,14 @@
 
   .card__header {
     color: var(--ink-1);
-    border-bottom-color: rgba(29, 12, 0, 0.15);
+    border-bottom-color: var(--ink-line-faint);
   }
 
   // A card nested inside the prompt card goes back to ink.
   .card {
     --card-bg: var(--ink-2);
     --card-color: var(--parchment);
-    --card-border-color: #{shared.$hairline};
+    --card-border-color: #{var(--hairline)};
     --card-cap-color: var(--sand);
   }
 }
@@ -119,7 +119,7 @@
 .act-stack {
   display: flex;
   flex-direction: column;
-  margin-bottom: 8px;
+  margin-bottom: var(--s-2);
 
   > .card:not(.battle-plan) {
     --card-cap-bg: transparent;
@@ -130,7 +130,7 @@
   }
 
   > .card:not(.battle-plan) + .card:not(.battle-plan) {
-    border-top-color: rgba(29, 12, 0, 0.14);
+    border-top-color: var(--ink-line-faint);
   }
 
   > .card:not(.battle-plan):has(+ .card:not(.battle-plan)) {
@@ -153,7 +153,7 @@
   }
 
   > .battle-plan {
-    margin-top: 8px;
+    margin-top: var(--s-2);
   }
 }
 
@@ -164,17 +164,17 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  margin: 12px calc(-1 * var(--card-spacer-x)) calc(-1 * var(--card-spacer-y));
-  padding: 8px var(--card-spacer-x);
-  border-top: 1px solid shared.$ink-line-soft;
-  background: rgba(29, 12, 0, 0.045);
-  font-size: 14px;
+  gap: var(--s-2) var(--s-3);
+  margin: var(--s-3) calc(-1 * var(--card-spacer-x)) calc(-1 * var(--card-spacer-y));
+  padding: var(--s-2) var(--card-spacer-x);
+  border-top: 1px solid var(--ink-line-soft);
+  background: var(--ink-tint);
+  font-size: var(--fs-2);
 }
 
 // Copperplate's capitals sit high in their line box; drop them to the button's centre.
 .prompt-act__kicker--host {
   margin: 0;
   line-height: 1;
-  padding-top: 3px;
+  padding-top: var(--s-0);
 }

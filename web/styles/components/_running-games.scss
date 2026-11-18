@@ -1,7 +1,7 @@
 // The lobby's "Active games" card (RunningGamesComponent). Its tables are
 // .games-table (lobby.css).
 .running-games {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
   box-shadow: var(--shadow-3);
 
   &__header {

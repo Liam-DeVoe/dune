@@ -7,7 +7,7 @@
   vertical-align: -0.125em;
   border: 0.25em solid currentcolor;
   border-right-color: transparent;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   animation: spinner 0.75s linear infinite;
 
   &--small {

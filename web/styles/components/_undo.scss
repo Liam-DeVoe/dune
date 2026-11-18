@@ -1,5 +1,3 @@
-@use "../shared";
-
 // Undo: the host's panel (UndoComponent) and the timeline under the map
 // (UndoTimeline). The board, player panel and report need no styles of their
 // own while undoing; they draw the game at the chosen moment as usual.
@@ -11,24 +9,24 @@
   bottom: 0;
   right: 0;
   pointer-events: none;
-  background: repeating-linear-gradient(135deg, rgba(195, 50, 50, 0.28) 0 3px, transparent 3px 7px);
+  background: repeating-linear-gradient(135deg, var(--storm-wash-28) 0 3px, transparent 3px 7px);
 }
 
-@mixin label-face($size: 11px) {
+@mixin label-face {
   font-family: var(--font-label);
-  font-size: $size;
+  font-size: var(--fs-1);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-3);
 }
 
 .undo {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
 
   &__body {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--s-3);
   }
 
   &__kicker {
@@ -37,10 +35,10 @@
 
   &__dest {
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: var(--fs-5);
     color: var(--parchment);
     line-height: 1.1;
-    margin-top: 2px;
+    margin-top: var(--s-0);
   }
 
   &__empty {
@@ -51,46 +49,46 @@
   &__undone {
     max-height: 200px;
     overflow-y: auto;
-    margin: 4px -14px 0;
-    padding: 0 14px 6px;
-    border-top: 1px solid shared.$hairline;
-    border-bottom: 1px solid shared.$hairline;
+    margin: var(--s-1) calc(-1 * var(--s-3)) 0;
+    padding: 0 var(--s-4) var(--s-2);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
   }
 
   &__group {
-    @include label-face(10.5px);
-    padding: 8px 0 2px;
+    @include label-face;
+    padding: var(--s-2) 0 var(--s-0);
   }
 
   &__line {
     color: var(--text-2);
-    font-size: 14px;
-    padding: 2px 0;
+    font-size: var(--fs-2);
+    padding: var(--s-0) 0;
   }
 
   &__actions {
     display: flex;
-    gap: 8px;
+    gap: var(--s-2);
     justify-content: flex-end;
   }
 }
 
 .undo-timeline {
-  margin: 8px 0 28px;
+  margin: var(--s-2) 0 var(--s-5);
   user-select: none;
 
   // The whole game, one block per turn.
   &__turns {
     display: flex;
-    gap: 2px;
+    gap: var(--s-0);
     height: 18px;
     position: relative;
   }
 
   &__turn {
     background: var(--ink-2);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 2px;
+    border: 1px solid var(--hairline-faint);
+    border-radius: var(--r-1);
     cursor: pointer;
     display: grid;
     place-items: center;
@@ -98,7 +96,7 @@
     white-space: nowrap;
     text-overflow: clip;
     min-width: 0;
-    @include label-face(10px);
+    @include label-face;
     letter-spacing: 0.12em;
 
     &:hover {
@@ -113,7 +111,7 @@
   &__turn--focus:hover {
     background: var(--ink-3);
     color: var(--sand);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--hairline-bright);
   }
 
   // The part that would be undone, in both rows.
@@ -135,7 +133,7 @@
   &__track {
     position: relative;
     height: 44px;
-    margin-top: 18px;
+    margin-top: var(--s-4);
     cursor: pointer;
     touch-action: none;
   }
@@ -145,10 +143,10 @@
     top: 0;
     height: 44px;
     background: var(--ink-2);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--hairline-faint);
     border-left-width: 2px;
     border-left-color: var(--ink-1);
-    border-radius: 2px;
+    border-radius: var(--r-1);
     pointer-events: none;
   }
 
@@ -157,7 +155,7 @@
     top: 48px;
     left: 2px;
     right: 0;
-    font-size: 12px;
+    font-size: var(--fs-1);
     color: var(--text-3);
     white-space: nowrap;
     overflow: hidden;
@@ -169,7 +167,7 @@
     top: 15px;
     width: 1px;
     height: 14px;
-    background: rgba(252, 249, 209, 0.3);
+    background: var(--wash-light-30);
     pointer-events: none;
   }
 
@@ -180,7 +178,7 @@
     height: 56px;
     width: 2px;
     margin-right: -1px;
-    background: rgba(252, 249, 209, 0.45);
+    background: var(--wash-light-45);
     pointer-events: none;
 
     &::after {
@@ -188,7 +186,7 @@
       position: absolute;
       top: 58px;
       right: 4px;
-      @include label-face(10px);
+      @include label-face;
     }
   }
 
@@ -208,7 +206,7 @@
       left: -6px;
       width: 14px;
       height: 14px;
-      border-radius: 50%;
+      border-radius: var(--r-round);
       background: var(--gold);
       box-shadow: 0 0 0 2px var(--ink-1);
     }
@@ -226,7 +224,7 @@
       top: 4px;
       bottom: 0;
       width: 1px;
-      background: rgba(231, 191, 60, 0.55);
+      background: var(--gold-wash-55);
     }
   }
 }
@@ -241,25 +239,25 @@
   z-index: 5;
   width: 330px;
   max-width: none;
-  padding: 8px 10px;
+  padding: var(--s-2) var(--s-3);
   pointer-events: none;
 }
 
 .undo-tip {
   &__when {
-    @include label-face(10px);
-    margin-bottom: 2px;
+    @include label-face;
+    margin-bottom: var(--s-0);
   }
 
   &__line {
-    font-size: 14px;
-    padding: 3px 0;
+    font-size: var(--fs-2);
+    padding: var(--s-0) 0;
   }
 
   &__line--out {
     color: var(--text-3);
     text-decoration: line-through;
-    text-decoration-color: rgba(252, 249, 209, 0.3);
+    text-decoration-color: var(--wash-light-30);
   }
 
   &__line--nothing {
@@ -269,6 +267,6 @@
   &__cut {
     height: 2px;
     background: var(--gold);
-    margin: 3px 0;
+    margin: var(--s-0) 0;
   }
 }

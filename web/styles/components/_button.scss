@@ -14,9 +14,9 @@
   --button-active-border: var(--button-hover-border);
   --button-disabled-color: var(--button-color);
   display: inline-block;
-  padding: 0.375rem 0.75rem;
+  padding: var(--s-2) var(--s-3);
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: var(--fs-3);
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: 0.02em;
@@ -70,8 +70,8 @@
   }
 
   &--small {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
+    padding: var(--s-1) var(--s-2);
+    font-size: var(--fs-2);
   }
 
   &--primary,
@@ -79,8 +79,8 @@
     --button-color: var(--ink-0);
     --button-bg: var(--gold);
     --button-border: var(--gold);
-    --button-hover-bg: #f0cb50;
-    --button-hover-border: #f0cb50;
+    --button-hover-bg: var(--gold-light);
+    --button-hover-border: var(--gold-light);
     --button-active-bg: var(--gold-2);
     --button-active-border: var(--gold-2);
   }
@@ -88,17 +88,17 @@
   &--secondary,
   &--outline-secondary {
     --button-color: var(--sand);
-    --button-border: rgba(231, 191, 60, 0.45);
-    --button-hover-bg: rgba(231, 191, 60, 0.1);
+    --button-border: var(--gold-wash-45);
+    --button-hover-bg: var(--gold-wash-strong);
     --button-hover-border: var(--gold);
-    --button-active-bg: rgba(231, 191, 60, 0.16);
+    --button-active-bg: var(--gold-wash-16);
     --button-active-border: var(--gold);
   }
 
   // Fills with gold on hover, so its text flips to ink.
   &--outline-primary {
     --button-color: var(--gold);
-    --button-border: rgba(231, 191, 60, 0.45);
+    --button-border: var(--gold-wash-45);
     --button-hover-color: var(--ink-0);
     --button-hover-bg: var(--gold);
     --button-hover-border: var(--gold);
@@ -110,7 +110,7 @@
     --button-color: var(--parchment);
     --button-bg: var(--storm);
     --button-border: var(--storm-2);
-    --button-hover-bg: #d63b3b;
+    --button-hover-bg: var(--storm-light);
     --button-active-bg: var(--storm-2);
   }
 
@@ -126,27 +126,27 @@
 
   &--success {
     --button-color: var(--ink-0);
-    --button-bg: #79b34c;
-    --button-border: #79b34c;
-    --button-hover-bg: #8bc55d;
-    --button-hover-border: #8bc55d;
-    --button-active-bg: #79b34c;
-    --button-active-border: #79b34c;
+    --button-bg: var(--good);
+    --button-border: var(--good);
+    --button-hover-bg: var(--good-light);
+    --button-hover-border: var(--good-light);
+    --button-active-bg: var(--good);
+    --button-active-border: var(--good);
   }
 
   &--dark,
   &--light {
     --button-color: var(--parchment);
     --button-bg: var(--ink-3);
-    --button-border: rgba(255, 255, 255, 0.16);
+    --button-border: var(--hairline-strong);
     --button-hover-bg: var(--ink-4);
-    --button-hover-border: rgba(255, 255, 255, 0.25);
+    --button-hover-border: var(--hairline-bright);
   }
 
   // A button that reads as a link: no fill or border, underlined on hover.
   &--link {
     --button-color: var(--gold);
-    --button-hover-color: #f0cb50;
+    --button-hover-color: var(--gold-light);
     --button-active-color: var(--gold-2);
     --button-disabled-color: var(--text-3);
     font-weight: 500;

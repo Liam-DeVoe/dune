@@ -7,8 +7,8 @@
 .start-row {
   display: flex;
   flex-wrap: wrap;
-  margin-left: -0.75rem;
-  margin-right: -0.75rem;
+  margin-left: calc(-1 * var(--s-3));
+  margin-right: calc(-1 * var(--s-3));
 
   &--centred {
     align-items: center;
@@ -19,8 +19,8 @@
     flex: 0 0 auto;
     width: 100%;
     max-width: 100%;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    padding-left: var(--s-3);
+    padding-right: var(--s-3);
   }
 
   // The column's content, centred.

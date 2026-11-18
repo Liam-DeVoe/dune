@@ -1,5 +1,3 @@
-@use "../shared";
-
 // A slider (the music and effect volumes): a gold thumb on an ink 3 track.
 .range {
   width: 100%;
@@ -22,7 +20,7 @@
     appearance: none;
     background-color: var(--gold);
     border: 0;
-    border-radius: 1rem;
+    border-radius: var(--r-3);
     transition:
       background-color 0.15s ease-in-out,
       border-color 0.15s ease-in-out,
@@ -44,12 +42,12 @@
     cursor: pointer;
     background-color: var(--ink-3);
     border-color: transparent;
-    border-radius: 1rem;
+    border-radius: var(--r-3);
   }
 
   &::-webkit-slider-thumb {
     @include thumb;
-    margin-top: -0.25rem;
+    margin-top: calc(-1 * var(--s-1));
   }
 
   &::-moz-range-thumb {
@@ -67,11 +65,11 @@
   // A selector list mixing -webkit- and -moz- pseudo-elements is dropped
   // whole by every browser, so each engine gets its own rule.
   &:focus::-webkit-slider-thumb {
-    box-shadow: shared.$focus-ring-gold;
+    box-shadow: var(--focus-ring-gold);
   }
 
   &:focus::-moz-range-thumb {
-    box-shadow: shared.$focus-ring-gold;
+    box-shadow: var(--focus-ring-gold);
   }
 
   &:disabled {

@@ -34,9 +34,9 @@
     z-index: 1000;
     display: none;
     min-width: 10rem;
-    padding: 0.5rem 0;
+    padding: var(--s-2) 0;
     margin: 0;
-    font-size: 1rem;
+    font-size: var(--fs-3);
     text-align: left;
     list-style: none;
     background-clip: padding-box;
@@ -49,7 +49,7 @@
   &__item {
     display: block;
     width: 100%;
-    padding: 0.25rem 1rem;
+    padding: var(--s-1) var(--s-4);
     clear: both;
     font-weight: 400;
     color: var(--parchment);
@@ -63,7 +63,7 @@
     &:hover,
     &:focus {
       color: var(--gold);
-      background-color: rgba(231, 191, 60, 0.1);
+      background-color: var(--gold-wash-strong);
     }
 
     &:active {
@@ -81,19 +81,19 @@
 
   &__header {
     display: block;
-    padding: 0.5rem 1rem;
+    padding: var(--s-2) var(--s-4);
     margin-bottom: 0;
-    font-size: 0.875rem;
+    font-size: var(--fs-2);
     color: var(--text-3);
     white-space: nowrap;
   }
 
   &__divider {
     height: 0;
-    margin: 0.5rem 0;
+    margin: var(--s-2) 0;
     overflow: hidden;
     border: 0;
-    border-top: 1px solid shared.$hairline;
+    border-top: 1px solid var(--hairline);
     opacity: 1;
   }
 }

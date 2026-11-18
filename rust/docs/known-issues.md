@@ -14,7 +14,6 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 
 2026-11-15: at low threshold, Moritani reveals a terror token only when at least 3 forces enter. The Grumman card says "Low (0-7): ... You can only reveal terror tokens when at least 3 forces enter" (web/assets/art/GrummanCard.gif), and `check_terror_triggered` does that.
 
-
 ## Quirks kept from the C# version
 
 Behavior that looks wrong or arbitrary and has no reason except that the C# version did the same. Each is unchanged for now and marked in the code with `Known quirk (known-issues.md)`. Fixing one changes what players see, so it needs the owner's approval and an entry in behavior-changes.md. Paths are under `rust/engine/src` unless they say otherwise.

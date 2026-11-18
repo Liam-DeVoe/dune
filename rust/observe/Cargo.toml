@@ -14,3 +14,5 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 flate2 = "1"
 sha2 = "0.10"
+# The event types' TypeScript declarations tell the fuzzer what each field holds (fuzz.rs).
+ts-rs = { version = "12", default-features = false, features = ["serde-compat", "indexmap-impl"] }

@@ -960,6 +960,7 @@ dependencies = [
  "treachery-engine",
  "treachery-skin",
  "treachery-view",
+ "ts-rs",
 ]
 
 [[package]]

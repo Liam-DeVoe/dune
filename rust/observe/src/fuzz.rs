@@ -7,24 +7,22 @@
 //! The generator reads a shadow copy of the game ([`Shadow`]), never the session's game, so it
 //! can't change state the replayer wouldn't change: drafts and validation fill caches. Only the recorder runs it; the replayer reads its events from the trace.
 //!
-//! Events are built and changed as objects in the format of game version 190 (`$type`,
-//! `_toId`, `Passed`, enums as numbers), which the field heuristics below key on, and the views'
-//! drafts are converted to that format ([`crate::events::legacy_view_events`]). So the generator
-//! draws the same values as before the format changed, and makes the same games. The recorder
-//! converts each event to the engine's format before it submits and records it
-//! (`events::to_trace`).
+//! Events are built and changed as flat maps of the engine's JSON ([`crate::events::flatten`]).
+//! What a field holds (a card, a leader, a location, an amount, a faction) comes from its name
+//! and its type in the event's TypeScript declaration ([`Role`]).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::panic::{self, AssertUnwindSafe};
+use std::sync::OnceLock;
 
 use serde_json::{Map, Value};
-use treachery_engine::events::{EventType, HistoryEntry};
-use treachery_engine::game::Game;
-use crate::event_maps as json;
-use treachery_engine::prelude::*;
 use treachery_engine::enum_type::GameEnum;
+use treachery_engine::events::{Event, EventType, HistoryEntry};
+use treachery_engine::game::Game;
+use treachery_engine::prelude::*;
 use treachery_view::build::{ResolvedViewer, Seating};
 
+use crate::events;
 use crate::rng::Rng;
 
 /// A copy of the session's game, kept in step by executing its history without validation.
@@ -45,14 +43,12 @@ impl Shadow {
         }
         let done = self.game.event_count() as usize;
         for e in game.history.entries.iter().skip(done) {
-            let text = json::serialize(e);
             let shadow = &mut self.game;
             let ok = quiet(|| {
-                let copy: HistoryEntry = json::deserialize(&text).ok()?;
+                let copy = HistoryEntry { id: treachery_engine::events::EntryId::fresh(), ..e.clone() };
                 let _ = shadow.play(copy, false, false);
-                Some(())
             });
-            if ok.flatten().is_none() {
+            if ok.is_none() {
                 // A shadow that can't follow is rebuilt next time; generation just gets worse.
                 self.game = game.new_like();
                 return;
@@ -63,6 +59,165 @@ impl Shadow {
 
 fn quiet<R>(f: impl FnOnce() -> R) -> Option<R> {
     panic::catch_unwind(AssertUnwindSafe(f)).ok()
+}
+
+/// What an event field holds, as the generator fills it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Role {
+    /// Not changed: the submitter, time and type, and the setup of `EstablishPlayers`.
+    Skip,
+    Bool,
+    /// A list of `{location, forces, specialForces}`.
+    ForceList,
+    /// A list of card ids.
+    CardList,
+    /// A list of factions.
+    FactionList,
+    /// A faction, by name.
+    Faction,
+    /// A treachery card id (also a number naming a card decision).
+    Card,
+    /// A leader id.
+    Hero,
+    Stronghold,
+    Territory,
+    /// A location id.
+    Location,
+    /// A number counting spice, forces, turns.
+    Amount,
+    /// Any other number.
+    Number,
+    /// A member of another enum, by name.
+    Enum,
+    /// Free text, also deal and question parameters.
+    Text,
+    /// Lists and objects of other kinds.
+    Other,
+}
+
+impl Role {
+    /// Whether the field is an id of the game (a card, leader, location or territory).
+    fn is_object(self) -> bool {
+        matches!(self, Role::Card | Role::Hero | Role::Stronghold | Role::Territory | Role::Location)
+    }
+
+    fn is_number(self) -> bool {
+        self.is_object() || matches!(self, Role::Amount | Role::Number)
+    }
+}
+
+/// A field of an event: its role, and whether it is an optional object id (`number | null`).
+#[derive(Clone, Copy)]
+struct Field {
+    role: Role,
+    nullable_id: bool,
+}
+
+/// Names of numbers that count something.
+fn is_amount(k: &str) -> bool {
+    ["amount", "forces", "resources", "price", "bid", "contribution", "bonus", "valueadded", "towin", "toreplace", "turn", "seat", "direction", "numberof", "permitted", "losses", "halfstrength", "advisor"]
+        .iter()
+        .any(|s| k.contains(s))
+}
+
+/// The role of field `name` of event type `t`, whose TypeScript type is `ts`.
+fn classify(t: &str, name: &str, ts: &str) -> Field {
+    let k = name.to_ascii_lowercase();
+    let ts = ts.trim();
+    let base = ts.strip_suffix("| null").unwrap_or(ts).trim();
+    let nullable_id = ts == "number | null";
+    let role = if matches!(k.as_str(), "by" | "at" | "type" | "players" | "factionsinplay" | "settings" | "seed" | "initiatorplayername") {
+        Role::Skip
+    } else if base == "boolean" {
+        Role::Bool
+    } else if base == "Array<ForceEntry>" {
+        Role::ForceList
+    } else if base == "Array<number>" {
+        if k.contains("card") { Role::CardList } else { Role::Other }
+    } else if base == "Array<Faction>" {
+        Role::FactionList
+    } else if base == "Faction" {
+        Role::Faction
+    } else if base == "string" {
+        Role::Text
+    } else if base == "number" {
+        if k.contains("card") || (nullable_id && (k == "weapon" || k == "defense")) {
+            Role::Card
+        } else if ["hero", "traitor", "leader", "dancer"].iter().any(|s| k.contains(s)) {
+            Role::Hero
+        } else if k.contains("stronghold") {
+            // A terror token's stronghold is a territory.
+            if t == "TerrorPlanted" { Role::Territory } else { Role::Stronghold }
+        } else if k.contains("territory") {
+            Role::Territory
+        } else if nullable_id {
+            Role::Location
+        } else if is_amount(&k) {
+            Role::Amount
+        } else {
+            Role::Number
+        }
+    } else if !base.is_empty() && base.chars().all(|c| c.is_ascii_alphanumeric()) && base.starts_with(|c: char| c.is_ascii_uppercase()) {
+        Role::Enum
+    } else {
+        Role::Other
+    };
+    Field { role, nullable_id }
+}
+
+/// The members of a TypeScript object type declaration (`type X = { a: number, b: Y | null, };`),
+/// without doc comments.
+fn ts_members(decl: &str) -> Vec<(String, String)> {
+    let mut text = String::new();
+    let mut rest = decl;
+    while let Some(i) = rest.find("/*") {
+        text.push_str(&rest[..i]);
+        rest = rest[i..].find("*/").map(|j| &rest[i + j + 2..]).unwrap_or("");
+    }
+    text.push_str(rest);
+    let (Some(open), Some(close)) = (text.find('{'), text.rfind('}')) else { return vec![] };
+    let body = &text[open + 1..close];
+    let mut parts = Vec::new();
+    let (mut depth, mut start) = (0i32, 0);
+    for (i, c) in body.char_indices() {
+        match c {
+            '<' | '{' | '[' | '(' => depth += 1,
+            '>' | '}' | ']' | ')' => depth -= 1,
+            ',' if depth == 0 => {
+                parts.push(&body[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    parts.push(&body[start..]);
+    parts.iter().filter_map(|p| p.split_once(':')).map(|(n, t)| (n.trim().to_string(), t.trim().to_string())).filter(|(n, _)| !n.is_empty()).collect()
+}
+
+/// The fields of every event type, by type name.
+fn schema() -> &'static HashMap<&'static str, HashMap<String, Field>> {
+    static SCHEMA: OnceLock<HashMap<&'static str, HashMap<String, Field>>> = OnceLock::new();
+    SCHEMA.get_or_init(|| {
+        let cfg = ts_rs::Config::default();
+        Event::typescript_structs(&cfg)
+            .into_iter()
+            .map(|(t, decl)| {
+                let mut fields: HashMap<String, Field> = ts_members(&decl).into_iter().map(|(n, ts)| { let f = classify(t, &n, &ts); (n, f) }).collect();
+                fields.insert("passed".into(), Field { role: Role::Bool, nullable_id: false });
+                (t, fields)
+            })
+            .collect()
+    })
+}
+
+/// The field `key` of `event`.
+fn field(event: &Map<String, Value>, key: &str) -> Field {
+    let skip = Field { role: Role::Skip, nullable_id: false };
+    if matches!(key, "by" | "at" | "type") {
+        return skip;
+    }
+    let t = event.get("type").and_then(|t| t.as_str()).unwrap_or("");
+    schema().get(t).and_then(|f| f.get(key)).copied().unwrap_or(Field { role: Role::Other, nullable_id: false })
 }
 
 /// Values of the game a client could put into an event.
@@ -100,6 +255,11 @@ impl Domains {
     }
 }
 
+/// The JSON name of the faction with value `v`.
+fn faction_name(v: i32) -> Value {
+    Faction::from_value(v).map(|f| Value::from(f.to_string())).unwrap_or(Value::Null)
+}
+
 fn pick(rng: &mut Rng, lists: &[(&[i32], f64)]) -> Option<i32> {
     for (list, p) in lists {
         if !list.is_empty() && rng.chance(*p) {
@@ -113,58 +273,39 @@ fn amount(rng: &mut Rng) -> i32 {
     if rng.chance(0.75) { rng.range(0, 6) } else { rng.range(6, 21) }
 }
 
-/// Fields whose values are other enums or free text: left as the draft has them, because the
-/// client only offers defined values there and this generator doesn't know which enum a field is.
-fn is_amount(k: &str) -> bool {
-    ["amount", "forces", "resources", "price", "bid", "contribution", "bonus", "valueadded", "towin", "toreplace", "turn", "seat", "direction", "numberof", "permitted", "losses", "halfstrength", "advisor"]
-        .iter()
-        .any(|s| k.contains(s))
+fn force_entry(location: i32, forces: i32, special_forces: i32) -> Value {
+    serde_json::json!({ "location": location, "forces": forces, "specialForces": special_forces })
 }
 
-/// A value for field `key` (current value `cur`), or None when the field isn't fuzzed.
-fn value_for(key: &str, cur: &Value, d: &Domains, rng: &mut Rng) -> Option<Value> {
-    let k = key.to_ascii_lowercase();
-    if matches!(k.as_str(), "initiator" | "time" | "$type" | "_players" | "_factionsinplay" | "settings" | "seed" | "initiatorplayername") {
-        return None;
-    }
-    if cur.is_boolean() {
-        return Some(Value::Bool(!cur.as_bool().unwrap()));
-    }
-    if cur.is_string() || cur.is_null() {
-        if k.ends_with("forcelocations") {
+/// A value for a field with role `f` (current value `cur`), or None when the field isn't fuzzed.
+/// Enums other than factions and free text are left as the draft has them, because the client
+/// only offers defined values there.
+fn value_for(f: Field, cur: &Value, d: &Domains, rng: &mut Rng) -> Option<Value> {
+    let v = match f.role {
+        Role::Bool => return Some(Value::Bool(!cur.as_bool().unwrap_or(false))),
+        Role::ForceList => {
             let mut parts = Vec::new();
             for _ in 0..rng.range(1, 4) {
                 let loc = pick(rng, &[(&d.own_locations, 0.6), (&d.locations, 1.0)])?;
-                parts.push(format!("{loc}:{}|{}", rng.range(0, 6), if rng.chance(0.7) { 0 } else { rng.range(0, 4) }));
+                parts.push(force_entry(loc, rng.range(0, 6), if rng.chance(0.7) { 0 } else { rng.range(0, 4) }));
             }
-            return Some(Value::String(parts.join(",")));
+            return Some(Value::Array(parts));
         }
-        if k.ends_with("cardids") {
+        Role::CardList => {
             let mut ids = Vec::new();
             for _ in 0..rng.range(0, 4) {
                 ids.extend(pick(rng, &[(&d.own_cards, 0.8), (&d.held_cards, 1.0)]));
             }
-            return Some(Value::String(ids.iter().map(|i| i.to_string()).collect::<Vec<_>>().join(";")));
+            return Some(Value::Array(ids.into_iter().map(Value::from).collect()));
         }
-        return None;
-    }
-    if !cur.is_i64() {
-        return None;
-    }
-    let v = if k.contains("card") {
-        pick(rng, &[(&d.own_cards, 0.6), (&d.held_cards, 0.6), (&d.all_cards, 1.0)])?
-    } else if k.contains("hero") || k.contains("traitor") || k.contains("leader") || k.contains("dancer") {
-        pick(rng, &[(&d.own_heroes, 0.6), (&d.all_heroes, 1.0)])?
-    } else if k.contains("territory") || k.contains("stronghold") {
-        if k.contains("stronghold") { pick(rng, &[(&d.strongholds, 0.5), (&d.territories, 1.0)])? } else { pick(rng, &[(&d.territories, 1.0)])? }
-    } else if k.starts_with('_') && ["to", "from", "location", "target", "sneak"].iter().any(|s| k.contains(s)) {
-        pick(rng, &[(&d.own_locations, 0.4), (&d.strongholds, 0.3), (&d.locations, 1.0)])?
-    } else if k == "target" || k.contains("faction") {
-        pick(rng, &[(&d.factions, 1.0)])?
-    } else if is_amount(&k) {
-        amount(rng)
-    } else {
-        return None;
+        Role::Faction => return Some(faction_name(pick(rng, &[(&d.factions, 1.0)])?)),
+        Role::Card => pick(rng, &[(&d.own_cards, 0.6), (&d.held_cards, 0.6), (&d.all_cards, 1.0)])?,
+        Role::Hero => pick(rng, &[(&d.own_heroes, 0.6), (&d.all_heroes, 1.0)])?,
+        Role::Stronghold => pick(rng, &[(&d.strongholds, 0.5), (&d.territories, 1.0)])?,
+        Role::Territory => pick(rng, &[(&d.territories, 1.0)])?,
+        Role::Location => pick(rng, &[(&d.own_locations, 0.4), (&d.strongholds, 0.3), (&d.locations, 1.0)])?,
+        Role::Amount => amount(rng),
+        _ => return None,
     };
     Some(Value::from(v))
 }
@@ -180,7 +321,7 @@ pub fn mutate(event: &mut Map<String, Value>, game: &Game, player: Option<usize>
             break;
         }
         let Some(k) = rng.pick(&keys).cloned() else { break };
-        if let Some(v) = value_for(&k, &event[&k], &d, rng) {
+        if let Some(v) = value_for(field(event, &k), &event[&k], &d, rng) {
             event.insert(k.clone(), v);
             changed.push(k);
         }
@@ -200,7 +341,8 @@ pub struct Pools {
     lists: Vec<(String, Vec<Value>, bool)>,
     /// Number picker bounds: (normalized name after `max`/`maximum`, maximum).
     bounds: Vec<(String, i64)>,
-    /// Battle plan force mixes: [forces, at half strength, special, special at half strength, ...].
+    /// Battle plan force mixes, as the form lists them: [special, special at half strength, forces,
+    /// forces at half strength, dial, cost].
     mixes: Vec<Vec<i64>>,
     /// Whole events the client offers as buttons (accepting, declining or withdrawing a deal).
     buttons: Vec<Map<String, Value>>,
@@ -226,7 +368,7 @@ fn may_revive_to_planet(game: &Game, i: usize) -> bool {
 }
 
 /// Fields holding the destination of a [`LOCATION_EVENT_TYPES`] event.
-const DESTINATION_FIELDS: [&str; 3] = ["_toId", "_locationId", "_targetId"];
+const DESTINATION_FIELDS: [&str; 3] = ["to", "location", "target"];
 
 /// Locations where forces of player `i` would trigger an intrusion, by the rules of
 /// `Game::check_intrusion`, roughly: territories (other than the Polar Sink and homeworlds) with
@@ -268,9 +410,9 @@ fn norm_option(k: &str) -> String {
     }
 }
 
-/// Lower case without the raw-id decoration: `_weaponCardId` -> `weaponcard`, `_cardIds` -> `card`.
+/// Lower case without an id suffix: `cardIds` -> `card`, `automationRuleId` -> `automationrule`.
 fn norm_field(k: &str) -> String {
-    let k = k.trim_start_matches('_').to_ascii_lowercase();
+    let k = k.to_ascii_lowercase();
     for suffix in ["ids", "id"] {
         if k.len() > suffix.len() + 1 {
             if let Some(s) = k.strip_suffix(suffix) {
@@ -300,14 +442,20 @@ fn name_score(field: &str, opt: &str) -> u8 {
     }
 }
 
+/// The value an event holds for a choice of an option list, and whether it is an enum member.
 fn element_value(v: &Value) -> Option<(Value, bool)> {
     match v {
         Value::Number(_) => Some((v.clone(), false)),
-        Value::String(s) => Some(match crate::session::parse_faction(s) {
-            Some(f) => (Value::from(f as i32), true),
-            None => (v.clone(), false),
-        }),
+        Value::String(s) => Some((v.clone(), crate::session::parse_faction(s).is_some())),
         Value::Object(o) => {
+            // A faction option (`{faction, value}`): events name the faction.
+            if let (Some(f @ Value::String(_)), true) = (o.get("faction"), o.contains_key("value")) {
+                return Some((f.clone(), false));
+            }
+            // An enum option (`{name, value, label}`): events name the member.
+            if let (Some(n @ Value::String(_)), true) = (o.get("name"), o.contains_key("value")) {
+                return Some((n.clone(), true));
+            }
             for k in ["value", "id", "location"] {
                 if let Some(x) = o.get(k) {
                     if x.is_number() || x.is_string() {
@@ -318,6 +466,14 @@ fn element_value(v: &Value) -> Option<(Value, bool)> {
             None
         }
         _ => None,
+    }
+}
+
+/// An event of the view (a form's draft, a deal button) as a flat map submitted by `by`.
+fn view_event(by: Option<Faction>, v: &Value) -> Option<Map<String, Value>> {
+    match serde_json::from_value::<Event>(v.clone()) {
+        Ok(e) => events::flatten_new(by, e),
+        Err(_) => events::flatten_event(by.map(|f| Value::from(f.to_string())).unwrap_or(Value::Null), None, v),
     }
 }
 
@@ -370,7 +526,7 @@ impl Pools {
         let p = shadow.player_at(i);
         let faction = shadow.players[i].faction;
         let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
-        let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok().map(|mut o| { crate::events::legacy_view_events(&mut o, faction); o })))
+        let options = quiet(|| treachery_view::actions::action_view(shadow, &rv, seating, t, treachery_skin::default_skin()).options.map(|o| serde_json::to_value(o).ok()))
             .flatten()
             .flatten();
         pools.event_type = Some(t);
@@ -382,20 +538,18 @@ impl Pools {
             pools.diplomats = quiet(|| me.leaders.iter().filter(|l| shadow.skilled_as(Hero::from(**l), LeaderSkill::Diplomat)).map(|l| l.id()).collect()).unwrap_or_default();
         }
         if let Some(o) = options {
-            if let Some(Value::Object(d)) = o.get("draft") {
-                pools.draft = Some(d.clone());
+            if let Some(d) = o.get("draft") {
+                pools.draft = view_event(faction, d);
             }
             pools.harvest("", &o);
         }
         if matches!(t, EventType::DealAccepted | EventType::DealRejected | EventType::DealOffered) {
-            let deals = quiet(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok().map(|mut d| { crate::events::legacy_view_events(&mut d, faction); d }))).flatten().flatten();
+            let deals = quiet(|| treachery_view::side::deals(shadow, &rv, treachery_skin::default_skin()).map(|d| serde_json::to_value(d).ok())).flatten().flatten();
             for list in ["acceptable", "cancellable"] {
                 for offer in deals.as_ref().and_then(|d| d.get(list)).and_then(|l| l.as_array()).into_iter().flatten() {
                     for button in ["accept", "decline", "withdraw"] {
-                        if let Some(Value::Object(e)) = offer.get(button) {
-                            if e.get("$type").and_then(|v| v.as_str()) == Some(t.name()) {
-                                pools.buttons.push(e.clone());
-                            }
+                        if let Some(e) = offer.get(button).filter(|e| e.get("type").and_then(|v| v.as_str()) == Some(t.name())) {
+                            pools.buttons.extend(view_event(faction, e));
                         }
                     }
                 }
@@ -405,8 +559,8 @@ impl Pools {
     }
 
     /// The choice list for event field `key` whose current value is `cur`: the best-named list,
-    /// else a list that holds the current value (enum lists also when it is 0).
-    fn list_for(&self, key: &str, cur: &Value, keys: &[String], rng: &mut Rng) -> Option<&[Value]> {
+    /// else a list that holds the current value (enum lists also when it is trivial).
+    fn list_for(&self, key: &str, f: Field, cur: &Value, keys: &[String], rng: &mut Rng) -> Option<&[Value]> {
         let field = norm_field(key);
         let best = self.lists.iter().map(|(n, _, _)| name_score(&field, n)).max().unwrap_or(0);
         let named: Vec<&(String, Vec<Value>, bool)> = self.lists.iter().filter(|(n, _, _)| best > 0 && name_score(&field, n) == best).collect();
@@ -418,9 +572,9 @@ impl Pools {
         if let Some(l) = rng.pick(&holding) {
             return Some(&l.1);
         }
-        // A raw id whose form names its choices differently (`_territoryId` from `targets`): a
+        // An object id whose form names its choices differently (`territory` from `targets`): a
         // list no field of the event is named after.
-        if key.starts_with('_') && key.ends_with("Id") && cur.is_i64() {
+        if f.nullable_id && f.role.is_object() {
             let unclaimed: Vec<&(String, Vec<Value>, bool)> =
                 self.lists.iter().filter(|(n, l, _)| l.iter().all(|v| v.is_i64()) && !keys.iter().any(|k| name_score(&norm_field(k), n) > 0)).collect();
             return rng.pick(&unclaimed).map(|l| &l.1[..]);
@@ -438,8 +592,9 @@ impl Pools {
             .map(|(_, m)| *m)
     }
 
+    /// Lists of text choices, not enum members.
     fn string_lists(&self) -> Vec<&[Value]> {
-        self.lists.iter().filter(|(_, l, _)| l.iter().any(|v| v.is_string())).map(|(_, l, _)| &l[..]).collect()
+        self.lists.iter().filter(|(_, l, e)| !*e && l.iter().any(|v| v.is_string())).map(|(_, l, _)| &l[..]).collect()
     }
 }
 
@@ -453,9 +608,9 @@ fn bounded(max: i64, rng: &mut Rng) -> i64 {
     }
 }
 
-/// Forces to move or place, as `loc:forces|special,...`: some of the player's own battalions, or
-/// a few forces at locations the form offers.
-fn force_locations(game: &Game, player: Option<usize>, pools: &Pools, rng: &mut Rng) -> Option<String> {
+/// Forces to move or place: some of the player's own battalions, or a few forces at locations
+/// the form offers.
+fn force_locations(game: &Game, player: Option<usize>, pools: &Pools, rng: &mut Rng) -> Option<Value> {
     let me = &game.players[player.filter(|i| *i < game.players.len())?];
     let own: Vec<(i32, i32, i32)> = me.forces_in_locations.iter().map(|(l, b)| (l.id(), b.forces(), b.special_forces())).collect();
     // Forces sent where they intrude mostly go all together: a terror token needs at least three.
@@ -483,24 +638,25 @@ fn force_locations(game: &Game, player: Option<usize>, pools: &Pools, rng: &mut 
             }
         }
     }
-    Some(parts.iter().map(|(l, f, s)| format!("{l}:{f}|{s}")).collect::<Vec<_>>().join(","))
+    Some(Value::Array(parts.iter().map(|(l, f, s)| force_entry(*l, *f, *s)).collect()))
 }
 
-/// A steered value for field `key` (current value `cur`) from the form's pools, or None to leave it.
-fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &Game, player: Option<usize>, d: &Domains, rng: &mut Rng) -> Option<Value> {
+/// A steered value for field `key` (current value `cur`) of `event` from the form's pools, or
+/// None to leave it.
+#[allow(clippy::too_many_arguments)]
+fn steered_value(event: &Map<String, Value>, key: &str, keys: &[String], pools: &Pools, game: &Game, player: Option<usize>, d: &Domains, rng: &mut Rng) -> Option<Value> {
     let k = key.to_ascii_lowercase();
-    if matches!(k.as_str(), "initiator" | "time" | "$type" | "_players" | "_factionsinplay" | "settings" | "seed" | "initiatorplayername") {
-        return None;
+    let cur = &event[key];
+    let f = field(event, key);
+    match f.role {
+        Role::Skip => return None,
+        Role::Bool => return Some(Value::Bool(rng.chance(0.5))),
+        Role::ForceList => return force_locations(game, player, pools, rng),
+        _ => {}
     }
-    if cur.is_boolean() {
-        return Some(Value::Bool(rng.chance(0.5)));
-    }
-    if k.ends_with("forcelocations") {
-        return force_locations(game, player, pools, rng).map(Value::String);
-    }
-    if cur.is_array() || ((cur.is_string() || cur.is_null()) && k.ends_with("ids")) {
+    if matches!(f.role, Role::CardList | Role::FactionList) || cur.is_array() {
         // A multi-select: a subset of the offered choices (or of the player's cards).
-        let list: Vec<Value> = match pools.list_for(key, cur, keys, rng) {
+        let list: Vec<Value> = match pools.list_for(key, f, cur, keys, rng) {
             Some(l) => l.to_vec(),
             None if k.contains("card") => d.own_cards.iter().map(|c| Value::from(*c)).collect(),
             None => return None,
@@ -509,48 +665,47 @@ fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &
         if subset.is_empty() && !list.is_empty() && rng.chance(0.7) {
             subset.push(rng.pick(&list).cloned().unwrap());
         }
-        return Some(if cur.is_array() {
-            Value::Array(subset)
-        } else {
-            Value::String(subset.iter().map(|v| v.to_string().trim_matches('"').to_string()).collect::<Vec<_>>().join(";"))
-        });
+        return Some(Value::Array(subset));
     }
-    if !pools.intrusions.is_empty() && DESTINATION_FIELDS.contains(&key) && rng.chance(0.5) {
+    if !pools.intrusions.is_empty() && f.role == Role::Location && DESTINATION_FIELDS.contains(&key) && rng.chance(0.5) {
         // A destination where the forces intrude, preferably one the form offers.
-        let offered: Vec<i32> = pools.list_for(key, cur, keys, rng).map(|l| l.iter().filter_map(|v| v.as_i64()).map(|v| v as i32).collect()).unwrap_or_default();
+        let offered: Vec<i32> = pools.list_for(key, f, cur, keys, rng).map(|l| l.iter().filter_map(|v| v.as_i64()).map(|v| v as i32).collect()).unwrap_or_default();
         let both: Vec<i32> = pools.intrusions.iter().copied().filter(|l| offered.contains(l)).collect();
         let from = if both.is_empty() { &pools.intrusions } else { &both };
         return rng.pick(from).map(|l| Value::from(*l));
     }
-    let diplomat = [LeaderSkill::Diplomat.value()];
-    let preferred: &[i32] = match (pools.event_type, key) {
-        (Some(EventType::SkillAssigned), "Skill") => &diplomat,
-        (Some(EventType::Battle), "_heroId") => &pools.diplomats,
-        _ => &[],
+    let preferred: Vec<Value> = match (pools.event_type, key) {
+        (Some(EventType::SkillAssigned), "skill") => vec![Value::from(LeaderSkill::Diplomat.to_string())],
+        (Some(EventType::Battle), "hero") => pools.diplomats.iter().map(|h| Value::from(*h)).collect(),
+        _ => vec![],
     };
-    if let Some(list) = pools.list_for(key, cur, keys, rng) {
+    if let Some(list) = pools.list_for(key, f, cur, keys, rng) {
         // The Diplomat skill and leaders who have it: the only way to the retreat after a battle.
-        let preferred: Vec<&Value> = list.iter().filter(|v| v.as_i64().is_some_and(|v| preferred.contains(&(v as i32)))).collect();
+        let preferred: Vec<&Value> = list.iter().filter(|v| preferred.contains(v)).collect();
         if let Some(v) = rng.pick(&preferred).filter(|_| rng.chance(0.9)) {
             return Some((*v).clone());
         }
         let v = rng.pick(list).cloned()?;
-        // Keep the field's JSON kind: a string field gets the choice as text.
-        return Some(match (&v, cur) {
-            (Value::Number(n), Value::String(_) | Value::Null) => Value::String(n.to_string()),
+        // Text gets the choice as text, and a faction a number as the faction it numbers.
+        return Some(match (&v, f.role) {
+            (Value::Number(n), Role::Text) => Value::String(n.to_string()),
+            (Value::Number(n), Role::Faction) => n.as_i64().map(|n| faction_name(n as i32)).filter(|f| !f.is_null()).unwrap_or(v),
             _ => v,
         });
     }
-    if cur.is_string() || cur.is_null() {
-        if k.contains("parameter") {
-            let lists = pools.string_lists();
-            let l = rng.pick(&lists)?;
-            return rng.pick(l).cloned();
+    match f.role {
+        Role::Text => {
+            if k.contains("parameter") {
+                let lists = pools.string_lists();
+                let l = rng.pick(&lists)?;
+                return rng.pick(l).cloned();
+            }
+            return None;
         }
-        return None;
-    }
-    if !cur.is_i64() {
-        return None;
+        // A faction named like an amount (`toWin`, `toReplace`): one in play.
+        Role::Faction if is_amount(&k) && rng.chance(0.5) => return value_for(f, cur, d, rng),
+        r if !r.is_number() => return None,
+        _ => {}
     }
     if let Some(max) = pools.bound_for(key) {
         return Some(Value::from(bounded(max, rng)));
@@ -558,8 +713,8 @@ fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &
     // No choice offered: the player's own cards, leaders and force locations, which the client
     // lists anyway, and small amounts.
     let own = Domains { all_cards: vec![], all_heroes: vec![], held_cards: vec![], locations: vec![], strongholds: vec![], territories: vec![], ..d.clone() };
-    if k.contains("card") || k.contains("hero") || k.contains("leader") || k.starts_with('_') {
-        return value_for(key, cur, &own, rng);
+    if f.role.is_object() || k.contains("card") || k.contains("hero") || k.contains("leader") {
+        return value_for(f, cur, &own, rng);
     }
     if is_amount(&k) && rng.chance(0.5) {
         return Some(Value::from(amount(rng)));
@@ -567,28 +722,32 @@ fn steered_value(key: &str, cur: &Value, keys: &[String], pools: &Pools, game: &
     None
 }
 
+/// Battle plan fields set from one of the form's force mixes, in the order of a mix.
+const MIX_FIELDS: [&str; 4] = ["specialForces", "specialForcesAtHalfStrength", "forces", "forcesAtHalfStrength"];
+
 /// Fills fields of `event` from the form's pools: each with probability `p`. Returns the fields changed.
 fn steer(event: &mut Map<String, Value>, pools: &Pools, game: &Game, player: Option<usize>, p: f64, rng: &mut Rng) -> Vec<String> {
     let Some(d) = quiet(|| Domains::of(game, player)) else { return vec![] };
     let mut changed = Vec::new();
-    if !pools.mixes.is_empty() && event.contains_key("ForcesAtHalfStrength") && rng.chance(p) {
+    let mixed = !pools.mixes.is_empty() && event.contains_key("forcesAtHalfStrength") && rng.chance(p);
+    if mixed {
         let m = rng.pick(&pools.mixes).cloned().unwrap_or_default();
-        for (i, k) in ["Forces", "ForcesAtHalfStrength", "SpecialForces", "SpecialForcesAtHalfStrength"].iter().enumerate() {
+        for (i, k) in MIX_FIELDS.iter().enumerate() {
             if let Some(v) = m.get(i) {
                 event.insert(k.to_string(), Value::from(*v));
             }
         }
-        changed.push("Forces".to_string());
+        changed.push("forces".to_string());
     }
     let keys: Vec<String> = event.keys().cloned().collect();
     for k in keys.clone() {
-        if k.contains("Forces") && changed.iter().any(|c| c == "Forces") && !k.contains("Location") {
+        if mixed && MIX_FIELDS.contains(&k.as_str()) {
             continue;
         }
         if !rng.chance(p) {
             continue;
         }
-        if let Some(v) = steered_value(&k, &event[&k], &keys, pools, game, player, &d, rng) {
+        if let Some(v) = steered_value(event, &k, &keys, pools, game, player, &d, rng) {
             if event[&k] != v {
                 event.insert(k.clone(), v);
                 changed.push(k);
@@ -606,7 +765,7 @@ pub fn mutate_steered(event: &mut Map<String, Value>, game: &Game, seating: &Sea
     let keys: Vec<String> = event.keys().cloned().collect();
     for _ in 0..6 {
         let Some(k) = rng.pick(&keys).cloned() else { break };
-        if let Some(v) = steered_value(&k, &event[&k], &keys, &pools, game, Some(player), &d, rng) {
+        if let Some(v) = steered_value(event, &k, &keys, &pools, game, Some(player), &d, rng) {
             if event[&k] != v {
                 event.insert(k.clone(), v);
                 return vec![k];
@@ -632,10 +791,6 @@ pub fn battle_in_progress(g: &Game) -> bool {
     g.turn.current_main_phase == MainPhase::Battle && g.current_battle().is_some()
 }
 
-fn type_named(name: &str) -> Option<EventType> {
-    EventType::ALL.iter().copied().find(|t| t.name() == name)
-}
-
 /// Generates events and remembers which (type, phase) pairs were executed, to prefer rare ones.
 pub struct Fuzzer {
     /// The names of the seated users, which forms fill in.
@@ -648,7 +803,7 @@ pub struct Fuzzer {
     steered_tries: BTreeMap<(&'static str, i32), u32>,
     /// Executions per type in any phase: types executed all game long (deals, donations) weigh less.
     accepted_total: BTreeMap<&'static str, u32>,
-    /// The latest accepted battle plan of each faction, for [`Fuzzer::changed_plan`].
+    /// The latest accepted battle plan of each faction (by value), for [`Fuzzer::changed_plan`].
     pub plans: BTreeMap<i32, Map<String, Value>>,
     /// The bot's latest event (player, JSON without time) and how often it came again in a row.
     pub last_bot_event: Option<(usize, String)>,
@@ -744,7 +899,7 @@ impl Fuzzer {
             return None;
         }
         let i = applicable[self.rng.below(applicable.len())].0;
-        let t = type_named(RARE_BATTLE_ACTION_TYPES[self.rng.below(RARE_BATTLE_ACTION_TYPES.len())])?;
+        let t = EventType::from_name(RARE_BATTLE_ACTION_TYPES[self.rng.below(RARE_BATTLE_ACTION_TYPES.len())])?;
         Some((i, t))
     }
 
@@ -772,13 +927,14 @@ impl Fuzzer {
         if !self.rng.chance(RETREAT_ACTION) {
             return None;
         }
+        let diplomat = Value::from(LeaderSkill::Diplomat.to_string());
         let candidates: Vec<(usize, EventType)> = applicable
             .iter()
             .flat_map(|(i, ts)| ts.iter().filter(|t| matches!(t, EventType::SkillAssigned | EventType::Battle)).map(move |t| (*i, *t)))
             .filter(|(i, t)| {
                 let pools = Pools::of(shadow, &self.seating, *i, *t);
                 match t {
-                    EventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&Value::from(LeaderSkill::Diplomat.value()))),
+                    EventType::SkillAssigned => pools.lists.iter().any(|(_, l, _)| l.contains(&diplomat)),
                     _ => pools.lists.iter().any(|(n, l, _)| n == "hero" && l.iter().any(|h| h.as_i64().is_some_and(|h| pools.diplomats.contains(&(h as i32))))),
                 }
             })
@@ -794,15 +950,15 @@ impl Fuzzer {
         let mut plan = self.plans.get(&faction)?.clone();
         let pools = Pools::of(shadow, &self.seating, player, EventType::Battle);
         let (field, list): (&str, Vec<Value>) = match self.rng.below(4) {
-            0 => ("_heroId", pools.lists.iter().find(|(n, _, _)| n == "hero")?.1.clone()),
-            1 => ("_weaponCardId", pools.lists.iter().find(|(n, _, _)| n == "weapon")?.1.clone()),
-            2 => ("_defenseCardId", pools.lists.iter().find(|(n, _, _)| n == "defense")?.1.clone()),
-            _ => ("Forces", pools.mixes.iter().filter_map(|m| m.first().map(|f| Value::from(*f))).collect()),
+            0 => ("hero", pools.lists.iter().find(|(n, _, _)| n == "hero")?.1.clone()),
+            1 => ("weapon", pools.lists.iter().find(|(n, _, _)| n == "weapon")?.1.clone()),
+            2 => ("defense", pools.lists.iter().find(|(n, _, _)| n == "defense")?.1.clone()),
+            _ => ("forces", pools.mixes.iter().filter_map(|m| m.get(2).map(|f| Value::from(*f))).collect()),
         };
         let others: Vec<Value> = list.into_iter().filter(|v| Some(v) != plan.get(field)).collect();
         let v = self.rng.pick(&others)?.clone();
         plan.insert(field.into(), v);
-        plan.remove("Time");
+        plan.remove("at");
         Some(plan)
     }
 
@@ -836,34 +992,30 @@ impl Fuzzer {
 
     /// Builds an event of type `t` for `player` (None: no faction) from the shadow game: several
     /// candidates, each the draft the client's form sends with fields filled from the choices the
-    /// form offers. Returns the event JSON object (without `Time`), preferring one that passes
+    /// form offers. Returns the event's flat map (without `at`), preferring one that passes
     /// validation.
     pub fn build(&mut self, shadow: &Game, player: Option<usize>, t: EventType) -> Option<Map<String, Value>> {
         let faction = player.filter(|i| *i < shadow.players.len()).map(|i| shadow.players[i].faction).unwrap_or(None);
         let pools = player.map(|i| Pools::of(shadow, &self.seating, i, t)).unwrap_or_default();
         if let Some(b) = self.rng.pick(&pools.buttons).filter(|_| self.rng.chance(0.9)) {
             let mut e = b.clone();
-            e.remove("Time");
+            e.remove("at");
             return Some(e);
         }
-        let draft = pools.draft.clone().map(|d| Value::Object(d).to_string()).or_else(|| {
+        let draft = pools.draft.clone().or_else(|| {
             player.filter(|i| *i < shadow.players.len()).and_then(|i| {
                 let p = shadow.player_at(i);
                 let rv = ResolvedViewer { player: Some(p), faction, is_host: false, is_observer: false };
-                quiet(|| treachery_view::actions::default_draft(shadow, &rv, &self.seating, faction, t).map(|e| json::serialize(&HistoryEntry::new(faction, e)))).flatten()
+                quiet(|| treachery_view::actions::default_draft(shadow, &rv, &self.seating, faction, t).and_then(|e| events::flatten_new(faction, e))).flatten()
             })
         });
-        let base = draft.unwrap_or_else(|| {
-            let minimal = format!("{{\"$type\":\"{}\",\"Initiator\":{}}}", t.name(), value_or_absent(faction));
-            quiet(|| json::deserialize::<HistoryEntry>(&minimal).ok().map(|e| json::serialize(&e))).flatten().unwrap_or(minimal)
-        });
-        let Ok(Value::Object(mut base)) = serde_json::from_str::<Value>(&base) else { return None };
-        base.remove("Time");
+        let mut base = draft.or_else(|| events::flatten_new(faction, t.default_event()))?;
+        base.remove("at");
         // A form with a faction to pick has one picked: another faction in play.
-        if base.get("Target").and_then(|v| v.as_i64()) == Some(0) {
+        if base.get("target").is_some_and(|v| v.is_null()) && field(&base, "target").role == Role::Faction {
             let others: Vec<i32> = shadow.players.iter().map(|p| value_or_absent(p.faction)).filter(|f| *f != 0 && *f != value_or_absent(faction)).collect();
             if let Some(f) = self.rng.pick(&others) {
-                base.insert("Target".into(), Value::from(*f));
+                base.insert("target".into(), faction_name(*f));
             }
         }
 
@@ -882,15 +1034,15 @@ impl Fuzzer {
             }
             if !pools.intrusions.is_empty() && self.rng.chance(0.8) {
                 // Forces that go somewhere, rather than a pass.
-                for (k, v) in [("Passed", false), ("Accompanies", true)] {
+                for (k, v) in [("passed", false), ("accompanies", true)] {
                     if candidate.contains_key(k) {
                         candidate.insert(k.into(), Value::Bool(v));
                     }
                 }
             }
-            if t == EventType::Revival && candidate.get("_locationId").and_then(|v| v.as_i64()).is_some_and(|l| l >= 0) && self.rng.chance(0.7) {
+            if t == EventType::Revival && candidate.get("location").and_then(|v| v.as_i64()).is_some_and(|l| l >= 0) && self.rng.chance(0.7) {
                 // Revived forces placed on the planet, where they may intrude.
-                for (amount, placed) in [("AmountOfForces", "NumberOfForcesInLocation"), ("AmountOfSpecialForces", "NumberOfSpecialForcesInLocation")] {
+                for (amount, placed) in [("amountOfForces", "numberOfForcesInLocation"), ("amountOfSpecialForces", "numberOfSpecialForcesInLocation")] {
                     let n = candidate.get(amount).and_then(|v| v.as_i64()).unwrap_or(0) as i32;
                     if n > 0 {
                         candidate.insert(placed.into(), Value::from(self.rng.range(1, n + 1)));
@@ -898,20 +1050,15 @@ impl Fuzzer {
                 }
             }
             if t == EventType::JuicePlayed && self.rng.chance(0.7) {
-                if pools.lists.iter().any(|(n, l, _)| n == "choice" && l.contains(&Value::from(JuiceType::Aggressor as i32))) {
-                    candidate.insert("Type".into(), Value::from(JuiceType::Aggressor as i32));
+                let aggressor = Value::from(JuiceType::Aggressor.to_string());
+                if pools.lists.iter().any(|(n, l, _)| n == "choice" && l.contains(&aggressor)) {
+                    candidate.insert("juiceType".into(), aggressor);
                 }
             }
             if !search {
                 return Some(candidate);
             }
-            let text = Value::Object(candidate.clone()).to_string();
-            let valid = quiet(|| {
-                let e: HistoryEntry = json::deserialize(&text).ok()?;
-                Some(e.validate(shadow).is_ok())
-            })
-            .flatten()
-            .unwrap_or(false);
+            let valid = quiet(|| events::to_trace(&candidate).1.ok().map(|e| e.validate(shadow).is_ok())).flatten().unwrap_or(false);
             if valid && self.rng.chance(0.9) {
                 return Some(candidate);
             }
@@ -919,5 +1066,54 @@ impl Fuzzer {
             search = !valid;
         }
         last
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every field the engine writes has a role from the TypeScript declarations.
+    #[test]
+    fn every_field_has_a_role() {
+        for t in EventType::ALL {
+            let m = events::flatten_new(None, t.default_event()).unwrap();
+            for k in m.keys().filter(|k| !matches!(k.as_str(), "by" | "at" | "type" | "passed")) {
+                assert!(schema()[t.name()].contains_key(k), "{}.{k}", t.name());
+            }
+        }
+    }
+
+    #[test]
+    fn roles() {
+        let role = |t: &str, k: &str| schema()[t][k].role;
+        assert_eq!(role("Battle", "hero"), Role::Hero);
+        assert_eq!(role("Battle", "weapon"), Role::Card);
+        assert_eq!(role("Battle", "forces"), Role::Amount);
+        assert_eq!(role("Move", "to"), Role::Location);
+        assert_eq!(role("Move", "forceLocations"), Role::ForceList);
+        assert_eq!(role("PerformHmsMovement", "target"), Role::Location);
+        assert_eq!(role("ClairVoyancePlayed", "target"), Role::Faction);
+        assert_eq!(role("AutomationConfigured", "biddingWinningFaction"), Role::Faction);
+        assert_eq!(role("TerrorPlanted", "stronghold"), Role::Territory);
+        assert_eq!(role("AmbassadorPlaced", "stronghold"), Role::Stronghold);
+        assert_eq!(role("CardsDetermined", "treacheryCardIds"), Role::CardList);
+        assert_eq!(role("DealOffered", "to"), Role::FactionList);
+        assert_eq!(role("DealOffered", "dealParameter1"), Role::Text);
+        assert_eq!(role("SkillAssigned", "skill"), Role::Enum);
+        assert_eq!(role("EstablishPlayers", "seed"), Role::Skip);
+    }
+
+    /// A flat map turns back into the entry it was made from, passes included.
+    #[test]
+    fn flat_round_trip() {
+        for t in EventType::ALL {
+            let e = HistoryEntry::new(Some(Faction::Atreides), t.default_event());
+            let back = events::to_trace(&events::flatten(&e).unwrap()).1.unwrap();
+            assert_eq!(serde_json::to_value(&back).unwrap(), serde_json::to_value(&e).unwrap(), "{}", t.name());
+        }
+        let mut pass = events::flatten_new(None, EventType::Move.default_event()).unwrap();
+        pass.insert("passed".into(), Value::Bool(true));
+        assert_eq!(events::unflatten(&pass)["event"], serde_json::json!({"type": "Move", "play": null}));
     }
 }

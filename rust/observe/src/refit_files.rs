@@ -126,20 +126,16 @@ pub fn write_lines(path: &Path, lines: &[Value]) -> Result<(), String> {
     w.flush().map_err(|e| e.to_string())
 }
 
-/// An event of a file as refit works on it: a map of the format of version 190
-/// (`crate::event_maps`). The files hold the engine's format; an event that doesn't decode stays
-/// as it is, and refit refuses it.
+/// An event of a file as refit works on it: a flat map (`crate::events::flatten`). An event that
+/// doesn't decode stays as it is, and refit refuses it.
 fn event_object(v: &Value) -> Map<String, Value> {
     let v = match v {
         Value::String(s) => serde_json::from_str(s).unwrap_or(Value::Null),
         v => v.clone(),
     };
-    if crate::events::is_legacy(&v) {
-        return v.as_object().cloned().unwrap_or_default();
-    }
-    match crate::events::decode(&v) {
-        Ok(e) => crate::events::legacy_object(&e),
-        Err(_) => v.as_object().cloned().unwrap_or_default(),
+    match crate::events::decode(&v).ok().and_then(|e| crate::events::flatten(&e)) {
+        Some(m) => m,
+        None => v.as_object().cloned().unwrap_or_default(),
     }
 }
 
@@ -205,7 +201,7 @@ pub fn read(path: &Path, old: &Old) -> Result<Log, String> {
 
 fn own_seed(log: &Log) -> Option<i64> {
     log.items.iter().find_map(|i| match i {
-        Item::Event { event, .. } if event.get("$type").and_then(|v| v.as_str()) == Some("EstablishPlayers") => event.get("Seed").and_then(|v| v.as_i64()),
+        Item::Event { event, .. } if event.get("type").and_then(|v| v.as_str()) == Some("EstablishPlayers") => event.get("seed").and_then(|v| v.as_i64()),
         _ => None,
     })
 }

@@ -164,29 +164,29 @@ impl Config {
         Config { ruleset, rules, factions, players, turns, engine_seed: rng.seed(), style, seated, focus }
     }
 
-    /// The host's `EstablishPlayers`, in savegame JSON (without `Time`).
+    /// The host's `EstablishPlayers`, as the recorder submits events (a flat map without `at`,
+    /// events.rs).
     pub fn establish_players(&self) -> Value {
-        let rules: Vec<i32> = self.rules.iter().map(|r| *r as i32).collect();
-        let factions: Vec<i32> = self.factions.iter().map(|f| *f as i32).collect();
-        let names: Vec<String> = self.factions.iter().map(|f| f.to_string()).collect();
+        let rules: Vec<String> = self.rules.iter().map(|r| r.to_string()).collect();
+        let factions: Vec<String> = self.factions.iter().map(|f| f.to_string()).collect();
         json!({
-            "$type": "EstablishPlayers",
-            "Settings": {
-                "NumberOfPlayers": self.players,
-                "MaximumTurns": self.turns,
-                "InitialRules": rules,
-                "AllowedFactionsInPlay": factions,
-                "AutoOpenEmptySeats": true,
-                "AsyncPlay": false,
-                "AsyncPlayMessageIntervalMinutes": 0
+            "by": null,
+            "type": "EstablishPlayers",
+            "settings": {
+                "numberOfPlayers": self.players,
+                "maximumTurns": self.turns,
+                "initialRules": rules,
+                "allowedFactionsInPlay": factions,
+                "autoOpenEmptySeats": true,
+                "asyncPlay": false,
+                "asyncPlayMessageIntervalMinutes": 0
             },
-            "Seed": self.engine_seed,
-            "MaximumNumberOfPlayers": self.players,
-            "MaximumTurns": self.turns,
-            "ApplicableRules": rules,
-            "_players": "",
-            "_factionsInPlay": names.join(","),
-            "Initiator": 0
+            "seed": self.engine_seed,
+            "maximumNumberOfPlayers": self.players,
+            "maximumTurns": self.turns,
+            "applicableRules": rules,
+            "players": [],
+            "factionsInPlay": factions
         })
     }
 

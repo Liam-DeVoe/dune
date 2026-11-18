@@ -53,12 +53,12 @@ export function MusicComponent({ visible }: { visible: boolean }) {
 
   if (!visible) return null;
   return (
-    <div className="volume">
-      <label htmlFor="musicVolume">Music volume</label>
+    <div className="menu-overflow__volume">
+      <label className="menu-overflow__volume-label" htmlFor="musicVolume">Music volume</label>
       <input id="musicVolume" className="form-range" type="range" min="0" max="100" step="1" value={music}
         onChange={(e) => { soundSettings.music = Number(e.currentTarget.value); setMusic(soundSettings.music); }} onPointerUp={saveSoundSettings} onKeyUp={saveSoundSettings} />
 
-      <label htmlFor="effectVolume">Sound effects volume</label>
+      <label className="menu-overflow__volume-label" htmlFor="effectVolume">Sound effects volume</label>
       <input id="effectVolume" className="form-range" type="range" min="0" max="100" step="1" value={effect}
         onChange={(e) => { soundSettings.effect = Number(e.currentTarget.value); setEffect(soundSettings.effect); }} onPointerUp={saveSoundSettings} onKeyUp={saveSoundSettings} />
     </div>

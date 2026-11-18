@@ -32,7 +32,7 @@ export function JoinedPlayersPanel() {
       const isHost = p.isHost(userId);
       return (
         <div key={userId} className={userId === players[0] ? "" : "hairline-top"} style={{ verticalAlign: "center", minHeight: "2rem" }}>
-          <span className={isMe ? "player-name you" : "player-name"}>{p.playerName(userId)}</span>
+          <span className={isMe ? "player-name player-name--you" : "player-name"}>{p.playerName(userId)}</span>
           {isHost && <HostIcon size={18} />}
           {iAmHost && (
             <>
@@ -54,7 +54,7 @@ export function JoinedPlayersPanel() {
       return (
         <div key={player.seat} className={i === 0 ? "" : "hairline-top"} style={{ minHeight: "2rem" }}>
           {player.faction !== "None" && <FactionImage faction={player.faction as Faction} diameter={20} />}
-          {isBot ? <BotIcon size={18} /> : <span className={`m-1 ${isMe ? "player-name you" : "player-name"}`}>{p.playerName(userId)}</span>}
+          {isBot ? <BotIcon size={18} /> : <span className={`m-1 ${isMe ? "player-name player-name--you" : "player-name"}`}>{p.playerName(userId)}</span>}
           {isHost && <HostIcon size={18} />}
           {available && <span className="badge text-bg-success">open</span>}
           {iAmHost && (

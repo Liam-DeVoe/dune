@@ -61,13 +61,13 @@ export function DealComponent({ open = false }: { open?: boolean }) {
                           {o.answers.map((a) => {
                             const answer = a.accepted === true ? "accepted" : a.accepted === false ? "declined" : "deciding";
                             return (
-                              <span key={a.faction} className={`deal-answer ${answer}`} title={`${skin.faction(a.faction)}: ${answer}`}>
-                                <img width="18" height="18" src={skin.factionImage(a.faction)} alt={skin.faction(a.faction)} />{answer}
+                              <span key={a.faction} className={`deal-answers__answer deal-answers__answer--${answer}`} title={`${skin.faction(a.faction)}: ${answer}`}>
+                                <img className="deal-answers__img" width="18" height="18" src={skin.factionImage(a.faction)} alt={skin.faction(a.faction)} />{answer}
                               </span>
                             );
                           })}
                           {o.answers.length > 0 && o.answers.every((a) => a.accepted === false) && (
-                            <span className="deal-answer-none">Declined by everyone</span>
+                            <span className="deal-answers__none">Declined by everyone</span>
                           )}
                         </div>
                       </td>

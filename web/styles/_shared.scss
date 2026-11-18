@@ -1,7 +1,6 @@
 // Values repeated verbatim across the stylesheet: the translucent
 // hairlines and washes that sit on the ink and parchment surfaces, and the
-// prompt card's text styles, which both the guide's .prompt and the app's
-// .prompt-act use. Emits no CSS on its own.
+// prompt card's kicker style (.prompt-act__kicker). Emits no CSS on its own.
 
 // Translucent light lines on dark (ink) surfaces.
 $hairline: rgba(255, 255, 255, 0.09); // panel edges and dividers
@@ -32,24 +31,6 @@ $parchment-check-bg: rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-// The prompt card's display-face title.
-@mixin prompt-title {
-  font-family: var(--font-display);
-  font-weight: 400;
-  font-size: 24px;
-  line-height: 1.05;
-  margin: 0 0 10px;
-}
-
-// The prompt card's row of buttons and inputs.
-@mixin prompt-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-top: 12px;
-  flex-wrap: wrap;
 }
 
 // Parchment surface for the "your move" state of the prompt card.

@@ -43,7 +43,7 @@ function Screen({ live }: { live: GameView }) {
         </div>
         <UndoTimeline />
       </div>
-      <div className="col-sm-12 cursor-hand side-column">
+      <div className="col-sm-12 side-column">
         <MenuPanels />
         {!view.viewer.isObserver && PhaseValue[view.phase] > PhaseValue.TradingFactions && <PlayerPanel />}
         <div className="act-stack">

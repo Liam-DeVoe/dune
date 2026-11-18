@@ -22,8 +22,7 @@
   // Collapsible headers (they contain a CollapseButton, rendered as
   // .btn-link.float-end) hold sentences or badges rather than titles. The scope
   // examples keep those in the body face, 16px/600, parchment.
-  &:has(> .btn-link.float-end),
-  &.plain {
+  &:has(> .btn-link.float-end) {
     font-family: var(--font-body);
     font-weight: 600;
     font-size: 16px;

@@ -162,7 +162,7 @@ export function DiscoveryRevealedForm({ action }: { action: ActionView }) {
       {current && token && (
         <>
           <div>Reveal the <PopoverText popover={discoveryTokenPopup(skin, token)}>{skin.get("DiscoveryTokenName_STR", token)}</PopoverText> in <PlaceChip place={{ territory: current.territory }} />?</div>
-          <div className="label-info" dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, skin.get("DiscoveryTokenDescription_STR", token)) }} />
+          <div dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, skin.get("DiscoveryTokenDescription_STR", token)) }} />
         </>
       )}
       <ButtonRow confirm={confirm} confirmError={validation} pass={() => void pass()} />
@@ -258,7 +258,7 @@ export function PerformFremenSetupForm({ action }: { action: ActionView }) {
       ? <>Distribute {remaining} forces on <PartsPlace parts={places[0]} />, <PartsPlace parts={places[1]} />, and <PartsPlace parts={places[2]} />.</>
       : <>All forces placed.</>}>
       <div className="small">Use the map to place forces.</div>
-      <div className="small text-2">
+      <div className="small">
         <div><ClickHint button="Lmb" /> place <ForceToken faction={faction} size={18} imgClass="setup-hint-force" title={names.force} /></div>
         {o?.mayStageSpecial && <div><ClickHint button="Lmb" shift /> place <ForceToken faction={faction} special size={18} imgClass="setup-hint-force" title={names.special} /></div>}
         <div><ClickHint button="Rmb" /> remove force</div>

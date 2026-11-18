@@ -18,19 +18,6 @@
   overflow: hidden;
   @include shared.parchment-act;
 
-  .kicker {
-    @include shared.prompt-kicker;
-    color: var(--rock-2);
-  }
-
-  .title {
-    @include shared.prompt-title;
-  }
-
-  .actions {
-    @include shared.prompt-actions;
-  }
-
   // On parchment, the dark-surface variants of the controls flip.
   .btn-secondary,
   .btn-outline-secondary {
@@ -45,6 +32,15 @@
     --bs-btn-disabled-color: var(--ink-1);
     --bs-btn-disabled-border-color: #{shared.$ink-line-strong};
   }
+}
+
+// The small uppercase label above the card's content. Inside the joined card
+// the act-stack selector weighs (0,4,0), so its bottom margin outweighs the
+// host strip's margin reset below.
+.prompt-act__kicker,
+.act-stack > .card:not(.battle-plan) .prompt-act__kicker {
+  @include shared.prompt-kicker;
+  color: var(--rock-2);
 }
 
 // Links on any parchment surface, the prompt card or an .on-parchment
@@ -97,26 +93,26 @@
     border-color: shared.$ink-line;
   }
 
-  .num input,
-  .num button {
+  .num__input,
+  .num__button {
     color: var(--ink-1);
   }
 
-  .num .ic {
+  .num__ic {
     border-right-color: shared.$ink-line-soft;
   }
 
   .seg {
     border-color: shared.$ink-line;
     background: shared.$parchment-input-bg;
+  }
 
-    button {
-      color: var(--ink-1);
-    }
+  .seg__button {
+    color: var(--ink-1);
+  }
 
-    button.on {
-      color: var(--ink-0);
-    }
+  .seg__button--on {
+    color: var(--ink-0);
   }
 
   .card-header {
@@ -179,7 +175,7 @@
 // The status card's host-only controls (Continue for everyone, the bidding time limit): a strip
 // across the foot of the card, set off by a hairline and a faint ink wash so it doesn't read as
 // one of the player's own buttons.
-.prompt-act .host-strip {
+.prompt-act__host-strip {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -189,11 +185,11 @@
   border-top: 1px solid shared.$ink-line-soft;
   background: rgba(29, 12, 0, 0.045);
   font-size: 14px;
+}
 
-  // Copperplate's capitals sit high in their line box; drop them to the button's centre.
-  .kicker {
-    margin: 0;
-    line-height: 1;
-    padding-top: 3px;
-  }
+// Copperplate's capitals sit high in their line box; drop them to the button's centre.
+.prompt-act__kicker--host {
+  margin: 0;
+  line-height: 1;
+  padding-top: 3px;
 }

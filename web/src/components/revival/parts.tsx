@@ -38,7 +38,7 @@ export function GameEventLayout({ type, header, urgent = false, inPopover = fals
     setCollapsed(!collapsed);
   };
   return (
-    <div className={`card ${urgent ? "card-urgent" : ""} mb-2`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
+    <div className={`card ${urgent ? "card--urgent" : ""} mb-2`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
         <CollapseButton collapsed={collapsed} />
         {header}

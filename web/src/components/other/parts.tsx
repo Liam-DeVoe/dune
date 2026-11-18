@@ -38,7 +38,7 @@ export function Layout({ type, header, urgent = false, startCollapsed = false, i
   };
   const shown = header == null ? false : collapsed;
   return (
-    <div className={`card ${urgent ? "card-urgent" : ""} mb-2`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
+    <div className={`card ${urgent ? "card--urgent" : ""} mb-2`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       {header != null && (
         <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />

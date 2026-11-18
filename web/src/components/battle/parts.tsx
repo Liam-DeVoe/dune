@@ -36,7 +36,7 @@ export function Layout({ type, header, urgent = false, inPopover = false, classN
     collapsedByType.set(type, !collapsed);
     setCollapsed(!collapsed);
   };
-  const classes = ["card", urgent ? "card-urgent" : "", className, "mb-2"].filter((c) => c).join(" ");
+  const classes = ["card", urgent ? "card--urgent" : "", className, "mb-2"].filter((c) => c).join(" ");
   return (
     <div className={classes} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>

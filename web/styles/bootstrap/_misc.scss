@@ -17,16 +17,3 @@
   --bs-progress-bar-bg: var(--gold);
   --bs-progress-bar-color: var(--ink-0);
 }
-
-// Validation colours used by app.css.
-.valid.modified:not([type="checkbox"]) {
-  outline-color: #79b34c;
-}
-
-.invalid {
-  outline-color: var(--storm);
-}
-
-.validation-message {
-  color: #e46b6b;
-}

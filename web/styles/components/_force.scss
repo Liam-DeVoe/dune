@@ -1,5 +1,3 @@
-@use "../shared";
-
 // A force token image in a wrapper, so that a starred special force can carry
 // its badge (an <img> can't have ::after). --d is the token's diameter. See
 // Support.HasStarredSpecialForce for which special forces are starred.
@@ -26,7 +24,7 @@
   height: calc(var(--d) * 0.44);
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   background: var(--ink-0);
   color: var(--parchment);
   font-size: calc(var(--d) * 0.34);

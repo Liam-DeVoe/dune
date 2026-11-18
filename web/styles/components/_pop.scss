@@ -1,30 +1,28 @@
-@use "../shared";
-
 // Popover box: a small floating ink card with a heading and paragraphs. The
 // boxes that are also a .pop (.trade-pop, .undo-tip), which come earlier in
 // the stylesheet, set their own padding and width through --pop-padding and
 // --pop-max-width.
 .pop {
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
-  padding: var(--pop-padding, 12px 14px);
+  padding: var(--pop-padding, var(--s-3) var(--s-4));
   box-shadow: var(--shadow-3);
   max-width: var(--pop-max-width, 340px);
-  font-size: 15px;
+  font-size: var(--fs-3);
 
   h6 {
-    margin: 0 0 6px;
+    margin: 0 0 var(--s-1);
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 20px;
+    font-size: var(--fs-5);
     color: var(--sand);
   }
 
   p {
-    margin: 4px 0;
+    margin: var(--s-1) 0;
     color: var(--text-2);
-    font-size: 14px;
+    font-size: var(--fs-3);
   }
 }
 
@@ -46,13 +44,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin: 0 0 8px;
-  padding: 5px 12px;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-2);
+  padding: var(--s-1) var(--s-3);
   border-radius: var(--r-1);
   background: var(--storm);
   color: var(--parchment);
-  font-size: 14px;
+  font-size: var(--fs-3);
   font-weight: 500;
 }
 
@@ -70,14 +68,14 @@
 .intel__hazards {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin: 6px 0 10px;
+  gap: var(--s-2);
+  margin: var(--s-1) 0 var(--s-2);
 }
 
 .chip--hazard {
-  gap: 6px;
-  padding: 3px 10px 3px 5px;
-  font-size: 14px;
+  gap: var(--s-1);
+  padding: var(--s-0) var(--s-3) var(--s-0) var(--s-1);
+  font-size: var(--fs-2);
 
   .chip__icon {
     display: block;
@@ -90,7 +88,7 @@
 .chip--protected,
 .chip--exposed {
   border-width: 1.5px;
-  padding: 2.5px 9.5px 2.5px 4.5px;
+  padding: var(--s-0) var(--s-2) var(--s-0) var(--s-1);
 }
 
 .chip--protected {
@@ -105,20 +103,20 @@
 // them. Every row has an icon slot so the titles line up even when it is empty.
 .intel__feats {
   text-align: left;
-  margin-top: 2px;
+  margin-top: var(--s-0);
 }
 
 .intel-feat {
   display: flex;
-  gap: 10px;
+  gap: var(--s-2);
   align-items: flex-start;
-  padding: 6px 0;
+  padding: var(--s-2) 0;
 
   &__icon {
     flex: none;
     width: 28px;
     height: 28px;
-    margin-top: 1px;
+    margin-top: var(--s-0);
     display: grid;
     place-items: center;
   }
@@ -126,14 +124,14 @@
   &__title {
     display: block;
     color: var(--sand);
-    font-size: 15px;
+    font-size: var(--fs-3);
     line-height: 1.2;
   }
 
   &__text {
     display: block;
     color: var(--text-2);
-    font-size: 14px;
+    font-size: var(--fs-3);
     line-height: 1.3;
   }
 }
@@ -142,13 +140,13 @@
 // "Sietch Tabr · Sector 4", so the name stays the thing you read first.
 .intel__sector {
   font-family: var(--font-label);
-  font-size: 12px;
+  font-size: var(--fs-1);
   font-weight: 400;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-3);
   white-space: nowrap;
-  margin-left: 4px;
+  margin-left: var(--s-1);
 }
 
 // What lies in the location: spice, forces, tokens and leaders, centred in
@@ -163,7 +161,7 @@
 .intel__token {
   flex: 0 0 auto;
   max-width: 100%;
-  padding: 0 0.75rem;
+  padding: 0 var(--s-3);
 }
 
 .intel__token-img {
@@ -181,7 +179,7 @@
   overflow: hidden;
   text-align: left;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
 
@@ -193,27 +191,27 @@
     // with the card's own white filling the gap.
     align-self: stretch;
     object-fit: contain;
-    background: #fff;
-    border-right: 1px solid shared.$hairline-strong;
+    background: var(--white);
+    border-right: 1px solid var(--hairline-strong);
   }
 
   &__body {
     min-width: 0;
-    padding: 12px 14px;
+    padding: var(--s-3) var(--s-4);
   }
 
   &__title {
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 21px;
+    font-size: var(--fs-5);
     line-height: 1.1;
     color: var(--sand);
   }
 
   &__text {
-    margin: 8px 0 0;
-    font-size: 14.5px;
+    margin: var(--s-2) 0 0;
+    font-size: var(--fs-3);
     line-height: 1.38;
     color: var(--text-2);
   }
@@ -222,10 +220,10 @@
   &__type {
     display: flex;
     align-items: center;
-    gap: 7px;
-    margin-top: 4px;
+    gap: var(--s-2);
+    margin-top: var(--s-1);
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: var(--fs-1);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-3);
@@ -235,12 +233,12 @@
     display: block;
     width: 9px;
     height: 9px;
-    border-radius: 2px;
+    border-radius: var(--r-1);
     flex: none;
 
     &--weapon { background: var(--storm); }
-    &--defense { background: #4f7bb3; }
-    &--special { background: #6f9a3a; }
+    &--defense { background: var(--card-defense); }
+    &--special { background: var(--card-special); }
     &--worthless { background: var(--rock-2); }
   }
 }
@@ -249,32 +247,32 @@
 // thumbnail, six to a row, newest first. Cards the player hasn't seen show
 // their back, dimmed.
 .pop-pile {
-  padding: 10px 12px 12px;
+  padding: var(--s-3) var(--s-3) var(--s-3);
   text-align: left;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
 
   &__title {
-    margin: 0 0 8px;
+    margin: 0 0 var(--s-2);
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 20px;
+    font-size: var(--fs-5);
     color: var(--sand);
   }
 
   &__cards {
     display: grid;
     grid-template-columns: repeat(6, 64px);
-    gap: 6px;
+    gap: var(--s-1);
   }
 
   &__card {
     display: block;
     width: 64px;
-    border-radius: 2px;
-    box-shadow: 0 1px 2px rgba(18, 8, 0, 0.7);
+    border-radius: var(--r-1);
+    box-shadow: 0 1px 2px var(--wash-dark-70);
 
     &--face-down {
       opacity: 0.55;
@@ -286,21 +284,21 @@
 // the players' timers. The rules under each group heading.
 .turn-pop__rules {
   margin-top: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
 }
 
 // The tanks popover (Tanks.razor): one row per faction with its chip, its
 // forces and special forces as token and count, and its dead leaders.
 .tanks-pop {
-  padding: 7px 9px 3px;
+  padding: var(--s-2) var(--s-2) var(--s-0);
   // The map popover frame centres its text.
   text-align: left;
 
   &__title {
-    margin: 0 0 6px;
+    margin: 0 0 var(--s-1);
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 15px;
+    font-size: var(--fs-3);
     color: var(--gold);
     text-align: left;
   }
@@ -311,17 +309,17 @@
 
   &__head {
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: var(--fs-1);
     font-weight: 400;
     color: var(--text-3);
     text-align: left;
-    padding: 0 12px 4px 0;
-    border-bottom: 1px solid shared.$hairline-strong;
+    padding: 0 var(--s-3) var(--s-1) 0;
+    border-bottom: 1px solid var(--hairline-strong);
   }
 
   &__cell {
-    padding: 3px 12px 3px 0;
-    border-bottom: 1px solid shared.$hairline;
+    padding: var(--s-0) var(--s-3) var(--s-0) 0;
+    border-bottom: 1px solid var(--hairline);
     vertical-align: middle;
     white-space: nowrap;
   }
@@ -337,33 +335,33 @@
 
   // Forces and special forces share the Forces heading, so they sit closer.
   &__cell--forces {
-    padding-right: 6px;
+    padding-right: var(--s-2);
   }
 
   // A token and its count, as in the battle prompt's force groups.
   &__count {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--s-1);
   }
 
   &__amount {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 21px;
+    font-size: var(--fs-5);
     color: var(--parchment);
     min-width: 2ch;
   }
 
   &__leaders {
     display: flex;
-    gap: 3px;
+    gap: var(--s-0);
   }
 
   &__leader {
     width: 44px;
     height: 44px;
-    filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.8));
+    filter: drop-shadow(1px 1px 1px var(--shade-80));
 
     // A face-down leader, shown by name only to its owner and Tleilaxu.
     &--face-down {
@@ -374,7 +372,7 @@
     // the strength badge), but the faction back fills its box. Inset it to match.
     &--back {
       box-sizing: border-box;
-      padding: 4px;
+      padding: var(--s-1);
     }
   }
 }
@@ -386,14 +384,14 @@
   width: 200px;
   overflow: hidden;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
 
   &__card {
     display: block;
     width: 100%;
-    background: #fff;
+    background: var(--white);
   }
 
   // A long territory and sector name doesn't fit beside the spice amount at
@@ -402,9 +400,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 8px;
-    padding: 8px;
-    border-top: 1px solid shared.$hairline-strong;
+    gap: var(--s-1) var(--s-2);
+    padding: var(--s-2);
+    border-top: 1px solid var(--hairline-strong);
   }
 
   // The spice amount (spiceHtml's mix), at the right of the foot.
@@ -420,14 +418,14 @@
   width: 268px;
   overflow: hidden;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
 
   &__img {
     display: block;
     width: 100%;
-    background: #fff;
+    background: var(--white);
   }
 }
 
@@ -446,7 +444,7 @@
   overflow: hidden;
   text-align: left;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
 
@@ -454,14 +452,14 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 21px;
+    font-size: var(--fs-5);
     line-height: 1.1;
     color: var(--sand);
   }
 
   &__text {
-    margin: 8px 0 0;
-    font-size: 14.5px;
+    margin: var(--s-2) 0 0;
+    font-size: var(--fs-3);
     line-height: 1.38;
     color: var(--text-2);
   }
@@ -471,9 +469,9 @@
     width: 128px;
     display: grid;
     place-items: center;
-    padding: 14px 0;
+    padding: var(--s-4) 0;
     background: var(--ink-2);
-    border-right: 1px solid shared.$hairline-strong;
+    border-right: 1px solid var(--hairline-strong);
   }
 
   &__img {
@@ -483,7 +481,7 @@
 
   &__body {
     min-width: 0;
-    padding: 12px 14px;
+    padding: var(--s-3) var(--s-4);
   }
 }
 
@@ -498,7 +496,7 @@
   overflow: hidden;
   text-align: left;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
 
@@ -506,7 +504,7 @@
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 21px;
+    font-size: var(--fs-5);
     line-height: 1.1;
     color: var(--sand);
     white-space: nowrap;
@@ -517,16 +515,16 @@
     width: 118px;
     display: grid;
     place-items: center;
-    padding: 12px 0;
+    padding: var(--s-3) 0;
     background: color-mix(in srgb, var(--fc) 45%, var(--ink-1));
-    border-right: 1px solid shared.$hairline-strong;
+    border-right: 1px solid var(--hairline-strong);
   }
 
   &__img {
     display: block;
     width: 92px;
     height: 92px;
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.8));
+    filter: drop-shadow(0 2px 3px var(--shade-80));
   }
 
   &__body {
@@ -534,8 +532,8 @@
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    gap: var(--s-2);
-    padding: 12px 16px 12px 14px;
+    gap: var(--s-1);
+    padding: var(--s-3) var(--s-4) var(--s-3) var(--s-4);
   }
 
   // Kwisatz Haderach popover: the leader popover with the +2 beside the
@@ -548,30 +546,30 @@
 
     .pop-leader__art {
       align-content: start;
-      padding-top: 16px;
+      padding-top: var(--s-4);
     }
 
     .pop-leader__body {
       justify-content: flex-start;
       min-width: 0;
-      padding-bottom: 14px;
+      padding-bottom: var(--s-4);
     }
   }
 
   &__plus {
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: var(--fs-body);
     color: var(--sand);
 
     &--head {
-      font-size: 18px;
+      font-size: var(--fs-4);
     }
   }
 
   &__head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--s-2);
   }
 
   // The Kwisatz Haderach as an icon in a sentence, and the treachery card
@@ -581,25 +579,25 @@
     --kh-size: 19px;
     --kh-margin: 0 var(--s-0);
     --kh-align: -4px;
-    --kh-filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+    --kh-filter: drop-shadow(0 1px 1px var(--shade-70));
     --card-chip-weight: 500;
     --card-chip-text: var(--parchment);
     --card-chip-align: -1px;
     align-self: stretch;
-    margin-top: var(--s-0);
-    padding-top: 9px;
-    border-top: 1px solid shared.$hairline;
+    margin-top: var(--s-1);
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--hairline);
   }
 
   &__line {
     margin: 0;
-    font-size: 14.5px;
+    font-size: var(--fs-3);
     line-height: 1.55;
     color: var(--text-2);
   }
 
   &__line + &__line {
-    margin-top: 3px;
+    margin-top: var(--s-0);
   }
 
   &__em {
@@ -610,11 +608,11 @@
   &__forces {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--s-0);
     vertical-align: -3px;
     white-space: nowrap;
     font-family: var(--font-display);
-    font-size: 16px;
+    font-size: var(--fs-body);
     color: var(--sand);
   }
 
@@ -634,36 +632,36 @@
 // for the faction's full rules sheet and the popover widens to fit it.
 .pop-faction {
   width: 340px;
-  padding: 14px 16px;
+  padding: var(--s-4) var(--s-4);
   text-align: left;
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
-  font-size: 14px;
+  font-size: var(--fs-3);
 
   &__title {
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 24px;
+    font-size: var(--fs-5);
     line-height: 1;
     color: var(--sand);
   }
 
   &__player {
-    margin-top: 2px;
-    font-size: 13px;
+    margin-top: var(--s-0);
+    font-size: var(--fs-2);
     color: var(--text-3);
   }
 
   &__facts {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 4px 12px;
-    margin: 12px 0 0;
-    padding-top: 10px;
-    border-top: 1px solid shared.$hairline;
+    gap: var(--s-1) var(--s-3);
+    margin: var(--s-3) 0 0;
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--hairline);
   }
 
   &__term {
@@ -678,9 +676,9 @@
   }
 
   &__theme {
-    margin-top: 12px;
+    margin-top: var(--s-3);
     font-family: var(--font-display);
-    font-size: 18px;
+    font-size: var(--fs-4);
     color: var(--parchment);
   }
 
@@ -690,73 +688,73 @@
   &__full ul {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin: 6px 0 0;
+    gap: var(--s-1);
+    margin: var(--s-1) 0 0;
     padding: 0;
     list-style: none;
   }
 
   &__advantage,
   &__full li {
-    padding: 2px 10px;
-    border: 1px solid shared.$hairline-strong;
+    padding: var(--s-0) var(--s-3);
+    border: 1px solid var(--hairline-strong);
     border-radius: var(--r-pill);
     background: var(--ink-2);
     color: var(--sand);
   }
 
   &__section {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid shared.$hairline;
+    margin-top: var(--s-3);
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--hairline);
     font-family: var(--font-label);
-    font-size: 11px;
+    font-size: var(--fs-1);
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-3);
   }
 
   &__foot {
-    margin-top: 12px;
-    padding-top: 8px;
-    border-top: 1px solid shared.$hairline;
-    font-size: 13px;
+    margin-top: var(--s-3);
+    padding-top: var(--s-2);
+    border-top: 1px solid var(--hairline);
+    font-size: var(--fs-2);
     color: var(--text-3);
   }
 
   &__key {
-    padding: 0 5px;
-    border: 1px solid shared.$hairline-strong;
+    padding: 0 var(--s-1);
+    border: 1px solid var(--hairline-strong);
     border-radius: var(--r-1);
     background: none;
     font-family: var(--font-body);
-    font-size: 12px;
+    font-size: var(--fs-1);
     color: var(--text-2);
   }
 
   &__full {
     display: none;
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid shared.$hairline;
-    font-size: 14px;
+    margin-top: var(--s-3);
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--hairline);
+    font-size: var(--fs-3);
     line-height: 1.45;
     color: var(--text-2);
 
     // The sheet (Skin.GetFactionInfo_HTML) is plain paragraphs and h5 headings.
     h5 {
-      margin: 14px 0 6px;
-      padding-top: 10px;
-      border-top: 1px solid shared.$hairline;
+      margin: var(--s-3) 0 var(--s-1);
+      padding-top: var(--s-3);
+      border-top: 1px solid var(--hairline);
       font-family: var(--font-label);
-      font-size: 11px;
+      font-size: var(--fs-1);
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--text-3);
     }
 
     p {
-      margin: 0 0 8px;
+      margin: 0 0 var(--s-2);
     }
 
     strong {
@@ -782,7 +780,7 @@
 .pop-faction__head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s-2);
 }
 
 .pop-faction__sigil {
@@ -792,12 +790,12 @@
 
 .pop-faction__leaders {
   display: flex;
-  gap: 5px;
-  margin-top: 10px;
+  gap: var(--s-1);
+  margin-top: var(--s-2);
 }
 
 .pop-faction__leader {
   width: 40px;
   height: 40px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(0 1px 2px var(--shade-80));
 }

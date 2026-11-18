@@ -7,8 +7,8 @@
   background-color: transparent;
 
   &__frame {
-    margin-bottom: 0.25rem;
-    padding: 0.25rem;
+    margin-bottom: var(--s-1);
+    padding: var(--s-1);
   }
 
   &__text {
@@ -18,11 +18,11 @@
   &__bar {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 4px 8px 8px;
-    border-bottom: 1px solid rgba(252, 249, 209, 0.08);
+    gap: var(--s-3);
+    padding: var(--s-1) var(--s-2) var(--s-2);
+    border-bottom: 1px solid var(--wash-light-08);
     font-family: var(--font-display);
-    font-size: 17px;
+    font-size: var(--fs-4);
   }
 
   // The faction chip (FactionChip's mix) at the left, the stats pushed right.
@@ -33,15 +33,15 @@
   &__stat {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: var(--s-1);
   }
 
   &__people {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px;
-    padding: 10px 8px 8px;
+    gap: var(--s-1);
+    padding: var(--s-3) var(--s-2) var(--s-2);
   }
 
   // The traitors (or face dancers), held apart in a dark pill with a faint
@@ -51,16 +51,16 @@
     display: inline-flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 5px;
-    padding: 4px 7px;
-    border-radius: 26px;
-    background: rgba(0, 0, 0, 0.35);
-    box-shadow: inset 0 0 0 1px rgba(195, 50, 50, 0.45);
+    gap: var(--s-1);
+    padding: var(--s-1) var(--s-2);
+    border-radius: var(--r-pill);
+    background: var(--shade-35);
+    box-shadow: inset 0 0 0 1px var(--storm-wash-50);
   }
 
   &__extras {
-    padding: 0 10px 8px;
-    font-size: 14px;
+    padding: 0 var(--s-3) var(--s-2);
+    font-size: var(--fs-2);
     color: var(--text-2);
 
     &:not(:has(*)) {
@@ -71,18 +71,18 @@
   &__cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    padding: 10px 8px 8px;
+    gap: var(--s-1);
+    padding: var(--s-3) var(--s-2) var(--s-2);
     // One row of cards tall, with or without cards.
     min-height: calc(48px * 7 / 5 + 18px);
-    border-top: 1px solid rgba(252, 249, 209, 0.08);
+    border-top: 1px solid var(--wash-light-08);
   }
 
   &__card-img {
-    border-radius: 3px;
+    border-radius: var(--r-1);
     box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.6),
-      0 2px 4px rgba(0, 0, 0, 0.4);
+      0 0 0 1px var(--shade-60),
+      0 2px 4px var(--shade-40);
   }
 
   // A card you can play now: a gold ring held off the card by a strip of panel
@@ -104,12 +104,12 @@
       left: 0;
       right: 0;
       bottom: 0;
-      padding: 3px 0 2px;
+      padding: var(--s-0) 0 var(--s-0);
       border-radius: 0 0 var(--r-1) var(--r-1);
       background: var(--gold);
       color: var(--ink-0);
       font-family: var(--font-label);
-      font-size: 10px;
+      font-size: var(--fs-1);
       letter-spacing: 0.12em;
       line-height: 1;
       text-align: center;

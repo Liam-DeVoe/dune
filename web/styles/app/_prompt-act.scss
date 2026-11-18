@@ -16,7 +16,7 @@
   --card-color: var(--ink-1);
   --card-border-color: var(--gold-3);
   --card-cap-color: var(--ink-1);
-  --card-cap-border: rgba(29, 12, 0, 0.15);
+  --card-cap-border: var(--ink-line-faint);
 
   // Text and links: .button--link, a, .collapse-button, .event-form__info
   // and __reason, .chip__sector, .input::placeholder.
@@ -34,12 +34,12 @@
   --control-text: var(--ink-1);
   --control-accent: var(--ink-1);
   --control-hover-bg: var(--ink-tint);
-  --control-active-bg: rgba(29, 12, 0, 0.1);
+  --control-active-bg: var(--ink-tint-strong);
   --check-bg: var(--parchment-check-bg);
 
   // Inline chips (.chip--place, --faction, --ref-card), including the ones
   // in server-rendered rich text.
-  --chip-bg: rgba(29, 12, 0, 0.08);
+  --chip-bg: var(--ink-tint-strong);
   --chip-border: var(--ink-line-soft);
   --chip-hover-border: var(--ink-line-soft);
   --chip-text: var(--ink-1);
@@ -89,7 +89,7 @@
   }
 
   & + & {
-    border-top-color: rgba(29, 12, 0, 0.14);
+    border-top-color: var(--ink-line-faint);
     border-top-left-radius: 0;
     border-top-right-radius: 0;
   }
@@ -102,16 +102,16 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  margin: 12px calc(-1 * var(--card-spacer-x)) calc(-1 * var(--card-spacer-y));
-  padding: 8px var(--card-spacer-x);
+  gap: var(--s-2) var(--s-3);
+  margin: var(--s-3) calc(-1 * var(--card-spacer-x)) calc(-1 * var(--card-spacer-y));
+  padding: var(--s-2) var(--card-spacer-x);
   border-top: 1px solid var(--ink-line-soft);
-  background: rgba(29, 12, 0, 0.045);
-  font-size: 14px;
+  background: var(--ink-tint);
+  font-size: var(--fs-2);
 }
 
 // Copperplate's capitals sit high in their line box; drop them to the button's centre.
 .prompt-act__kicker--host {
   line-height: 1;
-  padding-top: 3px;
+  padding-top: var(--s-0);
 }

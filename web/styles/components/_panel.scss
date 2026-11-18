@@ -1,9 +1,7 @@
-@use "../shared";
-
 // Panels: an ink box with a __header row and a __body.
 .panel {
   background: var(--ink-2);
-  border: 1px solid shared.$hairline;
+  border: 1px solid var(--hairline);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-1);
   overflow: hidden;
@@ -11,22 +9,22 @@
   &__header {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    border-bottom: 1px solid shared.$hairline;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    border-bottom: 1px solid var(--hairline);
   }
 
   &__title {
     margin: 0;
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 18px;
+    font-size: var(--fs-4);
     color: var(--sand);
     letter-spacing: 0.02em;
     flex: 1;
   }
 
   &__body {
-    padding: 14px;
+    padding: var(--s-4);
   }
 }

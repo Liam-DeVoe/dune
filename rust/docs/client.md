@@ -94,6 +94,17 @@ Class names follow BEM:
 - There are no utility classes. Spacing, alignment and text styles that a component needs are elements or modifiers of that component.
 - A selector names one block. A parent never restyles another block's parts (`.panel .chip`). Instead the component that draws the child gives it a modifier, or an element of the parent as a second class: `<Button className="map-pin__action">`, `card--act`. Where the child is HTML from the server or `src/popups.ts` and can't take a class, the parent sets custom properties that the child reads with its usual look as the fallback. The parchment act card works this way. It sets `--control-bg`, `--control-text`, `--surface-link`, `--chip-bg` and the like (`app/_prompt-act.scss`), and inputs, buttons, chips and links read them: `background: var(--control-bg, var(--ink-0))`.
 
+#### Scales
+
+Sizes and colours come from the tokens in `foundation/_tokens.scss`. A component never writes a literal for these:
+
+- **Type:** `--fs-1` 11px (labels, captions), `--fs-2` 13px (secondary text, small controls), `--fs-3` 15px (UI text: chips, controls, panel rows), `--fs-body` 16px (the page's reading text, form fields and buttons), `--fs-4` 18px, `--fs-5` 22px, `--fs-6` 30px, `--fs-7` 40px (display). A size computed from a component's own size, like the spice digits or the force star, stays a `calc()`.
+- **Spacing** (margin, padding, gap, and offsets that act as spacing): `--s-0` 2px for hairline gaps, `--s-1` 4px, `--s-2` 8px, `--s-3` 12px, `--s-4` 16px, `--s-5` 24px, `--s-6` 32px, and `--s-7` 48px and `--s-8` 64px for page layout. A negative margin is `calc(-1 * var(--s-2))`. A -1px that pulls a box over its neighbour's border stays -1px.
+- **Radii:** `--r-1` 3px, `--r-2` 6px, `--r-3` 12px, `--r-pill` for pills and other round-ended shapes, `--r-round` for circles.
+- **Colours:** the palette sampled from the map and the faction colours, plus named colours for everything else. A translucent colour is named by what it is and how opaque: `--wash-dark-55` is `--ink-0` at 55%, `--shade-35` is black at 35%, `--hairline` is the light line on ink surfaces.
+
+Sizes that are geometry, not spacing, stay literal: widths and heights, icon and art sizes, positions of carets and markers worked out from art, and the checkbox's em-based hang.
+
 Ids stay as hooks where scripts look for them (`#mapdiv`, `#tip`, `#printSection`). The server emits some of these classes in its HTML (`rust/skin/src/skin.rs`: chips, spice amounts, popover bodies), so renaming one of those changes the views the harness compares.
 
 Behavior that a framework's script used to provide is our own TypeScript:

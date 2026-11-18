@@ -3,31 +3,31 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
-  margin-top: 4px;
-  font-size: 12px;
+  gap: var(--s-1) var(--s-2);
+  margin-top: var(--s-1);
+  font-size: var(--fs-1);
   color: var(--text-3);
 }
 
 .deal-answers__answer {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--s-1);
 }
 .deal-answers__img {
-  border-radius: 50%;
+  border-radius: var(--r-round);
 }
 .deal-answers__answer--deciding {
   opacity: 0.55;
 }
 .deal-answers__answer--accepted {
-  color: #79b34c;
+  color: var(--good);
 }
 .deal-answers__answer--accepted .deal-answers__img {
-  box-shadow: 0 0 0 2px #79b34c;
+  box-shadow: 0 0 0 2px var(--good);
 }
 .deal-answers__answer--declined {
-  color: #e06a6a;
+  color: var(--bad);
 }
 .deal-answers__answer--declined .deal-answers__img {
   box-shadow: 0 0 0 2px var(--storm);
@@ -35,14 +35,14 @@
 }
 
 .deal-answers__none {
-  color: #e06a6a;
+  color: var(--bad);
   font-weight: 700;
 }
 
 /* The deals panel. In the trade popover its margin goes when it is the last card
    (.trade-pop__body sets --last-card-margin). */
 .deals {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
 }
 
 .deals:last-child {
@@ -54,7 +54,7 @@
   word-break: break-word;
 }
 .deals__decline {
-  margin-left: 0.25rem;
+  margin-left: var(--s-1);
 }
 /* Two classes to beat the padding of .table--small cells. */
 .deals .deals__parties {

@@ -1,11 +1,9 @@
-@use "../shared";
-
 // Single-purpose classes used by individual components.
 
 // A divider between sections of a panel. The reboot dims hr to 25% opacity,
 // so opacity is reset and the colour is the language hairline.
 .hr-hairline {
-  border-top: 1px solid shared.$hairline;
+  border-top: 1px solid var(--hairline);
   opacity: 1;
 }
 
@@ -14,10 +12,10 @@
   background-color: var(--ink-3);
 }
 
-// A player's name in a list (JoinedPlayersPanel), in the body face at 18px.
+// A player's name in a list (JoinedPlayersPanel), in the body face at --fs-4.
 // --you is the gold "this is me" state.
 .player-name {
-  font: normal normal normal 18px var(--font-body);
+  font: normal normal normal var(--fs-4) var(--font-body);
   color: var(--parchment);
 
   &--you {
@@ -27,5 +25,5 @@
 
 // The divider between list rows.
 .hairline-top {
-  border-top: 1px solid shared.$hairline;
+  border-top: 1px solid var(--hairline);
 }

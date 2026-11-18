@@ -1,5 +1,3 @@
-@use "../shared";
-
 // Map-driven selection: sector tints, arrows and the panel pinned to an
 // arrow. The colour of the acting faction arrives as --c on the layer.
 // Sizes are in map units; the whole map is scaled to fit its column.
@@ -25,7 +23,7 @@
 .map-select__core,
 .map-blow__core {
   fill: none;
-  stroke: #1d0c00;
+  stroke: var(--ink-1);
   stroke-width: 2.2;
   stroke-linejoin: round;
 }
@@ -85,8 +83,8 @@
   // halo outside it, and a light wash inside the region.
   &__near-line,
   &__near-halo {
-    fill: #fff;
-    stroke: #fff;
+    fill: var(--white);
+    stroke: var(--white);
     stroke-linejoin: round;
   }
   &__near-line {
@@ -99,20 +97,20 @@
     fill-opacity: 0.15;
   }
   &__contour-halo {
-    fill: #1d0c00;
+    fill: var(--ink-1);
   }
   &__contour-line {
-    fill: #fff;
+    fill: var(--white);
   }
 
   // A destination without a territory border on the map, drawn as a circle.
   &__highlight--target {
     .map-select__fill {
-      fill: #fff;
+      fill: var(--white);
       fill-opacity: 0.24;
     }
     .map-select__edge {
-      stroke: #fff;
+      stroke: var(--white);
       stroke-width: 2.5;
       stroke-opacity: 0.9;
     }
@@ -133,7 +131,7 @@
 
   &__highlight--pinned {
     .map-select__fill {
-      fill: #fff;
+      fill: var(--white);
       fill-opacity: 0.42;
     }
     .map-select__edge {
@@ -185,11 +183,11 @@
       display: block;
 
       .map-hover__fill {
-        fill: var(--c, #fff);
+        fill: var(--c, var(--white));
         fill-opacity: 0.3;
       }
       .map-hover__edge {
-        stroke: var(--c, #fff);
+        stroke: var(--c, var(--white));
       }
     }
 
@@ -204,7 +202,7 @@
   }
 
   &__fill {
-    fill: #fff;
+    fill: var(--white);
     fill-opacity: 0.14;
     stroke: none;
   }
@@ -213,7 +211,7 @@
   &__edge,
   &__edge--radial {
     fill: none;
-    stroke: #fff;
+    stroke: var(--white);
     stroke-width: 3;
     stroke-opacity: 0.95;
     stroke-linejoin: round;
@@ -224,7 +222,7 @@
 // line's journey (.map-refs).
 .map-arrow {
   &__outline {
-    stroke: rgba(29, 12, 0, 0.75);
+    stroke: var(--ink-stroke);
     stroke-width: 6;
     stroke-linecap: round;
   }
@@ -236,7 +234,7 @@
   // The head is one triangle in the faction colour with a dark outline.
   &__head {
     fill: var(--c);
-    stroke: rgba(29, 12, 0, 0.75);
+    stroke: var(--ink-stroke);
     stroke-width: 1.4;
     stroke-linejoin: round;
   }
@@ -249,12 +247,12 @@
   --dx: 0px;
   transform: translate(calc(-50% + var(--dx)), calc(-100% - 12px));
   background: var(--ink-0);
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
-  padding: 6px 8px;
+  padding: var(--s-2) var(--s-2);
   color: var(--parchment);
-  font-size: 11px;
+  font-size: var(--fs-1);
   line-height: 1.3;
   pointer-events: auto;
   z-index: 5;
@@ -268,8 +266,8 @@
     width: 10px;
     height: 10px;
     background: var(--ink-0);
-    border-right: 1px solid shared.$hairline-strong;
-    border-bottom: 1px solid shared.$hairline-strong;
+    border-right: 1px solid var(--hairline-strong);
+    border-bottom: 1px solid var(--hairline-strong);
     transform: translateX(-50%) rotate(45deg);
   }
 
@@ -285,9 +283,9 @@
 
   &__row {
     display: flex;
-    gap: 5px;
+    gap: var(--s-1);
     align-items: center;
-    margin-top: 4px;
+    margin-top: var(--s-1);
 
     &:first-child {
       margin-top: 0;
@@ -300,23 +298,23 @@
   }
 
   &__warn {
-    color: #ff8f7a;
-    margin-top: 4px;
+    color: var(--warn);
+    margin-top: var(--s-1);
     max-width: 180px;
     white-space: normal;
   }
 
   &__error {
     color: var(--text-3);
-    margin-top: 4px;
+    margin-top: var(--s-1);
     max-width: 180px;
     white-space: normal;
   }
 
   &__choice {
     display: inline-flex;
-    margin-top: 4px;
-    border: 1px solid shared.$hairline-strong;
+    margin-top: var(--s-1);
+    border: 1px solid var(--hairline-strong);
     border-radius: var(--r-2);
     overflow: hidden;
   }
@@ -325,21 +323,21 @@
     background: transparent;
     border: 0;
     color: var(--sand);
-    font-size: 11px;
-    padding: 2px 7px;
+    font-size: var(--fs-1);
+    padding: var(--s-0) var(--s-2);
     cursor: pointer;
 
     &--on {
-      background: shared.$gold-wash-strong;
+      background: var(--gold-wash-strong);
       color: var(--parchment);
     }
   }
 
   &__actions {
     display: flex;
-    gap: 5px;
+    gap: var(--s-1);
     justify-content: flex-end;
-    margin-top: 6px;
+    margin-top: var(--s-1);
   }
 
   // A button in __actions, small to fit the pin.
@@ -354,7 +352,7 @@
 .pin-step {
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--hairline-strong);
   border-radius: var(--r-1);
   overflow: hidden;
   background: var(--ink-1);
@@ -364,13 +362,13 @@
     display: inline-grid;
     place-items: center;
     width: 22px;
-    border-right: 1px solid shared.$hairline-mid;
+    border-right: 1px solid var(--hairline-mid);
   }
 
   &__ic-img {
     width: 16px;
     height: 16px;
-    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+    filter: drop-shadow(0 0 1px var(--shade-70));
   }
 
   &__button {
@@ -378,13 +376,13 @@
     border: 0;
     color: var(--sand);
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: var(--fs-2);
     width: 20px;
     cursor: pointer;
     padding: 0;
 
     &:hover:not(:disabled) {
-      background: shared.$gold-wash-strong;
+      background: var(--gold-wash-strong);
     }
 
     &:disabled {
@@ -398,17 +396,17 @@
     place-items: center;
     min-width: 22px;
     font-family: var(--font-display);
-    font-size: 14px;
+    font-size: var(--fs-2);
     color: var(--parchment);
-    border-left: 1px solid shared.$hairline-mid;
-    border-right: 1px solid shared.$hairline-mid;
+    border-left: 1px solid var(--hairline-mid);
+    border-right: 1px solid var(--hairline-mid);
   }
 }
 
 .map-pin {
   &__hint {
     color: var(--text-2);
-    margin-bottom: 4px;
+    margin-bottom: var(--s-1);
   }
 
   // The img selector also takes in a spice .pin-step's icon in this row and,
@@ -419,8 +417,8 @@
     img {
       width: 18px;
       height: 18px;
-      padding: 2px;
-      border-radius: 50%;
+      padding: var(--s-0);
+      border-radius: var(--r-round);
       background: var(--parchment);
     }
   }
@@ -432,24 +430,24 @@
   position: absolute;
   pointer-events: none;
   opacity: 0.75;
-  border-radius: 50%;
-  outline: 1.5px dashed #fff;
+  border-radius: var(--r-round);
+  outline: 1.5px dashed var(--white);
   outline-offset: 0.5px;
 
   &__img {
     display: block;
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0.5px 0.5px 0.5px rgba(0, 0, 0, 0.7));
+    filter: drop-shadow(0.5px 0.5px 0.5px var(--shade-70));
   }
 
   &__count {
     position: absolute;
     left: 60%;
     top: 55%;
-    color: #fff;
-    -webkit-text-stroke: 0.3px #000;
-    text-shadow: 0 0 2px #000;
+    color: var(--white);
+    -webkit-text-stroke: 0.3px var(--black);
+    text-shadow: 0 0 2px var(--black);
     white-space: nowrap;
     user-select: none;
   }
@@ -463,7 +461,7 @@
 
   &__text {
     color: var(--text-2);
-    margin-top: 4px;
+    margin-top: var(--s-1);
     max-width: 220px;
     white-space: normal;
   }
@@ -474,7 +472,7 @@
   width: 18px;
   height: 18px;
   vertical-align: middle;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+  filter: drop-shadow(0 0 1px var(--shade-70));
 }
 
 // The board's corner pieces: tanks (top left), turn and phases (top right),

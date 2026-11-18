@@ -12,7 +12,7 @@
     flex: 0 0 auto;
     width: 33.33333333%;
     max-width: 100%;
-    padding: 0.25rem;
+    padding: var(--s-1);
     border: 0;
 
     @media (min-width: 768px) {
@@ -22,6 +22,6 @@
 
   // The chosen image, which opens the modal. .button's padding is larger.
   &__trigger {
-    padding: 0.25rem;
+    padding: var(--s-1);
   }
 }

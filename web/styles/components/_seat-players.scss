@@ -1,9 +1,9 @@
 // The host's card for seating the players (SeatPlayersComponent).
 .seat-players {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
   box-shadow: var(--shadow-3);
 
   &__confirm {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
   }
 }

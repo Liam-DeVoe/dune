@@ -1,13 +1,11 @@
-@use "../shared";
-
 // Toolbar: a strip of square icon buttons. --on is the active tool.
 .toolbar {
   display: flex;
-  gap: 2px;
+  gap: var(--s-0);
   background: var(--ink-2);
-  border: 1px solid shared.$hairline;
+  border: 1px solid var(--hairline);
   border-radius: var(--r-2);
-  padding: 3px;
+  padding: var(--s-0);
 
   &__button {
     width: 40px;
@@ -22,14 +20,14 @@
     position: relative;
 
     &:hover {
-      background: shared.$gold-wash-strong;
+      background: var(--gold-wash-strong);
       color: var(--gold);
     }
 
     // Doubled with the base class so that an active tool keeps its colours
     // while hovered: the plain modifier would lose to :hover.
     &.toolbar__button--on {
-      background: rgba(231, 191, 60, 0.18);
+      background: var(--gold-wash-16);
       color: var(--gold);
     }
   }

@@ -4,13 +4,13 @@
 // CommandButton with its default spacing. A caller that passes its own
 // marginClass replaces this class.
 .command-button {
-  margin-right: 0.25rem;
+  margin-right: var(--s-1);
 }
 
 // UserIcon, BotIcon and HostIcon with their default spacing. A caller that
 // passes its own marginClass replaces this class.
 .lobby-icon {
-  margin: 0.25rem;
+  margin: var(--s-1);
 }
 
 // A labelled number (SelectNumber).
@@ -19,14 +19,14 @@
   align-items: center;
 
   &__label {
-    margin-right: 0.25rem;
+    margin-right: var(--s-1);
   }
 }
 
 // The label over a row of faction sigils (SelectFactions).
 .select-factions__label {
   display: block;
-  margin-top: 0.25rem;
+  margin-top: var(--s-1);
   margin-bottom: 0;
 }
 
@@ -35,13 +35,13 @@
 .date-time-picker {
   display: flex;
   flex-wrap: wrap;
-  margin: 0 -0.75rem 0.25rem;
+  margin: 0 calc(-1 * var(--s-3)) var(--s-1);
 
   &__col {
     flex: 1 0 0%;
     width: 100%;
     max-width: 100%;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    padding-left: var(--s-3);
+    padding-right: var(--s-3);
   }
 }

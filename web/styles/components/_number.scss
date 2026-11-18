@@ -1,5 +1,3 @@
-@use "../shared";
-
 // Number input: a minus / value / plus control that replaces the browser's
 // arrow stepper. An optional __ic cell on the left shows what is being counted
 // (a force or spice icon). On the parchment act card it reads the card's
@@ -27,12 +25,12 @@
     color: var(--control-text, var(--sand));
     // The display face draws the minus sign with serifs, like a bracket.
     font-family: var(--font-body);
-    font-size: 18px;
+    font-size: var(--fs-4);
     width: 30px;
     cursor: pointer;
 
     &:hover {
-      background: shared.$gold-wash-strong;
+      background: var(--gold-wash-strong);
     }
   }
 
@@ -44,13 +42,13 @@
     color: var(--control-text, var(--parchment));
     // Stays at or above 16px so iOS does not zoom the page when the box is focused.
     font-family: var(--font-display);
-    font-size: 18px;
-    border-left: 1px solid shared.$hairline-mid;
-    border-right: 1px solid shared.$hairline-mid;
+    font-size: var(--fs-4);
+    border-left: 1px solid var(--hairline-mid);
+    border-right: 1px solid var(--hairline-mid);
 
     &:focus {
       outline: none;
-      background: shared.$gold-wash;
+      background: var(--gold-wash);
     }
   }
 
@@ -58,7 +56,7 @@
     display: inline-grid;
     place-items: center;
     width: 30px;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--hairline-faint);
     border-right: 1px solid var(--control-divider, var(--hairline-mid));
   }
 
@@ -73,7 +71,7 @@
   }
 
   &__ic--force &__ic-img {
-    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 1px 0 var(--shade-60));
   }
 
   // Counting spice: the spice icon is already orange, so the cell keeps the

@@ -6,24 +6,24 @@
     flex-direction: row-reverse;
 
     &--send {
-      margin-top: 0.25rem;
+      margin-top: var(--s-1);
     }
   }
 
   &__target {
     flex-grow: 1;
-    margin-right: 0.25rem;
+    margin-right: var(--s-1);
   }
 
   &__message {
-    margin-top: 0.25rem;
-    padding: 0.25rem;
-    font-size: 0.875em;
+    margin-top: var(--s-1);
+    padding: var(--s-1);
+    font-size: var(--fs-2);
     word-wrap: break-word;
     word-break: break-word;
   }
 
   &__mute {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
   }
 }

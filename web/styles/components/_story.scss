@@ -5,7 +5,7 @@
   &__img {
     max-width: 100%;
     height: auto;
-    padding: 0.25rem;
+    padding: var(--s-1);
   }
 
   &__milestone-img,
@@ -15,15 +15,15 @@
   }
 
   &__fact {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
   }
 
   &__subheading {
-    margin-top: 0.5rem;
+    margin-top: var(--s-2);
   }
 
   &__milestone {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--s-1);
   }
 
   // A card bought without the viewer knowing which.
@@ -34,11 +34,11 @@
   // A territory where more than one faction has forces.
   &__contested {
     // The error red the language uses for small text on ink.
-    color: #e46b6b;
+    color: var(--bad);
   }
 
   &__ended {
-    margin-top: 0.5rem;
+    margin-top: var(--s-2);
     margin-bottom: 0;
   }
 }

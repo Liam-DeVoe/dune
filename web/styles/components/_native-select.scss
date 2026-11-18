@@ -1,14 +1,12 @@
-@use "../shared";
-
 // A select box drawn like .input, with a sand chevron at the right. The custom
 // Select (_select.scss) puts this class on its trigger button. On the
 // parchment act card it reads the card's --control-* properties.
 .native-select {
   display: block;
   width: 100%;
-  padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+  padding: var(--s-2) var(--s-6) var(--s-2) var(--s-3);
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: var(--fs-body);
   font-weight: 400;
   line-height: 1.5;
   color: var(--control-text, var(--parchment));
@@ -31,7 +29,7 @@
   &:focus {
     border-color: var(--gold);
     outline: 0;
-    box-shadow: shared.$focus-ring-gold;
+    box-shadow: var(--focus-ring-gold);
   }
 
   // On a surface (the act card) a disabled select keeps the surface's look.
@@ -46,10 +44,10 @@
   }
 
   &--small {
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-    padding-left: 0.5rem;
-    font-size: 0.875rem;
+    padding-top: var(--s-1);
+    padding-bottom: var(--s-1);
+    padding-left: var(--s-2);
+    font-size: var(--fs-2);
     border-radius: var(--r-1);
   }
 }

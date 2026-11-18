@@ -44,21 +44,18 @@ export function LoginComponent() {
   };
 
   const validateNewAccount = (): boolean => {
-    // Known quirk (known-issues.md): the later checks overwrite the earlier ones, and the final
-    // `else` clears the message whenever the player name, password and e-mail are fine, so a
-    // username error never stops the account from being created. A field nobody typed in is
-    // null and fails both of its length checks; the second message wins.
+    // The first failing check gives the message. The length limits are the server's
+    // (server/accounts.rs, create_user), which refuses the same names with the same texts.
     let message: string | null = null;
     const nameError = validName(newUsername);
     if (!isNullOrEmpty(nameError)) message = nameError;
-    if (newUsername == null || trimmedLength(newUsername) <= 3) message = "Username must be more than 3 characters";
-    if (newUsername == null || trimmedLength(newUsername) > 40) message = "Username must be 40 characters or less";
-    if (newPlayerName == null || trimmedLength(newPlayerName) <= 3) message = "Player name must be more than 3 characters";
-    if (newPlayerName == null || trimmedLength(newPlayerName) > 40) message = "Player name must be 40 characters or less";
+    else if (trimmedLength(newUsername) <= 3) message = "Username must be more than 3 characters";
+    else if (trimmedLength(newUsername) > 40) message = "Username must be 40 characters or less";
+    else if (trimmedLength(newPlayerName) <= 3) message = "Player name must be more than 3 characters";
+    else if (trimmedLength(newPlayerName) > 40) message = "Player name must be 40 characters or less";
     else if (isNullOrEmpty(newPassword)) message = "Enter a password";
     else if (newPassword !== newPasswordConfirm) message = "Passwords do not match";
     else if (!isNullOrWhiteSpace(newEmail) && (!newEmail!.includes("@") || !newEmail!.includes("."))) message = "Enter a valid e-mail address, or leave it empty";
-    else message = null;
     setNewAccountMessage(message);
     return message == null;
   };

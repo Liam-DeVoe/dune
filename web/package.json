@@ -11,7 +11,8 @@
     "typecheck": "tsc -b",
     "preview": "vite preview",
     "check:rich-text": "node tools/check-rich-text.ts",
-    "check:flash": "node tools/check-flash.ts"
+    "check:flash": "node tools/check-flash.ts",
+    "check:client": "node tools/check-client.ts"
   },
   "dependencies": {
     "react": "^19.3.1",

@@ -15,9 +15,10 @@ export function trimWhitespace(s: string): string {
   return s.slice(start, end);
 }
 
-/** The trimmed length in UTF-16 units; 0 for null. */
+/** The trimmed length in code points, as the server counts names (Rust's chars().count()); 0
+ * for null. */
 export function trimmedLength(s: string | null | undefined): number {
-  return s == null ? 0 : trimWhitespace(s).length;
+  return s == null ? 0 : [...trimWhitespace(s)].length;
 }
 
 export function isNullOrEmpty(s: string | null | undefined): boolean {

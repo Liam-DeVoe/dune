@@ -133,39 +133,36 @@ export function tanks(b: Board): string {
   return `<div class='tanks-pop'><h6 class='tanks-pop__title'>${htmlEncode(skin.concept("Graveyard"))}</h6><table class='tanks-pop__table'><tr class='tanks-pop__row'><th class='tanks-pop__head'>Faction</th><th class='tanks-pop__head' colspan='2'>Forces</th><th class='tanks-pop__head'>Leaders</th></tr>${rows}</table></div>`;
 }
 
-// "Monday, 02 November 2026 9:05:00" of a time the game holds. Known quirk (known-issues.md): it
-// prints the UTC time without saying so, not the time in the browser's time zone.
-function longDate(iso: string | null): string {
+// "Monday, 02 November 2026 9:05:00" of a time the game holds, in the browser's time zone.
+export function longDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
-  const day = d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-  const month = d.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const day = d.toLocaleDateString("en-US", { weekday: "long" });
+  const month = d.toLocaleDateString("en-US", { month: "long" });
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${day}, ${pad(d.getUTCDate())} ${month} ${d.getUTCFullYear()} ${d.getUTCHours()}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+  return `${day}, ${pad(d.getDate())} ${month} ${d.getFullYear()} ${d.getHours()}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
-// "h:mm:ss". Known quirk (known-issues.md): whole days are dropped, so 25 hours shows as 1:00:00.
-function hms(seconds: number): string {
+// "h:mm:ss", the hours not wrapped at a day, so 25 hours is 25:00:00.
+export function hms(seconds: number): string {
   const s = Math.floor(seconds);
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${Math.floor(s / 3600) % 24}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
+  return `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
 }
 
 // The turn's popover: the ruleset, the rules by group, and the time each player took.
 export function turn(b: Board): string {
   const v = b.view;
   // The ruleset, groups and rules as the server's skin describes them.
-  // Known quirk (known-issues.md): the timer labels open with <string> instead of <strong>, so they
-  // are not bold.
   let ruleInfo = "";
   for (const g of v.ruleLabels.groups) {
     ruleInfo += `<h5>${g.group}</h5><p class='turn-pop__rules'>${g.rules.join(", ")}.</p>`;
   }
   let result = `<div class='turn-pop'><h4>${v.ruleLabels.ruleset}</h4><p>Game version: ${v.version}</p>${ruleInfo}`;
   result += "<h4>Timers</h4>";
-  result += `<p><string>Game started:</strong> ${longDate(v.timing.started)}`;
-  result += `<p><string>Last activity:</strong> ${longDate(v.timing.lastActivity)}`;
-  result += `<p><string>Game duration:</strong> ${Math.round(v.timing.duration / 360) / 10} hours`;
+  result += `<p><strong>Game started:</strong> ${longDate(v.timing.started)}</p>`;
+  result += `<p><strong>Last activity:</strong> ${longDate(v.timing.lastActivity)}</p>`;
+  result += `<p><strong>Game duration:</strong> ${Math.round(v.timing.duration / 360) / 10} hours</p>`;
   result += "<table class='table table--small table--dark'><thead><tr><th>Player</th><th>Bidding</th><th>Move</th><th>Battle</th><th>Total</th></tr></thead><tbody>";
   for (const p of v.players) {
     const t = v.timing.timeSpent.find((x) => x.faction === p.faction);

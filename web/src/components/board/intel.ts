@@ -1,5 +1,6 @@
 // The popover of a location on the map.
 import * as shared from "../../popups";
+import { TERROR_TOKEN_FILTER } from "../../skin";
 import type { Board } from "./geometry";
 import { forceTokenHtml } from "./primitives";
 import { strongholdAdvantage } from "./popups";
@@ -83,7 +84,7 @@ function spiceAndForceAndTokenInfo(b: Board, id: number): string {
   }
   const terror = board.terror.filter((x) => x.territory === territory).length;
   if (terror > 0) {
-    result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("FactionImage_URL", "Moritani")}" style="filter:hue-rotate(180deg);" /><strong>&nbsp;${terror}</strong></div>`;
+    result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.terrorTokenImage()}" style="filter:${TERROR_TOKEN_FILTER};" /><strong>&nbsp;${terror}</strong></div>`;
   }
   const ambassador = board.ambassadors.find((a) => a.territory === territory);
   if (ambassador) result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("AmbassadorImage_URL", ambassador.ambassador)}" /></div>`;

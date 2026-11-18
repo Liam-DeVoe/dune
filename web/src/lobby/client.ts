@@ -414,9 +414,6 @@ export class LobbyClient {
 
   async adminPersistState(): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
-    // Known quirk (known-issues.md): this refuses outside a game, and the admin page is never in
-    // one, so "Persist data" always answers "Not in game".
-    if (!this.state.game) return "Not in game";
     return this.adminCall("adminSaveAll");
   }
 

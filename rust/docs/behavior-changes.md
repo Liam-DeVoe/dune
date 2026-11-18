@@ -508,3 +508,49 @@ The server was first a line-by-line port of the C# `GameHub`. These differences 
 - A bot speed change is sent to the game's members only, not to every connection on the server.
 - The messages are typed and camelCase, enums go by name, and errors carry a code and a text (protocol.md). The C# hub's `Result` objects, PascalCase members and numbered `ErrorType` are gone.
 - The errors for too many games give the server's limits, 10 running and 3 scheduled games per user. The texts had the two numbers the other way round.
+
+## Web client: quirks kept from the C# version
+
+The client fixes of known-issues.md's "Quirks kept from the C# version". Paths are under `web/src/`. The browser checks are steps of `scripts/ui/e2e_server.py`, and `npm run check:client` (`web/tools/check-client.ts`) checks the helpers that need no browser.
+
+### The new-account form stops at a bad username
+
+- Area: client, the login screen (`components/lobby/LoginComponent.tsx`, `validateNewAccount`)
+- What happened: each check overwrote the message of the one before, and the last one cleared it whenever the player name, password and e-mail were fine. So the form sent a username of 1 to 3 characters, or one with &, #, ", < or >, to the server. The server refused the short ones with its own message, and took the others.
+- Done: the first failing check gives the message, and the form sends nothing. Names are counted in code points, as the server counts them (`chars().count()`), not in UTF-16 units, so an emoji counts once. The server already refused usernames under 4 or over 40 characters with the same texts (`create_user` in server/src/server/accounts.rs, tested by `create_user_checks_names_and_welcomes_by_mail`), so it is unchanged. It doesn't check for &, #, ", < and >; only the form does.
+- Test: step 13 of e2e_server.py types a 3-letter username and checks that the form shows the error without sending `createUser`, then that a good username moves on to the player name check. check:client checks the code point count.
+
+### The admin's "Persist data" saves the games
+
+- Area: client, the admin page (`lobby/client.ts`, `adminPersistState`)
+- What happened: the call refused with "Not in game" unless the client was in a game, and the admin page never is.
+- Done: that check is gone. The server's `adminSaveAll` saves every running game with unsaved changes and doesn't depend on the caller's game. `admin_functions` in server/tests/admin.rs already calls it from a connection that isn't in a game.
+- Test: step 14 of e2e_server.py logs the admin in on /admin and clicks Persist data, which answers "Saved N of M running games."
+
+### Lobby player order matches the server's
+
+- Area: client, the lobby's participation (`lobby/participation.ts`)
+- What happened: the client's lists of players and seats put a user who joined after someone left into the leaver's place. The server lists them last (an `IndexMap` with `shift_remove`, rust/server/src/participation.rs), so a reload moved them.
+- Done: `OrderedDict`, a wrapper around a `Map`, replaces `SlotDict`. A removed user's place closes up, a new user goes last, and a user set again keeps their place, as on the server.
+- Test: check:client removes a seated player, adds another, and checks the order of both lists.
+
+### A typed number in a force picker sets the placement
+
+- Area: client, the Face Dancer replacement form (`components/battle/BattleForms.tsx`, `ForceSelection`, and `components/NumberPicker.tsx`)
+- What happened: the force pickers stepped the placement by one with their buttons and arrow keys, but a typed number only changed what the picker showed. A player typed 3, saw 3, and submitted another amount.
+- Done: `NumberPicker` lost its stepping mode (`onStep`). The force pickers show the placement's number and set it through `onChange`, typed numbers included, clamped to the picker's range.
+- Test: step 15 of e2e_server.py opens the face-danced scene as Tleilaxu, types 2 into a force picker, clicks +, and checks that it shows 3, which it didn't before.
+
+### The turn popover's times
+
+- Area: client, the board's turn popover (`components/board/popups.ts`)
+- What happened: the start and last activity were printed in UTC without saying so. The players' times wrapped at 24 hours, so 25 hours showed as 1:00:00. The timer labels opened with `<string>` instead of `<strong>`, so they weren't bold.
+- Done: times are in the browser's time zone, hours don't wrap, and the labels are `<strong>`.
+- Test: check:client runs in the Asia/Kolkata time zone and checks `longDate`, `hms` and the popover's markup. Step 16 of e2e_server.py hovers the turn in a browser set to that time zone.
+
+### The story's terror tokens have an image
+
+- Area: client, the strongholds table of the end-of-game story (`components/StoryComponent.tsx`)
+- What happened: each terror token was an image with `src=""`, so only its alt text or a broken image showed.
+- Done: the skin has no terror token image. The board's location popover (`components/board/intel.ts`) draws a terror token as Moritani's sigil turned by `hue-rotate(180deg)`, and the story now draws it the same way. Both use `Skin.terrorTokenImage` and `TERROR_TOKEN_FILTER` (`skin.ts`). `Image` takes a `style` for the filter.
+- Test: step 16 of e2e_server.py opens a static scene whose view has an ending with terror tokens, and checks that each token's image loads and has the filter.

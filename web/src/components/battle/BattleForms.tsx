@@ -295,8 +295,8 @@ function placementEntries(m: Placement): ForceEntry[] {
   return [...m.entries()].map(([location, [forces, specialForces]]) => ({ location, forces, specialForces }));
 }
 
-// Force pickers per location. Their buttons step the placement. Known quirk (known-issues.md): a
-// typed number changes only what the picker shows (NumberPicker's onStep).
+// Force pickers per location. Each picker shows the placement's number, and its buttons, arrow
+// keys and typed numbers set it.
 function ForceSelection({ faction, locations, value, onChange, fixedMax = -1 }: {
   faction: Faction;
   locations: { location: number; forces: number; specialForces: number }[];
@@ -319,8 +319,8 @@ function ForceSelection({ faction, locations, value, onChange, fixedMax = -1 }: 
           return (
             <tr key={l.location} className="event-form__placement-row">
               <td className="event-form__placement-cell event-form__placement-cell--middle"><PlaceChip place={{ location: l.location }} /></td>
-              {max > 0 && <td className="event-form__placement-cell"><SelectForces value={f} onChange={(v) => set(l.location, false, v)} onStep={(d) => set(l.location, false, f + d)} min={0} max={max} faction={faction} special={false} /></td>}
-              {l.specialForces > 0 && <td className="event-form__placement-cell"><SelectForces value={s} onChange={(v) => set(l.location, true, v)} onStep={(d) => set(l.location, true, s + d)} min={0} max={l.specialForces} faction={faction} special /></td>}
+              {max > 0 && <td className="event-form__placement-cell"><SelectForces value={f} onChange={(v) => set(l.location, false, v)} min={0} max={max} faction={faction} special={false} /></td>}
+              {l.specialForces > 0 && <td className="event-form__placement-cell"><SelectForces value={s} onChange={(v) => set(l.location, true, v)} min={0} max={l.specialForces} faction={faction} special /></td>}
             </tr>
           );
         })}

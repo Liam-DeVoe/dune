@@ -4,82 +4,67 @@
 //
 // The lobby screens list users in dictionary order (JoinedPlayersPanel, SeatPlayersComponent). A
 // participation received whole (GameInitInfo, loadGame, assignSeats) comes as [key, value] pairs in
-// the server's order, which is insertion order.
-// Known quirk (known-issues.md): SlotDict gives a key added after a removal the removed key's
-// slot, where the server (rust/server/src/participation.rs, IndexMap with shift_remove) lists it
-// last. So a user who joins after someone left can be listed in a different place after a reload.
+// the server's order, which is insertion order. The notifications keep that order here too: a
+// removed user's place closes up and a new user goes last, as with the server's IndexMap and
+// shift_remove (rust/server/src/participation.rs), so a reload doesn't reorder the list.
 import type { IntDict, ParticipationInfo } from "./types";
 
-/** A map from numbers, in insertion order, except that a key added after a removal takes the
- * removed key's slot. */
-export class SlotDict<V> {
-  private entries: ([number, V] | null)[] = [];
-  private free: number[] = [];
+/** A map from numbers, in insertion order. Setting a key that is there keeps its place. */
+export class OrderedDict<V> {
+  private map = new Map<number, V>();
 
-  static from<V>(pairs: IntDict<V> | null | undefined): SlotDict<V> {
-    const d = new SlotDict<V>();
+  static from<V>(pairs: IntDict<V> | null | undefined): OrderedDict<V> {
+    const d = new OrderedDict<V>();
     for (const [k, v] of pairs ?? []) d.set(k, v);
     return d;
   }
 
-  private index(key: number): number {
-    return this.entries.findIndex((e) => e !== null && e[0] === key);
-  }
-
   get(key: number): V | undefined {
-    const i = this.index(key);
-    return i < 0 ? undefined : this.entries[i]![1];
+    return this.map.get(key);
   }
 
   has(key: number): boolean {
-    return this.index(key) >= 0;
+    return this.map.has(key);
   }
 
   set(key: number, value: V): void {
-    const i = this.index(key);
-    if (i >= 0) this.entries[i] = [key, value];
-    else if (this.free.length > 0) this.entries[this.free.pop()!] = [key, value];
-    else this.entries.push([key, value]);
+    this.map.set(key, value);
   }
 
   delete(key: number): void {
-    const i = this.index(key);
-    if (i < 0) return;
-    this.entries[i] = null;
-    this.free.push(i);
+    this.map.delete(key);
   }
 
   keys(): number[] {
-    return this.entries.filter((e) => e !== null).map((e) => e![0]);
+    return [...this.map.keys()];
   }
 
   values(): V[] {
-    return this.entries.filter((e) => e !== null).map((e) => e![1]);
+    return [...this.map.values()];
   }
 
   items(): [number, V][] {
-    return this.entries.filter((e) => e !== null).map((e) => [e![0], e![1]]);
+    return [...this.map.entries()];
   }
 
   get size(): number {
-    return this.keys().length;
+    return this.map.size;
   }
 
   toJson(): IntDict<V> {
     return this.items();
   }
 
-  clone(): SlotDict<V> {
-    const d = new SlotDict<V>();
-    d.entries = this.entries.map((e) => (e ? [e[0], e[1]] : null));
-    d.free = [...this.free];
+  clone(): OrderedDict<V> {
+    const d = new OrderedDict<V>();
+    d.map = new Map(this.map);
     return d;
   }
 }
 
 export class Participation {
-  playerNames: SlotDict<string>;
-  seatedPlayers: SlotDict<number>;
+  playerNames: OrderedDict<string>;
+  seatedPlayers: OrderedDict<number>;
   observers: Set<number>;
   hosts: Set<number>;
   availableSeats: Set<number>;
@@ -87,8 +72,8 @@ export class Participation {
   botsSpeed: number;
 
   constructor(json: ParticipationInfo | null | undefined) {
-    this.playerNames = SlotDict.from(json?.playerNames);
-    this.seatedPlayers = SlotDict.from(json?.seatedPlayers);
+    this.playerNames = OrderedDict.from(json?.playerNames);
+    this.seatedPlayers = OrderedDict.from(json?.seatedPlayers);
     this.observers = new Set(json?.observers ?? []);
     this.hosts = new Set(json?.hosts ?? []);
     this.availableSeats = new Set(json?.availableSeats ?? []);
@@ -176,6 +161,6 @@ export class Participation {
 
   /** assignSeats: the assignment replaces the seated players. */
   assignSeats(assignment: IntDict<number>): void {
-    this.seatedPlayers = SlotDict.from(assignment);
+    this.seatedPlayers = OrderedDict.from(assignment);
   }
 }

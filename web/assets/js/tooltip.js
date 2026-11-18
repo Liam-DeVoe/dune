@@ -22,6 +22,7 @@
         if (!tip) {
             tip = document.createElement("div");
             tip.id = "tip";
+            tip.className = "tip";
             tip.setAttribute("role", "tooltip");
             document.body.appendChild(tip);
         }
@@ -49,7 +50,7 @@
 
         const t = box();
         t.textContent = text;
-        t.classList.remove("on", "below");
+        t.classList.remove("tip--on", "tip--below");
         t.style.left = "0px";
         t.style.top = "0px";
 
@@ -65,15 +66,15 @@
         t.style.left = `${Math.round(left)}px`;
         t.style.top = `${Math.round(top)}px`;
         t.style.setProperty("--caret-x", `${Math.round(cx - left)}px`);
-        t.classList.toggle("below", below);
-        t.classList.add("on");
+        t.classList.toggle("tip--below", below);
+        t.classList.add("tip--on");
     }
 
     function hide() {
         clearTimeout(timer);
         timer = null;
         current = null;
-        if (tip) tip.classList.remove("on");
+        if (tip) tip.classList.remove("tip--on");
     }
 
     document.addEventListener("mouseover", e => {

@@ -5,7 +5,7 @@
 // centred row stays centred. Below lg the columns stack and the page scrolls.
 @media (min-width: 992px) {
   .start-screen {
-    // .content above it has 0.75rem of padding.
+    // .page__content above it has 0.75rem of padding.
     height: calc(100dvh - 0.75rem);
     min-height: 0;
     overflow: hidden;

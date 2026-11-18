@@ -5,7 +5,7 @@ import "./MainLayout.css";
 export function MainLayout({ children }: { children: ReactNode }) {
   return (
     <div className="page">
-      <div className="main">
+      <div className="page__main">
         <div className="content px-3">{children}</div>
       </div>
     </div>

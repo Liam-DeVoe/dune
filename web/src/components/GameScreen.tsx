@@ -37,13 +37,13 @@ function Screen({ live }: { live: GameView }) {
     <TurnBanner />
     <div className="row game-screen" style={turnBannerStyle(view)}>
       <div id="mapdiv" className="col-sm-12">
-        <div className="board-area">
+        <div className="game-screen__board-area">
           <GameBoard />
           <MenuComponent />
         </div>
         <UndoTimeline />
       </div>
-      <div className="col-sm-12 cursor-hand side-column">
+      <div className="col-sm-12 cursor-hand game-screen__side-column">
         <MenuPanels />
         {!view.viewer.isObserver && PhaseValue[view.phase] > PhaseValue.TradingFactions && <PlayerPanel />}
         <div className="act-stack">

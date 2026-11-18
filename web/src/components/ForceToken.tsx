@@ -21,10 +21,10 @@ export function ForceToken({ faction, special = false, size = 24, title = "", cl
   const { skin } = useGame();
   const starred = special && hasStarredSpecialForce(faction);
   const src = skin.url(skin.get(special ? "FactionSpecialForceImage_URL" : "FactionForceImage_URL", faction));
-  const cls = ["force-token", starred ? "starred" : "", className].filter((c) => c).join(" ");
+  const cls = ["force-token", starred ? "force-token--starred" : "", className].filter((c) => c).join(" ");
   return (
     <span className={cls} style={{ ["--d" as string]: `${size}px`, ...style }} title={title}>
-      <img src={src} width={size} height={size} alt={title} className={imgClass || undefined} style={imgStyle} />
+      <img src={src} width={size} height={size} alt={title} className={["force-token__img", imgClass].filter((c) => c).join(" ")} style={imgStyle} />
     </span>
   );
 }

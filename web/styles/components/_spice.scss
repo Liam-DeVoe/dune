@@ -9,14 +9,18 @@
   vertical-align: middle;
   line-height: 1;
 
-  img {
+  // The parts keep the tag in the selector, so they keep the specificity of
+  // the old `.spice-amt img` and `.spice-amt b`. An amount can sit in any rich
+  // text, and tag rules there (`.feat b`, `.pop-messiah-rules b`) come earlier
+  // in the stylesheet with as many classes.
+  @at-root img#{&}__img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
   }
 
-  b {
+  @at-root b#{&}__value {
     position: relative;
     font-family: var(--font-display);
     font-weight: 400;

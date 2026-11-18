@@ -1,0 +1,49 @@
+@use "../shared";
+
+// Tabs, like .tabs in the guide: a row of links over a hairline, the current
+// one underlined in gold.
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding-left: 0;
+  margin-bottom: 0;
+  list-style: none;
+  border-bottom: 1px solid shared.$hairline;
+
+  &__link {
+    display: block;
+    padding: 8px 14px;
+    margin-bottom: -1px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--parchment);
+    text-decoration: none;
+    background: none;
+    border: 0 solid transparent;
+    border-bottom-width: 2px;
+    border-radius: 0;
+    transition:
+      color 0.15s ease-in-out,
+      background-color 0.15s ease-in-out,
+      border-color 0.15s ease-in-out;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+
+    &:hover,
+    &:focus {
+      isolation: isolate;
+    }
+
+    &:focus-visible {
+      outline: 0;
+      box-shadow: shared.$focus-ring-gold;
+    }
+
+    &--active {
+      border-bottom-color: var(--gold);
+    }
+  }
+}

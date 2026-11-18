@@ -9,7 +9,7 @@
   // The header only carries the collapse chevron. The territory is in the
   // matchup, so the kicker shows only while the card is collapsed (the header
   // is then the card's only child).
-  > .card-header {
+  > .card__header {
     background: transparent;
     border-bottom: 0;
     padding-bottom: 0;
@@ -31,17 +31,17 @@
       display: inline-flex;
     }
 
-    > .btn-link.collapse-button {
+    > .button--link.collapse-button {
       display: block !important;
       line-height: 0;
       border: 0;
-      --bs-btn-color: var(--rock-2);
-      --bs-btn-hover-color: var(--ink-1);
-      --bs-btn-active-color: var(--ink-1);
+      --button-color: var(--rock-2);
+      --button-hover-color: var(--ink-1);
+      --button-active-color: var(--ink-1);
     }
   }
 
-  > .card-body {
+  > .card__body {
     padding-top: 4px;
   }
 
@@ -294,7 +294,7 @@
     color: var(--rock-2);
     cursor: pointer;
 
-    // Doubled with the base class so the cursor still beats Bootstrap's
+    // Doubled with the base class so the cursor still beats the reboot's
     // [type=button]:not(:disabled) pointer, which weighs (0,2,0).
     &.battle-plan__none--on {
       border-style: solid;

@@ -2,7 +2,7 @@
 
 // Single-purpose classes used by individual components.
 
-// A divider between sections of a panel. Bootstrap dims hr to 25% opacity,
+// A divider between sections of a panel. The reboot dims hr to 25% opacity,
 // so opacity is reset and the colour is the language hairline.
 .hr-hairline {
   border-top: 1px solid shared.$hairline;
@@ -28,18 +28,4 @@
 // The divider between list rows.
 .hairline-top {
   border-top: 1px solid shared.$hairline;
-}
-
-// A game action panel flagged IsUrgent gets the brighter hairline the
-// language uses on controls.
-.card--urgent {
-  --bs-card-border-color: rgba(255, 255, 255, 0.25);
-}
-
-// The collapse chevron in a card header (CollapseButton) is the guide's
-// muted .chev, gold on hover.
-.card-header > .btn-link.collapse-button {
-  --bs-btn-color: var(--text-3);
-  --bs-btn-hover-color: var(--gold);
-  --bs-btn-active-color: var(--gold);
 }

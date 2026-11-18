@@ -1,0 +1,12 @@
+// A message strip. --danger is the error: parchment on storm red.
+.alert {
+  position: relative;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--r-2);
+
+  &--danger {
+    color: var(--parchment);
+    background-color: var(--storm);
+  }
+}

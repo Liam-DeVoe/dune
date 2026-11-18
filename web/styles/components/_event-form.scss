@@ -1,7 +1,7 @@
 // A game action's form: the collapsible card GameEventComponentLayout draws
 // (Layout in battle/, revival/ and other/parts.tsx, EventLayout in
-// shipmove/common.tsx) and the pieces the forms put in it. The card is
-// Bootstrap's .card; in the action stack, _prompt-act.scss removes its margin.
+// shipmove/common.tsx) and the pieces the forms put in it. The card is a
+// .card; in the action stack, _prompt-act.scss removes its margin.
 .event-form {
   margin-bottom: 0.5rem;
 
@@ -67,7 +67,7 @@
     display: block;
   }
 
-  // A radio button in RadioComponent; Bootstrap gives .form-check a bottom margin.
+  // A radio button in RadioComponent; .check has a bottom margin.
   &__radio {
     margin-bottom: 0;
   }
@@ -139,8 +139,8 @@
     flex-grow: 1;
   }
 
-  // The table of locations and force pickers (FaceDanced). Bootstrap's .table
-  // spans the width with a bottom margin.
+  // The table of locations and force pickers (FaceDanced). .table spans the
+  // width with a bottom margin.
   &__placement {
     width: auto;
     margin: 0;
@@ -150,7 +150,7 @@
     font-size: 0.875em;
   }
 
-  // Two classes to beat Bootstrap's `.table-sm > :not(caption) > * > *` padding.
+  // Two classes to beat the `.table--small > :not(caption) > * > *` padding.
   &__placement &__placement-cell {
     padding-left: 0;
   }
@@ -160,8 +160,7 @@
   }
 }
 
-// Bootstrap's info and muted text become rock brown on the parchment card
-// (see the .text-info rule in _prompt-act.scss).
+// Info and muted text become rock brown on the parchment card.
 .prompt-act,
 .act-stack > .card:not(.battle-plan) {
   .event-form__info,

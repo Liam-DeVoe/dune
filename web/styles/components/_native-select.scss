@@ -1,0 +1,53 @@
+@use "../shared";
+
+// A select box drawn like .input, with a sand chevron at the right. The custom
+// Select (_select.scss) puts this class on its trigger button.
+.native-select {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--parchment);
+  appearance: none;
+  background-color: var(--ink-0);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23d9c79a' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 12px;
+  border: 1px solid shared.$hairline-strong;
+  border-radius: var(--r-2);
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &:focus {
+    border-color: var(--gold);
+    outline: 0;
+    box-shadow: shared.$focus-ring-gold;
+  }
+
+  &:disabled {
+    background-color: var(--ink-2);
+    color: var(--text-3);
+  }
+
+  option {
+    background-color: var(--ink-0);
+    color: var(--parchment);
+  }
+
+  &--small {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.5rem;
+    font-size: 0.875rem;
+    border-radius: var(--r-1);
+  }
+}

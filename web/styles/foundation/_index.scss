@@ -1,7 +1,8 @@
-// Foundation layer: what app.css used to provide, then the self-hosted fonts
-// and the design tokens. Order matters for the cascade; keep app.css-derived
-// partials first.
+// Foundation layer: element defaults, what app.css used to provide, then the
+// self-hosted fonts and the design tokens. Order matters for the cascade; keep
+// the reboot first and the app.css-derived partials after it.
 
+@use "reboot";
 @use "base";
 @use "animations";
 @use "scrollbars";

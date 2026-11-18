@@ -1,5 +1,5 @@
 // App-specific hooks layered on the design-language components: the
-// parchment prompt card as a Bootstrap card, scrollbars, code spans and
+// parchment prompt card as a card, scrollbars, code spans and
 // per-component utility classes. Order matters for the cascade.
 @use "prompt-act";
 @use "scrollbars";

@@ -14,8 +14,8 @@
   align-items: center;
   padding: 3px 2px;
 
-  // The img also carries Bootstrap's .card. Bootstrap's and our .card rules
-  // have one class too and come earlier, so this wins where they overlap.
+  // The img also carries .card, whose rules have one class too and come
+  // earlier, so this wins where they overlap.
   &__img {
     width: 58px;
     height: 82px;

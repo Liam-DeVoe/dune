@@ -7,7 +7,7 @@
     flex-wrap: wrap;
   }
 
-  // A choice: a Bootstrap .card without its border.
+  // A choice: a .card without its border.
   &__option {
     flex: 0 0 auto;
     width: 33.33333333%;
@@ -20,7 +20,7 @@
     }
   }
 
-  // The chosen image, which opens the modal. Bootstrap's .btn padding is larger.
+  // The chosen image, which opens the modal. .button's padding is larger.
   &__trigger {
     padding: 0.25rem;
   }

@@ -1,14 +1,11 @@
 // The client's stylesheet. `npm run build:css` compiles it with Dart Sass to
-// web/assets/css/treachery.css. index.html loads it after
-// bootstrap.min.css, so everything here wins over Bootstrap by source order.
+// web/assets/css/treachery.css, which index.html loads.
 //
 // Layer order matters for the cascade:
-//   foundation  fonts, design tokens, page-level rules and animations
-//   bootstrap   Bootstrap 5.3 overrides, mostly --bs-* variables
-//   components  the design language's own components (chips, prompt, panels, ...)
+//   foundation  element defaults, fonts, design tokens, page-level rules and animations
+//   components  the design language's own components (buttons, cards, chips, panels, ...)
 //   app         hooks specific to this app (the act card, error bar, utilities)
 
 @use "foundation";
-@use "bootstrap";
 @use "components";
 @use "app";

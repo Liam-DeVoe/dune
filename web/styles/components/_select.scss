@@ -1,7 +1,7 @@
 @use "../shared";
 
-// The custom select. The trigger is a <button> carrying Bootstrap's
-// .form-select class, so it inherits the ink fill, hairline, chevron, focus
+// The custom select. The trigger is a <button> carrying the
+// .native-select class, so it inherits the ink fill, hairline, chevron, focus
 // ring and the parchment variant on the act card for free. The option list
 // is a popover in the browser's top layer, positioned by js/listbox.js, and
 // stays an ink card everywhere: floating layers are ink, whatever they float

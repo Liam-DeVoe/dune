@@ -1,0 +1,163 @@
+// Buttons. Each colour variant sets the --button-* properties; the block reads
+// them for the resting, hover (and keyboard focus), pressed and disabled states.
+// A disabled button keeps its resting colours and fades. Context rules (the
+// parchment card in app/_prompt-act.scss) re-point the same properties.
+.button {
+  --button-color: var(--parchment);
+  --button-bg: transparent;
+  --button-border: transparent;
+  --button-hover-color: var(--button-color);
+  --button-hover-bg: var(--button-bg);
+  --button-hover-border: var(--button-border);
+  --button-active-color: var(--button-hover-color);
+  --button-active-bg: var(--button-hover-bg);
+  --button-active-border: var(--button-hover-border);
+  --button-disabled-color: var(--button-color);
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--button-color);
+  text-align: center;
+  text-decoration: none;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--button-border);
+  border-radius: var(--r-2);
+  background-color: var(--button-bg);
+  transition:
+    color 0.15s ease-in-out,
+    background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  &:hover,
+  &:focus-visible {
+    color: var(--button-hover-color);
+    background-color: var(--button-hover-bg);
+    border-color: var(--button-hover-border);
+  }
+
+  &:focus-visible {
+    outline: 0;
+    box-shadow:
+      0 0 0 2px var(--ink-0),
+      0 0 0 4px var(--gold);
+  }
+
+  // Pressed, or the toggle of an open menu.
+  &:active,
+  &[aria-expanded="true"] {
+    color: var(--button-active-color);
+    background-color: var(--button-active-bg);
+    border-color: var(--button-active-border);
+  }
+
+  &:disabled {
+    color: var(--button-disabled-color);
+    background-color: var(--button-bg);
+    border-color: var(--button-border);
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  &--small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: var(--r-1);
+  }
+
+  &--primary,
+  &--info {
+    --button-color: var(--ink-0);
+    --button-bg: var(--gold);
+    --button-border: var(--gold);
+    --button-hover-bg: #f0cb50;
+    --button-hover-border: #f0cb50;
+    --button-active-bg: var(--gold-2);
+    --button-active-border: var(--gold-2);
+  }
+
+  &--secondary,
+  &--outline-secondary {
+    --button-color: var(--sand);
+    --button-border: rgba(231, 191, 60, 0.45);
+    --button-hover-bg: rgba(231, 191, 60, 0.1);
+    --button-hover-border: var(--gold);
+    --button-active-bg: rgba(231, 191, 60, 0.16);
+    --button-active-border: var(--gold);
+  }
+
+  // Fills with gold on hover, so its text flips to ink.
+  &--outline-primary {
+    --button-color: var(--gold);
+    --button-border: rgba(231, 191, 60, 0.45);
+    --button-hover-color: var(--ink-0);
+    --button-hover-bg: var(--gold);
+    --button-hover-border: var(--gold);
+    --button-active-bg: var(--gold-2);
+    --button-active-border: var(--gold-2);
+  }
+
+  &--danger {
+    --button-color: var(--parchment);
+    --button-bg: var(--storm);
+    --button-border: var(--storm-2);
+    --button-hover-bg: #d63b3b;
+    --button-active-bg: var(--storm-2);
+  }
+
+  &--warning {
+    --button-color: var(--parchment);
+    --button-bg: var(--spice);
+    --button-border: var(--spice);
+    --button-hover-bg: var(--stronghold);
+    --button-hover-border: var(--stronghold);
+    --button-active-bg: var(--spice);
+    --button-active-border: var(--spice);
+  }
+
+  &--success {
+    --button-color: var(--ink-0);
+    --button-bg: #79b34c;
+    --button-border: #79b34c;
+    --button-hover-bg: #8bc55d;
+    --button-hover-border: #8bc55d;
+    --button-active-bg: #79b34c;
+    --button-active-border: #79b34c;
+  }
+
+  &--dark,
+  &--light {
+    --button-color: var(--parchment);
+    --button-bg: var(--ink-3);
+    --button-border: rgba(255, 255, 255, 0.16);
+    --button-hover-bg: var(--ink-4);
+    --button-hover-border: rgba(255, 255, 255, 0.25);
+  }
+
+  // A button that reads as a link: no fill or border, underlined on hover.
+  &--link {
+    --button-color: var(--gold);
+    --button-hover-color: #f0cb50;
+    --button-active-color: var(--gold-2);
+    --button-disabled-color: var(--text-3);
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible:not(:hover) {
+      color: var(--button-color);
+    }
+  }
+}

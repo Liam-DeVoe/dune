@@ -1,5 +1,5 @@
-// App chrome: the map container, the top row, popover and tooltip sizing,
-// card font and svg selection behaviour.
+// App chrome: the map container, the top row, popover and tooltip sizing and
+// svg selection behaviour.
 
 // The map image is absolutely positioned inside its container so overlays
 // can stack on top of it.
@@ -30,10 +30,6 @@
   max-width: 800px;
   max-height: 1000px;
   pointer-events: none;
-}
-
-.card {
-  font-family: Candara, sans-serif;
 }
 
 // Map svg must not be selectable or trigger the touch callout.

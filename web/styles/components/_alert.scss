@@ -1,4 +1,4 @@
-// A message strip. --danger is the error: parchment on storm red.
+// A message strip. --danger is the error: white on the red the old theme drew.
 .alert {
   position: relative;
   padding: 1rem;
@@ -6,7 +6,7 @@
   border-radius: var(--r-2);
 
   &--danger {
-    color: var(--parchment);
-    background-color: var(--storm);
+    color: #fff;
+    background-color: #e74c3c;
   }
 }

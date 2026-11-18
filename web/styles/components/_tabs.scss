@@ -17,7 +17,8 @@
     margin-bottom: -1px;
     font-family: var(--font-body);
     font-size: 15px;
-    color: var(--parchment);
+    // White, as the tabs have always rendered (the old theme forced it on every state).
+    color: #fff;
     text-decoration: none;
     background: none;
     border: 0 solid transparent;

@@ -247,7 +247,7 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
               {!claimsMapByDefault && <button className="btn btn-secondary btn-sm mt-1" onClick={releaseMap}>Cancel</button>}
             </>
           ) : claimsMapByDefault ? (
-            <div className="small text-2">Finish the extra move on the map first, or cancel it.</div>
+            <div className="small">Finish the extra move on the map first, or cancel it.</div>
           ) : (
             <button className="btn btn-secondary btn-sm" onClick={claimMap}>{`Play ${skin.enumValue("TreacheryCardType", "Caravan")}`}</button>
           )}

@@ -340,11 +340,11 @@ export function ShipmentForm({ action }: { action: ActionView }) {
   return (
     <EventLayout type="Shipment" urgent header="Ship?">
       {fremen && o && (
-        <div className="small text-2">You may bring any number of forces onto <PlaceChip place={{ territory: o.greatFlat }} /> or onto any one territory within two territories of it, for free.</div>
+        <div className="small">You may bring any number of forces onto <PlaceChip place={{ territory: o.greatFlat }} /> or onto any one territory within two territories of it, for free.</div>
       )}
-      {fremen && o?.mayShipCrossPlanet && <div className="small text-2">Your ally also lets you ship elsewhere from your reserves.</div>}
-      {o?.mayShipCrossPlanet && <div className="small text-2">You may also ship site-to-site: click the sector to ship from first.</div>}
-      {o?.mayShipToReserves && <div className="small text-2">You may also ship forces back to your reserves: click the sector holding them.</div>}
+      {fremen && o?.mayShipCrossPlanet && <div className="small">Your ally also lets you ship elsewhere from your reserves.</div>}
+      {o?.mayShipCrossPlanet && <div className="small">You may also ship site-to-site: click the sector to ship from first.</div>}
+      {o?.mayShipToReserves && <div className="small">You may also ship forces back to your reserves: click the sector holding them.</div>}
       {prevented ? <div className="small">{o?.karmaName} prevents you from shipping.</div> : <div className="small">Use the map to ship forces.</div>}
       {state.type !== "ShipmentRicheseSecretAlly" && <ButtonRow pass={() => void pass()} passText="Pass" />}
     </EventLayout>

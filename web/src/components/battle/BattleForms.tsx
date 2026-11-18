@@ -195,7 +195,7 @@ function ClairVoyanceAnsweredComponent({ action, inPopover }: Props) {
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover}
             header={<><FactionChip faction={o.questioner} /> questions you with {cardTypeName(skin, "Clairvoyance")}!</>}>
-      <div className="font-italic bg-dark"><RichText parts={o.question} /></div>
+      <div className="bg-dark"><RichText parts={o.question} /></div>
       <ButtonRow confirm={() => answer("Yes")} confirmText="Yes" confirmError={validation}
                  pass={() => answer("No")} passText="No" other={() => answer("Unknown")} otherText="I can't answer that..." />
       <SubmitError error={error} />
@@ -445,7 +445,7 @@ function LoserConcludedComponent({ action, inPopover }: Props) {
                label={(
                  <>
                    <div>Execute an assassination mission by revealing <Image src={skin.personImage(o.assassination.target)} alt={skin.person(o.assassination.target)}
-                     width={50} className="img-float" popover={heroChoices(skin, view, [{ id: o.assassination.target, hero: { t: "leader", id: o.assassination.target }, label: "" }])[0].popover} /> as your traitor?</div>
+                     width={50} popover={heroChoices(skin, view, [{ id: o.assassination.target, hero: { t: "leader", id: o.assassination.target }, label: "" }])[0].popover} /> as your traitor?</div>
                    {o.assassination.reward === null
                      ? <div>You will not collect {skin.concept("Resource")} as this leader is in the tanks.</div>
                      : <div>You will collect <SpiceComponent amount={String(o.assassination.reward)} />.</div>}
@@ -650,7 +650,7 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
           )}
           {o.capture && (
             <>
-              <div>Our troops captured <Image src={skin.personImage(o.capture.victim)} alt={skin.person(o.capture.victim)} width={50} className="img-float"
+              <div>Our troops captured <Image src={skin.personImage(o.capture.victim)} alt={skin.person(o.capture.victim)} width={50}
                 popover={heroChoices(skin, view, [{ id: o.capture.victim, hero: { t: "leader", id: o.capture.victim }, label: "" }])[0].popover} /></div>
               <Radio values={o.capture.decisions.map((d) => d.value)} labels={o.capture.decisions.map((d) => d.label)} value={decision}
                      label="What are your orders, keep or kill?"

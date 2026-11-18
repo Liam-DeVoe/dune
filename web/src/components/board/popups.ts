@@ -159,9 +159,9 @@ export function turn(b: Board): string {
   // The ruleset, groups and rules as the server's skin describes them (Skin.Format of each).
   let ruleInfo = "";
   for (const g of v.ruleLabels.groups) {
-    ruleInfo += `<h5 class='h5'>${g.group}</h5><p class='mt-0 mb-2'>${g.rules.join(", ")}.</p>`;
+    ruleInfo += `<h5>${g.group}</h5><p class='turn-pop__rules'>${g.rules.join(", ")}.</p>`;
   }
-  let result = `<div><h4>${v.ruleLabels.ruleset}</h4><p>Game version: ${v.version}</p>${ruleInfo}`;
+  let result = `<div class='turn-pop'><h4>${v.ruleLabels.ruleset}</h4><p>Game version: ${v.version}</p>${ruleInfo}`;
   result += "<h4>Timers</h4>";
   result += `<p><string>Game started:</strong> ${longDate(v.timing.started)}`;
   result += `<p><string>Last activity:</strong> ${longDate(v.timing.lastActivity)}`;

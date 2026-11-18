@@ -16,7 +16,7 @@ export function html(content: Html): string | null {
 
 // MapComponent.PopoverTemplate.
 function template(style: string): string {
-  return `<div class="popover" role="tooltip" style="${style}"><div class="arrow"></div><h3 class="popover-header p-0"></h3><div class="popover-body p-0"></div></div>`;
+  return `<div class="popover map-pop" role="tooltip" style="${style}"><div class="arrow"></div><h3 class="popover-header map-pop__header"></h3><div class="popover-body map-pop__body"></div></div>`;
 }
 
 export interface MapPopoverOptions {

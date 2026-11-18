@@ -25,6 +25,15 @@
   }
 }
 
+// The map's popover frame (board/popover.ts). Its look is inline; the header
+// and body drop their padding so the content sits on the frame's 3px.
+.map-pop {
+  &__header,
+  &__body {
+    padding: 0;
+  }
+}
+
 // The map intel popover (intel.ts). Its frame is styled inline in MapComponent;
 // these are the parts inside it.
 
@@ -264,6 +273,13 @@
       opacity: 0.55;
     }
   }
+}
+
+// The turn popover (Phases.TurnPopover): the ruleset, its rules by group and
+// the players' timers. The rules under each group heading.
+.turn-pop__rules {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
 }
 
 // The tanks popover (Tanks.razor): one row per faction with its chip, its

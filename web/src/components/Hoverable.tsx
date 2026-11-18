@@ -1,6 +1,6 @@
 // GenericComponents/Hoverable.razor: a div whose hover shows a popover (HTML, popups.ts).
 import type { CSSProperties, ReactNode } from "react";
-import { popoverAttributes, usePopover } from "../popover";
+import { IMAGE_POPOVER, usePopover } from "../popover";
 
 export function Hoverable({ className, style, popover, children }: {
   className?: string;
@@ -9,8 +9,8 @@ export function Hoverable({ className, style, popover, children }: {
   children?: ReactNode;
 }) {
   const content = popover ? popover : null;
-  const ref = usePopover<HTMLDivElement>(content);
+  const ref = usePopover<HTMLDivElement>(content, IMAGE_POPOVER);
   return content
-    ? <div ref={ref} className={className} style={style} {...popoverAttributes(content, "image")}>{children}</div>
+    ? <div ref={ref} className={className} style={style}>{children}</div>
     : <div className={className} style={style}>{children}</div>;
 }

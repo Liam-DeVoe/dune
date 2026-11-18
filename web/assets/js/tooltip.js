@@ -24,9 +24,18 @@
             tip.id = "tip";
             tip.className = "tip";
             tip.setAttribute("role", "tooltip");
+            tip.setAttribute("popover", "manual");
             document.body.appendChild(tip);
         }
         return tip;
+    }
+
+    // Opens the box as a popover again, which puts it on top of the top
+    // layer, over a modal or a hover popover that opened after it.
+    function raise(t) {
+        if (typeof t.showPopover !== "function") return;
+        if (t.matches(":popover-open")) t.hidePopover();
+        t.showPopover();
     }
 
     // Moves a title to data-tip, keeping it for screen readers as a description.
@@ -53,6 +62,7 @@
         t.classList.remove("tip--on", "tip--below");
         t.style.left = "0px";
         t.style.top = "0px";
+        raise(t);
 
         const r = el.getBoundingClientRect();
         const w = t.offsetWidth;

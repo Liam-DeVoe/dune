@@ -25,10 +25,9 @@
   }
 }
 
-// The map's popover frame (board/popover.ts). Its look is inline; the header
-// and body drop their padding so the content sits on the frame's 3px.
+// The map's popover frame (board/popover.ts). Its look is inline; the body
+// drops its padding so the content sits on the frame's 3px.
 .map-pop {
-  &__header,
   &__body {
     padding: 0;
   }

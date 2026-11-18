@@ -68,10 +68,10 @@ export function Planet() {
 
 // A clickable location of Planet.razor, with its intel popover.
 function LocationShape({ b, id, click }: { b: Board; id: number; click: ReturnType<typeof useMapClick> }) {
-  const { ref, attributes } = useMapPopover<SVGGElement>(locationIntel(b, id), { delay: 50 });
+  const ref = useMapPopover<SVGGElement>(locationIntel(b, id), { delay: 50 });
   return (
     <g clipPath={`url(#${sectorClipId(b.sector(id))})`}>
-      <g ref={ref} fill={locationColor(b, id)} cursor="pointer" pointerEvents="all" data-location-id={id} {...attributes}
+      <g ref={ref} fill={locationColor(b, id)} cursor="pointer" pointerEvents="all" data-location-id={id}
         onClick={(e) => click(id, e)}
         onContextMenu={(e) => { e.preventDefault(); click(id, e, true); }}>
         <path d={b.border(b.territoryOf(id))} />

@@ -1,7 +1,7 @@
 // Markup the C# client builds as strings: the popovers of Skin.GetPopup (Shared/Model/Skin.cs)
 // and of Client/Support.cs, and the place chip (Support.PlaceChipHtml with
-// MapComponents/RegionGeometry and SectorGeometry). Bootstrap shows popovers from an HTML
-// string (data-bs-content), so these return strings, built exactly as C# builds them.
+// MapComponents/RegionGeometry and SectorGeometry). Popovers show an HTML string (popover.ts),
+// so these return strings, built exactly as C# builds them.
 // rust/skin/src/skin.rs is the checked port of the Skin half.
 import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, StrongholdAdvantage, TechToken, TerrorType, TreacheryCardType } from "./generated/enums";
 import type { Skin } from "./skin";

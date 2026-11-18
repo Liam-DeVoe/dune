@@ -51,7 +51,7 @@ function Screen({ live }: { live: GameView }) {
           <GameStatusComponent />
           <ActionPanel />
         </ActStack>
-        <LogPanel className="game-screen__log" bodyClassName="game-screen__log-body" />
+        <LogPanel className="game-screen__report" />
       </div>
       <CardPlayPopover />
       <ImageFlash view={live} />

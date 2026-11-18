@@ -173,7 +173,7 @@ function routeProps(board: Board, route: Route | null) {
 }
 
 function Forces({ faction, forces, specialForces }: { faction: Faction; forces: number; specialForces: number }) {
-  return <ForceCounts faction={faction} forces={forces} specialForces={specialForces} wrap="shipmove-turn__forces" />;
+  return <ForceCounts faction={faction} forces={forces} specialForces={specialForces} wrap="log-forces" />;
 }
 
 function Card({ card }: { card: Part | null }) {
@@ -200,11 +200,11 @@ function ShipRow({ faction, message, board }: { faction: Faction; message: LogLi
           <>
             <SpiceComponent amount={String(s.cost)} />
             {s.allyShare >= s.cost
-              ? <><span className="shipmove-turn__small">paid by</span><FactionChip faction={s.ally} /></>
-              : s.allyShare > 0 && <><span className="shipmove-turn__small">(<SpiceComponent amount={String(s.allyShare)} /> paid by</span><FactionChip faction={s.ally} /><span className="shipmove-turn__small">)</span></>}
+              ? <><span className="shipmove-turn__note">paid by</span><FactionChip faction={s.ally} /></>
+              : s.allyShare > 0 && <><span className="shipmove-turn__note">(<SpiceComponent amount={String(s.allyShare)} /> paid by</span><FactionChip faction={s.ally} /><span className="shipmove-turn__note">)</span></>}
           </>
         )}
-        {s.guildPaid && <><span className="shipmove-turn__small">→</span><FactionChip faction="Guild" /></>}
+        {s.guildPaid && <><span className="shipmove-turn__note">→</span><FactionChip faction="Guild" /></>}
         {s.karama != null && <Card card={s.karama} />}
       </>
     );
@@ -309,7 +309,7 @@ export function ShipMoveLog({ lines, line }: PhaseLogProps) {
           case "turn":
             return (
               <div key={i} className="log-box shipmove-turn">
-                <div className="shipmove-turn__head">
+                <div className="log-box__head">
                   <FactionChip faction={item.faction} />
                 </div>
                 <div className="shipmove-turn__rows">

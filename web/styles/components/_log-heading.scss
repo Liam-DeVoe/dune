@@ -1,0 +1,22 @@
+// A line that heads the ones after it, such as the spice deck a blow was
+// drawn from, with its icon.
+.log-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) 0 var(--s-0);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  color: var(--sand);
+
+  &:first-child {
+    padding-top: var(--s-0);
+  }
+
+  &__icon {
+    width: 16px;
+    height: 22px;
+    border-radius: var(--r-1);
+    box-shadow: 0 0 0 1px var(--shade-50);
+  }
+}

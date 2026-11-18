@@ -1,0 +1,6 @@
+// One fight in the battle phase: the faceoff (.log-faceoff), then the fight's
+// lines, with the revealed plans (.log-pair of .log-plan), the strengths
+// (.log-verdict) and the losses (.log-pair of .log-aftermath) among them.
+.log-battle {
+  margin: var(--s-1) 0 var(--s-3);
+}

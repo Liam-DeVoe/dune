@@ -82,8 +82,8 @@ function Forces({ faction, forces, specialForces }: { faction: Faction; forces: 
   return (
     <>
       <FactionChip faction={faction} />
-      {forces > 0 && <span className="storm-forces"><SimpleNumber>{forces}</SimpleNumber><ForceToken faction={faction} size={20} /></span>}
-      {specialForces > 0 && <span className="storm-forces"><SimpleNumber>{specialForces}</SimpleNumber><ForceToken faction={faction} special size={20} /></span>}
+      {forces > 0 && <span className="log-forces"><SimpleNumber>{forces}</SimpleNumber><ForceToken faction={faction} size={20} /></span>}
+      {specialForces > 0 && <span className="log-forces"><SimpleNumber>{specialForces}</SimpleNumber><ForceToken faction={faction} special size={20} /></span>}
     </>
   );
 }
@@ -129,7 +129,7 @@ export function StormLog({ lines, line }: PhaseLogProps) {
         aria-label={from == null ? `The storm is in sector ${end + 1}` : `The storm moves ${distance} sectors`}>
         <defs>
           <marker id="storm-ring-head" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-            <path className="storm-ring__head" d="M0 0 L10 5 L0 10z" />
+            <path className="storm-ring__arrowhead" d="M0 0 L10 5 L0 10z" />
           </marker>
         </defs>
         {Array.from({ length: SECTORS }, (_, sector) => {
@@ -168,11 +168,11 @@ export function StormLog({ lines, line }: PhaseLogProps) {
     return (
       <div key={`box${i}`} className={`log-box storm-place ${h}`} data-ref-locations={place.locations.map(placeId).join(",")}
         onMouseEnter={() => light(place.sectors, place.territory)} onMouseLeave={() => light(new Set())}>
-        <PlaceChip place={chip} />
+        <div className="log-box__head"><PlaceChip place={chip} /></div>
         <div className="log-box__lines">
           {place.losses.map((loss, j) => loss.type === "StormKilled"
-            ? <div key={j} className="storm-place__loss">The storm kills <Forces faction={loss.faction} forces={loss.forces} specialForces={loss.specialForces} /></div>
-            : <div key={j} className="storm-place__loss">The storm destroys <SpiceComponent amount={String(loss.amount)} /></div>)}
+            ? <div key={j} className="log-box__line">The storm kills <Forces faction={loss.faction} forces={loss.forces} specialForces={loss.specialForces} /></div>
+            : <div key={j} className="log-box__line">The storm destroys <SpiceComponent amount={String(loss.amount)} /></div>)}
         </div>
       </div>
     );
@@ -198,10 +198,10 @@ export function StormLog({ lines, line }: PhaseLogProps) {
                 </div>
                 {killed.length > 0 && (
                   <div className="log-box" data-ref-locations={shieldWallLocations.join(",")}>
-                    <PlaceChip place={{ territory: shieldWall }} />
+                    <div className="log-box__head"><PlaceChip place={{ territory: shieldWall }} /></div>
                     <div className="log-box__lines">
                       {killed.map((k, j) => (
-                        <div key={j}>{skin.enumValue("TreacheryCardType", "Metheor")} kills <Forces faction={k.faction} forces={k.forces} specialForces={k.specialForces} /></div>
+                        <div key={j} className="log-box__line">{skin.enumValue("TreacheryCardType", "Metheor")} kills <Forces faction={k.faction} forces={k.forces} specialForces={k.specialForces} /></div>
                       ))}
                     </div>
                   </div>

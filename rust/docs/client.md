@@ -93,6 +93,7 @@ Class names follow BEM:
 - In SCSS, elements and modifiers nest with `&__x` and `&--y`. Where a rule needs more weight than one class to keep winning over another rule, it says why in a comment.
 - There are no utility classes. Spacing, alignment and text styles that a component needs are elements or modifiers of that component.
 - A selector names one block. A parent never restyles another block's parts (`.panel .chip`). Instead the component that draws the child gives it a modifier, or an element of the parent as a second class: `<Button className="map-pin__action">`, `card--act`. Where the child is HTML from the server or `src/popups.ts` and can't take a class, the parent sets custom properties that the child reads with its usual look as the fallback. The parchment act card works this way. It sets `--control-bg`, `--control-text`, `--surface-link`, `--chip-bg` and the like (`app/_prompt-act.scss`), and inputs, buttons, chips and links read them: `background: var(--control-bg, var(--ink-0))`.
+- The log's blocks (`_log-*.scss` and the battle blocks `log-faceoff`, `log-pair`, `log-plan`, `log-verdict`, `log-aftermath`) share one vocabulary of elements, listed at the top of `components/_log-kit.scss`: `__head` is the first row of a box, `__lines`/`__line` the lines under it, `__label` a small caps label, `__note` smaller text inside a line, `__rule` a hairline, `__sigil` a faction's sigil, `__img` a card's art, `__side` one side of a battle. The modifiers `--hot`, `--you`, `--won` and `--lost` mean the same in each.
 
 #### Scales
 

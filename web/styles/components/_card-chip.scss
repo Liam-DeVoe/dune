@@ -1,8 +1,9 @@
-// A treachery card named in rich text (RichText, and the server's popover
-// HTML): its art and name in a chip, near-square because only tokens are
-// round. The server's HTML can't carry a modifier, so a context that wants it
-// different sets the custom properties: --card-chip-weight, --card-chip-text
-// and --card-chip-align (the Kwisatz Haderach popover, .pop-leader__rules).
+// A treachery card named in a log line (RichText's log style), and in the
+// Kwisatz Haderach's popover (the server's markup): its art and name in a
+// chip, near-square because only tokens are round. The server's HTML can't
+// carry a modifier, so the popover sets the custom properties
+// --card-chip-weight, --card-chip-text and --card-chip-align
+// (.pop-leader__rules).
 .card-chip {
   display: inline-flex;
   align-items: center;

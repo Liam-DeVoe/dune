@@ -26,7 +26,7 @@
     background-position: center;
     background-size: contain;
     border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: var(--r-1);
+    border-radius: 0.25em;
     print-color-adjust: exact;
 
     &[type="radio"] {

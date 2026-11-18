@@ -6,31 +6,28 @@
 
   &__what {
     flex-wrap: wrap;
-    gap: 2px;
+    gap: var(--s-0);
+  }
 
-    .leader-disc {
-      margin: 0 2px 0 0;
-    }
-
-    .force-token {
-      margin: 0;
-    }
+  // A revived leader's disc, on a .leader-disc.
+  &__leader {
+    margin: 0 var(--s-0) 0 0;
   }
 
   // The Kwisatz Haderach, on a dark green disc like the mockup's token.
-  .kh {
+  &__kh {
     width: 22px;
     height: 22px;
-    padding: 2px;
-    border-radius: 50%;
+    padding: var(--s-0);
+    border-radius: var(--r-round);
     background: #2c4a1c;
-    margin-right: 2px;
+    margin-right: var(--s-0);
   }
 
   &__note {
-    font-size: 13px;
+    font-size: var(--fs-2);
     color: var(--parchment);
-    margin: 0 4px 0 1px;
+    margin: 0 var(--s-1) 0 var(--s-0);
   }
 
   // Cost on the right, with who paid or who got paid on a line under it.
@@ -38,21 +35,21 @@
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
-    gap: 2px;
+    gap: var(--s-0);
   }
 
   &__by {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
+    gap: var(--s-1);
+    font-size: var(--fs-2);
     color: var(--parchment);
     white-space: nowrap;
   }
 
-  &__sig {
+  &__sigil {
     width: 22px;
     height: 22px;
-    border-radius: 50%;
+    border-radius: var(--r-round);
   }
 }

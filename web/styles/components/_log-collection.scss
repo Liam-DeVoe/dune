@@ -20,19 +20,19 @@
     justify-content: flex-start;
   }
 
-  // The sector of a field, when its territory had two fields that paid out.
-  // The compass word of a place chip in the table is set the same way.
-  &__sector,
-  .chip__sector {
-    font-size: 9.5px;
+  // The sector of a field, when its territory had two fields that paid out,
+  // on a .log-label. A place chip in the table sets its compass word (its
+  // .chip__sector) the same way.
+  &__label {
+    font-size: var(--fs-1);
     letter-spacing: 0.1em;
-    margin: 2px 0 0 8px;
+    margin: var(--s-0) 0 0 var(--s-2);
   }
 
   // Stronghold income starts under this rule.
-  &__income-rule {
+  &__rule {
     grid-column: 1 / -1;
-    margin-top: 3px;
+    margin-top: var(--s-0);
     border-top: 1px solid rgba(252, 249, 209, 0.22);
   }
 }

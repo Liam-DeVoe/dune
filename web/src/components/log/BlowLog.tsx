@@ -164,7 +164,7 @@ function offerer(made: NexusAlliance, nexus: LogLine[]): Faction {
 // Forces as number and token, special forces after.
 function Forces({ faction, forces, specialForces }: { faction: Faction; forces: number; specialForces: number }) {
   return (
-    <span className="blow-forces">
+    <span className="log-forces">
       {forces > 0 && <><SimpleNumber size={20}>{forces}</SimpleNumber><ForceToken faction={faction} size={20} /></>}
       {specialForces > 0 && <><SimpleNumber size={20}>{specialForces}</SimpleNumber><ForceToken faction={faction} special size={20} /></>}
     </span>
@@ -196,7 +196,7 @@ function AllianceGlyph({ change }: { change: NexusAllianceChange }) {
 
 function AllianceStep({ change, from, to }: { change: NexusAllianceChange; from: Faction; to: Faction }) {
   return (
-    <div className="blow-line nexus-step">
+    <div className="log-aside__line nexus-step">
       <FactionChip faction={from} />
       <AllianceGlyph change={change} />
       <FactionChip faction={to} />
@@ -223,7 +223,7 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
           alt={"label" in c.card ? c.card.label : ""} />
       </Hoverable>
       <div>
-        <div className="blow-card__big">
+        <div className="blow-card__amount">
           <SpiceComponent amount={String(c.amount)} size={34} />
           {!c.lost && <span>detected in</span>}
         </div>
@@ -241,13 +241,13 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
     const r = message.record;
     switch (r?.type) {
       case "WormDevouredForcesLog":
-        return <div key={key} className="blow-line"><MonsterIcon /> devours <FactionChip faction={r.faction} /> <Forces faction={r.faction} forces={r.forces} specialForces={r.specialForces} /></div>;
+        return <div key={key} className="log-aside__line"><MonsterIcon /> devours <FactionChip faction={r.faction} /> <Forces faction={r.faction} forces={r.forces} specialForces={r.specialForces} /></div>;
       case "WormSurvivedLog":
-        return <div key={key} className="blow-line"><FactionChip faction={r.faction} /> survive <MonsterIcon /></div>;
+        return <div key={key} className="log-aside__line"><FactionChip faction={r.faction} /> survive <MonsterIcon /></div>;
       case "WormDevouredSpiceLog":
-        return <div key={key} className="blow-line"><MonsterIcon /> devours <SpiceComponent amount={String(r.amount)} size={20} /></div>;
+        return <div key={key} className="log-aside__line"><MonsterIcon /> devours <SpiceComponent amount={String(r.amount)} size={20} /></div>;
       default:
-        return <div key={key} className="blow-line"><RichText parts={message.text} size={20} logStyle /></div>;
+        return <div key={key} className="log-aside__line"><RichText parts={message.text} size={20} logStyle /></div>;
     }
   };
 
@@ -263,7 +263,7 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
       const ride = n.ride;
       const r = routeAttributes(board, message.route);
       return (
-        <div key={key} className="blow-line" style={{ ["--fc" as string]: skin.factionColor(ride.faction) }} data-ref-locations={r.locations} data-ref-arrow={r.arrow}>
+        <div key={key} className="log-aside__line" style={{ ["--fc" as string]: skin.factionColor(ride.faction) }} data-ref-locations={r.locations} data-ref-arrow={r.arrow}>
           <FactionChip faction={ride.faction} /> ride <Forces faction={ride.faction} forces={ride.forces} specialForces={ride.specialForces} />
           {ride.from != null
             ? <><span>from </span><PlacePart part={ride.from} /><span> to </span><PlacePart part={ride.to} /></>
@@ -271,7 +271,7 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
         </div>
       );
     }
-    if (n) return <div key={key} className="blow-line"><RichText parts={message.text} size={20} logStyle /></div>;
+    if (n) return <div key={key} className="log-aside__line"><RichText parts={message.text} size={20} logStyle /></div>;
     return <Fragment key={key}>{line(message)}</Fragment>;
   };
 
@@ -282,11 +282,11 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
       {buildItems(lines, nexusBegun).map((item, i) => {
         switch (item.kind) {
           case "deck":
-            return <div key={i} className="log-label blow-deck">Deck {item.deck.deck}</div>;
+            return <div key={i} className="log-label log-label--above">Deck {item.deck.deck}</div>;
           case "card":
             return <Fragment key={i}>{card(item.card)}</Fragment>;
           case "note":
-            return <div key={i} className="blow-note"><RichText parts={item.line.text} size={18} logStyle /></div>;
+            return <div key={i} className="log-note"><RichText parts={item.line.text} size={18} logStyle /></div>;
           case "worm":
             return (
               <div key={i} className="log-aside" data-ref-locations={territoryLocations(item.territory)}>
@@ -295,9 +295,9 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
             );
           case "nexus":
             return (
-              <div key={i} className="log-aside blow-nexus">
-                <div className="log-label blow-nexus__label">Nexus</div>
-                {item.lines.length === 0 && <div className="blow-none">No alliance changes</div>}
+              <div key={i} className="log-aside">
+                <div className="log-label log-label--above">Nexus</div>
+                {item.lines.length === 0 && <div className="log-note">No alliance changes</div>}
                 {item.lines.filter((m) => !accepted(m, item.lines)).map((m, j) => nexusLine(m, item.lines, j))}
               </div>
             );

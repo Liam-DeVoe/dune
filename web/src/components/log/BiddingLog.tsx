@@ -42,7 +42,7 @@ export function BiddingLog({ lines, line }: PhaseLogProps) {
       {items(lines).map((item, i): ReactNode => {
         if (item.kind === "lot") return <Block key={i} lot={item} />;
         if (is(item.line, "BiddingDrawn", "TreacheryReshuffled", "BiddingPassedByAll")) {
-          return <div key={i} className="bid-note"><RichText parts={item.line.text} size={20} logStyle /></div>;
+          return <div key={i} className="log-note"><RichText parts={item.line.text} size={20} logStyle /></div>;
         }
         return <Fragment key={i}>{line(item.line)}</Fragment>;
       })}
@@ -55,7 +55,7 @@ function Block({ lot }: { lot: Lot }) {
   const sold = lot.sold;
   return (
     <div className={`bid-lot ${sold == null ? "bid-lot--unsold" : ""}`}>
-      <div className="bid-lot__top">
+      <div className="bid-lot__head">
         <span className="bid-lot__number">Card {lot.number}</span>
         {sold && (
           <>
@@ -65,7 +65,7 @@ function Block({ lot }: { lot: Lot }) {
                 <>
                   <SpiceComponent amount={String(sold.price)} size={22} />
                   {sold.paidTo !== "None" && (
-                    <span className="bid-lot__payee">to <img className="bid-lot__payee-img" src={skin.factionImage(sold.paidTo)} alt={skin.faction(sold.paidTo)} title={skin.faction(sold.paidTo)} /></span>
+                    <span className="bid-lot__payee">to <img className="bid-lot__sigil" src={skin.factionImage(sold.paidTo)} alt={skin.faction(sold.paidTo)} title={skin.faction(sold.paidTo)} /></span>
                   )}
                 </>
               )}
@@ -74,7 +74,7 @@ function Block({ lot }: { lot: Lot }) {
         )}
       </div>
       {((sold != null && sold.shares.length > 0) || lot.under.length > 0) && (
-        <div className="bid-lot__under">
+        <div className="bid-lot__lines">
           {(sold?.shares ?? []).map((s, i) => <div key={`s${i}`}><SpiceComponent amount={String(s.amount)} /> paid by <FactionChip faction={s.by} /></div>)}
           {lot.under.map((l, i) => <div key={`u${i}`} className={l.private ? "bid-lot__private" : ""}><RichText parts={l.text} size={20} logStyle /></div>)}
         </div>

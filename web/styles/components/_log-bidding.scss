@@ -1,33 +1,27 @@
-// Bidding log design. See design/battle-log/log-matrix.html.
-
-// "N cards were drawn for bidding", the reshuffle, "Bidding ends because
-// everyone passed": small lines around the card blocks.
-.bid-note {
-  font-size: 13.5px;
-  color: var(--parchment);
-  margin: 2px 0;
-}
+// Bidding log design. See design/battle-log/log-matrix.html. The small
+// lines around the card blocks are .log-note.
 
 // One card: number, winner, and the price on the right; what followed from
 // the sale hangs under it.
 .bid-lot {
-  margin: 5px 0;
-  padding: 6px 8px;
-  border-radius: 6px;
+  --bid-number-w: 48px;
+  margin: var(--s-1) 0;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-2);
   background: var(--ink-1);
   border: 1px solid rgba(255, 255, 255, 0.06);
 
-  &__top {
+  &__head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--s-2);
   }
 
   &__number {
     font-family: var(--font-display);
     color: var(--sand);
-    font-size: 14px;
-    width: 48px;
+    font-size: var(--fs-3);
+    width: var(--bid-number-w);
     flex: none;
   }
 
@@ -37,27 +31,28 @@
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 2px;
+    gap: var(--s-0);
   }
 
   &__payee {
-    font-size: 12.5px;
+    font-size: var(--fs-2);
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--s-1);
   }
 
-  &__payee-img {
+  &__sigil {
     width: 22px;
     height: 22px;
   }
 
-  &__under {
-    margin: 4px 0 0 56px;
-    font-size: 13.5px;
+  // Lined up with the winner, past the number.
+  &__lines {
+    margin: var(--s-1) 0 0 calc(var(--bid-number-w) + var(--s-2));
+    font-size: var(--fs-2);
     color: var(--parchment);
     display: grid;
-    gap: 3px;
+    gap: var(--s-0);
   }
 
   // A line only the viewer sees, italic like private lines elsewhere in the log.

@@ -2,36 +2,107 @@
 // Log text is parchment; only small caps labels are grey. No red or gold
 // tints on log text: the only "you" mark is the gold tint of your own
 // faction chip.
+//
+// The log's blocks (these, the phase files _log-*.scss, and the battle's
+// .log-faceoff, .log-pair, .log-plan, .log-verdict, .log-aftermath) give
+// each element name one meaning:
+//   __head   the first row of a box: its chip or number, and what sits
+//            beside it
+//   __lines  the lines under the head; __line is one of them
+//   __label  a small caps label, set like .log-label
+//   __note   smaller secondary text inside a line
+//   __rule   a hairline between two parts
+//   __sigil  a faction's round sigil
+//   __img    a card's art
+//   __side   one side of a battle, aggressor first
+// The modifier --hot is a hover highlight, --you the viewer's own, --won a
+// battle won, and --lost a battle lost or a card the storm took.
 
 // An aside: a card play, a deal, a flip. Card and faction are pills inside
 // the sentence; nothing on the left.
 .log-aside {
-  margin: 5px 0;
-  padding: 5px 7px;
-  border-radius: 5px;
+  margin: var(--s-1) 0;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-2);
   background: rgba(0, 0, 0, 0.22);
-  font-size: 14px;
+  font-size: var(--fs-3);
   line-height: 1.4;
   color: var(--parchment);
+
+  // A Truthtrance answer straight after its question joins the question's
+  // aside.
+  &:has(+ .log-aside--answer) {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  & + &--answer {
+    margin-top: 0;
+    padding-top: var(--s-0);
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  // The end of an effect ("... is no longer prevented"): a small note, not
+  // an aside.
+  &--after {
+    margin: var(--s-0) 0;
+    padding: 0 0 0 var(--s-1);
+    background: none;
+    font-size: var(--fs-2);
+  }
+
+  // One line of an aside that holds several: a worm's, the Nexus'.
+  &__line {
+    margin: var(--s-0) 0;
+  }
 }
 
 // Small caps label: DECK A, NEXUS, SHIP, MOVE.
 .log-label {
   font-family: var(--font-label);
-  font-size: 10px;
+  font-size: var(--fs-1);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-3);
+
+  // A label over the lines or the table it names.
+  &--above {
+    margin: var(--s-1) 0 var(--s-0);
+
+    &:first-child {
+      margin-top: 0;
+    }
+  }
+}
+
+// A small line between the log's blocks: "N cards were drawn for bidding",
+// a deck reshuffled, "No alliance changes".
+.log-note {
+  margin: var(--s-0) 0;
+  font-size: var(--fs-2);
+  color: var(--parchment);
+}
+
+// A count and its force token, kept together.
+.log-forces {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-0);
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 // Two aligned columns: faction pills left, amounts right (charity, bribes).
 .log-cols {
   display: grid;
   grid-template-columns: max-content max-content;
-  gap: 5px 14px;
+  gap: var(--s-1) var(--s-3);
   align-items: center;
   justify-content: start;
-  padding: 3px 0;
+  padding: var(--s-0) 0;
 }
 
 // A table whose rows are separated by one unbroken hairline. Set the
@@ -43,8 +114,8 @@
   &__cell {
     display: flex;
     align-items: center;
-    gap: 3px;
-    padding: 5px 10px 5px 0;
+    gap: var(--s-0);
+    padding: var(--s-1) var(--s-3) var(--s-1) 0;
     border-top: 1px solid rgba(252, 249, 209, 0.07);
   }
 
@@ -62,17 +133,32 @@
   }
 }
 
-// A box: one place, one card, one turn.
+// A box: one place, one card, one turn. Its head names it; its lines are
+// what happened there.
 .log-box {
-  margin: 5px 0;
-  padding: 5px 7px 6px;
-  border-radius: 6px;
+  margin: var(--s-1) 0;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-2);
   background: rgba(18, 8, 0, 0.25);
   border: 1px solid rgba(252, 249, 209, 0.1);
 
+  &__head {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+  }
+
   &__lines {
     display: grid;
-    gap: 3px;
-    margin-top: 4px;
+    gap: var(--s-0);
+    margin-top: var(--s-1);
+  }
+
+  &__line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+    color: var(--parchment);
   }
 }

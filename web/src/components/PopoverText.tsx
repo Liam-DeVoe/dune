@@ -3,7 +3,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { popoverAttributes, usePopover } from "../popover";
 
-export function PopoverText({ popover, className = "fw-bold", style, children }: {
+export function PopoverText({ popover, className = "rich-text__bold", style, children }: {
   popover: string;
   className?: string;
   style?: CSSProperties;

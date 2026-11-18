@@ -27,10 +27,10 @@ impl Default for NexusPlayed {
             tleilaxu_special_forces: Default::default(),
             tleilaxu_hero: None,
             tleilaxu_assign_skill: false,
-            choam_card: TreacheryCardManager::get(0),
-            ecaz_territory: Territory::from_id(0),
+            choam_card: None,
+            ecaz_territory: None,
             ecaz_faction: Default::default(),
-            moritani_territory: Territory::from_id(0),
+            moritani_territory: None,
             tleilaxu_number_of_special_forces_in_location: Default::default(),
             tleilaxu_location: None,
         }

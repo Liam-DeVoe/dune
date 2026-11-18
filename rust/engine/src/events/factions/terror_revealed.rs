@@ -20,9 +20,9 @@ impl Default for TerrorRevealed {
             alliance_offered: Default::default(),
             type_: Default::default(),
             forces_in_sneak_attack: Default::default(),
-            sneak_attack_to: Location::from_id(0),
+            sneak_attack_to: None,
             robbery_takes_card: Default::default(),
-            card_to_give_in_sabotage: TreacheryCardManager::get(0),
+            card_to_give_in_sabotage: None,
             passed: Default::default(),
         }
     }

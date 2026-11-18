@@ -25,7 +25,7 @@ impl Default for Revival {
             number_of_forces_in_location: Default::default(),
             number_of_special_forces_in_location: Default::default(),
             location: None,
-            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
+            hero: None,
             assign_skill: Default::default(),
             uses_emperor_secret_ally: Default::default(),
         }

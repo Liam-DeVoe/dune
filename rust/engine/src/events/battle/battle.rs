@@ -26,15 +26,15 @@ struct DynamicWeaponSwap {
 impl Default for Battle {
     fn default() -> Self {
         Battle {
-            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
+            hero: None,
             messiah: Default::default(),
             forces: Default::default(),
             forces_at_half_strength: Default::default(),
             special_forces: Default::default(),
             special_forces_at_half_strength: Default::default(),
             ally_contribution_amount: Default::default(),
-            weapon: TreacheryCardManager::get(0),
-            defense: TreacheryCardManager::get(0),
+            weapon: None,
+            defense: None,
             banker_bonus: Default::default(),
         }
     }

@@ -17,7 +17,7 @@ impl Default for LoserConcluded {
             karma_forced_kept_card_decision: Default::default(),
             forced_kept_or_discarded_card_ids: Default::default(),
             assassinate: Default::default(),
-            kept_card: TreacheryCardManager::get(0),
+            kept_card: None,
         }
     }
 }

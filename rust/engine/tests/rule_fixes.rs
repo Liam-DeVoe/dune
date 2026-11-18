@@ -967,3 +967,30 @@ fn no_defense_counters_nothing() {
         assert!(!c.countered_by(None, None), "{c:?}");
     }
 }
+
+/// Optional card, hero, location and territory fields default to none. Card 0 and location 0 are
+/// real objects, so a `Shipment` without `karmaCard` was a Karama shipment with a Lasgun.
+#[test]
+fn optional_handles_default_to_none() {
+    let s: Shipment = serde_json::from_value(serde_json::json!({ "shipmentType": "ShipmentNormal", "to": 8, "forceAmount": 3 })).unwrap();
+    assert_eq!(s.karma_card, None);
+    assert_eq!(s.from, None);
+    assert!(!s.is_using_karma());
+    assert!(!s.is_site_to_site());
+
+    let b = treachery_engine::events::Battle::default();
+    assert_eq!((b.hero, b.weapon, b.defense), (None, None, None));
+    assert_eq!(LoserConcluded::default().kept_card, None);
+    assert_eq!(RaiseDeadPlayed::default().hero, None);
+    assert_eq!(Revival::default().hero, None);
+    assert_eq!(KarmaFreeRevival::default().hero, None);
+    assert_eq!(AllyPermission::default().permitted_karma_card, None);
+    assert_eq!(CardTraded::default().requested_card, None);
+    let a = AmbassadorActivated::default();
+    assert_eq!((a.fremen_or_guild_to, a.ixian_card), (None, None));
+    let n = NexusPlayed::default();
+    assert_eq!((n.choam_card, n.ecaz_territory, n.moritani_territory), (None, None, None));
+    let t = TerrorRevealed::default();
+    assert_eq!((t.sneak_attack_to, t.card_to_give_in_sabotage), (None, None));
+    assert_eq!(TerrorPlanted::default().stronghold, None);
+}

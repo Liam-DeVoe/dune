@@ -13,7 +13,7 @@ impl Default for CardTraded {
         CardTraded {
             target: Default::default(),
             card: TreacheryCardManager::get(0),
-            requested_card: TreacheryCardManager::get(0),
+            requested_card: None,
         }
     }
 }

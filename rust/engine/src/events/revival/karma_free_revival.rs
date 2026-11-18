@@ -12,7 +12,7 @@ pub struct KarmaFreeRevival {
 impl Default for KarmaFreeRevival {
     fn default() -> Self {
         KarmaFreeRevival {
-            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
+            hero: None,
             amount_of_forces: Default::default(),
             amount_of_special_forces: Default::default(),
             assign_skill: false,

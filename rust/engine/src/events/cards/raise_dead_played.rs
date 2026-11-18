@@ -17,7 +17,7 @@ impl Default for RaiseDeadPlayed {
             amount_of_forces: 0,
             amount_of_special_forces: 0,
             assign_skill: false,
-            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
+            hero: None,
             number_of_special_forces_in_location: Default::default(),
             location: None,
         }

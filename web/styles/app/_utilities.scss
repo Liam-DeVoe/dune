@@ -38,7 +38,7 @@
 
 // The collapse chevron in a card header (CollapseButton) is the guide's
 // muted .chev, gold on hover.
-.card-header > .btn-link.float-end {
+.card-header > .btn-link.collapse-button {
   --bs-btn-color: var(--text-3);
   --bs-btn-hover-color: var(--gold);
   --bs-btn-active-color: var(--gold);

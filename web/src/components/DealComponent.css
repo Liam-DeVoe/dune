@@ -38,3 +38,20 @@
   color: #e06a6a;
   font-weight: 700;
 }
+
+/* The deals panel. In the trade popover its margin goes when it is the last card. */
+.deals {
+  margin-bottom: 0.5rem;
+}
+/* A deal's description: long words break rather than widen the table. */
+.deals__text {
+  word-wrap: break-word;
+  word-break: break-word;
+}
+.deals__decline {
+  margin-left: 0.25rem;
+}
+/* Two classes to beat the padding of Bootstrap's .table-sm cells. */
+.deals .deals__parties {
+  padding: 0;
+}

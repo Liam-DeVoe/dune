@@ -89,7 +89,7 @@ function RevivalEventForm({ action, inPopover }: { action: ActionView; inPopover
       )}
       {o.maxByEmperor > 0 && (
         <>
-          <div className="mt-2">You may select up to <SimpleNumber>{o.maxByEmperor}</SimpleNumber> <ForceToken faction={faction} size={20} title={forceName} /> to be revived by your ally:</div>
+          <div className="event-form__section">You may select up to <SimpleNumber>{o.maxByEmperor}</SimpleNumber> <ForceToken faction={faction} size={20} title={forceName} /> to be revived by your ally:</div>
           {o.maxForces > 0 && (
             <SelectForces value={num(draft.extraForcesPaidByEmperor)} onChange={(v) => update({ extraForcesPaidByEmperor: v })} min={0} max={o.maxByEmperor} faction={faction} special={false} />
           )}
@@ -108,16 +108,16 @@ function RevivalEventForm({ action, inPopover }: { action: ActionView; inPopover
           <SelectForces label="Place forces on the planet?" value={num(draft.numberOfSpecialForcesInLocation)} onChange={(v) => update({ numberOfSpecialForcesInLocation: v })} min={0} max={o.maxSpecialForcesOnPlanet} faction={faction} special />
         </div>
       )}
-      {toLocation > 0 && <div className="small">Use the map to choose where to place them.</div>}
+      {toLocation > 0 && <div className="event-form__note">Use the map to choose where to place them.</div>}
       {o.heroes.length > 0 && (
         <SelectFromImage values={heroChoices(skin, view, o.heroes)} value={heroId(draft.hero)} onChange={(v) => update({ hero: v })} required={false} imageWidth={80} />
       )}
       {o.mayAssignSkill && (
         <YesNo value={draft.assignSkill === true} onChange={(v) => update({ assignSkill: v })} label="Do you wish to assign a skill to this leader?" />
       )}
-      <div className="mt-1 text-end">Revival cost for you: <SimpleNumber>{o.costForPlayer}</SimpleNumber></div>
+      <div className="event-form__cost">Revival cost for you: <SimpleNumber>{o.costForPlayer}</SimpleNumber></div>
       {o.costForEmperor != null && (
-        <div className="mt-1 text-end">Revival cost for <FactionChip faction="Emperor" />: <SimpleNumber>{o.costForEmperor}</SimpleNumber></div>
+        <div className="event-form__cost">Revival cost for <FactionChip faction="Emperor" />: <SimpleNumber>{o.costForEmperor}</SimpleNumber></div>
       )}
       <ButtonRow confirm={() => submit()} confirmText="Revive" confirmError={validation} />
       <SubmitError error={error} />
@@ -161,14 +161,14 @@ function RaiseDeadForm({ action, inPopover }: { action: ActionView; inPopover: b
           <SelectForces label="Place forces on the planet?" value={num(draft.numberOfSpecialForcesInLocation)} onChange={(v) => update({ numberOfSpecialForcesInLocation: v })} min={0} max={o.maxSpecialForcesOnPlanet} faction={faction} special />
         </div>
       )}
-      {toLocation > 0 && <div className="small">Use the map to choose where to place them.</div>}
+      {toLocation > 0 && <div className="event-form__note">Use the map to choose where to place them.</div>}
       {hasHeroes && (
         <SelectFromImage values={heroChoices(skin, view, o.heroes)} value={heroId(draft.hero)} onChange={(v) => update({ hero: v })} required={false} imageWidth={80} />
       )}
       {o.mayAssignSkill && (
         <YesNo value={draft.assignSkill === true} onChange={(v) => update({ assignSkill: v })} label="Do you wish to assign a skill to this leader?" />
       )}
-      {!(o.maxForces > 0 || o.maxSpecialForces > 0 || hasHeroes) && <div className="text-info small">You currently have nothing to revive</div>}
+      {!(o.maxForces > 0 || o.maxSpecialForces > 0 || hasHeroes) && <div className="event-form__note event-form__note--info">You currently have nothing to revive</div>}
       <ButtonRow confirm={() => submit()} confirmText={confirmLabel} confirmError={validation} />
       <SubmitError error={error} />
     </GameEventLayout>
@@ -253,11 +253,11 @@ function AcceptOrCancelTleilaxuRevivalForm({ action, inPopover }: { action: Acti
     <GameEventLayout type="AcceptOrCancelTleilaxuRevival" header="Manage Revival Requests" urgent={o.requests.length > 0} inPopover={inPopover}>
       {o.requests.length > 0 && (
         <>
-          {o.botAwaits && <div className="text-warning mb-1">Bots are awaiting your decision before starting to revive...</div>}
+          {o.botAwaits && <div className="event-form__warning">Bots are awaiting your decision before starting to revive...</div>}
           <div>Early revival requests:</div>
           <SelectFromImage values={heroChoices(skin, view, o.requests)} value={heroId(draft.hero)} onChange={(v) => update({ hero: v })} imageWidth={80} />
           <SelectResources value={num(draft.price)} onChange={(v) => update({ price: v })} min={0} max={50} label="Price" />
-          <ButtonRow alignment=""
+          <ButtonRow alignEnd={false}
                      pass={() => submit({ cancel: false, hero: null, price: 0 })} passText="Deny all"
                      confirm={() => submit()} confirmText={o.offerLabel} confirmError={validation}
                      other={() => submit({ cancel: false, hero, price: MAX_INT })} otherText={o.denyLabel} />

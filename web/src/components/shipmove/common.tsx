@@ -12,26 +12,11 @@ import type { Part } from "../../generated/Part";
 import { useGame } from "../../state/context";
 import { Board } from "../board/geometry";
 import { RichText } from "../RichText";
+import { CollapseButton } from "../CollapseButton";
 
 // GameEventComponentLayout's collapsed state, kept per form type for the page's lifetime
 // (SavedCollapsedStateValues).
 const collapsedByType = new Map<string, boolean>();
-
-function CollapseButton({ collapsed }: { collapsed: boolean }) {
-  return (
-    <div className="btn btn-link p-0 float-end" style={{ display: "inline-block" }}>
-      {collapsed ? (
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M13.825 7.15833L10 10.975L6.175 7.15833L5 8.33332L10 13.3333L15 8.33332L13.825 7.15833Z" fill="currentColor" />
-        </svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M10 6.66669L5 11.6667L6.175 12.8417L10 9.02502L13.825 12.8417L15 11.6667L10 6.66669Z" fill="currentColor" />
-        </svg>
-      )}
-    </div>
-  );
-}
 
 // GameEventComponentLayout: a card, urgent forms with the card--urgent border; the header
 // collapses the body.
@@ -42,7 +27,7 @@ export function EventLayout({ type, urgent = false, header, children }: { type: 
     setCollapsed(!collapsed);
   };
   return (
-    <div className={`card  ${urgent ? "card--urgent" : ""}  mb-2`} style={{ animation: "fadeIn 1s" }}>
+    <div className={`card  ${urgent ? "card--urgent" : ""}  event-form`} style={{ animation: "fadeIn 1s" }}>
       {header != null && (
         <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />

@@ -232,22 +232,22 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   return (
     <EventLayout type={kind} urgent header={header}>
       {o?.informAboutCaravan && (
-        <div className="text-info small">Note: if you wish to perform a {skin.enumValue("TreacheryCardType", "Caravan")} this turn, you need to do that before performing your regular move.</div>
+        <div className="event-form__note event-form__note--info">Note: if you wish to perform a {skin.enumValue("TreacheryCardType", "Caravan")} this turn, you need to do that before performing your regular move.</div>
       )}
       {kind === "FremenRidesMonster" ? (
         <>
-          <div className="small">Use the map to ride the worm.</div>
+          <div className="event-form__note">Use the map to ride the worm.</div>
           <ButtonRow pass={pass} passText="Pass" />
         </>
       ) : sources.length > 0 ? (
         <>
           {owns ? (
             <>
-              <div className="small">Use the map to move forces.</div>
-              {!claimsMapByDefault && <button className="btn btn-secondary btn-sm mt-1" onClick={releaseMap}>Cancel</button>}
+              <div className="event-form__note">Use the map to move forces.</div>
+              {!claimsMapByDefault && <button className="btn btn-secondary btn-sm event-form__field" onClick={releaseMap}>Cancel</button>}
             </>
           ) : claimsMapByDefault ? (
-            <div className="small">Finish the extra move on the map first, or cancel it.</div>
+            <div className="event-form__note">Finish the extra move on the map first, or cancel it.</div>
           ) : (
             <button className="btn btn-secondary btn-sm" onClick={claimMap}>{`Play ${skin.enumValue("TreacheryCardType", "Caravan")}`}</button>
           )}

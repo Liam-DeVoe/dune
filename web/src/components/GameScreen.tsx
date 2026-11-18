@@ -35,15 +35,15 @@ function Screen({ live }: { live: GameView }) {
   return (
     <>
     <TurnBanner />
-    <div className="row game-screen" style={turnBannerStyle(view)}>
-      <div id="mapdiv" className="col-sm-12">
+    <div className="game-screen" style={turnBannerStyle(view)}>
+      <div id="mapdiv">
         <div className="game-screen__board-area">
           <GameBoard />
           <MenuComponent />
         </div>
         <UndoTimeline />
       </div>
-      <div className="col-sm-12 game-screen__side-column">
+      <div className="game-screen__side-column">
         <MenuPanels />
         {!view.viewer.isObserver && PhaseValue[view.phase] > PhaseValue.TradingFactions && <PlayerPanel />}
         <div className="act-stack">

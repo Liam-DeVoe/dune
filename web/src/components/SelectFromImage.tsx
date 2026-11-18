@@ -35,7 +35,7 @@ export function SelectFromImage<T>({ values, value, onChange, required = true, i
   };
   return (
     <>
-      {label != null && <label className="d-block mt-1 mb-0">{label}</label>}
+      {label != null && <label className="select-from-image__label">{label}</label>}
       <div className="img-choices">
         {values.map((c) => (
           <Image key={String(c.value)} src={c.src} alt={c.alt} width={imageWidth} popover={c.popover} tooltip={c.tooltip ?? null} pointer highlightOnHover

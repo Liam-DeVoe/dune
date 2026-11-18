@@ -1,0 +1,78 @@
+// The status card at the top of the action stack (GameStatusComponent.tsx and
+// the pause lines in PauseReasons.tsx). The card is the parchment .prompt-act.
+.game-status {
+  // The factions to bid or waited for, six to a row, centred.
+  &__players {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0.5rem -0.75rem 1rem;
+
+    > * {
+      flex: 0 0 auto;
+      width: 16.66666667%;
+      max-width: 100%;
+      padding-right: 0.75rem;
+      padding-left: 0.75rem;
+    }
+  }
+
+  // A faction in the turn order. Comes after `__players > *` to drop its padding.
+  &__seat {
+    align-self: center;
+    padding: 0;
+  }
+
+  &__sigil {
+    padding: 0.5rem;
+  }
+
+  // The status message, in bold.
+  &__message {
+    color: var(--ink-0);
+    font-weight: 700;
+    text-align: center;
+  }
+
+  // A line under it: what a waited-for faction may still do, who holds the phase.
+  &__line {
+    margin-top: 0.25rem;
+    color: var(--ink-0);
+    text-align: center;
+
+    &--bold {
+      font-weight: 700;
+    }
+  }
+
+  &__held {
+    color: var(--ink-0);
+    text-align: center;
+  }
+
+  // Hold, Done, Continue: at the right.
+  &__actions {
+    margin-top: 0.5rem;
+    text-align: right;
+  }
+
+  &__hold {
+    margin-right: 0.25rem;
+  }
+
+  // Pushes the host's Continue button to the right of the strip.
+  &__host-gap {
+    flex-grow: 1;
+  }
+
+  &__time-limit {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  // Bootstrap gives .form-check a bottom margin.
+  &__time-check {
+    margin-bottom: 0;
+  }
+}

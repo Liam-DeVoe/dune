@@ -195,6 +195,21 @@
     color: var(--rock-2);
   }
 
+  // The ally's spice picker.
+  &__ally {
+    display: flex;
+  }
+
+  // The banker's bonus picker with its label.
+  &__banker {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  &__banker-label {
+    margin-right: 0.25rem;
+  }
+
   // One token per force: solid is full strength, half-shaded is half strength,
   // faded is kept out of the battle. Clicking cycles the token.
   &__pips {

@@ -123,12 +123,12 @@ export function OwnLines({ view, reasons, style }: { view: GameView; reasons: Pa
   const available = new Set(view.actions.map((a) => a.eventType));
   const can = ws.filter((w) => w.actions.some((a) => available.has(a)));
   if (can.length > 0) {
-    return <div className="text-dark fw-bold text-center" style={style}>You may still {joinOr(can.map((w) => w.you))}</div>;
+    return <div className="game-status__message" style={style}>You may still {joinOr(can.map((w) => w.you))}</div>;
   }
   return (
     <>
-      <div className="text-dark fw-bold text-center" style={style}>Waiting for you to continue</div>
-      <div className="text-dark text-center mt-1">You may {joinOr(ws.map((w) => w.cant))}.</div>
+      <div className="game-status__message" style={style}>Waiting for you to continue</div>
+      <div className="game-status__line">You may {joinOr(ws.map((w) => w.cant))}.</div>
     </>
   );
 }

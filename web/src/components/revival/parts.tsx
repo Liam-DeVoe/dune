@@ -38,7 +38,7 @@ export function GameEventLayout({ type, header, urgent = false, inPopover = fals
     setCollapsed(!collapsed);
   };
   return (
-    <div className={`card ${urgent ? "card--urgent" : ""} mb-2`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
+    <div className={`card ${urgent ? "card--urgent" : ""} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
         <CollapseButton collapsed={collapsed} />
         {header}
@@ -62,8 +62,8 @@ export function SelectForces({ value, onChange, min, max, faction, special, labe
   const { skin } = useGame();
   const src = skin.url(skin.get(special ? "FactionSpecialForceImage_URL" : "FactionForceImage_URL", faction));
   return (
-    <div className="d-inline-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="event-form__stepper">
+      {label !== "" && <label className="event-form__stepper-label">{label}</label>}
       <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolSrc={src}
                     symbolStarred={special && hasStarredSpecialForce(faction)} symbolFill={skin.factionColor(faction)} />
     </div>
@@ -75,9 +75,9 @@ export function YesNo({ value, onChange, label }: { value: boolean; onChange: (v
   const id = useId();
   return (
     <>
-      <label className="mb-0" htmlFor={id}>{label}</label>
+      <label htmlFor={id}>{label}</label>
       {[false, true].map((v) => (
-        <div key={String(v)} className="form-check mb-0">
+        <div key={String(v)} className="form-check event-form__radio">
           <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${v}`} value={String(v)}
                  checked={v === value} onChange={() => onChange(v)} />
           <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${v}`}>{v ? "Yes" : "No"}</label>
@@ -133,7 +133,7 @@ export function useRevivalDraft<F extends WithDraft["form"]>(action: ActionView,
 
 // The server's answer to a refused submission, under the form.
 export function SubmitError({ error }: { error: string | null }) {
-  return error ? <div className="text-danger small">{error}</div> : null;
+  return error ? <div className="event-form__error">{error}</div> : null;
 }
 
 // MapPickComponent.PinActions: the validation, Cancel and the confirm button, beside the pin.

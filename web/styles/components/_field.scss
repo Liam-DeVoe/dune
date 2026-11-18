@@ -1,11 +1,14 @@
 @use "../shared";
 
-// Segmented control: a row of buttons where one is --on.
+// Segmented control: a row of buttons where one is --on. On the parchment act
+// card it reads the card's --control-* properties. --small is the compact one
+// in the game menu, whose buttons light gold on hover.
 .seg {
   display: inline-flex;
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--control-border, var(--hairline-strong));
   border-radius: var(--r-2);
   overflow: hidden;
+  background: var(--control-bg, transparent);
 
   &__button {
     font-family: var(--font-body);
@@ -13,13 +16,24 @@
     padding: 7px 14px;
     background: transparent;
     border: 0;
-    color: var(--text-2);
+    color: var(--control-text, var(--text-2));
     cursor: pointer;
 
     &--on {
       background: var(--gold);
       color: var(--ink-0);
       font-weight: 700;
+    }
+  }
+
+  // Under the block so it beats the .seg__button size and padding.
+  &--small &__button {
+    font-size: var(--fs-2);
+    padding: var(--s-0) var(--s-2);
+
+    &:not(.seg__button--on):hover {
+      color: var(--gold);
+      background: var(--gold-wash);
     }
   }
 }

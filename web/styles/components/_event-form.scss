@@ -1,9 +1,15 @@
 // A game action's form: the collapsible card GameEventComponentLayout draws
 // (Layout in battle/, revival/ and other/parts.tsx, EventLayout in
 // shipmove/common.tsx) and the pieces the forms put in it. The card is a
-// .card; in the action stack, _prompt-act.scss removes its margin.
+// .card; in the action stack, card--joined removes its margin, and in a
+// popover (.card-play-pop, .trade-pop__body) the last one drops it by
+// --last-card-margin.
 .event-form {
   margin-bottom: 0.5rem;
+
+  &:last-child {
+    margin-bottom: var(--last-card-margin, 0.5rem);
+  }
 
   // A line of the form under the one before it.
   &__field {
@@ -25,15 +31,15 @@
     font-size: 0.875em;
   }
 
-  // Gold on ink. On the parchment card it is rock brown, see below.
+  // Gold on ink, rock brown on the parchment act card.
   &__info,
   &__note--info {
-    color: var(--gold);
+    color: var(--surface-accent, var(--gold));
   }
 
-  // Why a form has no button yet. On the parchment card it is rock brown.
+  // Why a form has no button yet. Rock brown on the parchment act card.
   &__reason {
-    color: var(--text-3);
+    color: var(--surface-muted, var(--text-3));
   }
 
   // The server's refusal, or a validation message, in the guide's error red.
@@ -157,15 +163,5 @@
 
   &__placement-cell--middle {
     vertical-align: middle;
-  }
-}
-
-// Info and muted text become rock brown on the parchment card.
-.prompt-act,
-.act-stack > .card:not(.battle-plan) {
-  .event-form__info,
-  .event-form__note--info,
-  .event-form__reason {
-    color: var(--rock-2);
   }
 }

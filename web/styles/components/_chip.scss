@@ -33,7 +33,8 @@
 // names a faction, --ref-card a treachery or Nexus card by its art. Place and
 // faction chips carry data-ref-locations, which the hover script in
 // index.html reads to light those sectors on the map while the mouse is over
-// the chip.
+// the chip. On the parchment act card they read its --chip-* properties; a
+// popover that draws them still (the Kwisatz Haderach's) sets --chip-cursor.
 .chip--place,
 .chip--faction,
 .chip--ref-card {
@@ -41,8 +42,11 @@
   padding: 1px 8px 1px 3px;
   font-size: 14px;
   vertical-align: middle;
+  background: var(--chip-bg, rgba(18, 8, 0, 0.55));
+  border-color: var(--chip-border, rgba(252, 249, 209, 0.12));
+  color: var(--chip-text, var(--text));
   // Hovering does something, so the pointer, as the card popovers use.
-  cursor: pointer;
+  cursor: var(--chip-cursor, pointer);
 
   .chip__img {
     width: 20px;
@@ -56,7 +60,7 @@
   // The viewing player's own faction is named like any other, in gold. Only
   // the name changes, so the gold border can mean "hovered" alone.
   &.chip--you {
-    border-color: rgba(252, 249, 209, 0.14);
+    border-color: var(--chip-border, rgba(252, 249, 209, 0.14));
     box-shadow: none;
 
     .chip__name {
@@ -65,12 +69,35 @@
   }
 
   &:hover {
-    border-color: var(--gold);
+    border-color: var(--chip-hover-border, var(--gold));
     box-shadow: 0 0 0 1px rgba(231, 191, 60, 0.35);
   }
 
   + .chip {
     margin-left: 3px;
+  }
+}
+
+// A chip in a popover, where nothing is hoverable (the tanks popover): no
+// pointer and no hover ring.
+.chip--static {
+  cursor: default;
+
+  &:hover {
+    border-color: rgba(252, 249, 209, 0.12);
+    box-shadow: none;
+  }
+}
+
+// An in-sentence chip a size up, to sit beside 44px leader tokens (the tanks
+// popover).
+.chip--large {
+  padding: 1px var(--s-2) 1px 1px;
+  font-size: var(--fs-3);
+
+  .chip__img {
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -83,12 +110,13 @@
 }
 
 // The sector's compass word, in the label face like the map popover's title.
+// Rock brown on the parchment act card.
 .chip__sector {
   font-family: var(--font-label);
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--surface-muted, var(--text-3));
 }
 
 // The planet glyph on a place chip: a disc with the place's outline in gold.
@@ -125,22 +153,6 @@
   box-shadow:
     0 0 0 3px var(--gold),
     0 0 14px 2px rgba(231, 191, 60, 0.7);
-}
-
-// Chips inside the parchment prompt card take the on-parchment colours.
-.prompt-act .chip--place,
-.prompt-act .chip--faction,
-.prompt-act .chip--ref-card,
-.act-stack > .card:not(.battle-plan) .chip--place,
-.act-stack > .card:not(.battle-plan) .chip--faction,
-.act-stack > .card:not(.battle-plan) .chip--ref-card {
-  background: rgba(29, 12, 0, 0.08);
-  border-color: rgba(29, 12, 0, 0.2);
-  color: var(--ink-1);
-
-  .chip__sector {
-    color: var(--rock-2);
-  }
 }
 
 // A log line that tells of a journey. Hovering anywhere on it draws the

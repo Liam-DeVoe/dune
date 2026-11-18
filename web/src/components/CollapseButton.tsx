@@ -1,8 +1,9 @@
 // GenericComponents/CollapseButton.razor: the chevron at the right of a collapsible card header.
-// The header itself toggles; the chevron only shows the state.
-export function CollapseButton({ collapsed }: { collapsed: boolean }) {
+// The header itself toggles; the chevron only shows the state. `className` mixes in the element of
+// a card with its own look (battle-plan__chevron).
+export function CollapseButton({ collapsed, className = "" }: { collapsed: boolean; className?: string }) {
   return (
-    <div className="button button--link collapse-button" style={{ display: "inline-block" }}>
+    <div className={`button button--link collapse-button ${className}`} style={{ display: "inline-block" }}>
       {collapsed
         ? (
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

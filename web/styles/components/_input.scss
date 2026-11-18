@@ -1,7 +1,8 @@
 @use "../shared";
 
 // A text field: ink 0, hairline, gold focus ring. --small is the compact size,
-// --plain shows a read-only value as text, without the field's box.
+// --plain shows a read-only value as text, without the field's box. On the
+// parchment act card it reads the card's --control-* properties.
 .input {
   display: block;
   width: 100%;
@@ -10,11 +11,11 @@
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
-  color: var(--parchment);
+  color: var(--control-text, var(--parchment));
   appearance: none;
-  background-color: var(--ink-0);
+  background-color: var(--control-bg, var(--ink-0));
   background-clip: padding-box;
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--control-border, var(--hairline-strong));
   border-radius: var(--r-2);
   transition:
     border-color 0.15s ease-in-out,
@@ -31,14 +32,15 @@
   }
 
   &::placeholder {
-    color: var(--text-3);
+    color: var(--surface-muted, var(--text-3));
     font-style: italic;
     opacity: 1;
   }
 
+  // On a surface (the act card) a disabled field keeps the surface's look.
   &:disabled {
-    background-color: var(--ink-2);
-    color: var(--text-3);
+    background-color: var(--control-bg, var(--ink-2));
+    color: var(--control-text, var(--text-3));
   }
 
   &::-webkit-date-and-time-value {

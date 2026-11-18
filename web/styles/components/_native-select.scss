@@ -1,7 +1,8 @@
 @use "../shared";
 
 // A select box drawn like .input, with a sand chevron at the right. The custom
-// Select (_select.scss) puts this class on its trigger button.
+// Select (_select.scss) puts this class on its trigger button. On the
+// parchment act card it reads the card's --control-* properties.
 .native-select {
   display: block;
   width: 100%;
@@ -10,14 +11,14 @@
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
-  color: var(--parchment);
+  color: var(--control-text, var(--parchment));
   appearance: none;
-  background-color: var(--ink-0);
+  background-color: var(--control-bg, var(--ink-0));
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23d9c79a' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px 12px;
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--control-border, var(--hairline-strong));
   border-radius: var(--r-2);
   transition:
     border-color 0.15s ease-in-out,
@@ -33,9 +34,10 @@
     box-shadow: shared.$focus-ring-gold;
   }
 
+  // On a surface (the act card) a disabled select keeps the surface's look.
   &:disabled {
-    background-color: var(--ink-2);
-    color: var(--text-3);
+    background-color: var(--control-bg, var(--ink-2));
+    color: var(--control-text, var(--text-3));
   }
 
   option {

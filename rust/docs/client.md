@@ -92,6 +92,7 @@ Class names follow BEM:
 - A variant or state is `block--modifier` or `block__element--modifier`, next to the base class in the markup: `class="chip chip--place"`, `seg__button seg__button--on`. A state word like `on` or `you` is never a class of its own.
 - In SCSS, elements and modifiers nest with `&__x` and `&--y`. Where a rule needs more weight than one class to keep winning over another rule, it says why in a comment.
 - There are no utility classes. Spacing, alignment and text styles that a component needs are elements or modifiers of that component.
+- A selector names one block. A parent never restyles another block's parts (`.panel .chip`). Instead the component that draws the child gives it a modifier, or an element of the parent as a second class: `<Button className="map-pin__action">`, `card--act`. Where the child is HTML from the server or `src/popups.ts` and can't take a class, the parent sets custom properties that the child reads with its usual look as the fallback. The parchment act card works this way. It sets `--control-bg`, `--control-text`, `--surface-link`, `--chip-bg` and the like (`app/_prompt-act.scss`), and inputs, buttons, chips and links read them: `background: var(--control-bg, var(--ink-0))`.
 
 Ids stay as hooks where scripts look for them (`#mapdiv`, `#tip`, `#printSection`). The server emits some of these classes in its HTML (`rust/skin/src/skin.rs`: chips, spice amounts, popover bodies), so renaming one of those changes the views the harness compares.
 

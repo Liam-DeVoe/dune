@@ -196,7 +196,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
       </ModalComponent>
 
       <div className="card tracker" style={{ animation: "fadeIn 1s" }}>
-        <div className="card__header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
+        <div className="card__header card__header--collapsible" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
           Card Tracker{" "}
           <Hoverable className="tracker__info" popover={`<div class='pop'>${infoMessage(skin)}</div>`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="var(--ink-0)" viewBox="0 0 16 16">

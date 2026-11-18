@@ -2,7 +2,8 @@
 
 // A checkbox or radio with its label: the box hangs in the left padding, so
 // wrapped label lines stay aligned. The box is the language checkbox: ink 0,
-// gold when checked. --check-bg is re-pointed on parchment (app/_prompt-act.scss).
+// gold when checked. On the parchment act card (app/_prompt-act.scss) it reads
+// the card's --check-bg and --control-border-strong.
 .check {
   display: block;
   min-height: 1.5rem;
@@ -10,7 +11,6 @@
   margin-bottom: 0.125rem;
 
   &__input {
-    --check-bg: var(--ink-0);
     --check-image: none;
     float: left;
     flex-shrink: 0;
@@ -20,12 +20,12 @@
     margin-left: -1.5em;
     vertical-align: top;
     appearance: none;
-    background-color: var(--check-bg);
+    background-color: var(--check-bg, var(--ink-0));
     background-image: var(--check-image);
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    border: 1px solid var(--control-border-strong, rgba(255, 255, 255, 0.25));
     border-radius: 0.25em;
     print-color-adjust: exact;
 

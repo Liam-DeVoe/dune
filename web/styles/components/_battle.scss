@@ -1,48 +1,54 @@
 @use "../shared";
 
-// The battle plan prompt, on the parchment act card (see app/_prompt-act.scss).
+// The battle plan prompt, on the parchment act card (card--act, see
+// app/_prompt-act.scss). The Layout in battle/parts.tsx mixes __header,
+// __body and __chevron onto the card's parts.
 // The matchup up top shows both sides with the territory between them, then forces,
 // leader, weapon and defense each sit under the same small label, and the
 // total strength and the Battle! button close the card.
 
 .battle-plan {
+  // In the act stack the plan keeps its own card, set apart from the joined
+  // cards above it.
+  &--stacked {
+    margin-top: var(--s-2);
+  }
+
   // The header only carries the collapse chevron. The territory is in the
   // matchup, so the kicker shows only while the card is collapsed (the header
   // is then the card's only child).
-  > .card__header {
+  &__header {
     background: transparent;
     border-bottom: 0;
     padding-bottom: 0;
 
-    // Under the header so it beats .prompt-act__kicker, which loads later.
-    .battle-plan__kicker {
-      display: none;
-      margin: 0;
-    }
-
     // Expanded, the header is just the chevron, so keep the row short.
     &:not(:only-child) {
-      padding-top: 6px;
+      padding-top: var(--s-1);
       padding-bottom: 0;
       line-height: 1;
     }
-
-    &:only-child .battle-plan__kicker {
-      display: inline-flex;
-    }
-
-    > .button--link.collapse-button {
-      display: block !important;
-      line-height: 0;
-      border: 0;
-      --button-color: var(--rock-2);
-      --button-hover-color: var(--ink-1);
-      --button-active-color: var(--ink-1);
-    }
   }
 
-  > .card__body {
-    padding-top: 4px;
+  // Under the header so it beats .prompt-act__kicker, which loads later.
+  &__header &__kicker {
+    display: none;
+    margin: 0;
+  }
+
+  &__header:only-child &__kicker {
+    display: inline-flex;
+  }
+
+  // !important: CollapseButton sets display inline.
+  &__chevron {
+    display: block !important;
+    line-height: 0;
+    border: 0;
+  }
+
+  &__body {
+    padding-top: var(--s-1);
   }
 
   &__label {

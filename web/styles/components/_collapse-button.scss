@@ -1,6 +1,10 @@
-// The chevron at the right of a collapsible card header (CollapseButton, and
-// its copy in shipmove/common.tsx): a bare link button floated right.
+// The chevron at the right of a collapsible card header (CollapseButton): a
+// bare link button floated right, the guide's muted .chev, gold on hover. On
+// the parchment act card it is rock brown, ink on hover.
 .collapse-button {
+  --button-color: var(--surface-muted, var(--text-3));
+  --button-hover-color: var(--surface-link-hover, var(--gold));
+  --button-active-color: var(--surface-link-hover, var(--gold));
   float: right;
   padding: 0;
 }

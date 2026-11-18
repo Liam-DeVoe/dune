@@ -10,6 +10,7 @@ import type { FactionOption } from "../../generated/FactionOption";
 import { treacheryCardPopup, withSpiceIcons } from "../../popups";
 import type { Skin } from "../../skin";
 import { useGame } from "../../state/context";
+import { useActCard } from "../ActStack";
 import { CollapseButton } from "../CollapseButton";
 import { type Fields, useServerDraft } from "../formDraft";
 import { Image } from "../Image";
@@ -37,10 +38,11 @@ export function Layout({ type, header, urgent = false, startCollapsed = false, i
     setCollapsed(!collapsed);
   };
   const shown = header == null ? false : collapsed;
+  const act = useActCard();
   return (
-    <div className={`card ${urgent ? "card--urgent" : ""} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
+    <div className={`card ${urgent ? "card--urgent" : ""} ${act} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       {header != null && (
-        <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
+        <div className="card__header card__header--collapsible" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />
           {header}
         </div>

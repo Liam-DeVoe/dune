@@ -12,6 +12,7 @@ import type { GameView } from "../../generated/GameView";
 import { leaderPopup, messiahPopup, treacheryCardPopup } from "../../popups";
 import type { Skin } from "../../skin";
 import { useGame } from "../../state/context";
+import { useActCard } from "../ActStack";
 import { CollapseButton } from "../CollapseButton";
 import { type Fields, useServerDraft } from "../formDraft";
 import { hasStarredSpecialForce } from "../ForceToken";
@@ -37,9 +38,10 @@ export function GameEventLayout({ type, header, urgent = false, inPopover = fals
     collapsedByType.set(type, !collapsed);
     setCollapsed(!collapsed);
   };
+  const act = useActCard();
   return (
-    <div className={`card ${urgent ? "card--urgent" : ""} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
-      <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
+    <div className={`card ${urgent ? "card--urgent" : ""} ${act} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
+      <div className="card__header card__header--collapsible" style={{ cursor: "pointer" }} onClick={toggle}>
         <CollapseButton collapsed={collapsed} />
         {header}
       </div>
@@ -142,8 +144,8 @@ export function PinActions({ label, validation, cancel, confirm }: { label: stri
     <div>
       {validation && <div className="map-pin__error"><RichText parts={validation} /></div>}
       <div className="map-pin__actions">
-        <button type="button" className="button button--secondary" onClick={cancel}>Cancel</button>
-        <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{label}</button>
+        <button type="button" className="button button--secondary map-pin__action" onClick={cancel}>Cancel</button>
+        <button type="button" className="button button--primary map-pin__action" disabled={validation != null} onClick={confirm}>{label}</button>
       </div>
     </div>
   );

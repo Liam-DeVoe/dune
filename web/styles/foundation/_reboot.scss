@@ -131,12 +131,13 @@ sup {
   top: -0.5em;
 }
 
+// Rock brown on the parchment act card, which sets --surface-link.
 a {
-  color: var(--gold);
+  color: var(--surface-link, var(--gold));
   text-decoration: none;
 
   &:hover {
-    color: #f0cb50;
+    color: var(--surface-link-hover, #f0cb50);
     text-decoration: underline;
   }
 

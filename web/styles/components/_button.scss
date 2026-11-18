@@ -1,7 +1,8 @@
 // Buttons. Each colour variant sets the --button-* properties; the block reads
 // them for the resting, hover (and keyboard focus), pressed and disabled states.
-// A disabled button keeps its resting colours and fades. Context rules (the
-// parchment card in app/_prompt-act.scss) re-point the same properties.
+// A disabled button keeps its resting colours and fades. On the parchment act
+// card (app/_prompt-act.scss) the dark-surface variants read its surface
+// properties (--control-*, --surface-link*), with their ink look as fallback.
 .button {
   --button-color: var(--parchment);
   --button-bg: transparent;
@@ -87,12 +88,12 @@
 
   &--secondary,
   &--outline-secondary {
-    --button-color: var(--sand);
-    --button-border: rgba(231, 191, 60, 0.45);
-    --button-hover-bg: rgba(231, 191, 60, 0.1);
-    --button-hover-border: var(--gold);
-    --button-active-bg: rgba(231, 191, 60, 0.16);
-    --button-active-border: var(--gold);
+    --button-color: var(--control-text, var(--sand));
+    --button-border: var(--control-border-strong, rgba(231, 191, 60, 0.45));
+    --button-hover-bg: var(--control-hover-bg, rgba(231, 191, 60, 0.1));
+    --button-hover-border: var(--control-accent, var(--gold));
+    --button-active-bg: var(--control-active-bg, rgba(231, 191, 60, 0.16));
+    --button-active-border: var(--control-accent, var(--gold));
   }
 
   // Fills with gold on hover, so its text flips to ink.
@@ -145,8 +146,8 @@
 
   // A button that reads as a link: no fill or border, underlined on hover.
   &--link {
-    --button-color: var(--gold);
-    --button-hover-color: #f0cb50;
+    --button-color: var(--surface-link, var(--gold));
+    --button-hover-color: var(--surface-link-hover, #f0cb50);
     --button-active-color: var(--gold-2);
     --button-disabled-color: var(--text-3);
     font-weight: 500;

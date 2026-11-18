@@ -10,6 +10,7 @@ import type { BattleSide } from "../../generated/BattleSide";
 import type { Faction } from "../../generated/enums";
 import { messiahPopup, treacheryCardPopup } from "../../popups";
 import { useGame } from "../../state/context";
+import { useInActStack } from "../ActStack";
 import { FactionChip } from "../FactionChip";
 import { ForceToken } from "../ForceToken";
 import { Image } from "../Image";
@@ -70,6 +71,7 @@ function parseStrength(text: string): number | null {
 
 export function BattleComponent({ action, inPopover }: { action: ActionView; inPopover?: boolean }) {
   const { skin, view } = useGame();
+  const inStack = useInActStack();
   const { options: o, draft, validation, update, submit, error } = useBattleDraft(action, "Battle");
   const [normal, setNormal] = useState<Commit[]>([]);
   const [special, setSpecial] = useState<Commit[]>([]);
@@ -224,7 +226,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
   );
 
   return (
-    <Layout type={action.eventType} inPopover={inPopover} className="battle-plan prompt-act"
+    <Layout type={action.eventType} inPopover={inPopover} block="battle-plan" className={inStack ? "card--act battle-plan--stacked" : "card--act"}
             header={<span className="prompt-act__kicker battle-plan__kicker">Battle · {o.territory >= 0 && <PlaceChip place={{ territory: o.territory }} />}</span>}>
       <div className="battle-plan__matchup">
         <Side side={o.you} name="You" opponent={false} />

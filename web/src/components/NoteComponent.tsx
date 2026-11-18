@@ -30,7 +30,7 @@ export function NoteComponent({ open = false }: { open?: boolean }) {
   const p = notes.players.find((x) => x.faction === shown);
   return (
     <div className="card notes">
-      <div className="card__header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
+      <div className="card__header card__header--collapsible" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
         Mentat: Notekeeping Assistant{" "}
         <CollapseButton collapsed={collapsed} />
       </div>

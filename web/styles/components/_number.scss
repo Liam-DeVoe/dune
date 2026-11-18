@@ -2,14 +2,15 @@
 
 // Number input: a minus / value / plus control that replaces the browser's
 // arrow stepper. An optional __ic cell on the left shows what is being counted
-// (a force or spice icon).
+// (a force or spice icon). On the parchment act card it reads the card's
+// --control-* properties.
 .num {
   display: inline-flex;
   align-items: stretch;
-  border: 1px solid shared.$hairline-strong;
+  border: 1px solid var(--control-border, var(--hairline-strong));
   border-radius: var(--r-2);
   overflow: hidden;
-  background: var(--ink-0);
+  background: var(--control-bg, var(--ink-0));
   height: 32px;
   // Never let a flex parent squeeze the control. Because of overflow: hidden
   // it would shrink below its content and clip the plus button; a label next
@@ -23,7 +24,7 @@
   &__button {
     background: transparent;
     border: 0;
-    color: var(--sand);
+    color: var(--control-text, var(--sand));
     // The display face draws the minus sign with serifs, like a bracket.
     font-family: var(--font-body);
     font-size: 18px;
@@ -40,7 +41,7 @@
     text-align: center;
     border: 0;
     background: transparent;
-    color: var(--parchment);
+    color: var(--control-text, var(--parchment));
     // Stays at or above 16px so iOS does not zoom the page when the box is focused.
     font-family: var(--font-display);
     font-size: 18px;
@@ -58,7 +59,7 @@
     place-items: center;
     width: 30px;
     background: rgba(255, 255, 255, 0.06);
-    border-right: 1px solid shared.$hairline-mid;
+    border-right: 1px solid var(--control-divider, var(--hairline-mid));
   }
 
   &__ic-img {

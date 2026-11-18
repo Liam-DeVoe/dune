@@ -852,3 +852,67 @@ fn only_the_owner_deletes_an_automation_rule() {
     delete.apply(&mut g, atreides).unwrap();
     assert!(g.rules.automation_rules.is_empty());
 }
+
+/// A Distrans that fills the hand of the player whose turn it is to bid in the black market makes
+/// them pass. The pass was a normal-auction `Bid`, which doesn't check the black-market auction,
+/// so the high bidder wasn't given the card when the turn came back to them.
+#[test]
+fn distrans_in_the_black_market_passes_in_the_black_market() {
+    let factions = [Faction::Richese, Faction::Atreides, Faction::Emperor, Faction::Fremen];
+    let mut g = game_of(&factions);
+    let cards: Vec<TreacheryCard> = TreacheryCardManager::items().iter().copied().filter(|c| c.type_() != TreacheryCardType::Distrans).collect();
+    let distrans = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Distrans).unwrap();
+    // Fremen can't bid: their hand is full.
+    let fremen = idx(&g, Faction::Fremen);
+    g.player_mut(fremen).treachery_cards = cards[0..4].to_vec();
+    for f in factions {
+        let p = idx(&g, f);
+        g.player_mut(p).resources = 20;
+    }
+    g.turn.current_main_phase = MainPhase::Bidding;
+    g.enter_bidding(BiddingStep::BlackMarketBidding);
+    g.start_bid_sequence_and_auction_type(Some(AuctionType::BlackMarketNormal), None, 1);
+    let on_auction = cards[10];
+    g.bidding_mut().unwrap().cards_on_auction = Some(Deck::new(vec![on_auction]));
+    let mut seq = g.bidding_mut().unwrap().bid_sequence.take().unwrap();
+    g.skip_players_that_cant_bid(&mut seq);
+    g.bidding_mut().unwrap().bid_sequence = Some(seq);
+    let current = |g: &Game| g.bidding().unwrap().bid_sequence.as_ref().unwrap().current_player(g).unwrap();
+
+    // The first bidder bids 1. Every other bidder but one passes.
+    let high = current(&g);
+    let mut bid = BlackMarketBid::default();
+    bid.amount = 1;
+    let high_faction = g.player(high).faction.unwrap();
+    assert_eq!(submit_by(&mut g, high_faction, |_| bid.clone().into()), None);
+    let mut target = current(&g);
+    loop {
+        let next = g.players.iter().filter(|p| p.has_room_for_cards(&g)).count();
+        if next <= 2 {
+            break;
+        }
+        // Pass until two bidders are left: the high bidder and the target.
+        let f = g.player(target).faction.unwrap();
+        g.player_mut(target).treachery_cards = cards[4..8].to_vec();
+        let pass = BlackMarketBid { passed: true, ..BlackMarketBid::default() };
+        assert_eq!(submit_by(&mut g, f, |_| pass.into()), None);
+        target = current(&g);
+    }
+    assert_ne!(target, high);
+    assert_eq!(g.phase(), Phase::BlackMarketBidding);
+
+    // The high bidder gives the target the card that fills their hand.
+    g.player_mut(target).treachery_cards = cards[11..14].to_vec();
+    g.player_mut(high).treachery_cards = vec![distrans, cards[14]];
+    let target_faction = g.player(target).faction.unwrap();
+    let mut e = DistransUsed::default();
+    e.target = Some(target_faction);
+    e.card = Some(cards[14]);
+    let by_high = By::new(&g, high_faction);
+    e.apply(&mut g, by_high).unwrap();
+
+    // The target's pass brings the auction back to the high bidder, who wins the card.
+    assert!(g.player(high).treachery_cards.contains(&on_auction), "{:?}", log_texts(&g));
+    assert_ne!(g.phase(), Phase::BlackMarketBidding);
+    assert!(g.history.entries.iter().all(|h| h.event_type() != EventType::Bid));
+}

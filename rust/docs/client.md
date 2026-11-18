@@ -92,6 +92,7 @@ Class names follow BEM:
 - A variant or state is `block--modifier` or `block__element--modifier`, next to the base class in the markup: `class="chip chip--place"`, `seg__button seg__button--on`. A state word like `on` or `you` is never a class of its own.
 - In SCSS, elements and modifiers nest with `&__x` and `&--y`. Where a rule needs more weight than one class to keep winning over another rule, it says why in a comment.
 - There are no utility classes. Spacing, alignment and text styles that a component needs are elements or modifiers of that component.
+- The log's blocks (`_log-*.scss` and the battle blocks `log-faceoff`, `log-pair`, `log-plan`, `log-verdict`, `log-aftermath`) share one vocabulary of elements, listed at the top of `components/_log-kit.scss`: `__head` is the first row of a box, `__lines`/`__line` the lines under it, `__label` a small caps label, `__note` smaller text inside a line, `__rule` a hairline, `__sigil` a faction's sigil, `__img` a card's art, `__side` one side of a battle. The modifiers `--hot`, `--you`, `--won` and `--lost` mean the same in each.
 
 #### Scales
 

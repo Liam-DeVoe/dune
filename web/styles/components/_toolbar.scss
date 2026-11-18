@@ -1,6 +1,6 @@
 @use "../shared";
 
-// Toolbar: a strip of square icon buttons. .on is the active tool.
+// Toolbar: a strip of square icon buttons. --on is the active tool.
 .toolbar {
   display: flex;
   gap: 2px;
@@ -9,7 +9,7 @@
   border-radius: var(--r-2);
   padding: 3px;
 
-  button {
+  &__button {
     width: 40px;
     height: 36px;
     border: 0;
@@ -26,20 +26,22 @@
       color: var(--gold);
     }
 
-    &.on {
+    // Doubled with the base class so it still beats :hover, as
+    // `.toolbar button.on` beat `.toolbar button:hover` by source order.
+    &.toolbar__button--on {
       background: rgba(231, 191, 60, 0.18);
       color: var(--gold);
     }
+  }
 
-    svg {
-      width: 18px;
-      height: 18px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
+  &__icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 }
 

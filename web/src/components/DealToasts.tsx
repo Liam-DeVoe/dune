@@ -83,15 +83,15 @@ export function DealToasts() {
   return (
     <div className="deal-toasts">
       {toasts.map((t) => (
-        <div key={t.offer.id} className={`deal-toast ${t.withdrawn ? "gone" : ""}`}
+        <div key={t.offer.id} className={`deal-toast ${t.withdrawn ? "deal-toast--gone" : ""}`}
              onMouseEnter={() => update(t.offer.id, { hovered: true })} onMouseLeave={() => update(t.offer.id, { hovered: false })}
              onClick={() => open(t)}>
-          <img className="sigil-lg" src={skin.factionImage(t.offer.initiator)} alt={skin.faction(t.offer.initiator)} />
-          <div className="txt">
+          <img className="deal-toast__sigil" src={skin.factionImage(t.offer.initiator)} alt={skin.faction(t.offer.initiator)} />
+          <div className="deal-toast__text">
             <RichText parts={t.offer.message} />
-            {t.withdrawn && <span className="withdrawn">Offer withdrawn</span>}
+            {t.withdrawn && <span className="deal-toast__withdrawn">Offer withdrawn</span>}
           </div>
-          <button className="x" title="Close" onClick={(e) => { e.stopPropagation(); remove(t.offer.id); }}>×</button>
+          <button className="deal-toast__close" title="Close" onClick={(e) => { e.stopPropagation(); remove(t.offer.id); }}>×</button>
         </div>
       ))}
     </div>

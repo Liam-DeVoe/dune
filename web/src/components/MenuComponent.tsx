@@ -125,37 +125,37 @@ export function MenuComponent() {
   return (
     <>
     <div className="menu-bar">
-      <div className="toolbar">
+      <div className="toolbar menu-bar__toolbar">
         {started(view) && (
-          <button className={menu.panel === "Players" ? "on" : ""} title="Players" onClick={() => togglePanel("Players")}>
-            <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" /><path d="M2 20c0-4 3-6 7-6s7 2 7 6" /><circle cx="17" cy="9" r="2.5" /><path d="M17 14c3 0 5 1.5 5 5" /></svg>
+          <button className={menu.panel === "Players" ? "toolbar__button toolbar__button--on" : "toolbar__button"} title="Players" onClick={() => togglePanel("Players")}>
+            <svg className="toolbar__icon" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" /><path d="M2 20c0-4 3-6 7-6s7 2 7 6" /><circle cx="17" cy="9" r="2.5" /><path d="M17 14c3 0 5 1.5 5 5" /></svg>
           </button>
         )}
         {canAutomate && (
-          <button className={menu.panel === "Automation" ? "on" : ""} title="Automation" onClick={() => togglePanel("Automation")}>
-            <svg viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="2.5" /><path d="M12 5v3" /><circle cx="12" cy="4" r="1" /><circle cx="9.5" cy="13" r=".6" fill="currentColor" /><circle cx="14.5" cy="13" r=".6" fill="currentColor" /><path d="M9.5 16.2h5M3 12.5v3M21 12.5v3" /></svg>
+          <button className={menu.panel === "Automation" ? "toolbar__button toolbar__button--on" : "toolbar__button"} title="Automation" onClick={() => togglePanel("Automation")}>
+            <svg className="toolbar__icon" viewBox="0 0 24 24"><rect x="5" y="8" width="14" height="11" rx="2.5" /><path d="M12 5v3" /><circle cx="12" cy="4" r="1" /><circle cx="9.5" cy="13" r=".6" fill="currentColor" /><circle cx="14.5" cy="13" r=".6" fill="currentColor" /><path d="M9.5 16.2h5M3 12.5v3M21 12.5v3" /></svg>
           </button>
         )}
-        <button className={menuOpen || leaveOpen ? "on" : ""} title="Menu" onClick={toggleMenu}>
-          <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></svg>
+        <button className={menuOpen || leaveOpen ? "toolbar__button toolbar__button--on" : "toolbar__button"} title="Menu" onClick={toggleMenu}>
+          <svg className="toolbar__icon" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></svg>
         </button>
         {tradeIcons(view) && (
           <>
-            <span className="toolbar-sep"></span>
-            <button className={menu.panel === "Deals" ? "on" : ""} title="Deals" onClick={() => togglePanel("Deals")}>
-              <svg viewBox="0 0 24 24"><path d="M3 12l4-4 4 2 3-3 4 1 3 4-4 4" /><path d="M7 8l-4 4 5 5 2-1" /><path d="M11 13l2 2M13 11l3 3" /></svg>
-              {dealsOffered > 0 && <span className="count">{dealsOffered}</span>}
+            <span className="toolbar__sep"></span>
+            <button className={menu.panel === "Deals" ? "toolbar__button toolbar__button--on" : "toolbar__button"} title="Deals" onClick={() => togglePanel("Deals")}>
+              <svg className="toolbar__icon" viewBox="0 0 24 24"><path d="M3 12l4-4 4 2 3-3 4 1 3 4-4 4" /><path d="M7 8l-4 4 5 5 2-1" /><path d="M11 13l2 2M13 11l3 3" /></svg>
+              {dealsOffered > 0 && <span className="toolbar__count">{dealsOffered}</span>}
             </button>
             {has("AllyPermission") && ally !== "None" && (
-              <button className={menu.panel === "Alliance" ? "on" : ""} title={`Manage your Alliance with ${skin.faction(ally)}`} onClick={() => togglePanel("Alliance")}>
-                <img className="ally" src={skin.factionImage(ally)} alt={skin.faction(ally)} />
+              <button className={menu.panel === "Alliance" ? "toolbar__button toolbar__button--on" : "toolbar__button"} title={`Manage your Alliance with ${skin.faction(ally)}`} onClick={() => togglePanel("Alliance")}>
+                <img className="toolbar__ally" src={skin.factionImage(ally)} alt={skin.faction(ally)} />
               </button>
             )}
           </>
         )}
         {hasCardTools(view) && (
-          <button className={menu.panel === "Cards" ? "on" : ""} title="Card Tracker" onClick={() => togglePanel("Cards")}>
-            <svg viewBox="0 0 24 24"><rect x="4" y="6" width="10" height="14" rx="1.5" /><path d="M8 4h10.5A1.5 1.5 0 0 1 20 5.5V18" /></svg>
+          <button className={menu.panel === "Cards" ? "toolbar__button toolbar__button--on" : "toolbar__button"} title="Card Tracker" onClick={() => togglePanel("Cards")}>
+            <svg className="toolbar__icon" viewBox="0 0 24 24"><rect x="4" y="6" width="10" height="14" rx="1.5" /><path d="M8 4h10.5A1.5 1.5 0 0 1 20 5.5V18" /></svg>
           </button>
         )}
       </div>
@@ -165,63 +165,63 @@ export function MenuComponent() {
       {tradeIcons(view) && <DealToasts />}
 
       {botsPaused && (
-        <button className="badge spice" title="Bots are paused. Click to resume." onClick={() => setBotSpeed(1)}>Bots paused</button>
+        <button className="badge badge--spice menu-bar__badge" title="Bots are paused. Click to resume." onClick={() => setBotSpeed(1)}>Bots paused</button>
       )}
 
       {(menuOpen || leaveOpen) && <div className="menu-scrim" onClick={closeMenus}></div>}
 
-      <ul className={`menu-overflow ${menuOpen ? "show" : ""}`}>
+      <ul className={`menu-overflow ${menuOpen ? "menu-overflow--open" : ""}`}>
         <li>
-          <button className="dropdown-item" onClick={() => setRulesOpen(!rulesOpen)}>
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>Rules &amp; help<span className="trail"><span className="chev">{rulesOpen ? "▾" : "▸"}</span></span>
+          <button className="dropdown-item menu-overflow__item" onClick={() => setRulesOpen(!rulesOpen)}>
+            <svg className="menu-overflow__icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 11v6M12 7.5v.5" /></svg>Rules &amp; help<span className="menu-overflow__trail"><span className="menu-overflow__chev">{rulesOpen ? "▾" : "▸"}</span></span>
           </button>
         </li>
         {rulesOpen && (
-          <li className="nested">
-            <button className="dropdown-item" data-bs-toggle="modal" data-bs-target="#mentatModal" onClick={closeMenus}>List of Cards</button>
-            <a className="dropdown-item" href="docs/Dune-Rulebook.pdf" target="_blank">Dune Rulebook</a>
-            <a className="dropdown-item" href="docs/Dune-IxianAndTleilaxu-Rulebook.pdf" target="_blank">Ixian &amp; Tleilaxu Rulebook</a>
-            <a className="dropdown-item" href="docs/Dune-ChoamAndRichese-Rulebook.pdf" target="_blank">CHOAM &amp; Richese Rulebook</a>
-            <a className="dropdown-item" href="docs/Dune-EcazAndMoritani-Rulebook.pdf" target="_blank">Ecaz &amp; Moritani Rulebook</a>
-            <a className="dropdown-item" href="docs/Dune-FAQ-Nov-2020.pdf" target="_blank">Dune FAQ</a>
-            <a className="dropdown-item" href="https://www.gf9games.com/dune/classic-dune/" target="_blank">Buy boardgame from GF9</a>
-            <a className="dropdown-item" href="https://dune.games" target="_blank">Dune Dashboard</a>
-            <button className="dropdown-item" data-bs-toggle="modal" data-bs-target="#creditModal" onClick={closeMenus}>Credits</button>
+          <li className="menu-overflow__nested">
+            <button className="dropdown-item menu-overflow__item menu-overflow__item--nested" data-bs-toggle="modal" data-bs-target="#mentatModal" onClick={closeMenus}>List of Cards</button>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="docs/Dune-Rulebook.pdf" target="_blank">Dune Rulebook</a>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="docs/Dune-IxianAndTleilaxu-Rulebook.pdf" target="_blank">Ixian &amp; Tleilaxu Rulebook</a>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="docs/Dune-ChoamAndRichese-Rulebook.pdf" target="_blank">CHOAM &amp; Richese Rulebook</a>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="docs/Dune-EcazAndMoritani-Rulebook.pdf" target="_blank">Ecaz &amp; Moritani Rulebook</a>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="docs/Dune-FAQ-Nov-2020.pdf" target="_blank">Dune FAQ</a>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="https://www.gf9games.com/dune/classic-dune/" target="_blank">Buy boardgame from GF9</a>
+            <a className="dropdown-item menu-overflow__item menu-overflow__item--nested" href="https://dune.games" target="_blank">Dune Dashboard</a>
+            <button className="dropdown-item menu-overflow__item menu-overflow__item--nested" data-bs-toggle="modal" data-bs-target="#creditModal" onClick={closeMenus}>Credits</button>
           </li>
         )}
 
         <li>
-          <button className="dropdown-item" onClick={() => setSoundOpen(!soundOpen)}>
-            <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z" /><path d="M16 9a4 4 0 0 1 0 6" /></svg>Sound<span className="trail"><span className="chev">{soundOpen ? "▾" : "▸"}</span></span>
+          <button className="dropdown-item menu-overflow__item" onClick={() => setSoundOpen(!soundOpen)}>
+            <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z" /><path d="M16 9a4 4 0 0 1 0 6" /></svg>Sound<span className="menu-overflow__trail"><span className="menu-overflow__chev">{soundOpen ? "▾" : "▸"}</span></span>
           </button>
         </li>
-        <li className="sliders">
+        <li>
           <MusicComponent visible={soundOpen} />
         </li>
 
         <li>
-          <button className="dropdown-item" onClick={toggleFullScreen}>
-            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" /></svg>Fullscreen<span className="trail">{fullscreen && <span className="check"></span>}</span>
+          <button className="dropdown-item menu-overflow__item" onClick={toggleFullScreen}>
+            <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" /></svg>Fullscreen<span className="menu-overflow__trail">{fullscreen && <span className="menu-overflow__check"></span>}</span>
           </button>
         </li>
         <li>
-          <a className="dropdown-item" href="https://github.com/ronaldossendrijver/treachery.online/issues" target="_blank" onClick={closeMenus}>
-            <svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z" /><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5l-1-2M14 5l1-2" /></svg>Report a bug or suggest improvements<span className="trail"><svg className="ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" /></svg></span>
+          <a className="dropdown-item menu-overflow__item" href="https://github.com/ronaldossendrijver/treachery.online/issues" target="_blank" onClick={closeMenus}>
+            <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z" /><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5l-1-2M14 5l1-2" /></svg>Report a bug or suggest improvements<span className="menu-overflow__trail"><svg className="menu-overflow__ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v6H4V6h6" /></svg></span>
           </a>
         </li>
         <li>
-          <button className="dropdown-item" onClick={toggleLeave}>
-            <svg viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9" /></svg>Leave game{" "}
+          <button className="dropdown-item menu-overflow__item" onClick={toggleLeave}>
+            <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9" /></svg>Leave game{" "}
           </button>
         </li>
 
         {canSave && (
           <>
             <li><hr className="dropdown-divider" /></li>
-            {" "}<li><h6 className="dropdown-header">{view.viewer.isHost ? "Host" : "Admin"}</h6></li>{" "}
+            {" "}<li><h6 className="dropdown-header menu-overflow__header">{view.viewer.isHost ? "Host" : "Admin"}</h6></li>{" "}
             <li>
-              <button className="dropdown-item" onClick={() => void save()}>
-                <svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></svg>Save game{" "}
+              <button className="dropdown-item menu-overflow__item" onClick={() => void save()}>
+                <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z" /><path d="M8 4v5h7V4M8 20v-6h8v6" /></svg>Save game{" "}
               </button>
             </li>
           </>
@@ -231,28 +231,28 @@ export function MenuComponent() {
         {hostTools && (
           <>
             <li>
-              <label className="dropdown-item">
-                <svg viewBox="0 0 24 24"><path d="M3 19V5h6l2 2h10v12z" /><path d="M12 16v-6M9 12.5 12 10l3 2.5" /></svg>Load game…{" "}
+              <label className="dropdown-item menu-overflow__item">
+                <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M3 19V5h6l2 2h10v12z" /><path d="M12 16v-6M9 12.5 12 10l3 2.5" /></svg>Load game…{" "}
                 <input hidden type="file" id="fileInput" onChange={loadGame} />
               </label>
             </li>
             {" "}<li>
-              <label className="dropdown-item">
-                <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.8 2-1.8 0-1.3-1.2-1.6-1.2-2.7 0-.9.8-1.5 1.8-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7" r="1" /><circle cx="15" cy="7.5" r="1" /></svg>Apply skin…{" "}
+              <label className="dropdown-item menu-overflow__item">
+                <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-.8 2-1.8 0-1.3-1.2-1.6-1.2-2.7 0-.9.8-1.5 1.8-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8-9-8z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7" r="1" /><circle cx="15" cy="7.5" r="1" /></svg>Apply skin…{" "}
                 <input hidden type="file" id="skinInput" onChange={loadSkin} />
               </label>
             </li>
             {view.eventNumber > 1 && (
               <li>
-                <button className="dropdown-item" onClick={openUndo}>
-                  <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>Undo…{" "}
+                <button className="dropdown-item menu-overflow__item" onClick={openUndo}>
+                  <svg className="menu-overflow__icon" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" /></svg>Undo…{" "}
                 </button>
               </li>
             )}
             {numberOfBots > 0 && (
-              <li className="bots">
-                <svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2" /><path d="M12 8V4M9 13v1M15 13v1" /></svg><span>Bots</span>{" "}
-                <span className="seg">
+              <li className="menu-overflow__bots">
+                <svg className="menu-overflow__icon" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2" /><path d="M12 8V4M9 13v1M15 13v1" /></svg><span>Bots</span>{" "}
+                <span className="seg menu-overflow__seg">
                   <button className={view.botsSpeed === 0 ? "on" : ""} title="Bots are paused" onClick={() => setBotSpeed(0)}>Pause</button>{" "}
                   <button className={view.botsSpeed === 1 ? "on" : ""} title="Bots at normal speed" onClick={() => setBotSpeed(1)}>1×</button>{" "}
                   <button className={view.botsSpeed === 2 ? "on" : ""} title="Bots at higher speed" onClick={() => setBotSpeed(2)}>2×</button>{" "}
@@ -268,7 +268,7 @@ export function MenuComponent() {
         <div className="pop menu-leave">
           <h6>Leave this game?</h6>
           <p>You'll return to the main screen.</p>
-          <div className="actions">
+          <div className="menu-leave__actions">
             <button className="btn btn-secondary btn-sm" onClick={closeMenus}>Stay</button>
             <button className="btn btn-danger btn-sm" onClick={() => { closeMenus(); window.location.assign(BASE); }}>Leave</button>
           </div>

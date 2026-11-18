@@ -774,3 +774,20 @@ fn the_sandmaster_collects_once_per_territory() {
     assert_eq!(i32::from(g.player(p).resources), spice_before + 1);
     assert_eq!(g.board.resources_on_planet.get(&to).copied(), Some(4));
 }
+
+/// A blow doubled by a sandtrout that lands in the storm uses up the doubling. The Ixians &
+/// Tleilaxu rulebook doubles only the worm's immediate replacement card. Before the fix the
+/// doubling carried over to the next blow.
+#[test]
+fn a_sandtrout_doubling_lost_to_the_storm_doesnt_carry_over() {
+    let mut g = game_of(&[Faction::Atreides, Faction::Harkonnen]);
+    g.rules.active.push(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
+    g.enter_blow(BlowStep::BlowA);
+    let card = ResourceCard::get_resource_cards_in_and_outside_play().iter().copied().find(|c| c.is_spice_blow() && c.location().is_some()).unwrap();
+    let location = card.location().unwrap();
+    g.board.sector_in_storm = location.sector(&g.board.map);
+    g.board.sand_trout_doubles_resources = true;
+    g.process_blow_card(card).unwrap();
+    assert!(log_texts(&g).iter().any(|t| t.contains("is lost in the storm")));
+    assert!(!g.board.sand_trout_doubles_resources);
+}

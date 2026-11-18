@@ -682,3 +682,40 @@ fn the_emperors_share_of_a_richese_card_is_cut_by_kaitain_not_by_richeses_homewo
     assert_eq!(spice(&g, Faction::Richese), 10 - 4 + 1);
     assert_eq!(spice(&g, Faction::Harkonnen), 1);
 }
+
+/// The Richese Nexus betrayal makes Richese discard a card they just won and refunds the
+/// payment. Before the fix the Emperor's contribution went to Richese's ally.
+#[test]
+fn a_richese_nexus_refund_returns_the_emperors_contribution_to_the_emperor() {
+    let mut g = game_of(&[Faction::Richese, Faction::Atreides, Faction::Emperor, Faction::Harkonnen]);
+    ally(&mut g, Faction::Richese, Faction::Atreides);
+    let harkonnen = idx(&g, Faction::Harkonnen);
+    g.player_mut(harkonnen).nexus = Some(Faction::Richese);
+    let card = TreacheryCardManager::items()[3];
+    let richese = idx(&g, Faction::Richese);
+    g.player_mut(richese).treachery_cards.push(card);
+    g.turn.current_main_phase = MainPhase::Bidding;
+    g.enter_bidding(BiddingStep::Bidding);
+    let mut bid = Bid::default();
+    bid.amount = 4;
+    bid.ally_contribution_amount = 2;
+    bid.emperor_contribution_amount = 3;
+    let by_richese = By::new(&g, Faction::Richese);
+    let placed = bid.placed(&mut g, by_richese);
+    {
+        let b = g.bidding_mut().unwrap();
+        b.card_just_won = Some(card);
+        b.winning_bid = Some(placed);
+    }
+
+    let mut e = NexusPlayed::default();
+    e.faction = Some(Faction::Richese);
+    let by = By::new(&g, Faction::Harkonnen);
+    assert!(e.is_betrayal(&g, by.faction));
+    e.apply(&mut g, by).unwrap();
+
+    assert!(!g.player(richese).treachery_cards.contains(&card));
+    assert_eq!(spice(&g, Faction::Richese), 4);
+    assert_eq!(spice(&g, Faction::Atreides), 2);
+    assert_eq!(spice(&g, Faction::Emperor), 3);
+}

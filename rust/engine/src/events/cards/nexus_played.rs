@@ -395,13 +395,10 @@ impl NexusPlayed {
                                     crate::game::amounts::gain(&mut a.resources, winning_bid.bid_ally_contribution_amount(), "spice")?;
                                 }
                             }
-                            if let Some(richese_ally) = richese_ally {
-                                if winning_bid.bid_emperor_contribution_amount() > 0 {
-                                    // Known quirk (known-issues.md): the Emperor's contribution is refunded to
-                                    // Richese's ally, not to the Emperor.
-                                    let a = game.player_mut(richese_ally);
-                                    crate::game::amounts::gain(&mut a.resources, winning_bid.bid_emperor_contribution_amount(), "spice")?;
-                                }
+                            if winning_bid.bid_emperor_contribution_amount() > 0 {
+                                let emperor = game.get_player(Some(Faction::Emperor)).required("The Emperor player")?;
+                                let e = game.player_mut(emperor);
+                                crate::game::amounts::gain(&mut e.resources, winning_bid.bid_emperor_contribution_amount(), "spice")?;
                             }
                         }
                     }
@@ -584,8 +581,10 @@ impl NexusPlayed {
                 game.stone(Milestone::RaiseDead);
                 let Some(player) = game.get_player(by.faction) else { return Ok(()) };
 
-                // Known quirk (known-issues.md): validation checks that the player can pay
-                // `determine_tleilaxu_cost`, but nothing is paid.
+                // "Revive one leader for free and up to 5 forces for 1 spice each"
+                // (faction8nexus.gif). Tleilaxu aren't in the game, so the spice goes to the bank.
+                let cost = self.determine_tleilaxu_cost();
+                crate::game::amounts::spend(&mut game.player_mut(player).resources, cost, "spice")?;
                 Player::revive_forces(game, player, i32::from(self.tleilaxu_forces))?;
                 Player::revive_special_forces(game, player, i32::from(self.tleilaxu_special_forces))?;
 
@@ -614,7 +613,8 @@ impl NexusPlayed {
                         express_part_if!(self.tleilaxu_hero.is_some() && total > 0; " and "),
                         express_part_if!(i32::from(self.tleilaxu_forces) > 0; i32::from(self.tleilaxu_forces), " ", force),
                         express_part_if!(i32::from(self.tleilaxu_forces) > 0 && i32::from(self.tleilaxu_special_forces) > 0; " and "),
-                        express_part_if!(i32::from(self.tleilaxu_special_forces) > 0; i32::from(self.tleilaxu_special_forces), " ", special_force)
+                        express_part_if!(i32::from(self.tleilaxu_special_forces) > 0; i32::from(self.tleilaxu_special_forces), " ", special_force),
+                        express_part_if!(cost > 0; " for ", Payment::of(cost))
                     ],
                 );
 

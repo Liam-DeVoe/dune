@@ -143,7 +143,7 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
 }
 
 #[test]
-fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
+fn nexus_tleilaxu_secret_ally_costs_one_spice_per_force() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let atreides = idx(&g, Faction::Atreides);
     g.player_mut(atreides).nexus = Some(Faction::Tleilaxu);
@@ -156,9 +156,11 @@ fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
     assert_eq!(e.determine_tleilaxu_cost(), 2);
     let by = By::new(&g, Faction::Atreides);
     let _ = outcome(|| e.apply(&mut g, by));
-    // Known quirk (known-issues.md): validated against resources, never deducted.
-    assert_eq!(i32::from(g.player(atreides).resources), 10);
+    // 1 spice per force, to the bank (faction8nexus.gif).
+    assert_eq!(i32::from(g.player(atreides).resources), 8);
     assert_eq!(g.player(atreides).forces_killed, 1);
+    let emperor = idx(&g, Faction::Emperor);
+    assert_eq!(i32::from(g.player(emperor).resources), 0);
 }
 
 // ---------------------------------------------------------------------------

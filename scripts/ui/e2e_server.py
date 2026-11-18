@@ -270,7 +270,7 @@ def lobby_row(page: Page):
 
 def players_panel(page: Page):
     """The players panel of the game screen, opened from the toolbar if it isn't open."""
-    panel = page.locator("div.mt-2.p-1.border")
+    panel = page.locator("div.joined-players")
     if not panel.is_visible():
         page.locator(titled(".toolbar__button", "Players")).click()
     panel.wait_for(timeout=15000)

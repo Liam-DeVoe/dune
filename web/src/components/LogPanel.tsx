@@ -145,34 +145,34 @@ export function LogPanel() {
 
   return (
     <div className="card report pb-1" style={{ animation: "fadeIn 1s" }}>
-      <div className="card-header stepper">
-        <button title="Previous phase" aria-label="Previous phase" disabled={index === 0} onClick={() => select(index - 1)}>
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
+      <div className="card-header report__header">
+        <button className="report__step" title="Previous phase" aria-label="Previous phase" disabled={index === 0} onClick={() => select(index - 1)}>
+          <svg className="report__step-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
         </button>
-        <div className="title">
-          <div className="name">
-            {step.turn !== view.turn && step.about !== "Setup" && <span className="turn">Turn {step.turn}</span>}
-            <span className="phase">{skin.enumValue("MainPhase", step.about)}</span>
+        <div className="report__title">
+          <div className="report__name">
+            {step.turn !== view.turn && step.about !== "Setup" && <span className="report__turn">Turn {step.turn}</span>}
+            <span className="report__phase">{skin.enumValue("MainPhase", step.about)}</span>
           </div>
           {MainPhaseValue[step.about] >= MainPhaseValue.Storm && MainPhaseValue[step.about] <= MainPhaseValue.Contemplate && (
-            <div className="dots">
+            <div className="report__dots">
               {turnPhases.map((phase) => {
                 const target = all.findIndex((s) => s.turn === step.turn && s.about === phase);
                 const title = skin.enumValue("MainPhase", phase);
-                if (target < 0) return <span key={phase} className="future" title={title}></span>;
-                const cls = [target === all.length - 1 ? "now" : "", target === index ? "sel" : ""].filter((c) => c).join(" ");
-                return <span key={phase} className={cls || undefined} title={title} onClick={() => select(target)}></span>;
+                if (target < 0) return <span key={phase} className="report__dot report__dot--future" title={title}></span>;
+                const cls = ["report__dot", target === all.length - 1 ? "report__dot--now" : "", target === index ? "report__dot--sel" : ""].filter((c) => c).join(" ");
+                return <span key={phase} className={cls} title={title} onClick={() => select(target)}></span>;
               })}
             </div>
           )}
         </div>
-        <button title="Next phase" aria-label="Next phase" disabled={index === all.length - 1} onClick={() => select(index + 1)}>
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" /></svg>
+        <button className="report__step" title="Next phase" aria-label="Next phase" disabled={index === all.length - 1} onClick={() => select(index + 1)}>
+          <svg className="report__step-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" /></svg>
         </button>
       </div>
 
       {/* Follows the newest line while the player is at the bottom (followLog.ts). */}
-      <div className="card-body p-1 overflow-auto" ref={followBottom} data-step={`${step.turn}-${step.about}`}>
+      <div className="card-body report__body p-1 overflow-auto" ref={followBottom} data-step={`${step.turn}-${step.about}`}>
         {!loaded ? null : empty ? (
           over && <div className="mt-1 ps-1 pe-1"><i>Nothing to report</i></div>
         ) : (
@@ -209,12 +209,12 @@ function BattleReport({ report, lines, line, board }: { report: ReportHeader; li
   const facts = outcomeFacts(report, lines);
   const territoryLocations = report.territory == null ? "" : (skin.territoryInfo(report.territory)?.locations ?? []).join(",");
   return (
-    <div className={`battle ${report.battleDecided ? "" : "live"}`}>
-      <div className="faceoff">
+    <div className={`log-battle ${report.battleDecided ? "" : "log-battle--live"}`}>
+      <div className="log-faceoff">
         <Side report={report} faction={report.aggressor} board={board} />
-        <div className="middle" data-ref-locations={territoryLocations}>
-          <div className="vs">vs</div>
-          {report.territory != null && <div className="where"><PlaceChip place={{ territory: report.territory }} /></div>}
+        <div className="log-faceoff__middle" data-ref-locations={territoryLocations}>
+          <div className="log-faceoff__vs">vs</div>
+          {report.territory != null && <div className="log-faceoff__where"><PlaceChip place={{ territory: report.territory }} /></div>}
         </div>
         <Side report={report} faction={report.defender} board={board} />
       </div>
@@ -232,12 +232,12 @@ function BattleReport({ report, lines, line, board }: { report: ReportHeader; li
 // faction's forces on the map, like a faction chip.
 function Side({ report, faction, board }: { report: ReportHeader; faction: Faction; board: Board }) {
   const { view, skin } = useGame();
-  const outcome = !report.battleDecided ? "" : report.battleWinner === faction ? "win" : "lose";
-  const you = !view.viewer.isObserver && view.viewer.faction === faction ? "you" : "";
+  const outcome = !report.battleDecided ? "" : report.battleWinner === faction ? "log-faceoff__side--win" : "log-faceoff__side--lose";
+  const you = !view.viewer.isObserver && view.viewer.faction === faction ? "log-faceoff__side--you" : "";
   const locations = view.players.some((p) => p.faction === faction) ? forceLocations(board, faction) : "";
   return (
-    <div className={`side ${outcome} ${you}`} data-ref-faction={faction} data-ref-locations={locations} style={{ ["--fc" as string]: skin.factionColor(faction) }}>
-      <img src={skin.factionImage(faction)} alt="" /><span className="name">{skin.faction(faction)}</span>
+    <div className={`log-faceoff__side ${outcome} ${you}`} data-ref-faction={faction} data-ref-locations={locations} style={{ ["--fc" as string]: skin.factionColor(faction) }}>
+      <img className="log-faceoff__sigil" src={skin.factionImage(faction)} alt="" /><span className="log-faceoff__name">{skin.faction(faction)}</span>
     </div>
   );
 }
@@ -271,21 +271,21 @@ function Outcome({ report, plans, facts }: { report: ReportHeader; plans: Battle
   const anyAftermath = facts.some((f) => f.kind === "Killed" || f.kind === "ForcesLost" || f.kind === "Discard");
   return (
     <>
-      <div className="plans">
+      <div className="log-plans">
         <Plan plan={plans.aggressor} facts={facts} />
-        <div className="rule"></div>
+        <div className="log-plans__rule"></div>
         <Plan plan={plans.defender} facts={facts} />
       </div>
       {aggStrength && defStrength && (
-        <div className="verdict">
+        <div className="log-verdict">
           <Total report={report} strength={aggStrength} />
           <Total report={report} strength={defStrength} />
         </div>
       )}
       {anyAftermath && (
-        <div className="aftermath">
+        <div className="log-aftermath">
           <Aftermath faction={report.aggressor} facts={facts} />
-          <div className="rule"></div>
+          <div className="log-aftermath__rule"></div>
           <Aftermath faction={report.defender} facts={facts} />
         </div>
       )}
@@ -296,7 +296,7 @@ function Outcome({ report, plans, facts }: { report: ReportHeader; plans: Battle
 function Total({ report, strength }: { report: ReportHeader; strength: BattleFact }) {
   const { skin } = useGame();
   const lost = report.battleDecided && report.battleWinner !== strength.faction;
-  return <div className={`total ${lost ? "lost" : ""}`} title={`${skin.faction(strength.faction)} strength`}>{supportRound(strength.strength)}</div>;
+  return <div className={`log-verdict__total ${lost ? "log-verdict__total--lost" : ""}`} title={`${skin.faction(strength.faction)} strength`}>{supportRound(strength.strength)}</div>;
 }
 
 // One side's spice from killed leaders, forces lost and cards discarded.
@@ -305,28 +305,28 @@ function Aftermath({ faction, facts }: { faction: Faction; facts: BattleFact[] }
   const mine = facts.filter((f) => f.faction === faction && (f.kind === "Killed" || f.kind === "ForcesLost" || f.kind === "Discard"));
   const player = view.players.some((p) => p.faction === faction);
   return (
-    <div className="side-after">
-      {mine.length === 0 && <div className="quiet">no losses</div>}
+    <div className="log-aftermath__side">
+      {mine.length === 0 && <div className="log-aftermath__quiet">no losses</div>}
       {mine.map((f, i) => {
         switch (f.kind) {
           case "Killed":
             return (
-              <div key={i} className="item">
-                <span className="plus">+</span><SpiceComponent amount={String(f.value)} size={22} /><span className="for">for</span>
+              <div key={i} className="log-aftermath__item">
+                <span className="log-aftermath__plus">+</span><SpiceComponent amount={String(f.value)} size={22} /><span className="log-aftermath__for">for</span>
                 {f.hero && <HeroImage hero={f.hero} width={22} className="leader-disc" />}
               </div>
             );
           case "ForcesLost":
             return (
-              <div key={i} className="item">
-                <span className="minus">−</span>
+              <div key={i} className="log-aftermath__item">
+                <span className="log-aftermath__minus">−</span>
                 {f.all && <span>all</span>}
                 {f.forces > 0 && player && <><SimpleNumber size={20}>{f.forces}</SimpleNumber><ForceImage faction={faction} special={false} width={20} /></>}
                 {f.specialForces > 0 && player && <><SimpleNumber size={20}>{f.specialForces}</SimpleNumber><ForceImage faction={faction} special width={20} /></>}
               </div>
             );
           default:
-            return <div key={i} className="item"><span className="minus">−</span>{f.card && <PartText part={f.card} />}</div>;
+            return <div key={i} className="log-aftermath__item"><span className="log-aftermath__minus">−</span>{f.card && <PartText part={f.card} />}</div>;
         }
       })}
     </div>

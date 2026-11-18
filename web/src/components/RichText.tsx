@@ -58,7 +58,7 @@ function PartView({ part: p, size, logStyle, textBorder }: { part: Part; size: n
     case "faction": return <FactionChip faction={p.v} />;
     case "treacheryCard":
       return logStyle
-        ? <PopoverText popover={treacheryCardPopup(skin, p.id)} className="card-chip"><img src={skin.cardImage(p.id)} alt="" />{p.label}</PopoverText>
+        ? <PopoverText popover={treacheryCardPopup(skin, p.id)} className="card-chip"><img className="card-chip__img" src={skin.cardImage(p.id)} alt="" />{p.label}</PopoverText>
         : <PopoverText popover={treacheryCardPopup(skin, p.id)} style={textBorder}>{p.label}</PopoverText>;
     case "leader": {
       const popover = leaderPopup(skin, p.id, p.skill);

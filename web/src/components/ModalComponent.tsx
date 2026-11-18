@@ -54,7 +54,7 @@ export function ModalComponent({ id, title, size, scrolling = false, printable =
         <div className="modal__content">
           <div className="modal__header">
             <h5 className="modal__title" id={labelId}>{title}</h5>
-            {" "}
+            {"\u00a0"}
             {printable && (
               <button className="button button--link modal-component__print" type="button" onClick={() => print(bodyId)}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">

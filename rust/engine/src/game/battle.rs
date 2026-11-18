@@ -1734,9 +1734,10 @@ impl Game {
         }
     }
 
-    /// Known quirk (known-issues.md): this uses a different occupation rule from
-    /// `determine_occupation_at_start_or_end_of_turn`. A homeworld changes hands only when exactly
-    /// one battalion is left in it, whatever kind of forces it holds.
+    /// Occupation after a battle: a faction alone in another faction's homeworld occupies it at
+    /// once. At the start and end of a turn, `determine_occupation_at_start_or_end_of_turn` asks
+    /// who controls it. The rulebook has both rules, checked and correct (known-issues.md,
+    /// "Checked and correct").
     pub fn determine_occupation_location(&mut self, location: Option<Location>) {
         let Some(hw) = location.and_then(|l| l.as_homeworld()) else {
             return;

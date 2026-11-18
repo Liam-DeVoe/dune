@@ -307,8 +307,10 @@ impl Game {
         let mut tleilaxu_receives_income = false;
 
         if let Some(tleilaxu) = tleilaxu {
-            // Known quirk (known-issues.md): Tleilaxu also earn this when they revive their own
-            // forces for free.
+            // Tleilaxu earn this from their own free revival too, which is checked and correct
+            // (known-issues.md, "Checked and correct"): "for each faction using free revival or a
+            // ghola card, you take 1 spice from the Spice Bank" (Ixians & Tleilaxu rulebook). Only
+            // the tech token's income above excludes Tleilaxu.
             tleilaxu_receives_income =
                 !self.revival().expect("in the revival phase").tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
 

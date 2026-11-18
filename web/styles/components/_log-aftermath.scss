@@ -1,0 +1,44 @@
+// What one side gained and lost in a battle, under its own plan, in a
+// .log-pair.
+.log-aftermath {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+  min-width: 0;
+  font-size: var(--fs-3);
+  line-height: 1.15;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+  }
+
+  &__plus,
+  &__minus {
+    font-weight: 700;
+    font-size: var(--fs-3);
+  }
+
+  &__plus {
+    color: var(--parchment);
+  }
+
+  &__minus {
+    color: var(--text-3);
+  }
+
+  &__note {
+    font-size: var(--fs-2);
+    color: var(--text-3);
+  }
+
+  &__none {
+    color: var(--text-3);
+    font-style: italic;
+    font-size: var(--fs-2);
+  }
+}

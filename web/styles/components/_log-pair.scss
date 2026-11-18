@@ -1,0 +1,22 @@
+// Two sides of a battle side by side, aggressor on the left like the faceoff
+// above, with a rule between them: the revealed plans (--plans, two
+// .log-plan) and what each side gained and lost (two .log-aftermath).
+.log-pair {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0 var(--s-3);
+  margin: 0 0 var(--s-2);
+  padding: var(--s-1);
+  border-radius: var(--r-2);
+  background: rgba(18, 8, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+
+  &--plans {
+    margin-top: var(--s-1);
+    padding: var(--s-3) var(--s-1) var(--s-2);
+  }
+
+  &__rule {
+    background: rgba(252, 249, 209, 0.08);
+  }
+}

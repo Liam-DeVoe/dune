@@ -1,0 +1,22 @@
+// The two strengths under the plans, the loser's dimmed.
+.log-verdict {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 var(--s-2);
+  padding: var(--s-1);
+  background: var(--ink-1);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--r-2);
+
+  &__total {
+    text-align: center;
+    font-family: var(--font-display);
+    font-size: var(--fs-6);
+    line-height: 1;
+    color: var(--parchment);
+
+    &--lost {
+      color: var(--text-3);
+    }
+  }
+}

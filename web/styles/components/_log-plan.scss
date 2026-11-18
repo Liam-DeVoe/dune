@@ -1,0 +1,118 @@
+// One side's revealed battle plan: the leader, the dial and spice, an ally's
+// support, and the weapon and defense (.log-card-slot).
+.log-plan {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  text-align: center;
+
+  &__leader {
+    position: relative;
+  }
+
+  &__portrait {
+    display: block;
+    width: 58px;
+    height: 58px;
+  }
+
+  // A leader who died in the battle, or turned out a traitor.
+  &__portrait--fallen {
+    filter: grayscale(1) brightness(0.6);
+  }
+
+  // The size of a disc inside the portrait's 58px.
+  &__no-leader {
+    width: 52px;
+    height: 52px;
+    margin: 3px;
+    border-radius: var(--r-round);
+    border: 1.5px dashed var(--ink-4);
+  }
+
+  // The Kwisatz Haderach and its +2, just left of the disc so it doesn't
+  // cover the name printed on it.
+  &__messiah {
+    position: absolute;
+    right: calc(100% + var(--s-1));
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-0);
+    padding: var(--s-0) var(--s-2) var(--s-0) var(--s-0);
+    border-radius: var(--r-pill);
+    background: var(--ink-0);
+    border: 1px solid rgba(252, 249, 209, 0.12);
+    font-family: var(--font-display);
+    font-size: var(--fs-3);
+    line-height: 1;
+    color: var(--parchment);
+  }
+
+  &__messiah-img {
+    width: 18px;
+    height: 18px;
+  }
+
+  // On the portrait's corner, placed by the art.
+  &__skull {
+    position: absolute;
+    left: -4px;
+    bottom: -2px;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r-round);
+    background: var(--ink-0);
+    border: 1px solid rgba(252, 249, 209, 0.18);
+  }
+
+  &__skull-icon {
+    width: 15px;
+    height: 15px;
+    fill: var(--parchment);
+  }
+
+  &__traitor {
+    position: absolute;
+    left: 50%;
+    bottom: -6px;
+    transform: translateX(-50%);
+    padding: var(--s-0) var(--s-1);
+    border-radius: var(--r-1);
+    background: var(--storm);
+    color: var(--parchment);
+    font-family: var(--font-label);
+    font-size: var(--fs-1);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  &__dial {
+    display: flex;
+    align-items: center;
+    gap: var(--s-1);
+  }
+
+  &__ally {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--s-0);
+    font-size: var(--fs-2);
+    color: var(--text-3);
+  }
+
+  &__cards {
+    display: flex;
+    gap: var(--s-2);
+    justify-content: center;
+  }
+}

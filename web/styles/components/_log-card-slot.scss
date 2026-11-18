@@ -1,0 +1,36 @@
+// A weapon or defense in a battle plan: the card's art and name, or an empty
+// slot.
+.log-card-slot {
+  width: 54px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-0);
+
+  &__img {
+    display: block;
+    width: 40px;
+    border-radius: var(--r-1);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.6),
+      0 2px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  &__empty {
+    width: 40px;
+    height: 56px;
+    border-radius: var(--r-1);
+    border: 1.5px dashed var(--ink-4);
+  }
+
+  &__cap {
+    font-size: var(--fs-1);
+    line-height: 1.05;
+    color: var(--text-2);
+
+    &--none {
+      color: var(--text-3);
+      font-style: italic;
+    }
+  }
+}

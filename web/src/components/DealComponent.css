@@ -9,32 +9,32 @@
   color: var(--text-3);
 }
 
-.deal-answer {
+.deal-answers__answer {
   display: inline-flex;
   align-items: center;
   gap: 4px;
 }
-.deal-answer img {
+.deal-answers__img {
   border-radius: 50%;
 }
-.deal-answer.deciding {
+.deal-answers__answer--deciding {
   opacity: 0.55;
 }
-.deal-answer.accepted {
+.deal-answers__answer--accepted {
   color: #79b34c;
 }
-.deal-answer.accepted img {
+.deal-answers__answer--accepted .deal-answers__img {
   box-shadow: 0 0 0 2px #79b34c;
 }
-.deal-answer.declined {
+.deal-answers__answer--declined {
   color: #e06a6a;
 }
-.deal-answer.declined img {
+.deal-answers__answer--declined .deal-answers__img {
   box-shadow: 0 0 0 2px var(--storm);
   filter: grayscale(0.6);
 }
 
-.deal-answer-none {
+.deal-answers__none {
   color: #e06a6a;
   font-weight: 700;
 }

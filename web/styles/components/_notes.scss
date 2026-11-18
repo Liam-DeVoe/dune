@@ -1,0 +1,63 @@
+// The notekeeping assistant (NoteComponent): a toggle per faction, then the
+// chosen faction's spice and reserves on one line, and its cards, traitors
+// and face dancers four to a row.
+.notes {
+  margin-bottom: 0.5rem;
+
+  &__factions {
+    margin-bottom: 0.25rem;
+  }
+
+  &__faction {
+    padding: 0.25rem;
+  }
+
+  &__faction-img,
+  &__force-img,
+  &__card-img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  &__reserves,
+  &__grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  &__reserve {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+    padding-right: 0.75rem;
+  }
+
+  // A card in the grid, a .card without its frame.
+  &__card {
+    flex: 0 0 auto;
+    width: 25%;
+    max-width: 100%;
+    padding: 0.25rem;
+    border: 0;
+  }
+
+  // A traitor or face dancer in the grid: the image itself is the cell.
+  &__hero {
+    flex: 0 0 auto;
+    width: 25%;
+    max-width: 100%;
+    height: auto;
+    padding-left: 0.75rem;
+    padding-right: 0.25rem;
+  }
+
+  &__heading {
+    margin-top: 0.25rem;
+  }
+}
+
+// "Unknown" in place of a card's popover (unknownPopover).
+.notes__unknown {
+  padding: 0.25rem;
+  font-size: 0.875em;
+}

@@ -1,0 +1,29 @@
+// The chat card (ChatComponent): the message box, the send row (the target
+// select grows to fill the space left of Send) and the messages under it.
+.chat {
+  &__row {
+    display: flex;
+    flex-direction: row-reverse;
+
+    &--send {
+      margin-top: 0.25rem;
+    }
+  }
+
+  &__target {
+    flex-grow: 1;
+    margin-right: 0.25rem;
+  }
+
+  &__message {
+    margin-top: 0.25rem;
+    padding: 0.25rem;
+    font-size: 0.875em;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  &__mute {
+    margin-top: 0.25rem;
+  }
+}

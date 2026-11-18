@@ -23,6 +23,31 @@ input[type=date], input[type=time] {
 .games-table--scheduled td:nth-child(4) { width: 20%; overflow-wrap: anywhere; }
 .games-table--scheduled td:nth-child(5) { width: 10%; overflow-wrap: anywhere; text-align: right; }
 
+.games-table__row {
+  font-size: 0.875em;
+}
+
+/* A game's player count, and the bot icon before its bot count. */
+.games-table__count,
+.games-table__bots-icon {
+  margin-right: 0.25rem;
+}
+
+/* Join, Observe, Resume and the seat buttons. */
+.games-table__action {
+  margin: 0.25rem;
+}
+
+/* A seat's button holds just the faction's sigil. */
+.games-table__seat {
+  padding: 0.25rem;
+}
+
+.games-table__error {
+  /* The error red of .text-danger (styles/bootstrap/_text.scss). */
+  color: #e46b6b;
+}
+
 .games-section-label {
   margin: 16px 0 4px;
   font-size: 12px;

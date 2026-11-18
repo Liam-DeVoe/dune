@@ -54,7 +54,7 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
   const moment = entries[gap];
 
   return (
-    <div className="panel undo mb-2">
+    <div className="panel undo">
       <header className="panel__header">
         <h5 className="panel__title">Undo</h5>
         <button className="btn-close" title="Cancel" onClick={onClose}></button>

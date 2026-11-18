@@ -1,0 +1,47 @@
+@use "../shared";
+
+// The players of a game, one row per seat or player, with the host's
+// controls, the last action's error, Leave game and the observers
+// (JoinedPlayersPanel, both the lobby's and the one in components/).
+.joined-players {
+  margin-top: 0.5rem;
+  padding: 0.25rem;
+  border: 1px solid shared.$hairline;
+
+  &__name {
+    margin: 0.25rem;
+  }
+
+  // Make host, Kick, Open/Close seat.
+  &__action {
+    margin: 0.25rem;
+
+    &--spaced {
+      margin-left: 0.5rem;
+    }
+  }
+
+  &__result {
+    // The error red of .text-danger (bootstrap/_text.scss).
+    color: #e46b6b;
+    vertical-align: bottom;
+  }
+
+  &__leave {
+    margin-top: 0.5rem;
+  }
+
+  &__reseat {
+    margin-top: 0.5rem;
+    margin-left: 0.25rem;
+  }
+
+  &__label {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+  }
+
+  &__observer {
+    margin-right: 0.25rem;
+  }
+}

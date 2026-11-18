@@ -1,7 +1,20 @@
 // The player's own panel (OtherComponents/PlayerPanel.razor): a top line with
 // the faction, spice and reserves, the leaders with the traitors in a recessed well at the
-// right, any faction extras, and the hand of cards under a rule.
+// right, any faction extras, and the hand of cards under a rule. The block
+// sits on the card's .card-body, inside __frame (the .card).
 .player-panel {
+  padding: 0;
+  background-color: transparent;
+
+  &__frame {
+    margin-bottom: 0.25rem;
+    padding: 0.25rem;
+  }
+
+  &__text {
+    height: 100%;
+  }
+
   &__bar {
     display: flex;
     align-items: center;

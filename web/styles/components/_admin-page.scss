@@ -1,0 +1,41 @@
+// The admin page (AdminPage): server info, users, running and scheduled
+// games, and the log, each a card.
+.admin-page {
+  &__card {
+    margin-bottom: 0.5rem;
+  }
+
+  &__button {
+    margin-right: 0.25rem;
+  }
+
+  &__row {
+    font-size: 0.875em;
+  }
+
+  // A scheduled game's start, creator and Cancel each take a quarter.
+  &__quarter {
+    width: 25%;
+  }
+
+  // The running games' filters: three in a row from 768px, stacked below,
+  // with a 0.5rem gutter.
+  &__filters {
+    display: flex;
+    flex-wrap: wrap;
+    margin: -0.5rem -0.25rem 1rem;
+  }
+
+  &__filter {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin-top: 0.5rem;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+
+    @media (min-width: 768px) {
+      width: 33.33333333%;
+    }
+  }
+}

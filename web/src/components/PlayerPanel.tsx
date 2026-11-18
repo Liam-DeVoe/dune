@@ -31,9 +31,9 @@ export function PlayerPanel() {
   const pub = view.players.find((p) => p.faction === me?.faction);
   if (!me || !pub || PhaseValue[view.phase] < PhaseValue.TradingFactions) return null;
   return (
-    <div className="card p-1 mb-1" style={{ animation: "fadeIn 3s" }}>
-      <div className="card-body p-0 bg-transparent player-panel">
-        <div className="card-text h-100">
+    <div className="card player-panel__frame" style={{ animation: "fadeIn 3s" }}>
+      <div className="card-body player-panel">
+        <div className="card-text player-panel__text">
           {PhaseValue[view.phase] >= PhaseValue.HarkonnenMulligan
             ? <Shield me={me} pub={pub} />
             : <FactionComponent faction={me.faction} />}
@@ -56,11 +56,11 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
         <FactionChip faction={faction} />
         <span className="player-panel__stat"><SpiceLine text={resourcesText(skin, me, pub)} size={24} /></span>
         <span className="player-panel__stat">
-          <ForceToken faction={faction} size={22} imgClass="m-0 p-0" title={skin.get("ForceName_STR", faction)} />{pub.forcesInReserve}
+          <ForceToken faction={faction} size={22} title={skin.get("ForceName_STR", faction)} />{pub.forcesInReserve}
         </span>
         {pub.hasSpecialForces && (
           <span className="player-panel__stat">
-            <ForceToken faction={faction} special size={22} imgClass="m-0 p-0" title={skin.get("SpecialForceName_STR", faction)} />{pub.specialForcesInReserve}
+            <ForceToken faction={faction} special size={22} title={skin.get("SpecialForceName_STR", faction)} />{pub.specialForcesInReserve}
           </span>
         )}
       </div>
@@ -166,7 +166,7 @@ function Messiah({ forcesKilled, available }: { forcesKilled: number; available:
   const name = skin.concept("Messiah");
   return (
     <div>
-      <Image className="m-0 p-0" width={32} src={skin.url(skin.str("Messiah_URL"))} alt={name} noShadow popover={messiahPopup(skin)} />
+      <Image width={32} src={skin.url(skin.str("Messiah_URL"))} alt={name} noShadow popover={messiahPopup(skin)} />
       {forcesKilled >= 7
         ? (available ? <span> is available.</span> : <span>has been killed.</span>)
         : <span> will be available after <SimpleNumber>{7 - forcesKilled}</SimpleNumber> more forces are killed in battle.</span>}

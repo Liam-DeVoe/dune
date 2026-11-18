@@ -77,29 +77,29 @@ export function ChatComponent(p: ChatProps) {
   };
 
   return (
-    <div className="card" style={{ backgroundColor: p.backgroundColor ?? "transparent", border: "none" }}>
+    <div className="card chat" style={{ backgroundColor: p.backgroundColor ?? "transparent", border: "none" }}>
       <div className="card-header">Chat</div>
       <div className="card-body">
-        <div className="d-flex flex-row-reverse">
+        <div className="chat__row">
           <input name="message" className="form-control form-control-sm" type="text" maxLength={512} placeholder={`Chat to ${selected}...`}
                  value={message} onChange={(e) => setMessage(e.target.value)}
                  onKeyUp={(e) => { if (e.code === "Enter" || e.code === "NumpadEnter") send(); }} />
         </div>
-        <div className="d-flex flex-row-reverse mt-1">
+        <div className="chat__row chat__row--send">
           <button className="btn btn-primary btn-sm" onClick={send}>Send</button>
           {showGameChat && (
-            <select className="form-select form-select-sm me-1 flex-grow-1" value={selected} onChange={(e) => setTarget(e.target.value)}>
+            <select className="form-select form-select-sm chat__target" value={selected} onChange={(e) => setTarget(e.target.value)}>
               {targets.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           )}
         </div>
         {p.messages.filter((m) => !p.muteGlobalChat || !m.global).map((m, i) => (
-          <div key={i} className="text-break p-1 mt-1 small bg-ink-3" style={{ userSelect: "text" }}>
+          <div key={i} className="chat__message bg-ink-3" style={{ userSelect: "text" }}>
             <RichText parts={body(m, p)} size={20} />
           </div>
         ))}
         {showGameChat && (
-          <div className="mt-1">
+          <div className="chat__mute">
             <Checkbox value={p.muteGlobalChat} onChange={p.setMuteGlobalChat}>Hide global chat messages</Checkbox>
           </div>
         )}

@@ -140,7 +140,7 @@ export function EstablishPlayersComponent() {
 
 
   return (
-    <div className="card card--urgent mb-2" style={{ animation: "fadeIn 1s" }}>
+    <div className="card card--urgent establish-players" style={{ animation: "fadeIn 1s" }}>
       <div className="card-body">
         <SelectNumber value={settings.maximumTurns} onChange={(v) => change({ maximumTurns: v })} min={1} max={lobby.data.maximumTurns} label="Maximum number of turns:" />
         <SelectNumber value={settings.numberOfPlayers} onChange={(v) => change({ numberOfPlayers: v })} min={2} max={lobby.data.maximumPlayers} label="Number of players:" />
@@ -159,7 +159,7 @@ export function EstablishPlayersComponent() {
         {advanced && (
           <>
             {/* AI Players: Game.GetRulesInGroup(RuleGroup.Bots, ...). */}
-            <label className="mt-1 mb-0">AI Players</label>
+            <label className="establish-players__label">AI Players</label>
             {(lobby.data.rulesInGroup["Bots"] ?? []).map((r) => {
               const v = r as Rule;
               return <ChecklistItem key={r} label={lobby.labelOf("Rule", r)} checked={settings.initialRules.includes(v)} onChange={(on) => toggleRule(v, on)} />;
@@ -168,7 +168,7 @@ export function EstablishPlayersComponent() {
         )}
         {advanced && lobby.data.availableRuleGroups.filter((group) => (lobby.data.rulesInGroup[group] ?? []).length > 0).map((group) => (
           <Fragment key={group}>
-            <label className="mt-1 mb-0">{lobby.labelOf("RuleGroup", group)}</label>
+            <label className="establish-players__label">{lobby.labelOf("RuleGroup", group)}</label>
             {sortedRules(group).map((r) => {
               const v = r as Rule;
               return <ChecklistItem key={r} label={lobby.labelOf("Rule", r)} checked={settings.initialRules.includes(v)} onChange={(on) => toggleRule(v, on)} />;

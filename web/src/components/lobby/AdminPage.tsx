@@ -23,17 +23,17 @@ function AdminScreen() {
 
   if (!state.connected) {
     return (
-      <div className="row d-flex align-items-center" style={START_SCREEN_STYLE}>
-        <div className="d-flex justify-content-center">Not Connected</div>
+      <div className="start-row start-row--centred" style={START_SCREEN_STYLE}>
+        <div className="start-row__notice">Not Connected</div>
       </div>
     );
   }
   if (!state.account) {
     return (
-      <div className="row d-flex align-items-center" style={START_SCREEN_STYLE}>
-        <div className="col-sm-12 col-lg-3"></div>
-        <div className="col-sm-12 col-lg-6"><div className="d-flex justify-content-center"><LoginComponent /></div></div>
-        <div className="col-sm-12 col-lg-3"></div>
+      <div className="start-row start-row--centred" style={START_SCREEN_STYLE}>
+        <div className="start-row__col start-row__col--side"></div>
+        <div className="start-row__col start-row__col--main"><div className="start-row__center"><LoginComponent /></div></div>
+        <div className="start-row__col start-row__col--side"></div>
       </div>
     );
   }
@@ -49,25 +49,25 @@ function AdminScreen() {
   const admin = state.adminInfo;
 
   return (
-    <div className="row" style={START_SCREEN_STYLE}>
-      <div className="col-sm-12 col-lg-2"></div>
-      <div className="col-sm-12 col-lg-6">
-        <div className="card mb-2">
+    <div className="start-row" style={START_SCREEN_STYLE}>
+      <div className="start-row__col start-row__col--margin"></div>
+      <div className="start-row__col start-row__col--main">
+        <div className="card admin-page__card">
           <div className="card-header">Server info</div>
           <div className="card-body">
-            <h3 className="h3">Info</h3>
-            <button className="btn btn-primary me-1" onClick={async () => log(await client.getAdminInfo())}>Get admin info</button>
-            <h3 className="h3">Maintenance window</h3>
+            <h3>Info</h3>
+            <button className="btn btn-primary admin-page__button" onClick={async () => log(await client.getAdminInfo())}>Get admin info</button>
+            <h3>Maintenance window</h3>
             <DateTimePicker value={maintenanceDate} onChange={setMaintenance} />
-            <button className="btn btn-primary me-1" onClick={async () => log(await client.adminUpdateMaintenance(toDateTimeOffset(maintenanceDate)))}>Update</button>
-            <h3 className="h3">Persist data</h3>
-            <button className="btn btn-primary me-1" onClick={async () => log(await client.adminPersistState())}>Persist data</button>
-            <h3 className="h3">Restore persisted data</h3>
-            <button className="btn btn-primary me-1" onClick={async () => log(await client.adminRestoreState())}>Restore data</button>
+            <button className="btn btn-primary admin-page__button" onClick={async () => log(await client.adminUpdateMaintenance(toDateTimeOffset(maintenanceDate)))}>Update</button>
+            <h3>Persist data</h3>
+            <button className="btn btn-primary admin-page__button" onClick={async () => log(await client.adminPersistState())}>Persist data</button>
+            <h3>Restore persisted data</h3>
+            <button className="btn btn-primary admin-page__button" onClick={async () => log(await client.adminRestoreState())}>Restore data</button>
           </div>
         </div>
         {admin && (
-          <div className="card mb-2">
+          <div className="card admin-page__card">
             <div className="card-header">Info</div>
             <div className="card-body">
               <p><strong>Users by User Token: </strong>{admin.sessions}</p>
@@ -76,19 +76,19 @@ function AdminScreen() {
               <p><strong>ConnectionInfo by UserId: </strong>{admin.usersInGames}</p>
               <table className="table table-sm">
                 <thead>
-                  <tr className="small table-dark">
+                  <tr className="table-dark admin-page__row">
                     <th>User id</th><th>Username</th><th>Player name</th><th>Email</th><th>Last login</th><th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {admin.users.map((u) => (
-                    <tr key={u.userId} className="small table-dark">
+                    <tr key={u.userId} className="table-dark admin-page__row">
                       <td>{u.userId}</td>
                       <td>{u.userName}</td>
                       <td>{u.playerName}</td>
                       <td>{u.email}</td>
                       <td>{u.lastLogin && !u.lastLogin.startsWith("0001-01-01") ? longDate(u.lastLogin) : ""}</td>
-                      <td><button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminDeleteUser(u.userId))}>Delete</button></td>
+                      <td><button className="btn btn-primary btn-sm admin-page__button" onClick={async () => log(await client.adminDeleteUser(u.userId))}>Delete</button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -96,26 +96,26 @@ function AdminScreen() {
             </div>
           </div>
         )}
-        <div className="card mb-2">
+        <div className="card admin-page__card">
           <div className="card-header">Running games</div>
           <div className="card-body">
-            <div className="row g-2 mb-3">
-              <div className="col-sm-12 col-md-4">
+            <div className="admin-page__filters">
+              <div className="admin-page__filter">
                 <label className="form-label" htmlFor="gameUsernameFilter">Username</label>
                 <input id="gameUsernameFilter" className="form-control form-control-sm" value={usernameFilter} onChange={(e) => setUsernameFilter(e.target.value)} />
               </div>
-              <div className="col-sm-12 col-md-4">
+              <div className="admin-page__filter">
                 <label className="form-label" htmlFor="gameTimeFromFilter">Game time from</label>
                 <input id="gameTimeFromFilter" type="datetime-local" className="form-control form-control-sm" value={timeFrom} onChange={(e) => setTimeFrom(e.target.value)} />
               </div>
-              <div className="col-sm-12 col-md-4">
+              <div className="admin-page__filter">
                 <label className="form-label" htmlFor="gameTimeToFilter">Game time to</label>
                 <input id="gameTimeToFilter" type="datetime-local" className="form-control form-control-sm" value={timeTo} onChange={(e) => setTimeTo(e.target.value)} />
               </div>
             </div>
             <table className="table table-sm">
               <thead>
-                <tr className="small table-dark">
+                <tr className="table-dark admin-page__row">
                   <th>Created</th><th>Username</th><th>Last activity</th><th>Game</th><th>Actions</th>
                 </tr>
               </thead>
@@ -123,16 +123,16 @@ function AdminScreen() {
                 {filtered.map((g: GameInfo) => {
                   const style = activityColor(g, 20);
                   return (
-                    <tr key={g.gameId} className="small table-dark">
+                    <tr key={g.gameId} className="table-dark admin-page__row">
                       <td style={style}>{longDate(g.created)}</td>
                       <td style={style}>{g.creatorUserName}</td>
                       <td style={style}>{g.lastActivity ? longDate(g.lastActivity, true) : ""}</td>
                       <td style={style}>{g.name}</td>
                       <td>
-                        <button className="btn btn-primary btn-sm me-1" title="Download savegame" aria-label="Download savegame" onClick={async () => log(await client.adminDownloadGame(g.gameId))}>
+                        <button className="btn btn-primary btn-sm admin-page__button" title="Download savegame" aria-label="Download savegame" onClick={async () => log(await client.adminDownloadGame(g.gameId))}>
                           <span className="oi oi-data-transfer-download" aria-hidden="true"></span>
                         </button>{" "}
-                        <button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminCloseGame(g.gameId))}>Close</button>
+                        <button className="btn btn-primary btn-sm admin-page__button" onClick={async () => log(await client.adminCloseGame(g.gameId))}>Close</button>
                       </td>
                     </tr>
                   );
@@ -141,16 +141,16 @@ function AdminScreen() {
             </table>
           </div>
         </div>
-        <div className="card mb-2">
+        <div className="card admin-page__card">
           <div className="card-header">Scheduled games</div>
           <div className="card-body">
             <table className="table table-sm">
               <tbody>
                 {scheduled.map((g: ScheduledGameInfo) => (
-                  <tr key={g.scheduledGameId} className="small table-dark">
-                    <td className="w-25">{longDate(g.starts, true)}</td>
-                    <td className="w-25">{g.creatorName}</td>
-                    <td className="w-25"><button className="btn btn-primary btn-sm me-1" onClick={async () => log(await client.adminCancelGame(g.scheduledGameId))}>Cancel</button></td>
+                  <tr key={g.scheduledGameId} className="table-dark admin-page__row">
+                    <td className="admin-page__quarter">{longDate(g.starts, true)}</td>
+                    <td className="admin-page__quarter">{g.creatorName}</td>
+                    <td className="admin-page__quarter"><button className="btn btn-primary btn-sm admin-page__button" onClick={async () => log(await client.adminCancelGame(g.scheduledGameId))}>Cancel</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -158,13 +158,13 @@ function AdminScreen() {
           </div>
         </div>
       </div>
-      <div className="col-sm-12 col-lg-2">
-        <div className="card mb-2">
+      <div className="start-row__col start-row__col--margin">
+        <div className="card admin-page__card">
           <div className="card-header">Log</div>
           <div className="card-body">{messages.map((m, i) => <div key={i}>{m}</div>)}</div>
         </div>
       </div>
-      <div className="col-sm-12 col-lg-2"></div>
+      <div className="start-row__col start-row__col--margin"></div>
     </div>
   );
 }

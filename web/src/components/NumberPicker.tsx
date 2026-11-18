@@ -90,8 +90,8 @@ export function SelectResources({ value, onChange, min, max, label = "" }: {
 }) {
   const { skin } = useGame();
   return (
-    <div className="d-inline-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="select-resources">
+      {label !== "" && <label className="select-resources__label">{label}</label>}
       <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolSrc={skin.url(skin.str("Harvester_URL"))} spice />
     </div>
   );
@@ -104,7 +104,7 @@ export function SelectResourcesFromFaction({ value, onChange, min, max, faction 
 }) {
   const { skin } = useGame();
   return (
-    <div className="d-inline-flex align-items-center">
+    <div className="select-resources">
       <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolSrc={skin.factionImage(faction)} spice />
     </div>
   );

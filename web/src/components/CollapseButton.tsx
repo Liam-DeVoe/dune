@@ -2,7 +2,7 @@
 // The header itself toggles; the chevron only shows the state.
 export function CollapseButton({ collapsed }: { collapsed: boolean }) {
   return (
-    <div className="btn btn-link p-0 float-end" style={{ display: "inline-block" }}>
+    <div className="btn btn-link collapse-button" style={{ display: "inline-block" }}>
       {collapsed
         ? (
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

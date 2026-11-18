@@ -1,0 +1,15 @@
+// The lobby's "Active games" card (RunningGamesComponent). Its tables are
+// .games-table (lobby.css).
+.running-games {
+  margin-bottom: 0.5rem;
+  box-shadow: var(--shadow-3);
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  &__empty {
+    color: var(--gold);
+  }
+}

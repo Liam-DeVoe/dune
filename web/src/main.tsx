@@ -85,7 +85,7 @@ window.treacheryClient = { Connection, login, hashPassword, storeSession };
 
 function Home() {
   return (
-    <div className="p-4">
+    <div className="scene-list">
       <p>treachery.online web client skeleton. Saved scenes:</p>
       <ul>
         {["alliance/Emperor", "alliance/Atreides", "alliance-allied/BeneGesserit"].map((s) => <li key={s}><a href={withBase(`scene/${s}`)}>{s}</a></li>)}

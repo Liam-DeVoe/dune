@@ -1,0 +1,43 @@
+// The login card (LoginComponent): tabs for logging in, a new account and
+// the two password reset steps, each a column of fields with its error line
+// and button; the version in the footer.
+.login {
+  margin-bottom: 0.5rem;
+  box-shadow: var(--shadow-3);
+
+  &__tabs {
+    margin-bottom: 0.5rem;
+  }
+
+  &__field,
+  &__submit {
+    margin-top: 0.25rem;
+  }
+
+  &__keep {
+    margin-top: 0.5rem;
+  }
+
+  &__error {
+    // The error red of .text-danger (bootstrap/_text.scss).
+    color: #e46b6b;
+    font-size: 0.875em;
+  }
+
+  // The footer was a one-column Bootstrap row: the version fills it, with
+  // 0.75rem of padding a side that the row takes back.
+  &__footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+  }
+
+  &__version {
+    flex: 1 0 0%;
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}

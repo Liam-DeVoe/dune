@@ -1,0 +1,16 @@
+// The players subscribed to a scheduled game, each with a badge for how
+// (Subscribers, in both lobby columns), and the dropdown that sets your own
+// subscription (SubscribeComponent).
+.subscribers {
+  &__entry {
+    margin-right: 0.25rem;
+  }
+
+  &__badge {
+    margin-left: 0.25rem;
+  }
+}
+
+.subscribe {
+  align-self: flex-end;
+}

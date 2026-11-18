@@ -37,7 +37,7 @@ export function JoinedPlayersPanel() {
           {iAmHost && (
             <>
               {!isHost && <CommandButton small marginClass="joined-players__action joined-players__action--spaced" onClick={() => setOrUnsetHost(userId)}>Make host</CommandButton>}
-              {!isMe && <CommandButton small className="btn-danger" marginClass="joined-players__action" onClick={() => kick(userId)}>Kick</CommandButton>}
+              {!isMe && <CommandButton small className="button--danger" marginClass="joined-players__action" onClick={() => kick(userId)}>Kick</CommandButton>}
             </>
           )}
         </div>
@@ -56,14 +56,14 @@ export function JoinedPlayersPanel() {
           {player.faction !== "None" && <FactionImage faction={player.faction as Faction} diameter={20} />}
           {isBot ? <BotIcon size={18} /> : <span className={`joined-players__name ${isMe ? "player-name player-name--you" : "player-name"}`}>{p.playerName(userId)}</span>}
           {isHost && <HostIcon size={18} />}
-          {available && <span className="badge text-bg-success">open</span>}
+          {available && <span className="badge badge--success">open</span>}
           {iAmHost && (
             <>
               <CommandButton small marginClass="joined-players__action" onClick={() => openSeat(player.seat)}>{available ? "Close" : "Open"} seat</CommandButton>
               {!isBot && (
                 <>
                   {!isHost && <CommandButton small marginClass="joined-players__action" onClick={() => setOrUnsetHost(userId)}>Make host</CommandButton>}
-                  {!isMe && <CommandButton small className="btn-danger" marginClass="joined-players__action" onClick={() => kick(userId)}>Kick</CommandButton>}
+                  {!isMe && <CommandButton small className="button--danger" marginClass="joined-players__action" onClick={() => kick(userId)}>Kick</CommandButton>}
                 </>
               )}
               <br />
@@ -80,10 +80,10 @@ export function JoinedPlayersPanel() {
       {rows}
       <div className="joined-players__result">{actionResult}</div>
       {(!iAmHost || PhaseValue[phase] > PhaseValue.AwaitingPlayers) && (
-        <CommandButton small className="btn-danger" marginClass="joined-players__leave" onClick={leave}>Leave game</CommandButton>
+        <CommandButton small className="button--danger" marginClass="joined-players__leave" onClick={leave}>Leave game</CommandButton>
       )}
       {iAmHost && PhaseValue[phase] >= PhaseValue.TradingFactions && (
-        <CommandButton small className="btn-warning" marginClass="joined-players__reseat" onClick={() => client.requestReseat()}>Re-seat players</CommandButton>
+        <CommandButton small className="button--warning" marginClass="joined-players__reseat" onClick={() => client.requestReseat()}>Re-seat players</CommandButton>
       )}
       {p.observers.size > 0 && (
         <>

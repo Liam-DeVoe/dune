@@ -145,7 +145,7 @@ export function LogPanel() {
 
   return (
     <div className="card report" style={{ animation: "fadeIn 1s" }}>
-      <div className="card-header report__header">
+      <div className="card__header report__header">
         <button className="report__step" title="Previous phase" aria-label="Previous phase" disabled={index === 0} onClick={() => select(index - 1)}>
           <svg className="report__step-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
         </button>
@@ -172,7 +172,7 @@ export function LogPanel() {
       </div>
 
       {/* Follows the newest line while the player is at the bottom (followLog.ts). */}
-      <div className="card-body report__body" ref={followBottom} data-step={`${step.turn}-${step.about}`}>
+      <div className="card__body report__body" ref={followBottom} data-step={`${step.turn}-${step.about}`}>
         {!loaded ? null : empty ? (
           over && <div className="report__empty"><i>Nothing to report</i></div>
         ) : (

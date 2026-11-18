@@ -29,12 +29,12 @@ export function EventLayout({ type, urgent = false, header, children }: { type: 
   return (
     <div className={`card  ${urgent ? "card--urgent" : ""}  event-form`} style={{ animation: "fadeIn 1s" }}>
       {header != null && (
-        <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
+        <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />
           {header}
         </div>
       )}
-      {!collapsed && <div className="card-body">{children}</div>}
+      {!collapsed && <div className="card__body">{children}</div>}
     </div>
   );
 }
@@ -221,8 +221,8 @@ export function PinActions({ validation, cancel, confirm, label }: { validation:
     <>
       <Validation parts={validation} />
       <div className="map-pin__actions">
-        <button type="button" className="btn btn-secondary" onClick={cancel}>Cancel</button>
-        <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>{label}</button>
+        <button type="button" className="button button--secondary" onClick={cancel}>Cancel</button>
+        <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{label}</button>
       </div>
     </>
   );

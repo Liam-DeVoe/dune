@@ -20,7 +20,7 @@ export function MenuPanels() {
       {m.loadError !== "" && (
         <>
           <div className="menu-panels__error">{m.loadError}</div>
-          <button className="btn btn-primary btn-sm menu-panels__clear" onClick={() => menu.setLoadError("")}>Clear errors</button>
+          <button className="button button--primary button--small menu-panels__clear" onClick={() => menu.setLoadError("")}>Clear errors</button>
         </>
       )}
       {m.panel === "Undo"

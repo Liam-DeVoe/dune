@@ -141,7 +141,7 @@ export function EstablishPlayersComponent() {
 
   return (
     <div className="card card--urgent establish-players" style={{ animation: "fadeIn 1s" }}>
-      <div className="card-body">
+      <div className="card__body">
         <SelectNumber value={settings.maximumTurns} onChange={(v) => change({ maximumTurns: v })} min={1} max={lobby.data.maximumTurns} label="Maximum number of turns:" />
         <SelectNumber value={settings.numberOfPlayers} onChange={(v) => change({ numberOfPlayers: v })} min={2} max={lobby.data.maximumPlayers} label="Number of players:" />
         <SelectFactions values={lobby.data.availableFactions as Faction[]} selected={settings.allowedFactionsInPlay} imageWidth={40} label="Factions in play:"

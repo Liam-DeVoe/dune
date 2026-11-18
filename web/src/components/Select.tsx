@@ -159,7 +159,7 @@ export function Select<T>({ options, value, onChange, label, className = "", sma
   return (
     <div className={`select ${className}`}>
       {label != null && <label className="select__label" id={`${id}-label`} htmlFor={id}>{label}</label>}
-      <button type="button" id={id} ref={trigger} className={`select__trigger form-select ${small ? "form-select-sm" : ""}`}
+      <button type="button" id={id} ref={trigger} className={`select__trigger native-select ${small ? "native-select--small" : ""}`}
               role="combobox" aria-haspopup="listbox" aria-expanded={open ? "true" : "false"} aria-controls={`${id}-list`}
               aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
               disabled={disabled} onClick={() => (open ? setOpen(false) : openList())} onKeyDown={onKeyDown}>

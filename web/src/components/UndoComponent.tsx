@@ -57,7 +57,7 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
     <div className="panel undo">
       <header className="panel__header">
         <h5 className="panel__title">Undo</h5>
-        <button className="btn-close" title="Cancel" onClick={onClose}></button>
+        <button className="close-button" title="Cancel" onClick={onClose}></button>
       </header>
       <div className="panel__body undo__body">
         {atNow || !moment
@@ -75,8 +75,8 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
             </>
           )}
         <div className="undo__actions">
-          <button className="btn btn-secondary" onClick={onClose}>Cancel</button>{" "}
-          <button className="btn btn-primary" disabled={atNow} onClick={confirm}>
+          <button className="button button--secondary" onClick={onClose}>Cancel</button>{" "}
+          <button className="button button--primary" disabled={atNow} onClick={confirm}>
             {atNow ? "Undo" : count === 1 ? "Undo 1 event" : `Undo ${count} events`}
           </button>
         </div>

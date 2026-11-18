@@ -30,15 +30,15 @@ export function NoteComponent({ open = false }: { open?: boolean }) {
   const p = notes.players.find((x) => x.faction === shown);
   return (
     <div className="card notes">
-      <div className="card-header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
+      <div className="card__header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
         Mentat: Notekeeping Assistant{" "}
         <CollapseButton collapsed={collapsed} />
       </div>
       {!collapsed && (
-        <div className="card-body">
+        <div className="card__body">
           <div className="notes__factions">
             {players.map((x) => (
-              <button key={x.faction} className={`btn ${x.faction === shown ? "btn-primary" : "btn-outline-primary"} notes__faction`}
+              <button key={x.faction} className={`button ${x.faction === shown ? "button--primary" : "button--outline-primary"} notes__faction`}
                       onClick={() => setShown(x.faction === shown ? null : x.faction)} data-bs-toggle="tooltip" title={skin.faction(x.faction)}>
                 <img className="notes__faction-img" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", x.faction))} />
               </button>

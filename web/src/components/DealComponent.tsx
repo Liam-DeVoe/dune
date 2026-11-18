@@ -26,33 +26,33 @@ export function DealComponent({ open = false }: { open?: boolean }) {
   };
   return (
     <div className="card deals" style={open ? undefined : { animation: "fadeIn 1s" }}>
-      <div className="card-header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
+      <div className="card__header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
         Deals{" "}
-        {d.acceptable.length > 0 && <><span className="badge bg-warning" title="Deals offered to you">{d.acceptable.length}</span>{" "}</>}
-        {d.cancellable.length > 0 && <><span className="badge bg-success" title="Your deal offers">{d.cancellable.length}</span>{" "}</>}
-        {d.current.length > 0 && <><span className="badge bg-primary" title="Current deals">{d.current.length}</span>{" "}</>}
+        {d.acceptable.length > 0 && <><span className="badge badge--warning" title="Deals offered to you">{d.acceptable.length}</span>{" "}</>}
+        {d.cancellable.length > 0 && <><span className="badge badge--success" title="Your deal offers">{d.cancellable.length}</span>{" "}</>}
+        {d.current.length > 0 && <><span className="badge badge--primary" title="Current deals">{d.current.length}</span>{" "}</>}
         <CollapseButton collapsed={collapsed} />
       </div>
       {!collapsed && (
-        <div className="card-body">
+        <div className="card__body">
           {!view.viewer.isObserver && (d.acceptable.length > 0 || d.cancellable.length > 0) && (
             <>
               <label>Deal offers</label>
-              <table className="table table-sm">
+              <table className="table table--small table--dark">
                 <tbody>
                   {d.acceptable.map((o) => (
-                    <tr key={`a${o.id}`} className={`table-dark ${m.markedDeal === o.id ? "deal-marked" : ""}`}>
+                    <tr key={`a${o.id}`} className={m.markedDeal === o.id ? "deal-marked" : ""}>
                       <td><FactionChip faction={o.initiator} /></td>
                       <td><SpiceComponent amount={String(o.price)} /></td>
                       <td className="deals__text"><RichText parts={o.description} /></td>
                       <td>
-                        <button className="btn btn-primary btn-sm" onClick={() => submit(o.accept, o.id)} disabled={o.acceptError !== null}>Accept</button>{" "}
-                        <button className="btn btn-secondary btn-sm deals__decline" onClick={() => submit(o.decline, o.id)}>Decline</button>
+                        <button className="button button--primary button--small" onClick={() => submit(o.accept, o.id)} disabled={o.acceptError !== null}>Accept</button>{" "}
+                        <button className="button button--secondary button--small deals__decline" onClick={() => submit(o.decline, o.id)}>Decline</button>
                       </td>
                     </tr>
                   ))}
                   {d.cancellable.map((o) => (
-                    <tr key={`c${o.id}`} className="table-dark">
+                    <tr key={`c${o.id}`}>
                       <td><FactionChip faction={o.initiator} /></td>
                       <td><SpiceComponent amount={String(o.price)} /></td>
                       <td className="deals__text">
@@ -72,7 +72,7 @@ export function DealComponent({ open = false }: { open?: boolean }) {
                         </div>
                       </td>
                       <td>
-                        <button className="btn btn-secondary btn-sm" onClick={() => submit(o.withdraw)}>Withdraw</button>
+                        <button className="button button--secondary button--small" onClick={() => submit(o.withdraw)}>Withdraw</button>
                       </td>
                     </tr>
                   ))}
@@ -83,10 +83,10 @@ export function DealComponent({ open = false }: { open?: boolean }) {
           {d.current.length > 0 && (
             <>
               <label>Current deals</label>
-              <table className="table table-sm">
+              <table className="table table--small table--dark">
                 <tbody>
                   {d.current.map((deal, i) => (
-                    <tr key={i} className="table-dark">
+                    <tr key={i}>
                       <td className="deals__parties">
                         <FactionChip faction={deal.bound} />{" ⇒ "}<FactionChip faction={deal.consuming} />
                       </td>

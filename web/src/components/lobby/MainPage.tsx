@@ -35,7 +35,7 @@ export function WithLobby({ linkToken, gameId, admin = false, children }: { link
       .catch((e: unknown) => { if (live) setError(String(e)); });
     return () => { live = false; };
   }, [linkToken, gameId, admin]);
-  if (error) return <MainLayout><div className="alert alert-danger">{error}</div></MainLayout>;
+  if (error) return <MainLayout><div className="alert alert--danger">{error}</div></MainLayout>;
   if (!client) return null;
   return <LobbyContext.Provider value={client}>{children}</LobbyContext.Provider>;
 }
@@ -59,7 +59,7 @@ export function MaintenanceBanner() {
   const start = new Date(state.serverInfo.scheduledMaintenance);
   const end = new Date(start.getTime() + 15 * 60_000);
   return (
-    <div className="alert alert-danger maintenance-banner" role="alert">
+    <div className="alert alert--danger maintenance-banner" role="alert">
       treachery.online will be down for maintenance from {start.toLocaleString()} until {end.toLocaleString()} (your local time)
     </div>
   );

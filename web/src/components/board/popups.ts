@@ -166,13 +166,13 @@ export function turn(b: Board): string {
   result += `<p><string>Game started:</strong> ${longDate(v.timing.started)}`;
   result += `<p><string>Last activity:</strong> ${longDate(v.timing.lastActivity)}`;
   result += `<p><string>Game duration:</strong> ${Math.round(v.timing.duration / 360) / 10} hours`;
-  result += "<table class='table table-sm'><thead><tr class='table-dark'><th>Player</th><th>Bidding</th><th>Move</th><th>Battle</th><th>Total</th></tr></thead><tbody>";
+  result += "<table class='table table--small table--dark'><thead><tr><th>Player</th><th>Bidding</th><th>Move</th><th>Battle</th><th>Total</th></tr></thead><tbody>";
   for (const p of v.players) {
     const t = v.timing.timeSpent.find((x) => x.faction === p.faction);
     const bidding = t?.bidding ?? 0;
     const move = t?.shipmentAndMove ?? 0;
     const battle = t?.battle ?? 0;
-    result += `<tr class='table-dark'><td>${p.name}</td><td>${hms(bidding)}</td><td>${hms(move)}</td><td>${hms(battle)}</td><td>${hms(bidding + move + battle)}</td></tr>`;
+    result += `<tr><td>${p.name}</td><td>${hms(bidding)}</td><td>${hms(move)}</td><td>${hms(battle)}</td><td>${hms(bidding + move + battle)}</td></tr>`;
   }
   return result + "</tbody></table></div>";
 }

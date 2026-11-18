@@ -171,7 +171,7 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
         <Segmented values={dealType.endPhases.map((p) => ({ value: p.name as Phase, label: p.label }))} value={until ?? (nameOf(draft.endPhase) as Phase)}
                    onChange={(v) => { setUntil(v); void update({ endPhase: v }); }} label="Until" />
       )}
-      <textarea className="form-control event-form__field" rows={5} maxLength={512} placeholder="Deal description" value={text}
+      <textarea className="input event-form__field" rows={5} maxLength={512} placeholder="Deal description" value={text}
                 onChange={(e) => { setText(e.target.value); void update({ text: e.target.value }); }} />
       <ButtonRow confirm={async () => { await submit(fields()); setText(""); void update({ text: "" }); }} confirmText="Offer Deal"
                  confirmError={picked.length === 0 ? [{ t: "text", v: "Pick at least one faction" }] : validation} />
@@ -222,10 +222,10 @@ export function AutomationConfiguredForm({ action, inPopover = false }: FormProp
         <>
           <hr className="hr-hairline" />
           <div className="event-form__section">Current automation:</div>
-          <table className="table table-sm">
+          <table className="table table--small table--dark">
             <tbody>
               {o.rules.map((r) => (
-                <tr key={r.id} className="table-dark">
+                <tr key={r.id}>
                   <td>
                     <CommandButton small onClick={() => submit({ automationRuleId: r.id, action: "Delete" })}>
                       <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Cancel" style={{ verticalAlign: "-0.125em" }}>

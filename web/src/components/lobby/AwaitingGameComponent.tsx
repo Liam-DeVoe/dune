@@ -16,8 +16,8 @@ export function AwaitingGameComponent() {
   const rules = new Set<string>(settings.initialRules);
   return (
     <div className="card awaiting-game">
-      <div className="card-header">Welcome to {g.gameName}</div>
-      <div className="card-body">
+      <div className="card__header">Welcome to {g.gameName}</div>
+      <div className="card__body">
         <div className="awaiting-game__setting"><strong>Maximum number of turns:</strong> {settings.maximumTurns}</div>
         <div className="awaiting-game__setting"><strong>Maximum number of players:</strong> {settings.numberOfPlayers}</div>
         <div className="awaiting-game__setting">

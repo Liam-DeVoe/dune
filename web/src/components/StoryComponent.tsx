@@ -115,9 +115,9 @@ function Block({ block: b }: { block: StoryBlock }) {
       return <BattleTable aggressor={b.aggressor} defender={b.defender} advancedCombat={b.advancedCombat} />;
     case "strongholds":
       return (
-        <table className="table table-sm">
+        <table className="table table--small table--dark">
           <thead>
-            <tr className="table-dark">
+            <tr>
               <th>Stronghold</th>
               <th>Forces</th>
               {b.ownerColumn && <th>Owned by</th>}
@@ -126,7 +126,7 @@ function Block({ block: b }: { block: StoryBlock }) {
           </thead>
           <tbody>
             {b.rows.map((r) => (
-              <tr key={r.location} className="table-dark">
+              <tr key={r.location}>
                 <td><PlaceChip place={{ location: r.location }} /></td>
                 <td>
                   {r.battalions.map((x, i) => (
@@ -180,9 +180,9 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
   const { skin } = useGame();
   return (
     <div>
-      <table className="table table-sm">
+      <table className="table table--small table--dark">
         <thead>
-          <tr className="table-dark">
+          <tr>
             <th>Faction</th>
             {t.showName && <th>Player</th>}
             {t.showAlly && <th>{t.nexusColumn ? "Ally or Nexus*" : "Ally"}</th>}
@@ -198,7 +198,7 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
         </thead>
         <tbody>
           {t.rows.map((p) => (
-            <tr key={p.faction} className="table-dark">
+            <tr key={p.faction}>
               <td><img className="story__img" width={60} src={tableImage(skin, p.faction)} /></td>
               {t.showName && <td><h2>{p.name}</h2></td>}
               {t.showAlly && (
@@ -282,9 +282,9 @@ const THUMBS_UP = "M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.8
 function BattleTable({ aggressor, defender, advancedCombat }: { aggressor: StoryPlan; defender: StoryPlan; advancedCombat: boolean }) {
   return (
     <div>
-      <table className="table table-sm">
+      <table className="table table--small table--dark">
         <thead>
-          <tr className="table-dark">
+          <tr>
             <th>Faction</th>
             <th>Leader</th>
             <th>Weapon</th>
@@ -306,11 +306,11 @@ function PlanRow({ plan: p, advancedCombat }: { plan: StoryPlan; advancedCombat:
   const { skin } = useGame();
   const background = p.winner ? "rgba(121,179,76,.2)" : "rgba(195,50,50,.2)";
   return (
-    <tr className="table-dark" style={{ backgroundColor: background }}>
+    <tr style={{ backgroundColor: background }}>
       <td>
         <img className="story__img" width="60" src={tableImage(skin, p.faction)} />
         {p.winner && (
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#e7bf3c" className="bi bi-hand-thumbs-up-fill" viewBox="0 0 16 16">
+          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#e7bf3c" viewBox="0 0 16 16">
             <path d={THUMBS_UP} />
           </svg>
         )}

@@ -312,7 +312,7 @@ function ForceSelection({ faction, locations, value, onChange, fixedMax = -1 }: 
     onChange(m);
   };
   return (
-    <table className="table table-borderless table-sm event-form__placement">
+    <table className="table table--borderless table--small event-form__placement">
       <tbody>
         {locations.map((l) => {
           const max = fixedMax > 0 ? fixedMax : l.forces;

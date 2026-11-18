@@ -139,8 +139,8 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
     <div>
       <div className="map-pin__from"><PlaceChip place={{ location: state.undecided }} /></div>
       <div className="map-pin__actions">
-        <button type="button" className="btn btn-secondary" onClick={() => decide(false)}>Add as source</button>
-        <button type="button" className="btn btn-primary" onClick={() => decide(true)}>Move here</button>
+        <button type="button" className="button button--secondary" onClick={() => decide(false)}>Add as source</button>
+        <button type="button" className="button button--primary" onClick={() => decide(true)}>Move here</button>
       </div>
     </div>
   );
@@ -178,8 +178,8 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
         {o?.conflictingAlly && <div className="map-pin__warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>}
         <Validation parts={validation} />
         <div className="map-pin__actions">
-          <button type="button" className="btn btn-secondary" onClick={clearSelection}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>{confirmLabel}</button>
+          <button type="button" className="button button--secondary" onClick={clearSelection}>Cancel</button>
+          <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{confirmLabel}</button>
         </div>
       </div>
     );
@@ -244,12 +244,12 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
           {owns ? (
             <>
               <div className="event-form__note">Use the map to move forces.</div>
-              {!claimsMapByDefault && <button className="btn btn-secondary btn-sm event-form__field" onClick={releaseMap}>Cancel</button>}
+              {!claimsMapByDefault && <button className="button button--secondary button--small event-form__field" onClick={releaseMap}>Cancel</button>}
             </>
           ) : claimsMapByDefault ? (
             <div className="event-form__note">Finish the extra move on the map first, or cancel it.</div>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={claimMap}>{`Play ${skin.enumValue("TreacheryCardType", "Caravan")}`}</button>
+            <button className="button button--secondary button--small" onClick={claimMap}>{`Play ${skin.enumValue("TreacheryCardType", "Caravan")}`}</button>
           )}
           {mayPass && <ButtonRow pass={pass} passText="Pass" />}
         </>

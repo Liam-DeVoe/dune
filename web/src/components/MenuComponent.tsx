@@ -269,8 +269,8 @@ export function MenuComponent() {
           <h6>Leave this game?</h6>
           <p>You'll return to the main screen.</p>
           <div className="menu-leave__actions">
-            <button className="btn btn-secondary btn-sm" onClick={closeMenus}>Stay</button>
-            <button className="btn btn-danger btn-sm" onClick={() => { closeMenus(); window.location.assign(BASE); }}>Leave</button>
+            <button className="button button--secondary button--small" onClick={closeMenus}>Stay</button>
+            <button className="button button--danger button--small" onClick={() => { closeMenus(); window.location.assign(BASE); }}>Leave</button>
           </div>
         </div>
       )}

@@ -8,14 +8,14 @@ export function WinnerPanel({ ending }: { ending: EndingView }) {
   const { skin } = useGame();
   return (
     <div className="card winner-panel" style={{ animation: "fadeIn 3s" }}>
-      <div className="card-header">Victory!</div>
-      <div className="card-body">
+      <div className="card__header">Victory!</div>
+      <div className="card__body">
         {ending.winners.map((w, i) => (
           <h1 key={i}><img width="72" src={skin.factionImage(w.faction)} /> {w.name}</h1>
         ))}
         {ending.story && (
           <>
-            <button className="btn btn-primary winner-panel__story" data-bs-toggle="modal" data-bs-target="#storyModal">Read the story of this game...</button>
+            <button className="button button--primary winner-panel__story" data-bs-toggle="modal" data-bs-target="#storyModal">Read the story of this game...</button>
             <StoryComponent id="storyModal" story={ending.story} />
           </>
         )}

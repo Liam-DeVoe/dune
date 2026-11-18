@@ -70,7 +70,7 @@ function Scene() {
   // Effects run after the commit, so the scene is on screen when the harness hears "ready".
   useEffect(() => { if (game) sceneReady(); }, [game]);
   useEffect(() => { if (error) sceneFailed(error); }, [error]);
-  if (error) return <div className="alert alert-danger">{error}</div>;
+  if (error) return <div className="alert alert--danger">{error}</div>;
   if (!game) return null;
   return <MainLayout><Game.Provider value={game}><GameScreen /></Game.Provider></MainLayout>;
 }

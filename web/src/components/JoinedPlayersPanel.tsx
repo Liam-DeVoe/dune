@@ -23,7 +23,7 @@ export function JoinedPlayersPanel() {
         </div>
       ))}
       <div className="joined-players__result">{result}</div>
-      <button className="btn btn-danger btn-sm joined-players__leave" onClick={leave}>Leave game</button>
+      <button className="button button--danger button--small joined-players__leave" onClick={leave}>Leave game</button>
     </div>
   );
 }

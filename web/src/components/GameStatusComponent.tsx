@@ -92,7 +92,7 @@ export function GameStatusComponent() {
 
   return (
     <div className="card prompt-act game-status" style={{ animation: "fadeIn 1s" }}>
-      <div className="card-body">
+      <div className="card__body">
         {s.timedEventTime !== null && <Timer view={view} from={s.timedEventTime} />}
         {showRow && (
           <div className="game-status__players">
@@ -118,9 +118,9 @@ export function GameStatusComponent() {
               {holders.length > 0 && <div className="game-status__held">Held by {holders.map((p) => <FactionChip key={p.faction} faction={p.faction} />)}</div>}
               {(canHold || amWaitedFor || amHolding) && (
                 <div className="game-status__actions">
-                  {canHold && <button className="btn btn-outline-secondary game-status__hold" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
+                  {canHold && <button className="button button--outline-secondary game-status__hold" onClick={() => void source.gameCall?.("phaseHold", {})}>Hold</button>}
                   {(amWaitedFor || amHolding) && (
-                    <button className="btn btn-primary" onClick={() => void source.gameCall?.(amWaitedFor ? "phaseDone" : "phaseRelease", {})}>
+                    <button className="button button--primary" onClick={() => void source.gameCall?.(amWaitedFor ? "phaseDone" : "phaseRelease", {})}>
                       {amWaitedFor ? (nextCard ? "Open bidding" : "Done") : "Release hold"}
                     </button>
                   )}
@@ -136,7 +136,7 @@ export function GameStatusComponent() {
               {nextCard && <NextCard card={nextCard.card} />}
               {endPhase && (
                 <div className="game-status__actions">
-                  <button className="btn btn-primary" disabled={endPhase.validation !== null}
+                  <button className="button button--primary" disabled={endPhase.validation !== null}
                           title={error ?? undefined}
                           onClick={async () => setError(await source.submit({ type: "EndPhase" }))}>{nextCard ? "Open bidding" : "Continue"}</button>
                 </div>
@@ -149,7 +149,7 @@ export function GameStatusComponent() {
             {showTimeLimit && <TimeLimit view={view} />}
             <span className="game-status__host-gap" />
             {showContinue && (
-              <button className="btn btn-outline-secondary btn-sm" onClick={() => void source.gameCall?.("phaseContinue", { eventNumber: view.eventNumber })}>Continue for everyone</button>
+              <button className="button button--outline-secondary button--small" onClick={() => void source.gameCall?.("phaseContinue", { eventNumber: view.eventNumber })}>Continue for everyone</button>
             )}
           </div>
         )}

@@ -344,9 +344,9 @@ export function Radio<T>({ label, values, labels, value, onChange }: { label?: R
     <>
       {label != null && <label htmlFor={id}>{label}</label>}
       {values.map((v, i) => (
-        <div key={i} className="form-check event-form__radio">
-          <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={i} onChange={() => onChange(v)} checked={v === value} />
-          <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`} dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, labels[i]) }} />
+        <div key={i} className="check event-form__radio">
+          <input className="check__input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={i} onChange={() => onChange(v)} checked={v === value} />
+          <label className="check__label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`} dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, labels[i]) }} />
         </div>
       ))}
     </>
@@ -404,7 +404,7 @@ export function TerrorRevealedForm({ action }: { action: ActionView }) {
                          onChange={(c) => p.set({ cardToGiveInSabotage: c })}
                          values={(o?.cards ?? []).map((c) => ({ value: c, src: skin.cardImage(c), alt: skin.card(c), popover: treacheryCardPopup(skin, c) }))} />
       )}
-      {sneak && (sneakPossible ? hint("Use the map to choose a location.") : <div className="alert alert-danger event-form__section">You cannot send forces there.</div>)}
+      {sneak && (sneakPossible ? hint("Use the map to choose a location.") : <div className="alert alert--danger event-form__section">You cannot send forces there.</div>)}
       {o?.mayOfferAlliance && <div>You may also offer them an alliance as an alternative to violence.</div>}
       {o?.mayPass ? (
         <ButtonRow confirm={p.confirm} confirmError={p.validation} pass={() => void p.pass()}

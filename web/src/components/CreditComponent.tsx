@@ -11,7 +11,7 @@ const row = (label: string, value: React.ReactNode) => (
 export function CreditComponent({ id }: { id: string }) {
   return (
     <ModalComponent id={id} title="Credits">
-      <table className="table-borderless credits__table">
+      <table className="credits__table">
         <tbody>
           {row("Game Development", <>Ronald Ossendrijver, <a href="mailto:admin@treachery.online" target="_blank">admin@treachery.online</a></>)}
           {row("Design & Artwork", "Ilya Baranovsky, Reinier de Graaf & Piper")}

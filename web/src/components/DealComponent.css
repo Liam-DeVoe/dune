@@ -51,7 +51,7 @@
 .deals__decline {
   margin-left: 0.25rem;
 }
-/* Two classes to beat the padding of Bootstrap's .table-sm cells. */
+/* Two classes to beat the padding of .table--small cells. */
 .deals .deals__parties {
   padding: 0;
 }

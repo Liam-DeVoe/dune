@@ -43,8 +43,8 @@ const tokenLine = (skin: Skin, name: string, description: string) =>
 function Card({ popover, src, alt }: { popover: string; src: string; alt: string }) {
   return (
     <div className="card mentat__item">
-      <Hoverable className="card-img-top" popover={popover}>
-        <img src={src} className="card-img" alt={alt} />
+      <Hoverable className="card__img card__img--top" popover={popover}>
+        <img src={src} className="card__img" alt={alt} />
       </Hoverable>
     </div>
   );
@@ -120,7 +120,7 @@ export function MentatComponent({ id }: { id: string }) {
           <div className="mentat__grid mentat__grid--tokens">
             {AMBASSADORS.filter((a) => a !== "Moritani").map((a) => (
               <div key={a} className="card mentat__item">
-                <Image src={skin.url(skin.get("AmbassadorImage_URL", a))} alt={skin.get("AmbassadorName_STR", a)} width={0} className="card-img" popover={ambassadorPopup(skin, a)} />
+                <Image src={skin.url(skin.get("AmbassadorImage_URL", a))} alt={skin.get("AmbassadorName_STR", a)} width={0} className="card__img" popover={ambassadorPopup(skin, a)} />
               </div>
             ))}
           </div>

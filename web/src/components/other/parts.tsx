@@ -40,12 +40,12 @@ export function Layout({ type, header, urgent = false, startCollapsed = false, i
   return (
     <div className={`card ${urgent ? "card--urgent" : ""} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       {header != null && (
-        <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
+        <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />
           {header}
         </div>
       )}
-      {!shown && <div className="card-body">{children}</div>}
+      {!shown && <div className="card__body">{children}</div>}
     </div>
   );
 }
@@ -158,10 +158,10 @@ export function Radio<T>({ values, value, onChange, label }: {
     <>
       {label != null && <label htmlFor={id}>{label}</label>}
       {values.map((c, i) => (
-        <div key={i} className="form-check event-form__radio">
-          <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(c.value)}
+        <div key={i} className="check event-form__radio">
+          <input className="check__input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(c.value)}
                  checked={c.value === value} onChange={() => onChange(c.value)} />
-          <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}
+          <label className="check__label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}
                  dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, c.label) }} />
         </div>
       ))}
@@ -190,12 +190,12 @@ export function Segmented<T>({ values, value, onChange, label, className = "even
 }
 
 // GenericComponents/CommandButton.razor.
-export function CommandButton({ onClick, children, className = "btn-primary", small = false, margin = "event-form__command" }: {
+export function CommandButton({ onClick, children, className = "button--primary", small = false, margin = "event-form__command" }: {
   onClick: () => Promise<void> | void; children: ReactNode; className?: string; small?: boolean; margin?: string;
 }) {
   const [busy, setBusy] = useState(false);
   return (
-    <button className={`btn ${className} ${small ? "btn-sm" : ""} ${margin} `} disabled={busy}
+    <button className={`button ${className} ${small ? "button--small" : ""} ${margin} `} disabled={busy}
             onClick={async () => { setBusy(true); try { await onClick(); } finally { setBusy(false); } }}>
       {children}
     </button>

@@ -97,9 +97,9 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
   return (
     <EventLayout type="SetShipmentPermission" header="Manage shipment permissions">
       {(o?.permissions.length ?? 0) > 0 && (
-        <table className="table table-sm">
+        <table className="table table--small table--dark">
           <thead>
-            <tr className="table-dark">
+            <tr>
               <th scope="col">Faction</th>
               <th scope="col">Cross planet</th>
               <th scope="col">To (own) homeworld</th>
@@ -109,12 +109,12 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
           </thead>
           <tbody>
             {o!.permissions.map((row) => (
-              <tr key={row.faction} className="table-dark">
+              <tr key={row.faction}>
                 <td><img width={24} src={skin.factionImage(row.faction)} /></td>
                 <td>{yes(row.cross)}</td>
                 <td>{yes(row.toHomeworld)}</td>
                 <td>{yes(row.guildRate)}</td>
-                <td><button className="btn btn-primary btn-sm" onClick={() => void send({ factions: [row.faction], permission: permission(false, false, false) })}>Revoke</button></td>
+                <td><button className="button button--primary button--small" onClick={() => void send({ factions: [row.faction], permission: permission(false, false, false) })}>Revoke</button></td>
               </tr>
             ))}
           </tbody>

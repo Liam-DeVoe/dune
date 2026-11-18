@@ -17,9 +17,9 @@ export function ButtonRow({ confirm, confirmText = "Confirm", confirmError = nul
 }) {
   return (
     <div className={alignEnd ? "button-row button-row--end" : "button-row"}>
-      {other && <button className="btn btn-primary button-row__button" onClick={other} disabled={disabled}>{otherText}</button>}
-      {pass && <button className="btn btn-primary button-row__button" onClick={pass} disabled={disabled}>{passText}</button>}
-      {confirm && <button className="btn btn-primary" onClick={confirm} disabled={disabled || confirmError != null}>{confirmText}</button>}
+      {other && <button className="button button--primary button-row__button" onClick={other} disabled={disabled}>{otherText}</button>}
+      {pass && <button className="button button--primary button-row__button" onClick={pass} disabled={disabled}>{passText}</button>}
+      {confirm && <button className="button button--primary" onClick={confirm} disabled={disabled || confirmError != null}>{confirmText}</button>}
     </div>
   );
 }

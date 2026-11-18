@@ -308,7 +308,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
           <div className="battle-plan__strength">{formatStrength(dial + leaderPart)}</div>
         </div>
         <div className="battle-plan__sum">{sum}</div>
-        <button type="button" className="btn btn-primary battle-plan__submit" disabled={validation !== null} onClick={() => void submit()}>Battle!</button>
+        <button type="button" className="button button--primary battle-plan__submit" disabled={validation !== null} onClick={() => void submit()}>Battle!</button>
       </div>
       {validation && <div className="battle-plan__why-not"><RichText parts={validation} /></div>}
       <SubmitError error={error} />

@@ -44,7 +44,7 @@ input[type=date], input[type=time] {
 }
 
 .games-table__error {
-  /* The error red of .text-danger (styles/bootstrap/_text.scss). */
+  /* The error red the language uses for small text on ink. */
   color: #e46b6b;
 }
 

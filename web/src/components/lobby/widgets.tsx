@@ -7,7 +7,7 @@ import "../Image.css";
 import "./lobby.css";
 
 /** GenericComponents/CommandButton.razor: disabled while its click runs. */
-export function CommandButton({ onClick, children, className = "btn-primary", small = false, enabled = true, marginClass = "command-button", paddingClass = "", title = "" }: {
+export function CommandButton({ onClick, children, className = "button--primary", small = false, enabled = true, marginClass = "command-button", paddingClass = "", title = "" }: {
   onClick: () => unknown;
   children?: ReactNode;
   className?: string;
@@ -28,7 +28,7 @@ export function CommandButton({ onClick, children, className = "btn-primary", sm
       if (mounted.current) setBusy(false);
     }
   };
-  const classes = ["btn", className, small ? "btn-sm" : "", marginClass, paddingClass].join(" ");
+  const classes = ["button", className, small ? "button--small" : "", marginClass, paddingClass].join(" ");
   return <button className={classes} onClick={click} disabled={!enabled || busy} title={title}>{children}</button>;
 }
 
@@ -188,9 +188,9 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
 export function ChecklistItem({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
-    <div className="form-check">
-      <input className="form-check-input" style={{ cursor: "pointer" }} id={id} type="checkbox" disabled={disabled} checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={id}>{label} </label>
+    <div className="check">
+      <input className="check__input" style={{ cursor: "pointer" }} id={id} type="checkbox" disabled={disabled} checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <label className="check__label" style={{ cursor: "pointer" }} htmlFor={id}>{label} </label>
     </div>
   );
 }
@@ -235,7 +235,7 @@ export function DropdownButton({ buttonClass, label, items, disabled = false, gr
   }, [open]);
   return (
     <div className={groupClass} ref={ref}>
-      <button ref={button} type="button" className={`btn ${buttonClass} dropdown-toggle btn-sm ${open ? "show" : ""}`} data-bs-toggle="dropdown" aria-expanded={open ? "true" : "false"}
+      <button ref={button} type="button" className={`button ${buttonClass} dropdown-toggle button--small ${open ? "show" : ""}`} data-bs-toggle="dropdown" aria-expanded={open ? "true" : "false"}
               disabled={disabled} onClick={() => setOpen(!open)}>
         {label}
       </button>
@@ -268,11 +268,11 @@ export function DateTimePicker({ value, onChange, label = "Select Date", timeLab
     <div className="date-time-picker">
       <div className="date-time-picker__col">
         <label htmlFor="datePicker">{label}</label>
-        <input type="date" id="datePicker" className="form-control" value={date} onChange={(e) => onChange(build(e.target.value, time))} />
+        <input type="date" id="datePicker" className="input" value={date} onChange={(e) => onChange(build(e.target.value, time))} />
       </div>
       <div className="date-time-picker__col">
         <label htmlFor="timePicker">{timeLabel}</label>
-        <input type="time" id="timePicker" className="form-control" value={time} onChange={(e) => onChange(build(date, e.target.value))} />
+        <input type="time" id="timePicker" className="input" value={time} onChange={(e) => onChange(build(date, e.target.value))} />
       </div>
     </div>
   );

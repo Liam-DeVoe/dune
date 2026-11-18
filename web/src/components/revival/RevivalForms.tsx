@@ -267,14 +267,14 @@ function AcceptOrCancelTleilaxuRevivalForm({ action, inPopover }: { action: Acti
         <>
           {o.requests.length > 0 && <hr className="hr-hairline" />}
           <div>Existing early revival offers:</div>
-          <table className="table table-sm">
+          <table className="table table--small table--dark">
             <tbody>
               {o.offers.map((offer) => (
-                <tr key={offer.hero.id} className="table-dark">
+                <tr key={offer.hero.id}>
                   <td><Image src={heroImage(skin, offer.hero.hero)} alt="" width={32} /></td>
                   <td>{offer.price == null ? <span>Denied</span> : <SimpleNumber size={22}>{offer.price}</SimpleNumber>}</td>
                   <td>
-                    <button className="btn btn-primary btn-sm" onClick={() => submit({ cancel: true, hero: offer.hero.id, price: 0 })}>Cancel</button>
+                    <button className="button button--primary button--small" onClick={() => submit({ cancel: true, hero: offer.hero.id, price: 0 })}>Cancel</button>
                   </td>
                 </tr>
               ))}

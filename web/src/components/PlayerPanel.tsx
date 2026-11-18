@@ -32,8 +32,8 @@ export function PlayerPanel() {
   if (!me || !pub || PhaseValue[view.phase] < PhaseValue.TradingFactions) return null;
   return (
     <div className="card player-panel__frame" style={{ animation: "fadeIn 3s" }}>
-      <div className="card-body player-panel">
-        <div className="card-text player-panel__text">
+      <div className="card__body player-panel">
+        <div className="card__text player-panel__text">
           {PhaseValue[view.phase] >= PhaseValue.HarkonnenMulligan
             ? <Shield me={me} pub={pub} />
             : <FactionComponent faction={me.faction} />}

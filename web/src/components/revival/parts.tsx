@@ -39,11 +39,11 @@ export function GameEventLayout({ type, header, urgent = false, inPopover = fals
   };
   return (
     <div className={`card ${urgent ? "card--urgent" : ""} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
-      <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
+      <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
         <CollapseButton collapsed={collapsed} />
         {header}
       </div>
-      {!collapsed && <div className="card-body">{children}</div>}
+      {!collapsed && <div className="card__body">{children}</div>}
     </div>
   );
 }
@@ -77,10 +77,10 @@ export function YesNo({ value, onChange, label }: { value: boolean; onChange: (v
     <>
       <label htmlFor={id}>{label}</label>
       {[false, true].map((v) => (
-        <div key={String(v)} className="form-check event-form__radio">
-          <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${v}`} value={String(v)}
+        <div key={String(v)} className="check event-form__radio">
+          <input className="check__input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${v}`} value={String(v)}
                  checked={v === value} onChange={() => onChange(v)} />
-          <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${v}`}>{v ? "Yes" : "No"}</label>
+          <label className="check__label" style={{ cursor: "pointer" }} htmlFor={`${id}-${v}`}>{v ? "Yes" : "No"}</label>
         </div>
       ))}
     </>
@@ -142,8 +142,8 @@ export function PinActions({ label, validation, cancel, confirm }: { label: stri
     <div>
       {validation && <div className="map-pin__error"><RichText parts={validation} /></div>}
       <div className="map-pin__actions">
-        <button type="button" className="btn btn-secondary" onClick={cancel}>Cancel</button>
-        <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>{label}</button>
+        <button type="button" className="button button--secondary" onClick={cancel}>Cancel</button>
+        <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{label}</button>
       </div>
     </div>
   );

@@ -44,21 +44,21 @@ export function PickFromImageComponent<K>({ value, values, onChanged, title, ima
       <ModalComponent id={id} title={title}>
         <div className="pick-from-image__grid">
           <div className="card pick-from-image__option">
-            <div className="card-img-top" onClick={() => click(null)} style={{ cursor: "pointer" }}>
+            <div className="card__img card__img--top" onClick={() => click(null)} style={{ cursor: "pointer" }}>
               {placeholder ?? <Unknown width={imageWidth} />}
             </div>
           </div>
           {values.map((v, i) => (
             <div key={i} className="card pick-from-image__option">
-              <div className="card-img-top">
-                <Image className="card-img" src={v.src} alt={v.alt} width={0} popover={v.popover} onClick={() => click(v.key)}
+              <div className="card__img card__img--top">
+                <Image className="card__img" src={v.src} alt={v.alt} width={0} popover={v.popover} onClick={() => click(v.key)}
                        pointer highlightOnHover darkened={value === null || value.key !== v.key} />
               </div>
             </div>
           ))}
         </div>
       </ModalComponent>
-      <a className="btn btn-link pick-from-image__trigger" data-bs-toggle="modal" data-bs-target={`#${id}`}>
+      <a className="button button--link pick-from-image__trigger" data-bs-toggle="modal" data-bs-target={`#${id}`}>
         {value !== null
           ? <Image src={value.src} alt={value.alt} width={imageWidth} popover={value.popover} pointer />
           : placeholder ?? <Unknown width={imageWidth} />}

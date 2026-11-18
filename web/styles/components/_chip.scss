@@ -14,29 +14,29 @@
   line-height: 1;
   white-space: nowrap;
 
-  .name {
+  &__name {
     font-family: var(--font-body);
     font-weight: 500;
     letter-spacing: 0.01em;
   }
 
   // The chip for the viewing player.
-  &.you {
+  &--you {
     border-color: var(--gold);
     box-shadow: 0 0 0 1px rgba(231, 191, 60, 0.35);
   }
 }
 
 // Chips inside a sentence: log lines, prompts, chat. Smaller than the seat
-// chip so a line stays a line. .place names a sector or territory and
-// carries a storm-wheel glyph whose lit wedges are its sectors; .faction
-// names a faction, .ref-card a treachery or Nexus card by its art. Place and
+// chip so a line stays a line. --place names a sector or territory and
+// carries a storm-wheel glyph whose lit wedges are its sectors; --faction
+// names a faction, --ref-card a treachery or Nexus card by its art. Place and
 // faction chips carry data-ref-locations, which the hover script in
 // index.html reads to light those sectors on the map while the mouse is over
 // the chip.
-.chip.place,
-.chip.faction,
-.chip.ref-card {
+.chip--place,
+.chip--faction,
+.chip--ref-card {
   gap: 5px;
   padding: 1px 8px 1px 3px;
   font-size: 14px;
@@ -44,22 +44,22 @@
   // Hovering does something, so the pointer, as the card popovers use.
   cursor: pointer;
 
-  img {
+  .chip__img {
     width: 20px;
     height: 20px;
   }
 
-  .name {
+  .chip__name {
     font-weight: 600;
   }
 
   // The viewing player's own faction is named like any other, in gold. Only
   // the name changes, so the gold border can mean "hovered" alone.
-  &.you {
+  &.chip--you {
     border-color: rgba(252, 249, 209, 0.14);
     box-shadow: none;
 
-    .name {
+    .chip__name {
       color: var(--gold);
     }
   }
@@ -75,7 +75,7 @@
 }
 
 // A card chip shows the card's art at the height of a line.
-.chip.ref-card img {
+.chip--ref-card .chip__img {
   width: 15px;
   height: 21px;
   margin: 1px 0;
@@ -83,7 +83,7 @@
 }
 
 // The sector's compass word, in the label face like the map popover's title.
-.chip .sector {
+.chip__sector {
   font-family: var(--font-label);
   font-size: 11px;
   letter-spacing: 0.12em;
@@ -94,31 +94,33 @@
 // The planet glyph on a place chip: a disc with the place's outline in gold.
 // The ring keeps the same stroke width at any size. Half of that stroke lies
 // outside the disc, past the edge of the viewBox, so overflow stays visible.
-.chip .wedge {
+.chip__wedge {
   width: 20px;
   height: 20px;
   flex: none;
   overflow: visible;
+}
 
-  .disc {
-    fill: var(--ink-4);
-  }
-  .ring {
-    fill: none;
-    stroke: var(--rock);
-    stroke-width: 1.4;
-  }
-  .w {
-    fill: var(--gold);
-  }
+.chip__disc {
+  fill: var(--ink-4);
+}
+
+.chip__ring {
+  fill: none;
+  stroke: var(--rock);
+  stroke-width: 1.4;
+}
+
+.chip__outline {
+  fill: var(--gold);
 }
 
 // Something on the page that belongs to the faction whose chip the mouse is
 // over, such as a traitor card of theirs in the player panel. The hover
-// script adds .ref-hi to elements tagged data-faction-of.
-// A ring rather than a glow: Image.razor's scoped .shadowy already sets a
+// script adds faction-ref--lit to elements tagged data-faction-of.
+// A ring rather than a glow: Image.razor's scoped .image--shadowy already sets a
 // filter on these images, and a box-shadow does not fight it.
-[data-faction-of].ref-hi img {
+.faction-ref--lit .faction-ref__img {
   border-radius: 50%;
   box-shadow:
     0 0 0 3px var(--gold),
@@ -126,17 +128,17 @@
 }
 
 // Chips inside the parchment prompt card take the on-parchment colours.
-.prompt-act .chip.place,
-.prompt-act .chip.faction,
-.prompt-act .chip.ref-card,
-.act-stack > .card:not(.battle-plan) .chip.place,
-.act-stack > .card:not(.battle-plan) .chip.faction,
-.act-stack > .card:not(.battle-plan) .chip.ref-card {
+.prompt-act .chip--place,
+.prompt-act .chip--faction,
+.prompt-act .chip--ref-card,
+.act-stack > .card:not(.battle-plan) .chip--place,
+.act-stack > .card:not(.battle-plan) .chip--faction,
+.act-stack > .card:not(.battle-plan) .chip--ref-card {
   background: rgba(29, 12, 0, 0.08);
   border-color: rgba(29, 12, 0, 0.2);
   color: var(--ink-1);
 
-  .sector {
+  .chip__sector {
     color: var(--rock-2);
   }
 }

@@ -26,8 +26,8 @@ const TRIP_TO_GAMONT = 32;
 function CardChip({ id }: { id: number }) {
   const { skin } = useGame();
   return (
-    <PopoverText popover={treacheryCardPopup(skin, id)} className="chip ref-card">
-      <img src={skin.cardImage(id)} alt="" /><span className="name">{skin.card(id)}</span>
+    <PopoverText popover={treacheryCardPopup(skin, id)} className="chip chip--ref-card">
+      <img className="chip__img" src={skin.cardImage(id)} alt="" /><span className="chip__name">{skin.card(id)}</span>
     </PopoverText>
   );
 }
@@ -35,7 +35,7 @@ function CardChip({ id }: { id: number }) {
 function NexusChip({ faction }: { faction: Faction }) {
   const { skin } = useGame();
   const name = `${skin.faction(faction)} Nexus`;
-  return <span className="chip ref-card" title={name}><img src={skin.url(skin.get("NexusCardImage_URL", faction))} alt="" /><span className="name">{name}</span></span>;
+  return <span className="chip chip--ref-card" title={name}><img className="chip__img" src={skin.url(skin.get("NexusCardImage_URL", faction))} alt="" /><span className="chip__name">{name}</span></span>;
 }
 
 const Karama = () => <CardChip id={KARAMA} />;

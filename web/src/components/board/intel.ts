@@ -15,7 +15,7 @@ function feature(title: string, body: string, icon = ""): string {
 function hazard(protectedFrom: boolean, icon: string): string {
   const classes = protectedFrom ? "chip hazard protected" : "chip hazard exposed";
   const word = protectedFrom ? "Protected" : "Exposed";
-  return `<span class='${classes}'>${icon}<span class='name'>${word}</span></span>`;
+  return `<span class='${classes}'>${icon}<span class='chip__name'>${word}</span></span>`;
 }
 
 export function locationIntel(b: Board, id: number): string {

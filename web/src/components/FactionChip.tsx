@@ -10,14 +10,14 @@ export function FactionChip({ faction }: { faction: Faction }) {
   const locations = view.board.forces.filter((f) => f.faction === faction).map((f) => f.location);
   return (
     <span
-      className={`chip faction ${isYou ? "you" : ""}`}
+      className={`chip chip--faction ${isYou ? "chip--you" : ""}`}
       data-ref-faction={faction}
       data-ref-locations={[...new Set(locations)].join(",")}
       style={{ ["--fc" as string]: skin.factionColor(faction) }}
       title={skin.faction(faction)}
     >
-      <img src={skin.factionImage(faction)} alt="" />
-      <span className="name">{skin.faction(faction)}</span>
+      <img className="chip__img" src={skin.factionImage(faction)} alt="" />
+      <span className="chip__name">{skin.faction(faction)}</span>
     </span>
   );
 }

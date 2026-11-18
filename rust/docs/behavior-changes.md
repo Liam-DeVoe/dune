@@ -196,6 +196,7 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - What happened: the bot reveals Atomics when more than 5 enemy forces are in the territory and its ally has none there. Without an ally the second test compared "no ally" with "0 forces" and failed, so a Moritani bot without an ally never revealed Atomics.
 - Now: no ally counts as no allied forces in the territory.
 - Test: `moritani_without_an_ally_reveals_atomics` (bots/tests/behavior_changes.rs).
+- Effect (seed 1, 50 bots and 50 fuzz games): bots games 6, 12, 30, 35, 45 and 47 and fuzz games 3, 15, 16, 17, 27 and 47 differ, each first at a Moritani bot's `TerrorRevealed`, where the reference passed. In 8 the bot now reveals Atomics. In 4 (bots 30 and 45, fuzz 3 and 16) Atomics makes a token valid, so the bot no longer passes and goes on to offer the victim an alliance, as it already did whenever some token was valid. The other quirk fixes in this group (skin, faction trades, Testing Station) changed no game.
 
 ## A bot offered two faction trades never answered
 

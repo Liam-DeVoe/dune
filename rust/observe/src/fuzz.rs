@@ -341,7 +341,8 @@ pub struct Pools {
     lists: Vec<(String, Vec<Value>, bool)>,
     /// Number picker bounds: (normalized name after `max`/`maximum`, maximum).
     bounds: Vec<(String, i64)>,
-    /// Battle plan force mixes: [forces, at half strength, special, special at half strength, ...].
+    /// Battle plan force mixes, as the form lists them: [special, special at half strength, forces,
+    /// forces at half strength, dial, cost].
     mixes: Vec<Vec<i64>>,
     /// Whole events the client offers as buttons (accepting, declining or withdrawing a deal).
     buttons: Vec<Map<String, Value>>,
@@ -722,7 +723,7 @@ fn steered_value(event: &Map<String, Value>, key: &str, keys: &[String], pools: 
 }
 
 /// Battle plan fields set from one of the form's force mixes, in the order of a mix.
-const MIX_FIELDS: [&str; 4] = ["forces", "forcesAtHalfStrength", "specialForces", "specialForcesAtHalfStrength"];
+const MIX_FIELDS: [&str; 4] = ["specialForces", "specialForcesAtHalfStrength", "forces", "forcesAtHalfStrength"];
 
 /// Fills fields of `event` from the form's pools: each with probability `p`. Returns the fields changed.
 fn steer(event: &mut Map<String, Value>, pools: &Pools, game: &Game, player: Option<usize>, p: f64, rng: &mut Rng) -> Vec<String> {
@@ -952,7 +953,7 @@ impl Fuzzer {
             0 => ("hero", pools.lists.iter().find(|(n, _, _)| n == "hero")?.1.clone()),
             1 => ("weapon", pools.lists.iter().find(|(n, _, _)| n == "weapon")?.1.clone()),
             2 => ("defense", pools.lists.iter().find(|(n, _, _)| n == "defense")?.1.clone()),
-            _ => ("forces", pools.mixes.iter().filter_map(|m| m.first().map(|f| Value::from(*f))).collect()),
+            _ => ("forces", pools.mixes.iter().filter_map(|m| m.get(2).map(|f| Value::from(*f))).collect()),
         };
         let others: Vec<Value> = list.into_iter().filter(|v| Some(v) != plan.get(field)).collect();
         let v = self.rng.pick(&others)?.clone();

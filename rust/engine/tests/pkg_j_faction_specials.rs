@@ -55,7 +55,7 @@ fn karma_valid_advantages_depend_on_main_phase() {
 }
 
 #[test]
-fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
+fn karma_choam_discard_plays_the_selected_karma_card() {
     let mut g = game_with(&[Faction::Choam, Faction::Atreides]);
     let choam = idx(&g, Faction::Choam);
     let k1 = card_of(TreacheryCardType::Karma, 0);
@@ -75,11 +75,21 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     bad.set_cards(&[k2]);
     assert!(bad.validate(&g, by).is_err());
 
+    // A Karama card CHOAM doesn't hold, and a card that isn't Karama, are refused.
+    let mut not_held = KarmaChoamDiscard::default();
+    not_held.card_to_use = Some(card_of(TreacheryCardType::Karma, 2));
+    not_held.set_cards(&[useless]);
+    assert!(not_held.validate(&g, by).is_err());
+    let mut not_karma = KarmaChoamDiscard::default();
+    not_karma.card_to_use = Some(useless);
+    not_karma.set_cards(&[]);
+    assert!(not_karma.validate(&g, by).is_err());
+
     e.apply(&mut g, by).unwrap();
-    // Known quirk (known-issues.md): k1 (the first valid card) is played, k2 stays in hand.
+    // k2, the selected card, is played; k1 stays in hand.
     let hand = &g.player(choam).treachery_cards;
-    assert!(!hand.contains(&k1));
-    assert!(hand.contains(&k2));
+    assert!(hand.contains(&k1));
+    assert!(!hand.contains(&k2));
     assert!(!hand.contains(&useless));
     assert_eq!(i32::from(g.player(choam).resources), 3);
     assert!(g.player(choam).special_karma_power_used);

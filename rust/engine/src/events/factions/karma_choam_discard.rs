@@ -35,10 +35,14 @@ impl KarmaChoamDiscard {
 }
 
 impl EventRules for KarmaChoamDiscard {
-    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
         let Some(karma_card_to_use) = self.card_to_use else {
             return Err(Rejection(express!("You must select a ", TreacheryCardType::Karma, " card to use")));
         };
+
+        if !Karma::valid_karma_cards(game, by.player()).any(|c| c == karma_card_to_use) {
+            return Err(Rejection(express!("Invalid ", TreacheryCardType::Karma, " card")));
+        }
 
         if self.cards().contains(&karma_card_to_use) {
             return Err(Rejection(express!("You can't discard the card you need to play to use this power")));
@@ -49,9 +53,7 @@ impl EventRules for KarmaChoamDiscard {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let me = by.player();
-        // Known quirk (known-issues.md): plays the first valid Karama card, not the validated
-        // `card_to_use`.
-        let card = Karma::valid_karma_cards(game, me).into_iter().next();
+        let card = self.card_to_use;
         let cards = self.cards();
         let parts = Self::cards_parts(&cards);
         let amount = self.cards().len() as i32 * 3;

@@ -32,7 +32,7 @@ fn ids(ls: impl IntoIterator<Item = Location>) -> Vec<i32> {
     ls.into_iter().map(|l| l.id()).collect()
 }
 
-/// `SectorsOf(territories)`: every sector of the territories.
+/// Every sector of the territories.
 fn sectors_of(ts: impl IntoIterator<Item = Territory>) -> Vec<i32> {
     ts.into_iter().flat_map(|t| t.locations().iter().map(|l| l.id())).collect()
 }

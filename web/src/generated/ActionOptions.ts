@@ -117,9 +117,8 @@ karmaCards: Array<number>,
  */
 mayUseEmperorSecretAlly: boolean, 
 /**
- * The form's starting `Amount` and `AllyContributionAmount`
- * (`BiddingPanel.OnParametersSetAsync`: the lowest bid that beats the current one,
- * paid by the ally first, then clamped by the pickers). 0 in silent auctions.
+ * The form's starting amount and ally contribution: the lowest bid that beats the
+ * current one, paid by the ally first, then clamped by the pickers. 0 in silent auctions.
  */
 defaultAmount: number, defaultAllyAmount: number, } | { "form": "BlackMarketBid", 
 /**

@@ -10,7 +10,7 @@ The reference binary records bot and fuzz games at `Game::LATEST_VERSION`. Each 
 - the event types each queried player may submit (the bots' and fuzzer's `GetApplicableEvents` calls);
 - each bot round's decision: which player's bot acted, and the event it built.
 
-It doesn't compare state shape, random draw counts, bot priority levels or internal ids that players never see. An event that makes the engine throw counts as "not accepted", and the text of its "Game Error" message isn't compared, so turning a C#-style exception into a `Result` or a proper validation message is not a difference.
+It doesn't compare state shape, random draw counts, bot priority levels or internal ids that players never see. An event that makes the engine throw counts as "not accepted", and the text of its "Game Error" message isn't compared, so turning a panic into a `Result` or a proper validation message is not a difference.
 
 Events are compared as decoded values, not as JSON text (`observe/src/events.rs`). The working tree decodes each event of the trace with its own reader before submitting it. A bot decision is compared after both sides' events are decoded and encoded again by the working tree, so member order, whitespace and members the reader ignores make no difference. An event the working tree can't decode counts as rejected, and its message isn't compared, the same as a Game Error.
 
@@ -21,7 +21,7 @@ Version 191 (wave 4b in [rewrite-plan.md](rewrite-plan.md)) changed how events a
 The recorder's fuzzer and `observe refit` still build and change events as maps of the old format, which the fuzzer's field heuristics key on. The reader and writer of that format are `observe/src/event_maps` (moved there from the deleted `treachery-legacy` crate, without its savegame loading). The fuzzer converts the events in the views it reads (drafts, the ally permissions' `current`, the deals panel's buttons) to that format (`events::legacy_view_events`), and converts each event to the new format before it submits and records it (`events::to_trace`). An event the new format can't write (a force list that isn't a list) stays a map in the trace, so `events::decode` reads either format. So it draws the same values as before the format changed and makes the same games. The old-format maps can move to the new names in a change that rebuilds the reference anyway; then `event_maps` can go. `observe refit` reads and writes files in the new format only.
 
 
-Since step 3b the engine no longer catches its own panics. The working tree's replay (`session.rs`, `guarded`) treats a call that panics as the server does: the call failed, with the panic message as its error, and the game goes on. So a former C# exception that is now a panic compares like the exception did. A view that fails to build is compared as failed: the reference records `error: <exception>` as the view's hash, and the error text isn't compared. Card, leader, location and territory ids are compared where they appear in views and event JSON, because clients see and send them.
+Since step 3b the engine no longer catches its own panics. The working tree's replay (`session.rs`, `guarded`) treats a call that panics as the server does: the call failed, with the panic message as its error, and the game goes on. So a call that panics in one build and fails with a Game Error in the other compares as equal. A view that fails to build is compared as failed: the reference records `error: <exception>` as the view's hash, and the error text isn't compared. Card, leader, location and territory ids are compared where they appear in views and event JSON, because clients see and send them.
 
 ## Running it
 
@@ -224,28 +224,27 @@ Later on 2026-11-16, views of one game state started sharing the parts every vie
 
 `live` gains little until the reference is rebuilt: the reference still records with `fold64` at its old speed, and the replay must hash each view's whole JSON to match.
 
-The C# oracle, which the harness replaced, took about 23 minutes per 200 fuzz games. The harness is faster per game, but its games are longer: every game is at the latest version, and fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
+Fuzz games run up to 3000 events (the recorder's cap; before the cap, 200 fuzz games took 28 minutes). Each game is computed twice, once by the reference and once by the working tree, and most of the time goes into building 3 to 13 views after every accepted event. For a quick check while working, run 30 to 50 games.
 
 ## Reach
 
 `observe reach` records games and counts what they exercise: event types accepted, (type, phase) pairs accepted, phases reached, and types offered to a player but never accepted. It runs `RECORDER record --reach` per game, which prints one line per submitted event and per offered type instead of the trace. Pass `--recorder reference/observe` to measure the generator the harness actually uses.
 
-Fuzz reach over 200 games (seed 1) on 2026-11-12, against the C# oracle's `fuzz --seed 1 --games 200 --versions latest` (client profile). The C# traces have no phase per step, so only event types compare across both:
+Fuzz reach over 200 games (seed 1) on 2026-11-12:
 
-| | C# oracle | Rust before | Rust now |
-|---|---|---|---|
-| events submitted | 594,186 | 339,492 | 303,003 |
-| event types accepted | 124 | 129 | 130 |
-| (type, phase) pairs accepted | | 759 | 914 |
-| phases reached | | 103 | 107 |
+| | before | after |
+|---|---|---|
+| events submitted | 339,492 | 303,003 |
+| event types accepted | 129 | 130 |
+| (type, phase) pairs accepted | 759 | 914 |
+| phases reached | 103 | 107 |
 
-"Before" is the generator up to this change (form drafts with up to three fields set to game values). Compared with it, the steered generator executes `BattleRevision` 3.4 times as often (in 145 games instead of 81), `Caravan`, `AllianceBroken`, `CardTraded` and `FlightUsed` in about three times as many games, and `DealRejected`, which never passed validation before, in 194 games. The C# fuzzer still executes `BattleRevision` more often (4,716 times), mostly because its games are longer.
+"Before" is the generator up to this change (form drafts with up to three fields set to game values). Compared with it, the steered generator executes `BattleRevision` 3.4 times as often (in 145 games instead of 81), `Caravan`, `AllianceBroken`, `CardTraded` and `FlightUsed` in about three times as many games, and `DealRejected`, which never passed validation before, in 194 games.
 
 What is left:
 
-- C# executed `ChoamRemoveForce` once in 200 games; the Rust generator offered it in 11 games but never got it accepted. `Diplomacy` and `KarmaMonster` were offered (in 2 and 1 games) and never accepted.
-- Deal events take about 7% of all events (20,555 `DealAccepted`/`DealRejected`, mostly fuzz), against 2,072 in C#. The fuzzer offers a deal and then answers it.
-- Rust executes 7 types C# didn't (`EmperorBidSupport`, `Discarded`, `KarmaFreeRevival`, `KarmaHmsMovement`, `KarmaRevivalPrevention`, `FlightDiscoveryUsed`, `TestingStationUsed`).
+- The generator offered `ChoamRemoveForce` in 11 games but never got it accepted. `Diplomacy` and `KarmaMonster` were offered (in 2 and 1 games) and never accepted.
+- Deal events take about 7% of all events (20,555 `DealAccepted`/`DealRejected`, mostly fuzz). The fuzzer offers a deal and then answers it.
 - Fuzz games stop at 3000 events, and 70 of 200 hit that cap. Two ended in a bot exception (`NullReferenceException`; games 31 and 58), and two ran away inside a `Bid` (games 2 and 176). All four were engine bugs, fixed on 2026-11-13 (escapes.md, "Automatic bid passes that never stop" and "A card trade offered to a faction that isn't the ally"). Those games now run on and take longer.
 
 ### Phases the fuzzer doesn't reach
@@ -267,7 +266,7 @@ Lost in exchange: `ChoamMovePrevention`, `Diplomacy`, `KarmaPrescience` and `Kar
 
 The eight phases still not reached, and the unit tests that cover them instead, in `rust/engine/tests/phases_unreached.rs`:
 
-- `TerrorTriggeredByBeneGesseritAccompaniesGuildShip` and `TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip`: unreachable. `Interrupt::intrusion` (engine/src/game/movement.rs) counts a terror token triggered while Bene Gesserit accompany a shipment as triggered by the shipment, so it shows as `TerrorTriggeredByGuildShip` or `TerrorTriggeredByNonGuildShip`, as C# did, and nothing else shows these two. Accompanying brings at most two forces, and `check_terror_triggered` lets fewer than three trigger a token only while Moritani is *not* at its low threshold. Bene Gesserit can only accompany into the shipment's territory, so the shipment itself must not trigger the token: Moritani or its ally ship. Tests: `terror_triggered_by_bene_gesserit_accompanying_a_non_guild_shipment` and `..._the_guilds_shipment` (the game enters the shipment's own terror phase, then goes on to the move without asking Bene Gesserit to accompany again), and `bene_gesserit_accompanying_dont_trigger_terror_when_moritani_is_at_its_low_threshold`. Wave 5 kept them in the `Phase` enum, because dropping them changes the client's generated enums and the static data the tests compare, and nothing uses them.
+- `TerrorTriggeredByBeneGesseritAccompaniesGuildShip` and `TerrorTriggeredByBeneGesseritAccompaniesNonGuildShip`: unreachable. `Interrupt::intrusion` (engine/src/game/movement.rs) counts a terror token triggered while Bene Gesserit accompany a shipment as triggered by the shipment, so it shows as `TerrorTriggeredByGuildShip` or `TerrorTriggeredByNonGuildShip`, and nothing else shows these two. That way the game goes on from the shipment step once the intrusion is answered. Accompanying brings at most two forces, and `check_terror_triggered` lets fewer than three trigger a token only while Moritani is *not* at its low threshold. Bene Gesserit can only accompany into the shipment's territory, so the shipment itself must not trigger the token: Moritani or its ally ship. Tests: `terror_triggered_by_bene_gesserit_accompanying_a_non_guild_shipment` and `..._the_guilds_shipment` (the game enters the shipment's own terror phase, then goes on to the move without asking Bene Gesserit to accompany again), and `bene_gesserit_accompanying_dont_trigger_terror_when_moritani_is_at_its_low_threshold`. Wave 5 kept them in the `Phase` enum, because dropping them changes the client's generated enums and the static data the tests compare, and nothing uses them.
 - `AmbassadorTriggeredByBeneGesseritAccompaniesGuildShip` and `AmbassadorTriggeredByBeneGesseritAccompaniesNonGuildShip`: unreachable until wave 5, because accompanying Bene Gesserit never triggered an ambassador. Since behavior-changes.md "Bene Gesserit fighters that accompany a shipment trigger an ambassador", fighters do, so these phases are reachable but rare: Bene Gesserit accompany as fighters only into a territory they occupy or an empty one, or with the advisors rule off. Tests: `bene_gesserit_fighters_accompanying_a_non_guild_shipment_trigger_an_ambassador`, `..._the_guilds_shipment_...` and `bene_gesserit_advisors_accompanying_a_shipment_dont_trigger_an_ambassador`.
 - `BlowA` and `BlowB`: never a resting phase. `enter_blow_a` and `enter_blow_b` (engine/src/game/blow.rs) draw spice cards until a blow and leave the phase within the same event, so no player ever acts in it, but every game passes through it. `StormLosses` used `BlowA` as a marker for losses in the storm phase until wave 5 made those a storm step (`StormStep::Losses`) and the losses of a shipment or move an interrupt (`Interrupt::StormLosses`). Tests: `the_spice_blow_passes_through_blow_a_and_blow_b_in_one_event`, `storm_losses_taken_in_the_storm_phase_end_in_the_storm_report` and `storm_losses_taken_during_a_shipment_go_back_to_the_shipment`.
 - `BeneGesseritIntrudedByFremenRidingMonsterB` and `TerrorTriggeredByGuildMove`: too rare. Each is reached in 1 to 4 of 200 games, and this run happened to miss them, while a build one commit earlier reached them in 3 and 2 games. Other phases reached in 3 games or fewer are `AmbassadorTriggeredByFremenRidingMonsterA`/`B`, `AmbassadorTriggeredByRevival`, `BeneGesseritIntrudedByFremenRidingMonsterA`, `TerrorTriggeredByRevival`, `TerrorTriggeredByFremenRidingMonsterA`, `Auditing` and `Discarding`. Wave 5 should still run a second fuzz seed for the ship and move agent.

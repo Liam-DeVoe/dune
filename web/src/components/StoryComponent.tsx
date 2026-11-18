@@ -1,5 +1,4 @@
-// OtherComponents/StoryComponent.razor, StoryPlayerInfoComponent.razor and
-// StoryBattleComponent.razor: the story of a finished game in a modal. The server replays the
+// The story of a finished game in a modal. The server replays the
 // game and sends the blocks to draw (rust/view/src/ending.rs); the secrets of factions that hid
 // them are not in the view, and their cells read "?".
 import { Fragment } from "react";
@@ -20,7 +19,7 @@ import { PopoverText } from "./PopoverText";
 import { RichText } from "./RichText";
 import { SpiceComponent } from "./SpiceComponent";
 
-// The razor files' &nbsp; (U+00A0).
+// A non-breaking space (U+00A0).
 const NBSP = " ";
 
 export function StoryComponent({ id, story }: { id: string; story: StoryBlock[] }) {
@@ -35,7 +34,7 @@ function tableImage(skin: Skin, f: Faction): string {
   return skin.url(skin.get("FactionTableImage_URL", f));
 }
 
-// Image.razor with Shown set to an IHero: its image, its name as alt, its rich popover.
+// A hero: its image, its name as alt, its rich popover.
 function HeroImage({ hero, width, className, greyedOut = false }: { hero: HeroRef; width: number; className: string; greyedOut?: boolean }) {
   const { skin } = useGame();
   const [src, alt, popover] =
@@ -55,7 +54,7 @@ function MessiahImage() {
   return <Image className="img-fluid p-1" width={60} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
 }
 
-// Skin.Describe(FactionForce) and Describe(FactionSpecialForce): the force's name for the faction.
+// The force's name for the faction.
 function forceName(skin: Skin, f: Faction, special: boolean): string {
   return skin.get(special ? "SpecialForceName_STR" : "ForceName_STR", f);
 }
@@ -154,7 +153,7 @@ function Block({ block: b }: { block: StoryBlock }) {
                       <Image width={24} src={skin.url(skin.get("AmbassadorImage_URL", r.ambassador))} alt={skin.get("AmbassadorName_STR", r.ambassador)} popover={ambassadorPopup(skin, r.ambassador)} />
                     )}
                     {r.terror.map((t, i) => (
-                      // Skin.GetImageUrl has no case for TerrorType: an empty src.
+                      // Known quirk (known-issues.md): a terror token has no image here, only its alt text.
                       <Image key={i} width={24} src="" alt={skin.get("TerrorTokenName_STR", t)} popover={terrorPopup(skin, t)} />
                     ))}
                   </td>
@@ -175,7 +174,6 @@ function Block({ block: b }: { block: StoryBlock }) {
   }
 }
 
-// StoryPlayerInfoComponent.razor.
 function PlayerInfo({ table: t }: { table: StoryTable }) {
   const { skin } = useGame();
   return (
@@ -278,7 +276,6 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
 
 const THUMBS_UP = "M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z";
 
-// StoryBattleComponent.razor.
 function BattleTable({ aggressor, defender, advancedCombat }: { aggressor: StoryPlan; defender: StoryPlan; advancedCombat: boolean }) {
   return (
     <div>

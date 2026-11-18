@@ -69,7 +69,8 @@ fn shipment_cost_no_field() {
 
 #[test]
 fn shipment_cost_product_wraps_before_widening() {
-    // C# parity: Math.Abs(totalForces) * 2 is an unchecked int product.
+    // `abs(forces) * 2` is a wrapping i32 product. Event amounts are u16, so real shipments are
+    // far from the edge.
     let g = game_with(&[Faction::Emperor]);
     let emperor = idx(&g, Faction::Emperor);
     let c = cost(&g, emperor, i32::MAX, 0, g.board.map.the_great_flat(), false, false, false, false, false);
@@ -141,7 +142,7 @@ fn set_shipment_permission_messages_and_duplicates() {
     let g = game_with(&[Faction::Guild, Faction::Emperor]);
     let mut e = SetShipmentPermission::default();
     let by = By { faction: Some(Faction::Guild), player: Some(idx(&g, Faction::Guild)) };
-    // No factions at all is refused (C# threw ArgumentNullException from `Any`).
+    // No factions at all is refused.
     e.factions = None;
     assert!(e.validate(&g, by).is_err());
     e.factions = Some(vec![]);

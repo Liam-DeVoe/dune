@@ -10,7 +10,7 @@ use crate::skin::{Skin, SkinDictionary};
 
 pub const DEFAULT_ART_LOCATION: &str = ".";
 
-/// `new()` of `DefaultSkin.Default`, built once per call. Use [`crate::default_skin()`] for the shared instance.
+/// The default skin, built anew on each call. Use [`crate::default_skin()`] for the shared instance.
 pub fn build() -> Skin {
     let mut s = Skin::default();
     s.draw_resource_icons_on_map = true;

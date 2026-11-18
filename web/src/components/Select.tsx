@@ -1,13 +1,13 @@
-// GenericComponents/SelectComponent.razor with wwwroot/js/listbox.js: a button that looks like
+// A list box: a button that looks like
 // Bootstrap's .form-select and opens a list the app draws, in the top layer (a popover) under the
 // trigger, or above it when there is more room there. An outside click, a scroll or a resize
-// closes it. Keyboard as in C#: arrows, Page Up/Down, Home and End move the highlight (and open
+// closes it. Keyboard: arrows, Page Up/Down, Home and End move the highlight (and open
 // a closed list), Enter, Space or Tab pick the highlighted option, Escape closes, and typing
 // jumps to the first label starting with the typed text (repeating one letter cycles through the
 // labels starting with it). Closed, Enter and Space click the button.
 //
 // The action forms of packages 7b and 7e share this one. Their server normalizes the draft, so a
-// value missing from the list is left alone unless `required` asks for C#'s fallback to the first.
+// value missing from the list is left alone unless `required` asks for the fallback to the first.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 export interface SelectOption<T> {
@@ -42,7 +42,7 @@ export function Select<T>({ options, value, onChange, label, className = "mt-1",
     if (required && options.length > 0 && !options.some((o) => o.value === value)) onChange(options[0].value);
   });
 
-  // OnParametersSetAsync: a list that becomes empty or disabled closes; the highlight stays in range.
+  // A list that becomes empty or disabled closes; the highlight stays in range.
   useEffect(() => {
     if (open && (disabled || options.length === 0)) setOpen(false);
     else if (open && active > options.length - 1) setActive(options.length - 1);

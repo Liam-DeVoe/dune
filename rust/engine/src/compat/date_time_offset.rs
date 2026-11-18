@@ -1,5 +1,5 @@
-//! `System.DateTimeOffset` and `System.TimeSpan`, as far as the engine and its
-//! JSON need them. Support module (no C# counterpart in Shared).
+//! `DateTimeOffset` and `TimeSpan`, the time stamps of events, with the tick-based
+//! representation and ISO 8601 text format of .NET's types of the same names.
 //!
 //! Event timestamps (`Event.Time`) feed game state through timers
 //!, and they are part of the savegame JSON.
@@ -14,7 +14,7 @@ pub const TICKS_PER_DAY: i64 = 86_400 * TICKS_PER_SECOND;
 pub const MAX_TICKS: i64 = 3_155_378_975_999_999_999;
 
 /// `DateTimeOffset`: a clock time (`DateTime.Ticks`, 100 ns since 0001-01-01)
-/// plus an offset from UTC. Like C#, equality and ordering compare the UTC
+/// plus an offset from UTC. Equality and ordering compare the UTC
 /// instant, so `12:00+01:00 == 11:00+00:00`.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DateTimeOffset {
@@ -89,8 +89,8 @@ impl DateTimeOffset {
     /// `yyyy-MM-dd[THH:mm[:ss[.fffffff...]]][Z|±HH:mm]`. Fraction digits past seven
     /// are truncated.
     ///
-    /// Known difference: C# reads a value without an offset as machine-local time.
-    /// This reads it as UTC. Savegames written by the server always carry an offset.
+    /// A value without an offset is read as UTC. Savegames written by the server always
+    /// carry an offset.
     pub fn parse_json(s: &str) -> Option<DateTimeOffset> {
         let b = s.as_bytes();
         let num = |from: usize, len: usize| -> Option<i64> {

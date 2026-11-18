@@ -1,5 +1,5 @@
 // SimpleActionComponent and YesNoActionComponent (package 7e), with the arguments
-// ActionPanel.razor gives them: the server sends the title, labels and alert per event type
+// ActionPanel gives them: the server sends the title, labels and alert per event type
 // (rust/view/src/actions/other.rs).
 import { useEffect, useRef, useState } from "react";
 import type { Part } from "../../generated/Part";
@@ -29,8 +29,8 @@ export function SimpleForm({ action, inPopover = false }: FormProps) {
   useViewChanges(() => setError(null));
   const o = action.options?.form === "Simple" ? action.options : null;
   const confirm = async () => setError(await source.submit(eventOf(action.eventType, {})));
-  // OnInitialized: with the box ticked, confirm after 5 seconds if the box is still ticked and the
-  // event is valid then (AutoPass).
+  // With the box ticked, confirm after 5 seconds if the box is still ticked and the
+  // event is valid then.
   const latest = useRef({ action, auto });
   latest.current = { action, auto };
   useEffect(() => {

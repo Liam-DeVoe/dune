@@ -1,4 +1,4 @@
-/* OtherComponents/DealComponent.razor.css, global here: only DealComponent draws these classes. */
+/* Global: only DealComponent draws these classes. */
 .deal-answers {
   display: flex;
   flex-wrap: wrap;

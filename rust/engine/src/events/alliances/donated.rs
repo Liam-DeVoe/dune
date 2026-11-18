@@ -56,8 +56,8 @@ impl EventRules for Donated {
             return Ok(());
         }
 
-        // MayDonate(Game, Player) only dereferences a null Player inside HasBidToPay, where C#
-        // threw NullReferenceException.
+        // Without a player (a seatless host), the only check that needs one is whether there is a
+        // bid to pay, so that case is refused here.
         let may_donate = match by.player {
             Some(p) => Donated::may_donate(game, p),
             None => {
@@ -73,8 +73,8 @@ impl EventRules for Donated {
         if self.card.is_none() && self.resources <= 0 {
             return Err(Rejection(express!("Invalid amount")));
         }
-        // Not in C#, where giving a card with a negative amount took that spice from the target
-        // (behavior-changes.md, "Turns, sectors and amounts out of range").
+        // A negative amount with a card would take spice from the target (behavior-changes.md,
+        // "Turns, sectors and amounts out of range").
         if !self.from_bank && self.resources < 0 {
             return Err(Rejection(express!("Invalid amount")));
         }
@@ -90,7 +90,8 @@ impl EventRules for Donated {
         if !self.from_bank
             && (game.board.choam_economics_status == Some(ChoamEconomicsStatus::Double) || game.board.choam_economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
         {
-            // C# parity: the message is built but never returned, so this check has no effect.
+            // Known quirk (known-issues.md): the message is built but never returned, so bribes
+            // are allowed during Double Inflation.
             let _ = express!("No bribes can be made during Double Inflation");
         }
 
@@ -98,8 +99,8 @@ impl EventRules for Donated {
         if self.card.is_some() && !game.player(target_player.expect("target player")).has_room_for_cards(game) {
             return Err(Rejection(express!("Target faction's hand is full")));
         }
-        // Not in C#, which let a player give away spice they still had to pay for a bid
-        // (escapes.md, "Forces below zero").
+        // Spice still owed for a bid can't be given away, or paying the bid would take the
+        // player below zero (escapes.md, "Forces below zero").
         if !game.may_give_away_spice(by.player(), self.resources) {
             return Err(Rejection(express!("You need that spice to pay your bid")));
         }

@@ -23,7 +23,7 @@ import type { ImageChoice } from "../SelectFromImage";
 // (SavedCollapsedStateValues).
 const collapsedByType = new Map<string, boolean>();
 
-// GenericComponents/GameEventComponentLayout.razor: a card with a collapsible header. Panels
+// A card with a collapsible header. Panels
 // opened from a popover (the hand's card plays) start open and don't fade in.
 export function GameEventLayout({ type, header, urgent = false, inPopover = false, children }: {
   type: string;
@@ -48,7 +48,7 @@ export function GameEventLayout({ type, header, urgent = false, inPopover = fals
   );
 }
 
-// GenericComponents/SelectForcesComponent.razor: a number picker with the faction's force or
+// A number picker with the faction's force or
 // special force token as its symbol.
 export function SelectForces({ value, onChange, min, max, faction, special, label = "" }: {
   value: number;
@@ -70,7 +70,7 @@ export function SelectForces({ value, onChange, min, max, faction, special, labe
   );
 }
 
-// GenericComponents/RadioComponent.razor with Values {false, true} and labels {"No", "Yes"}.
+// RadioComponent with Values {false, true} and labels {"No", "Yes"}.
 export function YesNo({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: ReactNode }) {
   const id = useId();
   return (
@@ -87,21 +87,19 @@ export function YesNo({ value, onChange, label }: { value: boolean; onChange: (v
   );
 }
 
-// Skin.GetImageUrl(IHero).
 export function heroImage(skin: Skin, h: HeroRef): string {
   if (h.t === "leader") return skin.personImage(h.id);
   if (h.t === "messiah") return skin.url(skin.str("Messiah_URL"));
   return skin.cardImage(h.id);
 }
 
-// Skin.Describe(IHero).
 export function heroName(skin: Skin, h: HeroRef): string {
   if (h.t === "leader") return skin.person(h.id);
   if (h.t === "messiah") return skin.concept("Messiah");
   return skin.card(h.id);
 }
 
-// Skin.GetPopup(IHero, Game): a skilled leader shows its skill card.
+// A skilled leader shows its skill card.
 function heroPopup(skin: Skin, view: GameView, h: HeroRef): string {
   if (h.t === "treacheryCard") return treacheryCardPopup(skin, h.id);
   if (h.t === "messiah") return messiahPopup(skin);
@@ -115,7 +113,7 @@ export function heroChoices(skin: Skin, view: GameView, heroes: HeroOption[]): I
 }
 
 // The images of SelectFromImageComponent over factions. A faction has no rich popover, so
-// Image.razor shows its name as a tooltip.
+// Image shows its name as a tooltip.
 export function factionChoices(skin: Skin, factions: FactionOption[]): ImageChoice<Faction>[] {
   return factions.map((f) => ({ value: f.faction, src: skin.factionImage(f.faction), alt: skin.faction(f.faction), popover: null }));
 }

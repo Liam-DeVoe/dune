@@ -1,16 +1,16 @@
-// OtherComponents/SeatPlayersComponent.razor: the host assigns each player a seat, by faction once
+// The host assigns each player a seat, by faction once
 // factions are known, by seat number before that.
 import { useState } from "react";
 import type { Faction } from "../../generated/enums";
 import { useLobby } from "../../lobby/context";
-import { NetDict } from "../../lobby/participation";
+import { SlotDict } from "../../lobby/participation";
 import { FactionImage, SelectFaction } from "./widgets";
 
 export function SeatPlayersComponent() {
   const [client, state] = useLobby();
   const g = state.game!;
   const players = g.view?.players ?? [];
-  // OnParametersSet: a copy of the current seats.
+  // A copy of the current seats, which the host edits.
   const [seated, setSeated] = useState(() => g.participation.seatedPlayers.clone());
 
   const assignSeat = (userId: number, seat: number) => {
@@ -63,13 +63,13 @@ export function SeatPlayersComponent() {
             })}
           </tbody>
         </table>
-        <button className="btn btn-primary mt-1" disabled={seated.values().includes(-1)} onClick={() => client.requestAssignSeats((seated as NetDict<number>).toJson())}>Confirm</button>
+        <button className="btn btn-primary mt-1" disabled={seated.values().includes(-1)} onClick={() => client.requestAssignSeats((seated as SlotDict<number>).toJson())}>Confirm</button>
       </div>
     </div>
   );
 }
 
-/** GenericComponents/NumberComponent.razor with a white number background, as the seat picker draws a seat. */
+/** NumberComponent with a white number background, as the seat picker draws a seat. */
 function SeatNumber({ size, value, onClick }: { size: number; value: number; onClick: () => void }) {
   const px = (x: number) => `${x}px`;
   return (

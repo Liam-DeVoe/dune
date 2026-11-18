@@ -154,7 +154,7 @@ pub struct BattleCardsOptions {
 #[serde(rename_all = "camelCase")]
 pub struct FaceDancedSource {
     pub location: i32,
-    /// `Player.ForcesIn(location)` and `SpecialForcesIn(location)`.
+    /// The player's forces and special forces in `location`.
     pub forces: i32,
     pub special_forces: i32,
 }
@@ -417,8 +417,7 @@ pub struct BattleOptions {
     pub heroes: Vec<BattleFormHero>,
     /// `!Game.Applicable(Rule.BattleWithoutLeader)`.
     pub leader_required: bool,
-    /// `Battle.ValidWeapons(Game, Player, defense, hero, territory)` and
-    /// `ValidDefenses(Game, Player, weapon, territory)` for the draft, by name.
+    /// `Battle::valid_weapons` and `Battle::valid_defenses` for the draft, by name.
     pub weapons: Vec<i32>,
     pub defenses: Vec<i32>,
     /// `Player.MessiahAvailable` and not prevented.

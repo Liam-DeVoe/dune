@@ -182,7 +182,7 @@ impl Game {
 
         let previous: Vec<(Homeworld, Faction)> = self.board.homeworld_occupation.iter().map(|(k, v)| (*k, *v)).collect();
         for (key, value) in previous {
-            // ICollection<KeyValuePair>.Contains: the key is present with an equal value
+            // Gone, or now held by another faction.
             if updated_occupation.get(&key) != Some(&value) {
                 self.log(vec![value.into(), " no longer occupies ".into(), key.location().into()]);
             }

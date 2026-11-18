@@ -105,7 +105,7 @@ impl EventRules for DiscoveryEntered {
     }
 }
 
-/// The force list, as placement events read it (`PlacementEvent` in C#).
+/// The force list, read as every placement event reads it ([`PlacementEvent`]).
 impl DiscoveryEntered {
     /// The battalions in the force list, of the submitter `by`.
     pub fn force_locations(&self, game: &Game, by: By) -> IndexMap<Location, Battalion> {

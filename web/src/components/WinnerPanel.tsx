@@ -1,4 +1,4 @@
-// OtherComponents/WinnerPanel.razor: the winners, and the button that opens the story of the
+// The winners, and the button that opens the story of the
 // game unless the rules disable it. ActionPanel draws it after GameEnded (view.ending).
 import type { EndingView } from "../generated/EndingView";
 import { useGame } from "../state/context";

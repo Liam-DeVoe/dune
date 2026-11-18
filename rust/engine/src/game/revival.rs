@@ -242,8 +242,7 @@ impl Game {
             return std::cmp::max(7 + emperor_secret_ally + low_threshold - already_revived, 0);
         }
 
-        // C# parity: C# 14 binds `Faction[].Contains` to MemoryExtensions.Contains on a
-        // span, so a null array is empty and doesn't throw.
+        // No list of increased limits means nobody has one.
         if self.turn.revivals.factions_with_increased_revival_limits.as_deref().unwrap_or(&[]).contains_opt(pl.faction) {
             return std::cmp::max(5 + low_threshold + emperor_secret_ally - already_revived, 0);
         }
@@ -308,7 +307,8 @@ impl Game {
         let mut tleilaxu_receives_income = false;
 
         if let Some(tleilaxu) = tleilaxu {
-            // C# parity: Tleilaxu also earns this when it revives its own forces for free.
+            // Known quirk (known-issues.md): Tleilaxu also earn this when they revive their own
+            // forces for free.
             tleilaxu_receives_income =
                 !self.revival().expect("in the revival phase").tleilaxu_started_revival_with_low_threshold && !self.prevented(FactionAdvantage::TleilaxuReceiveRevive);
 

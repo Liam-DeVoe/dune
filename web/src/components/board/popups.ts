@@ -1,7 +1,7 @@
-// The map's popover markup. Most of it is Skin.GetPopup, ported in src/popups.ts; this file adds
-// what only the map shows: the faction on a seat (Support.FactionPopupHtml, short form), the
+// The map's popover markup. Most of it is in src/popups.ts; this file adds
+// what only the map shows: the faction on a seat (short form), the
 // stronghold advantage with its owner, homeworld cards, the discard piles and Richese's cache
-// (CardPiles.razor), the tanks (Tanks.razor PanelHtml) and the turn (Phases.razor TurnPopover).
+// (CardPiles), the tanks (Tanks) and the turn (Phases).
 import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, StrongholdAdvantage, TechToken, TerrorType, World } from "../../generated/enums";
 import type { HeroRef } from "../../generated/HeroRef";
 import type { PublicPlayer } from "../../generated/PublicPlayer";
@@ -20,10 +20,9 @@ export function ambassador(b: Board, a: Ambassador): string { return shared.amba
 export function discovery(b: Board, d: DiscoveryToken): string { return shared.discoveryTokenPopup(b.skin, d); }
 export function resourceCard(b: Board, skinId: number): string { return shared.resourceCardPopup(b.skin, skinId); }
 
-// Skin.GetPopup(Leader, LeaderSkill).
 export function skilledLeader(b: Board, leader: number, skill: LeaderSkill): string { return shared.leaderPopup(b.skin, leader, skill); }
 
-// Skin.GetPopup(IHero, Game): a skilled leader shows its skill card.
+// A skilled leader shows its skill card.
 export function hero(b: Board, h: HeroRef): string {
   if (h.t === "treacheryCard") return shared.treacheryCardPopup(b.skin, h.id);
   if (h.t === "messiah") return shared.messiahPopup(b.skin);
@@ -31,17 +30,16 @@ export function hero(b: Board, h: HeroRef): string {
   return shared.leaderPopup(b.skin, h.id, skill);
 }
 
-// Skin.GetPopup(StrongholdAdvantage, Faction).
 export function strongholdAdvantage(b: Board, adv: StrongholdAdvantage, owner: Faction): string {
   return `<div style='position:relative'><img style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='${b.skin.get("StrongholdCardImage_URL", adv)}' width=300/><img src='${b.skin.get("FactionImage_URL", owner)}' width=100 style='position:absolute;left:220px;top:40px;filter:drop-shadow(-3px 3px 2px black);'/></div>`;
 }
 
-// Skin.GetPopup(Homeworld): the homeworld's card.
+// The homeworld's card.
 export function homeworld(b: Board, w: World): string {
   return `<div class='pop-art'><img src='${b.skin.get("HomeWorldCardImage_URL", w)}'/></div>`;
 }
 
-// Support.FactionPopupHtml: the faction, who plays it, its leaders, the summary of its rules
+// The faction, who plays it, its leaders, the summary of its rules
 // sheet, and the full sheet (shown while Shift is held). The sheet's texts come from the server's
 // skin (`factionSheets`); a faction without a sheet has no popover.
 export function faction(b: Board, p: PublicPlayer): string {
@@ -100,7 +98,7 @@ export function richeseCache(b: Board): string | null {
   return pileHtml(heading, cache.map((c) => `<img src="${b.skin.get("TreacheryCardImage_URL", b.skin.cardSkinId(c))}"/>`));
 }
 
-// Tanks.PanelHtml: one row per faction with anything in the tanks.
+// The tanks: one row per faction with anything in the tanks.
 export function tanks(b: Board): string {
   const skin = b.skin;
   const v = b.view;
@@ -135,8 +133,8 @@ export function tanks(b: Board): string {
   return `<div class='tanks-pop'><h6>${htmlEncode(skin.concept("Graveyard"))}</h6><table><tr><th>Faction</th><th colspan='2'>Forces</th><th>Leaders</th></tr>${rows}</table></div>`;
 }
 
-// "dddd, dd MMMM yyyy H:mm:ss" of a DateTime as the game holds it: in UTC, printed without
-// conversion to the browser's time zone, as C# formats it.
+// "Monday, 02 November 2026 9:05:00" of a time the game holds. Known quirk (known-issues.md): it
+// prints the UTC time without saying so, not the time in the browser's time zone.
 function longDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -146,17 +144,19 @@ function longDate(iso: string | null): string {
   return `${day}, ${pad(d.getUTCDate())} ${month} ${d.getUTCFullYear()} ${d.getUTCHours()}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
 }
 
-// TimeSpan.ToString(@"h\:mm\:ss").
+// "h:mm:ss". Known quirk (known-issues.md): whole days are dropped, so 25 hours shows as 1:00:00.
 function hms(seconds: number): string {
   const s = Math.floor(seconds);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${Math.floor(s / 3600) % 24}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`;
 }
 
-// Phases.TurnPopover: the ruleset, the rules by group, and the time each player took.
+// The turn's popover: the ruleset, the rules by group, and the time each player took.
 export function turn(b: Board): string {
   const v = b.view;
-  // The ruleset, groups and rules as the server's skin describes them (Skin.Format of each).
+  // The ruleset, groups and rules as the server's skin describes them.
+  // Known quirk (known-issues.md): the timer labels open with <string> instead of <strong>, so they
+  // are not bold.
   let ruleInfo = "";
   for (const g of v.ruleLabels.groups) {
     ruleInfo += `<h5 class='h5'>${g.group}</h5><p class='mt-0 mb-2'>${g.rules.join(", ")}.</p>`;

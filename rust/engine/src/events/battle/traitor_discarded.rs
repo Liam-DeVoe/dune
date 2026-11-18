@@ -34,8 +34,8 @@ impl EventRules for TraitorDiscarded {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        // C# parity: the message says the traitor is shuffled into the deck, but the deck is not shuffled.
-        // A null Traitor (only reachable without validation) is added to the deck as null.
+        // Known quirk (known-issues.md): the message says the traitor is shuffled into the deck,
+        // but the deck is not shuffled.
         let traitor = self.traitor;
         let traitor = traitor.required("traitor")?;
         game.decks.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);

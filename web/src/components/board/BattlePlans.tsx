@@ -1,4 +1,4 @@
-// MapComponents/BattlePlans.razor and BattlePlan.razor: the battle wheels on the map. Which plans
+// BattlePlans and BattlePlan: the battle wheels on the map. Which plans
 // and which of their parts this viewer may see is decided by the view (battle.aggressorPlan,
 // defenderPlan); a partial plan is drawn at half opacity.
 import type React from "react";
@@ -23,7 +23,7 @@ export function BattlePlans() {
   );
 }
 
-// Support.Round: whole numbers as they are, others to one decimal place.
+// Whole numbers as they are, others to one decimal place.
 function round(x: number): string {
   return Number.isInteger(x) ? String(x) : String(Math.round(x * 1000) / 1000);
 }

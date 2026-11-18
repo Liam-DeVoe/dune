@@ -5,14 +5,14 @@
  */
 export type ShipmentWorld = { location: number, 
 /**
- * `Name(world)`.
+ * The world's name.
  */
 label: string, 
 /**
- * In `HomeworldsToShipFrom(Player, false)`.
+ * In `Shipment::homeworlds_to_ship_from(game, p, false)`.
  */
 normal: boolean, 
 /**
- * In `HomeworldsToShipFrom(Player, true)`.
+ * In `Shipment::homeworlds_to_ship_from(game, p, true)`.
  */
 special: boolean, forces: number, specialForces: number, };

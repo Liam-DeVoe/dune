@@ -1,4 +1,4 @@
-// GenericComponents/JoinedPlayersPanel.razor for a game shown without the lobby client (a saved
+// The joined players panel for a game shown without the lobby client (a saved
 // view, a scene): every seat in seat order with its faction, its player (or a bot), and "Leave
 // game". Inside the lobby, MenuPanels shows the lobby's panel (components/lobby), which has the
 // game's participation for the host's controls, the hosts and the observers.

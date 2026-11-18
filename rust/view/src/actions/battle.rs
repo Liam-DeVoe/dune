@@ -340,12 +340,12 @@ fn voice_types(game: &Game, d: &Option<&dyn Describer>) -> Vec<BattleFormEnum> {
         }
     };
     let mut types: Vec<BattleFormEnum> = Voice::valid_types(game).into_iter().map(|t| enum_choice(t, d)).collect();
-    // OrderBy is stable; the client runs with InvariantGlobalization, so strings compare ordinally.
+    // A stable sort by label, compared ordinally so the order doesn't depend on the locale.
     types.sort_by(|a, b| ordinal(&a.label, &b.label));
     types
 }
 
-/// .NET ordinal string comparison (UTF-16 code units).
+/// Ordinal string comparison by UTF-16 code units.
 fn ordinal(a: &str, b: &str) -> std::cmp::Ordering {
     a.encode_utf16().cmp(b.encode_utf16())
 }
@@ -724,7 +724,7 @@ fn battle_notes(game: &Game, p: PlayerId, opponent: PlayerId, d: &dyn Describer)
     notes
 }
 
-/// Sorts cards by `Skin.Describe` (`OrderBy(Name)`), ordinally and stably.
+/// Sorts cards by their described name, ordinally and stably.
 fn by_name(cards: Vec<Option<TreacheryCard>>, d: &dyn Describer) -> Vec<i32> {
     let mut named: Vec<(String, i32)> = cards.into_iter().flatten().map(|c| (d.describe(&c.into()), c.id())).collect();
     named.sort_by(|a, b| ordinal(&a.0, &b.0));

@@ -1,4 +1,4 @@
-// GenericComponents/CollapseButton.razor: the chevron at the right of a collapsible card header.
+// The chevron at the right of a collapsible card header.
 // The header itself toggles; the chevron only shows the state.
 export function CollapseButton({ collapsed }: { collapsed: boolean }) {
   return (

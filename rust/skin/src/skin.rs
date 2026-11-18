@@ -24,9 +24,9 @@ use treachery_engine::cards::treachery_card_manager::TreacheryCardManager;
 
 /// A key of a skin dictionary: an `int` or an enum.
 pub trait SkinKey: Copy + PartialEq + 'static {
-    /// The key's `ToString()`, as `KeyNotFoundException` and System.Text.Json print it.
+    /// The key as skin JSON writes it.
     fn key_text(self) -> String;
-    /// Reads a dictionary key the way System.Text.Json does. `None` if it is not a valid key.
+    /// Reads a dictionary key of skin JSON. `None` if it is not a valid key.
     fn parse_key(text: &str) -> Option<Self>;
 }
 
@@ -39,7 +39,7 @@ impl SkinKey for i32 {
     }
 }
 
-/// Keys of an enum whose C# `None` member is absence in Rust: `None` is the key "None".
+/// Keys of an enum with an absent member (`absent None`): `None` is the key "None".
 macro_rules! optional_enum_keys {
     ($($t:ty),* $(,)?) => {$(
         impl SkinKey for Option<$t> {
@@ -55,8 +55,8 @@ macro_rules! optional_enum_keys {
 
 optional_enum_keys!(Faction, MainPhase, TechToken, Concept, Milestone, World, Nexus, DiscoveryToken, LeaderSkill, StrongholdAdvantage, TerrorType, DiscoveryTokenType, TreacheryCardType, Ambassador);
 
-/// A C# `Dictionary<K, V>` of a skin. Entries keep insertion order (nothing is ever removed),
-/// which is the order .NET enumerates and serializes them in.
+/// A dictionary of a skin. Entries keep insertion order (nothing is ever removed), which is the
+/// order they are written to JSON in.
 #[derive(Clone, Debug, PartialEq)]
 pub struct SkinDictionary<K, V = String> {
     pub entries: Vec<(K, V)>,
@@ -277,13 +277,13 @@ pub struct Skin {
     pub faction_informationcardstyle: String,
 }
 
-/// `GetLabel<T>(Dictionary<T, string>? labels, T key)`: the label, or `""` when it is missing.
+/// The label of `key`, or `""` when it is missing.
 pub(crate) fn get_label<K: SkinKey>(labels: &SkinDictionary<K>, key: K) -> String {
     labels.get(key).cloned().unwrap_or_default()
 }
 
-/// C# `string.ToUpper()` under the invariant culture: simple (one-to-one) case mapping, so
-/// `ß` stays `ß` where Rust's `to_uppercase` would give `SS`.
+/// Upper case by simple (one-to-one) case mapping, so `ß` stays `ß` where Rust's
+/// `to_uppercase` would give `SS` and change the length of a skin text.
 pub(crate) fn to_upper_invariant(s: &str) -> String {
     s.chars()
         .map(|c| {
@@ -323,8 +323,6 @@ fn runs_together(before: &str, after: &str) -> bool {
 
 impl Skin {
     pub const LATEST_VERSION: i32 = 151;
-
-    // #region Descriptions
 
     /// A message's text: each part described, one after the other.
     pub fn render(&self, m: &Message) -> String {
@@ -388,7 +386,7 @@ impl Skin {
         *self.location_center_point.index(location.id())
     }
 
-    /// `HmsDx => -3 * PlayerTokenRadius` (a `float`)
+    /// How far left of its location the Hidden Mobile Stronghold is drawn: three token radii.
     pub fn hms_dx(&self) -> f32 {
         (-3 * self.player_token_radius) as f32
     }
@@ -408,7 +406,6 @@ impl Skin {
             Part::Text(s) => s.to_string(),
             Part::Bool(b) => if *b { "Yes" } else { "No" }.to_string(),
             Part::Number(i) => i.to_string(),
-            // Printed as .NET prints them, under the invariant culture.
             Part::Strength(h) => h.to_string(),
             Part::Payment { amount, .. } => self.render_parts(&parts![*amount, " ", Concept::Resource]),
             Part::Location(l) => self.describe_location(*l),
@@ -528,7 +525,7 @@ impl Skin {
         get_label(&self.discovery_token_description_str, Some(dt))
     }
 
-    /// `SpiceHtml(object amount, int size = 18)`: a spice amount drawn on the harvester icon.
+    /// A spice amount drawn on the harvester icon, `size` pixels high (18 by default).
     pub fn spice_html(&self, amount: &str, size: i32) -> String {
         let name = self.describe_concept(Some(Concept::Resource));
         format!(
@@ -537,8 +534,8 @@ impl Skin {
         )
     }
 
-    /// `WithSpiceIcons(string text, int size = 18, bool encode = true)`: the text as HTML, with
-    /// each amount of spice in it drawn by [`Skin::spice_html`].
+    /// The text as HTML (encoded if `encode`), with each amount of spice in it drawn by
+    /// [`Skin::spice_html`].
     pub fn with_spice_icons(&self, text: &str, size: i32, encode: bool) -> String {
         if text.is_empty() {
             return String::new();
@@ -694,8 +691,8 @@ impl Skin {
         )
     }
 
-    /// `FactionChipHtml(Faction f, bool you = false, IEnumerable<int>? locationIds = null)`: the
-    /// markup FactionChip.razor renders.
+    /// The markup of a faction chip: the faction's name and icon, marked if it is `you`, with the
+    /// locations it refers to (`data-ref-locations`).
     pub fn faction_chip_html(&self, f: Faction, you: bool, location_ids: Option<&[i32]>) -> String {
         let name = crate::text::html_encode(&self.describe_faction(Some(f)));
         let locations = match location_ids {
@@ -1103,9 +1100,7 @@ impl Skin {
         }
     }
 
-    // #endregion Descriptions
 
-    // #region NamesAndImages
 
     pub fn get_territory_border(&self, t: Option<Territory>) -> String {
         match t {
@@ -1208,13 +1203,11 @@ impl Skin {
         get_label(&self.faction_color, Some(faction)) + transparency
     }
 
-    // #endregion NamesAndImages
 
 
 }
 
-/// `string.StartsWith(string)`, which is culture-sensitive in .NET. Every prefix the skin tests
-/// is ASCII text without ignorable characters, so this is ordinal.
+/// Whether `text` starts with `prefix`, compared ordinally.
 fn starts_with_culture(text: &str, prefix: &str) -> bool {
     text.starts_with(prefix)
 }

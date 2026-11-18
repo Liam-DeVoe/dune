@@ -133,8 +133,7 @@ fn deal_responses_are_keyed_by_identity() {
     assert_eq!(g.deal_response(a.id, Faction::Emperor), Some(true));
 }
 
-/// `Same` compares `To` with SequenceEqual. Under C# 14 that binds to the span
-/// overload, so a null array counts as empty.
+/// `same` compares the `to` lists, and a missing list counts as empty.
 #[test]
 fn deal_same_with_null_to_matches_empty_to() {
     let g = game_with(&[Faction::Atreides]);
@@ -174,7 +173,7 @@ fn deal_contents_description_uses_text_when_not_blank() {
     assert!(m.plain_text().starts_with("hi until"), "{}", m.plain_text());
 }
 
-/// DontShipOrMoveTo parses its parameter with int.Parse, so an empty one is a FormatException.
+/// DontShipOrMoveTo parses its parameter as a whole number, so an empty one is a FormatException.
 #[test]
 fn deal_parameter_is_parsed_with_int_parse() {
     let g = game_with(&[Faction::Atreides]);
@@ -184,7 +183,8 @@ fn deal_parameter_is_parsed_with_int_parse() {
 
 // ---------------------------------------------------------------- Donated
 
-/// The Double Inflation check builds a message and never returns it (C# bug kept).
+/// Known quirk (known-issues.md): the Double Inflation check builds a message and never returns
+/// it, so it has no effect.
 #[test]
 fn donated_double_inflation_check_has_no_effect() {
     let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
@@ -283,9 +283,9 @@ fn status_highlights_fremen_setup() {
     assert_eq!(s.waiting_for_players, vec![Some(idx(&g, Faction::Fremen))]);
 }
 
-/// A card trade offer must name the offerer's ally. C# accepted any faction as `Target`. The game
-/// then waited in TradingCards for the target's answer, and a target without an ally could never
-/// answer, because `Validate` dereferences its ally (fuzz seed 1 game 31, rust/docs/escapes.md).
+/// A card trade offer must name the offerer's ally. Otherwise the game would wait in TradingCards
+/// for an answer that a target without an ally can never give (fuzz seed 1 game 31,
+/// rust/docs/escapes.md).
 #[test]
 fn card_trade_offer_must_name_the_ally() {
     let mut g = game_with(&[Faction::Choam, Faction::Atreides, Faction::Guild]);

@@ -1,12 +1,11 @@
-// OtherComponents/MenuComponent.razor: the bar under the map. Players, automation and a menu; for
+// The bar under the map. Players, automation and a menu; for
 // a seated player the trade icons (deals, the alliance, the card tracker). The menu holds
 // everything else, leaving the game included, and opens upward. Rules and sound expand in place;
 // the host's tools sit in their own section at the bottom. A click outside or Escape closes it.
 // The panels the toolbar opens show at the top of the side column (MenuPanels) or in a popover
 // above the bar (TradePopover). Styles in _menu.scss and _toolbar.scss.
 //
-// Differences from C#: Save game asks the server for the live game (saveGame), where C#
-// saved its own copy.
+// Save game asks the server for the live game (saveGame).
 import { useContext, useEffect, useState } from "react";
 import { PhaseValue } from "../generated/enums";
 import type { GameView } from "../generated/GameView";
@@ -51,7 +50,7 @@ export function MenuComponent() {
   const closeMenus = () => { setMenuOpen(false); setLeaveOpen(false); };
   const togglePanel = (panel: MenuPanel) => { closeMenus(); menu.toggle(panel); };
 
-  // Escape closes the menu (Browser.ListenForEscape).
+  // Escape closes the menu.
   useEffect(() => {
     if (!menuOpen && !leaveOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeMenus(); };
@@ -77,8 +76,7 @@ export function MenuComponent() {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen?.();
   };
-  // Save: the live game, also while the undo panel previews a moment, as savegame.json
-  // (Browser.Save, saveFile in the C# index.html).
+  // Save: the live game, also while the undo panel previews a moment, as savegame.json.
   const save = async () => {
     closeMenus();
     if (!source.saveGame) return;

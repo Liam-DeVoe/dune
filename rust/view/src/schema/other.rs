@@ -124,7 +124,7 @@ pub struct AllyPermissionOptions {
 pub struct AutomationRule {
     /// `AutomationRuleId`, for the delete event.
     pub id: i32,
-    /// `GetDescription()`.
+    /// `AutomationConfigured::get_description`.
     pub description: RichText,
 }
 

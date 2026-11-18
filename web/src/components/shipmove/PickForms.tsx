@@ -1,6 +1,6 @@
-// The forms that pick one location or territory on the map (GenericComponents/MapPickComponent):
+// The forms that pick one location or territory on the map (MapPickComponent):
 // every valid choice is outlined; clicking one pins it and shows a panel with the action's
-// remaining inputs and its confirm button. Each form names its razor file.
+// remaining inputs and its confirm button.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { ActionView } from "../../generated/ActionView";
 import type { Ambassador, Faction, TerrorType } from "../../generated/enums";
@@ -336,7 +336,6 @@ export function TerrorPlantedForm({ action }: { action: ActionView }) {
   );
 }
 
-// GenericComponents/RadioComponent.razor.
 export function Radio<T>({ label, values, labels, value, onChange }: { label?: ReactNode; values: T[]; labels: string[]; value: T; onChange: (v: T) => void }) {
   const { skin } = useGame();
   const [id] = useState(() => `radio${Math.random().toString(36).slice(2, 8)}`);

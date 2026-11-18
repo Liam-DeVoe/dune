@@ -1,10 +1,10 @@
-// OtherComponents/GameStatusComponent.razor: the prompt card. How long the game has waited, the
+// The prompt card. How long the game has waited, the
 // players it waits for (with the worm around the one whose turn it is, or the bidders with their
 // card counts during bidding), what the game is waiting for, and "Continue" when the viewer can
 // end the phase (the EndPhase action). Host-only controls sit apart, in a strip at the foot of the
 // card, so they don't read as the player's own.
 //
-// The pause between phases (Client.PhaseControl: "continues in 5s", Hold, Done) comes from the
+// The pause between phases ("continues in 5s", Hold, Done) comes from the
 // server's phaseControl notification, which the lobby client keeps; a game shown without it (a
 // saved view) has no pause.
 import { useContext, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";

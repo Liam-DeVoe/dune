@@ -78,8 +78,7 @@ pub enum ErrorCode {
 }
 
 impl ErrorCode {
-    /// What the client shows when the server gives no text of its own (the C# client's
-    /// `Skin.Describe(ErrorType)`).
+    /// What the client shows when the server gives no text of its own.
     pub fn default_message(self) -> &'static str {
         use ErrorCode::*;
         match self {

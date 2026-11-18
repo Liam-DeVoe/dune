@@ -280,7 +280,8 @@ impl Game {
                 if EXPANSION_LEVEL < 2 {
                     empty
                 } else {
-                    // C# parity: StrongholdBonus appears twice.
+                    // Known quirk (known-issues.md): StrongholdBonus is listed twice in this
+                    // ruleset.
                     &[
                         Rule::LeaderSkills,
                         Rule::Expansion2TreacheryCards,

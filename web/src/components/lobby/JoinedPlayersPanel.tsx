@@ -1,4 +1,4 @@
-// GenericComponents/JoinedPlayersPanel.razor: who is in the game, with the host's controls
+// Who is in the game, with the host's controls
 // (make host, kick, open or close a seat), leaving, re-seating, and the observers.
 import { useState } from "react";
 import { PhaseValue, type Faction } from "../../generated/enums";

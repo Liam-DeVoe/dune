@@ -1,7 +1,7 @@
-// OtherComponents/ActionPanel.razor: one form per applicable action, chosen by event type.
+// One form per applicable action, chosen by event type.
 // Each form keeps its inputs as a draft event. When an input changes it asks the server for the
-// draft's options and validation (a draft query), as the C# component re-ran Validate() and the
-// Valid* helpers on every render.
+// draft's options and validation (a draft query), so the form always shows what the engine would
+// accept.
 import type { ActionView } from "../generated/ActionView";
 import type { GameView } from "../generated/GameView";
 import type { WaitingActionView } from "../generated/WaitingActionView";

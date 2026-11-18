@@ -1,4 +1,4 @@
-// OtherComponents/UndoTimeline.razor: the timeline under the map while the host chooses a moment
+// The timeline under the map while the host chooses a moment
 // to undo to. The top strip is the whole game, one block per turn; the track under it is the
 // focused turn, one segment per phase and one tick per event. The handle always sits in a gap
 // between two events. Every gap has an invisible zone around it, so pressing and dragging across
@@ -10,7 +10,7 @@ import type { UndoEntry } from "../state/source";
 import { RichText } from "./RichText";
 import { listedEvents, undoSession, useUndoSession } from "./undoSession";
 
-// C#'s ToString("0.###") of a percentage.
+// A percentage with at most 3 decimals.
 const pct = (part: number, whole: number) => `${Number((whole === 0 ? 0 : (100 * part) / whole).toFixed(3))}%`;
 
 export function UndoTimeline() {

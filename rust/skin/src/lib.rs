@@ -1,9 +1,8 @@
-//! Port of `Shared/Model/Skin.cs` and `Shared/DefaultSkin.cs`: how messages, game objects and
-//! enums are described as text, plus the skin's art references and HTML popups.
+//! How messages, game objects and enums are described as text, plus the skin's art references
+//! and HTML popups.
 //!
 //! The server renders validation errors and mails with it, and the view layer log and status
-//! text. Every output is byte-identical to C#'s under the invariant culture; see
-//! `rust/docs/skin.md` for the differential tests.
+//! text. Output doesn't depend on the locale. See `rust/docs/skin.md` for the tests.
 //!
 //! ```
 //! use treachery_engine::{express, enumerations::{Concept, Faction}};

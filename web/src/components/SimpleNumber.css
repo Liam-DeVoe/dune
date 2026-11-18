@@ -1,5 +1,4 @@
-/* GenericComponents/SimpleNumberComponent.razor.css, scoped by a data attribute rather than a
-   class, because the C# svg has no class and the comparison's DOM digest lists classes. */
+/* SimpleNumber's styles, scoped by a data attribute. */
 svg[data-simple-number] circle {
   fill: var(--parchment);
 }

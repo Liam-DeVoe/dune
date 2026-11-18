@@ -1,4 +1,4 @@
-// OtherComponents/Log/RevivalLog.razor: one table, a row per revival. Faction pill, then what
+// One table, a row per revival. Faction pill, then what
 // came back (leader disc, Kwisatz Haderach, a token per force), then the cost on the right:
 // nothing when free, the card when a card did it, and who paid when someone else did. Other
 // lines keep their place: those before the first revival above the table, the rest below it.

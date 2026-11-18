@@ -1,4 +1,4 @@
-// GenericComponents/SpiceComponent.razor: a spice amount drawn on the harvester icon.
+// A spice amount drawn on the harvester icon.
 import { useGame } from "../state/context";
 
 export function SpiceComponent({ amount, size = 20 }: { amount: string; size?: number }) {

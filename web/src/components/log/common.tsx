@@ -1,4 +1,4 @@
-// What the report panel (ReportComponent.razor) and the phase logs (OtherComponents/Log) share:
+// What the report panel (ReportComponent) and the phase logs (Log) share:
 // the plain line (ReportComponent.Line), a battle plan as the log draws it (ReportComponent.Plan),
 // typed access to a line's record, and the small helpers several logs repeat (force counts,
 // route hover attributes, part identity).
@@ -43,7 +43,7 @@ export function is(l: LogLine | undefined, ...types: LogRecord["type"][]): boole
   return l?.record != null && types.includes(l.record.type);
 }
 
-/** C# reference equality of two game objects drawn as parts: same kind, same id. */
+/** Whether two parts draw the same game object: same kind, same id. */
 export function samePart(a: Part | null | undefined, b: Part | null | undefined): boolean {
   if (a == null || b == null) return false;
   if (a.t !== b.t) return false;

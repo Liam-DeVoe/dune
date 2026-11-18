@@ -1,21 +1,19 @@
-//! Port of the `#region LoadingAndSaving` of Model/Skin.cs: `Skin.Load`, `Fix` and
-//! `SkinToString`, with System.Text.Json's encoding of a `Skin` (`Utilities.Serialize`, which
-//! includes fields).
+//! Loading a skin from JSON (`Skin::load`), filling in what it lacks, and writing it back.
 //!
-//! The member order is the one System.Text.Json writes: the properties (`DrawResourceIconsOnMap`,
-//! `ShowVerboseToolipsOnMap`, `ShowArrowsForRecentMoves`, `HmsDx`, `HmsRadius`) first, then the
-//! fields in declaration order. `tests/skin_json.rs` checks both directions against C#.
+//! Skin files are in the format the original site wrote, so existing custom skins load. The
+//! members come in this order: `DrawResourceIconsOnMap`, `ShowVerboseToolipsOnMap`,
+//! `ShowArrowsForRecentMoves`, `HmsDx`, `HmsRadius`, then the rest in declaration order.
+//! `tests/skin_json.rs` checks both directions against a snapshot.
 //!
-//! Reading follows System.Text.Json where a skin file can reach it: member names are
-//! case-sensitive, unknown members are ignored, the get-only `HmsDx`/`HmsRadius` are skipped,
-//! a dictionary key must parse as the key type, and a value of the wrong JSON type fails. Error
-//! messages are not .NET's; only the exception type is.
+//! Reading: member names are case-sensitive, unknown members are ignored, `HmsDx`/`HmsRadius`
+//! are skipped (they are computed), a dictionary key must parse as the key type, and a value of
+//! the wrong JSON type fails.
 
 use serde_json::Value;
 use treachery_engine::enum_type::GameEnum;
 use crate::point::PointD;
 
-/// Why a skin file doesn't load: the kind of error the C# version threw (`"JsonException"`,
+/// Why a skin file doesn't load: the kind of error (`"JsonException"`,
 /// `"NullReferenceException"`, `"Exception"`) and a message.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SkinLoadError {
@@ -31,7 +29,7 @@ impl std::fmt::Display for SkinLoadError {
 
 use crate::skin::{Skin, SkinDictionary, SkinKey};
 
-/// Reads an `int` dictionary key the way System.Text.Json does: an optional `-` and digits,
+/// Reads an `int` dictionary key: an optional `-` and digits,
 /// in range.
 pub(crate) fn parse_int_key(text: &str) -> Option<i32> {
     let digits = text.strip_prefix('-').unwrap_or(text);
@@ -41,9 +39,8 @@ pub(crate) fn parse_int_key(text: &str) -> Option<i32> {
     text.parse().ok()
 }
 
-/// Reads an enum dictionary key the way System.Text.Json does: a member name (case-sensitive)
-/// in any case, or a number. A number that names no member is not a valid key, and the C# `None`
-/// member is absence.
+/// Reads an enum dictionary key: a member name or a number. A number that names no member is not
+/// a valid key, and the absent member (`None`) reads as `None`.
 pub(crate) fn parse_optional_enum_key<T: GameEnum>(text: &str) -> Option<Option<T>> {
     parse_enum_value::<T>(text).and_then(|v| treachery_engine::enum_type::from_value_or_absent(v).ok())
 }
@@ -153,7 +150,7 @@ fn read_point(v: &Value) -> Result<PointD, SkinLoadError> {
     Ok(p)
 }
 
-/// Every serialized member, in System.Text.Json's order.
+/// Every serialized member, in the order skin files have them.
 fn members(s: &mut Skin) -> Vec<(&'static str, Member<'_>)> {
     use Member::*;
     let hms_dx = Value::from(s.hms_dx() as f64);
@@ -332,8 +329,7 @@ impl Skin {
         out
     }
 
-    /// `public static Skin Load(string data, Skin donor)`: reads a skin and fills what it lacks
-    /// from `donor` (`Fix`). C# throws; this returns the exception.
+    /// Reads a skin and fills what it lacks from `donor`.
     pub fn load(data: &str, donor: &Skin) -> Result<Skin, SkinLoadError> {
         let v: Value = serde_json::from_str(data).map_err(|e| json_error(&e.to_string()))?;
         let o = match v {
@@ -373,11 +369,12 @@ fn read_member(m: Member<'_>, v: &Value) -> Result<(), SkinLoadError> {
     Ok(())
 }
 
-/// `private static void Fix(Skin toFix, Skin donor)`: a dictionary that lacks any of the donor's
-/// keys is replaced by the donor's whole dictionary (`FixDictionary`); a `null` string and a
-/// zero number or point take the donor's value (`FixValue`). An empty string is kept, because
-/// `"".Equals(default(string))` is false. A `null` dictionary throws NullReferenceException in
-/// `FixDictionary` unless the donor's is empty.
+/// Fills in what a loaded skin lacks from `donor` (the default skin): a `null` string and a zero
+/// number or point take the donor's value, and an empty string is kept. A `null` dictionary is
+/// an error unless the donor's is empty.
+///
+/// Known quirk (known-issues.md): a dictionary that lacks any of the donor's keys is replaced by
+/// the donor's whole dictionary, not just filled in.
 fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<(), SkinLoadError> {
     let mut donor = donor.clone();
     let donor_members = members(&mut donor);
@@ -430,7 +427,7 @@ fn keys_of(json: &str) -> Vec<String> {
     v.as_object().unwrap().keys().cloned().collect()
 }
 
-/// `JavaScriptEncoder.Default` escaping, as System.Text.Json wrote skins.
+/// A JSON string, escaped as skin files escape them: HTML-sensitive and non-ASCII characters as `\uXXXX`.
 fn write_escaped(out: &mut String, s: &str) {
     use std::fmt::Write as _;
     out.push('"');

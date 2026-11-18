@@ -151,8 +151,10 @@ impl serde::Serialize for Hero {
 }
 
 impl Hero {
-    /// The text a hero prints as without a skin: the full type name the C# engine printed
+    /// The text a hero prints as without a skin: a type name such as "Treachery.Shared.Leader"
     /// (`Part::plain_text`, and the message refusing a hero that isn't in the game).
+    ///
+    /// Known quirk (known-issues.md): that refusal shows the type name, not the hero.
     pub fn plain_text(&self) -> String {
         match self {
             Hero::Leader(_) => "Treachery.Shared.Leader".to_string(),

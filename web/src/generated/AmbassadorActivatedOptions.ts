@@ -8,7 +8,7 @@ import type { HeroOption } from "./HeroOption";
  */
 export type AmbassadorActivatedOptions = { 
 /**
- * `AmbassadorActivated.GetAmbassador(Game)`, `GetVictim(Game)`.
+ * `AmbassadorActivated::get_ambassador` and `get_victim`.
  */
 ambassador: Ambassador, victim: Faction, beneGesseritAmbassadors: Array<Ambassador>, choamCards: Array<number>, ixianCards: Array<number>, vidalCanBeTaken: boolean, allianceCanBeOffered: boolean, vidalCanBeOfferedToNewAlly: boolean, 
 /**

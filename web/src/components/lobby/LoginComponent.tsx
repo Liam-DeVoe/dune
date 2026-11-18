@@ -1,9 +1,9 @@
-// OtherComponents/LoginComponent.razor: log in, create an account, request a password reset, set
-// a new password. Passwords are sent as Support.GetHash (state/connection.ts, hashPassword).
+// Log in, create an account, request a password reset, set
+// a new password. Passwords are sent hashed (state/connection.ts, hashPassword).
 import { useEffect, useRef, useState } from "react";
 import { hashPassword } from "../../state/connection";
 import { useLobbyClient } from "../../lobby/context";
-import { isNullOrEmpty, isNullOrWhiteSpace, netTrimLength, validName } from "../../lobby/text";
+import { isNullOrEmpty, isNullOrWhiteSpace, trimmedLength, validName } from "../../lobby/text";
 
 type State = "Login" | "NewAccount" | "RequestPasswordReset" | "EnterNewPassword" | "Loading";
 
@@ -33,7 +33,7 @@ export function LoginComponent() {
   const [resetPasswordConfirm, setResetPasswordConfirm] = useState("");
   const [resetPasswordMessage, setResetPasswordMessage] = useState<string | null>(null);
 
-  // OnAfterRenderAsync(firstRender): focus the first field.
+  // Focus the first field.
   useEffect(() => { focusField.current?.focus(); }, []);
 
   const clearAllInputs = () => {
@@ -44,15 +44,17 @@ export function LoginComponent() {
   };
 
   const validateNewAccount = (): boolean => {
-    // ValidateNewAccount, with its fall-through: the later checks overwrite the earlier ones.
+    // Known quirk (known-issues.md): the later checks overwrite the earlier ones, and the final
+    // `else` clears the message whenever the player name, password and e-mail are fine, so a
+    // username error never stops the account from being created. A field nobody typed in is
+    // null and fails both of its length checks; the second message wins.
     let message: string | null = null;
     const nameError = validName(newUsername);
     if (!isNullOrEmpty(nameError)) message = nameError;
-    // A field nobody typed in is null in C#, and null passes both "== null ||" length checks.
-    if (newUsername == null || netTrimLength(newUsername) <= 3) message = "Username must be more than 3 characters";
-    if (newUsername == null || netTrimLength(newUsername) > 40) message = "Username must be 40 characters or less";
-    if (newPlayerName == null || netTrimLength(newPlayerName) <= 3) message = "Player name must be more than 3 characters";
-    if (newPlayerName == null || netTrimLength(newPlayerName) > 40) message = "Player name must be 40 characters or less";
+    if (newUsername == null || trimmedLength(newUsername) <= 3) message = "Username must be more than 3 characters";
+    if (newUsername == null || trimmedLength(newUsername) > 40) message = "Username must be 40 characters or less";
+    if (newPlayerName == null || trimmedLength(newPlayerName) <= 3) message = "Player name must be more than 3 characters";
+    if (newPlayerName == null || trimmedLength(newPlayerName) > 40) message = "Player name must be 40 characters or less";
     else if (isNullOrEmpty(newPassword)) message = "Enter a password";
     else if (newPassword !== newPasswordConfirm) message = "Passwords do not match";
     else if (!isNullOrWhiteSpace(newEmail) && (!newEmail!.includes("@") || !newEmail!.includes("."))) message = "Enter a valid e-mail address, or leave it empty";

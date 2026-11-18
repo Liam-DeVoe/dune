@@ -1,8 +1,8 @@
-// OtherComponents/GameColumns.razor: the board column, then one column with your faction, the
+// The board column, then one column with your faction, the
 // prompt and actions, and the log.
 //
-// While the host previews an undo, everything shows the game at the chosen moment
-// (Client.ShownGame): the screen gets the preview as its view. The provider is always there, so
+// While the host previews an undo, everything shows the game at the chosen moment:
+// the screen gets the preview as its view. The provider is always there, so
 // switching to and from a preview never remounts the panels (the undo panel would close).
 import { useMemo } from "react";
 import { Game, useGame } from "../state/context";

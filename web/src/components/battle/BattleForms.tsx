@@ -1,5 +1,4 @@
-// The battle area's action forms: one React component per event type, each named after the
-// C# component it replaced. Options and
+// The battle area's action forms: one React component per event type. Options and
 // validation come from rust/view/src/actions/battle.rs; every form starts from the server's
 // `draft` and sends its next draft from it.
 import { useEffect, useRef } from "react";
@@ -27,7 +26,7 @@ import { Select } from "../Select";
 
 type Props = { action: ActionView; inPopover?: boolean };
 
-// ActionPanel.razor's switch for the battle forms; null for other event types.
+// The form for a battle event type; null for other event types.
 export function battleForm(a: ActionView, inPopover = false) {
   const p = { key: a.eventType, action: a, inPopover };
   switch (a.options?.form) {
@@ -60,7 +59,6 @@ export function battleForm(a: ActionView, inPopover = false) {
   }
 }
 
-// Skin.Describe of a treachery card type.
 function cardTypeName(skin: ReturnType<typeof useGame>["skin"], type: string): string {
   return skin.enumValue("TreacheryCardType", type);
 }
@@ -95,7 +93,8 @@ function AuditedComponent({ action, inPopover }: Props) {
 function BattleInitiatedComponent({ action, inPopover }: Props) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, autoSubmit, error } = useBattleDraft(action, "BattleInitiated");
-  // With one battle to fight, the C# form confirms it after half a second.
+  // With one battle to fight, the form confirms it after half a second, since there is nothing to
+  // choose.
   const confirmed = useRef<string | null>(null);
   const single = o?.fights.length === 1;
   useEffect(() => {
@@ -296,8 +295,8 @@ function placementEntries(m: Placement): ForceEntry[] {
   return [...m.entries()].map(([location, [forces, specialForces]]) => ({ location, forces, specialForces }));
 }
 
-// ForceSelectionComponent: its pickers step the placement (OnUp/OnDown); a typed number changes
-// only what the picker shows, as in C#.
+// Force pickers per location. Their buttons step the placement. Known quirk (known-issues.md): a
+// typed number changes only what the picker shows (NumberPicker's onStep).
 function ForceSelection({ faction, locations, value, onChange, fixedMax = -1 }: {
   faction: Faction;
   locations: { location: number; forces: number; specialForces: number }[];
@@ -623,7 +622,7 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
   };
   const traitorToReplace = idOrNull(draft.traitorToReplace);
   const replaceLabel = o.traitorsToReplace?.find((h) => h.id === traitorToReplace)?.label;
-  // CaptureDecision is stored as Capture and Kill: DontCapture 0, Capture 1, Kill 2 (the C# enum).
+  // CaptureDecision is stored as Capture and Kill: DontCapture 0, Capture 1, Kill 2.
   const decision = !draft.capture ? valueOf(o.capture?.decisions, "DontCapture") : draft.kill ? valueOf(o.capture?.decisions, "Kill") : valueOf(o.capture?.decisions, "Capture");
   const discardable = [o.discardableMercenary, o.discardableWeapon, o.discardableDefense].filter((c): c is number => c !== null);
   const loserTokens = o.techTokens;

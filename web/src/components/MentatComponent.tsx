@@ -1,4 +1,4 @@
-// OtherComponents/MentatComponent.razor: the menu's "List of Cards", a modal with every card and
+// The menu's "List of Cards", a modal with every card and
 // token this game uses. The cards in play come from the view (`mentat`); the other sections
 // follow from the rules and the factions playing.
 import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, Rule, StrongholdAdvantage, TerrorType } from "../generated/enums";
@@ -11,7 +11,7 @@ import { Hoverable } from "./Hoverable";
 import { Image } from "./Image";
 import { ModalComponent } from "./ModalComponent";
 
-// Enumerations.GetValuesExceptDefault, in the C# enums' order.
+// Every value but the absent one, in value order.
 const LEADER_SKILLS: LeaderSkill[] = ["Bureaucrat", "Diplomat", "Decipherer", "Smuggler", "Graduate", "Planetologist", "Warmaster", "Adept", "Swordmaster", "KillerMedic", "MasterOfAssassins", "Sandmaster", "Thinker", "Banker"];
 const ADVANTAGES: StrongholdAdvantage[] = ["FreeResourcesForBattles", "CollectResourcesForUseless", "CountDefensesAsAntidote", "WinTies", "CollectResourcesForDial", "AnyOtherAdvantage"];
 // Nexus: one card per faction.
@@ -20,11 +20,9 @@ const AMBASSADORS: Ambassador[] = ["Fremen", "Atreides", "Harkonnen", "Emperor",
 const TERROR: TerrorType[] = ["Assassination", "Atomics", "Extortion", "Robbery", "Sabotage", "SneakAttack"];
 const DISCOVERIES: DiscoveryToken[] = ["Jacurutu", "Shrine", "TestingStation", "Cistern", "ProcessingStation", "CardStash", "ResourceStash", "Flight"];
 
-// Skin.GetFramedCardHtml and GetImageHoverHtml.
 const framedCard = (url: string) => `<div class='pop-art'><img src='${url}'/></div>`;
 const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
-// Skin.Describe(ResourceCard).
 function resourceCardName(skin: Skin, skinId: number): string {
   const c = skin.resourceCardInfo(skinId);
   if (!c) return "?";

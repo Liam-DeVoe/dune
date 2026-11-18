@@ -1,4 +1,4 @@
-// Pages/MainLayout.razor: the shell every page renders in.
+// The shell every page renders in.
 import type { ReactNode } from "react";
 import "./MainLayout.css";
 

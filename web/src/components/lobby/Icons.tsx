@@ -6,7 +6,7 @@ function iconStyle(onClick?: () => void) {
 }
 
 export function UserIcon({ size = 20, title = "User", marginClass = "m-1", onClick }: { size?: number; title?: string; marginClass?: string; onClick?: () => void }) {
-  // UserIcon.razor draws at 16 px whatever its Size.
+  // UserIcon draws at 16 px whatever its Size.
   void size;
   return (
     <span className={marginClass} onClick={onClick} style={iconStyle(onClick)} title={title}>

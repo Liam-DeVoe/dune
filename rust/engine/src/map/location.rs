@@ -167,7 +167,7 @@ impl Location {
 
 impl Location {
     /// The text a location prints as without a skin (`Part::plain_text`): "Homeworld" for a
-    /// homeworld, the full type name the C# engine printed for every other location.
+    /// homeworld, and a type name such as "Treachery.Shared.Stronghold" for every other location.
     pub fn plain_text(&self) -> String {
         match self.data().kind {
             LocationKind::Homeworld(_) => "Homeworld".to_string(),

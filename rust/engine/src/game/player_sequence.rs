@@ -15,7 +15,7 @@ pub struct PlayerSequence {
 
 impl PlayerSequence {
     pub fn new(game: &Game, skip_players_that_cant_bid_on_cards: bool, direction: i32, to_start_with: Option<PlayerId>, begin_next_to_that_player: bool) -> Self {
-        // Players = [.. _game.Players.OrderBy(p => direction * p.Seat)]  (stable)
+        // By seat, in `direction` (a stable sort).
         let mut players: Vec<PlayerId> = game.player_indices().collect();
         players.sort_by_cached_key(|p| direction * game.player(*p).seated().number());
 

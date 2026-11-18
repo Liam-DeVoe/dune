@@ -1,8 +1,8 @@
-// wwwroot/js/follow-log.js: keeps a scrolling list pinned to its newest line, like a chat. While
+// Keeps a scrolling list pinned to its newest line, like a chat. While
 // the player is at the bottom, new content scrolls into view. Scrolling up stops it, so nobody is
 // yanked back while reading; scrolling back down to the bottom starts it again. A change to the
 // element's data-step (the report panel's phase) starts it again too, showing that phase's latest
-// lines. The C# script finds elements by data-follow-bottom; here a component passes its element.
+// lines. A component passes its element.
 
 const SLACK = 6; // px from the bottom that still counts as at the bottom
 
@@ -15,9 +15,9 @@ export function followBottom(el: HTMLElement | null): void {
   let lastStep = el.dataset.step;
 
   // Where this script last scrolled to. A scroll event arrives a frame after the scroll, and the
-  // lines may have grown in between; the C# script then reads the gap as the player scrolling up
-  // and stops following, so where the C# log ends up depends on timing. A scroll event that finds
-  // the panel where this script put it is not the player's.
+  // lines may have grown in between; reading that gap as the player scrolling up would
+  // stop following at random. So a scroll event that finds the panel where this script put it is
+  // not the player's.
   let placed = -1;
   const toBottom = () => { el.scrollTop = el.scrollHeight; placed = el.scrollTop; };
 
@@ -37,8 +37,8 @@ export function followBottom(el: HTMLElement | null): void {
   el.addEventListener("load", () => { if (stuck) toBottom(); }, true);
 
   // So do fonts and anything else that changes a line's size without a DOM change, and the
-  // panel itself changes size as the page settles. Blazor's later renders mutate the DOM and so
-  // scroll again; React commits once, so the sizes are watched too.
+  // panel itself changes size as the page settles. None of those is a DOM change, so the sizes are
+  // watched too.
   const resized = new ResizeObserver(() => { if (stuck) toBottom(); });
   const watch = () => {
     resized.disconnect();

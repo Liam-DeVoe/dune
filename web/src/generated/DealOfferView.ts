@@ -13,24 +13,24 @@ export type DealOfferView = {
  */
 id: number, initiator: Faction, price: number, 
 /**
- * `GetDealDescription()`.
+ * `get_deal_description`.
  */
 description: Array<Part>, 
 /**
- * `GetMessage()`, for the toast announcing the offer.
+ * The offer's message, for the toast announcing it.
  */
 message: Array<Part>, 
 /**
- * `Acceptance(Faction).Validate()`: Accept is disabled while it is set.
+ * Why the viewer's acceptance would be refused: Accept is disabled while it is set.
  */
 acceptError: Array<Part> | null, 
 /**
- * `Acceptance(Faction)` and `Rejection(Faction)` in savegame JSON, to submit as they are
+ * The offer's `acceptance` and `rejection` as event JSON, to submit as they are
  * (null for the viewer's own offers).
  */
 accept: Record<string, unknown> | null, decline: Record<string, unknown> | null, 
 /**
- * `Cancellation()` in savegame JSON, for the viewer's own offers.
+ * The offer's `cancellation` as event JSON, for the viewer's own offers.
  */
 withdraw: Record<string, unknown> | null, 
 /**

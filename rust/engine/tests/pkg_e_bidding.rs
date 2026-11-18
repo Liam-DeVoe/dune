@@ -60,7 +60,7 @@ fn silent_bids_cannot_be_passed() {
 
 #[test]
 fn bid_total_amount_doesnt_wrap() {
-    // C# added ints, so a total above i32::MAX wrapped below zero. The amounts are u16 now.
+    // The amounts are u16 and the total is an i32, so it can't wrap.
     let mut bid = Bid::default();
     bid.amount = u16::MAX;
     bid.ally_contribution_amount = 1;
@@ -139,7 +139,7 @@ fn emperor_bid_support_message_without_amounts_fails() {
     let mut e2 = EmperorBidSupport::default();
     e2.amounts = None;
     let by = By::new(&g, Faction::Emperor);
-    // Missing amounts (fuzz seed 2 recorded this in C#, where `Amounts.Sum(...)` threw).
+    // Missing amounts (fuzz seed 2 reached this).
     assert_eq!(outcome(|| e2.describe(&g, by).plain_text()).unwrap_err(), "amounts");
 }
 

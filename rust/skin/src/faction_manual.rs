@@ -1,9 +1,8 @@
-//! Port of the `#region FactionManual` of Model/Skin.cs: each faction's rules sheet, as HTML
-//! (`GetFactionInfo_HTML`) or as its parts (`GetFactionSheet`).
+//! Each faction's rules sheet, as HTML (`get_faction_info_html`) or as its parts
+//! (`get_faction_sheet`).
 //!
-//! C# notes the parts in two private fields (`_sheetBeingRead`, `_sheetInAdvanced`) while a
-//! template is built. Here they are a [`SheetReader`] passed through the template, which gives
-//! the same results without making `Skin` mutable.
+//! While a template is built, a [`SheetReader`] passed through it notes the parts, so `Skin`
+//! doesn't have to be mutable.
 
 use treachery_engine::enumerations::*;
 use treachery_engine::messages::part::Part;
@@ -27,14 +26,14 @@ pub struct FactionSheet {
     pub parameters: Vec<Part>,
 }
 
-/// `_sheetBeingRead` and `_sheetInAdvanced`.
+/// The sheet being read while a template is built, and whether the template is in its advanced
+/// section.
 pub struct SheetReader {
     sheet: Option<FactionSheet>,
     in_advanced: bool,
 }
 
-/// The `title` of the `Advantage(object title, ...)` overloads: a string, or anything
-/// `Describe` takes.
+/// The title of an advantage: a string, or any part `Skin::describe` takes.
 pub enum Title {
     Str(&'static str),
     Object(Part),
@@ -98,8 +97,7 @@ impl Skin {
         out
     }
 
-    /// `GetFactionSheet(Game g, Faction f)`: the parts of the sheet a summary needs, or `None`
-    /// for a faction without one.
+    /// The parts of `f`'s sheet a summary needs, or `None` for a faction without one.
     pub fn get_faction_sheet(&self, g: &Game, f: Faction) -> Option<FactionSheet> {
         let mut r = SheetReader {
             sheet: Some(FactionSheet {
@@ -208,7 +206,7 @@ impl Skin {
         )
     }
 
-    /// `Advantage(string advantageName, ...)` and `Advantage(object title, ...)` with a `condition`.
+    /// An advantage paragraph, shown and noted on the sheet only if `condition` holds.
     fn advantage(&self, r: &mut SheetReader, title: Title, advantage_description: &str, condition: bool) -> String {
         let (advantage_name, heading) = self.title_text(title);
         if condition {
@@ -221,7 +219,7 @@ impl Skin {
         }
     }
 
-    /// `Advantage(Game g, Rule rule, string advantageName, ...)` and `Advantage(Game g, Rule rule, object title, ...)`
+    /// An advantage paragraph, shown and noted on the sheet only if `rule` is in play.
     fn advantage_rule(&self, r: &mut SheetReader, g: &Game, rule: Rule, title: Title, advantage_description: &str) -> String {
         let (advantage_name, heading) = self.title_text(title);
         if g.applicable(rule) {

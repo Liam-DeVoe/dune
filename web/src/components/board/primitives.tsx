@@ -1,6 +1,6 @@
-// The map's drawing primitives: MapComponents/MapImage, MapText, Circle, Rectangle,
-// MapPopoverArea, MapForce and MapLeader. Each keeps the element and inline style of its razor
-// file, since the look comes from the C# stylesheet.
+// The map's drawing primitives: MapImage, MapText, Circle, Rectangle,
+// MapPopoverArea, MapForce and MapLeader. Their look comes from the elements and
+// inline styles here together with the site's stylesheet (web/styles).
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 import type { Faction } from "../../generated/enums";
 import { f, px, useBoard } from "./geometry";
@@ -18,7 +18,6 @@ function size(b: Box): [number, number] {
   return b.diameter !== undefined ? [b.diameter, b.diameter] : [b.width ?? 0, b.height ?? 0];
 }
 
-// Circle.razor.
 export function Circle({ x, y, radius = 1, fillColor, fillOpacity = 1, strokeColor = "transparent", strokeWidth = 0 }: {
   x: number; y: number; radius?: number; fillColor?: string; fillOpacity?: number; strokeColor?: string; strokeWidth?: number;
 }) {
@@ -29,7 +28,6 @@ export function Circle({ x, y, radius = 1, fillColor, fillOpacity = 1, strokeCol
   );
 }
 
-// Rectangle.razor.
 export function Rectangle({ x, y, width, height, fillColor, fillOpacity = 1, strokeColor = "transparent", strokeWidth = 0 }: {
   x: number; y: number; width: number; height: number; fillColor?: string; fillOpacity?: number; strokeColor?: string; strokeWidth?: number;
 }) {
@@ -59,7 +57,6 @@ export interface MapImageProps extends Box {
   popoverStyle?: string;
 }
 
-// MapImage.razor.
 export function MapImage(p: MapImageProps) {
   const [w, h] = size(p);
   const { x, y } = p;
@@ -90,7 +87,6 @@ export function MapImage(p: MapImageProps) {
 
 export type Align = "left" | "center" | "right";
 
-// Support.TextBorder.
 export function textBorder(width: number, color: string): CSSProperties {
   return { WebkitTextStroke: `${Number((0.3 * width).toFixed(3))}px ${color}`, textShadow: `0 0 ${2 * width}px ${color}` };
 }
@@ -111,7 +107,6 @@ export interface MapTextProps {
   popoverStyle?: string;
 }
 
-// MapText.razor.
 export function MapText(p: MapTextProps) {
   const align = p.align ?? "left";
   const transformX = align === "center" ? "translateX(-50%)" : align === "right" ? "translateX(-100%)" : "";
@@ -132,7 +127,7 @@ export function MapText(p: MapTextProps) {
   return <span title={content ?? undefined} style={style}>{p.toShow}{p.children}</span>;
 }
 
-// MapPopoverArea.razor: an invisible rectangle with one popover for everything under it.
+// An invisible rectangle with one popover for everything under it.
 export function MapPopoverArea({ x, y, width, height, popover, placement = "right" }: {
   x: number; y: number; width: number; height: number; popover: Html; placement?: "right" | "left" | "top" | "bottom";
 }) {
@@ -140,18 +135,16 @@ export function MapPopoverArea({ x, y, width, height, popover, placement = "righ
   return <div ref={ref} {...attributes} style={{ position: "absolute", left: px(x), top: px(y), width: px(width), height: px(height), pointerEvents: "all" }} />;
 }
 
-// Support.HasStarredSpecialForce.
 export function hasStarredSpecialForce(faction: Faction): boolean {
   return faction === "Fremen" || faction === "Emperor" || faction === "Ixian";
 }
 
-// Support.ForceTokenHtml.
 export function forceTokenHtml(src: string, faction: Faction, special: boolean, sizePx: number, title = ""): string {
   const starred = special && hasStarredSpecialForce(faction) ? " starred" : "";
   return `<span class='force-token${starred}' style='--d:${sizePx}px' title='${title}'><img src='${src}' width='${sizePx}' height='${sizePx}' alt='${title}'/></span>`;
 }
 
-// MapForce.razor: a stack of force tokens with its count.
+// A stack of force tokens with its count.
 export function MapForce({ x, y, special, amount, faction, threatened = false, showPopover = true, font = "", diameter = 0 }: {
   x: number; y: number; special: boolean; amount: number; faction: Faction; threatened?: boolean; showPopover?: boolean; font?: string; diameter?: number;
 }) {
@@ -195,7 +188,6 @@ export function MapForce({ x, y, special, amount, faction, threatened = false, s
   );
 }
 
-// MapLeader.razor.
 export function MapLeader({ src, x, y, diameter, popover }: { src: string; x: number; y: number; diameter: number; popover?: Html }) {
   const b = useBoard();
   return <MapImage x={x} y={y} diameter={diameter} src={src} shadowColor={b.shadow} shadowX={2} shadowY={2} shadowBlur={1} popover={popover} popoverStyle="" />;

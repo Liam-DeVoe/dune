@@ -1,4 +1,4 @@
-// MapComponent.Intel: the popover of a location on the map (MapComponents/MapComponent.razor).
+// The popover of a location on the map.
 import * as shared from "../../popups";
 import type { Board } from "./geometry";
 import { forceTokenHtml } from "./primitives";
@@ -76,7 +76,7 @@ function spiceAndForceAndTokenInfo(b: Board, id: number): string {
     }
     if (bt.specialForces > 0) {
       const me = b.view.viewer.faction;
-      // C# parity: the conditional binds before the concatenation, so Richese seen by anyone else reads "?".
+      // Richese's special force is the No-Field, whose value only Richese may know.
       const amount = bt.faction === "Richese" && me !== "Richese" ? "?" : String(bt.faction === "Richese" ? board.noFieldValue : bt.specialForces);
       result += `<div class="col col-auto">${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", bt.faction), bt.faction, true, 32)}<strong>&nbsp;${amount}</strong></div>`;
     }

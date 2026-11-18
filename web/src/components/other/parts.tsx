@@ -20,7 +20,7 @@ import type { ImageChoice } from "../SelectFromImage";
 // (SavedCollapsedStateValues).
 const collapsedByType = new Map<string, boolean>();
 
-// GenericComponents/GameEventComponentLayout.razor. Without a header there is no header row and
+// GameEventComponentLayout. Without a header there is no header row and
 // the body can't be collapsed. `startCollapsed` is `Collapsed="CollapseState.Collapsed"`; panels
 // opened from a popover (TradePopover, CardPlayPopover) start open and don't fade in.
 export function Layout({ type, header, urgent = false, startCollapsed = false, inPopover = false, children }: {
@@ -84,12 +84,11 @@ export const factionOf = (v: unknown): Faction | null => (typeof v === "string" 
 // An enum input other than a faction: its member name, null for none.
 export const nameOf = (v: unknown): string | null => (typeof v === "string" ? v : null);
 
-// Skin.Format("... {0} ...", value) for the client's own labels.
 export function fmt(template: string, value: string): string {
   return template.replace("{0}", value);
 }
 
-// Skin.Describe(TreacheryCardType) and Skin.Describe(Concept).
+// The names of a treachery card type and of a concept.
 export const cardType = (skin: Skin, t: string): string => skin.enumValue("TreacheryCardType", t);
 
 // SelectFromImageComponent over treachery cards (by id): the card's rich popover.
@@ -97,7 +96,7 @@ export function cardChoices(skin: Skin, ids: number[]): ImageChoice<number>[] {
   return ids.map((id) => ({ value: id, src: skin.cardImage(id), alt: skin.card(id), popover: treacheryCardPopup(skin, id) }));
 }
 
-// SelectFromImageComponent over factions: a faction has no rich popover, so Image.razor shows its
+// SelectFromImageComponent over factions: a faction has no rich popover, so Image shows its
 // name as a tooltip.
 export function factionChoices(skin: Skin, factions: FactionOption[]): ImageChoice<Faction>[] {
   return factions.map((f) => ({ value: f.faction, src: skin.factionImage(f.faction), alt: skin.faction(f.faction), popover: null, tooltip: skin.faction(f.faction) }));
@@ -131,7 +130,6 @@ export function SelectManyFromImage<T>({ values, selected, onChange, imageWidth 
   );
 }
 
-// GenericComponents/SelectNumberComponent.razor.
 export function SelectNumber({ value, onChange, min, max, label = "" }: {
   value: number; onChange: (v: number) => void; min: number; max: number; label?: string;
 }) {
@@ -148,7 +146,7 @@ export interface Choice<T> {
   label: string;
 }
 
-// GenericComponents/RadioComponent.razor. Labels may hold spice amounts (Skin.WithSpiceIcons).
+// RadioComponent. Labels may hold spice amounts.
 export function Radio<T>({ values, value, onChange, label }: {
   values: Choice<T>[]; value: T; onChange: (v: T) => void; label?: ReactNode;
 }) {
@@ -169,7 +167,7 @@ export function Radio<T>({ values, value, onChange, label }: {
   );
 }
 
-// GenericComponents/SegmentedComponent.razor: a row of buttons where one is on.
+// A row of buttons where one is on.
 export function Segmented<T>({ values, value, onChange, label, className = "mt-1" }: {
   values: Choice<T>[]; value: T; onChange: (v: T) => void; label?: ReactNode; className?: string;
 }) {
@@ -189,7 +187,6 @@ export function Segmented<T>({ values, value, onChange, label, className = "mt-1
   );
 }
 
-// GenericComponents/CommandButton.razor.
 export function CommandButton({ onClick, children, className = "btn-primary", small = false, margin = "me-1" }: {
   onClick: () => Promise<void> | void; children: ReactNode; className?: string; small?: boolean; margin?: string;
 }) {

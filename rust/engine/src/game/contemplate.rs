@@ -190,7 +190,7 @@ impl Game {
     pub fn determine_if_moritani_draws_new_traitor(&mut self) {
         let Some(moritani) = self.get_player(Some(Faction::Moritani)) else { return };
 
-        // ToList: snapshot before the loop body changes RevealedTraitors.
+        // A snapshot, because the loop body changes the revealed traitors.
         let to_replace: Vec<Leader> = self
             .leaders.assassinated
             .iter()
@@ -548,7 +548,7 @@ impl Game {
             ending.win_method = Some(WinMethod::FremenSpecial);
             ending.winners.push(fremen);
             if self.player(fremen).has_ally() {
-                // The ally faction may not be playing (C# then adds a null winner).
+                // The ally faction may not be playing, and then only Fremen win.
                 if let Some(ally) = self.player(fremen).allied_player(self) {
                     ending.winners.push(ally);
                 }

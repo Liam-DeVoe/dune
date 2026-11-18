@@ -41,8 +41,8 @@ fn lobby_data_matches_the_engine_and_skin() {
     let sub = |v: SubscriptionType| d.enums["SubscriptionType"].iter().find(|m| m.value == v.value()).unwrap().label.clone();
     assert_eq!(sub(SubscriptionType::CertainAsHost), "yes*");
 
-    // Every enum lists every member, in Enum.GetValues order. A closed enum lists its C# `None`
-    // member too, which Rust's `ALL` leaves out.
+    // Every enum lists every member, in value order. A closed enum lists its absent `None`
+    // member too, which `ALL` leaves out.
     assert_eq!(d.enums["Rule"].len(), Rule::ALL.len() + 1);
     assert!(d.enums["UserStatus"].windows(2).all(|w| (w[0].value as u32) < (w[1].value as u32)));
 

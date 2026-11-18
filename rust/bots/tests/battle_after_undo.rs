@@ -1,7 +1,7 @@
 //! A battle initiated again after an undo is a new battle, even though its `BattleInitiated` is
 //! at the same place in the history. A bot that used Voice in the undone battle must not plan
-//! with that Voice in the new one. C# got this from comparing battles by reference. When battles
-//! got an id, it was at first the event's place in the history, so the bot planned with the stale
+//! with that Voice in the new one. When battles got an id, it was at first the event's place in
+//! the history, so the bot planned with the stale
 //! Voice (fuzz seed 1 game 41; escapes.md, "A battle initiated again after an undo kept its
 //! identity").
 //!

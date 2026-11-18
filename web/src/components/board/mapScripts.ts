@@ -1,4 +1,4 @@
-// The board's scripts from the C# client's wwwroot/index.html, as a module: SetPlanetMapScale
+// The board's scripts: SetPlanetMapScale
 // (fit the board to its area), StartMapHover/ShowMapHover (the sector under the mouse),
 // UpdateMapCursorArrows and TrimMapArrow (the arrow to the hovered destination),
 // ListenForMapCancel (Escape or a right click cancels a half-made selection), ShowMapRefs (a
@@ -47,7 +47,7 @@ export function setPlanetMapScale(): void {
     inner.style.setProperty("--map-bar", bar + "px");
     clampMapPin();
   } catch {
-    // As in C#: a failed measurement leaves the board as it was.
+    // A failed measurement leaves the board as it was.
   }
 }
 

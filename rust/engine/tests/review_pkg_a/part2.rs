@@ -20,10 +20,10 @@ fn parse(g: &Game, s: &str) -> String {
         .join(";")
 }
 
-/// Duplicate-key messages use `Location.ToString()`, which differs per subclass.
-/// Ids from .NET: Emperor homeworld 90, Shrine 103, HMS 86.
+/// Duplicate locations of each kind (Emperor homeworld 90, Shrine 103, HMS 86), signs, overflow
+/// and negative ids.
 #[test]
-fn parse_force_locations_edge_cases_match_dotnet() {
+fn parse_force_locations_edge_cases() {
     let g = Game::new();
     let cases: &[(&str, &str)] = &[
         ("90:1|0,90:2|0", "exception:duplicate key Location(90)"),

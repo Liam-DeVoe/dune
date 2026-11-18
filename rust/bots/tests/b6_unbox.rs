@@ -2,7 +2,7 @@
 //! for every kind of value a parameter can hold.
 //!
 //! `golden/b6-unbox.json` lists `[value, cast, expected result]`; a cast that fails has the
-//! result `EX:<.NET exception message>`. The results are snapshots of the current behavior. After a
+//! result `EX:<exception message>`. The results are snapshots of the current behavior. After a
 //! deliberate change, rewrite them with
 //! `UPDATE_GOLDENS=1 cargo test --release -p treachery-bots --test b6_unbox` and review the diff.
 

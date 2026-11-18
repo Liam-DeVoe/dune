@@ -19,7 +19,7 @@ impl EventRules for SetIncreasedRevivalLimits {
         self.try_validate(game, by).unwrap_or_else(|e| Err(Rejection(express!(e.to_string()))))
     }
 
-    /// Fails without factions (C#: ArgumentNullException from Factions.Any(...) on a null array).
+    /// Fails without factions.
     fn try_validate(&self, game: &Game, by: By) -> GameResult<Result<(), Rejection>> {
         let factions = self.factions.as_ref().required("factions")?;
         // ValidTargets is re-run lazily per faction; `p.Faction` is only read when there are players.
@@ -32,9 +32,8 @@ impl EventRules for SetIncreasedRevivalLimits {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        // Stores the event's array, null included (executed without validation). The message
-        // can't be built without factions, so the event fails before it is logged (C#: Log()
-        // throws ArgumentNullException in GetMessage).
+        // Stores the event's list, even a missing one (only without validation). The message
+        // can't be built without factions, so then the event fails before it is logged.
         game.turn.revivals.factions_with_increased_revival_limits = self.factions.clone();
         let message = self.try_describe(game, by)?;
         game.current_report_mut().express_event(message);

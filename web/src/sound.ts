@@ -1,16 +1,15 @@
-// Sounds, as the C# client plays them: Browser.cs (PlaySound, StopSound, StopSounds,
-// ChangeSoundVolume, CalculateVolume) and the functions they call in wwwroot/index.html. One
-// Audio element per file is kept while it plays. Volumes are on a linear scale of 0 to 100.
+// Sounds: playing, stopping and fading them, and their volume. One Audio element per file is
+// kept while it plays. Volumes are on a linear scale of 0 to 100.
 //
-// The volume settings (MusicComponent) are kept in local storage under the C# client's keys, as
-// JSON numbers, and the effect and chat volumes are read from `soundSettings` by whatever plays
-// effects (Client.CurrentEffectVolume, CurrentChatVolume).
+// The volume settings (MusicComponent) are kept in local storage as JSON numbers, under the keys
+// the site has always used, so players keep the volumes they set before. The effect and chat
+// volumes are read from `soundSettings` by whatever plays effects.
 
 import { BASE } from "./base";
 
 const currentSounds = new Map<string, HTMLAudioElement>();
 
-// Browser.CalculateVolume: a linear 0..100 to the exponential 0..1 an Audio element takes.
+// Converts a linear 0..100 to the exponential 0..1 an Audio element takes.
 export function calculateVolume(linear: number): number {
   if (linear <= 0) return 0;
   if (linear >= 100) return 1;
@@ -34,7 +33,7 @@ function fade(sound: HTMLAudioElement, fadeTime: number, done: () => void) {
   }, fadeTime / 8);
 }
 
-// Browser.PlaySound (PlaySound in index.html, without a fade-in: C# passes fadeTime 0).
+// Starts a sound at once, without a fade-in.
 export function playSound(file: string, volume = 100, loop = false) {
   if (!isValidSound(file)) return;
   let sound = currentSounds.get(file);
@@ -46,11 +45,11 @@ export function playSound(file: string, volume = 100, loop = false) {
     sound.volume = calculateVolume(volume);
     currentSounds.set(file, sound);
   }
-  // Browsers refuse to play before the user has interacted with the page; C# ignores that too.
+  // Browsers refuse to play before the user has interacted with the page. That sound is skipped.
   void sound.play().catch(() => {});
 }
 
-// Browser.StopSound: fades out over three seconds.
+// Fades out over three seconds.
 export function stopSound(file: string) {
   if (!isValidSound(file)) return;
   const sound = currentSounds.get(file);
@@ -61,13 +60,12 @@ export function stopSound(file: string) {
   });
 }
 
-// Browser.StopSounds: stops everything at once.
+// Stops everything at once.
 export function stopSounds() {
   currentSounds.forEach((sound) => sound.pause());
   currentSounds.clear();
 }
 
-// Browser.ChangeSoundVolume.
 export function changeSoundVolume(file: string, volume: number) {
   if (!isValidSound(file)) return;
   const sound = currentSounds.get(file);

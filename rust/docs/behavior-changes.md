@@ -367,7 +367,7 @@ Not part of the review. Each has an escapes.md entry with the details.
 - The engine holds no floats. A strength or dial is `HalfPoints`, a whole number of halves, and halving a cost uses integers (`half_rounded_up`). Every strength, cost and log text of a well-formed game is the same as with C#'s `float`, because each was already a multiple of 0.5 well inside a `float`'s exact range.
 - A Clairvoyance question "is your dial higher than X?" takes a whole or half number. Any other number, such as "2.7", fails the event like a parameter that isn't a number: "The input string '2.7' is not a whole or half number." The form only offers 0 to 25 in halves. A dial is always a multiple of 0.5, so the answer to a question with X in between is the same as with X rounded down to a half.
 - Costs of more than 16,777,216 forces are now exact. C# halved them in `float`, which rounded first: shipping 16,777,217 forces back to reserves cost 8,388,608, and now costs 8,388,609. Only a crafted event can hold such an amount.
-- Tests: `strength_plain_text` and `halves_round_like_dotnet` in `engine/tests/review_foundation.rs`, `clairvoyance_parameters_parse_like_dotnet` in `engine/tests/pkg_j_faction_specials.rs`, `shipment_costs_match_csharp_at_the_edges` in `engine/tests/review_pkg_g.rs`.
+- Tests: `strength_plain_text` and `halves_round_like_float_ceil_truncate_and_floor` in `engine/tests/review_foundation.rs`, `clairvoyance_parameters_parse_numbers_and_names` in `engine/tests/pkg_j_faction_specials.rs`, `shipment_costs_at_the_edges` in `engine/tests/review_pkg_g.rs`.
 
 ## The history keeps a battle plan as it was submitted
 
@@ -454,3 +454,28 @@ Not part of the review. Each has an escapes.md entry with the details.
 - Area: engine, revival (`applicable_events.rs`)
 - What happened: Tleilaxu could play their Karama to prevent a faction's revival during the whole revival main phase, the revival report included. Played in the report, after every revival, it did nothing but use up the card and the once-per-game Karama power. Before "What a bidding or revival phase left behind" above, it applied to the next turn's revivals instead.
 - Done: `KarmaRevivalPrevention` is offered only before the revival report (the beginning and the reviving steps). Test: `a_karama_revival_prevention_is_offered_only_while_factions_revive` (engine/tests/rule_fixes.rs).
+
+## The server's rewrite
+
+The server was first a line-by-line port of the C# `GameHub`. These differences were made on purpose when it was rewritten (2026-11-11):
+
+- A refused event's message no longer ends in `*`.
+- An invalid `EstablishPlayers` is refused like any other event, and the seats stay as they were.
+- Async-play mail goes out when the game starts. Before, the seats were assigned after the mail, so nobody got the first one.
+- Each login starts its own session; logging in again no longer returns the token of an earlier session.
+- Calls carry no token: a connection logs in once and acts as that user. Session tokens are random 32-byte values stored as digests, expire after 30 idle or 90 days, and end on logout, a new password or the account's deletion. Async-play mails link with a single-use login token, not a session token.
+- Passwords are stored as Argon2id hashes of the client's SHA-256, not the SHA-256 itself.
+- The server sets who submitted an event, `FactionSelected`'s seat and name, and the game's seed; only hosts start a game. Before, any user who knew a game's id could act as any faction in it.
+- Observers and users outside a game can't submit events, query drafts, chat in it, take part in pauses or nudge its bots; outsiders can't read its reports.
+- Chat messages carry the caller as their source, and a message to one user goes only to that user and the sender.
+- Settings are for hosts, not the creator alone. Hosts can only make players hosts, kick members of the game, open real seats and seat players on real seats, and set bot speeds of 0 to 4. A user joins a particular seat only once it is open, and a kicked user can't observe.
+- `reconnectGame` returns the game's name.
+- Leaving a game or being kicked stops every connection of that user from following it, not only the last one.
+- Changes are saved within seconds and on shutdown, not every five minutes.
+- The admin's `adminReloadAll` (C# `AdminRestoreState`) loads the saved games that aren't running and leaves running games alone. `adminCloseGame` also deletes the game from the database.
+- Deleting a user ends their sessions, and they leave every game they joined, as if they had left it themselves.
+- A mail to an address that doesn't parse is skipped with a log line. The call that sends it still succeeds.
+- The lobby is computed for each request instead of from a copy refreshed every 6 seconds.
+- A bot speed change is sent to the game's members only, not to every connection on the server.
+- The messages are typed and camelCase, enums go by name, and errors carry a code and a text (protocol.md). The C# hub's `Result` objects, PascalCase members and numbered `ErrorType` are gone.
+- The errors for too many games give the server's limits, 10 running and 3 scheduled games per user. The texts had the two numbers the other way round.

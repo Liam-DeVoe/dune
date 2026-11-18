@@ -21,10 +21,8 @@ fn fremen_with_dangling_ally() -> (Game, PlayerId) {
     (g, y)
 }
 
-/// C#: `FremenRidesMonster.ValidTargets(g, p).Contains(Map.PolarSink)` is `True`
-/// (review-d: `ridesValidTargets.containsPolarSink = True`). The lazy `Where` stops at
-/// the Polar Sink, which comes first and short-circuits before `p.AlliedPlayer.Occupies`.
-/// Rust collects every target first, so the null `AlliedPlayer` of a later location throws.
+/// `FremenRidesMonster::valid_targets` is lazy: looking for the Polar Sink, which comes first,
+/// stops before the dangling ally of a later location is read.
 #[test]
 fn rides_valid_targets_contains_is_lazy() {
     let (g, y) = fremen_with_dangling_ally();
@@ -33,17 +31,17 @@ fn rides_valid_targets_contains_is_lazy() {
     assert_eq!(r, Ok(true));
 }
 
-/// Guard: a location after the first one the predicate rejects throws in both engines
-/// (review-d: `ridesValidTargets.containsArrakeen = exception:NullReferenceException`).
+/// Guard: looking for a location after the first one the predicate rejects reads the dangling
+/// ally, which panics.
 #[test]
-fn rides_valid_targets_later_location_throws_in_both() {
+fn rides_valid_targets_later_location_panics() {
     let (g, y) = fremen_with_dangling_ally();
     let arrakeen = g.board.map.arrakeen();
     let r = catch_panic(|| FremenRidesMonster::valid_targets(&g, y).any(|v| v == arrakeen));
     assert!(r.is_err());
 }
 
-/// Guard: without the dangling ally, 82 targets (review-d: `ridesValidTargets.noAlly.count = 82`).
+/// Guard: without the dangling ally, 82 targets.
 #[test]
 fn rides_valid_targets_count_without_ally() {
     let (mut g, y) = fremen_with_dangling_ally();

@@ -1,7 +1,6 @@
 // The board's model: the current view, the skin and the static map data, with the geometry the
-// C# map components share: Skin.GetCenter, GetSpiceLocation, GetTerritoryBorder, and
-// MapComponents/SectorGeometry.cs. Every map layer reads the board through this, so the layers
-// stay close to their razor files.
+// map layers share: centres, spice locations, territory borders and sector geometry. Every map
+// layer reads the board through this.
 import { createContext, useContext } from "react";
 import type { Faction, Rule } from "../../generated/enums";
 import type { GameView } from "../../generated/GameView";
@@ -11,21 +10,22 @@ import type { Point, Skin } from "../../skin";
 
 export type { Point };
 
-// C# float arithmetic, where rounding to single precision can matter (casts to int).
+// Single-precision arithmetic. Where a value is cast to a whole number, rounding to single
+// precision can change it.
 export const f = Math.fround;
 
 // Map.NumberOfSectors.
 export const SECTORS = 18;
 
-// MapComponent.TwoPi (a float constant).
+// 2π in single precision.
 export const TWO_PI = f(6.2831853072);
 
-// MapComponent.Px (Utilities.Px): a length in map units for an inline style.
+// A length in map units for an inline style.
 export function px(x: number): string {
   return x > -0.001 && x < 0.001 ? "0" : `${x}px`;
 }
 
-// Utilities.Round: the number as .NET prints a double.
+// The number in JavaScript's shortest form.
 export function num(x: number): string {
   return String(x);
 }
@@ -53,7 +53,7 @@ export class Board {
   n(key: string): number { return this.d[key] as number; }
   s(key: string): string { return (this.d[key] as string | undefined) ?? ""; }
   point(key: string): Point { return this.d[key] as Point; }
-  // Skin.GetLabel for a URL: "" when missing, as in C#.
+  // A URL from the skin: "" when missing.
   url(dict: string, key: string | number): string { return this.skin.url((this.d[dict] as Dict | undefined)?.[String(key)]); }
   plainUrl(key: string): string { return this.skin.url(this.s(key)); }
 
@@ -67,7 +67,6 @@ export class Board {
   get resourceRadius(): number { return this.n("RESOURCETOKEN_RADIUS"); }
   get monsterRadius(): number { return this.n("MONSTERTOKEN_RADIUS"); }
   get shadow(): string { return this.s("SHADOW"); }
-  // Skin.HmsDx and HmsRadius.
   get hmsDx(): number { return f(-3 * this.tokenRadius); }
   get hmsRadius(): number { return f(1.5 * this.tokenRadius); }
 
@@ -111,7 +110,6 @@ export class Board {
     return l.kind === "hiddenMobileStronghold" || l.kind === "discovered" || (this.d.LocationCenter_Point as Dict<Point>)[String(id)] !== undefined;
   }
 
-  // Skin.GetCenter.
   getCenter(id: number): Point {
     const l = this.loc(id);
     if (l.kind === "hiddenMobileStronghold") {
@@ -134,7 +132,6 @@ export class Board {
     return (this.d.LocationCenter_Point as Dict<Point>)[String(id)];
   }
 
-  // Skin.GetSpiceLocation.
   spiceLocation(id: number): Point {
     return this.loc(id).spiceBlowAmount !== 0 ? (this.d.LocationSpice_Point as Dict<Point>)[String(id)] : { X: 0, Y: 0 };
   }

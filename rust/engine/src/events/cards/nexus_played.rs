@@ -397,7 +397,8 @@ impl NexusPlayed {
                             }
                             if let Some(richese_ally) = richese_ally {
                                 if winning_bid.bid_emperor_contribution_amount() > 0 {
-                                    // C# parity: Emperor's contribution is refunded to Richese's ally.
+                                    // Known quirk (known-issues.md): the Emperor's contribution is refunded to
+                                    // Richese's ally, not to the Emperor.
                                     let a = game.player_mut(richese_ally);
                                     crate::game::amounts::gain(&mut a.resources, winning_bid.bid_emperor_contribution_amount(), "spice")?;
                                 }
@@ -423,8 +424,8 @@ impl NexusPlayed {
 
             Some(Faction::Moritani) => {
                 if let Some(moritani_territory) = self.moritani_territory {
-                    // Validation only offers a territory with terror. C# took `default(TerrorType)`
-                    // (None) from an empty territory and added it to the unplaced tokens.
+                    // Validation only offers a territory with terror. Without validation, an empty
+                    // territory removes nothing.
                     let terror_to_remove = game.terror_in(moritani_territory).into_iter().collect::<Vec<_>>().into_iter().random_item(&mut game.rng);
                     if let Some(terror_to_remove) = terror_to_remove {
                         game.board.terror_on_planet.shift_remove(&terror_to_remove);
@@ -583,6 +584,8 @@ impl NexusPlayed {
                 game.stone(Milestone::RaiseDead);
                 let Some(player) = game.get_player(by.faction) else { return Ok(()) };
 
+                // Known quirk (known-issues.md): validation checks that the player can pay
+                // `determine_tleilaxu_cost`, but nothing is paid.
                 Player::revive_forces(game, player, i32::from(self.tleilaxu_forces))?;
                 Player::revive_special_forces(game, player, i32::from(self.tleilaxu_special_forces))?;
 
@@ -633,7 +636,7 @@ impl NexusPlayed {
                         parts!["discard a ", TreacheryCardType::Useless, " card to get ", Payment::of(2)],
                     );
                     let Some(choam_card) = self.choam_card else { return Ok(()) };
-                    // C# parity: the card is not validated here.
+                    // Validation has checked the card (`valid_choam_cards`).
                     game.discard_card_of(Some(actor), Some(choam_card), true);
                     let me = game.player_mut(actor);
                     me.resources += 2;

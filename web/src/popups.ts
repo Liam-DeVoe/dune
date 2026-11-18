@@ -1,26 +1,23 @@
-// Markup the C# client builds as strings: the popovers of Skin.GetPopup (Shared/Model/Skin.cs)
-// and of Client/Support.cs, and the place chip (Support.PlaceChipHtml with
-// MapComponents/RegionGeometry and SectorGeometry). Bootstrap shows popovers from an HTML
-// string (data-bs-content), so these return strings, built exactly as C# builds them.
-// rust/skin/src/skin.rs is the checked port of the Skin half.
+// Markup built as strings: the popovers of game objects, and the place chip with its region
+// geometry. Bootstrap shows popovers from an HTML string (data-bs-content), so these return
+// strings. rust/skin/src/skin.rs builds the same popovers on the server, and is tested.
 import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, StrongholdAdvantage, TechToken, TerrorType, TreacheryCardType } from "./generated/enums";
 import type { Skin } from "./skin";
 import { htmlEncode, replaceSpiceAmounts, supportRound, utilitiesRound } from "./text";
 
-// Skin.SpiceHtml: a spice amount drawn on the harvester icon.
+// A spice amount drawn on the harvester icon.
 export function spiceHtml(skin: Skin, amount: string, size = 18): string {
   const name = skin.concept("Resource");
   return `<span class='spice-amt' style='--s:${size}px' title='${name}'><img src='${skin.str("Harvester_URL")}' alt='${name}'/><b>${amount}</b></span>`;
 }
 
-// Skin.WithSpiceIcons: the text as HTML, with each amount of spice in it drawn by spiceHtml.
+// The text as HTML, with each amount of spice in it drawn by spiceHtml.
 export function withSpiceIcons(skin: Skin, text: string, size = 18, encode = true): string {
   if (text === "") return "";
   const t = encode ? htmlEncode(text) : text;
   return replaceSpiceAmounts(t, skin.concept("Resource"), (digits) => spiceHtml(skin, digits, size));
 }
 
-// Skin.FactionChipHtml.
 export function factionChipHtml(skin: Skin, f: Faction, you = false, locationIds: number[] | null = null): string {
   const name = htmlEncode(skin.get("FactionName_STR", f));
   const locations = locationIds ? locationIds.join(",") : "";
@@ -35,7 +32,6 @@ function tokenPopup(skin: Skin, imageUrl: string | null, name: string, rulesText
   return `<div class='pop-token'>${art}<div class='pop-token-body'><h6>${name}</h6><p>${withSpiceIcons(skin, rulesText)}</p></div></div>`;
 }
 
-// Skin.GetTreacheryCardCategory.
 function cardCategory(t: TreacheryCardType): [string, string] {
   switch (t) {
     case "Projectile": return ["weapon", "Projectile weapon"];
@@ -52,7 +48,7 @@ function cardCategory(t: TreacheryCardType): [string, string] {
   }
 }
 
-// Skin.GetTreacheryCardRulesText: the description without its "Weapon - Type - " or
+// The description without its "Weapon - Type - " or
 // "<name> - " prefix.
 function cardRulesText(skin: Skin, id: number): string {
   const sid = skin.cardSkinId(id);
@@ -68,14 +64,13 @@ function cardRulesText(skin: Skin, id: number): string {
   return text;
 }
 
-// Skin.GetPopup(TreacheryCard).
 export function treacheryCardPopup(skin: Skin, id: number): string {
   const sid = skin.cardSkinId(id);
   const [category, type] = cardCategory(skin.cardType(id));
   return `<div class='pop-card'><img class='pop-card-art' src='${skin.get("TreacheryCardImage_URL", sid)}'/><div class='pop-card-body'><h6>${skin.get("TreacheryCardName_STR", sid)}</h6><div class='pop-card-type'><i class='${category}'></i>${type}</div><p>${withSpiceIcons(skin, cardRulesText(skin, id))}</p></div></div>`;
 }
 
-// Skin.GetPopup(IHero, Game) for a leader: the skill card with the leader on it when the leader
+// The skill card with the leader on it when the leader
 // has a skill, else the leader's portrait with its name and faction chip (GetLeaderPopup).
 export function leaderPopup(skin: Skin, id: number, skill: LeaderSkill | null): string {
   const image = skin.get("PersonImage_URL", id);
@@ -86,9 +81,9 @@ export function leaderPopup(skin: Skin, id: number, skill: LeaderSkill | null): 
   return `<div class='pop-leader'><div class='pop-leader-art' style='--fc:${skin.data.FactionColor[faction] ?? ""}'><img src='${image}'/></div><div class='pop-leader-body'><h6>${skin.get("PersonName_STR", id)}</h6>${factionChipHtml(skin, faction)}</div></div>`;
 }
 
-// Skin.GetPopup(IHero) for the Messiah: the leader popover's frame, with the Messiah paragraph
+// The leader popover's frame, with the Messiah paragraph
 // of the Atreides sheet (rust/skin/src/faction_manual.rs) under the name, one sentence a line.
-// Its nouns are drawn as icons, which take no article. Skin.GetMessiahPopup is the same.
+// Its nouns are drawn as icons, which take no article.
 export function messiahPopup(skin: Skin): string {
   const image = skin.str("Messiah_URL");
   const name = skin.concept("Messiah");
@@ -112,27 +107,23 @@ export function messiahPopup(skin: Skin): string {
   return `<div class='pop-leader pop-messiah'><div class='pop-leader-art' style='--fc:${color}'><img src='${image}'/></div><div class='pop-leader-body'><h6>${name}</h6><div class='pop-messiah-head'>${factionChipHtml(skin, "Atreides")}<span class='plus'>+2</span></div><div class='pop-messiah-rules'>${rules.map((r) => `<p>${r}</p>`).join("")}</div></div></div>`;
 }
 
-// Skin.GetPopup(LeaderSkill).
 export function leaderSkillPopup(skin: Skin, s: LeaderSkill): string {
   return framedCard(skin.get("LeaderSkillCardImage_URL", s));
 }
 
-// Skin.GetPopup(StrongholdAdvantage): the stronghold card.
+// The stronghold card.
 export function strongholdAdvantagePopup(skin: Skin, adv: StrongholdAdvantage): string {
   return imageHover(skin.get("StrongholdCardImage_URL", adv));
 }
 
-// Skin.GetPopup(TechToken).
 export function techTokenPopup(skin: Skin, t: TechToken): string {
   return tokenPopup(skin, skin.get("TechTokenImage_URL", t), skin.get("TechTokenName_STR", t), skin.get("TechTokenDescription_STR", t));
 }
 
-// Skin.GetPopup(TerrorType).
 export function terrorPopup(skin: Skin, t: TerrorType): string {
   return tokenPopup(skin, null, skin.get("TerrorTokenName_STR", t), skin.get("TerrorTokenDescription_STR", t));
 }
 
-// Skin.GetPopup(Ambassador).
 export function ambassadorPopup(skin: Skin, a: Ambassador): string {
   let text = skin.get("AmbassadorDescription_STR", a);
   const dash = text.indexOf(" - ");
@@ -140,12 +131,11 @@ export function ambassadorPopup(skin: Skin, a: Ambassador): string {
   return tokenPopup(skin, skin.get("AmbassadorImage_URL", a), `${skin.get("AmbassadorName_STR", a)} Ambassador`, text);
 }
 
-// Skin.GetPopup(DiscoveryToken).
 export function discoveryTokenPopup(skin: Skin, d: DiscoveryToken): string {
   return tokenPopup(skin, skin.get("DiscoveryTokenImage_URL", d), skin.get("DiscoveryTokenName_STR", d), skin.get("DiscoveryTokenDescription_STR", d));
 }
 
-// Client Support.GetPopup(ResourceCard): the card, with the place chip of its territory and
+// The card, with the place chip of its territory and
 // its spice amount under it; worm cards are the card alone.
 export function resourceCardPopup(skin: Skin, skinId: number): string {
   let html = `<div class="pop-spice"><img src="${skin.get("ResourceCardImage_URL", skinId)}"/>`;
@@ -271,7 +261,7 @@ function measure(skin: Skin, path: string, sector: number): Piece {
       sumY += y;
     }
   }
-  // C# stores the centre in a PointD of floats.
+  // The centre is rounded to single precision.
   const piece = inside === 0
     ? { size: 0, cx: Math.fround((minX + maxX) / 2), cy: Math.fround((minY + maxY) / 2) }
     : { size: Math.sqrt(inside) * step, cx: Math.fround(sumX / inside), cy: Math.fround(sumY / inside) };
@@ -298,7 +288,7 @@ export interface PlaceChipData {
   orientation: string;
 }
 
-// What Support.PlaceChipHtml computes. `sector` overrides the static sector for attached
+// What a place chip shows. `sector` overrides the static sector for attached
 // locations, whose host decides it.
 export function placeChipData(skin: Skin, place: Place): PlaceChipData {
   const id = "place" + ++placeChipCounter;
@@ -331,7 +321,7 @@ export function placeChipData(skin: Skin, place: Place): PlaceChipData {
   };
 }
 
-// Support.PlaceChipHtml: a pill with a glyph of the planet showing the place's outline where it
+// A pill with a glyph of the planet showing the place's outline where it
 // lies, the territory name, and for a sector its compass word. PlaceChip.tsx draws the same.
 export function placeChipHtml(skin: Skin, place: Place): string {
   const c = placeChipData(skin, place);

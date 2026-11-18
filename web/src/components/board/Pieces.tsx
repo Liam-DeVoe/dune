@@ -1,5 +1,5 @@
-// What stands on the planet: MapComponents/ResourcesOnPlanet.razor, Monsters.razor, SSW.razor,
-// ForcesOnPlanet.razor and ForcesInLocation.razor.
+// What stands on the planet: ResourcesOnPlanet, Monsters, SSW,
+// ForcesOnPlanet and ForcesInLocation.
 import type React from "react";
 import { Fragment, useState } from "react";
 import type { ForcesInLocation as Battalion } from "../../generated/ForcesInLocation";
@@ -10,7 +10,6 @@ import { locationIntel } from "./intel";
 import { useMapClick } from "./mapInteraction";
 import * as pop from "./popups";
 
-// ResourcesOnPlanet.razor.
 export function ResourcesOnPlanet() {
   const b = useBoard();
   const spice = new Map(b.view.board.spice.map((s) => [s.location, s.amount]));
@@ -42,7 +41,7 @@ export function ResourcesOnPlanet() {
   );
 }
 
-// Utilities.ScaleFont: every "<n>px" part of a font scaled, the font lower-cased.
+// Every "<n>px" part of a font scaled, the font lower-cased.
 export function scaleFont(font: string, scale: number): string {
   return font.toLowerCase().split(" ").map((part) => {
     if (!part.includes("px")) return " " + part;
@@ -51,7 +50,6 @@ export function scaleFont(font: string, scale: number): string {
   }).join("");
 }
 
-// Monsters.razor.
 export function Monsters() {
   const b = useBoard();
   const r = b.monsterRadius;
@@ -65,7 +63,7 @@ export function Monsters() {
   );
 }
 
-// SSW.razor: the worms on the Shield Wall.
+// The worms on the Shield Wall.
 export function Ssw() {
   const b = useBoard();
   const map = b.skin.statics.map;
@@ -94,7 +92,6 @@ function heroImage(b: Board, h: HeroRef): string {
   return b.cardImage(h.id);
 }
 
-// ForcesOnPlanet.razor.
 export function ForcesOnPlanet() {
   const b = useBoard();
   const click = useMapClick();
@@ -188,7 +185,6 @@ export function ForcesOnPlanet() {
   return <>{out}</>;
 }
 
-// ForcesInLocation.razor.
 function ForcesInLocation({ location, battalions, diameter }: { location: number; battalions: Map<number, Battalion[]>; diameter: number }) {
   const b = useBoard();
   const c = b.getCenter(location);

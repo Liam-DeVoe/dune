@@ -1,4 +1,4 @@
-// OtherComponents/Log/CollectionLog.razor: one table of who, how much and where. Spice collected
+// One table of who, how much and where. Spice collected
 // from the desert comes first; stronghold and homeworld income follows under a brighter rule.
 // When two fields in one territory paid out, each row names its sector under the place. Other
 // lines keep their place: those before the first collection above the table, the rest below it.

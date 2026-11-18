@@ -1,9 +1,9 @@
-// The map's hover popovers: the data-bs-* attributes the C# map components (MapImage, MapText,
+// The map's hover popovers: the data-bs-* attributes the map components (MapImage, MapText,
 // Planet, MapPopoverArea, MapForce) put on their elements, shown by Bootstrap through the shared
-// usePopover hook (src/popover.ts), with MapComponent.PopoverTemplate as the frame.
+// usePopover hook (src/popover.ts), in the frame `template` builds.
 import { usePopover } from "../../popover";
 
-// MapComponent.PopoverStyle's default: the ink frame. Popovers that bring their own frame pass "".
+// The default popover style: the ink frame. Popovers that bring their own frame pass "".
 export const DEFAULT_POPOVER_STYLE =
   "background-color:var(--ink-0);text-align:center;border:1px solid rgba(255,255,255,.16);background-clip:border-box;border-radius:var(--r-2);padding:3px 3px 3px 3px;box-shadow:var(--shadow-3);";
 
@@ -14,7 +14,6 @@ export function html(content: Html): string | null {
   return typeof content === "function" ? content() : content ?? null;
 }
 
-// MapComponent.PopoverTemplate.
 function template(style: string): string {
   return `<div class="popover" role="tooltip" style="${style}"><div class="arrow"></div><h3 class="popover-header p-0"></h3><div class="popover-body p-0"></div></div>`;
 }

@@ -124,8 +124,8 @@ export function DonatedForm({ action, inPopover = false }: FormProps) {
 export function DealOfferedForm({ action, inPopover = false }: FormProps) {
   const { skin } = useGame();
   const { options: o, draft, validation, update, submit, error } = useOtherDraft(action, "DealOffered");
-  // The C# component's fields, kept across events while the form stays open; only the text is
-  // cleared after an offer (ConfirmOffer). The draft is kept across views too (formDraft.ts); when
+  // The inputs, kept across events while the form stays open; only the text is cleared after an
+  // offer. The draft is kept across views too (formDraft.ts); when
   // the options come back after an answer for another form, the fields are sent again.
   const [to, setTo] = useState<Faction[] | null>(null);
   const [theyPay, setTheyPay] = useState(true);

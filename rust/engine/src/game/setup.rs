@@ -162,7 +162,7 @@ impl Game {
     pub fn enter_setup_phase(&mut self) -> GameResult {
         self.setup_state().current_trade_offers.clear();
 
-        // Players.OrderBy(p => p.Seat) is a stable sort.
+        // By seat (a stable sort).
         let mut by_seat: Vec<(Option<Seat>, Option<Faction>)> = self.players.iter().map(|p| (p.seat, p.faction)).collect();
         by_seat.sort_by_key(|(seat, _)| *seat);
         let first = by_seat.first().expect("a player").1.expect("faction");
@@ -302,8 +302,8 @@ impl Game {
 
             self.enter_setup(SetupStep::AssigningInitialSkills);
         } else {
-            // C# parity: TreacheryCardsBeforeTraitors requires LeaderSkills, so
-            // this always calls SetupSpiceAndForces. Game.Enter(bool, Action, Action) inlined.
+            // `treachery_cards_before_traitors()` requires leader skills, so without them this
+            // always sets up spice and forces.
             if self.treachery_cards_before_traitors() {
                 self.deal_traitors()?;
             } else {

@@ -1,4 +1,4 @@
-// OtherComponents/NoteComponent.razor: the notekeeping assistant. A button per other faction; the
+// The notekeeping assistant. A button per other faction; the
 // chosen one's spice, reserves, the treachery cards they own (face up when the viewer knows them),
 // revealed traitors and face dancers, victory points and, for Atreides, the Messiah. The data is
 // the view's `notes`, which the server fills only with assisted notekeeping.

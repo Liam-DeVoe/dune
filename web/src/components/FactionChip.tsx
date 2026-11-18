@@ -1,4 +1,4 @@
-// GenericComponents/FactionChip.razor: the sigil and name in a pill, gold when it is the
+// The sigil and name in a pill, gold when it is the
 // viewer's own faction. data-ref-locations lists the locations holding the faction's forces,
 // for the hover script that tints them on the map.
 import type { Faction } from "../generated/enums";

@@ -1,4 +1,4 @@
-// MapComponents/GameBoard.razor: the map and its layers, in the razor file's order, scaled to
+// The map and its layers, bottom to top, scaled to
 // the board's area by setPlanetMapScale. Lives in GameColumns' .board-area.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
 import { PhaseValue } from "../../generated/enums";
@@ -17,7 +17,7 @@ import { Tanks } from "./Tanks";
 import { locationClick } from "./mapInteraction";
 import { registerSceneBoard } from "../../scene";
 
-// MapRefArrows.razor: empty; mapScripts.showMapRefs fills it while a log line is hovered.
+// Empty; mapScripts.showMapRefs fills it while a log line is hovered.
 function MapRefArrows() {
   const b = useBoard();
   const { X: w, Y: h } = b.point("MapDimensions");
@@ -51,7 +51,7 @@ export function GameBoard() {
     listenForResize();
     listenForMapRefs();
   }, []);
-  // The scene page's hooks: SceneScript.LocationCentres, and clicks as Scene.razor makes them.
+  // The scene page's hooks (scene.ts): location centres, and clicks on locations.
   useEffect(() => {
     const locations: Record<string, { id: number; x: number; y: number }> = {};
     for (const l of b.planetLocations()) {
@@ -100,7 +100,7 @@ export function GameBoard() {
   );
 }
 
-// Disconnection.razor: while the connection to the server is down (Client.IsConnected).
+// While the connection to the server is down.
 function Disconnection() {
   const b = useBoard();
   const { source } = useGame();
@@ -118,7 +118,7 @@ function Disconnection() {
   );
 }
 
-// BackgroundImage.razor: the map as an <object> when it is an SVG, else an <img>.
+// The map as an <object> when it is an SVG, else an <img>.
 function BackgroundImage({ width, height, src }: { width: number; height: number; src: string }) {
   const style = { position: "absolute", left: 0, top: 0, width: px(width), height: px(height), pointerEvents: "none" } as const;
   if (src.length >= 3 && src.slice(-3).toUpperCase() === "SVG") {

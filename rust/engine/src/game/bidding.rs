@@ -216,7 +216,7 @@ impl Game {
 #[derive(Clone, Debug, PartialEq)]
 pub struct PlacedBid {
     /// Numbers the bids of a game, automatic passes included, so two bids with the same values
-    /// stay apart, as the stored C# events did (the story compares winning bids).
+    /// stay apart (the story compares winning bids).
     pub number: u32,
     /// `Bid` or `BlackMarketBid`.
     pub type_: EventType,
@@ -253,7 +253,7 @@ impl PlacedBid {
         i32::from(self.emperor_contribution_amount)
     }
 
-    /// The bidder; panics for a bid without a faction, as the C# cast did.
+    /// The bidder; panics for a bid without a faction, which an accepted bid always has.
     #[track_caller]
     pub fn bid_initiator(&self) -> Faction {
         self.initiator.expect("faction")
@@ -637,13 +637,15 @@ impl Game {
             } else {
                 0
             };
-        // C# parity: records a recent payment of receiverProfit while it is still 0.
+        // Known quirk (known-issues.md): the recent payment below is recorded with this amount,
+        // which is always 0, so the Emperor's share never counts as a recent payment.
         let receiver_profit = 0;
 
         let mut emperor_received_instead_message = express_part!();
         if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
             let emperor = emperor.expect("emperor");
-            // C# parity: Richese's homeworld threshold and occupier are applied to Emperor's income.
+            // Known quirk (known-issues.md): the low threshold and occupier of Richese's homeworld,
+            // not the Emperor's, reduce what the Emperor gets.
             self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
             {
                 let r = self.player_mut(emperor);

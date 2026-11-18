@@ -65,8 +65,8 @@ impl EstablishPlayers {
         if settings.number_of_players > settings.allowed_factions_in_play.as_ref().expect("allowed factions in play").len() as i32 {
             return Some(express!("More factions required"));
         }
-        // Not in C#: a game of 0 turns never ended (behavior-changes.md, "Turns, sectors and
-        // amounts out of range").
+        // A game of 0 turns would never end (behavior-changes.md, "Turns, sectors and amounts
+        // out of range").
         if settings.maximum_turns < Turn::FIRST {
             return Some(express!("At least one turn required"));
         }
@@ -173,8 +173,9 @@ impl EstablishPlayers {
 
     /// Takes the factions players already have out of the factions in play. A validated
     /// `EstablishPlayers` comes before anyone has a faction, so only a savegame replayed without
-    /// validation can get here with claimed factions. The settings' list and the game's list were
-    /// one object in the C# engine, so both lose the faction. The event's own settings don't.
+    /// validation can get here with claimed factions. Both the game's settings and its factions in
+    /// play lose the faction, which keeps such replays as they were recorded. The event's own
+    /// settings don't.
     pub fn remove_claimed_factions(&self, game: &mut Game) {
         let claimed: Vec<Faction> = game.players.iter().filter(|p| !p.is(None)).filter_map(|p| p.faction).collect();
         for f in claimed {

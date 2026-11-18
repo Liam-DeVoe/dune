@@ -1,4 +1,4 @@
-// OtherComponents/RunningGamesComponent.razor: the active games (open ones first, then full ones)
+// The active games (open ones first, then full ones)
 // and the scheduled games.
 import { useEffect, useState } from "react";
 import { useLobby } from "../../lobby/context";

@@ -1,11 +1,11 @@
 // The lobby half of the client: the connection, the
 // logged-in user, the server status (game lists), and the game the user is in, with its
 // participation, settings and latest view. The game screen itself renders views from a
-// WebSocketSource (state/source.ts); this store only says which screen of Main.razor to show and
+// WebSocketSource (state/source.ts); this store only says which screen of the main page to show and
 // holds what those screens read beside the view.
 //
-// Every request* method returns what the C# method returns: an error text for the screen, or
-// empty/null on success. The texts are the server's (`err.message`).
+// Every request* method returns an error text for the screen, or empty/null on success. The
+// texts are the server's (`err.message`).
 import {
   type CallArgs, type CallName, clearStoredSession, Connection, failed, type Reply, sessionIsRemembered, storedSession, storeSession,
 } from "../state/connection";
@@ -128,7 +128,7 @@ export class LobbyClient {
     this.set({ game: next });
   }
 
-  // Derived members of Client.cs.
+  // Derived members.
 
   get loggedIn(): boolean { return this.state.account != null; }
   get userId(): number { return this.state.account?.userId ?? -1; }
@@ -161,7 +161,7 @@ export class LobbyClient {
       && ((g != null && hoursUntil < 6 && PhaseValue[phaseOf(g.view)] <= PhaseValue.AwaitingPlayers) || hoursUntil < 1);
   }
 
-  // Start (Client.Start).
+  // Start.
 
   async start({ gameId, linkToken }: StartOptions = {}): Promise<void> {
     await this.conn.open();
@@ -399,7 +399,7 @@ export class LobbyClient {
     return result;
   }
 
-  // Admin (Client.Admin*).
+  // Admin.
 
   /** An admin call's text: the server's answer, or the error. */
   private async adminCall<C extends CallName>(name: C, ...args: CallArgs<C>): Promise<string> {
@@ -414,7 +414,8 @@ export class LobbyClient {
 
   async adminPersistState(): Promise<string> {
     if (!this.loggedIn) return "Not logged in";
-    // As Client.AdminPersistState, which refuses outside a game (the admin page is never in one).
+    // Known quirk (known-issues.md): this refuses outside a game, and the admin page is never in
+    // one, so "Persist data" always answers "Not in game".
     if (!this.state.game) return "Not in game";
     return this.adminCall("adminSaveAll");
   }

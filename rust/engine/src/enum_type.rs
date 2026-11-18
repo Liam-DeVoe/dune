@@ -1,9 +1,10 @@
 //! The game's enums.
 //!
-//! A closed enum is a Rust `enum` with the C# member values as discriminants. Decoding a number
-//! that names no member fails. Where the C# enum had a `None = 0` member for "no value", the Rust
-//! enum leaves it out and the game uses `Option` instead. Event JSON writes absence as `null`.
-//! Texts and views still name it "None", and the C# savegame format still writes it as 0
+//! A closed enum is a Rust `enum` with fixed member values as discriminants, because the values
+//! are written in skin files, the lobby data and the client's generated enums. Decoding a number
+//! that names no member fails. Where an enum needs "no value", it declares a `None = 0` member that
+//! the Rust enum leaves out, and the game uses `Option` instead. Event JSON writes absence as
+//! `null`. Texts and views name it "None", and numeric encodings write it as 0
 //! (`EnumTypeInfo::absent`).
 //!
 //! ```
@@ -16,35 +17,35 @@
 //! assert_eq!(name_or_absent::<Faction>(None), "None");
 //! ```
 //!
-//! `Display` prints the member name, as the log texts always have. `ShipmentPermission`, a C#
-//! `[Flags]` enum, is a struct of three bools that implements [`GameEnum`] by hand.
+//! `Display` prints the member name, as the log texts always have. `ShipmentPermission`, a set of
+//! flags, is a struct of three bools that implements [`GameEnum`] by hand.
 
 use std::fmt;
 
-/// Static description of a C# enum type.
+/// Static description of an enum type.
 #[derive(Debug)]
 pub struct EnumTypeInfo {
-    /// C# type name, e.g. `"Faction"`.
+    /// Type name, e.g. `"Faction"`, used in error messages.
     pub name: &'static str,
-    /// `[Flags]` attribute present.
+    /// The members are bit flags that combine.
     pub is_flags: bool,
     /// Members in declaration order. For a closed enum this includes the `None = 0` member the
     /// Rust type leaves out (see `absent`).
     pub declared: &'static [(&'static str, i32)],
-    /// The C# type had a `None = 0` member for "no value". In Rust absence is `Option::None`,
-    /// written as `null` in event JSON, as 0 in the C# savegame format, and named "None" in texts
+    /// The enum declares a `None = 0` member for "no value". In Rust absence is `Option::None`,
+    /// written as `null` in event JSON, as 0 in numeric encodings, and named "None" in texts
     /// and views.
     pub absent: bool,
 }
 
 impl EnumTypeInfo {
-    /// `Enum.GetName`: the name of the first declared member with this value.
+    /// The name of the first declared member with this value.
     pub fn name_of(&self, value: i32) -> Option<&'static str> {
         self.declared.iter().find(|(_, v)| *v == value).map(|(n, _)| *n)
     }
 
-    /// `Enum.ToString()` with .NET semantics, including `[Flags]` combinations
-    /// (`"Cross, ToHomeworld"`) and undefined values (printed as a number).
+    /// The text of a value: the member name, a combination of flags (`"Cross, ToHomeworld"`),
+    /// or the number for an undefined value.
     pub fn format(&self, value: i32) -> String {
         if let Some(n) = self.name_of(value) {
             return n.to_string();
@@ -52,7 +53,7 @@ impl EnumTypeInfo {
         if !self.is_flags || value == 0 {
             return value.to_string();
         }
-        // .NET: walk members from the highest value down, taking every member
+        // Walk members from the highest value down, taking every member
         // whose bits are all set; fail if bits remain. Names are printed in
         // ascending value order.
         let mut members: Vec<(&'static str, u32)> =
@@ -78,7 +79,7 @@ impl EnumTypeInfo {
 /// Implemented by every type generated with [`game_enum!`].
 pub trait GameEnum: Copy + Eq + Ord + std::hash::Hash + fmt::Debug + 'static {
     const INFO: &'static EnumTypeInfo;
-    /// `Enum.GetValues<T>()` order (sorted by value). A closed enum leaves out its absent
+    /// Every member, sorted by value. A closed enum leaves out its absent
     /// member.
     const ALL: &'static [Self];
     fn value(self) -> i32;
@@ -87,12 +88,12 @@ pub trait GameEnum: Copy + Eq + Ord + std::hash::Hash + fmt::Debug + 'static {
     fn from_value(value: i32) -> Option<Self>;
 }
 
-/// The number of an optional enum, with absent as 0, as the C# savegame format writes it.
+/// The number of an optional enum, with absent as 0 (skin files, the lobby's faction lists).
 pub fn value_or_absent<T: GameEnum>(v: Option<T>) -> i32 {
     v.map_or(0, T::value)
 }
 
-/// Reads an optional enum from its number, as the C# savegame format writes it: 0 is absent, and
+/// Reads an optional enum from its number: 0 is absent, and
 /// a number that names no member is an error.
 pub fn from_value_or_absent<T: GameEnum>(value: i32) -> Result<Option<T>, String> {
     if value == 0 && T::INFO.absent {
@@ -111,9 +112,9 @@ pub fn name_or_absent<T: GameEnum>(v: Option<T>) -> String {
     T::INFO.format(value_or_absent(v))
 }
 
-/// Declares a C# enum. Used by `enumerations.rs`; use it by hand for enums declared elsewhere.
+/// Declares a game enum. Used by `enumerations.rs`; use it by hand for enums declared elsewhere.
 ///
-/// A closed enum (`closed`) is a Rust `enum`. `absent None = 0;` declares the C# member for "no
+/// A closed enum (`closed`) is a Rust `enum`. `absent None = 0;` declares the member for "no
 /// value", which the Rust type leaves out. `get_values` lists the other members in value order.
 ///
 /// ```ignore
@@ -134,7 +135,7 @@ macro_rules! game_enum {
     ($(#[$m:meta])* closed $name:ident { $($var:ident = $val:literal,)* } get_values [$($gv:ident),* $(,)?]) => {
         $crate::enum_type::game_enum!(@closed false, $(#[$m])* $name { () $($var = $val,)* } [$($var = $val),*] [$($gv),*]);
 
-        /// C# `default(T)`: the member with value 0.
+        /// The member with value 0.
         impl Default for $name {
             fn default() -> Self {
                 <$name as $crate::enum_type::GameEnum>::from_value(0).expect(concat!(stringify!($name), " has no member 0"))

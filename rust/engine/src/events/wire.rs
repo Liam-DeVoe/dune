@@ -5,7 +5,7 @@
 //! holds its fields in `play`, and a pass is `{"type":"Move","play":null}`, so a pass carries no
 //! other fields. A field that is missing takes its default, and an unknown field doesn't decode.
 //!
-//! Some fields are still kept as the text C# kept them in. They are written as lists:
+//! Some fields are kept as text inside the engine. They are written as lists:
 //! [`force_list`] (`"12:3|1,14:2|0"` as `[{"location":12,"forces":3,"specialForces":1},..]`),
 //! [`id_list`] (`"3;17"` as `[3,17]`), [`name_list`] and [`faction_list`].
 

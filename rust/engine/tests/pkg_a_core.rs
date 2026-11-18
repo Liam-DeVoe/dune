@@ -1,6 +1,5 @@
 //! Focused tests for the game core (Game, Event, placement events, utilities and the small
-//! model types). Expected values marked "(.NET)" were first recorded from the original C#
-//! engine.
+//! model types).
 
 use treachery_engine::error::catch_panic;
 use treachery_engine::compat::date_time_offset::TimeSpan;
@@ -69,8 +68,8 @@ fn id_strings() {
     assert!(r.is_err());
 }
 
-/// Only the latest version is supported. `check_version` reports any other as an error with
-/// the old .NET message, and constructing a game of that version panics.
+/// Only the latest version is supported. `check_version` reports any other as an error, and
+/// constructing a game of that version panics.
 #[test]
 fn game_version_check() {
     assert_eq!(Game::check_version(Game::LATEST_VERSION), Ok(()));
@@ -92,9 +91,9 @@ fn game_version_check() {
 /// and package K's `RemoveEndedDeals`. Remove the `ignore` once those are ported.
 #[test]
 #[ignore = "Game::new needs packages C and K"]
-fn parse_force_locations_matches_dotnet() {
+fn parse_force_locations_reads_and_refuses_force_lists() {
     let g = Game::new();
-    // (input, .NET result)
+    // (input, result)
     let cases: &[(&str, Result<&str, &str>)] = &[
         ("", Ok("")),
         ("5:1|2,7:3|0", Ok("5=1/2;7=3/0")),

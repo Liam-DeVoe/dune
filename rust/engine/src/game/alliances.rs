@@ -117,7 +117,7 @@ impl Game {
     }
 
     pub fn break_all_alliances(&mut self) {
-        // ToList: snapshot, then re-check HasAlly per player.
+        // A snapshot: breaking one alliance also ends the ally's, so check each player again.
         let players: Vec<PlayerId> =
             self.player_indices().filter(|p| self.player(*p).has_ally()).collect();
         for p in players {

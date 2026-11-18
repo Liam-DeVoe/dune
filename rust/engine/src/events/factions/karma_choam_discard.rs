@@ -49,7 +49,8 @@ impl EventRules for KarmaChoamDiscard {
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let me = by.player();
-        // C# parity: plays the first valid Karama card, not the validated CardToUse.
+        // Known quirk (known-issues.md): plays the first valid Karama card, not the validated
+        // `card_to_use`.
         let card = Karma::valid_karma_cards(game, me).into_iter().next();
         let cards = self.cards();
         let parts = Self::cards_parts(&cards);

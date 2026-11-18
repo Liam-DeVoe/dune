@@ -50,7 +50,7 @@ pub struct Session {
 }
 
 /// A call that failed in a way the trace can't describe further: the game ends there. The
-/// reference records one when its engine panics outside a C#-style exception.
+/// reference records one when its engine panics in a way it doesn't catch.
 pub struct Panicked(pub String);
 
 /// Runs `f`. A panic is an error of the call, with the panic's message: the server catches a

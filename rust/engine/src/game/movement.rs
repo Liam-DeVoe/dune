@@ -149,7 +149,7 @@ impl Game {
     }
 }
 
-/// Where the last shipment or move took forces (`LocationEvent.To` of the event C# kept).
+/// Where the last shipment or move took forces.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ShipmentOrMovement {
     pub to: Option<Location>,
@@ -269,7 +269,6 @@ impl Game {
             let mut total_number_of_forces = 0;
             let mut total_number_of_special_forces = 0;
 
-            // forceLocations is a local dictionary that nothing modifies, so the lazy Where can be collected.
             let in_territory: Vec<(Location, Battalion)> = force_locations
                 .iter()
                 .filter(|(k, _)| k.territory() == from_territory)
@@ -278,7 +277,8 @@ impl Game {
             for fl in in_territory {
                 if fl.1.total_amount_of_forces() > 0 {
                     self.perform_move_from_location(initiator, fl.0, &fl.1, to, &mut total_number_of_forces, &mut total_number_of_special_forces, false)?;
-                    // C# parity: Sandmaster is applied per source location.
+                    // Known quirk (known-issues.md): Sandmaster is applied per source location, so
+                    // forces moved from two sectors of one territory collect its spice twice.
                     self.check_sandmaster(initiator, to, dist, fl)?;
                 }
             }
@@ -1067,7 +1067,7 @@ impl Interrupt {
     /// The intrusion of `kind` caused by `cause`. Only an ambassador keeps the Bene Gesserit
     /// accompanying a shipment as its cause. A Bene Gesserit intrusion or a terror token counts
     /// as caused by the shipment itself, so the game goes on from the shipment step when it is
-    /// answered (C# parity).
+    /// answered.
     pub fn intrusion(kind: IntrusionType, cause: IntrusionCause) -> Interrupt {
         let cause = match (kind, cause) {
             (IntrusionType::Ambassador, _) => cause,
@@ -1113,8 +1113,8 @@ impl GameStatus {
     /// The status while an intrusion waits for its answer.
     fn intrusion_status(g: &Game, kind: IntrusionType, cause: IntrusionCause) -> GameStatus {
         match kind {
-            // C# parity: after a worm ride, the territory comes from `LastShipmentOrMovement!`,
-            // which must be there.
+            // After a worm ride, the territory comes from the last shipment or movement, which
+            // the ride has just set.
             IntrusionType::BeneGesseritIntrusion if matches!(cause, IntrusionCause::WormRideA | IntrusionCause::WormRideB) => {
                 let t = g.turn.last_shipment_or_movement.as_ref().expect("last shipment or movement").to_location(g).map(|l| l.territory());
                 let a = express!("Please decide what to do in response to an intrusion of ", t, "; be fighters or advisors?");

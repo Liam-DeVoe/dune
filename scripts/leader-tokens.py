@@ -3,7 +3,7 @@
 # ///
 """Draws each leader's strength in a badge on its token.
 
-The original token art (the person*.png and .gif files of the C# client) has the
+The original token art (person*.png and .gif, removed from the tree; they are in git history before commit f794887) has the
 strength printed on the disc beside the portrait. design/leader-tokens/clean/
 holds the same tokens with that number retouched out by hand, one
 leader<id>.png per leader. This shrinks each clean token a little and draws

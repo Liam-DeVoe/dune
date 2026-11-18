@@ -36,12 +36,12 @@ impl Battalion {
         self.forces() + self.special_forces()
     }
 
-    /// A Game Error if the battalion would have fewer than zero forces. C# ignored such a change.
+    /// A Game Error if the battalion would have fewer than zero forces.
     pub fn change_forces(&mut self, amount: i32) -> GameResult {
         crate::game::amounts::change(&mut self.amount_of_forces, amount, "forces")
     }
 
-    /// A Game Error if the battalion would have fewer than zero special forces. C# ignored such a change.
+    /// A Game Error if the battalion would have fewer than zero special forces.
     pub fn change_special_forces(&mut self, amount: i32) -> GameResult {
         crate::game::amounts::change(&mut self.amount_of_special_forces, amount, "special forces")
     }

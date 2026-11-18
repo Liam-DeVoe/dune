@@ -3,14 +3,13 @@
 //!
 //! The lobby protocol carries enums as member names (protocol.md, Encoding), as the skin and the
 //! view do. This file gives the client, per enum it meets in the lobby, every member's name,
-//! number and `DefaultSkin` description. The numbers are for the game settings the browser
-//! remembers, which it stores in the C# format. It also has the static tables the lobby screens
-//! need: `EstablishPlayers.AvailableFactions`,
-//! `GetMaximumNumberOfPlayers`, `GetMaximumNumberOfTurns`, `AvailableRuleGroups`,
-//! `Game.GetAvailableRulesets`, `Game.RulesetDefinition`, `Game.GetRulesInGroup` and
-//! `Game.LatestVersion`.
+//! number and default skin description. The numbers are for the game settings the browser
+//! remembers, which it stores by number, so settings saved by earlier versions of the site still
+//! load. It also has the static tables the lobby screens need: the available factions, the
+//! maximum numbers of players and turns, the rule groups, the rulesets and their rules, the rules
+//! in each group, and `Game::LATEST_VERSION`.
 //!
-//! Texts come from `DefaultSkin`, which the lobby shows when no custom skin is stored.
+//! Texts come from the default skin, which the lobby shows when no custom skin is stored.
 
 use std::collections::BTreeMap;
 
@@ -27,9 +26,9 @@ use ts_rs::TS;
 pub struct EnumMember {
     /// The member name, as the view and the skin JSON use it.
     pub name: String,
-    /// The C# member value.
+    /// The member's number.
     pub value: i32,
-    /// `Skin.Describe(value)` with the default skin.
+    /// The member described by the default skin.
     pub label: String,
 }
 
@@ -66,7 +65,7 @@ pub struct LobbyData {
     pub rule_group: BTreeMap<String, String>,
 }
 
-/// The skin's label of a member, or of the C# `None` member of a closed enum (`None`).
+/// The skin's label of a member, or of the absent member of a closed enum (`None`).
 fn label<T: PartEnum>(v: Option<T>) -> String {
     treachery_skin::default_skin().describe(&T::part(v))
 }
@@ -75,8 +74,8 @@ fn members<T: PartEnum>() -> Vec<EnumMember> {
     members_with(label::<T>)
 }
 
-/// Every member in value order, with the C# `None` member of a closed enum first (as `None`), as the
-/// lobby always listed them.
+/// Every member in value order, with the absent member of a closed enum first (as `None`), so the
+/// lobby can name and number it.
 fn members_with<T: GameEnum>(label: impl Fn(Option<T>) -> String) -> Vec<EnumMember> {
     with_absent::<T>().map(|v| EnumMember { name: name_or_absent(v), value: value_or_absent(v), label: label(v) }).collect()
 }

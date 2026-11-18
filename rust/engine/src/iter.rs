@@ -1,7 +1,6 @@
 //! Iterator helpers that std doesn't have.
 
-/// `contains` for a value that may be absent, which is in no list (C#'s `None` member was in no
-/// list in a valid game).
+/// `contains` for a value that may be absent. An absent value is in no list.
 pub trait ContainsOpt<T> {
     fn contains_opt(&self, v: Option<T>) -> bool;
 }

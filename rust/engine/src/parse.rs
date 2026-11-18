@@ -1,9 +1,9 @@
 //! Numbers and enum names that events carry as text: force lists, id lists, deal and
 //! Clairvoyance parameters.
 //!
-//! The grammar and the error messages are those of the C# version's `int.Parse`, `float.Parse`
-//! and `Enum.Parse`, because a refused Clairvoyance question or deal shows the message to the
-//! player. Only ASCII whitespace (tab to carriage return, and space) is skipped, and trailing
+//! A refused Clairvoyance question or deal shows the error message to the player, so the
+//! grammar and the messages stay fixed. They follow .NET's `int.Parse`, `float.Parse` and
+//! `Enum.Parse`. Only ASCII whitespace (tab to carriage return, and space) is skipped, and trailing
 //! `'\0'`s are allowed.
 
 /// Why a text isn't a valid value: a kind (`"FormatException"`, `"OverflowException"`,

@@ -29,8 +29,8 @@ impl EventRules for ResourcesTransferred {
         if !ResourcesTransferred::may_transfer(game, by.player()) {
             return Err(Rejection(express!("You currently can't transfer ", Concept::Resource)));
         }
-        // Not in C#, which let a player give away spice they still had to pay for a bid
-        // (escapes.md, "Forces below zero").
+        // Spice still owed for a bid can't be given away, or paying the bid would take the
+        // player below zero (escapes.md, "Forces below zero").
         if !game.may_give_away_spice(by.player(), i32::from(self.resources)) {
             return Err(Rejection(express!("You need that spice to pay your bid")));
         }

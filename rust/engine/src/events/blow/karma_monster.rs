@@ -37,7 +37,7 @@ impl EventRules for KarmaMonster {
     }
 
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
-        // Arguments in C# order: Player, the karma card, then the effect (which reads Territory).
+        // The event names no card, so the first valid Karama card is played.
         let me = by.player();
         let card = Karma::valid_karma_cards(game, me).next();
         let effect = vec![Part::from("send "), Part::from(Concept::Monster), Part::from(" to "), Part::from(self.territory)];

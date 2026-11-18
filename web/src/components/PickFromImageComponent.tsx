@@ -1,4 +1,4 @@
-// GenericComponents/PickFromImageComponent.razor: an image (or a "?" disc) that opens a modal of
+// An image (or a "?" disc) that opens a modal of
 // images to pick from. The first entry of the modal is the "?" disc, which picks nothing.
 import { useId, type ReactNode } from "react";
 import { supportRound } from "../text";

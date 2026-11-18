@@ -98,7 +98,7 @@ impl GameStatus {
                 Self::players_status("You may now assign a skill to a leader.", "Waiting for factions to assign leader skills...", players, None)
             }
 
-            // DiscardingTraitor, the one phase C# had no status for, and the guarded phases above.
+            // DiscardingTraitor and the guarded phases above.
             // Each phase state has its own function, in the file of its topic.
             _ => Self::setup_status(game, me_, phase)
                 .or_else(|| Self::storm_status(game, me_, phase))
@@ -125,9 +125,8 @@ impl GameStatus {
         result
     }
 
-    /// The `Status(Message, Message, game.ShipmentAndMoveSequence.GetPlayersInSequence().ToList(),
-    /// game.FindMostRecentEvent(typeof(EndPhase), typeof(GuildDelay), typeof(Move)))` tail shared by the
-    /// Ship & Move arms. Arguments are evaluated in the order written.
+    /// The status shared by the Ship & Move arms: the players in shipment order, and the latest
+    /// `EndPhase`, `GuildDelay` or `Move`.
     pub(crate) fn status_ship_and_move(g: &Game, a: Message, w: Message) -> GameStatus {
         let seq = g.shipment_and_move_sequence().expect("shipment and move sequence").get_players_in_sequence(g).collect();
         let latest = g.find_most_recent_event(vec![EventType::EndPhase, EventType::GuildDelay, EventType::Move]);
@@ -164,7 +163,8 @@ impl GameStatus {
     pub fn ally(g: &Game, f: Faction) -> MessagePart {
         let player = g.get_player(Some(f));
         let cond = player.is_some_and(|p| g.player(p).has_ally());
-        // C# parity: the ally is read even when the condition is false, so a missing player panics.
+        // Callers pass a faction that is playing; a missing player panics even when the
+        // condition is false.
         express_part_if!(cond; g.player(player.expect("player")).ally)
     }
 
@@ -358,7 +358,7 @@ impl GameStatus {
             return result;
         }
 
-        // C# parity: BattleWinner is a Faction?, so a null winner passes this check and flashes "null win!".
+        // A battle without a winner flashes nothing here.
         if let Some(winner) = g.battle_winner().filter(|_| g.phase() == Phase::BattleConclusion) {
             Self::flash(&mut result, express!(Some(winner), " win!"), Some(winner));
             return result;

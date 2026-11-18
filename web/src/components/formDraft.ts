@@ -1,16 +1,16 @@
-// What every action form does with its inputs when a new view arrives. A C# component keeps its
-// fields for as long as it stays on screen: a game update redraws it but doesn't reset it. The
-// forms here do the same. React keeps a form mounted while ActionPanel renders it under the same
-// key (its event type), and the form keeps its draft across views. After each view the form
+// What every action form does with its inputs when a new view arrives. A form keeps its inputs
+// for as long as it stays on screen: a game update redraws it but doesn't reset it, so another
+// player's move doesn't wipe what the player was entering. React keeps a form mounted while
+// ActionPanel renders it under the same key (its event type), and the form keeps its draft across views. After each view the form
 // sends the kept draft back as a draft query, so the server adjusts it to the new game (an input
 // that no longer applies is dropped) and validates it again. A kept draft therefore never goes
 // stale without the server seeing it.
 //
 // A draft is dropped, and the form starts over from the view's options, when the form leaves the
 // screen (it unmounts), when the server's answer is for another form, or when the viewer's seat
-// changes (the inputs were another player's). Forms whose C# component resets part of its input
-// when the game is replaced (undo or load: ShipmentComponent's and PlacementComponent's
-// ResetSelection) do that themselves on a "replaced" change.
+// changes (the inputs were another player's). Forms that reset part of their input when the game
+// is replaced (undo or load: the shipment and placement forms drop their map selection) do that
+// themselves on a "replaced" change.
 import { useEffect, useRef, useState } from "react";
 import type { ActionOptions } from "../generated/ActionOptions";
 import type { ActionView } from "../generated/ActionView";
@@ -88,7 +88,7 @@ export function useViewChanges(onChange: (change: ViewChange) => void): void {
 type WithDraft = Extract<ActionOptions, { draft: Record<string, unknown> }>;
 
 // The state of a form whose options carry its draft (`options.draft`: the event with the inputs as
-// the C# component shows them, after the server's render-time adjustments). `draft` holds the
+// the form shows them, after the server's adjustments). `draft` holds the
 // draft's inputs (`fieldsOf`). An input change shows at once and asks the server again; answers to
 // older queries are dropped. A new view keeps the draft and asks for it again (see the top of
 // this file).

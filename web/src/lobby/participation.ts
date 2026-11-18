@@ -1,22 +1,23 @@
-// The game's Participation as the C# client kept it (Shared/Model/Participation.cs), with the
-// changes Game_Participation.cs makes when the server's notifications arrive (joinGame, observeGame,
-// removeUser, setOrUnsetHost, openOrCloseSeats, assignSeats).
+// The game's participation (who plays, observes and hosts), with the changes the server's
+// notifications make to it (joinGame, observeGame, removeUser, setOrUnsetHost, openOrCloseSeats,
+// assignSeats).
 //
-// The lobby screens list users in dictionary order (JoinedPlayersPanel, SeatPlayersComponent), so
-// the dictionaries keep .NET's Dictionary order: insertion order, except that a key added after a
-// removal takes the removed key's slot. A participation received whole (GameInitInfo, loadGame,
-// assignSeats) comes as [key, value] pairs in the server's order. Known limit: the server's
-// dictionary may have a free slot from an earlier removal, which the pairs don't show, so the
-// next user to join is listed last here and in that slot on the server.
+// The lobby screens list users in dictionary order (JoinedPlayersPanel, SeatPlayersComponent). A
+// participation received whole (GameInitInfo, loadGame, assignSeats) comes as [key, value] pairs in
+// the server's order, which is insertion order.
+// Known quirk (known-issues.md): SlotDict gives a key added after a removal the removed key's
+// slot, where the server (rust/server/src/participation.rs, IndexMap with shift_remove) lists it
+// last. So a user who joins after someone left can be listed in a different place after a reload.
 import type { IntDict, ParticipationInfo } from "./types";
 
-/** A .NET `Dictionary<int, V>`: enumeration order with free-slot reuse. */
-export class NetDict<V> {
+/** A map from numbers, in insertion order, except that a key added after a removal takes the
+ * removed key's slot. */
+export class SlotDict<V> {
   private entries: ([number, V] | null)[] = [];
   private free: number[] = [];
 
-  static from<V>(pairs: IntDict<V> | null | undefined): NetDict<V> {
-    const d = new NetDict<V>();
+  static from<V>(pairs: IntDict<V> | null | undefined): SlotDict<V> {
+    const d = new SlotDict<V>();
     for (const [k, v] of pairs ?? []) d.set(k, v);
     return d;
   }
@@ -68,8 +69,8 @@ export class NetDict<V> {
     return this.items();
   }
 
-  clone(): NetDict<V> {
-    const d = new NetDict<V>();
+  clone(): SlotDict<V> {
+    const d = new SlotDict<V>();
     d.entries = this.entries.map((e) => (e ? [e[0], e[1]] : null));
     d.free = [...this.free];
     return d;
@@ -77,8 +78,8 @@ export class NetDict<V> {
 }
 
 export class Participation {
-  playerNames: NetDict<string>;
-  seatedPlayers: NetDict<number>;
+  playerNames: SlotDict<string>;
+  seatedPlayers: SlotDict<number>;
   observers: Set<number>;
   hosts: Set<number>;
   availableSeats: Set<number>;
@@ -86,8 +87,8 @@ export class Participation {
   botsSpeed: number;
 
   constructor(json: ParticipationInfo | null | undefined) {
-    this.playerNames = NetDict.from(json?.playerNames);
-    this.seatedPlayers = NetDict.from(json?.seatedPlayers);
+    this.playerNames = SlotDict.from(json?.playerNames);
+    this.seatedPlayers = SlotDict.from(json?.seatedPlayers);
     this.observers = new Set(json?.observers ?? []);
     this.hosts = new Set(json?.hosts ?? []);
     this.availableSeats = new Set(json?.availableSeats ?? []);
@@ -107,12 +108,12 @@ export class Participation {
     return p;
   }
 
-  /** `Game.GetPlayerName(int userId)`. */
+  /** The name of a user. */
   playerName(userId: number): string {
     return this.playerNames.get(userId) ?? "?";
   }
 
-  /** `Game.UserIdInSeat`. */
+  /** The user in a seat. */
   userIdInSeat(seat: number): number {
     for (const [userId, s] of this.seatedPlayers.items()) if (s === seat) return userId;
     return -1;
@@ -126,19 +127,19 @@ export class Participation {
     return userId != null && this.observers.has(userId);
   }
 
-  /** `Game.SeatIsAvailable`. */
+  /** Whether a seat is open. */
   seatIsAvailable(seat: number): boolean {
     return this.availableSeats.has(seat);
   }
 
-  /** `Game.ObserverNames`. */
+  /** The observers' names. */
   observerNames(): string[] {
     return this.playerNames.items().filter(([id]) => this.observers.has(id)).map(([, n]) => n);
   }
 
-  // The notification handlers (Client.cs Handle*, through Game_Participation.cs).
+  // The server's notifications.
 
-  /** `Game.AddPlayer` (HandleJoinGame). */
+  /** joinGame. */
   addPlayer(userId: number, name: string, seat: number): void {
     this.seatedPlayers.set(userId, seat);
     this.playerNames.set(userId, name);
@@ -146,13 +147,13 @@ export class Participation {
     this.observers.delete(userId);
   }
 
-  /** `Game.AddObserver` (HandleObserveGame). */
+  /** observeGame. */
   addObserver(userId: number, name: string): void {
     this.observers.add(userId);
     this.playerNames.set(userId, name);
   }
 
-  /** `Game.RemoveUser` (HandleRemoveUser). */
+  /** removeUser. */
   removeUser(userId: number, kick: boolean): void {
     this.seatedPlayers.delete(userId);
     this.observers.delete(userId);
@@ -161,20 +162,20 @@ export class Participation {
     if (kick) this.kicked.add(userId);
   }
 
-  /** `Game.OpenOrCloseSeat` (HandleOpenOrCloseSeats, once per seat). */
+  /** openOrCloseSeats, once per seat. */
   openOrCloseSeat(seat: number): void {
     if (this.availableSeats.has(seat)) this.availableSeats.delete(seat);
     else this.availableSeats.add(seat);
   }
 
-  /** `Game.SetOrUnsetHost` (HandleSetOrUnsetHost). */
+  /** setOrUnsetHost. */
   setOrUnsetHost(userId: number): void {
     if (this.hosts.has(userId)) this.hosts.delete(userId);
     else this.hosts.add(userId);
   }
 
-  /** HandleAssignSeats: `Participation.SeatedPlayers = assignment`. */
+  /** assignSeats: the assignment replaces the seated players. */
   assignSeats(assignment: IntDict<number>): void {
-    this.seatedPlayers = NetDict.from(assignment);
+    this.seatedPlayers = SlotDict.from(assignment);
   }
 }

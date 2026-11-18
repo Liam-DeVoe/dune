@@ -11,8 +11,8 @@ use treachery_engine::messages::part::Part;
 
 // ---------------------------------------------------------------- part.rs / message.rs
 
-/// A strength prints as C# printed the `float` it replaces: whole numbers without a decimal
-/// point, halves with ".5", and the sign before both.
+/// A strength prints whole numbers without a decimal point, halves with ".5", and the sign before
+/// both.
 #[test]
 fn strength_plain_text() {
     use treachery_engine::game::HalfPoints;
@@ -21,9 +21,9 @@ fn strength_plain_text() {
     }
 }
 
-/// Floors and halves of negative amounts round the way `Math.Floor` and `Math.Ceiling` did.
+/// Halving rounds as float `ceil`, truncation and `floor` do, negative amounts included.
 #[test]
-fn halves_round_like_dotnet() {
+fn halves_round_like_float_ceil_truncate_and_floor() {
     use treachery_engine::game::half_points::{half_rounded_toward_zero, half_rounded_up};
     use treachery_engine::game::HalfPoints;
     for n in -9..=9 {

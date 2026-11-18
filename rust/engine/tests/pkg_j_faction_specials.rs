@@ -76,7 +76,7 @@ fn karma_choam_discard_plays_first_karma_card_not_the_selected_one() {
     assert!(bad.validate(&g, by).is_err());
 
     e.apply(&mut g, by).unwrap();
-    // C# parity: k1 (the first valid card) is played, k2 stays in hand.
+    // Known quirk (known-issues.md): k1 (the first valid card) is played, k2 stays in hand.
     let hand = &g.player(choam).treachery_cards;
     assert!(!hand.contains(&k1));
     assert!(hand.contains(&k2));
@@ -106,8 +106,7 @@ fn moritani_betrayal_without_a_token_returns_nothing() {
     assert!(e.validate(&g, by).is_err());
     let unplaced = g.board.unplaced_terror_tokens.clone();
     e.apply(&mut g, by).unwrap();
-    // C# added `TerrorType.None` to the unplaced tokens here. Since rewrite-plan.md 2d there is no
-    // such token, so nothing is added.
+    // There is no token to return, so nothing is added to the unplaced tokens.
     assert_eq!(g.board.unplaced_terror_tokens, unplaced);
 }
 
@@ -121,7 +120,7 @@ fn moritani_betrayal_picks_in_the_order_tokens_were_placed() {
     g.board.terror_on_planet.insert_new(TerrorType::Assassination, t);
     g.board.terror_on_planet.insert_new(TerrorType::Atomics, other);
     g.board.terror_on_planet.insert_new(TerrorType::Robbery, t);
-    // A token placed after a removal goes last. (.NET's Dictionary put it in the freed slot, first.)
+    // A token placed after a removal goes last.
     g.board.terror_on_planet.shift_remove(&TerrorType::Assassination);
     g.board.terror_on_planet.insert_new(TerrorType::Sabotage, t);
     assert_eq!(g.terror_in(t).collect::<Vec<_>>(), vec![TerrorType::Robbery, TerrorType::Sabotage]);
@@ -157,7 +156,7 @@ fn nexus_tleilaxu_secret_ally_cost_is_never_paid() {
     assert_eq!(e.determine_tleilaxu_cost(), 2);
     let by = By::new(&g, Faction::Atreides);
     let _ = outcome(|| e.apply(&mut g, by));
-    // C# parity: validated against resources, never deducted.
+    // Known quirk (known-issues.md): validated against resources, never deducted.
     assert_eq!(i32::from(g.player(atreides).resources), 10);
     assert_eq!(g.player(atreides).forces_killed, 1);
 }
@@ -293,11 +292,11 @@ fn choam_karma_prevention_uses_kull_wahad() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn clairvoyance_parameters_parse_like_dotnet() {
+fn clairvoyance_parameters_parse_numbers_and_names() {
     let g = game_with(&[Faction::Atreides, Faction::Emperor]);
     let mut e = ClairVoyancePlayed::default();
     e.question = Some(ClairvoyanceQuestion::DialOfMoreThanXInBattle);
-    // "1,5" is 15 under the invariant culture (thousands separator).
+    // A comma is read as a thousands separator, so "1,5" is 15.
     e.question_parameter1 = Some("1,5".to_string());
     assert_eq!(e.parameter1(&g), treachery_engine::messages::part::Part::Strength(treachery_engine::game::HalfPoints::whole(15)));
     e.question_parameter1 = Some("2.5".to_string());
@@ -337,7 +336,7 @@ fn clairvoyance_answer_without_question_stores_qna_then_fails() {
     // No clairvoyance was played, so there is no question to answer.
     let by = By::new(&g, Faction::Emperor);
     assert!(e.apply(&mut g, by).is_err());
-    // C#: `new ClairVoyanceQandA(Game.LatestClairvoyance!, this)` and the log run first.
+    // The answer is stored and logged before the missing question fails the event.
     let qna = g.turn.latest_clairvoyance_qn_a.as_ref().unwrap();
     assert!(qna.question.is_none());
     assert_eq!(g.current_report().messages.len(), reports_before + 1);

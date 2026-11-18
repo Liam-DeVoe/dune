@@ -1,4 +1,4 @@
-// The forms of package 7e by options form (OtherComponents/ActionPanel.razor's switch for these
+// The forms of package 7e by options form (ActionPanel's switch for these
 // event types). `otherForm` returns null for forms of other packages. TradePopover and
 // CardPlayPopover draw the same forms with `inPopover`.
 import type { ActionView } from "../../generated/ActionView";
@@ -64,7 +64,7 @@ const forms: Record<string, (p: FormProps) => React.ReactNode> = {
   RicheseSpecifiesAuction: RicheseSpecifiesAuctionForm,
 };
 
-// CardPlays.cs `Trade.Actions`: these open from the menu bar (TradePopover), not the side column.
+// The trade actions: these open from the menu bar (TradePopover), not the side column.
 export const TRADE_ACTIONS = ["DealOffered", "Donated", "AllyPermission"];
 
 // The form for one action of this package, or null. EndPhase's Simple options are the prompt's

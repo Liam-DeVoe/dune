@@ -1,9 +1,7 @@
-//! Text helpers that `Skin` calls: HTML encoding as .NET's `WebUtility.HtmlEncode` does it, and
-//! the spice icon replacement.
+//! Text helpers that `Skin` calls: HTML encoding and the spice icon replacement.
 
-/// `System.Net.WebUtility.HtmlEncode(text)`: `<`, `>`, `&`, `"` and `'` become entities, and so
-/// does every character from U+00A0 to U+00FF and every character outside the BMP (a
-/// surrogate pair in .NET), as `&#N;`.
+/// `<`, `>`, `&`, `"` and `'` become entities, and so does every character from U+00A0 to U+00FF
+/// and every character outside the BMP, as `&#N;`.
 pub fn html_encode(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
@@ -22,14 +20,13 @@ pub fn html_encode(text: &str) -> String {
     out
 }
 
-/// A character of .NET's `\w`: letters, marks, digits and connector punctuation. The skin
-/// texts this runs on are ASCII apart from a few accented letters, which `char::is_alphanumeric`
-/// classifies the same way.
+/// A word character (`\w`): letters, marks, digits and connector punctuation. The skin texts
+/// this runs on are ASCII apart from a few accented letters.
 fn is_word_char(c: char) -> bool {
     c.is_alphanumeric() || c == '_' || c == '\u{200c}' || c == '\u{200d}'
 }
 
-/// .NET's `\d`: a Unicode decimal digit. The skin texts only contain ASCII digits.
+/// A digit (`\d`). The skin texts only contain ASCII digits.
 fn is_digit(c: char) -> bool {
     c.is_ascii_digit()
 }
@@ -42,7 +39,7 @@ fn is_boundary(chars: &[char], i: usize) -> bool {
 }
 
 /// Case-insensitive match of the ASCII-or-not word `word` at `chars[i..]`, comparing simple
-/// lowercase mappings as `RegexOptions.IgnoreCase` does under the invariant culture.
+/// lowercase mappings.
 fn matches_at(chars: &[char], i: usize, word: &str) -> Option<usize> {
     let mut j = i;
     for w in word.chars() {

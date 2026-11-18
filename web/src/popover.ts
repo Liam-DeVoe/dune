@@ -1,6 +1,5 @@
-// Bootstrap popovers, as the C# client's index.html drives them (EnablePopover, RefreshPopover,
-// RemovePopover, PopoverOptions). Bootstrap itself is the C# client's bundle,
-// /js/bootstrap.bundle.min.js, loaded by index.html, so popovers look and place as in C#.
+// Bootstrap popovers: enabling, refreshing and removing them, with the shared options. Bootstrap
+// itself is /js/bootstrap.bundle.min.js, loaded by index.html.
 import { useEffect, useRef, type RefObject } from "react";
 
 interface BootstrapPopover {
@@ -57,7 +56,7 @@ function listen() {
   window.addEventListener("blur", () => document.body.classList.remove("shift-held"));
 }
 
-// The attributes C# RichText.razor and Image.razor put on an element with a rich popover.
+// The attributes that give an element of rich text or an image a rich popover.
 export function popoverAttributes(content: string, kind: "text" | "image"): Record<string, string> {
   return kind === "text"
     ? { "data-bs-trigger": "hover", "data-bs-toggle": "popover", "data-bs-html": "true", "data-bs-animation": "false", "data-bs-delay": "100", "data-container": "body", "data-bs-content": content }

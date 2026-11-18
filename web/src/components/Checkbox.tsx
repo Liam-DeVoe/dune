@@ -1,4 +1,3 @@
-// GenericComponents/CheckboxComponent.razor.
 import { useId, type ReactNode } from "react";
 
 export function Checkbox({ value, onChange, className = "", children }: {

@@ -1,6 +1,6 @@
-// The ring around the planet: MapComponents/Players.razor (each seat's token, ally, homeworlds and
+// The ring around the planet: Players (each seat's token, ally, homeworlds and
 // reserves, tech tokens, skilled leaders, ambassadors, No-Field, spice to collect, name) and
-// Bids.razor (each bidder's bid under their token).
+// Bids (each bidder's bid under their token).
 import type React from "react";
 import { PhaseValue } from "../../generated/enums";
 import type { PublicPlayer } from "../../generated/PublicPlayer";
@@ -163,7 +163,6 @@ export function Players() {
   return <div>{out}</div>;
 }
 
-// Bids.razor.
 export function Bids() {
   const b = useBoard();
   const v = b.view;

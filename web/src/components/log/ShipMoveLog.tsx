@@ -1,4 +1,4 @@
-// OtherComponents/Log/ShipMoveLog.razor: one block per faction turn, in acting order. Each block
+// One block per faction turn, in acting order. Each block
 // has a Ship (or Rally) row and a Move row, "passed" when the faction did nothing; a Hajr move
 // gets its own row. Bene Gesserit answers and forces lost follow the row that caused them, marked
 // +. The game logs storm losses before the shipment or move that caused them, so they wait for

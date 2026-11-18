@@ -10,6 +10,6 @@ export type AutomationRule = {
  */
 id: number, 
 /**
- * `GetDescription()`.
+ * `AutomationConfigured::get_description`.
  */
 description: Array<Part>, };

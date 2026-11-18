@@ -51,8 +51,8 @@ fn karma_free_revival_max_amounts() {
 
 #[test]
 fn raise_dead_without_a_player_panics() {
-    // C# dereferences the missing player. (A negative amount, which C# refused first, no longer
-    // decodes.)
+    // Validation needs the player. (A negative amount, which would be refused first, doesn't
+    // decode.)
     let g = game_with(&[Faction::Emperor]);
     let e = RaiseDeadPlayed::default();
     let r = catch_panic(|| e.validate(&g, By::NOBODY));

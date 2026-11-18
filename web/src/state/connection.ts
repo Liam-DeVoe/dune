@@ -5,9 +5,9 @@
 //   (web/src/protocol), so a call's arguments and reply are checked here.
 // - on(name, handler) receives notifications ({"notify","data"}): gameView, joinGame, ...
 // - When the socket closes, every pending call rejects and the connection reconnects after the
-//   delays of the C# client's RetryPolicy, and gives up after about an hour (`status`, for the
-//   board's Disconnection banner). onOpen handlers run again, so a game screen can call
-//   reconnectGame anew, as the C# client does after SignalR reconnects.
+//   delays of `retryDelay`, and gives up after about an hour (`status`, for the board's
+//   Disconnection banner). onOpen handlers run again, so a game screen calls reconnectGame anew:
+//   the new socket has to rejoin its game to get views again.
 // - The server knows who the user is per socket (protocol.md, Connection). A connection with a
 //   session (`setSession`, the token of a login) authenticates every new socket with it before
 //   anything else goes out. When the server says the session ended, onSessionEnded handlers
@@ -70,7 +70,8 @@ export function clearStoredSession(): void {
   localStorage.removeItem(SESSION_KEY);
 }
 
-/** The C# client's `Support.GetHash`: SHA-256 of the UTF-8 bytes as 64 lowercase hex digits. */
+/** SHA-256 of the UTF-8 bytes as 64 lowercase hex digits. The client sends this instead of the
+ * password, and the stored accounts were set up with it, so it can't change without a migration. */
 export async function hashPassword(password: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
   return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
@@ -82,7 +83,7 @@ type Handler = (data: never) => void;
  * the retry policy runs after the socket closed, "lost" once it gave up. */
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting" | "lost";
 
-/** RetryPolicy.cs: the delay before reconnection attempt `n` (from 0), in ms, or null to give
+/** The delay before reconnection attempt `n` (from 0), in ms, or null to give
  * up (about an hour after the disconnection). */
 export function retryDelay(n: number): number | null {
   if (n === 0) return 0;

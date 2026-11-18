@@ -135,7 +135,8 @@ fn charity_multiplier_and_cancellation() {
 
 #[test]
 fn charity_paid_even_when_choam_cannot_pay() {
-    // C# parity: the claimant gets the money before Choam's balance is checked.
+    // Known quirk (known-issues.md): the claimant gets the money before Choam's balance is
+    // checked, so it is paid even though the log says it can't claim it.
     let mut g = game_with(&[Faction::Emperor, Faction::Choam]);
     g.enter_charity(CharityStep::Claiming);
     let emperor = idx(&g, Faction::Emperor);

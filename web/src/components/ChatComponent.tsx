@@ -1,4 +1,4 @@
-// OtherComponents/ChatComponent.razor: the chat panel of the main page (Main.razor shows it in a
+// The chat panel of the main page (shown in a
 // HoverPanel beside the lobby and the game). It needs the connection's chat messages, the user's
 // id and the names of the users the server has seen, which the page that owns the connection
 // (the lobby client) has; so it takes them as props instead of reading the game view.

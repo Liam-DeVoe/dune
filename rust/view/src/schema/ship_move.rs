@@ -30,11 +30,11 @@ pub struct ForcesAt {
 #[serde(rename_all = "camelCase")]
 pub struct ShipmentWorld {
     pub location: i32,
-    /// `Name(world)`.
+    /// The world's name.
     pub label: String,
-    /// In `HomeworldsToShipFrom(Player, false)`.
+    /// In `Shipment::homeworlds_to_ship_from(game, p, false)`.
     pub normal: bool,
-    /// In `HomeworldsToShipFrom(Player, true)`.
+    /// In `Shipment::homeworlds_to_ship_from(game, p, true)`.
     pub special: bool,
     pub forces: i32,
     pub special_forces: i32,
@@ -81,7 +81,7 @@ pub struct ShipmentOptions {
     pub default_no_field_special_force_amount: i32,
     /// `Game.HasHighThreshold(Faction.Richese)`.
     pub richese_high_threshold: bool,
-    /// `HomeworldsToShipFrom(Player, false)` and `(Player, true)`, merged.
+    /// `Shipment::homeworlds_to_ship_from` for normal and special forces, merged.
     pub homeworlds: Vec<ShipmentWorld>,
     /// `Shipment.MaySmuggle(Game, Player, To)` for the draft's destination.
     pub may_smuggle: bool,
@@ -171,7 +171,7 @@ pub struct DiscoveryEnteredOptions {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
 pub struct AmbassadorActivatedOptions {
-    /// `AmbassadorActivated.GetAmbassador(Game)`, `GetVictim(Game)`.
+    /// `AmbassadorActivated::get_ambassador` and `get_victim`.
     #[ts(type = "Ambassador")]
     pub ambassador: String,
     #[ts(type = "Faction")]
@@ -348,7 +348,7 @@ pub struct SetShipmentPermissionOptions {
 pub struct TerrorPlantedOptions {
     /// `TerrorPlanted.MayRemoveTokens(Game, Player)`.
     pub may_remove: bool,
-    /// `ValidTerrorTypes(Game, true)` and `(Game, false)`.
+    /// `TerrorPlanted::valid_terror_types` to remove and to place.
     #[ts(type = "Array<TerrorType>")]
     pub remove_types: Vec<String>,
     #[ts(type = "Array<TerrorType>")]

@@ -57,7 +57,7 @@ impl Game {
         &mut self.log.report_list[last]
     }
 
-    /// Adds an event's message to the current report (`Event.Log()` in C#).
+    /// Adds an event's message to the current report.
     pub fn log_event(&mut self, message: Message) {
         self.current_report_mut().express_event(message);
     }

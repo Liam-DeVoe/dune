@@ -1,4 +1,4 @@
-/* GenericComponents/Image.razor.css, global here: only Image draws these classes. */
+/* Global: only Image draws these classes. */
 .image.shadowy {
   filter: drop-shadow(1px 1px 1px black);
 }

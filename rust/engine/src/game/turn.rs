@@ -266,7 +266,6 @@ impl Game {
     }
 
     pub fn clear_recent_payments(&mut self) {
-        // StoredRecentlyPaid = RecentlyPaid (a reference swap); RecentlyPaid = []
         self.turn.stored_recently_paid = std::mem::take(&mut self.turn.recently_paid);
     }
 

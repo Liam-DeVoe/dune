@@ -22,7 +22,7 @@ predictedFaction: Faction | null, predictedTurn: number | null,
  */
 nexus: Faction | null, 
 /**
- * `Game.NextStormMoves` while `HasStormPrescience(Player)` and the storm is dialled.
+ * `board.next_storm_moves` while `Game::has_storm_prescience` and the storm is dialled.
  */
 nextStormMoves: number | null, 
 /**

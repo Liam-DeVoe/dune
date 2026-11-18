@@ -1,4 +1,4 @@
-// OtherComponents/Log/BiddingLog.razor: one block per card, with the card number, the winner's
+// One block per card, with the card number, the winner's
 // pill and on the right the price, with "to [sigil]" under it when a faction was paid. A card won
 // with Karama shows the card played instead of a price. What follows from the sale hangs under
 // the block: an ally's share, the winner's private "You won" line, Harkonnen's extra card. Every

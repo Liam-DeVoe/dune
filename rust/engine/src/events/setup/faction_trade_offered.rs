@@ -17,7 +17,7 @@ impl FactionTradeOffered {
     pub fn remove_invalid_trade_offers(&self, game: &mut Game, by: By) {
         let initiator = by.faction;
         let target = self.target;
-        // C# removed each matching offer by reference; no two offers are equal, so this removes the same ones.
+        // Drops every open offer by or to either faction of the trade.
         game.setup_state().current_trade_offers.retain(|x| !(x.initiator == initiator || x.initiator == target));
     }
 }

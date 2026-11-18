@@ -201,16 +201,16 @@ impl Map {
         Location::all().iter().filter_map(|l| l.as_homeworld())
     }
 
-    /// `Territories(includeHomeworlds)`: `Locations(..).Select(l => l.Territory).Distinct()`
+    /// The territories of the locations, each once, in location order.
     pub fn territories(&self, include_homeworlds: bool) -> impl Iterator<Item = Territory> + Clone + 'static {
         Self::territories_static(include_homeworlds)
     }
 
-    /// `Territories` does not read map state, so code without a map can use this.
+    /// `territories` does not read map state, so code without a map can use this.
     pub fn territories_static(include_homeworlds: bool) -> impl Iterator<Item = Territory> + Clone + 'static {
         let mut last: Option<Territory> = None;
         // Locations of a territory are contiguous, so dropping repeats of the
-        // previous element is the same as Distinct (checked by the golden test).
+        // previous element keeps each territory once.
         Location::all()
             .iter()
             .copied()
@@ -300,8 +300,6 @@ impl Map {
     }
 
     fn determine_force_obstacles(f: Option<Faction>, game: &impl MapGame) -> Vec<Location> {
-        // Forces().Where(...).Select(kvp => kvp.Key).Distinct()
-        //   .Union(CurrentBlockedTerritories.SelectMany(t => t.Locations)).ToList()
         let first = game
             .forces_battalion_factions()
             .into_iter()

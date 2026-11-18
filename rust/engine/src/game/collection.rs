@@ -159,7 +159,8 @@ impl Game {
             let Some(occupier) = occupier else { return };
 
             crate::game::amounts::gain(&mut self.player_mut(occupier).resources, amount_lost, "spice").expect("income lost to the occupier");
-            // C# parity: logs "0 ... goes to occupier" whenever there is an occupier.
+            // Known quirk (known-issues.md): logs this even when nothing is lost, as
+            // "0 ... goes to <occupier>".
             let from_faction = self.player(from).faction;
             let occupier_faction = self.player(occupier).faction;
             self.log(parts![Payment::of(amount_lost), " received by ", from_faction, " goes to ", occupier_faction, " due to occupation"]);
@@ -205,7 +206,7 @@ impl Game {
         let processing_station = self.board.map.processing_station().location();
         let find_thief = |g: &Game| g.player_indices().find(|p| g.player(*p).occupies(g, Some(processing_station)));
 
-        // `.ToList()`: a snapshot of the pairs, in dictionary order.
+        // A snapshot of the pairs, in map order, because collecting changes the map.
         let snapshot: Vec<(Location, i32)> = self.board.resources_on_planet.iter().filter(|(_, v)| **v > 0).map(|(k, v)| (*k, i32::from(*v))).collect();
         for (key, value) in snapshot {
             let mut thief = find_thief(self);

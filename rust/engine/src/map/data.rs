@@ -184,7 +184,7 @@ pub(crate) static LOCATIONS: [LocationData; LOCATION_COUNT] = [
     LocationData { id: 104, territory: Territory::from_index(60), orientation: "", sector: Some(Sector::new(0)), spice_blow_amount: 0, discovery_token_type: None, kind: LocationKind::Discovered { discovery: DiscoveryToken::ProcessingStation } },
 ];
 
-/// `InitializeLocationNeighbours`: `_locations[a].Neighbours.Add(_locations[b])`, in order.
+/// The neighbour pairs of the map: `b` is added to `a`'s neighbours, in this order.
 pub(crate) static INITIAL_NEIGHBOURS: [(u8, u8); 380] = [
     (5, 2), (5, 50), (5, 43), (57, 58), (57, 64), (57, 2), (57, 3), (57, 0),
     (57, 4), (14, 19), (14, 11), (14, 18), (14, 13), (12, 9), (12, 85), (12, 15),

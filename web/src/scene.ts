@@ -1,7 +1,7 @@
 // Hooks for Playwright scripts that drive the /scene route (scripts/ui/e2e_server.py, screenshots):
 //
 //   <html data-scene="loading|ready|error">   ready once the scene has rendered
-//   <html class="scene-still">                 transitions and animations off (the C# _scene.scss rule)
+//   <html class="scene-still">                 transitions and animations off (web/styles/app/_scene.scss)
 //   window.treacheryScene.error                the error text when data-scene is "error"
 //   window.treacheryScene.locations            { "Carthag": {id, x, y}, ... } in map coordinates; empty until the board exists
 //   window.treacheryScene.click(name, opts)    click a location; rejects until the board exists

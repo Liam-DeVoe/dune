@@ -88,7 +88,7 @@ pub enum StoryBlock {
     },
     /// "Battle for <territory>".
     BattleFor { territory: i32 },
-    /// A milestone event: its initiator's image and `GetMessage()`.
+    /// A milestone event: its initiator's image and message.
     #[serde(rename_all = "camelCase")]
     Milestone {
         #[ts(type = "Faction")]
@@ -248,7 +248,7 @@ pub fn ending(game: &Game, s: &Seating, d: &dyn Describer) -> Option<EndingView>
     Some(EndingView { winners, story })
 }
 
-/// `yyyy-MM-dd HH:mm:ss "UTC"` of `ToUniversalTime()`.
+/// The time in UTC as `yyyy-MM-dd HH:mm:ss "UTC"`.
 fn utc(t: DateTimeOffset) -> String {
     let s = DateTimeOffset::new(t.utc_ticks(), 0).to_json_string();
     format!("{} {} UTC", &s[0..10], &s[11..19])

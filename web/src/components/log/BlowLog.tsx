@@ -1,4 +1,4 @@
-// OtherComponents/Log/BlowLog.razor: each spice card drawn is shown as the card, with its amount
+// Each spice card drawn is shown as the card, with its amount
 // and place beside it. A worm is an aside holding what it devoured, and the Nexus after it an
 // aside with the alliance changes and the Fremen ride. An alliance change is two faction chips
 // with a glyph between them; an offer that was accepted is folded into its alliance. With

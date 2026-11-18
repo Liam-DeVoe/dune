@@ -5,8 +5,8 @@ How `rust/engine` represents a game, and the rules to follow when you change it.
 ## Names and comments
 
 - Most engine code starts with `use crate::prelude::*;` (`prelude.rs`), which brings in the game, every event, the log records and the common types.
-- The rules were ported from a C# engine, and much of the code keeps that engine's names (in snake_case) and order. Where a C# overload had one name, the Rust names say how the versions differ: `Game::discard_card(card, log)` and `discard_card_of(player, card, log)`, `GameStatus::for_player` and `for_players`.
-- Comments describe the Rust code. Two kinds of comment mention the old engine, and you will meet both: `// Not in C#: ...` marks a deliberate difference, listed in [behavior-changes.md](behavior-changes.md), and `// C# parity: <why>` marks a bug that is kept on purpose. Mark a kept bug the same way.
+- Where two functions do nearly the same thing, the names say how they differ: `Game::discard_card(card, log)` and `discard_card_of(player, card, log)`, `GameStatus::for_player` and `for_players`.
+- Comments describe what the code does and why: the rule, what the client sends, what a replay depends on. Behavior that looks wrong but is kept for now is marked `// Known quirk (known-issues.md): <what it does>` and listed in [known-issues.md](known-issues.md#quirks-kept-from-the-c-version). Mark a new one the same way, and add it to that list.
 - A name that is a Rust keyword gets a trailing underscore: `card.type_()`.
 - `map/data.rs` and the enum declarations in `enumerations.rs` are edited by hand. `tests/static_data.rs` checks them against a snapshot.
 
@@ -98,7 +98,7 @@ game.board.map.arrakeen()
 
 A `ResourceCard`'s identity is its position in the full list of resource cards, so the six Shai-Hulud cards stay distinct.
 
-An event field that names one object holds the handle: `Shipment.to` is an `Option<Location>`, `Battle.hero` an `Option<Hero>`. Some event structs default such a field to the object with id 0 rather than `None` (`Move::default()` names location 0, and a default `Shipment` names card 0 as its Karama card), because the old engine left the id at 0. Leaders start at id 1001, so a leader field defaults to `None`.
+An event field that names one object holds the handle: `Shipment.to` is an `Option<Location>`, `Battle.hero` an `Option<Hero>`. Some event structs default such a field to the object with id 0 rather than `None` (`Move::default()` names location 0, and a default `Shipment` names card 0 as its Karama card), so an event whose JSON leaves the field out names object 0. So a `Shipment` without `karmaCard` names card 0, a Lasgun, and is refused as an invalid Karama shipment ([known-issues.md](known-issues.md#quirks-kept-from-the-c-version)). Leaders start at id 1001, so a leader field defaults to `None`.
 
 ### Absent values
 

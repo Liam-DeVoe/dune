@@ -162,9 +162,8 @@ impl DealOffer {
             && offered_deal.text == self.text
             && i32::from(offered_deal.benefit) == i32::from(self.benefit)
             && offered_deal.end_phase == self.end_phase
-            // C# parity: C# 14 binds `Faction[].SequenceEqual(Faction[])` to
-            // MemoryExtensions.SequenceEqual on spans, where a null array is an
-            // empty span. So null equals [] and nothing throws.
+            // An offer to nobody in particular may leave `to` out or send an empty list. Both
+            // mean the same.
             && offered_deal.to.as_deref().unwrap_or(&[]) == self.to.as_deref().unwrap_or(&[])
     }
 
@@ -274,7 +273,6 @@ impl Game {
         l.faction() != Some(Faction::Tleilaxu)
             && tleilaxu.is_some()
             && match l.as_leader() {
-                // Leaders.Contains(IHero): reference equality, so only a Leader can match.
                 Some(leader) => self.player(tleilaxu.expect("tleilaxu")).leaders.contains(&leader),
                 None => false,
             }
@@ -342,7 +340,7 @@ impl Deal {
 
     /// [`describe_deal_contents`](Self::describe_deal_contents),
     /// failing when the description needs a territory and `parameter1` isn't a number (where
-    /// that one panics like .NET's `int.Parse`).
+    /// that one panics).
     pub fn try_deal_contents_description(g: &Game, type_: DealType, text: Option<&str>, benefit: i32, end: Option<Phase>, parameter1: Option<&str>) -> GameResult<Message> {
         let uses_parameter = text.map_or(true, |t| t.chars().all(char::is_whitespace));
         if uses_parameter && type_ == DealType::DontShipOrMoveTo {

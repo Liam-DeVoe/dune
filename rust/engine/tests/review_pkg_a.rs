@@ -3,8 +3,8 @@
 use treachery_engine::game::{Game, Seat};
 
 /// The human seats outlive undo and restore: a seat the server gives a user after an undo is
-/// still a human's seat in the game that `RestoreRecentlyUndone` returns, as the server's
-/// participation, shared by both games in C#, said.
+/// still a human's seat in the game that `restore_recently_undone` returns, because the server
+/// seats users in whichever game is current.
 #[test]
 fn human_seats_survive_undo_and_restore() {
     let mut g = Game::of_version(Game::LATEST_VERSION);

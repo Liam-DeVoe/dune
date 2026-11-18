@@ -223,7 +223,7 @@ def play_scene(browser, base: str, shots: Path, name: str) -> None:
     check(scene.evaluate("document.documentElement.dataset.scene") == "ready", f"{name}: the scene opened on the server")
     scene.screenshot(path=str(shots / f"{name}.png"))
     panel = scene.locator(".player-panel")
-    check(panel.count() == 1 and panel.locator(".pp-bar").first.inner_text().strip().startswith("Emperor"),
+    check(panel.count() == 1 and panel.locator(".player-panel__bar").first.inner_text().strip().startswith("Emperor"),
           f"{name}: the scene user is seated, with the Emperor's player panel")
     check(scene.get_by_text("Offer a faction to form an Alliance").count() == 1, f"{name}: the Emperor's alliance form is shown")
     scene.evaluate("window.treacheryScene.button('Pass')")
@@ -283,7 +283,7 @@ def seat_row(page: Page, faction: str):
 
 
 def in_game_as(page: Page, faction: str) -> bool:
-    bar = page.locator(".player-panel .pp-bar").first
+    bar = page.locator(".player-panel__bar").first
     bar.wait_for(timeout=15000)
     return bar.inner_text().strip().startswith(faction)
 
@@ -433,7 +433,7 @@ def undo_last_event(alice: Page) -> None:
     """Alice picks the moment before the last event on the undo timeline and confirms."""
     alice.locator(titled(".toolbar button", "Menu")).click()
     alice.get_by_role("button", name="Undo…").click()
-    zones = alice.locator(".undo-timeline .track .zone")
+    zones = alice.locator(".undo-timeline__zone")
     zones.last.wait_for(timeout=15000)
     # The last zone is now; the one before it is the moment before the last event.
     zones.nth(zones.count() - 2).click()

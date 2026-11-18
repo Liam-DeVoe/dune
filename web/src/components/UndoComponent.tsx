@@ -45,8 +45,8 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
     const key = `${e.turn}/${e.phase}`;
     undone.push(
       <Fragment key={i}>
-        {group !== key && <div className="group">Turn {e.turn} · {phase(e.phase)}</div>}
-        <div className="line"><RichText parts={e.text} size={18} /></div>
+        {group !== key && <div className="undo__group">Turn {e.turn} · {phase(e.phase)}</div>}
+        <div className="undo__line"><RichText parts={e.text} size={18} /></div>
       </Fragment>,
     );
     group = key;
@@ -55,26 +55,26 @@ export function UndoComponent({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="panel undo mb-2">
-      <header>
-        <h5>Undo</h5>
-        <button className="btn-close btn-close-sm" title="Cancel" onClick={onClose}></button>
+      <header className="panel__header">
+        <h5 className="panel__title">Undo</h5>
+        <button className="btn-close" title="Cancel" onClick={onClose}></button>
       </header>
-      <div className="body">
+      <div className="panel__body undo__body">
         {atNow || !moment
-          ? <div className="empty">Drag the timeline under the map back to the moment you want to return to.</div>
+          ? <div className="undo__empty">Drag the timeline under the map back to the moment you want to return to.</div>
           : (
             <>
               <div>
-                <div className="kicker">Back to</div>
-                <div className="dest">Turn {moment.turn} · {phase(moment.phase)}</div>
+                <div className="undo__kicker">Back to</div>
+                <div className="undo__dest">Turn {moment.turn} · {phase(moment.phase)}</div>
               </div>
               <div>
-                <div className="kicker">Undone</div>
-                <div className="undone">{undone}</div>
+                <div className="undo__kicker">Undone</div>
+                <div className="undo__undone">{undone}</div>
               </div>
             </>
           )}
-        <div className="actions">
+        <div className="undo__actions">
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>{" "}
           <button className="btn btn-primary" disabled={atNow} onClick={confirm}>
             {atNow ? "Undo" : count === 1 ? "Undo 1 event" : `Undo ${count} events`}

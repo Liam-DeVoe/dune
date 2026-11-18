@@ -154,7 +154,7 @@ function headingIcon(skin: Skin, icon: string): string {
 }
 
 function asideClass(kind: string): string {
-  return kind === "Answer" ? "answer" : kind === "After" ? "after" : "";
+  return kind === "Answer" ? "log-aside--answer" : kind === "After" ? "log-aside--after" : "";
 }
 
 /** ReportComponent.Line: one message as the log draws it when no design takes it. */

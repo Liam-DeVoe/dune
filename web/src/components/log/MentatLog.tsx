@@ -22,7 +22,7 @@ export function MentatLog({ lines, line }: PhaseLogProps) {
           return (
             <Fragment key={i}>
               <div className="log-label mentat-bribes-label">Bribes collected</div>
-              <div className="log-cols mentat-bribes">
+              <div className="log-cols">
                 {bribes.map((b, j) => (
                   <Fragment key={j}>
                     <div><FactionChip faction={b.faction} /></div>
@@ -36,13 +36,13 @@ export function MentatLog({ lines, line }: PhaseLogProps) {
         if (i === ended && result) {
           return (
             <div key={i} className="mentat-result">
-              <div className="title">{plainText(l.text)}</div>
+              <div className="mentat-result__title">{plainText(l.text)}</div>
               {result.winners.length > 0 && (
-                <div className="winners">
-                  {result.winners.map((w, j) => <span key={j} className="winner"><FactionChip faction={w} /> win!</span>)}
+                <div className="mentat-result__winners">
+                  {result.winners.map((w, j) => <span key={j} className="mentat-result__winner"><FactionChip faction={w} /> win!</span>)}
                 </div>
               )}
-              {reason >= 0 && <div className="reason"><RichText parts={lines[reason].text} size={20} logStyle /></div>}
+              {reason >= 0 && <div className="mentat-result__reason"><RichText parts={lines[reason].text} size={20} logStyle /></div>}
             </div>
           );
         }

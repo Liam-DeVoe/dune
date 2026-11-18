@@ -175,19 +175,19 @@ function AllianceGlyph({ change }: { change: NexusAllianceChange }) {
   switch (change) {
     case "Made":
       return (
-        <svg className="nexus-glyph" viewBox="0 0 22 22" role="img" aria-label="allied with"><title>allied with</title>
+        <svg className="nexus-step__glyph" viewBox="0 0 22 22" role="img" aria-label="allied with"><title>allied with</title>
           <circle cx="8" cy="11" r="5" /><path d="M14 6a5 5 0 1 1 0 10" /><path d="M14 16a5 5 0 0 1-4.6-3" /><path d="M9.4 9A5 5 0 0 1 14 6" />
         </svg>
       );
     case "Offered":
       return (
-        <svg className="nexus-glyph" viewBox="0 0 22 22" role="img" aria-label="offer an alliance to"><title>offer an alliance to</title>
+        <svg className="nexus-step__glyph" viewBox="0 0 22 22" role="img" aria-label="offer an alliance to"><title>offer an alliance to</title>
           <path d="M3 11h11" strokeDasharray="2.2 2.6" /><path d="M13 6.5l5 4.5-5 4.5" />
         </svg>
       );
     default:
       return (
-        <svg className="nexus-glyph" viewBox="0 0 22 22" role="img" aria-label="ended their alliance with"><title>ended their alliance with</title>
+        <svg className="nexus-step__glyph" viewBox="0 0 22 22" role="img" aria-label="ended their alliance with"><title>ended their alliance with</title>
           <path d="M8.5 7.2A4.2 4.2 0 1 0 8.5 14.8" /><path d="M13.5 7.2A4.2 4.2 0 1 1 13.5 14.8" /><path d="M11 5.5v2.2M11 14.3v2.2M11 10v2" />
         </svg>
       );
@@ -219,15 +219,15 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
   const card = (c: RecordOf<"BlowCardLog">): ReactNode => (
     <div className="blow-card" data-ref-locations={placeId(c.location)}>
       <Hoverable popover={c.card.t === "resourceCard" ? resourceCardPopup(skin, c.card.id) : null}>
-        <img className={`card ${c.lost ? "lost" : ""}`} src={skin.url(skin.get("ResourceCardImage_URL", c.card.t === "resourceCard" ? c.card.id : -1))}
+        <img className={`card blow-card__img ${c.lost ? "blow-card__img--lost" : ""}`} src={skin.url(skin.get("ResourceCardImage_URL", c.card.t === "resourceCard" ? c.card.id : -1))}
           alt={"label" in c.card ? c.card.label : ""} />
       </Hoverable>
       <div>
-        <div className="big">
+        <div className="blow-card__big">
           <SpiceComponent amount={String(c.amount)} size={34} />
           {!c.lost && <span>detected in</span>}
         </div>
-        <div className="where">
+        <div className="blow-card__where">
           {c.lost
             ? <><span>in </span><PlacePart part={c.location} /><span> is lost in the storm</span></>
             : <><PlacePart part={c.location} />{c.doubled && <span>, doubled by {skin.concept("BabyMonster")}</span>}</>}
@@ -289,14 +289,14 @@ export function BlowLog({ lines, line, latest }: PhaseLogProps) {
             return <div key={i} className="blow-note"><RichText parts={item.line.text} size={18} logStyle /></div>;
           case "worm":
             return (
-              <div key={i} className="log-aside blow-worm" data-ref-locations={territoryLocations(item.territory)}>
+              <div key={i} className="log-aside" data-ref-locations={territoryLocations(item.territory)}>
                 {item.lines.map((m, j) => wormLine(m, j))}
               </div>
             );
           case "nexus":
             return (
               <div key={i} className="log-aside blow-nexus">
-                <div className="log-label">Nexus</div>
+                <div className="log-label blow-nexus__label">Nexus</div>
                 {item.lines.length === 0 && <div className="blow-none">No alliance changes</div>}
                 {item.lines.filter((m) => !accepted(m, item.lines)).map((m, j) => nexusLine(m, item.lines, j))}
               </div>

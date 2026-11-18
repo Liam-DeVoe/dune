@@ -1,34 +1,34 @@
 // Storm log design. See design/battle-log/log-matrix.html (Storm, column C).
 // The ring of 18 sectors: the swept stretch red, the sector the storm stopped
 // in darker, the one it started in faint. A hovered sector, or the sectors of
-// a hovered place box, light up (.hot).
+// a hovered place box, light up (--hot).
 
 .storm-ring {
   display: block;
   margin: 2px auto 4px;
 
-  .w {
+  &__wedge {
     fill: #2a1607;
     stroke: #1d0c00;
     stroke-width: 2;
     transition: fill 0.1s;
     cursor: pointer;
 
-    &.start { fill: rgba(195, 50, 50, 0.22); }
-    &.swept { fill: rgba(195, 50, 50, 0.55); }
-    &.end { fill: rgba(195, 50, 50, 0.8); }
-    &.hot { fill: rgba(252, 249, 209, 0.28); }
-    &.start.hot, &.swept.hot, &.end.hot { fill: #e05a4a; }
+    &--start { fill: rgba(195, 50, 50, 0.22); }
+    &--swept { fill: rgba(195, 50, 50, 0.55); }
+    &--end { fill: rgba(195, 50, 50, 0.8); }
+    &--hot { fill: rgba(252, 249, 209, 0.28); }
+    &--start#{&}--hot, &--swept#{&}--hot, &--end#{&}--hot { fill: #e05a4a; }
   }
 
-  .rim {
+  &__rim {
     fill: none;
     stroke: var(--gold);
     stroke-opacity: 0.6;
     stroke-width: 1.8;
   }
 
-  .arrow {
+  &__arrow {
     fill: none;
     stroke: var(--parchment);
     stroke-opacity: 0.85;
@@ -36,15 +36,15 @@
     stroke-linecap: round;
   }
 
-  marker path { fill: var(--parchment); }
+  &__head { fill: var(--parchment); }
 
-  .distance {
+  &__distance {
     font-family: var(--font-display);
     font-size: 38px;
     fill: var(--parchment);
   }
 
-  .label {
+  &__label {
     font-family: var(--font-label);
     font-size: 9px;
     letter-spacing: 2px;
@@ -61,18 +61,20 @@
   gap: 6px;
   color: var(--parchment);
 
-  .plus { margin: 0 2px; }
+  &__plus { margin: 0 2px; }
 }
 
+// A place box, on a .log-box.
 .storm-place {
   transition: background 0.1s;
 
-  &.hot {
+  &--hot {
     background: rgba(195, 50, 50, 0.22);
     border-color: rgba(195, 50, 50, 0.5);
   }
 
-  .lines > div {
+  // One loss, a direct child of the box's .log-box__lines.
+  &__loss {
     display: flex;
     align-items: center;
     flex-wrap: wrap;

@@ -6,7 +6,7 @@
   // Label column (SHIP, MOVE, +) and content column.
   &__rows {
     display: grid;
-    grid-template-columns: 38px 1fr;
+    grid-template-columns: minmax(44px, max-content) 1fr;
     gap: var(--s-0) var(--s-1);
     align-items: start;
     margin: var(--s-1) 0 0 var(--s-5);
@@ -19,6 +19,7 @@
   &__label {
     padding-top: var(--s-1);
     letter-spacing: 0.1em;
+    white-space: nowrap;
   }
 
   &__label--plus {

@@ -44,3 +44,16 @@ fn load_matches_the_snapshot() {
     }
     diffs.finish("Skin.Load");
 }
+
+/// A custom dictionary that lacks some keys keeps its own labels and takes the default skin's
+/// for the rest. It used to be replaced by the default skin's whole dictionary.
+#[test]
+fn a_partial_dictionary_keeps_its_labels() {
+    let input = r#"{"Concept_STR":{"Messiah":"Chosen One"}}"#;
+    let skin = Skin::load(input, default_skin()).unwrap();
+    let concepts: Value = serde_json::from_str(&skin.skin_to_string()).unwrap();
+    let concepts = &concepts["Concept_STR"];
+    assert_eq!(concepts["Messiah"], "Chosen One");
+    assert_eq!(concepts["Monster"], "Shai Hulud");
+    assert_eq!(concepts.as_object().unwrap().len(), 6);
+}

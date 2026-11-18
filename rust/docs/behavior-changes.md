@@ -183,6 +183,13 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Where: rust/bots/src/bot/factions.rs, `voice_against_defenses`
 - Done (0e82687): a known projectile defense that isn't a poison defense is forced. Test: `bene_gesserit_voices_a_useless_defense_against_poison` (bots/tests/behavior_changes.rs).
 
+## A custom skin missing a key of a dictionary lost the whole dictionary
+
+- Area: skin loading (`rust/skin/src/skin_json.rs`, `fix`; a quirk kept from the C# version, approved 2026-11-18)
+- What happened: when a host's skin left out any key of a dictionary, such as one faction in `FactionName_STR`, the whole dictionary was replaced by the default skin's, so every custom label in it was lost.
+- Now: only the missing keys take the default skin's entries, and the custom labels stay. The dictionary is written in the default skin's order, with keys the default skin lacks at the end.
+- Test: `a_partial_dictionary_keeps_its_labels` (skin/tests/skin_json.rs). The `load.jsonl.gz` snapshot was rewritten: its 5 cases with partial dictionaries now keep their custom labels.
+
 ## For the step 3 cleanup (no visible effect, simplify if the behavior check stays clean)
 
 - Setup briefly enters deck customizing or faction trading before the real next phase (rust/engine/src/game/setup.rs:73 before step 2).

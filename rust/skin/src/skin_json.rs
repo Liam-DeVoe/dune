@@ -370,11 +370,10 @@ fn read_member(m: Member<'_>, v: &Value) -> Result<(), SkinLoadError> {
 }
 
 /// Fills in what a loaded skin lacks from `donor` (the default skin): a `null` string and a zero
-/// number or point take the donor's value, and an empty string is kept. A `null` dictionary is
-/// an error unless the donor's is empty.
-///
-/// Known quirk (known-issues.md): a dictionary that lacks any of the donor's keys is replaced by
-/// the donor's whole dictionary, not just filled in.
+/// number or point take the donor's value, and an empty string is kept. A dictionary that lacks
+/// some of the donor's keys gets the donor's entries for them. It keeps its own entries, and is
+/// reordered to the donor's order, with keys only it has at the end. A `null` dictionary is an
+/// error unless the donor's is empty.
 fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<(), SkinLoadError> {
     let mut donor = donor.clone();
     let donor_members = members(&mut donor);
@@ -386,17 +385,22 @@ fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<
                 t.write(&mut td);
                 let mut dd = String::new();
                 d.write(&mut dd);
-                let t_keys = keys_of(&td);
-                let d_keys = keys_of(&dd);
-                if *state == ReadState::Null && !d_keys.is_empty() {
+                let mut own = parse_object(&td);
+                let mut merged = parse_object(&dd);
+                if *state == ReadState::Null && !merged.is_empty() {
                     return Err(SkinLoadError {
                         type_name: "NullReferenceException",
                         message: "Object reference not set to an instance of an object.".into(),
                     });
                 }
-                if d_keys.iter().any(|k| !t_keys.contains(k)) {
-                    let parsed: Value = serde_json::from_str(&dd).unwrap();
-                    t.read(parsed.as_object().unwrap())?;
+                if merged.keys().any(|k| !own.contains_key(k)) {
+                    for (k, v) in merged.iter_mut() {
+                        if let Some(own_v) = own.remove(k) {
+                            *v = own_v;
+                        }
+                    }
+                    merged.extend(own);
+                    t.read(&merged)?;
                 }
             }
             (Member::Str(t), Member::Str(d)) => {
@@ -421,10 +425,12 @@ fn fix(to_fix: &mut Skin, donor: &Skin, states: &[(&str, ReadState)]) -> Result<
     Ok(())
 }
 
-/// The keys of a serialized dictionary, in order.
-fn keys_of(json: &str) -> Vec<String> {
-    let v: Value = serde_json::from_str(json).unwrap();
-    v.as_object().unwrap().keys().cloned().collect()
+/// A serialized dictionary's entries, in order.
+fn parse_object(json: &str) -> serde_json::Map<String, Value> {
+    match serde_json::from_str(json).unwrap() {
+        Value::Object(m) => m,
+        _ => unreachable!("a dictionary serializes as an object"),
+    }
 }
 
 /// A JSON string, escaped as skin files escape them: HTML-sensitive and non-ASCII characters as `\uXXXX`.

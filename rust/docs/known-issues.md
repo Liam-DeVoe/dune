@@ -57,10 +57,6 @@ Behavior that looks wrong or arbitrary and has no reason except that the C# vers
 - **`StrongholdBonus` is listed twice in the Expansion2AdvancedGame ruleset.** The list goes into `game.rules.active` and the lobby data. Where: `game/rules.rs`, `Game::ruleset_definition`. Players notice: possibly "Stronghold bonus" twice in the rule list. Fix: drop the duplicate and update `ruleset_definition_keeps_duplicate_rule` (engine/tests/pkg_b_players.rs).
 - **Some error texts show a type name instead of the object.** Refusing a hero that isn't in the game prints "Treachery.Shared.Leader" (`heroes/hero.rs`, `Hero::plain_text`, used by `raise_dead_played.rs` and `karma_free_revival.rs`), and placing an ambassador where one already is prints "There already is an ambassador in Treachery.Shared.Territory" (`events/factions/ambassador_placed.rs`, `apply`). Players notice: a Game Error naming an internal type, probably only past validation. Fix: name the hero or territory.
 
-### Skin
-
-- **A custom skin missing any key of a dictionary loses that whole dictionary.** It is replaced by the default skin's, so the custom names in it are lost. Where: `rust/skin/src/skin_json.rs`, `fix`. Players notice: a custom skin shows default names for a whole category. Fix: fill in only the missing keys.
-
 ### Bots
 
 All in `rust/bots/src/bot/`.

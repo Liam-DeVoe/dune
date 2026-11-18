@@ -77,7 +77,7 @@
   }
 
   // Destinations: one contour around the reachable region. The masks in
-  // MapSelectionHighlights.razor take the line and halo widths from the
+  // board/MapSelection.tsx take the line and halo widths from the
   // __near-* strokes, drawn twice as wide as what shows, since the region
   // itself hides the inner half. Visible: a 2.5 white line with a 1.5 dark
   // halo outside it, and a light wash inside the region.

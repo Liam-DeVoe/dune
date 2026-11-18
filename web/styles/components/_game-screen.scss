@@ -6,7 +6,7 @@
 // menu bar sits in its bottom-left corner. Below lg the columns stack and
 // the page scrolls as before.
 //
-// Set on the row by Main.razor and Scene.razor:
+// Set on the row with turnBannerStyle (TurnBanner.tsx):
 //   --turn-banner-h  the height the turn banner takes above the row, or 0
 //
 // The row is laid out like Bootstrap's .row with full-width columns: the

@@ -1,5 +1,5 @@
 // The bar across the top of the window on the player's turn
-// (OtherComponents/TurnBanner.razor). It is fixed to the window's top edge,
+// (TurnBanner.tsx). It is fixed to the window's top edge,
 // so it spans the whole width whatever padding the page has. The spacer
 // under it takes its place in the page, pushing the game screen down:
 // 0.75rem of .page__content's top padding is already there, so the spacer adds

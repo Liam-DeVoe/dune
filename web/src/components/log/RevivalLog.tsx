@@ -27,27 +27,27 @@ export function RevivalLog({ lines, line }: PhaseLogProps) {
           return (
             <div key={i} className="log-table revival-table">
               {rows.map((row, r) => {
-                const edge = r === 0 ? "first" : "";
+                const edge = r === 0 ? "log-table__cell--first" : "";
                 return (
                   <Fragment key={r}>
-                    <div className={`cell ${edge}`}><FactionChip faction={row.faction} /></div>
-                    <div className={`cell what ${edge}`}>
+                    <div className={`log-table__cell ${edge}`}><FactionChip faction={row.faction} /></div>
+                    <div className={`log-table__cell revival-table__what ${edge}`}>
                       {row.hero?.t === "leader" && <HeroImage hero={row.hero} width={26} className="leader-disc" />}
                       {row.hero?.t === "messiah" && <PopoverText className="" popover={messiahPopup(skin)}><img className="kh" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} /></PopoverText>}
-                      {row.asGhola && <span className="note">as Ghola</span>}
+                      {row.asGhola && <span className="revival-table__note">as Ghola</span>}
                       {Array.from({ length: row.forces }, (_, n) => <ForceToken key={`f${n}`} faction={row.faction} size={18} />)}
                       {Array.from({ length: row.specialForces }, (_, n) => <ForceToken key={`s${n}`} faction={row.faction} special size={18} />)}
                     </div>
-                    <div className={`cell cost end ${edge}`}>
+                    <div className={`log-table__cell revival-table__cost log-table__cell--end ${edge}`}>
                       {row.card != null ? <PartText part={row.card} /> : row.cost > 0 && <SpiceComponent amount={String(row.cost)} />}
                       {row.paidByOther > 0 && (
-                        <div className="by">
+                        <div className="revival-table__by">
                           {row.paidByOther < row.cost && <SpiceComponent amount={String(row.paidByOther)} size={16} />}
                           {" paid by "}<Sigil faction={row.payer} />
                         </div>
                       )}
                       {row.tleilaxuIncome > 0 && (
-                        <div className="by">→ <Sigil faction="Tleilaxu" /> get <SpiceComponent amount={String(row.tleilaxuIncome)} size={16} /></div>
+                        <div className="revival-table__by">→ <Sigil faction="Tleilaxu" /> get <SpiceComponent amount={String(row.tleilaxuIncome)} size={16} /></div>
                       )}
                     </div>
                   </Fragment>
@@ -65,7 +65,7 @@ export function RevivalLog({ lines, line }: PhaseLogProps) {
 // A faction's sigil, small, named on hover.
 function Sigil({ faction }: { faction: Faction }) {
   const { skin } = useGame();
-  return <img className="sig" src={skin.factionImage(faction)} alt={skin.faction(faction)} title={skin.faction(faction)} />;
+  return <img className="revival-table__sig" src={skin.factionImage(faction)} alt={skin.faction(faction)} title={skin.faction(faction)} />;
 }
 
 // The discard straight after a revival done by that card.

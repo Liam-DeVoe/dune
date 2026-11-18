@@ -31,7 +31,7 @@ export function CollectionLog({ lines, line }: PhaseLogProps) {
           return (
             <div key={i} className="log-table collection-table">
               {fields.map((c, r) => <Row key={`f${r}`} c={c} first={r === 0} showSector={split.has(placeId(c.territory))} />)}
-              {fields.length > 0 && income.length > 0 && <div className="income-rule"></div>}
+              {fields.length > 0 && income.length > 0 && <div className="collection-table__income-rule"></div>}
               {income.map((c, r) => <Row key={`i${r}`} c={c} first={r === 0} showSector={false} />)}
             </div>
           );
@@ -44,16 +44,16 @@ export function CollectionLog({ lines, line }: PhaseLogProps) {
 
 function Row({ c, first, showSector }: { c: Collected; first: boolean; showSector: boolean }) {
   const { skin } = useGame();
-  const edge = first ? "first" : "";
+  const edge = first ? "log-table__cell--first" : "";
   const field = c.field != null ? skin.locationInfo(placeId(c.field)) : undefined;
   return (
     <>
-      <div className={`cell faction ${edge}`}><FactionChip faction={c.faction} /></div>
-      <div className={`cell amount ${edge}`}><SpiceComponent amount={String(c.amount)} /></div>
-      <div className={`cell place ${edge}`}>
+      <div className={`log-table__cell collection-table__faction ${edge}`}><FactionChip faction={c.faction} /></div>
+      <div className={`log-table__cell collection-table__amount ${edge}`}><SpiceComponent amount={String(c.amount)} /></div>
+      <div className={`log-table__cell collection-table__place ${edge}`}>
         <PlacePart part={c.territory} />
         {showSector && field && (
-          <div className="log-label sector">{field.orientation !== "" ? `${field.orientation} sector` : `sector ${field.sector}`}</div>
+          <div className="log-label collection-table__sector">{field.orientation !== "" ? `${field.orientation} sector` : `sector ${field.sector}`}</div>
         )}
       </div>
     </>

@@ -173,7 +173,7 @@ function routeProps(board: Board, route: Route | null) {
 }
 
 function Forces({ faction, forces, specialForces }: { faction: Faction; forces: number; specialForces: number }) {
-  return <ForceCounts faction={faction} forces={forces} specialForces={specialForces} wrap="forces" />;
+  return <ForceCounts faction={faction} forces={forces} specialForces={specialForces} wrap="shipmove-turn__forces" />;
 }
 
 function Card({ card }: { card: Part | null }) {
@@ -200,19 +200,19 @@ function ShipRow({ faction, message, board }: { faction: Faction; message: LogLi
           <>
             <SpiceComponent amount={String(s.cost)} />
             {s.allyShare >= s.cost
-              ? <><span className="small">paid by</span><FactionChip faction={s.ally} /></>
-              : s.allyShare > 0 && <><span className="small">(<SpiceComponent amount={String(s.allyShare)} /> paid by</span><FactionChip faction={s.ally} /><span className="small">)</span></>}
+              ? <><span className="shipmove-turn__small">paid by</span><FactionChip faction={s.ally} /></>
+              : s.allyShare > 0 && <><span className="shipmove-turn__small">(<SpiceComponent amount={String(s.allyShare)} /> paid by</span><FactionChip faction={s.ally} /><span className="shipmove-turn__small">)</span></>}
           </>
         )}
-        {s.guildPaid && <><span className="small">→</span><FactionChip faction="Guild" /></>}
+        {s.guildPaid && <><span className="shipmove-turn__small">→</span><FactionChip faction="Guild" /></>}
         {s.karama != null && <Card card={s.karama} />}
       </>
     );
   }
   return (
     <>
-      <span className="log-label">{rally ? "Rally" : "Ship"}</span>
-      <span className="route" {...routeProps(board, message.route)}>{content}</span>
+      <span className="log-label shipmove-turn__label">{rally ? "Rally" : "Ship"}</span>
+      <span className="shipmove-turn__route" {...routeProps(board, message.route)}>{content}</span>
     </>
   );
 }
@@ -223,8 +223,8 @@ function MoveRow({ faction, lines, board }: { faction: Faction; lines: LogLine[]
   const route: Route = { faction, from: lines.flatMap((m) => m.route?.from ?? []), to: first.to };
   return (
     <>
-      <span className="log-label">{first.hajr ? "Hajr" : "Move"}</span>
-      <span className="route" {...routeProps(board, route)}>
+      <span className="log-label shipmove-turn__label">{first.hajr ? "Hajr" : "Move"}</span>
+      <span className="shipmove-turn__route" {...routeProps(board, route)}>
         {moves.map((m, i) => (
           <Fragment key={i}>
             {i > 0 && <span>+</span>}
@@ -287,9 +287,9 @@ export function ShipMoveLog({ lines, line }: PhaseLogProps) {
     switch (r.kind) {
       case "Ship": return <ShipRow key={key} faction={faction} message={r.lines[0]} board={board} />;
       case "Move": return <MoveRow key={key} faction={faction} lines={r.lines} board={board} />;
-      case "Passed": return <Fragment key={key}><span className="log-label">Move</span><span className="route">passed</span></Fragment>;
-      case "Plus": return <Fragment key={key}><span className="log-label plus">+</span><span className="route"><PlusText message={r.lines[0]} /></span></Fragment>;
-      default: return <div key={key} className="other">{line(r.lines[0])}</div>;
+      case "Passed": return <Fragment key={key}><span className="log-label shipmove-turn__label">Move</span><span className="shipmove-turn__route">passed</span></Fragment>;
+      case "Plus": return <Fragment key={key}><span className="log-label shipmove-turn__label shipmove-turn__label--plus">+</span><span className="shipmove-turn__route"><PlusText message={r.lines[0]} /></span></Fragment>;
+      default: return <div key={key} className="shipmove-turn__other">{line(r.lines[0])}</div>;
     }
   };
 
@@ -309,10 +309,10 @@ export function ShipMoveLog({ lines, line }: PhaseLogProps) {
           case "turn":
             return (
               <div key={i} className="log-box shipmove-turn">
-                <div className="head">
+                <div className="shipmove-turn__head">
                   <FactionChip faction={item.faction} />
                 </div>
-                <div className="rows">
+                <div className="shipmove-turn__rows">
                   {item.rows.map((r, j) => row(item.faction, r, j))}
                 </div>
               </div>

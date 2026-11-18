@@ -54,18 +54,18 @@ function Block({ lot }: { lot: Lot }) {
   const { skin } = useGame();
   const sold = lot.sold;
   return (
-    <div className={`bid-lot ${sold == null ? "unsold" : ""}`}>
-      <div className="top">
-        <span className="n">Card {lot.number}</span>
+    <div className={`bid-lot ${sold == null ? "bid-lot--unsold" : ""}`}>
+      <div className="bid-lot__top">
+        <span className="bid-lot__number">Card {lot.number}</span>
         {sold && (
           <>
             <FactionChip faction={sold.winner} />
-            <span className="price">
+            <span className="bid-lot__price">
               {sold.karamaCard != null ? <PartText part={sold.karamaCard} /> : (
                 <>
                   <SpiceComponent amount={String(sold.price)} size={22} />
                   {sold.paidTo !== "None" && (
-                    <span className="payee">to <img src={skin.factionImage(sold.paidTo)} alt={skin.faction(sold.paidTo)} title={skin.faction(sold.paidTo)} /></span>
+                    <span className="bid-lot__payee">to <img className="bid-lot__payee-img" src={skin.factionImage(sold.paidTo)} alt={skin.faction(sold.paidTo)} title={skin.faction(sold.paidTo)} /></span>
                   )}
                 </>
               )}
@@ -74,9 +74,9 @@ function Block({ lot }: { lot: Lot }) {
         )}
       </div>
       {((sold != null && sold.shares.length > 0) || lot.under.length > 0) && (
-        <div className="under">
+        <div className="bid-lot__under">
           {(sold?.shares ?? []).map((s, i) => <div key={`s${i}`}><SpiceComponent amount={String(s.amount)} /> paid by <FactionChip faction={s.by} /></div>)}
-          {lot.under.map((l, i) => <div key={`u${i}`} className={l.private ? "private" : ""}><RichText parts={l.text} size={20} logStyle /></div>)}
+          {lot.under.map((l, i) => <div key={`u${i}`} className={l.private ? "bid-lot__private" : ""}><RichText parts={l.text} size={20} logStyle /></div>)}
         </div>
       )}
     </div>

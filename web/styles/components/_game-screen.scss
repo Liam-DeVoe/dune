@@ -8,12 +8,32 @@
 //
 // Set on the row by Main.razor and Scene.razor:
 //   --turn-banner-h  the height the turn banner takes above the row, or 0
+//
+// The row is laid out like Bootstrap's .row with full-width columns: the
+// children wrap, each one the full width with 0.75rem of padding a side, and
+// the row's negative margins cancel that padding at the edges.
 .game-screen {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -0.75rem;
+  margin-left: -0.75rem;
   overflow-y: hidden;
 
   &__board-area {
     position: relative;
   }
+}
+
+// Every child of the row, the card play popover and the image flash too.
+// :where() keeps this at a class-less weight, so the children's own rules
+// (.card-play-pop's padding and width, .menu-scrim) still win, as they won
+// over Bootstrap's `.row > *` by loading after it.
+:where(.game-screen) > * {
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-right: 0.75rem;
+  padding-left: 0.75rem;
 }
 
 @media (min-width: 992px) {

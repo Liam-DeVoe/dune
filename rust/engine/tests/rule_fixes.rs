@@ -601,3 +601,84 @@ fn a_karama_revival_prevention_is_offered_only_while_factions_revive() {
     assert_eq!(g.phase(), Phase::ResurrectionReport);
     assert!(!g.get_applicable_events(Some(tleilaxu), false).contains(&EventType::KarmaRevivalPrevention));
 }
+
+// ---------------------------------------------------------------------------------------------
+// Quirks kept from the C# version, fixed (behavior-changes.md, "Quirks kept from the C# version")
+// ---------------------------------------------------------------------------------------------
+
+/// A hand-built game of `factions` in seats 0, 1, ..., with no rules.
+fn game_of(factions: &[Faction]) -> Game {
+    let mut g = Game::new();
+    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new()));
+    for (seat, f) in factions.iter().enumerate() {
+        let mut p = Player::new(Some(*f));
+        p.seat = Seat::from_number(seat);
+        g.players.push(p);
+    }
+    g
+}
+
+/// `game_of` with the Homeworlds rule. Every homeworld is full (high threshold), except those of
+/// the factions in `empty`, which hold no forces (low threshold).
+fn homeworld_game(factions: &[Faction], empty: &[Faction]) -> Game {
+    let mut g = game_of(factions);
+    g.rules.active.push(Rule::Homeworlds);
+    for i in 0..g.players.len() {
+        let f = g.players[i].faction.expect("faction");
+        let hws: Vec<Homeworld> = g.board.map.homeworlds().filter(|w| w.faction() == f).collect();
+        for hw in hws {
+            let full = !empty.contains(&f);
+            let normal = if full && hw.is_home_of_normal_forces() { 20 } else { 0 };
+            let special = if full && hw.is_home_of_special_forces() { 20 } else { 0 };
+            let me = g.player_at(i);
+            Player::initialize_homeworld(&mut g, me, hw, normal, special).unwrap();
+        }
+    }
+    g
+}
+
+fn spice(g: &Game, f: Faction) -> i32 {
+    i32::from(g.player(idx(g, f)).resources)
+}
+
+fn log_texts(g: &Game) -> Vec<String> {
+    g.current_report().messages.iter().map(|m| m.plain_text()).collect()
+}
+
+/// Whether `m` holds `want` anywhere, nested messages included.
+fn holds_part(m: &treachery_engine::messages::message::Message, want: &treachery_engine::messages::part::Part) -> bool {
+    use treachery_engine::messages::part::Part;
+    m.parts.iter().any(|p| p == want || matches!(p, Part::Message(inner) if holds_part(inner, want)))
+}
+
+/// Atreides, allied with Richese, buy a Richese card with Richese's help, so the Emperor gets
+/// Richese's part. Richese's homeworld is at low threshold and occupied by Harkonnen; Kaitain
+/// is at high threshold. Before the fix the Emperor got half and Harkonnen the other half.
+#[test]
+fn the_emperors_share_of_a_richese_card_is_cut_by_kaitain_not_by_richeses_homeworld() {
+    let mut g = homeworld_game(&[Faction::Atreides, Faction::Richese, Faction::Emperor, Faction::Harkonnen], &[Faction::Richese]);
+    ally(&mut g, Faction::Atreides, Faction::Richese);
+    let richese_world = g.player(idx(&g, Faction::Richese)).primary_homeworld();
+    g.board.homeworld_occupation.insert(richese_world, Faction::Harkonnen);
+    assert_eq!(g.player(idx(&g, Faction::Emperor)).primary_homeworld().world(), World::Emperor);
+    assert!(g.player(idx(&g, Faction::Emperor)).has_high_threshold(&g, World::Emperor));
+    for f in [Faction::Atreides, Faction::Richese] {
+        let p = idx(&g, f);
+        g.player_mut(p).resources = 10;
+    }
+    g.enter_bidding(BiddingStep::Bidding);
+
+    let atreides = idx(&g, Faction::Atreides);
+    let mut bid = Bid::default();
+    bid.amount = 2;
+    bid.ally_contribution_amount = 4;
+    let by_atreides = By::new(&g, Faction::Atreides);
+    let placed = bid.placed(&mut g, by_atreides);
+    let mut message = treachery_engine::messages::message::MessagePart { parts: vec![] };
+    g.pay_for_card(atreides, &placed, 2, 4, 0, Faction::Richese, &mut message).unwrap();
+
+    // The Emperor gets all 4. Richese get 2, and lose 1 of it to Harkonnen.
+    assert_eq!(spice(&g, Faction::Emperor), 4);
+    assert_eq!(spice(&g, Faction::Richese), 10 - 4 + 1);
+    assert_eq!(spice(&g, Faction::Harkonnen), 1);
+}

@@ -551,7 +551,7 @@ impl Game {
         let total_amount = bid_amount + if receiver_and_ally_are_richese { 0 } else { bid_ally_contribution_amount };
 
         let (total_amount_received_by_emperor_instead_of_richese, emperor_received_instead_message) =
-            self.pay_emperor_instead_of_richese(initiator, bid, receiver, receiver_and_ally_are_richese, bid_ally_contribution_amount)?;
+            self.pay_emperor_instead_of_richese(receiver_and_ally_are_richese, bid_ally_contribution_amount)?;
 
         if receiver.is_some() && self.player(initiator).faction != Some(payment_receiver) {
             let receiver = receiver.expect("receiver");
@@ -629,7 +629,7 @@ impl Game {
     /// When Richese are paid for a card that their ally helped pay for, the Emperor gets the
     /// ally's part instead, unless Karama prevents it. Returns what the Emperor got and the
     /// message part saying so.
-    fn pay_emperor_instead_of_richese(&mut self, initiator: PlayerId, bid: &PlacedBid, receiver: Option<PlayerId>, receiver_and_ally_are_richese: bool, bid_ally_contribution_amount: i32) -> GameResult<(i32, MessagePart)> {
+    fn pay_emperor_instead_of_richese(&mut self, receiver_and_ally_are_richese: bool, bid_ally_contribution_amount: i32) -> GameResult<(i32, MessagePart)> {
         let emperor = self.get_player(Some(Faction::Emperor));
         let mut total_amount_received_by_emperor_instead_of_richese =
             if receiver_and_ally_are_richese && emperor.is_some() && !self.prevented(FactionAdvantage::EmperorReceiveBid) {
@@ -637,16 +637,13 @@ impl Game {
             } else {
                 0
             };
-        // Known quirk (known-issues.md): the recent payment below is recorded with this amount,
-        // which is always 0, so the Emperor's share never counts as a recent payment.
-        let receiver_profit = 0;
 
         let mut emperor_received_instead_message = express_part!();
         if emperor.is_some() && total_amount_received_by_emperor_instead_of_richese > 0 {
             let emperor = emperor.expect("emperor");
-            // Known quirk (known-issues.md): the low threshold and occupier of Richese's homeworld,
-            // not the Emperor's, reduce what the Emperor gets.
-            self.modify_income_because_of_low_threshold_or_occupation(receiver.required("The payment receiver")?, &mut total_amount_received_by_emperor_instead_of_richese);
+            // The Emperor's homeworld cuts what the Emperor gets (KaitainCard.gif: "You collect
+            // only half (rounded up) of card payments"). Richese's cuts only what Richese get.
+            self.modify_income_because_of_low_threshold_or_occupation(emperor, &mut total_amount_received_by_emperor_instead_of_richese);
             {
                 let r = self.player_mut(emperor);
                 crate::game::amounts::gain(&mut r.resources, total_amount_received_by_emperor_instead_of_richese, "spice")?;
@@ -657,10 +654,6 @@ impl Game {
                 //This should also take into account payments received by an occupier
                 self.in_bidding_mut().bidding_triggered_bureaucracy = Some(TriggeredBureaucracy { payment_from: Some(Faction::Richese), payment_to: Some(Faction::Emperor) });
             }
-
-            let initiator_faction = self.player(initiator).faction;
-            let receiver_faction = self.player(receiver.required("The payment receiver")?).faction;
-            self.set_recent_payment(receiver_profit, initiator_faction, receiver_faction, bid.type_);
         }
         Ok((total_amount_received_by_emperor_instead_of_richese, emperor_received_instead_message))
     }

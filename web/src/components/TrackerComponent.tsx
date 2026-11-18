@@ -154,7 +154,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
   const resourceItem = (skinId: number): PickItem<number> => ({ key: skinId, src: skin.url(skin.get("ResourceCardImage_URL", skinId)), alt: resourceName(skin, skinId), popover: resourceCardPopup(skin, skinId) });
   const trackedSpice = spiceCards.find((c) => resourceName(skin, c) === notes.spiceCard);
   const pileText = (label: string, pile: number[]) => pile.length > 0 && (
-    <div className="small"><strong>{label}</strong>{" "}
+    <div className="tracker__pile"><strong>{label}</strong>{" "}
       {pile.map((c, i) => <span key={i}>{i > 0 && <span>, </span>}<PopoverText popover={resourceCardPopup(skin, c)}>{resourceName(skin, c)}</PopoverText></span>)}
     </div>
   );
@@ -162,19 +162,19 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
   return (
     <>
       <ModalComponent id="picker" title="Pick a card">
-        <div className="row row-cols-3 row-cols-md-6 m-0">
-          <div className="card p-1 m-0 border-0">
+        <div className="tracker__picks">
+          <div className="card tracker__pick">
             <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} className="card-img" alt="Unknown" onClick={() => pick(UNKNOWN)} title="Set as unknown card" style={{ cursor: "pointer" }} />
           </div>
           {current !== NONE && (
-            <div className="card p-1 m-0 border-0" title="Set to 'none'" style={{ cursor: "pointer" }}>
+            <div className="card tracker__pick" title="Set to 'none'" style={{ cursor: "pointer" }}>
               <svg viewBox="0 0 16 22.5" xmlns="http://www.w3.org/2000/svg" onClick={() => pick(NONE)}>
                 <rect width="16" height="22.5" rx="2" style={{ fill: "rgb(64,64,64)", strokeWidth: 1, stroke: "rgb(200,200,200)" }} />
               </svg>
             </div>
           )}
           {current !== NONE && current !== UNKNOWN && (
-            <div className="card p-1 m-0 border-0" title="Discard this card" style={{ cursor: "pointer" }}>
+            <div className="card tracker__pick" title="Discard this card" style={{ cursor: "pointer" }}>
               <svg viewBox="0 0 16 22.5" xmlns="http://www.w3.org/2000/svg" onClick={discard}>
                 <rect width="16" height="22.5" rx="2" style={{ fill: "rgb(64,64,64)", strokeWidth: 1, stroke: "rgb(200,200,200)" }} />
                 <path transform="translate(0,4)" fill="white" d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" />
@@ -185,7 +185,7 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
           {toPick.map((c) => {
             const won = justWon === skin.card(c);
             return (
-              <div key={c} className={`card p-1 m-0 ${won ? "border-success" : "border-0"} ${won ? "bg-light" : ""}`}>
+              <div key={c} className={`card tracker__pick ${won ? "tracker__pick--won" : ""}`}>
                 <div className="card-img-top">
                   <Image className="card-img" src={skin.cardImage(c)} alt={skin.card(c)} width={0} popover={treacheryCardPopup(skin, c)} onClick={() => pick(c)} pointer />
                 </div>
@@ -195,10 +195,10 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
         </div>
       </ModalComponent>
 
-      <div className="card mb-2" style={{ animation: "fadeIn 1s" }}>
+      <div className="card tracker" style={{ animation: "fadeIn 1s" }}>
         <div className="card-header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
           Card Tracker{" "}
-          <Hoverable className="d-inline" popover={`<div class='pop'>${infoMessage(skin)}</div>`}>
+          <Hoverable className="tracker__info" popover={`<div class='pop'>${infoMessage(skin)}</div>`}>
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="var(--ink-0)" className="bi bi-info-circle" viewBox="0 0 16 16">
               <circle cx="8" cy="8" r="8" fill="var(--gold)" />
               <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
@@ -209,36 +209,36 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
         </div>
         {!collapsed && (
           <div className="card-body">
-            <div className="mb-1">
+            <div className="tracker__toggles">
               {players.map((p) => (
-                <button key={p.faction} className={`btn ${style({ faction: p.faction })} p-1`} onClick={() => toggle({ faction: p.faction })} data-bs-toggle="tooltip" title={skin.faction(p.faction)}>
-                  <img className="img-fluid" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", p.faction))} alt={skin.faction(p.faction)} />
+                <button key={p.faction} className={`btn ${style({ faction: p.faction })} tracker__toggle`} onClick={() => toggle({ faction: p.faction })} data-bs-toggle="tooltip" title={skin.faction(p.faction)}>
+                  <img className="tracker__toggle-img" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", p.faction))} alt={skin.faction(p.faction)} />
                 </button>
               ))}
-              <button className={`btn ${style("discarded")} p-1`} onClick={() => toggle("discarded")} data-bs-toggle="tooltip" title="Discarded Treachery Cards">
-                <img className="img-fluid ms-1 me-1" width="21" height="29" src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} alt="" />
+              <button className={`btn ${style("discarded")} tracker__toggle`} onClick={() => toggle("discarded")} data-bs-toggle="tooltip" title="Discarded Treachery Cards">
+                <img className="tracker__toggle-img tracker__toggle-img--pile" width="21" height="29" src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} alt="" />
               </button>
-              <button className={`btn ${style("spice")} p-1`} onClick={() => toggle("spice")} data-bs-toggle="tooltip" title="Discarded Spice Cards">
-                <img className="img-fluid ms-1 me-1" width="21" height="29" src={skin.url(skin.str("CardBack_ResourceCard_URL"))} alt="" />
+              <button className={`btn ${style("spice")} tracker__toggle`} onClick={() => toggle("spice")} data-bs-toggle="tooltip" title="Discarded Spice Cards">
+                <img className="tracker__toggle-img tracker__toggle-img--pile" width="21" height="29" src={skin.url(skin.str("CardBack_ResourceCard_URL"))} alt="" />
               </button>
             </div>
 
             {shownPlayer && (
               <>
                 <div>Treachery cards</div>
-                <div className="row row-cols-4 m-0">
+                <div className="tracker__cards">
                   {(notes.cards.get(shownPlayer.faction) ?? []).map((c, i) => (
-                    <a key={i} className="btn btn-link p-1" data-bs-toggle="modal" data-bs-target="#picker" onMouseDown={() => setPicking([shownPlayer.faction, i])}
+                    <a key={i} className="btn btn-link tracker__card" data-bs-toggle="modal" data-bs-target="#picker" onMouseDown={() => setPicking([shownPlayer.faction, i])}
                        title={c === UNKNOWN ? "Unknown" : c === NONE ? "None" : ""}>
                       {c === NONE
                         ? (
-                          <svg className="img-fluid w-100" viewBox="0 0 268 372" xmlns="http://www.w3.org/2000/svg">
+                          <svg className="tracker__card-img tracker__card-img--none" viewBox="0 0 268 372" xmlns="http://www.w3.org/2000/svg">
                             <rect width="268" height="372" rx="20" style={{ fill: "rgb(64,64,64)", strokeWidth: 3, stroke: "rgb(200,200,200)" }} />
                           </svg>
                         )
                         : c === UNKNOWN
-                          ? <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} className="img-fluid" alt="" />
-                          : <Image src={skin.cardImage(c)} alt={skin.card(c)} width={0} className="img-fluid" popover={treacheryCardPopup(skin, c)} pointer />}
+                          ? <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} className="tracker__card-img" alt="" />
+                          : <Image src={skin.cardImage(c)} alt={skin.card(c)} width={0} className="tracker__card-img" popover={treacheryCardPopup(skin, c)} pointer />}
                     </a>
                   ))}
                 </div>
@@ -267,16 +267,16 @@ export function TrackerComponent({ open = false }: { open?: boolean }) {
 
             {shown === "discarded" && (
               <>
-                <ul className="list-inline mt-0">
+                <ul className="tracker__discards">
                   {discardedCards.map((c) => (
-                    <li key={c} className="list-inline-item">
-                      <p className="mb-0">
-                        <PopoverText popover={treacheryCardPopup(skin, c)} className="badge bg-primary rounded-pill">{skin.card(c)}</PopoverText>{" "}
+                    <li key={c} className="tracker__discard">
+                      <p className="tracker__discard-text">
+                        <PopoverText popover={treacheryCardPopup(skin, c)} className="badge bg-primary">{skin.card(c)}</PopoverText>{" "}
                         <button className="btn-close btn-sm" onClick={() => notDiscarded(c)}></button>
                       </p>
                     </li>
                   ))}
-                  {discardedCards.length === 0 && <li className="list-inline-item text-info">No treachery cards discarded yet.</li>}
+                  {discardedCards.length === 0 && <li className="tracker__discard tracker__discard--none">No treachery cards discarded yet.</li>}
                 </ul>
                 <button className="btn btn-primary btn-sm" onClick={() => { notes.discarded = []; save(notes); }}>Reshuffle (clear) discarded cards</button>
               </>

@@ -47,12 +47,12 @@ function HeroImage({ hero, width, className, greyedOut = false }: { hero: HeroRe
 
 function CardImage({ id, width }: { id: number; width: number }) {
   const { skin } = useGame();
-  return <Image src={skin.cardImage(id)} alt={skin.card(id)} width={width} className="img-fluid p-1" popover={treacheryCardPopup(skin, id)} />;
+  return <Image src={skin.cardImage(id)} alt={skin.card(id)} width={width} className="story__img" popover={treacheryCardPopup(skin, id)} />;
 }
 
 function MessiahImage() {
   const { skin } = useGame();
-  return <Image className="img-fluid p-1" width={60} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
+  return <Image className="story__img" width={60} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
 }
 
 // Skin.Describe(FactionForce) and Describe(FactionSpecialForce): the force's name for the faction.
@@ -66,10 +66,10 @@ function Block({ block: b }: { block: StoryBlock }) {
     case "setup":
       return (
         <>
-          <h4 className="h4">Setup</h4>
-          <div className="mt-1"><strong>Ruleset:</strong> {b.ruleset}</div>
-          {b.customRules !== null && <div className="mt-1"><strong>Custom rules:</strong> {b.customRules}</div>}
-          <div className="mt-1"><strong>Game started:</strong> {b.started}</div>
+          <h4>Setup</h4>
+          <div className="story__fact"><strong>Ruleset:</strong> {b.ruleset}</div>
+          {b.customRules !== null && <div className="story__fact"><strong>Custom rules:</strong> {b.customRules}</div>}
+          <div className="story__fact"><strong>Game started:</strong> {b.started}</div>
           <PlayerInfo table={b.table} />
         </>
       );
@@ -83,18 +83,18 @@ function Block({ block: b }: { block: StoryBlock }) {
       return (
         <div>
           <FactionChip faction={b.buyer} /> buy{" "}
-          {b.card ? <PopoverText popover={treacheryCardPopup(skin, b.card.id)}>{b.card.label}</PopoverText> : <span className="fw-bold">?</span>}
+          {b.card ? <PopoverText popover={treacheryCardPopup(skin, b.card.id)}>{b.card.label}</PopoverText> : <span className="story__unknown">?</span>}
           {" "}for <SpiceComponent amount={String(b.amount)} />
           {b.karmaCard && <span> using <PopoverText popover={treacheryCardPopup(skin, b.karmaCard.id)}>{b.karmaCard.label}</PopoverText></span>}
           {b.auction !== null && <span> ({b.auction})</span>}
         </div>
       );
     case "turn":
-      return <h4 className="h4">Turn {b.turn}</h4>;
+      return <h4>Turn {b.turn}</h4>;
     case "situation":
       return (
         <>
-          <h5 className="mt-2">
+          <h5 className="story__subheading">
             {b.when === "startOfBidding" ? "Situation at the start of Bidding:"
               : b.when === "endOfBidding" ? "Situation at the end of Bidding:"
               : b.when === "endOfShipmentAndMove" ? "Situation at the end of Ship & Move:"
@@ -104,11 +104,11 @@ function Block({ block: b }: { block: StoryBlock }) {
         </>
       );
     case "battleFor":
-      return <h5 className="mt-2">Battle for <PlaceChip place={{ territory: b.territory }} /></h5>;
+      return <h5 className="story__subheading">Battle for <PlaceChip place={{ territory: b.territory }} /></h5>;
     case "milestone":
       return (
-        <div className="mb-1">
-          <img className="img-fluid" width="24" src={skin.factionImage(b.faction)} /> <RichText parts={b.text} />
+        <div className="story__milestone">
+          <img className="story__milestone-img" width="24" src={skin.factionImage(b.faction)} /> <RichText parts={b.text} />
         </div>
       );
     case "battle":
@@ -167,11 +167,11 @@ function Block({ block: b }: { block: StoryBlock }) {
     case "winner":
       return (
         <div>
-          <h3 className="h3"><FactionChip faction={b.faction} /> {b.name} wins {b.method}!</h3>
+          <h3><FactionChip faction={b.faction} /> {b.name} wins {b.method}!</h3>
         </div>
       );
     case "ended":
-      return <div className="mt-2 mb-0"><strong>Game ended:</strong> {b.time}</div>;
+      return <div className="story__ended"><strong>Game ended:</strong> {b.time}</div>;
   }
 }
 
@@ -199,22 +199,22 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
         <tbody>
           {t.rows.map((p) => (
             <tr key={p.faction} className="table-dark">
-              <td><img className="img-fluid p-1" width={60} src={tableImage(skin, p.faction)} /></td>
+              <td><img className="story__img" width={60} src={tableImage(skin, p.faction)} /></td>
               {t.showName && <td><h2>{p.name}</h2></td>}
               {t.showAlly && (
                 <td>
-                  {p.ally !== null ? <img className="img-fluid p-1" width={60} src={tableImage(skin, p.ally)} />
-                    : p.nexus !== null && <><img className="img-fluid p-1" width={60} src={tableImage(skin, p.nexus)} /><strong>*</strong></>}
+                  {p.ally !== null ? <img className="story__img" width={60} src={tableImage(skin, p.ally)} />
+                    : p.nexus !== null && <><img className="story__img" width={60} src={tableImage(skin, p.nexus)} /><strong>*</strong></>}
                 </td>
               )}
               {t.showCards && <td>{p.cards.map((c, i) => <CardImage key={i} id={c} width={80} />)}</td>}
               {t.showTraitors && (
-                <td>{p.traitors.map((x, i) => <HeroImage key={i} hero={x.hero} width={60} className="img-fluid p-1" greyedOut={x.discarded} />)}</td>
+                <td>{p.traitors.map((x, i) => <HeroImage key={i} hero={x.hero} width={60} className="story__img" greyedOut={x.discarded} />)}</td>
               )}
               {t.showTechTokens && (
                 <td>
                   {p.techTokens.map((tt: TechToken) => (
-                    <Image key={tt} src={skin.url(skin.get("TechTokenImage_URL", tt))} alt={skin.get("TechTokenName_STR", tt)} width={60} className="img-fluid p-1" popover={techTokenPopup(skin, tt)} />
+                    <Image key={tt} src={skin.url(skin.get("TechTokenImage_URL", tt))} alt={skin.get("TechTokenName_STR", tt)} width={60} className="story__img" popover={techTokenPopup(skin, tt)} />
                   ))}
                 </td>
               )}
@@ -222,20 +222,20 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
               {t.showForces && (
                 <td>
                   {p.forces.map((l, i) => (
-                    <div key={i} className={l.contested ? "text-danger" : ""}>
+                    <div key={i} className={l.contested ? "story__contested" : ""}>
                       {l.contested && <span>! </span>}
                       <PlaceChip place={{ territory: l.territory }} />
                       <span>:{NBSP}</span>
                       {l.forces > 0 && (
                         <>
-                          <ForceToken faction={p.faction} size={24} imgClass="img-fluid m-0 p-0" title={forceName(skin, p.faction, false)} />
+                          <ForceToken faction={p.faction} size={24} imgClass="story__force-img" title={forceName(skin, p.faction, false)} />
                           <strong>{NBSP}{l.forces}</strong>
                         </>
                       )}
                       <span>{NBSP}</span>
                       {l.specialForces > 0 && (
                         <>
-                          <ForceToken faction={p.faction} special size={24} imgClass="img-fluid m-0 p-0" title={forceName(skin, p.faction, true)} />
+                          <ForceToken faction={p.faction} special size={24} imgClass="story__force-img" title={forceName(skin, p.faction, true)} />
                           <strong>{NBSP}{l.specialForces}</strong>
                         </>
                       )}
@@ -245,7 +245,7 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
               )}
               {t.showLeaders && (
                 <td>
-                  {p.leaders.map((h, i) => <HeroImage key={i} hero={h} width={60} className="img-fluid p-1" />)}
+                  {p.leaders.map((h, i) => <HeroImage key={i} hero={h} width={60} className="story__img" />)}
                   {p.messiahAvailable && <MessiahImage />}
                 </td>
               )}
@@ -253,17 +253,17 @@ function PlayerInfo({ table: t }: { table: StoryTable }) {
                 <td>
                   {p.forcesKilled > 0 && (
                     <>
-                      <ForceToken faction={p.faction} size={24} imgClass="img-fluid m-0 p-0" title={forceName(skin, p.faction, false)} />
+                      <ForceToken faction={p.faction} size={24} imgClass="story__force-img" title={forceName(skin, p.faction, false)} />
                       <strong>{NBSP}{p.forcesKilled}</strong>
                     </>
                   )}
                   {p.specialForcesKilled > 0 && (
                     <>
-                      <ForceToken faction={p.faction} special size={24} imgClass="img-fluid m-0 p-0" title={forceName(skin, p.faction, true)} />
+                      <ForceToken faction={p.faction} special size={24} imgClass="story__force-img" title={forceName(skin, p.faction, true)} />
                       <strong>{NBSP}{p.specialForcesKilled}</strong>
                     </>
                   )}
-                  {p.deadLeaders.map((h, i) => <HeroImage key={i} hero={h} width={60} className="img-fluid p-1" />)}
+                  {p.deadLeaders.map((h, i) => <HeroImage key={i} hero={h} width={60} className="story__img" />)}
                   {p.messiahDead && <MessiahImage />}
                 </td>
               )}
@@ -308,7 +308,7 @@ function PlanRow({ plan: p, advancedCombat }: { plan: StoryPlan; advancedCombat:
   return (
     <tr className="table-dark" style={{ backgroundColor: background }}>
       <td>
-        <img className="img-fluid p-1" width="60" src={tableImage(skin, p.faction)} />
+        <img className="story__img" width="60" src={tableImage(skin, p.faction)} />
         {p.winner && (
           <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#e7bf3c" className="bi bi-hand-thumbs-up-fill" viewBox="0 0 16 16">
             <path d={THUMBS_UP} />
@@ -316,7 +316,7 @@ function PlanRow({ plan: p, advancedCombat }: { plan: StoryPlan; advancedCombat:
         )}
       </td>
       <td>
-        {p.hero && <HeroImage hero={p.hero} width={60} className="img-fluid p-1" />}
+        {p.hero && <HeroImage hero={p.hero} width={60} className="story__img" />}
         {p.messiah && <MessiahImage />}
       </td>
       <td>{p.weapon !== null && <CardImage id={p.weapon} width={80} />}</td>

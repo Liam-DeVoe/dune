@@ -16,7 +16,7 @@ import { Image } from "./Image";
 import { SimpleNumber } from "./SimpleNumber";
 import { SpiceLine } from "./SpiceLine";
 
-const unknownPopover = "<div class='p-1 small' style='color:var(--parchment);background-color:var(--ink-0);border: 1px solid rgba(255,255,255,.16);'>Unknown</div>";
+const unknownPopover = "<div class='notes__unknown' style='color:var(--parchment);background-color:var(--ink-0);border: 1px solid rgba(255,255,255,.16);'>Unknown</div>";
 
 // `open`: opened up, as when shown in a popover from the menu bar (InPopover).
 export function NoteComponent({ open = false }: { open?: boolean }) {
@@ -29,18 +29,18 @@ export function NoteComponent({ open = false }: { open?: boolean }) {
   const players = [...notes.players].sort((a, b) => skin.faction(a.faction).localeCompare(skin.faction(b.faction)));
   const p = notes.players.find((x) => x.faction === shown);
   return (
-    <div className="card mb-2">
+    <div className="card notes">
       <div className="card-header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
         Mentat: Notekeeping Assistant{" "}
         <CollapseButton collapsed={collapsed} />
       </div>
       {!collapsed && (
         <div className="card-body">
-          <div className="mb-1">
+          <div className="notes__factions">
             {players.map((x) => (
-              <button key={x.faction} className={`btn ${x.faction === shown ? "btn-primary" : "btn-outline-primary"} p-1`}
+              <button key={x.faction} className={`btn ${x.faction === shown ? "btn-primary" : "btn-outline-primary"} notes__faction`}
                       onClick={() => setShown(x.faction === shown ? null : x.faction)} data-bs-toggle="tooltip" title={skin.faction(x.faction)}>
-                <img className="img-fluid" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", x.faction))} />
+                <img className="notes__faction-img" width="29" height="29" src={skin.url(skin.get("FactionTableImage_URL", x.faction))} />
               </button>
             ))}
           </div>
@@ -54,23 +54,23 @@ export function NoteComponent({ open = false }: { open?: boolean }) {
 function Noted({ p }: { p: NotesPlayer }) {
   const { view, skin } = useGame();
   const pub = view.players.find((x) => x.faction === p.faction);
-  const messiah = <Image className="m-0 p-0" width={32} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
+  const messiah = <Image width={32} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} />;
   return (
     <>
-      <div className="row m-0">
+      <div className="notes__reserves">
         {/* Resources */}
-        <div className="col col-auto ps-0">
+        <div className="notes__reserve">
           <SpiceLine text={resourcesText(skin, p)} size={24} />
         </div>
         {/* Forces */}
-        <div className="col col-auto ps-0">
-          <ForceToken faction={p.faction} size={24} imgClass="img-fluid m-0 p-0" title={skin.get("ForceName_STR", p.faction)} />
+        <div className="notes__reserve">
+          <ForceToken faction={p.faction} size={24} imgClass="notes__force-img" title={skin.get("ForceName_STR", p.faction)} />
           <strong>{"\u00a0"}{pub?.forcesInReserve}</strong>
         </div>
         {/* Special Forces */}
         {pub?.hasSpecialForces && (
-          <div className="col col-auto ps-0">
-            <ForceToken faction={p.faction} special size={24} imgClass="img-fluid m-0 p-0" title={skin.get("SpecialForceName_STR", p.faction)} />
+          <div className="notes__reserve">
+            <ForceToken faction={p.faction} special size={24} imgClass="notes__force-img" title={skin.get("SpecialForceName_STR", p.faction)} />
             <strong>{"\u00a0"}{pub.specialForcesInReserve}</strong>
           </div>
         )}
@@ -80,10 +80,10 @@ function Noted({ p }: { p: NotesPlayer }) {
         ? (
           <>
             <div>Treachery cards</div>
-            <div className="row row-cols-4 m-0">
+            <div className="notes__grid">
               {p.cards.map((c, i) => (
-                <Hoverable key={i} className="card border-0 p-1" popover={c !== null ? treacheryCardPopup(skin, c) : unknownPopover}>
-                  <img src={c !== null ? skin.cardImage(c) : skin.url(skin.str("CardBack_TreacheryCard_URL"))} className="img-fluid" />
+                <Hoverable key={i} className="card notes__card" popover={c !== null ? treacheryCardPopup(skin, c) : unknownPopover}>
+                  <img src={c !== null ? skin.cardImage(c) : skin.url(skin.str("CardBack_TreacheryCard_URL"))} className="notes__card-img" />
                 </Hoverable>
               ))}
             </div>
@@ -93,8 +93,8 @@ function Noted({ p }: { p: NotesPlayer }) {
 
       {p.revealedTraitors.length > 0 && (
         <>
-          <div className="mt-1">{p.revealedTraitors.length > 1 ? "Revealed Traitors" : "Revealed Traitor"}</div>
-          <div className="row row-cols-4 m-0">
+          <div className="notes__heading">{p.revealedTraitors.length > 1 ? "Revealed Traitors" : "Revealed Traitor"}</div>
+          <div className="notes__grid">
             {p.revealedTraitors.map((h, i) => <HeroImage key={i} hero={h} />)}
           </div>
         </>
@@ -102,8 +102,8 @@ function Noted({ p }: { p: NotesPlayer }) {
 
       {p.revealedFaceDancers.length > 0 && (
         <>
-          <div className="mt-1">Revealed Face Dancers</div>
-          <div className="row row-cols-4 m-0">
+          <div className="notes__heading">Revealed Face Dancers</div>
+          <div className="notes__grid">
             {p.revealedFaceDancers.map((h, i) => <HeroImage key={i} hero={h} />)}
           </div>
         </>
@@ -125,7 +125,7 @@ function Noted({ p }: { p: NotesPlayer }) {
 function HeroImage({ hero }: { hero: HeroRef }) {
   const { skin } = useGame();
   const [src, alt, popover] = heroImage(skin, hero);
-  return <Image className="img-fluid pe-1" src={src} alt={alt} width={60} popover={popover} />;
+  return <Image className="notes__hero" src={src} alt={alt} width={60} popover={popover} />;
 }
 
 function heroImage(skin: Skin, h: HeroRef): [string, string, string] {

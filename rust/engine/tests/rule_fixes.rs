@@ -791,3 +791,64 @@ fn a_sandtrout_doubling_lost_to_the_storm_doesnt_carry_over() {
     assert!(log_texts(&g).iter().any(|t| t.contains("is lost in the storm")));
     assert!(!g.board.sand_trout_doubles_resources);
 }
+
+/// An offer to trade a card with an ally that has none was accepted, and the game then waited for
+/// an answer the ally couldn't give.
+#[test]
+fn a_card_trade_needs_an_ally_with_cards() {
+    let mut g = game_of(&[Faction::Atreides, Faction::Harkonnen]);
+    ally(&mut g, Faction::Atreides, Faction::Harkonnen);
+    let atreides = idx(&g, Faction::Atreides);
+    let card = TreacheryCardManager::items()[5];
+    g.player_mut(atreides).treachery_cards.push(card);
+    let mut e = CardTraded::default();
+    e.target = Some(Faction::Harkonnen);
+    e.card = Some(card);
+    e.requested_card = None;
+    let by = By::new(&g, Faction::Atreides);
+    assert_eq!(e.validate(&g, by).err().map(|r| r.0.plain_text()).as_deref(), Some("Your ally does not have cards to trade"));
+    let harkonnen = idx(&g, Faction::Harkonnen);
+    g.player_mut(harkonnen).treachery_cards.push(TreacheryCardManager::items()[6]);
+    assert!(e.validate(&g, by).is_ok());
+}
+
+/// The Ixian starting-card pick accepted any card.
+#[test]
+fn the_ixian_picks_one_of_the_starting_cards() {
+    let mut g = game_of(&[Faction::Ixian, Faction::Harkonnen]);
+    let cards = TreacheryCardManager::items();
+    g.decks.starting_treachery_cards = Some(Deck::new(vec![cards[1], cards[2]]));
+    let by = By::new(&g, Faction::Ixian);
+    let pick = |c: Option<TreacheryCard>| IxianSelectedStartingCard { card: c };
+    assert!(pick(Some(cards[2])).validate(&g, by).is_ok());
+    assert!(pick(Some(cards[3])).validate(&g, by).is_err());
+    assert!(pick(None).validate(&g, by).is_err());
+}
+
+/// Anyone could delete anyone's automation rule, and Update was accepted and did nothing.
+#[test]
+fn only_the_owner_deletes_an_automation_rule() {
+    let mut g = game_of(&[Faction::Atreides, Faction::Harkonnen]);
+    let mut create = AutomationConfigured::default();
+    create.action = ItemAction::Create;
+    create.rule_type = AutomationRuleType::CharityAutoClaim;
+    let atreides = By::new(&g, Faction::Atreides);
+    let harkonnen = By::new(&g, Faction::Harkonnen);
+    assert!(create.validate(&g, atreides).is_ok());
+    create.apply(&mut g, atreides).unwrap();
+    let id = g.rules.automation_rules[0].id;
+
+    let mut delete = AutomationConfigured::default();
+    delete.action = ItemAction::Delete;
+    delete.automation_rule_id = id;
+    assert!(delete.validate(&g, harkonnen).is_err());
+    let mut unknown = delete.clone();
+    unknown.automation_rule_id = id + 1;
+    assert!(unknown.validate(&g, atreides).is_err());
+    let mut update = delete.clone();
+    update.action = ItemAction::Update;
+    assert!(update.validate(&g, atreides).is_err());
+    assert!(delete.validate(&g, atreides).is_ok());
+    delete.apply(&mut g, atreides).unwrap();
+    assert!(g.rules.automation_rules.is_empty());
+}

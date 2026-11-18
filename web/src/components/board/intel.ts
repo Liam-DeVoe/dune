@@ -67,31 +67,31 @@ function spiceAndForceAndTokenInfo(b: Board, id: number): string {
   const skin = b.skin;
   const board = b.view.board;
   const territory = b.territoryOf(id);
-  let result = "<div class=\"row m-0 bg-dark d-flex justify-content-center\">";
+  let result = "<div class='intel__tokens'>";
   const spice = board.spice.find((s) => s.location === id);
-  if (spice) result += `<div class="col col-auto">${shared.spiceHtml(skin, String(spice.amount), 32)}</div>`;
+  if (spice) result += `<div class="intel__token">${shared.spiceHtml(skin, String(spice.amount), 32)}</div>`;
   for (const bt of board.forces.filter((x) => x.location === id)) {
     if (bt.forces > 0) {
-      result += `<div class="col col-auto">${forceTokenHtml(skin.get("FactionForceImage_URL", bt.faction), bt.faction, false, 32)}<strong>&nbsp;${bt.forces}</strong></div>`;
+      result += `<div class="intel__token">${forceTokenHtml(skin.get("FactionForceImage_URL", bt.faction), bt.faction, false, 32)}<strong>&nbsp;${bt.forces}</strong></div>`;
     }
     if (bt.specialForces > 0) {
       const me = b.view.viewer.faction;
       // C# parity: the conditional binds before the concatenation, so Richese seen by anyone else reads "?".
       const amount = bt.faction === "Richese" && me !== "Richese" ? "?" : String(bt.faction === "Richese" ? board.noFieldValue : bt.specialForces);
-      result += `<div class="col col-auto">${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", bt.faction), bt.faction, true, 32)}<strong>&nbsp;${amount}</strong></div>`;
+      result += `<div class="intel__token">${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", bt.faction), bt.faction, true, 32)}<strong>&nbsp;${amount}</strong></div>`;
     }
   }
   const terror = board.terror.filter((x) => x.territory === territory).length;
   if (terror > 0) {
-    result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="32" height="32" src="${skin.get("FactionImage_URL", "Moritani")}" style="filter:hue-rotate(180deg);" /><strong>&nbsp;${terror}</strong></div>`;
+    result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("FactionImage_URL", "Moritani")}" style="filter:hue-rotate(180deg);" /><strong>&nbsp;${terror}</strong></div>`;
   }
   const ambassador = board.ambassadors.find((a) => a.territory === territory);
-  if (ambassador) result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="32" height="32" src="${skin.get("AmbassadorImage_URL", ambassador.ambassador)}" /></div>`;
+  if (ambassador) result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("AmbassadorImage_URL", ambassador.ambassador)}" /></div>`;
   const discovery = board.discoveries.find((d) => d.location === id);
-  if (discovery) result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="32" height="32" src="${skin.get("DiscoveryTokenTypeImage_URL", discovery.tokenType)}" /></div>`;
+  if (discovery) result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("DiscoveryTokenTypeImage_URL", discovery.tokenType)}" /></div>`;
   for (const h of board.leaders.filter((x) => x.territory === territory)) {
     const src = h.hero.t === "leader" ? skin.get("PersonImage_URL", h.hero.id) : h.hero.t === "messiah" ? b.s("Messiah_URL") : skin.get("TreacheryCardImage_URL", skin.cardSkinId(h.hero.id));
-    result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="64" height="64" src="${src}" /></div>`;
+    result += `<div class="intel__token"><img class="intel__token-img" width="64" height="64" src="${src}" /></div>`;
   }
   return result + "</div>";
 }

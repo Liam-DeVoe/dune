@@ -164,6 +164,26 @@
   margin-left: 4px;
 }
 
+// What lies in the location: spice, forces, tokens and leaders, centred in
+// rows on a dark strip, 1.5rem apart.
+.intel__tokens {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  background-color: var(--ink-0);
+}
+
+.intel__token {
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: 0 0.75rem;
+}
+
+.intel__token-img {
+  max-width: 100%;
+  height: auto;
+}
+
 // Treachery card popover: the card's art fills the left edge of the box, with
 // its name, type and rules text beside it. The box's corners clip the art. The
 // art's height (about 240px) sets the box's height for all but the longest

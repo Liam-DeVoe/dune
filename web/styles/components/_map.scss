@@ -435,14 +435,14 @@
   outline: 1.5px dashed #fff;
   outline-offset: 0.5px;
 
-  img {
+  &__img {
     display: block;
     width: 100%;
     height: 100%;
     filter: drop-shadow(0.5px 0.5px 0.5px rgba(0, 0, 0, 0.7));
   }
 
-  .count {
+  &__count {
     position: absolute;
     left: 60%;
     top: 55%;
@@ -488,8 +488,8 @@
   width: 0;
   height: 0;
 
-  &.tl { transform: translate(var(--map-dx-l, 0px), var(--map-dy-t, 0px)); }
-  &.tr { transform: translate(var(--map-dx-r, 0px), var(--map-dy-t, 0px)); }
-  &.bl { transform: translate(var(--map-dx-l, 0px), calc(var(--map-dy-b, 0px) - var(--map-bar, 0px))); }
-  &.br { transform: translate(var(--map-dx-r, 0px), var(--map-dy-b, 0px)); }
+  &--tl { transform: translate(var(--map-dx-l, 0px), var(--map-dy-t, 0px)); }
+  &--tr { transform: translate(var(--map-dx-r, 0px), var(--map-dy-t, 0px)); }
+  &--bl { transform: translate(var(--map-dx-l, 0px), calc(var(--map-dy-b, 0px) - var(--map-bar, 0px))); }
+  &--br { transform: translate(var(--map-dx-r, 0px), var(--map-dy-b, 0px)); }
 }

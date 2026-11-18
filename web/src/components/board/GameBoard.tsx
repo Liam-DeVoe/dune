@@ -75,9 +75,9 @@ export function GameBoard() {
               <RecentBlows />
               <ResourcesOnPlanet />
               <Monsters />
-              <div className="map-corner tr"><Phases /></div>
-              <div className="map-corner bl"><CardPiles which="spice" /></div>
-              <div className="map-corner br"><CardPiles which="treachery" /></div>
+              <div className="map-corner map-corner--tr"><Phases /></div>
+              <div className="map-corner map-corner--bl"><CardPiles which="spice" /></div>
+              <div className="map-corner map-corner--br"><CardPiles which="treachery" /></div>
               <Planet />
               <MapHover />
               <MapSelectionHighlights />
@@ -86,7 +86,7 @@ export function GameBoard() {
               <StagedForces />
               <Players />
               <Bids />
-              <div className="map-corner tl"><Tanks /></div>
+              <div className="map-corner map-corner--tl"><Tanks /></div>
               <Disconnection />
               <BattlePlans />
               <MapRefArrows />

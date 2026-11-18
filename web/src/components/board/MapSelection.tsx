@@ -251,8 +251,8 @@ export function StagedForces() {
     const token = (key: string, src: string, amount: number, tx: number, starred: boolean) => (
       <div key={key} className={`staged-force ${starred ? "force-token starred" : ""}`}
         style={{ position: "absolute", left: px(tx), top: px(y), width: px(diameter), height: px(diameter), ["--d" as string]: px(diameter) }}>
-        <img src={src} alt="Staged force" />
-        <span className="count" style={{ font }}>{amount}</span>
+        <img className="staged-force__img" src={src} alt="Staged force" />
+        <span className="staged-force__count" style={{ font }}>{amount}</span>
       </div>
     );
     if (staged.forces > 0) {

@@ -399,3 +399,68 @@ fn the_testing_station_counts_the_bots_own_storm_losses() {
     let e = bot(&game, me).determine_testing_station_used(&game).expect("a Testing Station decision");
     assert_eq!(e.value_added, -1);
 }
+
+/// The storm will end in sector 17, and the enemy has forces in the open sand of sector 0, just
+/// after it. Letting the storm go one further kills them. Before the fix the sector after 17
+/// scored nothing, because the board didn't wrap around, so the bot made no decision.
+#[test]
+fn the_testing_station_scores_across_the_17_0_boundary() {
+    let mut game = load("ship");
+    let me = player_of(&game, Faction::Atreides);
+    const N: i32 = Sector::COUNT as i32;
+    let open = |game: &Game, sector: i32| -> Vec<Location> {
+        game.board.map.locations(false).filter(|l| l.sector(&game.board.map).map(i32::from) == Some(sector) && !l.is_protected_from_storm()).collect()
+    };
+    let quiet = |game: &Game, sector: i32| {
+        open(game, sector).iter().all(|l| !l.is_stronghold() && game.battalions_in(*l).iter().all(|b| b.total_amount_of_forces() == 0))
+    };
+    assert!([N - 2, N - 1, 0].iter().all(|s| quiet(&game, *s)), "sectors 16, 17 and 0 hold nobody");
+    game.board.next_storm_moves = (N - 1 - Sector::number_or_none(game.board.sector_in_storm) + N) % N;
+    let enemy = game.player_indices().find(|p| *p != me && game.player(*p).ally != game.player(me).faction).unwrap();
+    let sand = open(&game, 0)[0];
+    Player::add_forces(&mut game, enemy, sand, 5, true).unwrap();
+
+    let e = bot(&game, me).determine_testing_station_used(&game).expect("a Testing Station decision");
+    assert_eq!(e.value_added, 1);
+}
+
+/// Two factions offer the bot a trade. It accepts the offer made first. Before the fix it made
+/// no decision, and the setup waited on it.
+#[test]
+fn a_bot_offered_two_faction_trades_accepts_the_first() {
+    let mut game = load("setup");
+    game.enter_setup(treachery_engine::game::SetupStep::TradingFactions);
+    let factions: Vec<Faction> = game.players.iter().filter_map(|p| p.faction).collect();
+    let me = player_of(&game, factions[0]);
+    let offers = &mut game.setup_mut().unwrap().current_trade_offers;
+    for initiator in [factions[2], factions[1]] {
+        offers.push(treachery_engine::game::TradeOffer { initiator: Some(initiator), target: Some(factions[0]) });
+    }
+
+    let e = bot(&game, me).determine_faction_trade_offered(&game).expect("a faction trade decision");
+    assert_eq!(e.target, Some(factions[2]));
+}
+
+/// Moritani has no ally, and 6 enemy forces entered a stronghold holding their Atomics token. The
+/// bot reveals Atomics, the only token there. Before the fix Atomics needed an ally with no
+/// forces there, so without an ally the bot passed.
+#[test]
+fn moritani_without_an_ally_reveals_atomics() {
+    let mut game = load("nexus-moritani");
+    let me = player_of(&game, Faction::Moritani);
+    game.break_alliance(Faction::Moritani);
+    assert_eq!(game.player(me).ally, None);
+    let t = game.board.map.territories(false).find(|t| t.is_stronghold() && !t.is_homeworld()).unwrap();
+    game.board.terror_on_planet.clear();
+    game.board.terror_on_planet.insert(TerrorType::Atomics, t);
+    let victim = game.player_indices().find(|p| *p != me && game.player(*p).forces_in_reserve() >= 6).unwrap();
+    let victim_faction = game.player(victim).faction.unwrap();
+    let to = t.locations()[0];
+    Player::add_forces(&mut game, victim, to, 6, true).unwrap();
+    // Already offered and refused, so the bot can't offer an alliance instead.
+    game.turn.intrusions.insert(0, Intrusion { initiator: victim_faction, to: Some(to), type_: IntrusionType::Terror, alliance_offered: true });
+
+    let e = bot(&game, me).determine_terror_revealed(&game);
+    assert!(!e.passed);
+    assert_eq!(e.type_, Some(TerrorType::Atomics));
+}

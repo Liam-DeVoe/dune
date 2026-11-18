@@ -90,11 +90,10 @@ impl ClassicBot {
             enemy_forces_killed + my_strongholds * 3 - my_forces_killed - enemy_strongholds * 3
         };
 
-        // Known quirk (known-issues.md): the sector before 0 and the one after 17 don't wrap around,
-        // so they score nothing.
-        let score_if_minus1 = score(storm_end.number().checked_sub(1).map(Sector::new));
+        // The board wraps around: the sector before 0 is 17.
+        let score_if_minus1 = score(Some(storm_end.moved(u32::from(Sector::COUNT) - 1)));
         let score_if_passed = score_if_minus1 + score(Some(storm_end));
-        let score_if_plus1 = score_if_passed + score((storm_end.number() + 1 < Sector::COUNT).then(|| storm_end.moved(1)));
+        let score_if_plus1 = score_if_passed + score(Some(storm_end.moved(1)));
 
         let value_added = if score_if_minus1 > score_if_passed && score_if_minus1 > score_if_plus1 {
             -1
@@ -932,14 +931,10 @@ impl ClassicBot {
         e
     }
 
+    /// Accepts a trade offered to me. With several offers, accepts the one made first.
     pub fn determine_faction_trade_offered(&self, game: &Game) -> Option<FactionTradeOffered> {
         let faction = self.faction(game);
-        let mut matching = game.setup()?.current_trade_offers.iter().filter(|matching_offer| matching_offer.target == Some(faction));
-        let m = matching.next()?;
-        // Known quirk (known-issues.md): no decision when two factions offer me a trade.
-        if matching.next().is_some() {
-            return None;
-        }
+        let m = game.setup()?.current_trade_offers.iter().find(|offer| offer.target == Some(faction))?;
         let mut e = FactionTradeOffered::default();
         e.target = m.initiator;
         Some(e)

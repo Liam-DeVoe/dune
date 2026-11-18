@@ -14,6 +14,8 @@ A loser may retreat only if their leader survives the battle and has the Diploma
 
 2026-11-15: at low threshold, Moritani reveals a terror token only when at least 3 forces enter. The Grumman card says "Low (0-7): ... You can only reveal terror tokens when at least 3 forces enter" (web/assets/art/GrummanCard.gif), and `check_terror_triggered` does that.
 
+2026-11-18: a Bene Gesserit bot's predicted win does change its battle plan. In `best_voice` (`rust/bots/src/bot/factions.rs`) the prediction doesn't change the voice chosen, but it starts the plan's two flags `player_hero_will_certainly_survive` and `opponent_hero_will_certainly_be_zero` true. Battle planning reads them in `chance_of_my_leader_surviving` and `chance_of_enemy_leader_dying` (`rust/bots/src/bot/battle.rs`) as certainty, a chance of 1 instead of 0.5, that the bot's leader survives the voiced defense and the opponent's dies to the voiced weapon. The C# version did the same; the known-issues entry that said nothing read the flags was wrong.
+
 ## Quirks kept from the C# version
 
 Behavior that looks wrong or arbitrary and has no reason except that the C# version did the same. Each is unchanged for now and marked in the code with `Known quirk (known-issues.md)`. Fixing one changes what players see, so it needs the owner's approval and an entry in behavior-changes.md. Paths are under `rust/engine/src` unless they say otherwise.
@@ -56,15 +58,6 @@ Behavior that looks wrong or arbitrary and has no reason except that the C# vers
 - **Any player can delete another player's automation rule.** Delete removes a rule by id without checking its owner, and Update is accepted and does nothing. Where: `events/host/automation_configured.rs`, `validate` and `apply`. Players notice: only with a modified client. Fix: refuse a Delete of someone else's rule, and refuse Update.
 - **`StrongholdBonus` is listed twice in the Expansion2AdvancedGame ruleset.** The list goes into `game.rules.active` and the lobby data. Where: `game/rules.rs`, `Game::ruleset_definition`. Players notice: possibly "Stronghold bonus" twice in the rule list. Fix: drop the duplicate and update `ruleset_definition_keeps_duplicate_rule` (engine/tests/pkg_b_players.rs).
 - **Some error texts show a type name instead of the object.** Refusing a hero that isn't in the game prints "Treachery.Shared.Leader" (`heroes/hero.rs`, `Hero::plain_text`, used by `raise_dead_played.rs` and `karma_free_revival.rs`), and placing an ambassador where one already is prints "There already is an ambassador in Treachery.Shared.Territory" (`events/factions/ambassador_placed.rs`, `apply`). Players notice: a Game Error naming an internal type, probably only past validation. Fix: name the hero or territory.
-
-### Bots
-
-All in `rust/bots/src/bot/`.
-
-- **Bots without an ally never reveal Atomics.** The bot reveals Atomics only if more than 5 enemy forces are there and its ally has none there, which is false without an ally. Where: `factions.rs`, `determine_terror_revealed`. Players notice: a Moritani bot without an ally never uses Atomics. Fix: treat no ally as no allied forces.
-- **A bot offered two faction trades never answers.** Where: `other.rs`, `determine_faction_trade_offered`. Players notice: setup waits on the bot until the host moves on. Fix: pick one offer.
-- **Testing Station scoring doesn't wrap around the board.** The sectors before 0 and after 17 score nothing, so a storm ending at sector 0 or 17 is misjudged. Where: `other.rs`, `determine_testing_station_used`. Players notice: a poor storm adjustment near the 17/0 boundary. Fix: use `Sector::moved`.
-- **A predicted win doesn't change the bot's Voice.** The branch for a predicted win only sets two flags that nothing afterwards reads. Where: `factions.rs`, `best_voice`. Players notice: a slightly weaker bot. Fix: decide what the prediction should do, or drop the branch.
 
 ### Web client
 

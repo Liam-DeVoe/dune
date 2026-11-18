@@ -190,6 +190,27 @@ Step 4 of native-plan.md. The user reviewed the C# bugs the port copied on purpo
 - Now: only the missing keys take the default skin's entries, and the custom labels stay. The dictionary is written in the default skin's order, with keys the default skin lacks at the end.
 - Test: `a_partial_dictionary_keeps_its_labels` (skin/tests/skin_json.rs). The `load.jsonl.gz` snapshot was rewritten: its 5 cases with partial dictionaries now keep their custom labels.
 
+## Bots without an ally never revealed Atomics
+
+- Area: Bots (`rust/bots/src/bot/factions.rs`, `determine_terror_revealed`; a quirk kept from the C# version, approved 2026-11-18)
+- What happened: the bot reveals Atomics when more than 5 enemy forces are in the territory and its ally has none there. Without an ally the second test compared "no ally" with "0 forces" and failed, so a Moritani bot without an ally never revealed Atomics.
+- Now: no ally counts as no allied forces in the territory.
+- Test: `moritani_without_an_ally_reveals_atomics` (bots/tests/behavior_changes.rs).
+
+## A bot offered two faction trades never answered
+
+- Area: Bots (`rust/bots/src/bot/other.rs`, `determine_faction_trade_offered`; a quirk kept from the C# version, approved 2026-11-18)
+- What happened: with offers from two factions, the bot made no decision, and the setup waited on it until the host moved on.
+- Now: the bot accepts the offer made first, as it already accepted a single offer. The open offers are kept in the order they were made, so this is the earliest one.
+- Test: `a_bot_offered_two_faction_trades_accepts_the_first` (bots/tests/behavior_changes.rs).
+
+## Testing Station scoring didn't wrap around the board
+
+- Area: Bots (`rust/bots/src/bot/other.rs`, `determine_testing_station_used`; a quirk kept from the C# version, approved 2026-11-18)
+- What happened: the bot scores the sectors before, at and after where the storm will end. The sector before 0 and the one after 17 scored nothing, so a storm ending in sector 0 or 17 was misjudged.
+- Now: the board wraps around (`Sector::moved`): the sector before 0 is 17, and the one after 17 is 0.
+- Test: `the_testing_station_scores_across_the_17_0_boundary` (bots/tests/behavior_changes.rs).
+
 ## For the step 3 cleanup (no visible effect, simplify if the behavior check stays clean)
 
 - Setup briefly enters deck customizing or faction trading before the real next phase (rust/engine/src/game/setup.rs:73 before step 2).

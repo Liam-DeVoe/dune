@@ -728,8 +728,10 @@ impl ClassicBot {
     pub fn best_voice(&self, game: &Game, battle: Option<InitiatedBattle>, p: PlayerId, opponent: PlayerId) -> VoicePlan {
         use TreacheryCardType as T;
 
-        // Known quirk (known-issues.md): a predicted win only sets these two flags. The voice
-        // chosen below doesn't use the prediction.
+        // A predicted win doesn't change the voice chosen below, but it starts both flags true.
+        // Battle planning reads them as certainty that my leader survives the planned defense
+        // and the opponent's dies to the planned weapon (`chance_of_my_leader_surviving` and
+        // `chance_of_enemy_leader_dying` in battle.rs).
         let win_predicted = self.win_was_predicted_by_me_this_turn(game, game.player(opponent).faction.expect("faction"));
         let mut result = VoicePlan {
             battle,
@@ -1205,10 +1207,9 @@ impl ClassicBot {
     pub fn determine_terror_revealed(&self, game: &Game) -> TerrorRevealed {
         // For now this is mostly random.
         let territory = TerrorRevealed::get_territory(game);
-        // Known quirk (known-issues.md): Atomics also need an ally with no forces in the territory,
-        // so a bot without an ally never reveals Atomics.
+        // Atomics need more than 5 enemy forces in the territory and none of my ally's, if I have one.
         let may_use_atomics = self.opponents(game).iter().map(|o| game.player(*o).any_forces_in_territory(territory)).sum::<i32>() > 5
-            && self.allied_player(game).map(|a| game.player(a).any_forces_in_territory(territory)) == Some(0);
+            && self.allied_player(game).is_none_or(|a| game.player(a).any_forces_in_territory(territory) == 0);
 
         let token_is_valid = |t: &TerrorType| {
             (*t != TerrorType::SneakAttack || TerrorRevealed::valid_sneak_attack_targets(game, self.player).next().is_some())

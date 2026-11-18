@@ -46,6 +46,10 @@ Starts rust/target/release/treachery-server on a fresh database with the web bui
     returns both tabs to the login form, and a reload stays logged out.
 12. The scene route again, now on a server with other clients: passing in the alliance phase
     replaces the view.
+13. The new-account form refuses a 3-letter username, and checks the player name only once the
+    username passes.
+14. The admin (TREACHERY_ADMIN=admin) logs in on /admin and clicks Persist data, which saves
+    the games.
 
 Everything after step 2 is done by clicking, except where the client has no screen for it:
 - Steps 1 and 2 log in, create, seat and join through the web client's connection code
@@ -105,6 +109,7 @@ def start_server(port: int, db: Path) -> subprocess.Popen:
         "TREACHERY_DATABASE": str(db),
         "TREACHERY_LISTEN": f"127.0.0.1:{port}",
         "TREACHERY_DEV_SCENE": "true",
+        "TREACHERY_ADMIN": "admin",
     }
     proc = subprocess.Popen([str(SERVER)], env=env, cwd=tempfile.gettempdir())
     for _ in range(100):
@@ -510,6 +515,48 @@ def reopen(browser, base: str, bob: Page) -> None:
     context.close()
 
 
+def new_account_checks(browser, base: str) -> None:
+    """Step 13: the new-account form stops at the first failing check."""
+    page = new_page(browser, "new-account")
+    # The server refuses such a username too, with the same text, so the check is that the form
+    # never sends createUser.
+    sent: list[str] = []
+    page.on("websocket", lambda ws: ws.on("framesent", lambda f: isinstance(f, str) and sent.append(f)))
+    page.goto(base + "/")
+    page.get_by_role("button", name="Create account").click()
+    page.get_by_placeholder("User name (used to log in)").fill("abc")
+    page.get_by_placeholder("Password", exact=True).fill("abc-password")
+    page.get_by_placeholder("Repeat password").fill("abc-password")
+    page.get_by_placeholder("Player name (visible to other players)").fill("Player Abc")
+    page.get_by_role("button", name="Create account").last.click()
+    error = page.locator(".login__error")
+    error.get_by_text("Username must be more than 3 characters").wait_for(timeout=5000)
+    page.wait_for_timeout(500)
+    check(not any('"createUser"' in f for f in sent), "a 3-letter username is refused by the form, before it asks the server")
+    page.get_by_placeholder("User name (used to log in)").fill("abcd")
+    page.get_by_placeholder("Player name (visible to other players)").fill("Pl")
+    page.get_by_role("button", name="Create account").last.click()
+    error.get_by_text("Player name must be more than 3 characters").wait_for(timeout=5000)
+    page.wait_for_timeout(500)
+    check(not any('"createUser"' in f for f in sent), "with a good username, the form checks the player name")
+    page.context.close()
+
+
+def persist_data(browser, base: str) -> None:
+    """Step 14: the admin page's Persist data."""
+    page = new_page(browser, "admin")
+    page.goto(base + "/")
+    page.evaluate(CREATE_ACCOUNT, ["admin", "admin-password"])
+    page.goto(base + "/admin")
+    page.get_by_placeholder("User name").fill("admin")
+    page.get_by_placeholder("Password").fill("admin-password")
+    page.get_by_role("button", name="Log in").click()
+    page.get_by_role("button", name="Persist data").click(timeout=15000)
+    page.get_by_text(re.compile(r"^Saved \d+ of \d+ running games\.$")).wait_for(timeout=15000)
+    check(True, "Persist data on the admin page saves the games")
+    page.context.close()
+
+
 def run(browser, base: str, shots: Path) -> None:
     alice = new_page(browser, "alice")
     bob = new_page(browser, "bob")
@@ -566,6 +613,10 @@ def run(browser, base: str, shots: Path) -> None:
 
     # 12: the scene route on the server, after other clients.
     play_scene(browser, base, shots, "3-scene")
+
+    # 13-14: the new-account form and the admin page.
+    new_account_checks(browser, base)
+    persist_data(browser, base)
 
 
 def main() -> None:

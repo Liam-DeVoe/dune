@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Faction } from "../../generated/enums";
 import { useLobby } from "../../lobby/context";
-import { SlotDict } from "../../lobby/participation";
+import { OrderedDict } from "../../lobby/participation";
 import { FactionImage, SelectFaction } from "./widgets";
 
 export function SeatPlayersComponent() {
@@ -63,7 +63,7 @@ export function SeatPlayersComponent() {
             })}
           </tbody>
         </table>
-        <button className="button button--primary seat-players__confirm" disabled={seated.values().includes(-1)} onClick={() => client.requestAssignSeats((seated as SlotDict<number>).toJson())}>Confirm</button>
+        <button className="button button--primary seat-players__confirm" disabled={seated.values().includes(-1)} onClick={() => client.requestAssignSeats((seated as OrderedDict<number>).toJson())}>Confirm</button>
       </div>
     </div>
   );

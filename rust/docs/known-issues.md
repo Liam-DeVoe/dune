@@ -74,10 +74,7 @@ All in `rust/bots/src/bot/`.
 
 All in `web/src/`.
 
-- **The new-account form doesn't stop on a bad username.** Later checks overwrite earlier ones, and the last one clears any username error once the other fields pass. The server doesn't check username length either. Where: `components/lobby/LoginComponent.tsx`, `validateNewAccount`. Players notice: usernames of 1 to 3 or over 40 characters are accepted. Fix: stop at the first failing check, and check on the server too.
 - **A typed number in a force picker doesn't change the placement.** With `onStep`, typing only changes the shown number; the buttons and arrow keys change the placement. Where: `components/NumberPicker.tsx`, used by `ForceSelection` in `components/battle/BattleForms.tsx`. Players notice: they type 3, see 3, and submit another amount. Fix: commit typed values through `onChange`.
-- **The admin's "Persist data" always fails.** `adminPersistState` refuses outside a game, and the admin page is never in one. Where: `lobby/client.ts`. Players notice: the admin always gets "Not in game". Fix: drop the check.
-- **Lobby player order can change on reload.** `SlotDict` puts a user who joins after someone left into the freed slot, while the server lists them last. Where: `lobby/participation.ts`. Players notice: the seat list reorders on reload. Fix: use insertion order (a `Map`).
 - **The turn popover's times are UTC, unlabeled, and drop whole days.** `longDate` prints UTC without saying so, `hms` wraps hours at 24 (25 hours shows as 1:00:00), and the labels open with `<string>` instead of `<strong>`, so they aren't bold. Where: `components/board/popups.ts`. Players notice: wrong clock times outside UTC, short durations, plain labels. Fix: local time, no wrap, `<strong>`.
 - **The story table shows no terror-token image.** Terror tokens get `src=""`. Where: `components/StoryComponent.tsx`. Players notice: alt text or a broken image. Fix: use the skin's terror token image.
 

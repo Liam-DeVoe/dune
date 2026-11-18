@@ -4,6 +4,8 @@
 // only while the panel shows an earlier turn; its line keeps its height when
 // empty so the header doesn't jump.
 .report {
+  padding-bottom: 0.25rem;
+
   // On the .card-header.
   &__header {
     display: grid;
@@ -110,9 +112,16 @@
   }
 
   // A busy phase scrolls inside the panel instead of running off the screen.
-  // On the .card-body.
+  // On the .card-body, whose padding this replaces.
   &__body {
     max-height: 70vh;
+    padding: 0.25rem;
+    overflow: auto;
+  }
+
+  &__empty {
+    margin-top: 0.25rem;
+    padding: 0 0.25rem;
   }
 
   // On desktop the side column is one window tall. The panel shrinks to the

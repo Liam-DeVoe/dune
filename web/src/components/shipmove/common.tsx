@@ -33,7 +33,7 @@ function CollapseButton({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-// GameEventComponentLayout: a card, urgent forms with the card-urgent border; the header
+// GameEventComponentLayout: a card, urgent forms with the card--urgent border; the header
 // collapses the body.
 export function EventLayout({ type, urgent = false, header, children }: { type: string; urgent?: boolean; header?: ReactNode; children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => collapsedByType.get(type) ?? false);

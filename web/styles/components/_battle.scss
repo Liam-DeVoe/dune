@@ -279,8 +279,8 @@
     color: var(--rock-2);
     cursor: pointer;
 
-    // Doubled with the base class so it still beats Bootstrap's
-    // [type=button]:not(:disabled) pointer cursor, as `.battle-plan__none.on` did.
+    // Doubled with the base class so the cursor still beats Bootstrap's
+    // [type=button]:not(:disabled) pointer, which weighs (0,2,0).
     &.battle-plan__none--on {
       border-style: solid;
       border-color: var(--ink-1);

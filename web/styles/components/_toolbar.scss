@@ -26,8 +26,8 @@
       color: var(--gold);
     }
 
-    // Doubled with the base class so it still beats :hover, as
-    // `.toolbar button.on` beat `.toolbar button:hover` by source order.
+    // Doubled with the base class so that an active tool keeps its colours
+    // while hovered: the plain modifier would lose to :hover.
     &.toolbar__button--on {
       background: rgba(231, 191, 60, 0.18);
       color: var(--gold);

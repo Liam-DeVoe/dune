@@ -134,8 +134,8 @@
     padding: 0 0 4px 36px;
   }
 
-  // Doubled with the base class: Bootstrap's .dropdown-item:focus and
-  // :active set the colour at (0,2,0), which `.nested .dropdown-item` beat.
+  // Doubled with the base class so the colour still beats Bootstrap's
+  // .dropdown-item:focus and :active, which weigh (0,2,0).
   &__item.menu-overflow__item--nested {
     font-size: 15px;
     color: var(--text-2);

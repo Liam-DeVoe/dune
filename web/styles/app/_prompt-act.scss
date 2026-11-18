@@ -34,9 +34,9 @@
   }
 }
 
-// The small uppercase label above the card's content. The act-stack selector
-// keeps the old (0,4,0) weight inside the joined card, where it outweighs the
-// host strip's margin reset below, as `.act-stack > .card .kicker` did.
+// The small uppercase label above the card's content. Inside the joined card
+// the act-stack selector weighs (0,4,0), so its bottom margin outweighs the
+// host strip's margin reset below.
 .prompt-act__kicker,
 .act-stack > .card:not(.battle-plan) .prompt-act__kicker {
   @include shared.prompt-kicker;

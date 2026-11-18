@@ -256,7 +256,7 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
               {o.allyCap > 0 && cost > 0 && (
                 <div className="battle-plan__control">
                   <span className="battle-plan__control-label">From ally</span>
-                  <div className="d-flex">
+                  <div className="battle-plan__ally">
                     <NumberPicker value={draft.allyContributionAmount as number} min={allyMin} max={allyMax} spice symbolSrc={skin.factionImage(o.ally as Faction)} onChange={(v) => void update({ allyContributionAmount: v })} />
                   </div>
                 </div>
@@ -294,8 +294,8 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
 
       {o.maxBankerBoost > 0 && (
         <div className="battle-plan__section">
-          <div className="d-inline-flex align-items-center">
-            <label className="me-1">{o.bankerLabel}</label>
+          <div className="battle-plan__banker">
+            <label className="battle-plan__banker-label">{o.bankerLabel}</label>
             <NumberPicker value={draft.bankerBonus as number} min={0} max={o.maxBankerBoost} spice symbolSrc={harvester}
                           onChange={(v) => void update({ bankerBonus: v })} />
           </div>

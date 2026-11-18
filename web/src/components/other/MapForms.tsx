@@ -43,7 +43,7 @@ export function KarmaMonsterForm({ action, inPopover = false }: FormProps) {
   if (!o) return null;
   return (
     <Layout type="KarmaMonster" header={<>Use {karma} to make <MonsterIcon /> appear in a territory of choice</>} inPopover={inPopover}>
-      <div className="small">Use the map to choose a territory.</div>
+      <div className="event-form__note">Use the map to choose a territory.</div>
       <SubmitError error={error} />
     </Layout>
   );
@@ -102,23 +102,23 @@ export function NexusPlayedForm({ action, inPopover = false }: FormProps) {
                             onChange={(v) => update({ tleilaxuNumberOfSpecialForcesInLocation: v })} faction={faction} special />
             </div>
           )}
-          {num(draft.tleilaxuNumberOfSpecialForcesInLocation) > 0 && <div className="small">Use the map to choose where to place them.</div>}
+          {num(draft.tleilaxuNumberOfSpecialForcesInLocation) > 0 && <div className="event-form__note">Use the map to choose where to place them.</div>}
           <SelectFromImage values={heroChoices(skin, view, t.heroes)} value={hero} required={false}
                            onChange={(v) => update({ tleilaxuHero: v })} imageWidth={80} />
           {hero != null && t.mayAssignSkill && (
             <YesNo value={draft.tleilaxuAssignSkill === true} onChange={(v) => update({ tleilaxuAssignSkill: v })} label="Do you wish to assign a skill to this leader?" />
           )}
-          <div className="mt-1 text-end">Revival cost for you: <SimpleNumber>{t.cost}</SimpleNumber></div>
+          <div className="event-form__cost">Revival cost for you: <SimpleNumber>{t.cost}</SimpleNumber></div>
         </>
       )}
       {o.choamCards && (
         <SelectFromImage values={cardChoices(skin, o.choamCards)} value={idOf(draft.choamCard)} onChange={(v) => update({ choamCard: v })} imageWidth={80} />
       )}
-      {member === "EcazTerritory" && <div className="small">Use the map to choose a territory.</div>}
+      {member === "EcazTerritory" && <div className="event-form__note">Use the map to choose a territory.</div>}
       {o.ecazFactions && (
         <SelectFromImage values={factionChoices(skin, o.ecazFactions)} value={factionOf(draft.ecazFaction)} onChange={(v) => update({ ecazFaction: v })} imageWidth={40} />
       )}
-      {member === "MoritaniTerritory" && <div className="small">Use the map to choose a stronghold.</div>}
+      {member === "MoritaniTerritory" && <div className="event-form__note">Use the map to choose a stronghold.</div>}
       <ButtonRow confirm={() => submit()} confirmError={validation} />
       <SubmitError error={error} />
     </Layout>

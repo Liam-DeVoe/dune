@@ -61,7 +61,7 @@ function Info({ contents }: { contents: string }) {
   const html = `<div class='pop'>${contents}</div>`;
   const ref = usePopover<HTMLDivElement>(html);
   return (
-    <div ref={ref} className="d-inline" {...popoverAttributes(html, "image")}>
+    <div ref={ref} className="bidding-panel__info" {...popoverAttributes(html, "image")}>
       <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="var(--ink-0)" className="bi bi-info-circle" viewBox="0 0 16 16">
         <circle cx="8" cy="8" r="8" fill="var(--gold)" />
         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
@@ -172,14 +172,14 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
         <Checkbox value={secretAlly} onChange={(v) => update({ secretAlly: v })}>Use your Nexus card to get this card for free?</Checkbox>
       )}
       {canUseKarma && (
-        <div className="mt-1">
+        <div className="bidding-panel__field">
           <SelectFromImage
             values={karmaCards.map((c) => ({ value: c, src: skin.cardImage(c), alt: skin.card(c), popover: treacheryCardPopup(skin, c) }))}
             value={karmaCard} onChange={(c) => update({ karmaCard: c })} required={false} imageWidth={80}
             label={<>Use {karmaName} to bid without limit or win immediately? <Info contents={karmaInfo} /></>} />
         </div>
       )}
-      <div className="mt-1">
+      <div className="bidding-panel__field">
         {allyPicker
           ? <>
               <SelectResourcesFromFaction value={draft.amount} onChange={(v) => update({ amount: v })} min={0} max={o.maxAmount} faction={view.viewer.faction as Faction} />
@@ -193,7 +193,7 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
       <ButtonRow confirm={confirm} confirmText={bidLabel} confirmError={result.validation}
                  pass={panel.silent ? undefined : pass}
                  other={karmaCard != null ? other : undefined} otherText="Win immediately"
-                 alignment="justify-content-start" />
+                 alignEnd={false} />
     </>
   );
 }
@@ -260,7 +260,7 @@ export function BiddingPanel({ panel }: { panel: BiddingPanelView }) {
   const { view } = useGame();
   const action = view.actions.find((a) => a.eventType === (panel.blackMarket ? "BlackMarketBid" : "Bid"));
   return (
-    <div className="card p-1 mb-2" style={{ animation: "fadeIn 1s" }}>
+    <div className="card bidding-panel" style={{ animation: "fadeIn 1s" }}>
       <div className="card-body">
         <Lot panel={panel} />
         {action && <BidInputs key={`${action.eventType}`} action={action} panel={panel} />}

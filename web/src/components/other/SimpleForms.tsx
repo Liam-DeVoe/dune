@@ -44,7 +44,7 @@ export function SimpleForm({ action, inPopover = false }: FormProps) {
     <Layout type={`Simple:${action.eventType}`} header={o.title ? <Title parts={o.title} /> : null} urgent={o.alert} inPopover={inPopover}>
       <ButtonRow confirm={confirm} confirmText={o.confirmLabel} confirmError={action.validation} />
       {o.allowAutoConfirm && (
-        <div className="mt-0 float-end">
+        <div className="event-form__auto-confirm">
           <Checkbox value={auto} onChange={(v) => { setAuto(v); autoConfirm.set(action.eventType, v); }}>
             Next time, auto {o.confirmLabel} after 3 seconds
           </Checkbox>

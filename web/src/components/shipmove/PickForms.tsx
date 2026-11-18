@@ -60,7 +60,7 @@ function usePick(action: ActionView, opts: {
   return { ...d, pick, territoryOf };
 }
 
-const hint = (text: string) => <div className="small">{text}</div>;
+const hint = (text: string) => <div className="event-form__note">{text}</div>;
 
 // PerformBeneGesseritPlacementComponent, PerformMoritaniSetupComponent,
 // PerformHmsPlacementComponent, PerformHmsMovementComponent, KarmaHmsMovementComponent: a
@@ -98,7 +98,7 @@ export function LocationPickForm({ action }: { action: ActionView }) {
   const urgent = t === "PerformBeneGesseritPlacement" || t === "PerformMoritaniSetup";
   return (
     <EventLayout type={t} urgent={urgent} header={header}>
-      {moves && <p className="text-info">You have {moves.movesLeft} move(s) left. </p>}
+      {moves && <p className="event-form__info">You have {moves.movesLeft} move(s) left. </p>}
       {hint("Use the map to choose a location.")}
       {passable && <ButtonRow pass={() => void p.pass()} passText="Pass" />}
     </EventLayout>
@@ -283,7 +283,7 @@ export function AmbassadorPlacedForm({ action }: { action: ActionView }) {
     <EventLayout type="AmbassadorPlaced" header="You may now place an Ambassador Token in a Stronghold">
       <SelectFromImage label="Which ambassador?" value={ambassador === "None" ? null : ambassador} onChange={choose}
                        values={(o?.ambassadors ?? []).map((a) => ({ value: a as Ambassador, src: skin.url(skin.get("AmbassadorImage_URL", a)), alt: skin.get("AmbassadorName_STR", a), popover: ambassadorPopup(skin, a as Ambassador) }))} />
-      <div className="small mt-1">Use the map to choose a stronghold.</div>
+      <div className="event-form__note event-form__field">Use the map to choose a stronghold.</div>
       <div>Cost: <SimpleNumber size={20}>{o?.cost ?? 0}</SimpleNumber></div>
     </EventLayout>
   );
@@ -323,7 +323,7 @@ export function TerrorPlantedForm({ action }: { action: ActionView }) {
       {removing ? (
         <>
           <Select required label="Token" options={removeTypes.map((t) => ({ value: t, label: skin.get("TerrorTokenName_STR", t) }))} value={type} onChange={choose} />
-          <div className="text-info">{describe(type)}</div>
+          <div className="event-form__info">{describe(type)}</div>
           <ButtonRow pass={() => void p.pass()} confirm={p.confirm} confirmText="Remove token" confirmError={p.validation} />
         </>
       ) : (
@@ -342,9 +342,9 @@ export function Radio<T>({ label, values, labels, value, onChange }: { label?: R
   const [id] = useState(() => `radio${Math.random().toString(36).slice(2, 8)}`);
   return (
     <>
-      {label != null && <label className="mb-0" htmlFor={id}>{label}</label>}
+      {label != null && <label htmlFor={id}>{label}</label>}
       {values.map((v, i) => (
-        <div key={i} className="form-check mb-0">
+        <div key={i} className="form-check event-form__radio">
           <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={i} onChange={() => onChange(v)} checked={v === value} />
           <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`} dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, labels[i]) }} />
         </div>
@@ -404,7 +404,7 @@ export function TerrorRevealedForm({ action }: { action: ActionView }) {
                          onChange={(c) => p.set({ cardToGiveInSabotage: c })}
                          values={(o?.cards ?? []).map((c) => ({ value: c, src: skin.cardImage(c), alt: skin.card(c), popover: treacheryCardPopup(skin, c) }))} />
       )}
-      {sneak && (sneakPossible ? hint("Use the map to choose a location.") : <div className="alert alert-danger mt-2">You cannot send forces there.</div>)}
+      {sneak && (sneakPossible ? hint("Use the map to choose a location.") : <div className="alert alert-danger event-form__section">You cannot send forces there.</div>)}
       {o?.mayOfferAlliance && <div>You may also offer them an alliance as an alternative to violence.</div>}
       {o?.mayPass ? (
         <ButtonRow confirm={p.confirm} confirmError={p.validation} pass={() => void p.pass()}

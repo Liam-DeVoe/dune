@@ -36,7 +36,7 @@ export function Layout({ type, header, urgent = false, inPopover = false, classN
     collapsedByType.set(type, !collapsed);
     setCollapsed(!collapsed);
   };
-  const classes = ["card", urgent ? "card--urgent" : "", className, "mb-2"].filter((c) => c).join(" ");
+  const classes = ["card", urgent ? "card--urgent" : "", className, "event-form"].filter((c) => c).join(" ");
   return (
     <div className={classes} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
@@ -69,7 +69,7 @@ export function useBattleDraft<F extends WithDraft["form"]>(action: ActionView, 
 
 // The server's answer to a refused submission, under the form.
 export function SubmitError({ error }: { error: string | null }) {
-  return error ? <div className="text-danger small">{error}</div> : null;
+  return error ? <div className="event-form__error">{error}</div> : null;
 }
 
 // GenericComponents/RadioComponent.razor: one radio per value, with an optional label above.
@@ -83,9 +83,9 @@ export function Radio<T>({ values, labels, value, onChange, label }: {
   const id = useId();
   return (
     <>
-      {label != null && <label className="mb-0" htmlFor={id}>{label}</label>}
+      {label != null && <label htmlFor={id}>{label}</label>}
       {values.map((v, i) => (
-        <div key={String(v)} className="form-check mb-0">
+        <div key={String(v)} className="form-check event-form__radio">
           <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(v)}
                  checked={v === value} onChange={() => onChange(v)} />
           <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}>{labels[i]}</label>
@@ -110,8 +110,8 @@ export function SelectForces({ value, onChange, onStep, min, max, faction, speci
   const { skin } = useGame();
   const src = skin.url(skin.get(special ? "FactionSpecialForceImage_URL" : "FactionForceImage_URL", faction));
   return (
-    <div className="d-inline-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="event-form__stepper">
+      {label !== "" && <label className="event-form__stepper-label">{label}</label>}
       <NumberPicker value={value} onChange={onChange} onStep={onStep} min={min} max={max} symbolSrc={src}
                     symbolStarred={special && hasStarredSpecialForce(faction)} symbolFill={skin.factionColor(faction)} />
     </div>

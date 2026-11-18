@@ -1,0 +1,16 @@
+// The bidding panel (BiddingPanel.tsx): the lot (see app/_bidding.scss), the
+// bid inputs and auto-pass, in a card. In the action stack, _prompt-act.scss
+// removes the card's margin.
+.bidding-panel {
+  padding: 0.25rem;
+  margin-bottom: 0.5rem;
+
+  &__field {
+    margin-top: 0.25rem;
+  }
+
+  // The gold "i" with a popover.
+  &__info {
+    display: inline;
+  }
+}

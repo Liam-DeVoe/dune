@@ -1,0 +1,10 @@
+// The host's game setup card (EstablishPlayersComponent).
+.establish-players {
+  margin-bottom: 0.5rem;
+
+  // The headings over the advanced rule groups.
+  &__label {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+  }
+}

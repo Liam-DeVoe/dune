@@ -1,0 +1,14 @@
+// The Other, Pass and Confirm buttons under a form (ButtonRow.tsx), at the
+// right by default.
+.button-row {
+  margin-top: 0.5rem;
+
+  &--end {
+    text-align: right;
+  }
+
+  // Every button but the last keeps a gap to the next.
+  &__button {
+    margin-right: 0.25rem;
+  }
+}

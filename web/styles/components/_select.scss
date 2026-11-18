@@ -1,16 +1,21 @@
 @use "../shared";
 
-// The custom select. The trigger is a <button> carrying Bootstrap's
-// .form-select class, so it inherits the ink fill, hairline, chevron, focus
+// The custom select. The trigger is a <button> carrying the
+// .native-select class, so it inherits the ink fill, hairline, chevron, focus
 // ring and the parchment variant on the act card for free. The option list
 // is a popover in the browser's top layer, positioned by js/listbox.js, and
 // stays an ink card everywhere: floating layers are ink, whatever they float
 // over.
 .select {
   position: relative;
+  margin-top: 0.25rem;
 }
 
-.select-trigger {
+.select__label {
+  margin-bottom: 0;
+}
+
+.select__trigger {
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
@@ -22,7 +27,7 @@
   }
 }
 
-.select-list {
+.select__list {
   // Undo the UA popover styles (centred, bordered, canvas colours).
   position: fixed;
   inset: auto;
@@ -49,7 +54,7 @@
   }
 }
 
-.select-option {
+.select__option {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -66,7 +71,7 @@
     height: 14px;
   }
 
-  &.is-selected {
+  &--selected {
     color: var(--parchment);
 
     &::before {
@@ -75,13 +80,13 @@
     }
   }
 
-  &.is-active {
+  &--active {
     background: shared.$gold-wash-strong;
     color: var(--parchment);
   }
 }
 
-.select-group {
+.select__group {
   padding: 8px 10px 2px;
   font-family: var(--font-label);
   font-size: 11px;
@@ -89,12 +94,12 @@
   text-transform: uppercase;
   color: var(--text-3);
 
-  & + .select-option {
+  & + .select__option {
     margin-top: 0;
   }
 }
 
-.select-option + .select-group {
+.select__option + .select__group {
   margin-top: 4px;
   border-top: 1px solid shared.$hairline;
 }

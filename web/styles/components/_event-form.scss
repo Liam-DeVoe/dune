@@ -1,0 +1,171 @@
+// A game action's form: the collapsible card GameEventComponentLayout draws
+// (Layout in battle/, revival/ and other/parts.tsx, EventLayout in
+// shipmove/common.tsx) and the pieces the forms put in it. The card is a
+// .card; in the action stack, _prompt-act.scss removes its margin.
+.event-form {
+  margin-bottom: 0.5rem;
+
+  // A line of the form under the one before it.
+  &__field {
+    margin-top: 0.25rem;
+  }
+
+  // A part of the form set off from the one before it.
+  &__section {
+    margin-top: 0.5rem;
+  }
+
+  // The sentence before the form's inputs.
+  &__intro {
+    margin-bottom: 0.5rem;
+  }
+
+  // A hint in small type ("Use the map to choose a location.").
+  &__note {
+    font-size: 0.875em;
+  }
+
+  // Gold on ink. On the parchment card it is rock brown, see below.
+  &__info,
+  &__note--info {
+    color: var(--gold);
+  }
+
+  // Why a form has no button yet. On the parchment card it is rock brown.
+  &__reason {
+    color: var(--text-3);
+  }
+
+  // The server's refusal, or a validation message, in the guide's error red.
+  &__error {
+    font-size: 0.875em;
+    color: #e46b6b;
+
+    &--spaced {
+      margin-top: 0.5rem;
+    }
+  }
+
+  &__warning {
+    margin-bottom: 0.25rem;
+    color: var(--spice);
+  }
+
+  // A label on its own line above the input it names.
+  &__label {
+    display: block;
+    margin-top: 0.25rem;
+
+    // A label that stays inline beside its input.
+    &--inline {
+      display: inline-block;
+    }
+  }
+
+  // The label above a segmented control.
+  &__seg-label {
+    display: block;
+  }
+
+  // A radio button in RadioComponent; .check has a bottom margin.
+  &__radio {
+    margin-bottom: 0;
+  }
+
+  // A number picker with its label to the left (SelectForcesComponent,
+  // SelectNumberComponent).
+  &__stepper {
+    display: inline-flex;
+    align-items: center;
+
+    &--block {
+      display: flex;
+    }
+  }
+
+  &__stepper-label {
+    margin-right: 0.25rem;
+  }
+
+  // CommandButton's default spacing from the button after it.
+  &__command {
+    margin-right: 0.25rem;
+  }
+
+  // A revival cost, at the right of the form.
+  &__cost {
+    margin-top: 0.25rem;
+    text-align: right;
+  }
+
+  // An audited card.
+  &__card {
+    padding: 0.25rem;
+  }
+
+  // The question asked with Clairvoyance.
+  &__question {
+    background-color: var(--ink-0);
+  }
+
+  // "Next time, auto confirm", at the right under the buttons.
+  &__auto-confirm {
+    float: right;
+  }
+
+  // The gold "i" with a popover.
+  &__info-icon {
+    display: inline;
+  }
+
+  // Who pays whom and how much, in the deal offer form.
+  &__payment {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  // A sector with forces staged on it during the Fremen setup.
+  &__staged {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+  }
+
+  &__staged-place {
+    flex-grow: 1;
+  }
+
+  // The table of locations and force pickers (FaceDanced). .table spans the
+  // width with a bottom margin.
+  &__placement {
+    width: auto;
+    margin: 0;
+  }
+
+  &__placement-row {
+    font-size: 0.875em;
+  }
+
+  // Two classes to beat the `.table--small > :not(caption) > * > *` padding.
+  &__placement &__placement-cell {
+    padding-left: 0;
+  }
+
+  &__placement-cell--middle {
+    vertical-align: middle;
+  }
+}
+
+// Info and muted text become rock brown on the parchment card.
+.prompt-act,
+.act-stack > .card:not(.battle-plan) {
+  .event-form__info,
+  .event-form__note--info,
+  .event-form__reason {
+    color: var(--rock-2);
+  }
+}

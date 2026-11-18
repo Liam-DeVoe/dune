@@ -1,16 +1,16 @@
 // Ship & Move log design: one block per faction turn. See
 // design/battle-log/log-matrix.html (Ship & Move, "One block per turn").
 
-// A faction's turn, in a .log-box: its pill, then the rows.
+// A faction's turn, on a .log-box: its pill, then the rows.
 .shipmove-turn {
-  .head {
+  &__head {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
   // Label column (SHIP, MOVE, +) and content column.
-  .rows {
+  &__rows {
     display: grid;
     grid-template-columns: 38px 1fr;
     gap: 3px 6px;
@@ -18,24 +18,25 @@
     margin: 4px 0 0 20px;
     font-size: 14px;
     color: var(--parchment);
-
-    > .log-label {
-      padding-top: 5px;
-      font-size: 9.5px;
-      letter-spacing: 0.1em;
-    }
-
-    > .plus {
-      opacity: 0.6;
-    }
-
-    // A line the design doesn't draw, kept in its place in the turn.
-    > .other {
-      grid-column: 1 / -1;
-    }
   }
 
-  .route {
+  // A row's label, on a .log-label.
+  &__label {
+    padding-top: 5px;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+  }
+
+  &__label--plus {
+    opacity: 0.6;
+  }
+
+  // A line the design doesn't draw, kept in its place in the turn.
+  &__other {
+    grid-column: 1 / -1;
+  }
+
+  &__route {
     display: flex;
     align-items: center;
     gap: 3px 4px;
@@ -43,14 +44,19 @@
     min-height: 24px;
   }
 
-  .forces {
+  &__forces {
     display: inline-flex;
     align-items: center;
     gap: 1px;
   }
 
-  .small {
+  &__small {
     font-size: 13.5px;
+  }
+
+  // "Karama" when the card itself isn't known.
+  &__karama {
+    font-weight: 700;
   }
 }
 

@@ -1,0 +1,55 @@
+// The columns of the screens before a game starts (MainPage, AdminPage). Below
+// Bootstrap's lg breakpoint (992px) every column is full width and they stack;
+// from lg up they sit side by side in twelfths: a centred column (--main, half
+// the width, between two --side quarters) or the lobby's games and own games
+// between two --margin sixths. Columns have 0.75rem of padding a side, which
+// the row takes back with negative margins.
+.start-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+
+  &--centred {
+    align-items: center;
+  }
+
+  &__col,
+  &__notice {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  // The column's content, centred.
+  &__center {
+    display: flex;
+    justify-content: center;
+  }
+
+  // "Not Connected", centred in a full-width row.
+  &__notice {
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (min-width: 992px) {
+    &__col--margin {
+      width: 16.66666667%;
+    }
+
+    &__col--side {
+      width: 25%;
+    }
+
+    &__col--games {
+      width: 41.66666667%;
+    }
+
+    &__col--main {
+      width: 50%;
+    }
+  }
+}

@@ -1,10 +1,10 @@
 // Revival log design. See design/battle-log/log-matrix.html.
 // The table is the shared .log-table: faction, what came back, cost.
 
-.log-table.revival-table {
+.revival-table {
   grid-template-columns: max-content 1fr max-content;
 
-  > .what {
+  &__what {
     flex-wrap: wrap;
     gap: 2px;
 
@@ -27,21 +27,21 @@
     margin-right: 2px;
   }
 
-  .note {
+  &__note {
     font-size: 13px;
     color: var(--parchment);
     margin: 0 4px 0 1px;
   }
 
   // Cost on the right, with who paid or who got paid on a line under it.
-  > .cost {
+  &__cost {
     flex-direction: column;
     align-items: flex-end;
     justify-content: center;
     gap: 2px;
   }
 
-  .by {
+  &__by {
     display: flex;
     align-items: center;
     gap: 4px;
@@ -50,7 +50,7 @@
     white-space: nowrap;
   }
 
-  .sig {
+  &__sig {
     width: 22px;
     height: 22px;
     border-radius: 50%;

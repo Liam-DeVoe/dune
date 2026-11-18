@@ -57,33 +57,33 @@ export function UndoTimeline() {
 
   return (
     <div className="undo-timeline">
-      <div className="turns">
+      <div className="undo-timeline__turns">
         {turns.map((t) => (
-          <div key={t.turn} className={`turn ${t.turn === focus.turn ? "focus" : ""}`} style={{ flex: t.events.length }}
+          <div key={t.turn} className={`undo-timeline__turn ${t.turn === focus.turn ? "undo-timeline__turn--focus" : ""}`} style={{ flex: t.events.length }}
                onClick={() => { setFocus(t.turn); setHover(null); }} title={`Turn ${t.turn}`}>{t.turn}</div>
         ))}
         {!atNow && (
           <>
-            <div className="gone" style={{ left: pct(cutIndex, events.length) }}></div>
-            <div className="mark" style={{ left: pct(cutIndex, events.length) }}></div>
+            <div className="undo-timeline__gone" style={{ left: pct(cutIndex, events.length) }}></div>
+            <div className="undo-timeline__mark" style={{ left: pct(cutIndex, events.length) }}></div>
           </>
         )}
       </div>
 
-      <div className="track" onPointerLeave={() => setHover(null)}>
+      <div className="undo-timeline__track" onPointerLeave={() => setHover(null)}>
         {phases.map(([f, t, p]) => (
-          <div key={f} className="phase" style={{ left: pct(f, m), width: pct(t - f, m) }} title={phase(p)}>
-            <span>{phase(p)}</span>
+          <div key={f} className="undo-timeline__phase" style={{ left: pct(f, m), width: pct(t - f, m) }} title={phase(p)}>
+            <span className="undo-timeline__phase-name">{phase(p)}</span>
           </div>
         ))}
-        {Array.from({ length: m }, (_, j) => <div key={j} className="tick" style={{ left: pct(j * 2 + 1, m * 2) }}></div>)}
-        {!atNow && cutInTurn < m && <div className="gone" style={{ left: pct(Math.max(0, cutInTurn), m) }}></div>}
-        {isLast && <div className="now"></div>}
-        {cutInTurn >= 0 && (cutInTurn < m || isLast) && <div className="handle" style={{ left: pct(cutInTurn, m) }}></div>}
+        {Array.from({ length: m }, (_, j) => <div key={j} className="undo-timeline__tick" style={{ left: pct(j * 2 + 1, m * 2) }}></div>)}
+        {!atNow && cutInTurn < m && <div className="undo-timeline__gone" style={{ left: pct(Math.max(0, cutInTurn), m) }}></div>}
+        {isLast && <div className="undo-timeline__now"></div>}
+        {cutInTurn >= 0 && (cutInTurn < m || isLast) && <div className="undo-timeline__handle" style={{ left: pct(cutInTurn, m) }}></div>}
         {Array.from({ length: m + 1 }, (_, j) => {
           const gap = first + j < events.length ? events[first + j] : now;
           return (
-            <div key={`z${j}`} className="zone"
+            <div key={`z${j}`} className="undo-timeline__zone"
                  style={{ left: pct(Math.max(0, j * 2 - 1), m * 2), right: pct(Math.max(0, m * 2 - j * 2 - 1), m * 2) }}
                  onPointerDown={() => undoSession.moveTo(gap)}
                  onPointerEnter={(e) => { setHover(j); if ((e.buttons & 1) !== 0) undoSession.moveTo(gap); }}></div>
@@ -91,12 +91,12 @@ export function UndoTimeline() {
         })}
         {hover !== null && hover <= m && (
           <div className="pop undo-tip" style={{ left: `clamp(170px, ${pct(hover, m)}, calc(100% - 170px))` }}>
-            <div className="when">{undone !== null ? `Turn ${at(undone).turn} · ${phase(at(undone).phase)}` : "Now"}</div>
-            {kept !== null && <div className="line"><RichText parts={at(kept).text} size={18} /></div>}
-            <div className="cut"></div>
+            <div className="undo-tip__when">{undone !== null ? `Turn ${at(undone).turn} · ${phase(at(undone).phase)}` : "Now"}</div>
+            {kept !== null && <div className="undo-tip__line"><RichText parts={at(kept).text} size={18} /></div>}
+            <div className="undo-tip__cut"></div>
             {undone !== null
-              ? <div className="line out"><RichText parts={at(undone).text} size={18} /></div>
-              : <div className="line nothing">Nothing is undone</div>}
+              ? <div className="undo-tip__line undo-tip__line--out"><RichText parts={at(undone).text} size={18} /></div>
+              : <div className="undo-tip__line undo-tip__line--nothing">Nothing is undone</div>}
           </div>
         )}
       </div>

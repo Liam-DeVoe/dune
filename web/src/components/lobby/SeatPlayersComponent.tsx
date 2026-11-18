@@ -31,12 +31,12 @@ export function SeatPlayersComponent() {
   const anyWithoutFaction = players.some((p) => p.faction === "None");
 
   return (
-    <div className="card mb-2 shadow-lg" style={{ animation: "fadeInLate 3s" }}>
-      <div className="card-header">Assign seats to players</div>
-      <div className="card-body">
-        <table className="table table-sm">
+    <div className="card seat-players" style={{ animation: "fadeInLate 3s" }}>
+      <div className="card__header">Assign seats to players</div>
+      <div className="card__body">
+        <table className="table table--small table--dark">
           <thead>
-            <tr className="table-dark">
+            <tr>
               <th scope="col">Player</th>
               <th scope="col">Seat</th>
             </tr>
@@ -45,7 +45,7 @@ export function SeatPlayersComponent() {
             {seated.keys().map((userId) => {
               const current = seated.get(userId) ?? Number.MIN_SAFE_INTEGER;
               return (
-                <tr key={userId} className="table-dark">
+                <tr key={userId}>
                   <td>{g.participation.playerName(userId)}</td>
                   <td>
                     {anyWithoutFaction
@@ -63,7 +63,7 @@ export function SeatPlayersComponent() {
             })}
           </tbody>
         </table>
-        <button className="btn btn-primary mt-1" disabled={seated.values().includes(-1)} onClick={() => client.requestAssignSeats((seated as SlotDict<number>).toJson())}>Confirm</button>
+        <button className="button button--primary seat-players__confirm" disabled={seated.values().includes(-1)} onClick={() => client.requestAssignSeats((seated as SlotDict<number>).toJson())}>Confirm</button>
       </div>
     </div>
   );

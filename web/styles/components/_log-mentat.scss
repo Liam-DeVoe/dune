@@ -16,14 +16,14 @@
   color: var(--parchment);
   text-align: center;
 
-  .title {
+  &__title {
     font-family: var(--font-display);
     color: var(--gold);
     font-size: 20px;
     line-height: 1.2;
   }
 
-  .winners {
+  &__winners {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -31,13 +31,13 @@
     margin: 6px 0;
   }
 
-  .winner {
+  &__winner {
     display: inline-flex;
     align-items: center;
     gap: 4px;
   }
 
-  .reason {
+  &__reason {
     font-size: 14px;
   }
 }

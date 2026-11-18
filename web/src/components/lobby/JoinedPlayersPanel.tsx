@@ -32,12 +32,12 @@ export function JoinedPlayersPanel() {
       const isHost = p.isHost(userId);
       return (
         <div key={userId} className={userId === players[0] ? "" : "hairline-top"} style={{ verticalAlign: "center", minHeight: "2rem" }}>
-          <span className={isMe ? "player-name you" : "player-name"}>{p.playerName(userId)}</span>
+          <span className={isMe ? "player-name player-name--you" : "player-name"}>{p.playerName(userId)}</span>
           {isHost && <HostIcon size={18} />}
           {iAmHost && (
             <>
-              {!isHost && <CommandButton small marginClass="m-1 ms-2" onClick={() => setOrUnsetHost(userId)}>Make host</CommandButton>}
-              {!isMe && <CommandButton small className="btn-danger" marginClass="m-1" onClick={() => kick(userId)}>Kick</CommandButton>}
+              {!isHost && <CommandButton small marginClass="joined-players__action joined-players__action--spaced" onClick={() => setOrUnsetHost(userId)}>Make host</CommandButton>}
+              {!isMe && <CommandButton small className="button--danger" marginClass="joined-players__action" onClick={() => kick(userId)}>Kick</CommandButton>}
             </>
           )}
         </div>
@@ -54,16 +54,16 @@ export function JoinedPlayersPanel() {
       return (
         <div key={player.seat} className={i === 0 ? "" : "hairline-top"} style={{ minHeight: "2rem" }}>
           {player.faction !== "None" && <FactionImage faction={player.faction as Faction} diameter={20} />}
-          {isBot ? <BotIcon size={18} /> : <span className={`m-1 ${isMe ? "player-name you" : "player-name"}`}>{p.playerName(userId)}</span>}
+          {isBot ? <BotIcon size={18} /> : <span className={`joined-players__name ${isMe ? "player-name player-name--you" : "player-name"}`}>{p.playerName(userId)}</span>}
           {isHost && <HostIcon size={18} />}
-          {available && <span className="badge text-bg-success">open</span>}
+          {available && <span className="badge badge--success">open</span>}
           {iAmHost && (
             <>
-              <CommandButton small marginClass="m-1" onClick={() => openSeat(player.seat)}>{available ? "Close" : "Open"} seat</CommandButton>
+              <CommandButton small marginClass="joined-players__action" onClick={() => openSeat(player.seat)}>{available ? "Close" : "Open"} seat</CommandButton>
               {!isBot && (
                 <>
-                  {!isHost && <CommandButton small marginClass="m-1" onClick={() => setOrUnsetHost(userId)}>Make host</CommandButton>}
-                  {!isMe && <CommandButton small className="btn-danger" marginClass="m-1" onClick={() => kick(userId)}>Kick</CommandButton>}
+                  {!isHost && <CommandButton small marginClass="joined-players__action" onClick={() => setOrUnsetHost(userId)}>Make host</CommandButton>}
+                  {!isMe && <CommandButton small className="button--danger" marginClass="joined-players__action" onClick={() => kick(userId)}>Kick</CommandButton>}
                 </>
               )}
               <br />
@@ -76,19 +76,19 @@ export function JoinedPlayersPanel() {
 
   const observers = p.observerNames();
   return (
-    <div className="mt-2 p-1 border">
+    <div className="joined-players">
       {rows}
-      <div className="text-danger align-bottom">{actionResult}</div>
+      <div className="joined-players__result">{actionResult}</div>
       {(!iAmHost || PhaseValue[phase] > PhaseValue.AwaitingPlayers) && (
-        <CommandButton small className="btn-danger" marginClass="mt-2" onClick={leave}>Leave game</CommandButton>
+        <CommandButton small className="button--danger" marginClass="joined-players__leave" onClick={leave}>Leave game</CommandButton>
       )}
       {iAmHost && PhaseValue[phase] >= PhaseValue.TradingFactions && (
-        <CommandButton small className="btn-warning" marginClass="mt-2 ms-1" onClick={() => client.requestReseat()}>Re-seat players</CommandButton>
+        <CommandButton small className="button--warning" marginClass="joined-players__reseat" onClick={() => client.requestReseat()}>Re-seat players</CommandButton>
       )}
       {p.observers.size > 0 && (
         <>
-          <div><label className="mt-1 mb-0">Observers</label></div>
-          <div>{observers.map((o, i) => <span key={i} className="me-1 player-name">{o}</span>)}</div>
+          <div><label className="joined-players__label">Observers</label></div>
+          <div>{observers.map((o, i) => <span key={i} className="joined-players__observer player-name">{o}</span>)}</div>
         </>
       )}
     </div>

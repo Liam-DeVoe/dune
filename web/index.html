@@ -8,15 +8,12 @@
     <!-- Other sites don't get our URLs, which can hold a game id or a login link. -->
     <meta name="referrer" content="same-origin" />
     <title>treachery.online</title>
-    <!-- Bootstrap, then our stylesheet (styles/, compiled by `npm run build:css`) on top of it. -->
-    <link href="%BASE_URL%css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Our stylesheet (styles/, compiled by `npm run build:css`). -->
     <link rel="stylesheet" href="%BASE_URL%css/treachery.css" />
     <link rel="icon" href="%BASE_URL%favicon.ico" />
 </head>
 <body>
     <div id="app"></div>
-    <!-- Bootstrap's script bundle, for popovers (src/popover.ts). -->
-    <script src="%BASE_URL%js/bootstrap.bundle.min.js"></script>
     <!-- Tooltips: a hovered element's title moves to data-tip and shows in #tip. -->
     <script src="%BASE_URL%js/tooltip.js"></script>
     <script type="module" src="/src/main.tsx"></script>

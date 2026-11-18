@@ -82,7 +82,7 @@ function AuditedComponent({ action, inPopover }: Props) {
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Perform your audit">
       <div>
-        {o.cards.map((c, i) => <Image key={i} src={skin.cardImage(c)} alt={skin.card(c)} width={100} className="p-1" popover={treacheryCardPopup(skin, c)} />)}
+        {o.cards.map((c, i) => <Image key={i} src={skin.cardImage(c)} alt={skin.card(c)} width={100} className="event-form__card" popover={treacheryCardPopup(skin, c)} />)}
       </div>
       <ButtonRow confirm={() => submit()} confirmText="Finish Audit" confirmError={validation} />
       <SubmitError error={error} />
@@ -133,7 +133,7 @@ function BeneGesseritBattleAnnouncementComponent({ action, inPopover }: Props) {
     byTerritory: true,
     territoryOf,
     faction: (view.viewer.faction ?? "BeneGesserit") as Faction,
-    pin: () => <div className="pin-body"><PinActions label="Flip to fighters" validation={validation} cancel={() => pick.clear()} confirm={() => void submit()} /></div>,
+    pin: () => <div><PinActions label="Flip to fighters" validation={validation} cancel={() => pick.clear()} confirm={() => void submit()} /></div>,
   });
   useEffect(() => {
     const t = pick.target != null ? territoryOf(pick.target) : null;
@@ -143,7 +143,7 @@ function BeneGesseritBattleAnnouncementComponent({ action, inPopover }: Props) {
   if (!o) return null;
   return (
     <Layout type={action.eventType} inPopover={inPopover} header="Flip advisors to fighters">
-      <div className="small">Use the map to choose a territory.</div>
+      <div className="event-form__note">Use the map to choose a territory.</div>
       <SubmitError error={error} />
     </Layout>
   );
@@ -194,7 +194,7 @@ function ClairVoyanceAnsweredComponent({ action, inPopover }: Props) {
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover}
             header={<><FactionChip faction={o.questioner} /> questions you with {cardTypeName(skin, "Clairvoyance")}!</>}>
-      <div className="font-italic bg-dark"><RichText parts={o.question} /></div>
+      <div className="event-form__question"><RichText parts={o.question} /></div>
       <ButtonRow confirm={() => answer("Yes")} confirmText="Yes" confirmError={validation}
                  pass={() => answer("No")} passText="No" other={() => answer("Unknown")} otherText="I can't answer that..." />
       <SubmitError error={error} />
@@ -311,16 +311,16 @@ function ForceSelection({ faction, locations, value, onChange, fixedMax = -1 }: 
     onChange(m);
   };
   return (
-    <table className="table table-borderless table-sm m-0 w-auto">
+    <table className="table table--borderless table--small event-form__placement">
       <tbody>
         {locations.map((l) => {
           const max = fixedMax > 0 ? fixedMax : l.forces;
           const [f, s] = value.get(l.location) ?? [0, 0];
           return (
-            <tr key={l.location} className="small bg-transparent">
-              <td className="ps-0 bg-transparent align-middle"><PlaceChip place={{ location: l.location }} /></td>
-              {max > 0 && <td className="ps-0 bg-transparent"><SelectForces value={f} onChange={(v) => set(l.location, false, v)} onStep={(d) => set(l.location, false, f + d)} min={0} max={max} faction={faction} special={false} /></td>}
-              {l.specialForces > 0 && <td className="ps-0 bg-transparent"><SelectForces value={s} onChange={(v) => set(l.location, true, v)} onStep={(d) => set(l.location, true, s + d)} min={0} max={l.specialForces} faction={faction} special /></td>}
+            <tr key={l.location} className="event-form__placement-row">
+              <td className="event-form__placement-cell event-form__placement-cell--middle"><PlaceChip place={{ location: l.location }} /></td>
+              {max > 0 && <td className="event-form__placement-cell"><SelectForces value={f} onChange={(v) => set(l.location, false, v)} onStep={(d) => set(l.location, false, f + d)} min={0} max={max} faction={faction} special={false} /></td>}
+              {l.specialForces > 0 && <td className="event-form__placement-cell"><SelectForces value={s} onChange={(v) => set(l.location, true, v)} onStep={(d) => set(l.location, true, s + d)} min={0} max={l.specialForces} faction={faction} special /></td>}
             </tr>
           );
         })}
@@ -344,18 +344,18 @@ function FaceDancedComponent({ action, inPopover }: Props) {
       </div>
       {o.sources.length > 0 && (
         <>
-          <div className="mt-2 mb-0">From somewhere on the planet:</div>
+          <div className="event-form__section">From somewhere on the planet:</div>
           <ForceSelection faction={faction} locations={o.sources} value={sources} onChange={(m) => void update({ forceLocations: placementEntries(m) })} />
         </>
       )}
-      <div className="mt-2 mb-0">Select where to put your replacements:</div>
+      <div className="event-form__section">Select where to put your replacements:</div>
       <ForceSelection faction={faction} locations={o.targets} value={targets} fixedMax={o.maximumForces}
                       onChange={(m) => void update({ targetForceLocations: placementEntries(m) })} />
     </>
   );
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="Choose which forces to replace by your own">
-      <div className="mb-2">You may place up to <strong>{o.maximumForces}</strong> <ForceToken faction={faction} size={20} /> in <PlaceChip place={{ territory: o.territory }} /> from your reserves and/or from anywhere on the planet.</div>
+      <div className="event-form__intro">You may place up to <strong>{o.maximumForces}</strong> <ForceToken faction={faction} size={20} /> in <PlaceChip place={{ territory: o.territory }} /> from your reserves and/or from anywhere on the planet.</div>
       {o.maximumForces > 0 && pickers}
       <ButtonRow confirm={() => submit()} confirmError={validation} />
       <SubmitError error={error} />
@@ -444,7 +444,7 @@ function LoserConcludedComponent({ action, inPopover }: Props) {
                label={(
                  <>
                    <div>Execute an assassination mission by revealing <Image src={skin.personImage(o.assassination.target)} alt={skin.person(o.assassination.target)}
-                     width={50} className="img-float" popover={heroChoices(skin, view, [{ id: o.assassination.target, hero: { t: "leader", id: o.assassination.target }, label: "" }])[0].popover} /> as your traitor?</div>
+                     width={50} popover={heroChoices(skin, view, [{ id: o.assassination.target, hero: { t: "leader", id: o.assassination.target }, label: "" }])[0].popover} /> as your traitor?</div>
                    {o.assassination.reward === null
                      ? <div>You will not collect {skin.concept("Resource")} as this leader is in the tanks.</div>
                      : <div>You will collect <SpiceComponent amount={String(o.assassination.reward)} />.</div>}
@@ -514,8 +514,8 @@ function RetreatComponent({ action, inPopover }: Props) {
     territoryOf,
     faction,
     pin: () => o && (
-      <div className="pin-body">
-        <div className="pin-row">
+      <div>
+        <div className="map-pin__row">
           {o.maxForces > 0 && <MapForceStepper value={draft.forces as number} onChange={(v) => void update({ forces: v })} min={0} max={o.maxForces} faction={faction} special={false} />}
           {o.maxSpecialForces > 0 && <MapForceStepper value={draft.specialForces as number} onChange={(v) => void update({ specialForces: v })} min={0} max={o.maxSpecialForces} faction={faction} special />}
         </div>
@@ -533,7 +533,7 @@ function RetreatComponent({ action, inPopover }: Props) {
   const target = pick.target ?? o.targets[0] ?? null;
   return (
     <Layout type={action.eventType} urgent inPopover={inPopover} header="You may retreat from the battle any number of undialed forces to an adjacent empty non-stronghold territory">
-      <div className="small">Use the map to choose a location.</div>
+      <div className="event-form__note">Use the map to choose a location.</div>
       <ButtonRow pass={() => submit({ location: target, forces: 0, specialForces: 0 })} passText="Pass" />
       <SubmitError error={error} />
     </Layout>
@@ -639,7 +639,7 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
           )}
           {discardable.length > 0 && (
             <>
-              <div className="mt-2">Select any cards you wish to discard:</div>
+              <div className="event-form__section">Select any cards you wish to discard:</div>
               {discardable.map((c) => (
                 <Checkbox key={c} value={discarded.includes(c)} onChange={(v) => toggle(c, v)}>
                   <RichText parts={[{ t: "treacheryCard", id: c, label: skin.card(c) }]} />
@@ -649,7 +649,7 @@ function BattleConcludedComponent({ action, inPopover }: Props) {
           )}
           {o.capture && (
             <>
-              <div>Our troops captured <Image src={skin.personImage(o.capture.victim)} alt={skin.person(o.capture.victim)} width={50} className="img-float"
+              <div>Our troops captured <Image src={skin.personImage(o.capture.victim)} alt={skin.person(o.capture.victim)} width={50}
                 popover={heroChoices(skin, view, [{ id: o.capture.victim, hero: { t: "leader", id: o.capture.victim }, label: "" }])[0].popover} /></div>
               <Radio values={o.capture.decisions.map((d) => d.value)} labels={o.capture.decisions.map((d) => d.label)} value={decision}
                      label="What are your orders, keep or kill?"

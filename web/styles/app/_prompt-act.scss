@@ -5,74 +5,55 @@
 // card; see .act-stack below.
 //
 // .prompt-act: the guide's .prompt.act as a single class, for the beige
-// prompt card, which is a Bootstrap .card. It also re-points the card
-// variables so .card-body text is ink on parchment.
+// prompt card, which is a .card. It also re-points the card properties so
+// .card__body text is ink on parchment.
 .prompt-act,
 .act-stack > .card:not(.battle-plan) {
-  --bs-card-bg: var(--parchment);
-  --bs-card-color: var(--ink-1);
-  --bs-card-border-color: var(--gold-3);
-  --bs-card-cap-color: var(--ink-1);
+  --card-bg: var(--parchment);
+  --card-color: var(--ink-1);
+  --card-border-color: var(--gold-3);
+  --card-cap-color: var(--ink-1);
   border-radius: var(--r-2);
   position: relative;
   overflow: hidden;
   @include shared.parchment-act;
 
-  .kicker {
-    @include shared.prompt-kicker;
-    color: var(--rock-2);
-  }
-
-  .title {
-    @include shared.prompt-title;
-  }
-
-  .actions {
-    @include shared.prompt-actions;
-  }
-
   // On parchment, the dark-surface variants of the controls flip.
-  .btn-secondary,
-  .btn-outline-secondary {
-    --bs-btn-color: var(--ink-1);
-    --bs-btn-border-color: #{shared.$ink-line-strong};
-    --bs-btn-hover-color: var(--ink-1);
-    --bs-btn-hover-bg: #{shared.$ink-tint};
-    --bs-btn-hover-border-color: var(--ink-1);
-    --bs-btn-active-color: var(--ink-1);
-    --bs-btn-active-bg: rgba(29, 12, 0, 0.1);
-    --bs-btn-active-border-color: var(--ink-1);
-    --bs-btn-disabled-color: var(--ink-1);
-    --bs-btn-disabled-border-color: #{shared.$ink-line-strong};
+  .button--secondary,
+  .button--outline-secondary {
+    --button-color: var(--ink-1);
+    --button-border: #{shared.$ink-line-strong};
+    --button-hover-bg: #{shared.$ink-tint};
+    --button-hover-border: var(--ink-1);
+    --button-active-bg: rgba(29, 12, 0, 0.1);
+    --button-active-border: var(--ink-1);
   }
+}
+
+// The small uppercase label above the card's content. Inside the joined card
+// the act-stack selector weighs (0,4,0), so its bottom margin outweighs the
+// host strip's margin reset below.
+.prompt-act__kicker,
+.act-stack > .card:not(.battle-plan) .prompt-act__kicker {
+  @include shared.prompt-kicker;
+  color: var(--rock-2);
 }
 
 // Links on any parchment surface, the prompt card or an .on-parchment
 // region, are rock rather than gold.
-.prompt-act .btn-link,
-.act-stack > .card:not(.battle-plan) .btn-link,
+.prompt-act .button--link,
+.act-stack > .card:not(.battle-plan) .button--link,
 .prompt-act a,
 .act-stack > .card:not(.battle-plan) a {
-  --bs-btn-color: var(--rock-2);
-  --bs-btn-hover-color: var(--ink-1);
+  --button-color: var(--rock-2);
+  --button-hover-color: var(--ink-1);
   color: var(--rock-2);
 }
 
 .prompt-act,
 .act-stack > .card:not(.battle-plan) {
-  // Bootstrap's info and primary text become the rock brown.
-  .text-info,
-  .text-primary {
-    --bs-info-rgb: 140, 107, 62;
-    --bs-primary-rgb: 140, 107, 62;
-  }
-
-  .text-muted {
-    --bs-secondary-color: var(--rock-2);
-  }
-
-  .form-check-input {
-    --bs-form-check-bg: #{shared.$parchment-check-bg};
+  .check__input {
+    --check-bg: #{shared.$parchment-check-bg};
     border-color: shared.$ink-line-strong;
 
     &:checked {
@@ -81,14 +62,14 @@
     }
   }
 
-  .form-control,
-  .form-select {
+  .input,
+  .native-select {
     background-color: shared.$parchment-input-bg;
     color: var(--ink-1);
     border-color: shared.$ink-line;
   }
 
-  .form-control::placeholder {
+  .input::placeholder {
     color: var(--rock-2);
   }
 
@@ -97,39 +78,39 @@
     border-color: shared.$ink-line;
   }
 
-  .num input,
-  .num button {
+  .num__input,
+  .num__button {
     color: var(--ink-1);
   }
 
-  .num .ic {
+  .num__ic {
     border-right-color: shared.$ink-line-soft;
   }
 
   .seg {
     border-color: shared.$ink-line;
     background: shared.$parchment-input-bg;
-
-    button {
-      color: var(--ink-1);
-    }
-
-    button.on {
-      color: var(--ink-0);
-    }
   }
 
-  .card-header {
+  .seg__button {
+    color: var(--ink-1);
+  }
+
+  .seg__button--on {
+    color: var(--ink-0);
+  }
+
+  .card__header {
     color: var(--ink-1);
     border-bottom-color: rgba(29, 12, 0, 0.15);
   }
 
   // A card nested inside the prompt card goes back to ink.
   .card {
-    --bs-card-bg: var(--ink-2);
-    --bs-card-color: var(--parchment);
-    --bs-card-border-color: #{shared.$hairline};
-    --bs-card-cap-color: var(--sand);
+    --card-bg: var(--ink-2);
+    --card-color: var(--parchment);
+    --card-border-color: #{shared.$hairline};
+    --card-cap-color: var(--sand);
   }
 }
 
@@ -141,7 +122,7 @@
   margin-bottom: 8px;
 
   > .card:not(.battle-plan) {
-    --bs-card-cap-bg: transparent;
+    --card-cap-bg: transparent;
     margin: 0 !important;
     border-radius: 0;
     box-shadow: none;
@@ -179,21 +160,21 @@
 // The status card's host-only controls (Continue for everyone, the bidding time limit): a strip
 // across the foot of the card, set off by a hairline and a faint ink wash so it doesn't read as
 // one of the player's own buttons.
-.prompt-act .host-strip {
+.prompt-act__host-strip {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 12px;
-  margin: 12px calc(-1 * var(--bs-card-spacer-x)) calc(-1 * var(--bs-card-spacer-y));
-  padding: 8px var(--bs-card-spacer-x);
+  margin: 12px calc(-1 * var(--card-spacer-x)) calc(-1 * var(--card-spacer-y));
+  padding: 8px var(--card-spacer-x);
   border-top: 1px solid shared.$ink-line-soft;
   background: rgba(29, 12, 0, 0.045);
   font-size: 14px;
+}
 
-  // Copperplate's capitals sit high in their line box; drop them to the button's centre.
-  .kicker {
-    margin: 0;
-    line-height: 1;
-    padding-top: 3px;
-  }
+// Copperplate's capitals sit high in their line box; drop them to the button's centre.
+.prompt-act__kicker--host {
+  margin: 0;
+  line-height: 1;
+  padding-top: 3px;
 }

@@ -45,7 +45,7 @@ export function RichText({ parts, size = 14, logStyle = false, textBorder, borde
 function PartView({ part: p, size, logStyle, textBorder }: { part: Part; size: number; logStyle: boolean; textBorder?: CSSProperties }) {
   const { skin } = useGame();
   switch (p.t) {
-    case "none": return <span className="fw-bold">none</span>;
+    case "none": return <span className="rich-text__bold">none</span>;
     case "text": return <span style={textBorder}>{p.v}</span>;
     case "num": return <SimpleNumber size={size}>{utilitiesRound(p.v)}</SimpleNumber>;
     case "payment":
@@ -58,7 +58,7 @@ function PartView({ part: p, size, logStyle, textBorder }: { part: Part; size: n
     case "faction": return <FactionChip faction={p.v} />;
     case "treacheryCard":
       return logStyle
-        ? <PopoverText popover={treacheryCardPopup(skin, p.id)} className="card-chip"><img src={skin.cardImage(p.id)} alt="" />{p.label}</PopoverText>
+        ? <PopoverText popover={treacheryCardPopup(skin, p.id)} className="card-chip"><img className="card-chip__img" src={skin.cardImage(p.id)} alt="" />{p.label}</PopoverText>
         : <PopoverText popover={treacheryCardPopup(skin, p.id)} style={textBorder}>{p.label}</PopoverText>;
     case "leader": {
       const popover = leaderPopup(skin, p.id, p.skill);
@@ -89,7 +89,7 @@ function PartView({ part: p, size, logStyle, textBorder }: { part: Part; size: n
           return <Image src={skin.url(skin.get("AmbassadorImage_URL", p.v))} alt={p.label} width={size} popover={ambassadorPopup(skin, p.v as Ambassador)} />;
       }
       if (bold.has(p.ty)) {
-        return <span className="fw-bold" style={textBorder} dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, p.label, size) }} />;
+        return <span className="rich-text__bold" style={textBorder} dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, p.label, size) }} />;
       }
       return <span style={textBorder}>{p.label}</span>;
     }

@@ -1,0 +1,45 @@
+@use "../shared";
+
+// Tables: ink with hairlines between rows. --dark fills the cells with ink 1,
+// --small tightens the cell padding, --borderless drops the row lines. The
+// cell rules keep Bootstrap's `> :not(caption) > * > *` shape, so component
+// rules that adjust cells (_event-form.scss) weigh the same as before.
+.table {
+  --table-bg: transparent;
+  width: 100%;
+  margin-bottom: 1rem;
+  vertical-align: top;
+  border-color: shared.$hairline;
+
+  > :not(caption) > * > * {
+    padding: 0.5rem;
+    color: var(--parchment);
+    background-color: var(--table-bg);
+    border-bottom-width: 1px;
+  }
+
+  > tbody {
+    vertical-align: inherit;
+  }
+
+  > thead {
+    vertical-align: bottom;
+  }
+
+  &--dark {
+    --table-bg: var(--ink-1);
+    color: var(--parchment);
+  }
+
+  &--small > :not(caption) > * > * {
+    padding: 0.25rem;
+  }
+
+  &--borderless > :not(caption) > * > * {
+    border-bottom-width: 0;
+  }
+
+  &--borderless > :not(:first-child) {
+    border-top-width: 0;
+  }
+}

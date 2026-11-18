@@ -223,7 +223,7 @@ def play_scene(browser, base: str, shots: Path, name: str) -> None:
     check(scene.evaluate("document.documentElement.dataset.scene") == "ready", f"{name}: the scene opened on the server")
     scene.screenshot(path=str(shots / f"{name}.png"))
     panel = scene.locator(".player-panel")
-    check(panel.count() == 1 and panel.locator(".pp-bar").first.inner_text().strip().startswith("Emperor"),
+    check(panel.count() == 1 and panel.locator(".player-panel__bar").first.inner_text().strip().startswith("Emperor"),
           f"{name}: the scene user is seated, with the Emperor's player panel")
     check(scene.get_by_text("Offer a faction to form an Alliance").count() == 1, f"{name}: the Emperor's alliance form is shown")
     scene.evaluate("window.treacheryScene.button('Pass')")
@@ -270,9 +270,9 @@ def lobby_row(page: Page):
 
 def players_panel(page: Page):
     """The players panel of the game screen, opened from the toolbar if it isn't open."""
-    panel = page.locator("div.mt-2.p-1.border")
+    panel = page.locator("div.joined-players")
     if not panel.is_visible():
-        page.locator(titled(".toolbar button", "Players")).click()
+        page.locator(titled(".toolbar__button", "Players")).click()
     panel.wait_for(timeout=15000)
     return panel
 
@@ -283,7 +283,7 @@ def seat_row(page: Page, faction: str):
 
 
 def in_game_as(page: Page, faction: str) -> bool:
-    bar = page.locator(".player-panel .pp-bar").first
+    bar = page.locator(".player-panel__bar").first
     bar.wait_for(timeout=15000)
     return bar.inner_text().strip().startswith(faction)
 
@@ -294,7 +294,7 @@ def wait_gone(locator, timeout: int = 15000) -> None:
 
 def pause_bots(alice: Page) -> None:
     """The host pauses the bots from the menu, so that the only events are the test's own."""
-    alice.locator(titled(".toolbar button", "Menu")).click()
+    alice.locator(titled(".toolbar__button", "Menu")).click()
     alice.locator(titled("button", "Bots are paused")).click()
     alice.keyboard.press("Escape")
     alice.locator(titled("button", "Bots are paused. Click to resume.")).wait_for(timeout=15000)
@@ -386,7 +386,7 @@ def observe(browser, base: str, alice: Page) -> Page:
     erin = new_page(browser, "erin")
     sign_up_with_form(erin, base, "erin")
     lobby_row(erin).locator(titled("button", "Observe game")).click()
-    erin.locator(titled(".toolbar button", "Players")).wait_for(timeout=15000)
+    erin.locator(titled(".toolbar__button", "Players")).wait_for(timeout=15000)
     check(True, "Erin clicked Observe in the lobby and sees the game screen")
     players_panel(alice).get_by_text("erin", exact=True).wait_for(timeout=15000)
     check(True, "Alice's players panel lists Erin among the observers")
@@ -431,9 +431,9 @@ def expect_alliance(alice: Page, bob: Page) -> None:
 
 def undo_last_event(alice: Page) -> None:
     """Alice picks the moment before the last event on the undo timeline and confirms."""
-    alice.locator(titled(".toolbar button", "Menu")).click()
+    alice.locator(titled(".toolbar__button", "Menu")).click()
     alice.get_by_role("button", name="Undo…").click()
-    zones = alice.locator(".undo-timeline .track .zone")
+    zones = alice.locator(".undo-timeline__zone")
     zones.last.wait_for(timeout=15000)
     # The last zone is now; the one before it is the moment before the last event.
     zones.nth(zones.count() - 2).click()

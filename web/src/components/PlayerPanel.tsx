@@ -29,9 +29,9 @@ export function PlayerPanel() {
   const pub = view.players.find((p) => p.faction === me?.faction);
   if (!me || !pub || PhaseValue[view.phase] < PhaseValue.TradingFactions) return null;
   return (
-    <div className="card p-1 mb-1" style={{ animation: "fadeIn 3s" }}>
-      <div className="card-body p-0 bg-transparent player-panel">
-        <div className="card-text h-100">
+    <div className="card player-panel__frame" style={{ animation: "fadeIn 3s" }}>
+      <div className="card__body player-panel">
+        <div className="card__text player-panel__text">
           {PhaseValue[view.phase] >= PhaseValue.HarkonnenMulligan
             ? <Shield me={me} pub={pub} />
             : <FactionComponent faction={me.faction} />}
@@ -50,21 +50,21 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
   const dead = me.leaders.filter((l) => !l.alive);
   return (
     <>
-      <div className="pp-bar">
+      <div className="player-panel__bar">
         <FactionChip faction={faction} />
-        <span className="pp-stat"><SpiceLine text={resourcesText(skin, me, pub)} size={24} /></span>
-        <span className="pp-stat">
-          <ForceToken faction={faction} size={22} imgClass="m-0 p-0" title={skin.get("ForceName_STR", faction)} />{pub.forcesInReserve}
+        <span className="player-panel__stat"><SpiceLine text={resourcesText(skin, me, pub)} size={24} /></span>
+        <span className="player-panel__stat">
+          <ForceToken faction={faction} size={22} title={skin.get("ForceName_STR", faction)} />{pub.forcesInReserve}
         </span>
         {pub.hasSpecialForces && (
-          <span className="pp-stat">
-            <ForceToken faction={faction} special size={22} imgClass="m-0 p-0" title={skin.get("SpecialForceName_STR", faction)} />{pub.specialForcesInReserve}
+          <span className="player-panel__stat">
+            <ForceToken faction={faction} special size={22} title={skin.get("SpecialForceName_STR", faction)} />{pub.specialForcesInReserve}
           </span>
         )}
       </div>
 
       {/* Leaders, then the traitors held (or face dancers) in a recessed well at the right. */}
-      <div className="pp-people">
+      <div className="player-panel__people">
         {alive.map((l) => (
           <Image key={l.id} src={skin.personImage(l.id)} alt="" highlighted={l.skilled} width={44} noShadow popover={leaderPopup(skin, l.id, l.skill)} />
         ))}
@@ -76,7 +76,7 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
           : me.traitors.length > 0 && <Well title={me.traitors.length === 1 ? "Your traitor" : "Your traitors"} heroes={me.traitors} />}
       </div>
 
-      <div className="pp-extras">
+      <div className="player-panel__extras">
         {me.nextStormMoves !== null && (
           <div>The next storm will move <SimpleNumber>{me.nextStormMoves}</SimpleNumber> sectors.</div>
         )}
@@ -105,12 +105,12 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
 
       {/* The hand, under a rule. It keeps its height when empty. A card you can play now glows;
           clicking it opens its panel (CardPlayPopover). */}
-      <div className="pp-cards">
+      <div className="player-panel__cards">
         {me.hand.map((c, i) => {
-          const card = <Image src={skin.cardImage(c.id)} alt={skin.card(c.id)} width={48} noShadow popover={treacheryCardPopup(skin, c.id)} />;
+          const card = <Image src={skin.cardImage(c.id)} alt={skin.card(c.id)} width={48} className="player-panel__card-img" noShadow popover={treacheryCardPopup(skin, c.id)} />;
           return c.playableWith.length > 0
             ? (
-              <span key={i} className={`pp-card playable ${menu.cardPlay === c.id ? "open" : ""}`}
+              <span key={i} className={`player-panel__playable ${menu.cardPlay === c.id ? "player-panel__playable--open" : ""}`}
                     onClick={(e) => menu.toggleCardPlay(c.id, e.clientY)}>
                 {card}
               </span>
@@ -118,13 +118,13 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
             : <Fragment key={i}>{card}</Fragment>;
         })}
         {me.cardSetAside !== null && (
-          <Image src={skin.cardImage(me.cardSetAside)} alt={skin.card(me.cardSetAside)} width={48} noShadow popover={treacheryCardPopup(skin, me.cardSetAside)} />
+          <Image src={skin.cardImage(me.cardSetAside)} alt={skin.card(me.cardSetAside)} width={48} className="player-panel__card-img" noShadow popover={treacheryCardPopup(skin, me.cardSetAside)} />
         )}
       </div>
 
       {me.nexus !== null && (
-        <div className="pp-extras">Nexus: <Image width={30} alt="" src={skin.url(skin.get("FactionFacedownImage_URL", me.nexus))}
-          popover={`<div class='pop-art'><img src='${skin.get("NexusCardImage_URL", me.nexus)}'/></div>`} /></div>
+        <div className="player-panel__extras">Nexus: <Image width={30} alt="" src={skin.url(skin.get("FactionFacedownImage_URL", me.nexus))}
+          popover={`<div class='pop-art'><img class='pop-art__img' src='${skin.get("NexusCardImage_URL", me.nexus)}'/></div>`} /></div>
       )}
     </>
   );
@@ -134,12 +134,12 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
 function Well({ title, heroes }: { title: string; heroes: HeroCard[] }) {
   const { skin } = useGame();
   return (
-    <span className="pp-well" title={title}>
+    <span className="player-panel__well" title={title}>
       {heroes.map((h, i) => {
         const { src, faction, popover } = hero(skin, h);
         return (
-          <span key={i} data-faction-of={faction}>
-            <Image src={src} alt="" blurred={h.revealed} width={38} noShadow popover={popover} />
+          <span key={i} className="faction-ref" data-faction-of={faction}>
+            <Image src={src} alt="" blurred={h.revealed} width={38} className="faction-ref__img" noShadow popover={popover} />
           </span>
         );
       })}
@@ -164,7 +164,7 @@ function Messiah({ forcesKilled, available }: { forcesKilled: number; available:
   const name = skin.concept("Messiah");
   return (
     <div>
-      <Image className="m-0 p-0" width={32} src={skin.url(skin.str("Messiah_URL"))} alt={name} noShadow popover={messiahPopup(skin)} />
+      <Image width={32} src={skin.url(skin.str("Messiah_URL"))} alt={name} noShadow popover={messiahPopup(skin)} />
       {forcesKilled >= 7
         ? (available ? <span> is available.</span> : <span>has been killed.</span>)
         : <span> will be available after <SimpleNumber>{7 - forcesKilled}</SimpleNumber> more forces are killed in battle.</span>}

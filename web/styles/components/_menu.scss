@@ -1,8 +1,8 @@
 @use "../shared";
 
 // The bar under the map (MenuComponent) and the menu that opens upward from
-// it. The menu is Bootstrap's .dropdown-menu, which the bootstrap layer
-// already maps onto the language; these are the rows inside it.
+// it. The menu's rows are dropdown items (_dropdown.scss) laid out as icon,
+// words and a trailing mark.
 .menu-bar {
   position: relative;
   display: flex;
@@ -12,14 +12,14 @@
   flex: none;
 
   // Bare icons: the bar is part of the page's edge, not a box of its own.
-  > .toolbar {
+  &__toolbar {
     background: transparent;
     border: 0;
     padding: 0;
   }
 
   // "Bots paused", a badge that resumes them.
-  > .badge {
+  &__badge {
     border: 0;
     cursor: pointer;
     font-size: 12px;
@@ -46,20 +46,13 @@
   stroke-linejoin: round;
 }
 
-// Bootstrap's dropdown menu look, without its .dropdown-menu class: Bootstrap
-// handles keys pressed inside any .dropdown-menu and throws on Escape when
-// the menu has no Bootstrap toggle, which this one doesn't.
+// The dropdown menu's box, opening upward, with a shadow.
 .menu-overflow {
-  @include shared.dropdown-colours;
-  --bs-dropdown-divider-margin-y: 0.5rem;
+  @include shared.dropdown-box;
   display: none;
   margin: 0;
   list-style: none;
-  color: var(--bs-dropdown-color);
-  background: var(--bs-dropdown-bg);
-  border: 1px solid var(--bs-dropdown-border-color);
-  border-radius: var(--bs-dropdown-border-radius);
-  box-shadow: var(--bs-dropdown-box-shadow);
+  box-shadow: var(--shadow-3);
   position: absolute;
   left: 0;
   bottom: calc(100% + 4px);
@@ -72,11 +65,11 @@
   padding: 4px;
   font-size: 16px;
 
-  &.show {
+  &--open {
     display: block;
   }
 
-  .dropdown-item {
+  &__item {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -84,43 +77,44 @@
     border-radius: var(--r-1);
     cursor: pointer;
     margin: 0;
-
-    > svg {
-      @include row-icon;
-    }
-
-    &:hover > svg {
-      stroke: currentColor;
-    }
   }
 
-  .trail {
+  // The row's icon, before its words.
+  &__icon {
+    @include row-icon;
+  }
+
+  &__item:hover > &__icon {
+    stroke: currentColor;
+  }
+
+  &__trail {
     margin-left: auto;
     color: var(--text-3);
     display: flex;
     align-items: center;
+  }
 
-    .chev {
-      font-size: 12px;
-    }
+  &__chev {
+    font-size: 12px;
+  }
 
-    .ext {
-      @include row-icon;
-      width: 13px;
-      height: 13px;
-    }
+  &__ext {
+    @include row-icon;
+    width: 13px;
+    height: 13px;
+  }
 
-    // The select's gold check, for the fullscreen row while fullscreen.
-    .check {
+  // The select's gold check, for the fullscreen row while fullscreen.
+  &__check {
       display: inline-block;
       width: 14px;
       height: 14px;
-      background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e7bf3c' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='m3 8.5 3.2 3.2L13 5'/%3e%3c/svg%3e")
-        center / contain no-repeat;
-    }
+    background: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23e7bf3c' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='m3 8.5 3.2 3.2L13 5'/%3e%3c/svg%3e")
+      center / contain no-repeat;
   }
 
-  .dropdown-header {
+  &__header {
     font-family: var(--font-label);
     font-size: 11px;
     letter-spacing: 0.14em;
@@ -129,53 +123,52 @@
   }
 
   // Rules and help, expanded under its row.
-  .nested {
+  &__nested {
     padding: 0 0 4px 36px;
+  }
 
-    .dropdown-item {
-      font-size: 15px;
-      color: var(--text-2);
-      padding: 4px 8px;
+  // Doubled with the base class so the colour still beats
+  // .dropdown__item:focus and :active, which weigh (0,2,0).
+  &__item.menu-overflow__item--nested {
+    font-size: 15px;
+    color: var(--text-2);
+    padding: 4px 8px;
 
-      &:hover {
-        color: var(--gold);
-      }
+    &:hover {
+      color: var(--gold);
     }
   }
 
-  // The volume sliders, expanded under the sound row.
-  .sliders .volume {
+  // The volume sliders (MusicComponent), expanded under the sound row.
+  &__volume {
     padding: 2px 12px 8px 36px;
-
-    label {
-      display: block;
-      font-size: 14px;
-      color: var(--text-2);
-    }
   }
 
-  .bots {
+  &__volume-label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-2);
+  }
+
+  &__bots {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 6px 8px;
     color: var(--parchment);
+  }
 
-    > svg {
-      @include row-icon;
-    }
+  &__seg {
+    margin-left: auto;
 
-    .seg {
-      margin-left: auto;
+    // Under the block so it beats the .seg__button size and padding.
+    .seg__button {
+      font-size: 13px;
+      padding: 3px 9px;
 
-      button {
-        font-size: 13px;
-        padding: 3px 9px;
-
-        &:not(.on):hover {
-          color: var(--gold);
-          background: shared.$gold-wash;
-        }
+      &:not(.seg__button--on):hover {
+        color: var(--gold);
+        background: shared.$gold-wash;
       }
     }
   }
@@ -189,7 +182,7 @@
   z-index: 1045;
   width: 270px;
 
-  .actions {
+  &__actions {
     display: flex;
     gap: 8px;
     justify-content: flex-end;
@@ -199,17 +192,19 @@
 
 // The trade icons in the menu bar: a hairline before them, the count of deals
 // offered to you, and the ally's sigil for the alliance.
-.menu-bar > .toolbar {
+.menu-bar__toolbar {
   align-items: center;
+}
 
-  .toolbar-sep {
+.toolbar {
+  &__sep {
     width: 1px;
     height: 18px;
     margin: 0 6px;
     background: shared.$hairline-strong;
   }
 
-  .count {
+  &__count {
     position: absolute;
     top: 1px;
     right: 1px;
@@ -224,7 +219,7 @@
     line-height: 16px;
   }
 
-  .ally {
+  &__ally {
     width: 22px;
     height: 22px;
   }
@@ -242,29 +237,31 @@
   max-height: calc(100dvh - 120px);
   overflow-y: auto;
   padding: 0;
+}
 
-  .pop-tabs {
+.trade-pop {
+  &__tabs {
     display: flex;
     gap: 2px;
     padding: 6px 6px 0;
     border-bottom: 1px solid shared.$hairline;
+  }
 
-    button {
-      background: transparent;
-      border: 0;
-      border-bottom: 2px solid transparent;
-      color: var(--text-2);
-      padding: 7px 12px;
-      font-size: 15px;
+  &__tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    color: var(--text-2);
+    padding: 7px 12px;
+    font-size: 15px;
 
-      &.on {
-        color: var(--parchment);
-        border-bottom-color: var(--gold);
-      }
+    &--on {
+      color: var(--parchment);
+      border-bottom-color: var(--gold);
     }
   }
 
-  .pop-body {
+  &__body {
     padding: 10px;
 
     > .card:last-child,
@@ -273,7 +270,8 @@
     }
   }
 
-  .pop-empty {
+  // Under the block so it beats the popover's paragraph margin and colour.
+  & &__empty {
     margin: 0;
     color: var(--text-3);
   }
@@ -325,25 +323,25 @@
   line-height: 1.5;
   cursor: pointer;
 
-  .sigil-lg {
+  &__sigil {
     width: 40px;
     height: 40px;
     flex: none;
   }
 
-  .txt {
+  &__text {
     flex: 1;
     min-width: 0;
   }
 
-  .withdrawn {
+  &__withdrawn {
     display: block;
     margin-top: 2px;
     color: var(--parchment);
     font-weight: 700;
   }
 
-  .x {
+  &__close {
     flex: none;
     width: 32px;
     height: 32px;
@@ -362,11 +360,11 @@
     }
   }
 
-  &.gone {
+  &--gone {
     cursor: default;
 
-    .sigil-lg,
-    .txt > :not(.withdrawn) {
+    .deal-toast__sigil,
+    .deal-toast__text > :not(.deal-toast__withdrawn) {
       opacity: 0.5;
     }
   }

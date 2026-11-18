@@ -1,13 +1,14 @@
 // The generic components the lobby and setup screens use, for pages without a game view (the
 // shared ones in components/ read the skin from the game context).
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { Faction } from "../../generated/enums";
 import { useLobbyClient } from "../../lobby/context";
 import "../Image.css";
 import "./lobby.css";
 
 /** Disabled while its click runs. */
-export function CommandButton({ onClick, children, className = "btn-primary", small = false, enabled = true, marginClass = "me-1", paddingClass = "", title = "" }: {
+export function CommandButton({ onClick, children, className = "button--primary", small = false, enabled = true, marginClass = "command-button", paddingClass = "", title = "" }: {
   onClick: () => unknown;
   children?: ReactNode;
   className?: string;
@@ -28,7 +29,7 @@ export function CommandButton({ onClick, children, className = "btn-primary", sm
       if (mounted.current) setBusy(false);
     }
   };
-  const classes = ["btn", className, small ? "btn-sm" : "", marginClass, paddingClass].join(" ");
+  const classes = ["button", className, small ? "button--small" : "", marginClass, paddingClass].join(" ");
   return <button className={classes} onClick={click} disabled={!enabled || busy} title={title}>{children}</button>;
 }
 
@@ -44,7 +45,7 @@ export function FactionImage({ faction, title = "", diameter = 30, hasShadow = t
   const { skin } = useLobbyClient();
   const t = title || skin.faction(faction);
   const style = { ...(hasShadow ? { filter: "drop-shadow(1px 1px 1px black)" } : {}), ...(onClick ? { cursor: "pointer" } : {}) };
-  return <img className={`img-fluid ${marginClass}`} src={skin.factionImage(faction)} width={diameter} height={diameter} alt={t} title={t} style={style} onClick={onClick} />;
+  return <img className={`faction-image ${marginClass}`} src={skin.factionImage(faction)} width={diameter} height={diameter} alt={t} title={t} style={style} onClick={onClick} />;
 }
 
 /**
@@ -63,7 +64,7 @@ export function FactionShown({ faction, width, noShadow = false, darkened = fals
   const { skin } = useLobbyClient();
   const name = skin.faction(faction);
   // JointClass: image, Class, shadowy, pointer (a tooltip counts), highlighted, darkened, ...
-  const classes = [highlightOnHover ? "image-hover" : "image", "", noShadow ? "" : "shadowy", "pointer", "", darkened ? "darkened" : "", "", ""].join(" ");
+  const classes = [highlightOnHover ? "image image--hover" : "image", "", noShadow ? "" : "image--shadowy", "image--pointer", "", darkened ? "image--darkened" : "", "", ""].join(" ");
   void pointer;
   return <img alt={name} className={classes} width={String(width)} src={skin.factionImage(faction)} onClick={onClick} title={name} />;
 }
@@ -84,7 +85,7 @@ export function SelectFactions({ values, selected, onChange, imageWidth = 60, la
   };
   return (
     <>
-      {label != null && <label className="d-block mt-1 mb-0">{label}</label>}
+      {label != null && <label className="select-factions__label">{label}</label>}
       <div className="img-choices">
         {values.map((f) => (
           <FactionShown key={f} faction={f} width={imageWidth} darkened={!selected.includes(f)} pointer highlightOnHover onClick={(e) => click(f, e)} />
@@ -166,11 +167,11 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
   const mayIncrease = !disabled && value < max;
   const mayDecrease = !disabled && value > min;
   return (
-    <div className="d-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
-      <div className={`num ${size <= 30 ? "sm" : ""} ${disabled ? "off" : ""}`} title="">
-        <button type="button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(value - stepDown)}>−</button>
-        <input type="text" inputMode="numeric" value={text} disabled={disabled} aria-label=""
+    <div className="select-number">
+      {label !== "" && <label className="select-number__label">{label}</label>}
+      <div className={`num ${size <= 30 ? "num--sm" : ""} ${disabled ? "num--off" : ""}`} title="">
+        <button type="button" className="num__button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(value - stepDown)}>−</button>
+        <input type="text" className="num__input" inputMode="numeric" value={text} disabled={disabled} aria-label=""
                onChange={(e) => setText(e.target.value)}
                onBlur={(e) => commit(e.target.value)}
                onKeyDown={(e) => {
@@ -178,7 +179,7 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
                  else if (e.key === "ArrowUp" && mayIncrease) set(value + stepUp);
                  else if (e.key === "ArrowDown" && mayDecrease) set(value - stepDown);
                }} />
-        <button type="button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(value + stepUp)}>+</button>
+        <button type="button" className="num__button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(value + stepUp)}>+</button>
       </div>
     </div>
   );
@@ -188,24 +189,24 @@ export function SelectNumber({ value, onChange, min, max, stepUp = 1, stepDown =
 export function ChecklistItem({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const id = useId();
   return (
-    <div className="form-check">
-      <input className="form-check-input" style={{ cursor: "pointer" }} id={id} type="checkbox" disabled={disabled} checked={checked} onChange={(e) => onChange(e.target.checked)} />
-      <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={id}>{label} </label>
+    <div className="check">
+      <input className="check__input" style={{ cursor: "pointer" }} id={id} type="checkbox" disabled={disabled} checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <label className="check__label" style={{ cursor: "pointer" }} htmlFor={id}>{label} </label>
     </div>
   );
 }
 
 /**
- * A Bootstrap dropdown button (`btn-group` with `data-bs-toggle="dropdown"`), as
- * SubscribeComponent and UserStatusComponent draw them. React toggles the `show` classes that
- * Bootstrap's script would.
+ * A dropdown button, as SubscribeComponent and UserStatusComponent draw them: the toggle opens a
+ * menu of items below it. A click outside, Escape, or tabbing away closes it; the arrow keys move
+ * through the items. Styles in components/_dropdown.scss.
  */
-export function DropdownButton({ buttonClass, label, items, disabled = false, groupClass = "btn-group" }: {
+export function DropdownButton({ buttonClass, label, items, disabled = false, className = "" }: {
   buttonClass: string;
   label: string;
   items: { label: string; onClick: () => void }[];
   disabled?: boolean;
-  groupClass?: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -213,12 +214,17 @@ export function DropdownButton({ buttonClass, label, items, disabled = false, gr
   const menu = useRef<HTMLUListElement>(null);
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("click", close, true);
-    return () => document.removeEventListener("click", close, true);
+    const outside = (e: Event) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const tabbedAway = (e: KeyboardEvent) => { if (e.key === "Tab") outside(e); };
+    document.addEventListener("click", outside, true);
+    document.addEventListener("keyup", tabbedAway);
+    return () => {
+      document.removeEventListener("click", outside, true);
+      document.removeEventListener("keyup", tabbedAway);
+    };
   }, [open]);
-  // Popper as Bootstrap configures it: below the button with a 2 px gap, at its start; flipped to
-  // its end when the menu would leave the nearest clipping ancestor (or the window).
+  // Below the button with a 2 px gap, at its start; at its end when the menu would leave the
+  // nearest clipping ancestor (or the window).
   useLayoutEffect(() => {
     const m = menu.current;
     const b = button.current;
@@ -228,20 +234,41 @@ export function DropdownButton({ buttonClass, label, items, disabled = false, gr
       if (getComputedStyle(e).overflowX !== "visible") { right = e.getBoundingClientRect().right; break; }
     }
     const br = b.getBoundingClientRect();
-    // Popper's offsets: fractional rectangles, rounded once at the end (roundOffsetsByDPR).
     const mw = m.getBoundingClientRect().width;
     const x = br.left + mw > right ? br.width - mw : 0;
-    m.style.cssText = `position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(${Math.round(x)}px, ${Math.round(br.height + 2)}px);`;
+    m.style.transform = `translate(${Math.round(x)}px, ${Math.round(br.height + 2)}px)`;
   }, [open]);
+  // Escape closes the menu and returns to the toggle. The arrow keys open it and move through its
+  // items: from the toggle, down to the first and up to the last; within it, without wrapping.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      if (!open) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+      button.current?.focus();
+      return;
+    }
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!open) flushSync(() => setOpen(true));
+    const list = [...(menu.current?.querySelectorAll<HTMLElement>(".dropdown__item") ?? [])];
+    if (list.length === 0) return;
+    const down = e.key === "ArrowDown";
+    const i = list.indexOf(e.target as HTMLElement);
+    const next = i < 0 ? (down ? 0 : list.length - 1) : Math.max(0, Math.min(i + (down ? 1 : -1), list.length - 1));
+    list[next].focus();
+  };
   return (
-    <div className={groupClass} ref={ref}>
-      <button ref={button} type="button" className={`btn ${buttonClass} dropdown-toggle btn-sm ${open ? "show" : ""}`} data-bs-toggle="dropdown" aria-expanded={open ? "true" : "false"}
+    <div className={className ? `dropdown ${className}` : "dropdown"} ref={ref} onKeyDown={onKeyDown}>
+      <button ref={button} type="button" className={`button ${buttonClass} button--small dropdown__toggle`} aria-expanded={open ? "true" : "false"}
               disabled={disabled} onClick={() => setOpen(!open)}>
         {label}
       </button>
-      <ul ref={menu} className={`dropdown-menu ${open ? "show" : ""}`}>
+      <ul ref={menu} className={open ? "dropdown__menu dropdown__menu--open" : "dropdown__menu"}>
         {items.map((it, i) => (
-          <li key={i}><a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); setOpen(false); it.onClick(); }}>{it.label}</a></li>
+          <li key={i}><a className="dropdown__item" href="#" onClick={(e) => { e.preventDefault(); setOpen(false); it.onClick(); }}>{it.label}</a></li>
         ))}
       </ul>
     </div>
@@ -265,14 +292,14 @@ export function DateTimePicker({ value, onChange, label = "Select Date", timeLab
     return new Date(y, m - 1, day, h, min, 0, 0);
   };
   return (
-    <div className="row mb-1">
-      <div className="col">
+    <div className="date-time-picker">
+      <div className="date-time-picker__col">
         <label htmlFor="datePicker">{label}</label>
-        <input type="date" id="datePicker" className="form-control" value={date} onChange={(e) => onChange(build(e.target.value, time))} />
+        <input type="date" id="datePicker" className="input" value={date} onChange={(e) => onChange(build(e.target.value, time))} />
       </div>
-      <div className="col">
+      <div className="date-time-picker__col">
         <label htmlFor="timePicker">{timeLabel}</label>
-        <input type="time" id="timePicker" className="form-control" value={time} onChange={(e) => onChange(build(date, e.target.value))} />
+        <input type="time" id="timePicker" className="input" value={time} onChange={(e) => onChange(build(date, e.target.value))} />
       </div>
     </div>
   );

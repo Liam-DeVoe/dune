@@ -1,0 +1,76 @@
+@use "../shared";
+
+// A checkbox or radio with its label: the box hangs in the left padding, so
+// wrapped label lines stay aligned. The box is the language checkbox: ink 0,
+// gold when checked. --check-bg is re-pointed on parchment (app/_prompt-act.scss).
+.check {
+  display: block;
+  min-height: 1.5rem;
+  padding-left: 1.5em;
+  margin-bottom: 0.125rem;
+
+  &__input {
+    --check-bg: var(--ink-0);
+    --check-image: none;
+    float: left;
+    flex-shrink: 0;
+    width: 1em;
+    height: 1em;
+    margin-top: 0.25em;
+    margin-left: -1.5em;
+    vertical-align: top;
+    appearance: none;
+    background-color: var(--check-bg);
+    background-image: var(--check-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 0.25em;
+    print-color-adjust: exact;
+
+    &[type="radio"] {
+      border-radius: 50%;
+    }
+
+    &:active {
+      filter: brightness(90%);
+    }
+
+    &:focus {
+      border-color: var(--gold);
+      outline: 0;
+      box-shadow: shared.$focus-ring-gold;
+    }
+
+    &:checked {
+      background-color: var(--gold);
+      border-color: var(--gold-3);
+
+      &[type="checkbox"] {
+        --check-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23120800' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='m6 10 3 3 6-6'/%3e%3c/svg%3e");
+      }
+
+      &[type="radio"] {
+        --check-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='2' fill='%23120800'/%3e%3c/svg%3e");
+      }
+    }
+
+    &[type="checkbox"]:indeterminate {
+      --check-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10h8'/%3e%3c/svg%3e");
+      background-color: var(--gold);
+      border-color: var(--gold-3);
+    }
+
+    &:disabled {
+      pointer-events: none;
+      filter: none;
+      opacity: 0.5;
+    }
+  }
+
+  &__input:disabled ~ &__label {
+    cursor: default;
+    opacity: 0.5;
+  }
+}

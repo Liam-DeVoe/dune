@@ -136,11 +136,11 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   };
 
   const choicePin = state.undecided != null && (
-    <div className="pin-body">
-      <div className="pin-from"><PlaceChip place={{ location: state.undecided }} /></div>
-      <div className="pin-actions">
-        <button type="button" className="btn btn-secondary" onClick={() => decide(false)}>Add as source</button>
-        <button type="button" className="btn btn-primary" onClick={() => decide(true)}>Move here</button>
+    <div>
+      <div className="map-pin__from"><PlaceChip place={{ location: state.undecided }} /></div>
+      <div className="map-pin__actions">
+        <button type="button" className="button button--secondary" onClick={() => decide(false)}>Add as source</button>
+        <button type="button" className="button button--primary" onClick={() => decide(true)}>Move here</button>
       </div>
     </div>
   );
@@ -151,19 +151,19 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   const pin = () => {
     const s = state;
     return (
-      <div className="pin-body">
+      <div>
         {s.forces.map(([l, b]) => {
           const f = sourceForces(l);
           return (
-            <div key={l} className="pin-row">
-              {s.forces.length > 1 && <span className="pin-from"><PlaceChip place={{ location: l }} /></span>}
+            <div key={l} className="map-pin__row">
+              {s.forces.length > 1 && <span className="map-pin__from"><PlaceChip place={{ location: l }} /></span>}
               {f.forces > 0 && <MapForceStepper value={b.forces} onChange={(v) => setAmount(l, v, false)} max={f.forces} faction={faction} />}
               {f.specialForces > 0 && <MapForceStepper value={b.specialForces} onChange={(v) => setAmount(l, v, true)} max={f.specialForces} faction={faction} special />}
             </div>
           );
         })}
         {fromReserves && (
-          <div className="pin-row">
+          <div className="map-pin__row">
             {(o?.maxFromReserves ?? 0) > 0 && (
               <MapForceStepper value={s.fromReserves} onChange={(v) => update({ ...st.current, fromReserves: v })} max={o!.maxFromReserves} faction={faction} />
             )}
@@ -175,11 +175,11 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
         {o?.advisorChoice && (
           <PinChoice values={[false, true]} value={s.asAdvisors} onChange={(v) => update({ ...st.current, asAdvisors: v })} label={(v) => (v ? "Advisors" : "Fighters")} />
         )}
-        {o?.conflictingAlly && <div className="pin-warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>}
+        {o?.conflictingAlly && <div className="map-pin__warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>}
         <Validation parts={validation} />
-        <div className="pin-actions">
-          <button type="button" className="btn btn-secondary" onClick={clearSelection}>Cancel</button>
-          <button type="button" className="btn btn-primary" disabled={validation != null} onClick={confirm}>{confirmLabel}</button>
+        <div className="map-pin__actions">
+          <button type="button" className="button button--secondary" onClick={clearSelection}>Cancel</button>
+          <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{confirmLabel}</button>
         </div>
       </div>
     );
@@ -232,24 +232,24 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
   return (
     <EventLayout type={kind} urgent header={header}>
       {o?.informAboutCaravan && (
-        <div className="text-info small">Note: if you wish to perform a {skin.enumValue("TreacheryCardType", "Caravan")} this turn, you need to do that before performing your regular move.</div>
+        <div className="event-form__note event-form__note--info">Note: if you wish to perform a {skin.enumValue("TreacheryCardType", "Caravan")} this turn, you need to do that before performing your regular move.</div>
       )}
       {kind === "FremenRidesMonster" ? (
         <>
-          <div className="small">Use the map to ride the worm.</div>
+          <div className="event-form__note">Use the map to ride the worm.</div>
           <ButtonRow pass={pass} passText="Pass" />
         </>
       ) : sources.length > 0 ? (
         <>
           {owns ? (
             <>
-              <div className="small">Use the map to move forces.</div>
-              {!claimsMapByDefault && <button className="btn btn-secondary btn-sm mt-1" onClick={releaseMap}>Cancel</button>}
+              <div className="event-form__note">Use the map to move forces.</div>
+              {!claimsMapByDefault && <button className="button button--secondary button--small event-form__field" onClick={releaseMap}>Cancel</button>}
             </>
           ) : claimsMapByDefault ? (
-            <div className="small text-2">Finish the extra move on the map first, or cancel it.</div>
+            <div className="event-form__note">Finish the extra move on the map first, or cancel it.</div>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={claimMap}>{`Play ${skin.enumValue("TreacheryCardType", "Caravan")}`}</button>
+            <button className="button button--secondary button--small" onClick={claimMap}>{`Play ${skin.enumValue("TreacheryCardType", "Caravan")}`}</button>
           )}
           {mayPass && <ButtonRow pass={pass} passText="Pass" />}
         </>

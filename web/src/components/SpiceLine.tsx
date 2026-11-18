@@ -14,8 +14,8 @@ export function SpiceLine({ text, size }: { text: string; size: number }) {
         first = false;
         return (
           <span key={i} className="spice-amt" style={{ ["--s" as string]: `${s}px` }} title={name}>
-            <img src={skin.url(skin.str("Harvester_URL"))} alt={name} />
-            <b>{part}</b>
+            <img className="spice-amt__img" src={skin.url(skin.str("Harvester_URL"))} alt={name} />
+            <b className="spice-amt__value">{part}</b>
           </span>
         );
       })}

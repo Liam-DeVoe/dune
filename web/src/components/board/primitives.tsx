@@ -73,14 +73,14 @@ export function MapImage(p: MapImageProps) {
   };
   const content = html(p.popover);
   const tooltip = content != null && p.popoverAsTooltip ? content : undefined;
-  const { ref, attributes } = useMapPopover<HTMLImageElement>(p.popoverAsTooltip ? null : content, { style: p.popoverStyle });
+  const ref = useMapPopover<HTMLImageElement>(p.popoverAsTooltip ? null : content, { style: p.popoverStyle });
   return (
     <>
       {p.backgroundCircleColor != null && (
         <Circle x={x + f(0.5 * w)} y={y + f(0.5 * h)} radius={(p.backgroundCircleDiameter ?? 0) > 0 ? f(0.5 * p.backgroundCircleDiameter!) : f(0.5 * w)} fillColor={p.backgroundCircleColor} />
       )}
       {p.backgroundRectangleColor != null && <Rectangle x={x} y={y} width={w} height={h} fillColor={p.backgroundRectangleColor} />}
-      <img ref={ref} src={p.src} style={style} title={tooltip} alt={tooltip ?? ""} onClick={p.onClick} {...attributes} />
+      <img ref={ref} src={p.src} style={style} title={tooltip} alt={tooltip ?? ""} onClick={p.onClick} />
     </>
   );
 }
@@ -113,7 +113,7 @@ export function MapText(p: MapTextProps) {
   const maxWidth = p.maxWidth ?? 0;
   const content = html(p.popover);
   const hasPopover = content != null && !p.popoverAsTooltip;
-  const { ref, attributes } = useMapPopover<HTMLSpanElement>(hasPopover ? content : null, { style: p.popoverStyle, delay: 50 });
+  const ref = useMapPopover<HTMLSpanElement>(hasPopover ? content : null, { style: p.popoverStyle, delay: 50 });
   const style: CSSProperties = {
     position: "absolute", textAlign: align, transform: `${transformX} translateY(-40%)`, left: px(p.x), top: px(p.y),
     userSelect: "none", font: p.font, color: p.fontColor ?? "white",
@@ -122,7 +122,7 @@ export function MapText(p: MapTextProps) {
     ...(content != null ? { cursor: "pointer", pointerEvents: "all" } : { pointerEvents: "none" }),
   };
   if (hasPopover) {
-    return <span ref={ref} style={style} {...attributes}>{p.toShow}{p.children}</span>;
+    return <span ref={ref} style={style}>{p.toShow}{p.children}</span>;
   }
   return <span title={content ?? undefined} style={style}>{p.toShow}{p.children}</span>;
 }
@@ -131,8 +131,8 @@ export function MapText(p: MapTextProps) {
 export function MapPopoverArea({ x, y, width, height, popover, placement = "right" }: {
   x: number; y: number; width: number; height: number; popover: Html; placement?: "right" | "left" | "top" | "bottom";
 }) {
-  const { ref, attributes } = useMapPopover<HTMLDivElement>(html(popover), { placement });
-  return <div ref={ref} {...attributes} style={{ position: "absolute", left: px(x), top: px(y), width: px(width), height: px(height), pointerEvents: "all" }} />;
+  const ref = useMapPopover<HTMLDivElement>(html(popover), { placement });
+  return <div ref={ref} style={{ position: "absolute", left: px(x), top: px(y), width: px(width), height: px(height), pointerEvents: "all" }} />;
 }
 
 export function hasStarredSpecialForce(faction: Faction): boolean {
@@ -140,8 +140,8 @@ export function hasStarredSpecialForce(faction: Faction): boolean {
 }
 
 export function forceTokenHtml(src: string, faction: Faction, special: boolean, sizePx: number, title = ""): string {
-  const starred = special && hasStarredSpecialForce(faction) ? " starred" : "";
-  return `<span class='force-token${starred}' style='--d:${sizePx}px' title='${title}'><img src='${src}' width='${sizePx}' height='${sizePx}' alt='${title}'/></span>`;
+  const starred = special && hasStarredSpecialForce(faction) ? " force-token--starred" : "";
+  return `<span class='force-token${starred}' style='--d:${sizePx}px' title='${title}'><img class='force-token__img' src='${src}' width='${sizePx}' height='${sizePx}' alt='${title}'/></span>`;
 }
 
 // A stack of force tokens with its count.
@@ -158,7 +158,7 @@ export function MapForce({ x, y, special, amount, faction, threatened = false, s
   const shadowBlur = threatened ? 1 : 0.5;
   const borderColor = threatened ? "red" : b.s("FORCETOKEN_FONT_BORDERCOLOR");
   const borderWidth = threatened ? 2 * b.n("FORCETOKEN_FONT_BORDERWIDTH") : b.n("FORCETOKEN_FONT_BORDERWIDTH");
-  const { ref, attributes } = useMapPopover<HTMLDivElement>(showPopover
+  const ref = useMapPopover<HTMLDivElement>(showPopover
     ? `<div style='position:relative'>${forceTokenHtml(src, faction, special, 80)}<span style='color:white;font-size:32px;font-weight:900;position:absolute;left:55px;top:-10px;-webkit-text-stroke:1px black'>${amount}</span></div>`
     : null);
   const tokens = [];
@@ -170,8 +170,8 @@ export function MapForce({ x, y, special, amount, faction, threatened = false, s
     const look: CSSProperties = { width: px(d), filter: `drop-shadow(${px(shadowSize)} ${px(shadowSize)} ${px(shadowBlur)} ${shadowColor})` };
     if (starred && i === amount - 1) {
       tokens.push(
-        <span key={i} className="force-token starred" style={{ ...position, ["--d" as string]: px(d) }}>
-          <img src={src} style={look} alt="Token" />
+        <span key={i} className="force-token force-token--starred" style={{ ...position, ["--d" as string]: px(d) }}>
+          <img className="force-token__img" src={src} style={look} alt="Token" />
         </span>,
       );
     } else {
@@ -180,7 +180,7 @@ export function MapForce({ x, y, special, amount, faction, threatened = false, s
   }
   return (
     <>
-      <div ref={ref} {...attributes} style={{ position: "absolute", left: px(x), top: px(y) }}>{tokens}</div>
+      <div ref={ref} style={{ position: "absolute", left: px(x), top: px(y) }}>{tokens}</div>
       {!((faction === "Richese" && special) || amount === 0) && (
         <MapText toShow={String(amount)} x={x + f(0.5 * d)} y={y + f(0.5 * d)} font={fnt} borderWidth={borderWidth} borderColor={borderColor} />
       )}

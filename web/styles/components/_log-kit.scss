@@ -40,22 +40,25 @@
   display: grid;
   align-items: stretch;
 
-  > .cell {
+  &__cell {
     display: flex;
     align-items: center;
     gap: 3px;
     padding: 5px 10px 5px 0;
     border-top: 1px solid rgba(252, 249, 209, 0.07);
+  }
 
-    &.first {
-      border-top: 0;
-    }
+  &__cell--first {
+    border-top: 0;
+  }
 
-    &:last-child,
-    &.end {
-      padding-right: 0;
-      justify-content: flex-end;
-    }
+  // :where() keeps this rule at one class, so the phase tables' cells
+  // (.collection-table__place, .revival-table__cost), which come later in the
+  // page, still override it on the last cell.
+  &__cell:where(:last-child),
+  &__cell--end {
+    padding-right: 0;
+    justify-content: flex-end;
   }
 }
 
@@ -67,7 +70,7 @@
   background: rgba(18, 8, 0, 0.25);
   border: 1px solid rgba(252, 249, 209, 0.1);
 
-  .lines {
+  &__lines {
     display: grid;
     gap: 3px;
     margin-top: 4px;

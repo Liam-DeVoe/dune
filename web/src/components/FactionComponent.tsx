@@ -14,7 +14,7 @@ export function FactionComponent({ faction, title = "", diameter = 30, hasShadow
   const t = title || skin.faction(faction);
   const style = { ...(hasShadow ? { filter: "drop-shadow(1px 1px 1px black)" } : {}), ...(onClick ? { cursor: "pointer" } : {}) };
   return (
-    <img className={`img-fluid ${marginClass}`.trim()} src={skin.factionImage(faction)} width={diameter} height={diameter}
+    <img className={`faction-image ${marginClass}`.trim()} src={skin.factionImage(faction)} width={diameter} height={diameter}
          alt={t} title={t} style={style} onClick={onClick} />
   );
 }

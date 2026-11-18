@@ -205,7 +205,7 @@ export function DistransUsedForm({ action, inPopover = false }: FormProps) {
   return (
     <Layout type="DistransUsed" header={<>Use {name}?</>} inPopover={inPopover}>
       <SelectFromImage values={factionChoices(skin, o.targets)} value={factionOf(draft.target)} onChange={(v) => update({ target: v })} imageWidth={40} />
-      <div className="mt-1">
+      <div className="event-form__field">
         <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
       </div>
       <ButtonRow confirm={() => submit()} confirmText={fmt("Use {0}", name)} confirmError={validation} />
@@ -225,7 +225,7 @@ export function CardTradedForm({ action, inPopover = false }: FormProps) {
       <SelectFromImage values={cardChoices(skin, o.cards)} value={idOf(draft.card)} onChange={(v) => update({ card: v })} imageWidth={80} />
       {o.allyCards && (
         <>
-          <div className="mt-1">Because you're playing with a Bot, you may select one of their cards to receive in return:</div>
+          <div className="event-form__field">Because you're playing with a Bot, you may select one of their cards to receive in return:</div>
           <SelectFromImage values={cardChoices(skin, o.allyCards)} value={requested} required={false}
                            onChange={(v) => update({ requestedCard: v })} imageWidth={80} />
         </>
@@ -316,7 +316,7 @@ export function ResourcesTransferredForm({ action, inPopover = false }: FormProp
   if (!o) return null;
   return (
     <Layout type="ResourcesTransferred" header={<>Transfer {skin.concept("Resource")} to your ally?</>} inPopover={inPopover}>
-      <div className="mt-1">
+      <div className="event-form__field">
         <SelectResources value={num(draft.resources)} onChange={(v) => update({ resources: v })} min={0} max={o.max} />
       </div>
       <ButtonRow confirm={() => submit()} confirmError={validation} />
@@ -333,16 +333,16 @@ export function DivideResourcesForm({ action, inPopover = false }: FormProps) {
   const portion = num(draft.portionToFirstPlayer);
   return (
     <Layout type="DivideResources" header={<>Please choose how to divide collected {skin.concept("Resource")}</>} urgent inPopover={inPopover}>
-      <div className="mt-1">
+      <div className="event-form__field">
         <SpiceComponent amount={String(o.amount)} /> was collected from <PlaceChipTerritory id={o.territory} /> by you and <FactionChip faction={o.otherFaction} />
       </div>
-      <div className="mt-1">
+      <div className="event-form__field">
         <SelectResources value={portion} onChange={(v) => update({ portionToFirstPlayer: v })} min={0} max={o.amount} label="How much should go to you?" />
       </div>
-      <div className="mt-1">
+      <div className="event-form__field">
         If <FactionChip faction={o.otherFaction} /> agree, they will receive the remaining <SpiceComponent amount={String(o.amount - portion)} />
       </div>
-      <div className="mt-1">
+      <div className="event-form__field">
         If you pass, you get <SpiceComponent amount={String(o.gainedIfPassed)} /> and <FactionChip faction={o.otherFaction} /> get <SpiceComponent amount={String(o.otherGainsIfPassed)} />
       </div>
       <ButtonRow pass={() => submitPass()} confirm={() => submit()} confirmError={validation} />
@@ -388,8 +388,8 @@ export function KarmaForm({ action, inPopover = false }: FormProps) {
 // The gold "i" with a popover.
 function InfoIcon({ contents }: { contents: string }) {
   return (
-    <Hoverable popover={`<div class='pop'>${contents}</div>`} className="d-inline">
-      <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="var(--ink-0)" className="bi bi-info-circle" viewBox="0 0 16 16">
+    <Hoverable popover={`<div class='pop'>${contents}</div>`} className="event-form__info-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="var(--ink-0)" viewBox="0 0 16 16">
         <circle cx="8" cy="8" r="8" fill="var(--gold)" />
         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
         <path d="M8.93 6.588l-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
@@ -566,7 +566,7 @@ function StormDial({ action, min, max, inPopover, submit }: { action: ActionView
   useViewChanges(() => { setError(null); void ask(amount); });
   return (
     <Layout type="StormDialled" header="Please dial a number to determine storm movement" urgent inPopover={inPopover}>
-      <div className="d-flex align-items-center">
+      <div className="event-form__stepper event-form__stepper--block">
         <NumberPicker value={amount} onChange={change} min={min} max={max} symbolFill="white" />
       </div>
       <ButtonRow confirm={async () => setError(await submit(eventOf(action.eventType, { amount })))} confirmText={`Dial ${amount}`} confirmError={validation} />

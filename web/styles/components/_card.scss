@@ -1,0 +1,103 @@
+// Cards are the game's panels: ink 2 with a hairline, a header in the display
+// face, a body and an optional footer. The --card-* properties are what other
+// rules re-point: the parchment act card (app/_prompt-act.scss), urgent action
+// panels (.card--urgent) and the host strip, which reads the body's padding.
+.card {
+  --card-bg: var(--ink-2);
+  --card-color: var(--parchment);
+  --card-border-color: rgba(255, 255, 255, 0.09);
+  --card-cap-bg: transparent;
+  --card-cap-color: var(--sand);
+  --card-spacer-x: 1rem;
+  --card-spacer-y: 1rem;
+  --card-inner-radius: 5px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-family: var(--font-body);
+  color: var(--parchment);
+  overflow-wrap: break-word;
+  background-color: var(--card-bg);
+  background-clip: border-box;
+  border: 1px solid var(--card-border-color);
+  border-radius: var(--r-2);
+
+  > hr {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  // An action panel the game flags as urgent gets the brighter hairline the
+  // language uses on controls.
+  &--urgent {
+    --card-border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  // Titled headers ("Chat", "Victory!", "Your games") are set in the display face.
+  &__header {
+    padding: 0.5rem 1rem;
+    margin-bottom: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    color: var(--card-cap-color);
+    background-color: var(--card-cap-bg);
+    border-bottom: 1px solid var(--card-border-color);
+
+    &:first-child {
+      border-radius: var(--card-inner-radius) var(--card-inner-radius) 0 0;
+    }
+
+    // Collapsible headers (they contain a CollapseButton) hold sentences or
+    // badges rather than titles. The scope examples keep those in the body
+    // face, 16px/600, parchment.
+    &:has(> .button--link.collapse-button) {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0;
+      color: var(--parchment);
+    }
+
+    // The collapse chevron is the guide's muted .chev, gold on hover.
+    > .button--link.collapse-button {
+      --button-color: var(--text-3);
+      --button-hover-color: var(--gold);
+      --button-active-color: var(--gold);
+    }
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    padding: var(--card-spacer-y) var(--card-spacer-x);
+    color: var(--card-color);
+  }
+
+  &__footer {
+    padding: 0.5rem 1rem;
+    color: var(--card-cap-color);
+    background-color: var(--card-cap-bg);
+    border-top: 1px solid var(--card-border-color);
+
+    &:last-child {
+      border-radius: 0 0 var(--card-inner-radius) var(--card-inner-radius);
+    }
+  }
+
+  &__text:last-child {
+    margin-bottom: 0;
+  }
+
+  // An image filling the card's width; --top rounds only its top corners.
+  &__img {
+    width: 100%;
+    border-radius: var(--card-inner-radius);
+
+    &--top {
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+  }
+}

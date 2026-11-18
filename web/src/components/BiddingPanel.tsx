@@ -13,7 +13,7 @@ import type { DraftResult } from "../generated/DraftResult";
 import type { Faction } from "../generated/enums";
 import type { Event } from "../generated/Event";
 import { factionChipHtml, treacheryCardPopup } from "../popups";
-import { usePopover, popoverAttributes } from "../popover";
+import { IMAGE_POPOVER, usePopover } from "../popover";
 import { useGame } from "../state/context";
 import { ButtonRow } from "./ButtonRow";
 import { Checkbox } from "./Checkbox";
@@ -59,10 +59,10 @@ interface Draft { amount: number; ally: number; emperor: number; karmaCard: numb
 // The info icon with a popover.
 function Info({ contents }: { contents: string }) {
   const html = `<div class='pop'>${contents}</div>`;
-  const ref = usePopover<HTMLDivElement>(html);
+  const ref = usePopover<HTMLDivElement>(html, IMAGE_POPOVER);
   return (
-    <div ref={ref} className="d-inline" {...popoverAttributes(html, "image")}>
-      <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="var(--ink-0)" className="bi bi-info-circle" viewBox="0 0 16 16">
+    <div ref={ref} className="bidding-panel__info">
+      <svg xmlns="http://www.w3.org/2000/svg" width={16} height={16} fill="var(--ink-0)" viewBox="0 0 16 16">
         <circle cx="8" cy="8" r="8" fill="var(--gold)" />
         <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z" />
         <path d="M8.93 6.588l-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
@@ -85,11 +85,11 @@ function Lot({ panel }: { panel: BiddingPanelView }) {
       {panel.card != null
         ? <Image src={skin.cardImage(panel.card)} alt={skin.card(panel.card)} width={64} popover={treacheryCardPopup(skin, panel.card)} />
         : <img src={skin.url(skin.str("CardBack_TreacheryCard_URL"))} width={64} alt="Card on sale" />}
-      <div className="lot-text">
-        <div className="lot-title" dangerouslySetInnerHTML={{ __html: title }} />
+      <div className="lot__text">
+        <div className="lot__title" dangerouslySetInnerHTML={{ __html: title }} />
         {panel.currentBid
-          ? <div className="lot-bid"><FactionChip faction={panel.currentBid.faction as Faction} /> <SpiceComponent amount={String(panel.currentBid.amount)} /></div>
-          : !panel.silent && <div className="lot-bid">No bids yet</div>}
+          ? <div className="lot__bid"><FactionChip faction={panel.currentBid.faction as Faction} /> <SpiceComponent amount={String(panel.currentBid.amount)} /></div>
+          : !panel.silent && <div className="lot__bid">No bids yet</div>}
       </div>
     </div>
   );
@@ -172,14 +172,14 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
         <Checkbox value={secretAlly} onChange={(v) => update({ secretAlly: v })}>Use your Nexus card to get this card for free?</Checkbox>
       )}
       {canUseKarma && (
-        <div className="mt-1">
+        <div className="bidding-panel__field">
           <SelectFromImage
             values={karmaCards.map((c) => ({ value: c, src: skin.cardImage(c), alt: skin.card(c), popover: treacheryCardPopup(skin, c) }))}
             value={karmaCard} onChange={(c) => update({ karmaCard: c })} required={false} imageWidth={80}
             label={<>Use {karmaName} to bid without limit or win immediately? <Info contents={karmaInfo} /></>} />
         </div>
       )}
-      <div className="mt-1">
+      <div className="bidding-panel__field">
         {allyPicker
           ? <>
               <SelectResourcesFromFaction value={draft.amount} onChange={(v) => update({ amount: v })} min={0} max={o.maxAmount} faction={view.viewer.faction as Faction} />
@@ -193,7 +193,7 @@ function BidInputs({ action, panel }: { action: ActionView; panel: BiddingPanelV
       <ButtonRow confirm={confirm} confirmText={bidLabel} confirmError={result.validation}
                  pass={panel.silent ? undefined : pass}
                  other={karmaCard != null ? other : undefined} otherText="Win immediately"
-                 alignment="justify-content-start" />
+                 alignEnd={false} />
     </>
   );
 }
@@ -239,7 +239,7 @@ function AutoPass({ action, panel }: { action: ActionView | undefined; panel: Bi
   if (view.viewer.isObserver || view.viewer.faction == null || view.viewer.faction === "None") return null;
   const resources = view.me?.resources ?? 0;
   return (
-    <div className="autopass">
+    <div>
       <Checkbox value={state.autoPass} onChange={(v) => {
         // AutoPassChanged: a threshold above one's spice starts at min(spice, 5).
         autoPassStore.set(v && state.threshold > resources ? { autoPass: v, threshold: Math.min(resources, 5) } : { autoPass: v });
@@ -260,8 +260,8 @@ export function BiddingPanel({ panel }: { panel: BiddingPanelView }) {
   const { view } = useGame();
   const action = view.actions.find((a) => a.eventType === (panel.blackMarket ? "BlackMarketBid" : "Bid"));
   return (
-    <div className="card p-1 mb-2 bidding-panel" style={{ animation: "fadeIn 1s" }}>
-      <div className="card-body">
+    <div className="card bidding-panel" style={{ animation: "fadeIn 1s" }}>
+      <div className="card__body">
         <Lot panel={panel} />
         {action && <BidInputs key={`${action.eventType}`} action={action} panel={panel} />}
         <AutoPass action={action} panel={panel} />

@@ -8,10 +8,10 @@
 // layer. Without this, showing a hover shape or an arrow makes Chrome
 // re-rasterize every token, filter and clip-path under it, which took
 // 50 to 100 ms per frame. Paints nothing differently, only separately.
-.maphover,
-.mapsel,
-.maparrows,
-.maprefs {
+.map-hover,
+.map-select,
+.map-arrows,
+.map-refs {
   will-change: transform;
 }
 
@@ -21,129 +21,127 @@
 // has only a dashed grey line, it gives the stroke the same darkened middle,
 // so every edge looks alike. Radial edges are clipped to their sector, which
 // hides the outer half of both strokes, so they are drawn twice as wide.
-.maphover,
-.mapsel,
-.mapblow {
-  .core {
-    fill: none;
-    stroke: #1d0c00;
-    stroke-width: 2.2;
-    stroke-linejoin: round;
-  }
-  .core.radial {
-    stroke-width: 4.4;
-  }
+.map-hover__core,
+.map-select__core,
+.map-blow__core {
+  fill: none;
+  stroke: #1d0c00;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.map-hover__core--radial,
+.map-select__core--radial,
+.map-blow__core--radial {
+  stroke-width: 4.4;
 }
 
 // The hover shape is clipped to the sector on every edge, so all its strokes
 // are drawn twice as wide as the band they show. Its dark line is no wider
 // than the white band over it, so the map's own border is the only dark edge.
-.maphover .core,
-.maphover .core.radial {
+.map-hover__core,
+.map-hover__core--radial {
   stroke-width: 3;
 }
 
-.mapsel {
-  .fill {
+.map-select {
+  &__fill {
     fill: var(--c);
     fill-opacity: 0.16;
     stroke: none;
   }
 
-  .edge {
+  &__edge {
     fill: none;
     stroke: var(--c);
     stroke-width: 3;
     stroke-opacity: 0.75;
     stroke-linejoin: round;
   }
-  .edge.radial {
+  &__edge--radial {
     stroke-width: 6;
   }
 
   // Sources: a thin line in the faction's colour, so it stays under the
   // contour and the selection.
-  .mapsel-selectable {
-    .fill {
+  &__highlight--selectable {
+    .map-select__fill {
       fill-opacity: 0.12;
     }
-    .core {
+    .map-select__core {
       display: none;
     }
-    .edge {
+    .map-select__edge {
       stroke-width: 1.6;
     }
-    .edge.radial {
+    .map-select__edge--radial {
       stroke-width: 3.2;
     }
   }
 
   // Destinations: one contour around the reachable region. The masks in
   // MapSelectionHighlights.razor take the line and halo widths from the
-  // .near-* strokes, drawn twice as wide as what shows, since the region
+  // __near-* strokes, drawn twice as wide as what shows, since the region
   // itself hides the inner half. Visible: a 2.5 white line with a 1.5 dark
   // halo outside it, and a light wash inside the region.
-  mask .near-line,
-  mask .near-halo {
+  &__near-line,
+  &__near-halo {
     fill: #fff;
     stroke: #fff;
     stroke-linejoin: round;
   }
-  mask .near-line {
+  &__near-line {
     stroke-width: 5;
   }
-  mask .near-halo {
+  &__near-halo {
     stroke-width: 8;
   }
-  .mapsel-contour {
-    .wash {
-      fill-opacity: 0.15;
-    }
-    .halo {
-      fill: #1d0c00;
-    }
-    .line {
-      fill: #fff;
-    }
+  &__contour-wash {
+    fill-opacity: 0.15;
+  }
+  &__contour-halo {
+    fill: #1d0c00;
+  }
+  &__contour-line {
+    fill: #fff;
   }
 
   // A destination without a territory border on the map, drawn as a circle.
-  .mapsel-target {
-    .fill {
+  &__highlight--target {
+    .map-select__fill {
       fill: #fff;
       fill-opacity: 0.24;
     }
-    .edge {
+    .map-select__edge {
       stroke: #fff;
       stroke-width: 2.5;
       stroke-opacity: 0.9;
     }
   }
 
-  .mapsel-selected {
-    .fill {
+  &__highlight--selected {
+    .map-select__fill {
       fill-opacity: 0.4;
     }
-    .edge {
+    .map-select__edge {
       stroke-width: 5;
       stroke-opacity: 1;
     }
-    .edge.radial {
+    .map-select__edge--radial {
       stroke-width: 10;
     }
   }
 
-  .mapsel-pinned {
-    .fill {
+  &__highlight--pinned {
+    .map-select__fill {
       fill: #fff;
       fill-opacity: 0.42;
     }
-    .edge {
+    .map-select__edge {
       stroke: var(--c);
       stroke-width: 5;
       stroke-opacity: 1;
     }
-    .edge.radial {
+    .map-select__edge--radial {
       stroke-width: 10;
     }
   }
@@ -151,67 +149,69 @@
 
 // The sector where spice blew this turn, for the whole blow phase. Gold, so
 // it is not mistaken for a faction's action tint.
-.mapblow {
-  .fill {
+.map-blow {
+  &__fill {
     fill: var(--gold);
     fill-opacity: 0.22;
     stroke: none;
   }
 
-  .edge {
+  &__edge {
     fill: none;
     stroke: var(--gold);
     stroke-width: 4;
     stroke-opacity: 0.9;
     stroke-linejoin: round;
   }
-  .edge.radial {
+  &__edge--radial {
     stroke-width: 8;
   }
 }
 
 // The sector under the mouse, in every phase: a white outline and a light
-// wash. Neutral on purpose: it only says where the mouse is, the .mapsel
+// wash. Neutral on purpose: it only says where the mouse is, the .map-select
 // marks say what may be clicked.
-.maphover {
-  .hover-shape {
+.map-hover {
+  &__shape {
     display: none;
 
-    &.on {
+    &--on {
       display: block;
     }
 
     // A sector named by a chip the mouse is over. The hover script sets --c
     // to the chip's faction colour when it has one.
-    &.ref {
+    &--ref {
       display: block;
 
-      .fill {
+      .map-hover__fill {
         fill: var(--c, #fff);
         fill-opacity: 0.3;
       }
-      .edge {
+      .map-hover__edge {
         stroke: var(--c, #fff);
       }
     }
 
     // A radial side shared with another lit sector of the same territory.
     // The hover script sets these, so the lit area gets one outline.
-    &.joined-start .radial.start,
-    &.joined-end .radial.end {
+    &--joined-start .map-hover__core--start,
+    &--joined-start .map-hover__edge--start,
+    &--joined-end .map-hover__core--end,
+    &--joined-end .map-hover__edge--end {
       display: none;
     }
   }
 
-  .fill {
+  &__fill {
     fill: #fff;
     fill-opacity: 0.14;
     stroke: none;
   }
 
   // A 1.5 band inside the sector's edge.
-  .edge,
-  .edge.radial {
+  &__edge,
+  &__edge--radial {
     fill: none;
     stroke: #fff;
     stroke-width: 3;
@@ -220,20 +220,21 @@
   }
 }
 
-.maparrows,
-.maprefs {
-  .arrow-outline {
+// An arrow on the map: the selection's arrows (.map-arrows) and a hovered log
+// line's journey (.map-refs).
+.map-arrow {
+  &__outline {
     stroke: rgba(29, 12, 0, 0.75);
     stroke-width: 6;
     stroke-linecap: round;
   }
-  .arrow {
+  &__line {
     stroke: var(--c);
     stroke-width: 3.5;
     stroke-linecap: round;
   }
   // The head is one triangle in the faction colour with a dark outline.
-  .head {
+  &__head {
     fill: var(--c);
     stroke: rgba(29, 12, 0, 0.75);
     stroke-width: 1.4;
@@ -272,7 +273,7 @@
     transform: translateX(-50%) rotate(45deg);
   }
 
-  &.below {
+  &--below {
     transform: translate(calc(-50% + var(--dx)), 12px);
 
     &::after {
@@ -282,7 +283,7 @@
     }
   }
 
-  .pin-row {
+  &__row {
     display: flex;
     gap: 5px;
     align-items: center;
@@ -293,54 +294,54 @@
     }
   }
 
-  .pin-from {
+  &__from {
     color: var(--text-2);
     min-width: 60px;
   }
 
-  .pin-warn {
+  &__warn {
     color: #ff8f7a;
     margin-top: 4px;
     max-width: 180px;
     white-space: normal;
   }
 
-  .pin-error {
+  &__error {
     color: var(--text-3);
     margin-top: 4px;
     max-width: 180px;
     white-space: normal;
   }
 
-  .pin-choice {
+  &__choice {
     display: inline-flex;
     margin-top: 4px;
     border: 1px solid shared.$hairline-strong;
     border-radius: var(--r-2);
     overflow: hidden;
+  }
 
-    button {
-      background: transparent;
-      border: 0;
-      color: var(--sand);
-      font-size: 11px;
-      padding: 2px 7px;
-      cursor: pointer;
+  &__choice-button {
+    background: transparent;
+    border: 0;
+    color: var(--sand);
+    font-size: 11px;
+    padding: 2px 7px;
+    cursor: pointer;
 
-      &.on {
-        background: shared.$gold-wash-strong;
-        color: var(--parchment);
-      }
+    &--on {
+      background: shared.$gold-wash-strong;
+      color: var(--parchment);
     }
   }
 
-  .pin-actions {
+  &__actions {
     display: flex;
     gap: 5px;
     justify-content: flex-end;
     margin-top: 6px;
 
-    .btn {
+    .button {
       font-size: 11px;
       padding: 2px 8px;
       line-height: 1.4;
@@ -358,20 +359,20 @@
   background: var(--ink-1);
   height: 22px;
 
-  .ic {
+  &__ic {
     display: inline-grid;
     place-items: center;
     width: 22px;
     border-right: 1px solid shared.$hairline-mid;
-
-    img {
-      width: 16px;
-      height: 16px;
-      filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
-    }
   }
 
-  button {
+  &__ic-img {
+    width: 16px;
+    height: 16px;
+    filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.7));
+  }
+
+  &__button {
     background: transparent;
     border: 0;
     color: var(--sand);
@@ -391,7 +392,7 @@
     }
   }
 
-  .val {
+  &__value {
     display: inline-grid;
     place-items: center;
     min-width: 22px;
@@ -404,12 +405,14 @@
 }
 
 .map-pin {
-  .pin-hint {
+  &__hint {
     color: var(--text-2);
     margin-bottom: 4px;
   }
 
-  .pin-cost {
+  // The img selector also takes in a spice .pin-step's icon in this row and,
+  // being more specific than .pin-step__ic-img, sizes it like the cost's own.
+  &__row--cost {
     color: var(--parchment);
 
     img {
@@ -432,14 +435,14 @@
   outline: 1.5px dashed #fff;
   outline-offset: 0.5px;
 
-  img {
+  &__img {
     display: block;
     width: 100%;
     height: 100%;
     filter: drop-shadow(0.5px 0.5px 0.5px rgba(0, 0, 0, 0.7));
   }
 
-  .count {
+  &__count {
     position: absolute;
     left: 60%;
     top: 55%;
@@ -453,11 +456,11 @@
 
 // Extra pieces for single-pick panels: a choice row that may wrap, and a short note.
 .map-pin {
-  .pin-choice.wrap {
+  &__choice--wrap {
     flex-wrap: wrap;
   }
 
-  .pin-text {
+  &__text {
     color: var(--text-2);
     margin-top: 4px;
     max-width: 220px;
@@ -485,8 +488,8 @@
   width: 0;
   height: 0;
 
-  &.tl { transform: translate(var(--map-dx-l, 0px), var(--map-dy-t, 0px)); }
-  &.tr { transform: translate(var(--map-dx-r, 0px), var(--map-dy-t, 0px)); }
-  &.bl { transform: translate(var(--map-dx-l, 0px), calc(var(--map-dy-b, 0px) - var(--map-bar, 0px))); }
-  &.br { transform: translate(var(--map-dx-r, 0px), var(--map-dy-b, 0px)); }
+  &--tl { transform: translate(var(--map-dx-l, 0px), var(--map-dy-t, 0px)); }
+  &--tr { transform: translate(var(--map-dx-r, 0px), var(--map-dy-t, 0px)); }
+  &--bl { transform: translate(var(--map-dx-l, 0px), calc(var(--map-dy-b, 0px) - var(--map-bar, 0px))); }
+  &--br { transform: translate(var(--map-dx-r, 0px), var(--map-dy-b, 0px)); }
 }

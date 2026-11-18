@@ -154,7 +154,7 @@ function headingIcon(skin: Skin, icon: string): string {
 }
 
 function asideClass(kind: string): string {
-  return kind === "Answer" ? "answer" : kind === "After" ? "after" : "";
+  return kind === "Answer" ? "log-aside--answer" : kind === "After" ? "log-aside--after" : "";
 }
 
 /** ReportComponent.Line: one message as the log draws it when no design takes it. */
@@ -163,7 +163,7 @@ export function Line({ line: l, board }: { line: LogLine; board: Board }) {
   if (l.heading != null) {
     const url = headingIcon(skin, l.heading);
     return (
-      <div className="heading">
+      <div className="log-heading">
         {url.length > 0 && <img src={url} alt="" />}
         <RichText parts={l.text} size={20} logStyle />
       </div>
@@ -171,9 +171,9 @@ export function Line({ line: l, board }: { line: LogLine; board: Board }) {
   }
   if (l.plans) {
     return (
-      <div className="plans">
+      <div className="log-plans">
         <Plan plan={l.plans.aggressor} facts={[]} />
-        <div className="rule"></div>
+        <div className="log-plans__rule"></div>
         <Plan plan={l.plans.defender} facts={[]} />
       </div>
     );
@@ -208,10 +208,10 @@ export function HeroImage({ hero, width, className = "" }: { hero: Part; width: 
 }
 
 /** `Image Shown=card`: a treachery card's art with its popover. */
-export function CardImage({ card, width }: { card: Part; width: number }) {
+export function CardImage({ card, width, className = "" }: { card: Part; width: number; className?: string }) {
   const { skin } = useGame();
   if (card.t !== "treacheryCard") return null;
-  return <Image src={skin.cardImage(card.id)} alt={card.label} width={width} noShadow popover={treacheryCardPopup(skin, card.id)} />;
+  return <Image src={skin.cardImage(card.id)} alt={card.label} width={width} className={className} noShadow popover={treacheryCardPopup(skin, card.id)} />;
 }
 
 /** `Image Shown=player.Force` (or SpecialForce): the token, named on hover. */
@@ -232,26 +232,26 @@ export function Plan({ plan, facts }: { plan: PlanSummary; facts: BattleFact[] }
   const traitor = facts.find((f) => f.kind === "Traitor" && plan.leader != null && samePart(f.hero, plan.leader));
   const messiah = skin.concept("Messiah");
   return (
-    <div className="plan" data-ref-faction={plan.faction}>
-      <div className={`plan-leader ${killed || traitor ? "fallen" : ""}`}>
-        {plan.leader != null ? <HeroImage hero={plan.leader} width={58} /> : <div className="empty" title="No leader"></div>}
+    <div className="log-plan" data-ref-faction={plan.faction}>
+      <div className={`log-plan__leader ${killed || traitor ? "log-plan__leader--fallen" : ""}`}>
+        {plan.leader != null ? <HeroImage hero={plan.leader} width={58} className="log-plan__portrait" /> : <div className="log-plan__no-leader" title="No leader"></div>}
         {plan.messiah && plan.leader != null && (
-          <PopoverText className="messiah" popover={messiahPopup(skin)}><img src={skin.url(skin.str("Messiah_URL"))} alt={messiah} />+2</PopoverText>
+          <PopoverText className="log-plan__messiah" popover={messiahPopup(skin)}><img className="log-plan__messiah-img" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} />+2</PopoverText>
         )}
         {traitor
-          ? <span className="traitor" title={`Traitor for ${skin.faction(traitor.faction)}`}>Traitor</span>
+          ? <span className="log-plan__traitor" title={`Traitor for ${skin.faction(traitor.faction)}`}>Traitor</span>
           : killed && (
-            <span className="skull" title={`Killed by ${plainText(killed.cause ?? [])}`}><svg viewBox="0 0 16 16" aria-hidden="true"><path d={skullPath} /></svg></span>
+            <span className="log-plan__skull" title={`Killed by ${plainText(killed.cause ?? [])}`}><svg className="log-plan__skull-icon" viewBox="0 0 16 16" aria-hidden="true"><path d={skullPath} /></svg></span>
           )}
       </div>
-      <div className="dial">
+      <div className="log-plan__dial">
         <SimpleNumber size={30}>{supportRound(plan.dial)}</SimpleNumber>
         {plan.spice != null && plan.spice > 0 && <SpiceComponent amount={String(plan.spice)} size={22} />}
       </div>
       {plan.allyContribution > 0 && (
-        <div className="ally">+<SpiceComponent amount={String(plan.allyContribution)} size={18} /> from <FactionChip faction={plan.ally} /></div>
+        <div className="log-plan__ally">+<SpiceComponent amount={String(plan.allyContribution)} size={18} /> from <FactionChip faction={plan.ally} /></div>
       )}
-      <div className="cards">
+      <div className="log-plan__cards">
         <CardSlot card={plan.weapon} none="no weapon" />
         <CardSlot card={plan.defense} none="no defense" />
       </div>
@@ -261,16 +261,16 @@ export function Plan({ plan, facts }: { plan: PlanSummary; facts: BattleFact[] }
 
 function CardSlot({ card, none }: { card: Part | null; none: string }) {
   return (
-    <div className="card-slot">
+    <div className="log-card-slot">
       {card != null ? (
         <>
-          <CardImage card={card} width={40} />
-          <div className="cap">{"label" in card ? card.label : ""}</div>
+          <CardImage card={card} width={40} className="log-card-slot__img" />
+          <div className="log-card-slot__cap">{"label" in card ? card.label : ""}</div>
         </>
       ) : (
         <>
-          <div className="empty"></div>
-          <div className="cap none">{none}</div>
+          <div className="log-card-slot__empty"></div>
+          <div className="log-card-slot__cap log-card-slot__cap--none">{none}</div>
         </>
       )}
     </div>

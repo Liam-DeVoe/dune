@@ -35,7 +35,7 @@ export function WithLobby({ linkToken, gameId, admin = false, children }: { link
       .catch((e: unknown) => { if (live) setError(String(e)); });
     return () => { live = false; };
   }, [linkToken, gameId, admin]);
-  if (error) return <MainLayout><div className="alert alert-danger">{error}</div></MainLayout>;
+  if (error) return <MainLayout><div className="alert alert--danger">{error}</div></MainLayout>;
   if (!client) return null;
   return <LobbyContext.Provider value={client}>{children}</LobbyContext.Provider>;
 }
@@ -43,12 +43,12 @@ export function WithLobby({ linkToken, gameId, admin = false, children }: { link
 /** The centred single column of the login, setup and seating screens. */
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <div className="row start-screen d-flex align-items-center" style={START_SCREEN_STYLE}>
-      <div className="col-sm-12 col-lg-3"></div>
-      <div className="col-sm-12 col-lg-6">
-        <div className="d-flex justify-content-center">{children}</div>
+    <div className="start-row start-row--centred start-screen" style={START_SCREEN_STYLE}>
+      <div className="start-row__col start-row__col--side"></div>
+      <div className="start-row__col start-row__col--main">
+        <div className="start-row__center">{children}</div>
       </div>
-      <div className="col-sm-12 col-lg-3"></div>
+      <div className="start-row__col start-row__col--side"></div>
     </div>
   );
 }
@@ -59,7 +59,7 @@ export function MaintenanceBanner() {
   const start = new Date(state.serverInfo.scheduledMaintenance);
   const end = new Date(start.getTime() + 15 * 60_000);
   return (
-    <div className="alert alert-danger text-center p-0" role="alert">
+    <div className="alert alert--danger maintenance-banner" role="alert">
       treachery.online will be down for maintenance from {start.toLocaleString()} until {end.toLocaleString()} (your local time)
     </div>
   );
@@ -71,19 +71,19 @@ function MainScreen() {
   let screen: ReactNode;
   if (!state.connected) {
     screen = (
-      <div className="row start-screen d-flex align-items-center" style={START_SCREEN_STYLE}>
-        <div className="d-flex justify-content-center">Not Connected</div>
+      <div className="start-row start-row--centred start-screen" style={START_SCREEN_STYLE}>
+        <div className="start-row__notice">Not Connected</div>
       </div>
     );
   } else if (!state.account) {
     screen = <Centered><LoginComponent /></Centered>;
   } else if (!g) {
     screen = (
-      <div className="row start-screen" style={START_SCREEN_STYLE}>
-        <div className="col-sm-12 col-lg-2"></div>
-        <div className="col-sm-12 col-lg-5"><RunningGamesComponent /></div>
-        <div className="col-sm-12 col-lg-3"><OwnGamesComponent /></div>
-        <div className="col-sm-12 col-lg-2"></div>
+      <div className="start-row start-screen" style={START_SCREEN_STYLE}>
+        <div className="start-row__col start-row__col--margin"></div>
+        <div className="start-row__col start-row__col--games"><RunningGamesComponent /></div>
+        <div className="start-row__col start-row__col--side"><OwnGamesComponent /></div>
+        <div className="start-row__col start-row__col--margin"></div>
       </div>
     );
   } else if (!g.view) {

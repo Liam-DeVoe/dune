@@ -1,0 +1,52 @@
+// A hover popover (src/popover.ts): a native popover, placed by the script
+// with a transform from the window's top left corner. The frame is bare,
+// because the content (popups.ts) brings its own; the map's frame is inline
+// (.map-pop, board/popover.ts). Display only: large enough for card art, and
+// it never takes the pointer.
+.popover {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 1070; // browsers without the popover attribute
+  max-width: 800px;
+  max-height: 1000px;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  color: inherit;
+  text-align: start;
+  text-decoration: none;
+  text-shadow: none;
+  text-transform: none;
+  letter-spacing: normal;
+  word-spacing: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  white-space: normal;
+  line-break: auto;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-2);
+  pointer-events: none;
+
+  &--fade {
+    transition: opacity 0.15s linear;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+
+    &:not(.popover--shown) {
+      opacity: 0;
+    }
+  }
+
+  &__body {
+    padding: 1rem;
+    color: var(--parchment);
+  }
+}

@@ -1,0 +1,44 @@
+// The story of a game (StoryComponent), in a modal: setup, turns, battles,
+// milestones and tables of the players' positions.
+.story {
+  // Faction sigils, cards, leaders and tech tokens in the tables.
+  &__img {
+    max-width: 100%;
+    height: auto;
+    padding: 0.25rem;
+  }
+
+  &__milestone-img,
+  &__force-img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  &__fact {
+    margin-top: 0.25rem;
+  }
+
+  &__subheading {
+    margin-top: 0.5rem;
+  }
+
+  &__milestone {
+    margin-bottom: 0.25rem;
+  }
+
+  // A card bought without the viewer knowing which.
+  &__unknown {
+    font-weight: 700;
+  }
+
+  // A territory where more than one faction has forces.
+  &__contested {
+    // The error red the language uses for small text on ink.
+    color: #e46b6b;
+  }
+
+  &__ended {
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+  }
+}

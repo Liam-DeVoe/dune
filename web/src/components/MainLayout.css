@@ -5,8 +5,13 @@
   flex-direction: column;
 }
 
-.page > .main {
+.page__main {
   flex: 1;
+}
+
+.page__content {
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 @media (min-width: 768px) {
@@ -14,8 +19,8 @@
     flex-direction: row;
   }
 
-  .page > .main > div {
-    padding-left: 2rem !important;
-    padding-right: 1.5rem !important;
+  .page__main > .page__content {
+    padding-left: 2rem;
+    padding-right: 1.5rem;
   }
 }

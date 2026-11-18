@@ -1,0 +1,22 @@
+// The Credits modal (CreditComponent): a centred table of role and names, the
+// role right-aligned and the names left-aligned and bold.
+.credits {
+  &__table {
+    text-align: center;
+  }
+
+  &__label,
+  &__value {
+    padding: 0.5rem;
+    vertical-align: text-top;
+  }
+
+  &__label {
+    text-align: right;
+  }
+
+  &__value {
+    text-align: left;
+    font-weight: 700;
+  }
+}

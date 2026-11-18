@@ -75,17 +75,17 @@ let mapCursorTarget: string | null = null;
 export function updateMapCursorArrows(): void {
   const inner = document.getElementById("planetmap_inner");
   if (inner == null) return;
-  const arrows = inner.querySelector<SVGElement>(".maparrows");
-  const lines = inner.querySelectorAll<SVGLineElement>("line.mapsel-cursor");
+  const arrows = inner.querySelector<SVGElement>(".map-arrows");
+  const lines = inner.querySelectorAll<SVGLineElement>("line.map-arrows__cursor");
   if (arrows == null || lines.length === 0) {
     mapCursorTarget = null;
     return;
   }
   const targets = new Set((arrows.dataset.targets || "").split(",").filter((id) => id !== ""));
-  const hovered = inner.querySelector<SVGElement>(".maphover .hover-shape.on");
+  const hovered = inner.querySelector<SVGElement>(".map-hover__shape--on");
   if (hovered != null && targets.has(hovered.dataset.locationId!)) mapCursorTarget = hovered.dataset.locationId!;
   const shape = mapCursorTarget != null && targets.has(mapCursorTarget)
-    ? inner.querySelector<SVGElement>(`.maphover .hover-shape[data-location-id="${mapCursorTarget}"]`)
+    ? inner.querySelector<SVGElement>(`.map-hover__shape[data-location-id="${mapCursorTarget}"]`)
     : null;
   const end = shape != null && shape.dataset.cx ? { x: Number(shape.dataset.cx), y: Number(shape.dataset.cy) } : null;
   lines.forEach((line) => {
@@ -108,16 +108,16 @@ let mapHoverInner: HTMLElement | null = null;
 function mapHoverLocation(element: EventTarget | null): string | null {
   const el = element as Element | null;
   if (el == null || el.closest == null) return null;
-  const group = el.closest<SVGElement>("g[data-location-id]:not(.hover-shape)");
+  const group = el.closest<SVGElement>("g[data-location-id]:not(.map-hover__shape)");
   return group == null ? null : group.dataset.locationId ?? null;
 }
 
 function showMapHover(locationId: string | null): void {
   if (mapHoverInner == null) return;
-  mapHoverInner.querySelectorAll(".maphover .hover-shape.on").forEach((shape) => shape.classList.remove("on"));
+  mapHoverInner.querySelectorAll(".map-hover__shape--on").forEach((shape) => shape.classList.remove("map-hover__shape--on"));
   if (locationId == null) return;
-  const shape = mapHoverInner.querySelector(`.maphover .hover-shape[data-location-id="${locationId}"]`);
-  if (shape != null) shape.classList.add("on");
+  const shape = mapHoverInner.querySelector(`.map-hover__shape[data-location-id="${locationId}"]`);
+  if (shape != null) shape.classList.add("map-hover__shape--on");
   updateMapCursorArrows();
 }
 
@@ -135,7 +135,7 @@ export function startMapHover(): void {
       if (mapHoverLocation(e.target) != null) showMapHover(null);
     });
   }
-  showMapHover(mapHoverLocation(inner.querySelector("g[data-location-id]:not(.hover-shape):hover")));
+  showMapHover(mapHoverLocation(inner.querySelector("g[data-location-id]:not(.map-hover__shape):hover")));
 }
 
 let cancelKey: ((e: KeyboardEvent) => void) | null = null;
@@ -157,7 +157,7 @@ export function listenForMapCancel(cancel: (() => void) | null): void {
   if (cancel == null) return;
   cancelKey = (e) => {
     if (e.key !== "Escape") return;
-    if (document.querySelector('.modal.show, [aria-expanded="true"]') != null) return;
+    if (document.querySelector('.modal[open], [aria-expanded="true"]') != null) return;
     const t = e.target as Element | null;
     const outsideMap = t == null || t.closest == null || t.closest("#planetmap_inner") == null;
     if (outsideMap && t != null && t.matches != null && t.matches("input, textarea, select, [contenteditable]")) return;
@@ -194,14 +194,14 @@ export function clampMapPin(): void {
 
 // ShowMapRefs: while the mouse is over a chip that names sectors (data-ref-locations) and maybe
 // a faction (data-ref-faction), those sectors show their hover shape and anything tagged
-// data-faction-of that faction gets .ref-hi. A log line with data-ref-arrow draws its journey.
+// data-faction-of that faction gets .faction-ref--lit. A log line with data-ref-arrow draws its journey.
 function showMapRefs(chip: HTMLElement | null): void {
-  document.querySelectorAll<SVGElement>(".maphover .hover-shape.ref").forEach((shape) => {
-    shape.classList.remove("ref", "joined-start", "joined-end");
+  document.querySelectorAll<SVGElement>(".map-hover__shape--ref").forEach((shape) => {
+    shape.classList.remove("map-hover__shape--ref", "map-hover__shape--joined-start", "map-hover__shape--joined-end");
     shape.style.removeProperty("--c");
   });
-  document.querySelectorAll(".ref-hi").forEach((el) => el.classList.remove("ref-hi"));
-  const lines = document.querySelector(".maprefs .lines");
+  document.querySelectorAll(".faction-ref--lit").forEach((el) => el.classList.remove("faction-ref--lit"));
+  const lines = document.querySelector(".map-refs__lines");
   if (lines != null) lines.replaceChildren();
   if (chip == null) return;
   const color = getComputedStyle(chip).getPropertyValue("--fc").trim();
@@ -213,14 +213,14 @@ function showMapRefs(chip: HTMLElement | null): void {
       const n = segment.split(",").map(Number);
       if (n.length !== 4) return;
       const ends = trimMapArrow({ x: n[0], y: n[1] }, { x: n[2], y: n[3] }, 10, 12);
-      for (const cls of ["arrow-outline", "arrow"]) {
+      for (const cls of ["map-arrow__outline", "map-arrow__line"]) {
         const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
         line.setAttribute("class", cls);
         line.setAttribute("x1", String(ends[0].x));
         line.setAttribute("y1", String(ends[0].y));
         line.setAttribute("x2", String(ends[1].x));
         line.setAttribute("y2", String(ends[1].y));
-        if (cls === "arrow") line.setAttribute("marker-end", "url(#mapref-head)");
+        if (cls === "map-arrow__line") line.setAttribute("marker-end", "url(#mapref-head)");
         lines.appendChild(line);
       }
     });
@@ -228,23 +228,23 @@ function showMapRefs(chip: HTMLElement | null): void {
   const lit: SVGElement[] = [];
   (chip.dataset.refLocations ?? "").split(",").forEach((id) => {
     if (id === "") return;
-    document.querySelectorAll<SVGElement>(`.maphover .hover-shape[data-location-id="${id}"]`).forEach((shape) => {
-      shape.classList.add("ref");
+    document.querySelectorAll<SVGElement>(`.map-hover__shape[data-location-id="${id}"]`).forEach((shape) => {
+      shape.classList.add("map-hover__shape--ref");
       if (color !== "") shape.style.setProperty("--c", color);
       lit.push(shape);
     });
   });
-  const sectors = Number(document.querySelector<SVGElement>(".maphover")?.dataset.sectors) || 18;
+  const sectors = Number(document.querySelector<SVGElement>(".map-hover")?.dataset.sectors) || 18;
   const litKeys = new Set(lit.map((shape) => shape.dataset.territoryId + ":" + shape.dataset.sector));
   lit.forEach((shape) => {
     const sector = Number(shape.dataset.sector);
     if (!(sector >= 0)) return;
     const t = shape.dataset.territoryId;
-    if (litKeys.has(t + ":" + ((sector + sectors - 1) % sectors))) shape.classList.add("joined-start");
-    if (litKeys.has(t + ":" + ((sector + 1) % sectors))) shape.classList.add("joined-end");
+    if (litKeys.has(t + ":" + ((sector + sectors - 1) % sectors))) shape.classList.add("map-hover__shape--joined-start");
+    if (litKeys.has(t + ":" + ((sector + 1) % sectors))) shape.classList.add("map-hover__shape--joined-end");
   });
   const faction = chip.dataset.refFaction;
-  if (faction) document.querySelectorAll(`[data-faction-of="${faction}"]`).forEach((el) => el.classList.add("ref-hi"));
+  if (faction) document.querySelectorAll(`[data-faction-of="${faction}"]`).forEach((el) => el.classList.add("faction-ref--lit"));
 }
 
 let refsListening = false;

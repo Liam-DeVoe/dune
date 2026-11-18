@@ -1,0 +1,11 @@
+// A spice amount with its label (SelectResources and
+// SelectResourcesFromFaction in NumberPicker.tsx), inline with the text
+// around it.
+.select-resources {
+  display: inline-flex;
+  align-items: center;
+
+  &__label {
+    margin-right: 0.25rem;
+  }
+}

@@ -54,7 +54,7 @@ export function AllyPermissionForm({ action, inPopover = false }: FormProps) {
           <div>They own <SpiceComponent amount={String(c.resources)} />.</div>
         </>
       )}
-      <div className="mt-1">
+      <div className="event-form__field">
         <SelectResources value={num(draft.permittedResources)} onChange={(v) => edit({ permittedResources: v })} min={0} max={o.maxResources} label={willingToPay} />
       </div>
       {o.karmaCards && (
@@ -63,8 +63,8 @@ export function AllyPermissionForm({ action, inPopover = false }: FormProps) {
                          label={<>Select a {karma} card they may use to ship at <FactionChip faction="Guild" /> rates (currently: {currentKarma == null ? <strong>none</strong> : <RichText parts={[{ t: "treacheryCard", id: currentKarma, label: skin.card(currentKarma) }]} />})?</>} />
       )}
       {faction === "Emperor" && (
-        <div className="mt-1">
-          <label className="mt-1 mb-0">How many revivals will you pay for them (currently: <strong>{num(cur.emperorWillPayForExtraRevival)}</strong>)?</label>
+        <div className="event-form__field">
+          <label className="event-form__label event-form__label--inline">How many revivals will you pay for them (currently: <strong>{num(cur.emperorWillPayForExtraRevival)}</strong>)?</label>
           <SelectForces value={num(draft.emperorWillPayForExtraRevival)} onChange={(v) => edit({ emperorWillPayForExtraRevival: v })} min={0} max={3} faction={o.ally} special={false} />
         </div>
       )}
@@ -100,11 +100,11 @@ export function DonatedForm({ action, inPopover = false }: FormProps) {
   return (
     <Layout type="Donated" header={<>Give {resource} to a faction</>} startCollapsed inPopover={inPopover}>
       <SelectFromImage values={factionChoices(skin, o.targets)} value={factionOf(draft.target)} onChange={(v) => update({ target: v })} imageWidth={40} />
-      <div className="mt-1">
+      <div className="event-form__field">
         <SelectResources value={num(draft.resources)} onChange={(v) => update({ resources: v })} min={o.min} max={o.max} />
       </div>
       {o.cards && (
-        <div className="mt-1">
+        <div className="event-form__field">
           <SelectFromImage values={cardChoices(skin, o.cards)} value={card} required={false} onChange={(v) => update({ card: v })} imageWidth={80} />
         </div>
       )}
@@ -159,8 +159,8 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
     <Layout type="DealOffered" header="Offer a Deal" startCollapsed inPopover={inPopover}>
       <SelectManyFromImage values={factionChoices(skin, o.targets)} selected={picked} imageWidth={40} label="Offer to"
                            onChange={(p) => { setTo(p); void update({ to: toField(p) }); }} />
-      <label className="d-block mt-1 mb-0">Payment on accepting</label>
-      <div className="d-flex align-items-center flex-wrap gap-2">
+      <label className="event-form__label">Payment on accepting</label>
+      <div className="event-form__payment">
         <Segmented values={[{ value: true, label: "They pay you" }, { value: false, label: "You pay them" }]} value={theyPay} className=""
                    onChange={(v) => setPayment(v, amount)} />
         <SelectResources value={amount} onChange={(v) => setPayment(theyPay, v)} min={0} max={50} />
@@ -171,7 +171,7 @@ export function DealOfferedForm({ action, inPopover = false }: FormProps) {
         <Segmented values={dealType.endPhases.map((p) => ({ value: p.name as Phase, label: p.label }))} value={until ?? (nameOf(draft.endPhase) as Phase)}
                    onChange={(v) => { setUntil(v); void update({ endPhase: v }); }} label="Until" />
       )}
-      <textarea className="form-control mt-1" rows={5} maxLength={512} placeholder="Deal description" value={text}
+      <textarea className="input event-form__field" rows={5} maxLength={512} placeholder="Deal description" value={text}
                 onChange={(e) => { setText(e.target.value); void update({ text: e.target.value }); }} />
       <ButtonRow confirm={async () => { await submit(fields()); setText(""); void update({ text: "" }); }} confirmText="Offer Deal"
                  confirmError={picked.length === 0 ? [{ t: "text", v: "Pick at least one faction" }] : validation} />
@@ -192,7 +192,7 @@ export function EmperorBidSupportForm({ action, inPopover = false }: FormProps) 
         <SelectResourcesFromFaction key={t.faction} value={amounts[t.faction] ?? 0} min={0} max={o.max} faction={t.faction}
                                     onChange={(v) => update({ amounts: { ...amounts, [t.faction]: v } })} />
       ))}
-      <div className="text-info small">Your contributions to opponent bids will flow back to you <i>at the end</i> of the bidding phase.</div>
+      <div className="event-form__note event-form__note--info">Your contributions to opponent bids will flow back to you <i>at the end</i> of the bidding phase.</div>
       <ButtonRow confirm={() => submit()} confirmText="Confirm Support" confirmError={validation} />
       <SubmitError error={error} />
     </Layout>
@@ -208,7 +208,7 @@ export function AutomationConfiguredForm({ action, inPopover = false }: FormProp
   return (
     <Layout type="AutomationConfigured" header="Manage Automation" inPopover={inPopover}>
       <Select options={o.ruleTypes.map((r) => ({ value: r.name as AutomationRuleType, label: r.label }))} value={type} onChange={(v) => update({ ruleType: v })} />
-      <div className="mt-1">
+      <div className="event-form__field">
         {type === "BiddingPassAboveAmount" && (
           <SelectResources value={num(draft.biddingAboveAmount)} onChange={(v) => update({ biddingAboveAmount: v })} min={0} max={40} />
         )}
@@ -217,15 +217,15 @@ export function AutomationConfiguredForm({ action, inPopover = false }: FormProp
                            onChange={(v) => update({ biddingWinningFaction: v })} imageWidth={40} />
         )}
       </div>
-      <CommandButton margin="mt-1" onClick={() => submit({ action: "Create" })}>Create rule</CommandButton>
+      <CommandButton margin="event-form__field" onClick={() => submit({ action: "Create" })}>Create rule</CommandButton>
       {o.rules.length > 0 && (
         <>
           <hr className="hr-hairline" />
-          <div className="mt-2">Current automation:</div>
-          <table className="table table-sm">
+          <div className="event-form__section">Current automation:</div>
+          <table className="table table--small table--dark">
             <tbody>
               {o.rules.map((r) => (
-                <tr key={r.id} className="table-dark">
+                <tr key={r.id}>
                   <td>
                     <CommandButton small onClick={() => submit({ automationRuleId: r.id, action: "Delete" })}>
                       <svg width="1em" height="1em" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Cancel" style={{ verticalAlign: "-0.125em" }}>

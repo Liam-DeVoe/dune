@@ -1,0 +1,27 @@
+// An image that opens a modal of images to pick from
+// (PickFromImageComponent.tsx). The modal shows the choices three to a row,
+// six from 768px.
+.pick-from-image {
+  &__grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  // A choice: a .card without its border.
+  &__option {
+    flex: 0 0 auto;
+    width: 33.33333333%;
+    max-width: 100%;
+    padding: 0.25rem;
+    border: 0;
+
+    @media (min-width: 768px) {
+      width: 16.66666667%;
+    }
+  }
+
+  // The chosen image, which opens the modal. .button's padding is larger.
+  &__trigger {
+    padding: 0.25rem;
+  }
+}

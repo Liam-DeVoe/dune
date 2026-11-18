@@ -1,0 +1,6 @@
+// A faction's sigil (FactionComponent, and FactionImage in the lobby): it
+// shrinks to fit a narrow column.
+.faction-image {
+  max-width: 100%;
+  height: auto;
+}

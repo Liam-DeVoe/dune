@@ -1,6 +1,21 @@
 // Component classes from the design guide. Names match the guide so any
 // component can use them. The guide's .card thumbnail rules are not here:
-// Bootstrap's .card is the game's panel. Order matters for the cascade.
+// .card is the game's panel. Order matters for the cascade: the generic
+// controls and containers come first, so the components after them can
+// adjust them.
+@use "button";
+@use "close-button";
+@use "card";
+@use "input";
+@use "native-select";
+@use "check";
+@use "label";
+@use "range";
+@use "table";
+@use "tabs";
+@use "badge";
+@use "alert";
+@use "spinner";
 @use "chip";
 @use "number";
 @use "field";
@@ -23,13 +38,47 @@
 @use "force";
 @use "battle";
 @use "toolbar";
+@use "dropdown";
 @use "menu";
 @use "game-screen";
 @use "turn-banner";
 @use "start-screen";
+@use "modal";
+@use "popover";
 @use "pop";
 @use "tip";
 @use "spice";
-@use "status";
-@use "tabs";
 @use "map";
+@use "mentat";
+@use "select-from-image";
+@use "rich-text";
+@use "event-form";
+@use "button-row";
+@use "bidding-panel";
+@use "game-status";
+@use "pick-from-image";
+@use "menu-panels";
+@use "chat";
+@use "collapse-button";
+@use "credits";
+@use "faction-image";
+@use "modal-component";
+@use "joined-players";
+@use "winner-panel";
+@use "scene-list";
+@use "start-row";
+@use "admin-page";
+@use "maintenance-banner";
+@use "awaiting-game";
+@use "establish-players";
+@use "login";
+@use "own-games";
+@use "lobby-widgets";
+@use "select-resources";
+@use "running-games";
+@use "subscribers";
+@use "perform-setup";
+@use "seat-players";
+@use "tracker";
+@use "notes";
+@use "story";

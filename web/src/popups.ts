@@ -1,6 +1,6 @@
 // Markup built as strings: the popovers of game objects, and the place chip with its region
-// geometry. Bootstrap shows popovers from an HTML string (data-bs-content), so these return
-// strings. rust/skin/src/skin.rs builds the same popovers on the server, and is tested.
+// geometry. Popovers show an HTML string (popover.ts), so these return strings.
+// rust/skin/src/skin.rs builds the same popovers on the server, and is tested.
 import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, StrongholdAdvantage, TechToken, TerrorType, TreacheryCardType } from "./generated/enums";
 import type { Skin } from "./skin";
 import { htmlEncode, replaceSpiceAmounts, supportRound, utilitiesRound } from "./text";
@@ -8,7 +8,7 @@ import { htmlEncode, replaceSpiceAmounts, supportRound, utilitiesRound } from ".
 // A spice amount drawn on the harvester icon.
 export function spiceHtml(skin: Skin, amount: string, size = 18): string {
   const name = skin.concept("Resource");
-  return `<span class='spice-amt' style='--s:${size}px' title='${name}'><img src='${skin.str("Harvester_URL")}' alt='${name}'/><b>${amount}</b></span>`;
+  return `<span class='spice-amt' style='--s:${size}px' title='${name}'><img class='spice-amt__img' src='${skin.str("Harvester_URL")}' alt='${name}'/><b class='spice-amt__value'>${amount}</b></span>`;
 }
 
 // The text as HTML, with each amount of spice in it drawn by spiceHtml.
@@ -21,15 +21,15 @@ export function withSpiceIcons(skin: Skin, text: string, size = 18, encode = tru
 export function factionChipHtml(skin: Skin, f: Faction, you = false, locationIds: number[] | null = null): string {
   const name = htmlEncode(skin.get("FactionName_STR", f));
   const locations = locationIds ? locationIds.join(",") : "";
-  return `<span class='chip faction${you ? " you" : ""}' data-ref-faction='${f}' data-ref-locations='${locations}' style='--fc:${skin.data.FactionColor[f] ?? ""}' title='${name}'><img src='${skin.get("FactionImage_URL", f)}' alt=''/><span class='name'>${name}</span></span>`;
+  return `<span class='chip chip--faction${you ? " chip--you" : ""}' data-ref-faction='${f}' data-ref-locations='${locations}' style='--fc:${skin.data.FactionColor[f] ?? ""}' title='${name}'><img class='chip__img' src='${skin.get("FactionImage_URL", f)}' alt=''/><span class='chip__name'>${name}</span></span>`;
 }
 
-const framedCard = (url: string) => `<div class='pop-art'><img src='${url}'/></div>`;
-const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
+const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
+const imageHover = (url: string) => `<img src='${url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 function tokenPopup(skin: Skin, imageUrl: string | null, name: string, rulesText: string): string {
-  const art = imageUrl ? `<div class='pop-token-art'><img src='${imageUrl}'/></div>` : "";
-  return `<div class='pop-token'>${art}<div class='pop-token-body'><h6>${name}</h6><p>${withSpiceIcons(skin, rulesText)}</p></div></div>`;
+  const art = imageUrl ? `<div class='pop-token__art'><img class='pop-token__img' src='${imageUrl}'/></div>` : "";
+  return `<div class='pop-token'>${art}<div class='pop-token__body'><h6 class='pop-token__title'>${name}</h6><p class='pop-token__text'>${withSpiceIcons(skin, rulesText)}</p></div></div>`;
 }
 
 function cardCategory(t: TreacheryCardType): [string, string] {
@@ -67,7 +67,7 @@ function cardRulesText(skin: Skin, id: number): string {
 export function treacheryCardPopup(skin: Skin, id: number): string {
   const sid = skin.cardSkinId(id);
   const [category, type] = cardCategory(skin.cardType(id));
-  return `<div class='pop-card'><img class='pop-card-art' src='${skin.get("TreacheryCardImage_URL", sid)}'/><div class='pop-card-body'><h6>${skin.get("TreacheryCardName_STR", sid)}</h6><div class='pop-card-type'><i class='${category}'></i>${type}</div><p>${withSpiceIcons(skin, cardRulesText(skin, id))}</p></div></div>`;
+  return `<div class='pop-card'><img class='pop-card__art' src='${skin.get("TreacheryCardImage_URL", sid)}'/><div class='pop-card__body'><h6 class='pop-card__title'>${skin.get("TreacheryCardName_STR", sid)}</h6><div class='pop-card__type'><i class='pop-card__swatch pop-card__swatch--${category}'></i>${type}</div><p class='pop-card__text'>${withSpiceIcons(skin, cardRulesText(skin, id))}</p></div></div>`;
 }
 
 // The skill card with the leader on it when the leader
@@ -78,7 +78,7 @@ export function leaderPopup(skin: Skin, id: number, skill: LeaderSkill | null): 
     return `<div style='position:relative'><img style='position:relative;filter:drop-shadow(-3px 3px 2px black);' src='${skin.get("LeaderSkillCardImage_URL", skill)}' width=300/><img src='${image}' width=140 style='position:absolute;left:200px;top:120px;filter:drop-shadow(-2px 2px 2px black);'/></div>`;
   }
   const faction = skin.leaderFaction(id);
-  return `<div class='pop-leader'><div class='pop-leader-art' style='--fc:${skin.data.FactionColor[faction] ?? ""}'><img src='${image}'/></div><div class='pop-leader-body'><h6>${skin.get("PersonName_STR", id)}</h6>${factionChipHtml(skin, faction)}</div></div>`;
+  return `<div class='pop-leader'><div class='pop-leader__art' style='--fc:${skin.data.FactionColor[faction] ?? ""}'><img class='pop-leader__img' src='${image}'/></div><div class='pop-leader__body'><h6 class='pop-leader__title'>${skin.get("PersonName_STR", id)}</h6>${factionChipHtml(skin, faction)}</div></div>`;
 }
 
 // The leader popover's frame, with the Messiah paragraph
@@ -92,19 +92,19 @@ export function messiahPopup(skin: Skin): string {
   // A treachery card type as a chip: the art of its first card and the type's name, as the
   // sheet names it.
   const card = (type: TreacheryCardType) =>
-    `<span class='card-chip'><img src='${skin.get("TreacheryCardImage_URL", skin.cardSkinId(skin.cardOfType(type)))}' alt=''/>${skin.enumValue("TreacheryCardType", type)}</span>`;
+    `<span class='card-chip'><img class='card-chip__img' src='${skin.get("TreacheryCardImage_URL", skin.cardSkinId(skin.cardOfType(type)))}' alt=''/>${skin.enumValue("TreacheryCardType", type)}</span>`;
   const cheapHero = card("Mercenary");
-  const forces = `<span class='forces'>7<img src='${skin.get("FactionForceImage_URL", "Atreides")}' alt='forces' title='forces'/></span>`;
+  const forces = `<span class='pop-leader__forces'>7<img class='pop-leader__force' src='${skin.get("FactionForceImage_URL", "Atreides")}' alt='forces' title='forces'/></span>`;
   const rules = [
     `After losing a total of at least ${forces} in battle, you may use ${kh}.`,
-    `It cannot be used alone in battle but may add its <span class='plus'>+2</span> strength to any one leader or ${cheapHero} per turn.`,
+    `It cannot be used alone in battle but may add its <span class='pop-leader__plus'>+2</span> strength to any one leader or ${cheapHero} per turn.`,
     `If the leader or ${cheapHero} is killed, ${kh} has no effect in the battle.`,
-    `A leader accompanied by ${kh} <b>cannot turn traitor</b>.`,
-    `${kh} can only be killed if blown up by a <span class='nowrap'>${card("Laser")}/${card("Shield")}</span> explosion.`,
+    `A leader accompanied by ${kh} <b class='pop-leader__em'>cannot turn traitor</b>.`,
+    `${kh} can only be killed if blown up by a <span class='pop-leader__nowrap'>${card("Laser")}/${card("Shield")}</span> explosion.`,
     `If killed, ${kh} must be revived like any other leader.`,
     `${kh} has no effect on ${factionChipHtml(skin, "Atreides")} leader revival.`,
   ];
-  return `<div class='pop-leader pop-messiah'><div class='pop-leader-art' style='--fc:${color}'><img src='${image}'/></div><div class='pop-leader-body'><h6>${name}</h6><div class='pop-messiah-head'>${factionChipHtml(skin, "Atreides")}<span class='plus'>+2</span></div><div class='pop-messiah-rules'>${rules.map((r) => `<p>${r}</p>`).join("")}</div></div></div>`;
+  return `<div class='pop-leader pop-leader--messiah'><div class='pop-leader__art' style='--fc:${color}'><img class='pop-leader__img' src='${image}'/></div><div class='pop-leader__body'><h6 class='pop-leader__title'>${name}</h6><div class='pop-leader__head'>${factionChipHtml(skin, "Atreides")}<span class='pop-leader__plus pop-leader__plus--head'>+2</span></div><div class='pop-leader__rules'>${rules.map((r) => `<p class='pop-leader__line'>${r}</p>`).join("")}</div></div></div>`;
 }
 
 export function leaderSkillPopup(skin: Skin, s: LeaderSkill): string {
@@ -138,11 +138,11 @@ export function discoveryTokenPopup(skin: Skin, d: DiscoveryToken): string {
 // The card, with the place chip of its territory and
 // its spice amount under it; worm cards are the card alone.
 export function resourceCardPopup(skin: Skin, skinId: number): string {
-  let html = `<div class="pop-spice"><img src="${skin.get("ResourceCardImage_URL", skinId)}"/>`;
+  let html = `<div class="pop-spice"><img class="pop-spice__card" src="${skin.get("ResourceCardImage_URL", skinId)}"/>`;
   const location = skin.resourceCardInfo(skinId)?.location;
   if (location != null) {
     const amount = skin.locationInfo(location)?.spiceBlowAmount ?? 0;
-    html += `<div class="pop-spice-foot">${placeChipHtml(skin, { location })}${spiceHtml(skin, String(amount), 26)}</div>`;
+    html += `<div class="pop-spice__foot">${placeChipHtml(skin, { location })}${spiceHtml(skin, String(amount), 26)}</div>`;
   }
   return html + "</div>";
 }
@@ -325,17 +325,17 @@ export function placeChipData(skin: Skin, place: Place): PlaceChipData {
 // lies, the territory name, and for a sector its compass word. PlaceChip.tsx draws the same.
 export function placeChipHtml(skin: Skin, place: Place): string {
   const c = placeChipData(skin, place);
-  let html = `<span class="chip place" data-ref-locations="${c.locations.join(",")}" title="${c.title}">`;
-  html += `<svg class="wedge" viewBox="${c.view}" aria-hidden="true"><defs>`;
+  let html = `<span class="chip chip--place" data-ref-locations="${c.locations.join(",")}" title="${c.title}">`;
+  html += `<svg class="chip__wedge" viewBox="${c.view}" aria-hidden="true"><defs>`;
   html += `<clipPath id="${c.id}-disc"><circle cx="${c.cx}" cy="${c.cy}" r="${c.r}"/></clipPath>`;
   if (c.wedge !== null) html += `<clipPath id="${c.id}-sector"><path d="${c.wedge}"/></clipPath>`;
-  html += `</defs><g clip-path="url(#${c.id}-disc)"><circle class="disc" cx="${c.cx}" cy="${c.cy}" r="${c.r}"/>`;
+  html += `</defs><g clip-path="url(#${c.id}-disc)"><circle class="chip__disc" cx="${c.cx}" cy="${c.cy}" r="${c.r}"/>`;
   if (c.border !== "") {
     const clip = c.wedge !== null ? ` clip-path="url(#${c.id}-sector)"` : "";
-    html += `<g transform="${c.transform}"><g${clip}><path class="w" d="${c.border}"/></g></g>`;
+    html += `<g transform="${c.transform}"><g${clip}><path class="chip__outline" d="${c.border}"/></g></g>`;
   }
-  html += `</g><circle class="ring" cx="${c.cx}" cy="${c.cy}" r="${c.r}" vector-effect="non-scaling-stroke"/></svg>`;
-  html += `<span class="name">${c.name}</span>`;
-  if (c.orientation !== "") html += `<span class="sector">${c.orientation}</span>`;
+  html += `</g><circle class="chip__ring" cx="${c.cx}" cy="${c.cy}" r="${c.r}" vector-effect="non-scaling-stroke"/></svg>`;
+  html += `<span class="chip__name">${c.name}</span>`;
+  if (c.orientation !== "") html += `<span class="chip__sector">${c.orientation}</span>`;
   return html + "</span>";
 }

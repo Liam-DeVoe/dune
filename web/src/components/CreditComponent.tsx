@@ -3,15 +3,15 @@ import { ModalComponent } from "./ModalComponent";
 
 const row = (label: string, value: React.ReactNode) => (
   <tr>
-    <td style={{ width: "50%" }} className="p-2 text-end align-text-top">{label}</td>
-    <td style={{ width: "50%" }} className="p-2 text-start align-text-top fw-bold">{value}</td>
+    <td style={{ width: "50%" }} className="credits__label">{label}</td>
+    <td style={{ width: "50%" }} className="credits__value">{value}</td>
   </tr>
 );
 
 export function CreditComponent({ id }: { id: string }) {
   return (
     <ModalComponent id={id} title="Credits">
-      <table className="table-borderless text-center">
+      <table className="credits__table">
         <tbody>
           {row("Game Development", <>Ronald Ossendrijver, <a href="mailto:admin@treachery.online" target="_blank">admin@treachery.online</a></>)}
           {row("Design & Artwork", "Ilya Baranovsky, Reinier de Graaf & Piper")}

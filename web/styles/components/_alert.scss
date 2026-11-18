@@ -1,0 +1,12 @@
+// A message strip. --danger is the error: white on the red the old theme drew.
+.alert {
+  position: relative;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--r-2);
+
+  &--danger {
+    color: #fff;
+    background-color: #e74c3c;
+  }
+}

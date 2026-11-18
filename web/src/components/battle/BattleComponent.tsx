@@ -200,10 +200,10 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
   const tokenRow = (row: Commit[], isSpecial: boolean) => {
     if (row.length === 0) return null;
     return (
-      <div className="bp-pips">
+      <div className="battle-plan__pips">
         {row.map((state, i) => (
-          <button key={i} type="button" className={`bp-pip ${state}`} onClick={() => clickToken(isSpecial, i)}>
-            <ForceToken faction={o.supplier as Faction} special={isSpecial} size={26} />
+          <button key={i} type="button" className={state === "full" ? "battle-plan__pip" : `battle-plan__pip battle-plan__pip--${state}`} onClick={() => clickToken(isSpecial, i)}>
+            <ForceToken faction={o.supplier as Faction} special={isSpecial} size={26} imgClass="battle-plan__pip-img" />
           </button>
         ))}
       </div>
@@ -212,9 +212,9 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
 
   const cards = (title: string, list: number[], chosen: number | null, key: "weapon" | "defense") => (
     <div>
-      <div className="bp-label">{title}</div>
-      <div className="bp-choices">
-        <button type="button" className={`bp-none ${chosen === null ? "on" : ""}`} onClick={() => void update({ [key]: null })}>None</button>
+      <div className="battle-plan__label">{title}</div>
+      <div className="battle-plan__choices">
+        <button type="button" className={`battle-plan__none ${chosen === null ? "battle-plan__none--on" : ""}`} onClick={() => void update({ [key]: null })}>None</button>
         {list.map((c) => (
           <Image key={c} src={skin.cardImage(c)} alt={skin.card(c)} width={50} pointer highlightOnHover darkened={chosen !== c}
                  popover={treacheryCardPopup(skin, c)} onClick={() => void update({ [key]: chosen === c ? null : c })} />
@@ -225,12 +225,12 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
 
   return (
     <Layout type={action.eventType} inPopover={inPopover} className="battle-plan prompt-act"
-            header={<span className="kicker">Battle · {o.territory >= 0 && <PlaceChip place={{ territory: o.territory }} />}</span>}>
-      <div className="bp-matchup">
+            header={<span className="prompt-act__kicker battle-plan__kicker">Battle · {o.territory >= 0 && <PlaceChip place={{ territory: o.territory }} />}</span>}>
+      <div className="battle-plan__matchup">
         <Side side={o.you} name="You" opponent={false} />
-        <div className="bp-middle" data-ref-locations={o.territoryLocations.join(",")}>
-          <div className="bp-vs">vs</div>
-          <div className="bp-where">{o.territoryLabel}</div>
+        <div className="battle-plan__middle" data-ref-locations={o.territoryLocations.join(",")}>
+          <div className="battle-plan__vs">vs</div>
+          <div className="battle-plan__where">{o.territoryLabel}</div>
         </div>
         <Side side={o.opponent} name={skin.faction(o.opponent.faction as Faction)} opponent />
       </div>
@@ -238,25 +238,25 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
       {o.notes.map((note, i) => <Note key={i} note={note} />)}
 
       {n.length + s.length > 0 && (
-        <div className="bp-section">
-          <div className="bp-label">Forces</div>
-          <div className="bp-ctl">
-            <span className="bp-what">Dial</span>
+        <div className="battle-plan__section">
+          <div className="battle-plan__label">Forces</div>
+          <div className="battle-plan__control">
+            <span className="battle-plan__control-label">Dial</span>
             <StepperInput value={formatStrength(dial)} mayDown={allDials.some((d) => d < dial)}
                           mayUp={allDials.some((d) => d > dial)} step={stepDial} typed={typeDial} />
           </div>
           {o.mustPay && (
             <>
-              <div className="bp-ctl">
-                <span className="bp-what">{skin.concept("Resource")}</span>
+              <div className="battle-plan__control">
+                <span className="battle-plan__control-label">{skin.concept("Resource")}</span>
                 <StepperInput value={Number.isFinite(cost) ? String(cost) : "0"}
                               mayDown={allCosts.some((c) => c < cost)} mayUp={allCosts.some((c) => c > cost)} step={stepCost} typed={typeCost}
-                              icon={<span className="ic"><img src={harvester} alt="" /></span>} />
+                              icon={<span className="num__ic"><img className="num__ic-img" src={harvester} alt="" /></span>} />
               </div>
               {o.allyCap > 0 && cost > 0 && (
-                <div className="bp-ctl">
-                  <span className="bp-what">From ally</span>
-                  <div className="d-flex">
+                <div className="battle-plan__control">
+                  <span className="battle-plan__control-label">From ally</span>
+                  <div className="battle-plan__ally">
                     <NumberPicker value={draft.allyContributionAmount as number} min={allyMin} max={allyMax} spice symbolSrc={skin.factionImage(o.ally as Faction)} onChange={(v) => void update({ allyContributionAmount: v })} />
                   </div>
                 </div>
@@ -269,9 +269,9 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
       )}
 
       {o.heroes.length > 0 && (
-        <div className="bp-section">
-          <div className="bp-label">Leader</div>
-          <div className="bp-choices">
+        <div className="battle-plan__section">
+          <div className="battle-plan__label">Leader</div>
+          <div className="battle-plan__choices">
             {o.heroes.map((h) => (
               <Image key={h.id} src={heroImage(skin, h.hero)} alt={h.label} width={58} pointer highlightOnHover popover={heroPopup(skin, view, h.hero)}
                      darkened={hero !== null && hero !== h.id} onClick={() => pickHero(h.id)} />
@@ -280,37 +280,37 @@ export function BattleComponent({ action, inPopover }: { action: ActionView; inP
         </div>
       )}
 
-      <div className="bp-section bp-cards">
+      <div className="battle-plan__section battle-plan__cards">
         {cards("Weapon", o.weapons, weapon, "weapon")}
         {cards("Defense", o.defenses, defense, "defense")}
       </div>
 
       {o.messiahAvailable && (
-        <div className="bp-section">
+        <div className="battle-plan__section">
           <Radio values={[false, true]} labels={["No", "Yes"]} value={messiah} onChange={(v) => void update({ messiah: v })}
                  label={<>Should <Image width={32} src={skin.url(skin.str("Messiah_URL"))} alt={skin.concept("Messiah")} noShadow popover={messiahPopup(skin)} /> join the fight?</>} />
         </div>
       )}
 
       {o.maxBankerBoost > 0 && (
-        <div className="bp-section">
-          <div className="d-inline-flex align-items-center">
-            <label className="me-1">{o.bankerLabel}</label>
+        <div className="battle-plan__section">
+          <div className="battle-plan__banker">
+            <label className="battle-plan__banker-label">{o.bankerLabel}</label>
             <NumberPicker value={draft.bankerBonus as number} min={0} max={o.maxBankerBoost} spice symbolSrc={harvester}
                           onChange={(v) => void update({ bankerBonus: v })} />
           </div>
         </div>
       )}
 
-      <div className="bp-total">
+      <div className="battle-plan__total">
         <div>
-          <div className="bp-label">Strength</div>
-          <div className="bp-big">{formatStrength(dial + leaderPart)}</div>
+          <div className="battle-plan__label battle-plan__label--total">Strength</div>
+          <div className="battle-plan__strength">{formatStrength(dial + leaderPart)}</div>
         </div>
-        <div className="bp-sum">{sum}</div>
-        <button type="button" className="btn btn-primary" disabled={validation !== null} onClick={() => void submit()}>Battle!</button>
+        <div className="battle-plan__sum">{sum}</div>
+        <button type="button" className="button button--primary battle-plan__submit" disabled={validation !== null} onClick={() => void submit()}>Battle!</button>
       </div>
-      {validation && <div className="bp-why-not"><RichText parts={validation} /></div>}
+      {validation && <div className="battle-plan__why-not"><RichText parts={validation} /></div>}
       <SubmitError error={error} />
     </Layout>
   );
@@ -331,14 +331,14 @@ function StepperInput({ value, mayDown, mayUp, step, typed, icon }: {
   return (
     <div className="num">
       {icon}
-      <button type="button" disabled={!mayDown} onClick={() => step(-1)}>−</button>
-      <input value={text} onChange={(e) => setText(e.target.value)} onBlur={(e) => typed(e.target.value)}
+      <button type="button" className="num__button" disabled={!mayDown} onClick={() => step(-1)}>−</button>
+      <input className="num__input" value={text} onChange={(e) => setText(e.target.value)} onBlur={(e) => typed(e.target.value)}
              onKeyDown={(e) => {
                if (e.key === "ArrowUp") step(1);
                else if (e.key === "ArrowDown") step(-1);
                else if (e.key === "Enter") typed((e.target as HTMLInputElement).value);
              }} />
-      <button type="button" disabled={!mayUp} onClick={() => step(1)}>+</button>
+      <button type="button" className="num__button" disabled={!mayUp} onClick={() => step(1)}>+</button>
     </div>
   );
 }
@@ -349,19 +349,19 @@ function Side({ side, name, opponent }: { side: BattleSide; name: string; oppone
   const { skin } = useGame();
   const f = side.faction as Faction;
   return (
-    <div className={`bp-side ${opponent ? "them" : "you"}`} data-ref-faction={f} data-ref-locations={side.locations.join(",")}
+    <div className="battle-plan__side" data-ref-faction={f} data-ref-locations={side.locations.join(",")}
          style={{ ["--fc" as string]: skin.factionColor(f) }}>
-      <img className="bp-sigil" src={skin.factionImage(f)} alt="" />
-      <span className="bp-name">{name}</span>
-      {side.aggressor && <span className="bp-agg">aggressor</span>}
-      <span className="bp-forces">
+      <img className="battle-plan__sigil" src={skin.factionImage(f)} alt="" />
+      <span className={opponent ? "battle-plan__name" : "battle-plan__name battle-plan__name--you"}>{name}</span>
+      {side.aggressor && <span className="battle-plan__aggressor">aggressor</span>}
+      <span className="battle-plan__forces">
         {side.groups.map((g, i) => (
-          <span key={i} className="bp-groups">
-            {g.forces > 0 && <><ForceToken faction={g.faction as Faction} size={20} /><b>{g.forces}</b></>}
+          <span key={i} className="battle-plan__group">
+            {g.forces > 0 && <><ForceToken faction={g.faction as Faction} size={20} /><b className="battle-plan__count">{g.forces}</b></>}
             {g.specialForces > 0 && (
               <>
                 <ForceToken faction={g.faction as Faction} special size={20} />
-                {!g.hideSpecialCount && <b>{g.specialForces}</b>}
+                {!g.hideSpecialCount && <b className="battle-plan__count">{g.specialForces}</b>}
               </>
             )}
           </span>
@@ -374,24 +374,24 @@ function Side({ side, name, opponent }: { side: BattleSide; name: string; oppone
 function Note({ note }: { note: BattleNote }) {
   switch (note.t) {
     case "ecazOpponent":
-      return <div className="bp-note good"><FactionChip faction="Ecaz" /> forces contribute <strong>{note.amount}</strong> to your opponent's dial.</div>;
+      return <div className="battle-plan__note battle-plan__note--good"><FactionChip faction="Ecaz" /> forces contribute <strong>{note.amount}</strong> to your opponent's dial.</div>;
     case "opponentNoLeaders":
-      return <div className="bp-note bad">Your opponent has no leaders available for this battle!</div>;
+      return <div className="battle-plan__note battle-plan__note--bad">Your opponent has no leaders available for this battle!</div>;
     case "voice":
       return note.mine
-        ? <div className="bp-note good">Your opponent {note.must ? "must use" : "may not use"} {note.cardType}.</div>
-        : <div className="bp-note bad">You {note.must ? "must use" : "may not use"} {note.cardType}.</div>;
+        ? <div className="battle-plan__note battle-plan__note--good">Your opponent {note.must ? "must use" : "may not use"} {note.cardType}.</div>
+        : <div className="battle-plan__note battle-plan__note--bad">You {note.must ? "must use" : "may not use"} {note.cardType}.</div>;
     case "seen":
       return (
-        <div className="bp-note good">Enemy {note.aspect.toLowerCase()}:{" "}
+        <div className="battle-plan__note battle-plan__note--good">Enemy {note.aspect.toLowerCase()}:{" "}
           {note.dial !== null ? <strong>{note.dial}</strong> : note.shown !== null ? <RichText parts={note.shown} /> : <span>none</span>}.
         </div>
       );
     case "later":
       return note.aspect === null
-        ? <div className="bp-note good">Opponent battle plan will be visible as soon as they confirm it.</div>
-        : <div className="bp-note good">Opponent {note.aspect.toLowerCase()} will be visible as soon as they confirm their battle plan.</div>;
+        ? <div className="battle-plan__note battle-plan__note--good">Opponent battle plan will be visible as soon as they confirm it.</div>
+        : <div className="battle-plan__note battle-plan__note--good">Opponent {note.aspect.toLowerCase()} will be visible as soon as they confirm their battle plan.</div>;
     case "ecazMine":
-      return <div className="bp-note good"><FactionChip faction="Ecaz" /> forces contribute <strong>{note.amount}</strong> to your dial.</div>;
+      return <div className="battle-plan__note battle-plan__note--good"><FactionChip faction="Ecaz" /> forces contribute <strong>{note.amount}</strong> to your dial.</div>;
   }
 }

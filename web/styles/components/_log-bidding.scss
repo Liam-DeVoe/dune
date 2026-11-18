@@ -17,13 +17,13 @@
   background: var(--ink-1);
   border: 1px solid rgba(255, 255, 255, 0.06);
 
-  .top {
+  &__top {
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .n {
+  &__number {
     font-family: var(--font-display);
     color: var(--sand);
     font-size: 14px;
@@ -32,7 +32,7 @@
   }
 
   // The price with its payee under it, or the Karama card played.
-  .price {
+  &__price {
     margin-left: auto;
     display: flex;
     flex-direction: column;
@@ -40,19 +40,19 @@
     gap: 2px;
   }
 
-  .payee {
+  &__payee {
     font-size: 12.5px;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-
-    img {
-      width: 22px;
-      height: 22px;
-    }
   }
 
-  .under {
+  &__payee-img {
+    width: 22px;
+    height: 22px;
+  }
+
+  &__under {
     margin: 4px 0 0 56px;
     font-size: 13.5px;
     color: var(--parchment);
@@ -61,12 +61,12 @@
   }
 
   // A line only the viewer sees, italic like private lines elsewhere in the log.
-  .private {
+  &__private {
     font-style: italic;
   }
 
   // Everyone passed on this card: nobody bought it.
-  &.unsold {
+  &--unsold {
     border-style: dashed;
     border-color: rgba(252, 249, 209, 0.18);
   }

@@ -1,0 +1,104 @@
+// The lobby's right column (OwnGamesComponent): the "Your games" card with
+// its tabs (your games, create or load, schedule) and the "Your account" card.
+.own-games {
+  &__card {
+    margin-bottom: 0.5rem;
+    box-shadow: var(--shadow-3);
+  }
+
+  &__tabs {
+    margin-bottom: 0.5rem;
+  }
+
+  // "Are you sure you wish to delete your account...?", on storm red.
+  &__delete-warning {
+    background-color: #e74c3c;
+  }
+
+  // "Started games", "Scheduled games", "No games yet...".
+  &__heading {
+    margin-bottom: 0.5rem;
+    color: var(--gold);
+  }
+
+  &__row {
+    font-size: 0.875em;
+  }
+
+  &__quarter {
+    width: 25%;
+  }
+
+  // Resume and Delete in a game's row.
+  &__action {
+    margin: 0.25rem;
+  }
+
+  &__error {
+    // The error red the language uses for small text on ink.
+    color: #e46b6b;
+    font-size: 0.875em;
+
+    &--spaced {
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  &__submit {
+    margin-top: 0.25rem;
+  }
+
+  // The spinner's text, for screen readers only.
+  &__loading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  &__discord {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  // The account's fields: the label in the left third, the value in the rest.
+  // These were Bootstrap rows, with 0.75rem of padding a side on each column
+  // that the row takes back.
+  &__field {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+
+    &--spaced {
+      margin-bottom: 0.25rem;
+    }
+  }
+
+  &__label,
+  &__value {
+    flex: 0 0 auto;
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  &__label {
+    width: 33.33333333%;
+  }
+
+  &__value {
+    width: 66.66666667%;
+  }
+
+  &__button {
+    margin-right: 0.25rem;
+  }
+}

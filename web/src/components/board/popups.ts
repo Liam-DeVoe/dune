@@ -10,7 +10,7 @@ import { htmlEncode } from "../../text";
 import type { Board } from "./geometry";
 import { forceTokenHtml } from "./primitives";
 
-const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
+const imageHover = (url: string) => `<img src='${url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 export function treacheryCard(b: Board, id: number): string { return shared.treacheryCardPopup(b.skin, id); }
 export function leaderSkill(b: Board, s: LeaderSkill): string { return shared.leaderSkillPopup(b.skin, s); }
@@ -36,7 +36,7 @@ export function strongholdAdvantage(b: Board, adv: StrongholdAdvantage, owner: F
 
 // The homeworld's card.
 export function homeworld(b: Board, w: World): string {
-  return `<div class='pop-art'><img src='${b.skin.get("HomeWorldCardImage_URL", w)}'/></div>`;
+  return `<div class='pop-art'><img class='pop-art__img' src='${b.skin.get("HomeWorldCardImage_URL", w)}'/></div>`;
 }
 
 // The faction, who plays it, its leaders, the summary of its rules
@@ -47,37 +47,37 @@ export function faction(b: Board, p: PublicPlayer): string {
   if (!sheet) return "";
   const skin = b.skin;
   let html = "<div class=\"pop-faction\">";
-  html += `<div class="pop-faction-head"><img src="${skin.get("FactionImage_URL", p.faction)}" alt=""/>`;
-  html += `<div><h6>${skin.faction(p.faction)}</h6><div class="who">${p.name}</div></div></div>`;
-  html += "<div class=\"pop-faction-brief\">";
-  html += "<div class=\"pop-faction-leaders\">";
-  for (const l of skin.statics.leaders.filter((l) => l.faction === p.faction)) html += `<img src="${skin.get("PersonImage_URL", l.id)}" alt=""/>`;
+  html += `<div class="pop-faction__head"><img class="pop-faction__sigil" src="${skin.get("FactionImage_URL", p.faction)}" alt=""/>`;
+  html += `<div><h6 class="pop-faction__title">${skin.faction(p.faction)}</h6><div class="pop-faction__player">${p.name}</div></div></div>`;
+  html += "<div class=\"pop-faction__brief\">";
+  html += "<div class=\"pop-faction__leaders\">";
+  for (const l of skin.statics.leaders.filter((l) => l.faction === p.faction)) html += `<img class="pop-faction__leader" src="${skin.get("PersonImage_URL", l.id)}" alt=""/>`;
   html += "</div>";
   const atStart = shared.withSpiceIcons(skin, sheet.atStart.map((part) =>
     part.t === "text" ? part.v : part.t === "location" ? shared.placeChipHtml(skin, { location: part.id }) : shared.placeChipHtml(skin, { territory: part.id })).join(""), 18, false);
-  html += `<dl><dt>At start</dt><dd>${atStart}</dd><dt>Free revival</dt><dd>${sheet.freeRevival}</dd></dl>`;
-  html += `<div class="theme">${sheet.theme}</div>`;
+  html += `<dl class="pop-faction__facts"><dt class="pop-faction__term">At start</dt><dd class="pop-faction__value">${atStart}</dd><dt class="pop-faction__term">Free revival</dt><dd class="pop-faction__value">${sheet.freeRevival}</dd></dl>`;
+  html += `<div class="pop-faction__theme">${sheet.theme}</div>`;
   html += advantageNames(sheet.advantages);
-  if (sheet.advancedAdvantages.length > 0) html += "<div class=\"section\">Advanced Game Advantages</div>" + advantageNames(sheet.advancedAdvantages);
-  html += "<div class=\"foot\">Hold <kbd>Shift</kbd> for full rules</div></div>";
-  html += `<div class="pop-faction-full">${sheet.html}</div></div>`;
+  if (sheet.advancedAdvantages.length > 0) html += "<div class=\"pop-faction__section\">Advanced Game Advantages</div>" + advantageNames(sheet.advancedAdvantages);
+  html += "<div class=\"pop-faction__foot\">Hold <kbd class=\"pop-faction__key\">Shift</kbd> for full rules</div></div>";
+  html += `<div class="pop-faction__full">${sheet.html}</div></div>`;
   return html;
 }
 
 function advantageNames(names: string[]): string {
-  return `<ul>${names.map((n) => `<li>${n}</li>`).join("")}</ul>`;
+  return `<ul class="pop-faction__advantages">${names.map((n) => `<li class="pop-faction__advantage">${n}</li>`).join("")}</ul>`;
 }
 
 // CardPiles.PileHtml.
 function pileHtml(heading: string, images: string[]): string {
-  return `<div class="pop-pile"><h6>${heading}</h6><div class="pop-pile-cards">${images.join("")}</div></div>`;
+  return `<div class="pop-pile"><h6 class="pop-pile__title">${heading}</h6><div class="pop-pile__cards">${images.join("")}</div></div>`;
 }
 
 // CardPiles.IntelOfResourceDiscardPile: with note-keeping, every card of the pile.
 export function resourceDiscardPile(b: Board, pile: number[] | null, latest: number, letter: string): string {
   if (pile == null) return shared.resourceCardPopup(b.skin, latest);
   const name = b.applicable("IncreasedResourceFlow") ? `Discard pile ${letter}` : "Discard pile";
-  return pileHtml(`${name} · ${pile.length}`, pile.map((c) => `<img src="${b.skin.get("ResourceCardImage_URL", c)}"/>`));
+  return pileHtml(`${name} · ${pile.length}`, pile.map((c) => `<img class="pop-pile__card" src="${b.skin.get("ResourceCardImage_URL", c)}"/>`));
 }
 
 // CardPiles.IntelOfTreacheryDiscardPile: the top card, or with note-keeping every card, the ones
@@ -86,8 +86,8 @@ export function treacheryDiscardPile(b: Board): string {
   const piles = b.view.piles;
   if (piles.treacheryDiscard == null) return shared.treacheryCardPopup(b.skin, piles.treacheryDiscardTop!);
   return pileHtml(`Discard pile · ${piles.treacheryDiscardCount}`, piles.treacheryDiscard.map((c) => c != null
-    ? `<img src="${b.skin.get("TreacheryCardImage_URL", b.skin.cardSkinId(c))}"/>`
-    : `<img class="face-down" src="${b.s("CardBack_TreacheryCard_URL")}"/>`));
+    ? `<img class="pop-pile__card" src="${b.skin.get("TreacheryCardImage_URL", b.skin.cardSkinId(c))}"/>`
+    : `<img class="pop-pile__card pop-pile__card--face-down" src="${b.s("CardBack_TreacheryCard_URL")}"/>`));
 }
 
 // CardPiles.IntelOfRicheseCardPile: Richese sees its cache.
@@ -95,7 +95,7 @@ export function richeseCache(b: Board): string | null {
   const cache = b.view.piles.richeseCache;
   if (!cache || cache.length === 0) return null;
   const heading = `${shared.factionChipHtml(b.skin, "Richese", true)} cards · ${cache.length}`;
-  return pileHtml(heading, cache.map((c) => `<img src="${b.skin.get("TreacheryCardImage_URL", b.skin.cardSkinId(c))}"/>`));
+  return pileHtml(heading, cache.map((c) => `<img class="pop-pile__card" src="${b.skin.get("TreacheryCardImage_URL", b.skin.cardSkinId(c))}"/>`));
 }
 
 // The tanks: one row per faction with anything in the tanks.
@@ -108,29 +108,29 @@ export function tanks(b: Board): string {
     const you = !v.viewer.isObserver && v.viewer.faction === t.faction;
     const onPlanet = [...new Set(v.board.forces.filter((x) => x.faction === t.faction && !b.isHomeworld(x.location)).map((x) => x.location))];
     const info = skin.statics.factions.find((x) => x.faction === t.faction);
-    rows += "<tr>";
-    rows += `<td>${shared.factionChipHtml(skin, t.faction, you, onPlanet)}</td>`;
-    rows += "<td class='forces'>";
+    rows += "<tr class='tanks-pop__row'>";
+    rows += `<td class='tanks-pop__cell'>${shared.factionChipHtml(skin, t.faction, you, onPlanet)}</td>`;
+    rows += "<td class='tanks-pop__cell tanks-pop__cell--forces'>";
     if (t.forcesKilled > 0) {
       const title = htmlEncode(skin.get("ForceName_STR", info?.force ?? t.faction));
-      rows += `<span class='count'>${forceTokenHtml(skin.get("FactionForceImage_URL", t.faction), t.faction, false, 28, title)}<b>${t.forcesKilled}</b></span>`;
+      rows += `<span class='tanks-pop__count'>${forceTokenHtml(skin.get("FactionForceImage_URL", t.faction), t.faction, false, 28, title)}<b class='tanks-pop__amount'>${t.forcesKilled}</b></span>`;
     }
-    rows += "</td><td>";
+    rows += "</td><td class='tanks-pop__cell'>";
     if (t.specialForcesKilled > 0) {
       const title = htmlEncode(skin.get("SpecialForceName_STR", info?.specialForce ?? t.faction));
-      const amount = t.faction === "Richese" ? "" : `<b>${t.specialForcesKilled}</b>`;
-      rows += `<span class='count'>${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", t.faction), t.faction, true, 28, title)}${amount}</span>`;
+      const amount = t.faction === "Richese" ? "" : `<b class='tanks-pop__amount'>${t.specialForcesKilled}</b>`;
+      rows += `<span class='tanks-pop__count'>${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", t.faction), t.faction, true, 28, title)}${amount}</span>`;
     }
-    rows += "</td><td><div class='leaders'>";
+    rows += "</td><td class='tanks-pop__cell'><div class='tanks-pop__leaders'>";
     for (const l of t.leaders) {
-      if (!l.faceDown) rows += `<img src='${skin.get("PersonImage_URL", l.id!)}' title='${htmlEncode(skin.person(l.id!))}' alt=''/>`;
-      else if (l.id != null) rows += `<img class='face-down' src='${skin.get("PersonImage_URL", l.id)}' title='${htmlEncode(skin.person(l.id))} (face down)' alt=''/>`;
-      else rows += `<img class='faction-back' src='${skin.get("FactionFacedownImage_URL", t.faction)}' title='Face down' alt=''/>`;
+      if (!l.faceDown) rows += `<img class='tanks-pop__leader' src='${skin.get("PersonImage_URL", l.id!)}' title='${htmlEncode(skin.person(l.id!))}' alt=''/>`;
+      else if (l.id != null) rows += `<img class='tanks-pop__leader tanks-pop__leader--face-down' src='${skin.get("PersonImage_URL", l.id)}' title='${htmlEncode(skin.person(l.id))} (face down)' alt=''/>`;
+      else rows += `<img class='tanks-pop__leader tanks-pop__leader--back' src='${skin.get("FactionFacedownImage_URL", t.faction)}' title='Face down' alt=''/>`;
     }
-    if (t.messiahDead) rows += `<img src='${b.s("Messiah_URL")}' title='${htmlEncode(skin.concept("Messiah"))}' alt=''/>`;
+    if (t.messiahDead) rows += `<img class='tanks-pop__leader' src='${b.s("Messiah_URL")}' title='${htmlEncode(skin.concept("Messiah"))}' alt=''/>`;
     rows += "</div></td></tr>";
   }
-  return `<div class='tanks-pop'><h6>${htmlEncode(skin.concept("Graveyard"))}</h6><table><tr><th>Faction</th><th colspan='2'>Forces</th><th>Leaders</th></tr>${rows}</table></div>`;
+  return `<div class='tanks-pop'><h6 class='tanks-pop__title'>${htmlEncode(skin.concept("Graveyard"))}</h6><table class='tanks-pop__table'><tr class='tanks-pop__row'><th class='tanks-pop__head'>Faction</th><th class='tanks-pop__head' colspan='2'>Forces</th><th class='tanks-pop__head'>Leaders</th></tr>${rows}</table></div>`;
 }
 
 // "Monday, 02 November 2026 9:05:00" of a time the game holds. Known quirk (known-issues.md): it
@@ -159,20 +159,20 @@ export function turn(b: Board): string {
   // are not bold.
   let ruleInfo = "";
   for (const g of v.ruleLabels.groups) {
-    ruleInfo += `<h5 class='h5'>${g.group}</h5><p class='mt-0 mb-2'>${g.rules.join(", ")}.</p>`;
+    ruleInfo += `<h5>${g.group}</h5><p class='turn-pop__rules'>${g.rules.join(", ")}.</p>`;
   }
-  let result = `<div><h4>${v.ruleLabels.ruleset}</h4><p>Game version: ${v.version}</p>${ruleInfo}`;
+  let result = `<div class='turn-pop'><h4>${v.ruleLabels.ruleset}</h4><p>Game version: ${v.version}</p>${ruleInfo}`;
   result += "<h4>Timers</h4>";
   result += `<p><string>Game started:</strong> ${longDate(v.timing.started)}`;
   result += `<p><string>Last activity:</strong> ${longDate(v.timing.lastActivity)}`;
   result += `<p><string>Game duration:</strong> ${Math.round(v.timing.duration / 360) / 10} hours`;
-  result += "<table class='table table-sm'><thead><tr class='table-dark'><th>Player</th><th>Bidding</th><th>Move</th><th>Battle</th><th>Total</th></tr></thead><tbody>";
+  result += "<table class='table table--small table--dark'><thead><tr><th>Player</th><th>Bidding</th><th>Move</th><th>Battle</th><th>Total</th></tr></thead><tbody>";
   for (const p of v.players) {
     const t = v.timing.timeSpent.find((x) => x.faction === p.faction);
     const bidding = t?.bidding ?? 0;
     const move = t?.shipmentAndMove ?? 0;
     const battle = t?.battle ?? 0;
-    result += `<tr class='table-dark'><td>${p.name}</td><td>${hms(bidding)}</td><td>${hms(move)}</td><td>${hms(battle)}</td><td>${hms(bidding + move + battle)}</td></tr>`;
+    result += `<tr><td>${p.name}</td><td>${hms(bidding)}</td><td>${hms(move)}</td><td>${hms(battle)}</td><td>${hms(bidding + move + battle)}</td></tr>`;
   }
   return result + "</tbody></table></div>";
 }

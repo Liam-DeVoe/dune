@@ -129,23 +129,23 @@ export function StormLog({ lines, line }: PhaseLogProps) {
         aria-label={from == null ? `The storm is in sector ${end + 1}` : `The storm moves ${distance} sectors`}>
         <defs>
           <marker id="storm-ring-head" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
-            <path d="M0 0 L10 5 L0 10z" />
+            <path className="storm-ring__head" d="M0 0 L10 5 L0 10z" />
           </marker>
         </defs>
         {Array.from({ length: SECTORS }, (_, sector) => {
-          const state = sector === end ? "end" : swept.has(sector) ? "swept" : sector === from ? "start" : "";
-          const h = hot.sectors.has(sector) ? "hot" : "";
+          const state = sector === end ? "storm-ring__wedge--end" : swept.has(sector) ? "storm-ring__wedge--swept" : sector === from ? "storm-ring__wedge--start" : "";
+          const h = hot.sectors.has(sector) ? "storm-ring__wedge--hot" : "";
           return (
-            <path key={sector} className={`w ${state} ${h}`} d={wedge(sector)} data-ref-locations={(bySector.get(sector) ?? []).join(",")}
+            <path key={sector} className={`storm-ring__wedge ${state} ${h}`} d={wedge(sector)} data-ref-locations={(bySector.get(sector) ?? []).join(",")}
               onMouseEnter={() => light(new Set([sector]))} onMouseLeave={() => light(new Set())} />
           );
         })}
-        <circle className="rim" cx={N(Cx)} cy={N(Cy)} r={N(Outer + 1.5)} />
-        {from != null && distance > 1 && <path className="arrow" d={arrow(from, distance)} markerEnd="url(#storm-ring-head)" />}
+        <circle className="storm-ring__rim" cx={N(Cx)} cy={N(Cy)} r={N(Outer + 1.5)} />
+        {from != null && distance > 1 && <path className="storm-ring__arrow" d={arrow(from, distance)} markerEnd="url(#storm-ring-head)" />}
         {from != null && (
           <>
-            <text className="distance" x={N(Cx)} y={N(Cy + 6)} textAnchor="middle">{distance}</text>
-            <text className="label" x={N(Cx)} y={N(Cy + 24)} textAnchor="middle">SECTORS</text>
+            <text className="storm-ring__distance" x={N(Cx)} y={N(Cy + 6)} textAnchor="middle">{distance}</text>
+            <text className="storm-ring__label" x={N(Cx)} y={N(Cy + 24)} textAnchor="middle">SECTORS</text>
           </>
         )}
       </svg>
@@ -156,23 +156,23 @@ export function StormLog({ lines, line }: PhaseLogProps) {
   const dials = dialsLog && (
     <div className="storm-dials">
       <FactionChip faction={dialsLog.first} /><SimpleNumber>{dialsLog.firstDial}</SimpleNumber>
-      <span className="plus">+</span>
+      <span className="storm-dials__plus">+</span>
       <FactionChip faction={dialsLog.second} /><SimpleNumber>{dialsLog.secondDial}</SimpleNumber>
     </div>
   );
 
   const boxes = places(skin, lines).map((place, i) => {
     const overlaps = [...place.sectors].some((s) => hot.sectors.has(s));
-    const h = (hot.place != null ? hot.place === place.territory : overlaps) ? "hot" : "";
+    const h = (hot.place != null ? hot.place === place.territory : overlaps) ? "storm-place--hot" : "";
     const chip = place.locations.length === 1 ? { location: placeId(place.locations[0]) } : { territory: place.territory };
     return (
       <div key={`box${i}`} className={`log-box storm-place ${h}`} data-ref-locations={place.locations.map(placeId).join(",")}
         onMouseEnter={() => light(place.sectors, place.territory)} onMouseLeave={() => light(new Set())}>
         <PlaceChip place={chip} />
-        <div className="lines">
+        <div className="log-box__lines">
           {place.losses.map((loss, j) => loss.type === "StormKilled"
-            ? <div key={j}>The storm kills <Forces faction={loss.faction} forces={loss.forces} specialForces={loss.specialForces} /></div>
-            : <div key={j}>The storm destroys <SpiceComponent amount={String(loss.amount)} /></div>)}
+            ? <div key={j} className="storm-place__loss">The storm kills <Forces faction={loss.faction} forces={loss.forces} specialForces={loss.specialForces} /></div>
+            : <div key={j} className="storm-place__loss">The storm destroys <SpiceComponent amount={String(loss.amount)} /></div>)}
         </div>
       </div>
     );
@@ -199,7 +199,7 @@ export function StormLog({ lines, line }: PhaseLogProps) {
                 {killed.length > 0 && (
                   <div className="log-box" data-ref-locations={shieldWallLocations.join(",")}>
                     <PlaceChip place={{ territory: shieldWall }} />
-                    <div className="lines">
+                    <div className="log-box__lines">
                       {killed.map((k, j) => (
                         <div key={j}>{skin.enumValue("TreacheryCardType", "Metheor")} kills <Forces faction={k.faction} forces={k.forces} specialForces={k.specialForces} /></div>
                       ))}

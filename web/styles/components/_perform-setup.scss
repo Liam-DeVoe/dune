@@ -1,0 +1,36 @@
+// Setting a faction's starting spice and forces (lobby PerformSetupForm): the
+// map hints, then one line per location with forces placed, then the error.
+.perform-setup {
+  &__intro {
+    margin-top: 0.5rem;
+    font-size: 0.875em;
+  }
+
+  &__hints,
+  &__key {
+    font-size: 0.875em;
+  }
+
+  &__placed {
+    margin-top: 0.5rem;
+  }
+
+  &__location {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+  }
+
+  &__place {
+    flex-grow: 1;
+  }
+
+  &__error {
+    margin-top: 0.5rem;
+    font-size: 0.875em;
+    // The error red the language uses for small text on ink.
+    color: #e46b6b;
+  }
+}

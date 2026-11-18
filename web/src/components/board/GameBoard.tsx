@@ -1,5 +1,5 @@
 // The map and its layers, bottom to top, scaled to
-// the board's area by setPlanetMapScale. Lives in GameColumns' .board-area.
+// the board's area by setPlanetMapScale. Lives in GameColumns' .game-screen__board-area.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useSyncExternalStore } from "react";
 import { PhaseValue } from "../../generated/enums";
 import { useGame } from "../../state/context";
@@ -22,13 +22,13 @@ function MapRefArrows() {
   const b = useBoard();
   const { X: w, Y: h } = b.point("MapDimensions");
   return (
-    <svg className="maprefs" width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%" }} pointerEvents="none">
+    <svg className="map-refs" width={w} height={h} viewBox={`0 0 ${w} ${h}`} style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "100%" }} pointerEvents="none">
       <defs>
         <marker id="mapref-head" viewBox="0 0 12 12" refX="9" refY="6" markerWidth="4" markerHeight="4" orient="auto-start-reverse" markerUnits="strokeWidth" overflow="visible">
-          <path d="M0,0 L12,6 L0,12 Z" className="head" />
+          <path d="M0,0 L12,6 L0,12 Z" className="map-arrow__head" />
         </marker>
       </defs>
-      <g className="lines" />
+      <g className="map-refs__lines" />
     </svg>
   );
 }
@@ -75,9 +75,9 @@ export function GameBoard() {
               <RecentBlows />
               <ResourcesOnPlanet />
               <Monsters />
-              <div className="map-corner tr"><Phases /></div>
-              <div className="map-corner bl"><CardPiles which="spice" /></div>
-              <div className="map-corner br"><CardPiles which="treachery" /></div>
+              <div className="map-corner map-corner--tr"><Phases /></div>
+              <div className="map-corner map-corner--bl"><CardPiles which="spice" /></div>
+              <div className="map-corner map-corner--br"><CardPiles which="treachery" /></div>
               <Planet />
               <MapHover />
               <MapSelectionHighlights />
@@ -86,7 +86,7 @@ export function GameBoard() {
               <StagedForces />
               <Players />
               <Bids />
-              <div className="map-corner tl"><Tanks /></div>
+              <div className="map-corner map-corner--tl"><Tanks /></div>
               <Disconnection />
               <BattlePlans />
               <MapRefArrows />

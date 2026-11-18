@@ -1,0 +1,48 @@
+// Badges: a small gold pill holding a count or a short word. The colour
+// modifiers keep the old Bootstrap names (primary, warning, ...) mapped onto
+// the game's palette.
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  color: var(--ink-0);
+  background: var(--gold);
+  border-radius: var(--r-pill);
+
+  &:empty {
+    display: none;
+  }
+
+  .button & {
+    position: relative;
+    top: -1px;
+  }
+
+  &--warning,
+  &--spice {
+    color: var(--parchment);
+    background: var(--spice);
+  }
+
+  &--danger {
+    color: var(--parchment);
+    background: var(--storm);
+  }
+
+  &--secondary,
+  &--success,
+  &--light,
+  &--dark {
+    color: var(--text-2);
+    background: rgba(252, 249, 209, 0.12);
+  }
+}

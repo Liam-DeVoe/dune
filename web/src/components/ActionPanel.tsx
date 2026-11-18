@@ -59,7 +59,7 @@ export function ActionPanel({ filter, inPopover = false }: { filter?: (a: Action
 function WaitingForm({ waiting }: { waiting: WaitingActionView }) {
   return (
     <Layout type={waiting.eventType} header={waiting.title}>
-      <div className="text-muted"><RichText parts={waiting.reason} /></div>
+      <div className="event-form__reason"><RichText parts={waiting.reason} /></div>
     </Layout>
   );
 }

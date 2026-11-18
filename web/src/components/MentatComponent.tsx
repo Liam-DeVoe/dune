@@ -20,8 +20,8 @@ const AMBASSADORS: Ambassador[] = ["Fremen", "Atreides", "Harkonnen", "Emperor",
 const TERROR: TerrorType[] = ["Assassination", "Atomics", "Extortion", "Robbery", "Sabotage", "SneakAttack"];
 const DISCOVERIES: DiscoveryToken[] = ["Jacurutu", "Shrine", "TestingStation", "Cistern", "ProcessingStation", "CardStash", "ResourceStash", "Flight"];
 
-const framedCard = (url: string) => `<div class='pop-art'><img src='${url}'/></div>`;
-const imageHover = (url: string) => `<img src='${url}' width=300 class='img-fluid' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
+const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
+const imageHover = (url: string) => `<img src='${url}' width=300 class='pop-image' style='filter:drop-shadow(-3px 3px 2px black);'/>`;
 
 function resourceCardName(skin: Skin, skinId: number): string {
   const c = skin.resourceCardInfo(skinId);
@@ -40,9 +40,9 @@ const tokenLine = (skin: Skin, name: string, description: string) =>
 
 function Card({ popover, src, alt }: { popover: string; src: string; alt: string }) {
   return (
-    <div className="card">
-      <Hoverable className="card-img-top" popover={popover}>
-        <img src={src} className="card-img" alt={alt} />
+    <div className="card mentat__item">
+      <Hoverable className="card__img card__img--top" popover={popover}>
+        <img src={src} className="card__img" alt={alt} />
       </Hoverable>
     </div>
   );
@@ -54,30 +54,30 @@ export function MentatComponent({ id }: { id: string }) {
   const applicable = (r: Rule) => view.rules.includes(r) || view.rulesForBots.includes(r);
   const isPlaying = (f: Faction) => view.players.some((p) => p.faction === f);
   return (
-    <ModalComponent id={id} title="Card and Token Reference" size="modal-xl">
+    <ModalComponent id={id} title="Card and Token Reference" size="xlarge">
       <h5>Treachery Cards</h5>
-      <div className="row row-cols-3 row-cols-md-6 ms-1 me-1">
+      <div className="mentat__grid">
         {m.treacheryCards.map((c) => <Card key={c} popover={treacheryCardPopup(skin, c)} src={skin.get("TreacheryCardImage_URL", skin.cardSkinId(c))} alt={skin.card(c)} />)}
       </div>
 
       {isPlaying("Richese") && (
         <>
-          <h5 className="mt-2"><FactionChip faction="Richese" /> Cards</h5>
-          <div className="row row-cols-3 row-cols-md-6 ms-1 me-1">
+          <h5 className="mentat__heading"><FactionChip faction="Richese" /> Cards</h5>
+          <div className="mentat__grid">
             {m.richeseCards.map((c) => <Card key={c} popover={treacheryCardPopup(skin, c)} src={skin.get("TreacheryCardImage_URL", skin.cardSkinId(c))} alt={skin.card(c)} />)}
           </div>
         </>
       )}
 
-      <h5 className="mt-2">{skin.concept("Resource")} Cards</h5>
-      <div className="row row-cols-3 row-cols-md-6 ms-1 me-1">
+      <h5 className="mentat__heading">{skin.concept("Resource")} Cards</h5>
+      <div className="mentat__grid">
         {m.resourceCards.map((c) => <Card key={c} popover={resourceCardPopup(skin, c)} src={skin.get("ResourceCardImage_URL", c)} alt={resourceCardName(skin, c)} />)}
       </div>
 
       {applicable("LeaderSkills") && (
         <>
-          <h5 className="mt-2">Leader Skill Cards</h5>
-          <div className="row row-cols-3 row-cols-md-6 ms-1 me-1">
+          <h5 className="mentat__heading">Leader Skill Cards</h5>
+          <div className="mentat__grid">
             {LEADER_SKILLS.map((s) => <Card key={s} popover={leaderSkillPopup(skin, s)} src={skin.get("LeaderSkillCardImage_URL", s)} alt={skin.get("LeaderSkillCardName_STR", s)} />)}
           </div>
         </>
@@ -85,8 +85,8 @@ export function MentatComponent({ id }: { id: string }) {
 
       {applicable("StrongholdBonus") && (
         <>
-          <h5 className="mt-2">Stronghold Cards</h5>
-          <div className="row row-cols-3 row-cols-md-6 ms-1 me-1">
+          <h5 className="mentat__heading">Stronghold Cards</h5>
+          <div className="mentat__grid">
             {ADVANTAGES.map((a) => <Card key={a} popover={imageHover(skin.get("StrongholdCardImage_URL", a))} src={skin.get("StrongholdCardImage_URL", a)} alt={skin.get("StrongholdCardName_STR", a)} />)}
           </div>
         </>
@@ -94,8 +94,8 @@ export function MentatComponent({ id }: { id: string }) {
 
       {applicable("NexusCards") && (
         <>
-          <h5 className="mt-2">Nexus Cards</h5>
-          <div className="row row-cols-3 row-cols-md-6 ms-1 me-1">
+          <h5 className="mentat__heading">Nexus Cards</h5>
+          <div className="mentat__grid">
             {NEXUS.map((n) => <Card key={n} popover={framedCard(skin.get("NexusCardImage_URL", n))} src={skin.get("NexusCardImage_URL", n)} alt={n} />)}
           </div>
         </>
@@ -103,8 +103,8 @@ export function MentatComponent({ id }: { id: string }) {
 
       {applicable("Homeworlds") && (
         <>
-          <h5 className="mt-2">Homeworld Cards</h5>
-          <div className="row row-cols-2 row-cols-md-3 ms-1 me-1">
+          <h5 className="mentat__heading">Homeworld Cards</h5>
+          <div className="mentat__grid mentat__grid--wide">
             {skin.statics.homeworlds.map((w) => (
               <Card key={w.world} popover={framedCard(skin.get("HomeWorldCardImage_URL", w.world))} src={skin.get("HomeWorldCardImage_URL", w.world)} alt={skin.location(w.location)} />
             ))}
@@ -114,11 +114,11 @@ export function MentatComponent({ id }: { id: string }) {
 
       {isPlaying("Ecaz") && (
         <>
-          <h5 className="mt-2">Ambassador Tokens</h5>
-          <div className="row row-cols-6 row-cols-md-12 ms-1 me-1">
+          <h5 className="mentat__heading">Ambassador Tokens</h5>
+          <div className="mentat__grid mentat__grid--tokens">
             {AMBASSADORS.filter((a) => a !== "Moritani").map((a) => (
-              <div key={a} className="card">
-                <Image src={skin.url(skin.get("AmbassadorImage_URL", a))} alt={skin.get("AmbassadorName_STR", a)} width={0} className="card-img" popover={ambassadorPopup(skin, a)} />
+              <div key={a} className="card mentat__item">
+                <Image src={skin.url(skin.get("AmbassadorImage_URL", a))} alt={skin.get("AmbassadorName_STR", a)} width={0} className="card__img" popover={ambassadorPopup(skin, a)} />
               </div>
             ))}
           </div>
@@ -127,7 +127,7 @@ export function MentatComponent({ id }: { id: string }) {
 
       {isPlaying("Moritani") && (
         <>
-          <h5 className="mt-2">Terror Tokens</h5>
+          <h5 className="mentat__heading">Terror Tokens</h5>
           <div>
             <ul>
               {TERROR.map((t) => (
@@ -140,7 +140,7 @@ export function MentatComponent({ id }: { id: string }) {
 
       {applicable("DiscoveryTokens") && (
         <>
-          <h5 className="mt-2">Discovery Tokens</h5>
+          <h5 className="mentat__heading">Discovery Tokens</h5>
           <div>
             <ul>
               {DISCOVERIES.map((d) => (

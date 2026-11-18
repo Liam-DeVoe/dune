@@ -15,12 +15,12 @@ export function AwaitingGameComponent() {
   const settings = g.settings;
   const rules = new Set<string>(settings.initialRules);
   return (
-    <div className="card mb-2">
-      <div className="card-header">Welcome to {g.gameName}</div>
-      <div className="card-body">
-        <div className="mt-1 mb-0"><strong>Maximum number of turns:</strong> {settings.maximumTurns}</div>
-        <div className="mt-1 mb-0"><strong>Maximum number of players:</strong> {settings.numberOfPlayers}</div>
-        <div className="mt-1 mb-0">
+    <div className="card awaiting-game">
+      <div className="card__header">Welcome to {g.gameName}</div>
+      <div className="card__body">
+        <div className="awaiting-game__setting"><strong>Maximum number of turns:</strong> {settings.maximumTurns}</div>
+        <div className="awaiting-game__setting"><strong>Maximum number of players:</strong> {settings.numberOfPlayers}</div>
+        <div className="awaiting-game__setting">
           {settings.allowedFactionsInPlay.map((f, i) => <FactionImage key={i} faction={f} />)}
         </div>
         <JoinedPlayersPanel />
@@ -36,10 +36,10 @@ function RuleList({ title, rules, applicable }: { title: string; rules: string[]
   const [client] = useLobby();
   return (
     <>
-      <label className="mt-1 mb-0 small">{title}</label>
-      <ul className="mt-0 mb-1">
+      <label className="awaiting-game__rules-title">{title}</label>
+      <ul className="awaiting-game__rules">
         {rules.map((r) => (
-          <li key={r} className="small" style={{ color: applicable(r) ? "var(--parchment)" : "var(--text-3)" }}>{client.lobby.labelOf("Rule", r)}</li>
+          <li key={r} className="awaiting-game__rule" style={{ color: applicable(r) ? "var(--parchment)" : "var(--text-3)" }}>{client.lobby.labelOf("Rule", r)}</li>
         ))}
       </ul>
     </>

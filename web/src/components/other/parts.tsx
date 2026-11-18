@@ -38,14 +38,14 @@ export function Layout({ type, header, urgent = false, startCollapsed = false, i
   };
   const shown = header == null ? false : collapsed;
   return (
-    <div className={`card ${urgent ? "card-urgent" : ""} mb-2`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
+    <div className={`card ${urgent ? "card--urgent" : ""} event-form`} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
       {header != null && (
-        <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
+        <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />
           {header}
         </div>
       )}
-      {!shown && <div className="card-body">{children}</div>}
+      {!shown && <div className="card__body">{children}</div>}
     </div>
   );
 }
@@ -65,7 +65,7 @@ export function useOtherDraft<F extends WithDraft["form"]>(action: ActionView, f
 
 // The server's answer to a refused submission, under the form.
 export function SubmitError({ error }: { error: string | null }) {
-  return error ? <div className="text-danger small">{error}</div> : null;
+  return error ? <div className="event-form__error">{error}</div> : null;
 }
 
 export const num = (v: unknown): number => (typeof v === "number" ? v : Number(v ?? 0));
@@ -119,7 +119,7 @@ export function SelectManyFromImage<T>({ values, selected, onChange, imageWidth 
   };
   return (
     <>
-      {label != null && <label className="d-block mt-1 mb-0">{label}</label>}
+      {label != null && <label className="select-from-image__label">{label}</label>}
       <div className="img-choices" onMouseDownCapture={(e) => { shift.current = e.shiftKey; }}>
         {values.map((c) => (
           <Image key={String(c.value)} src={c.src} alt={c.alt} width={imageWidth} popover={c.popover} tooltip={c.tooltip ?? null} pointer highlightOnHover
@@ -134,8 +134,8 @@ export function SelectNumber({ value, onChange, min, max, label = "" }: {
   value: number; onChange: (v: number) => void; min: number; max: number; label?: string;
 }) {
   return (
-    <div className="d-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="event-form__stepper event-form__stepper--block">
+      {label !== "" && <label className="event-form__stepper-label">{label}</label>}
       <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolFill="white" />
     </div>
   );
@@ -154,12 +154,12 @@ export function Radio<T>({ values, value, onChange, label }: {
   const id = useId();
   return (
     <>
-      {label != null && <label className="mb-0" htmlFor={id}>{label}</label>}
+      {label != null && <label htmlFor={id}>{label}</label>}
       {values.map((c, i) => (
-        <div key={i} className="form-check mb-0">
-          <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(c.value)}
+        <div key={i} className="check event-form__radio">
+          <input className="check__input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(c.value)}
                  checked={c.value === value} onChange={() => onChange(c.value)} />
-          <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}
+          <label className="check__label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}
                  dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, c.label) }} />
         </div>
       ))}
@@ -168,16 +168,16 @@ export function Radio<T>({ values, value, onChange, label }: {
 }
 
 // A row of buttons where one is on.
-export function Segmented<T>({ values, value, onChange, label, className = "mt-1" }: {
+export function Segmented<T>({ values, value, onChange, label, className = "event-form__field" }: {
   values: Choice<T>[]; value: T; onChange: (v: T) => void; label?: ReactNode; className?: string;
 }) {
   const id = useId();
   return (
     <div className={className}>
-      {label != null && <label className="mb-0 d-block" id={`${id}-label`}>{label}</label>}
+      {label != null && <label className="event-form__seg-label" id={`${id}-label`}>{label}</label>}
       <div className="seg" role="radiogroup" aria-labelledby={label != null ? `${id}-label` : undefined}>
         {values.map((c, i) => (
-          <button key={i} type="button" role="radio" aria-checked={c.value === value} className={c.value === value ? "on" : ""}
+          <button key={i} type="button" role="radio" aria-checked={c.value === value} className={c.value === value ? "seg__button seg__button--on" : "seg__button"}
                   onClick={() => onChange(c.value)}>
             {c.label}
           </button>
@@ -187,12 +187,12 @@ export function Segmented<T>({ values, value, onChange, label, className = "mt-1
   );
 }
 
-export function CommandButton({ onClick, children, className = "btn-primary", small = false, margin = "me-1" }: {
+export function CommandButton({ onClick, children, className = "button--primary", small = false, margin = "event-form__command" }: {
   onClick: () => Promise<void> | void; children: ReactNode; className?: string; small?: boolean; margin?: string;
 }) {
   const [busy, setBusy] = useState(false);
   return (
-    <button className={`btn ${className} ${small ? "btn-sm" : ""} ${margin} `} disabled={busy}
+    <button className={`button ${className} ${small ? "button--small" : ""} ${margin} `} disabled={busy}
             onClick={async () => { setBusy(true); try { await onClick(); } finally { setBusy(false); } }}>
       {children}
     </button>

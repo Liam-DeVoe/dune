@@ -22,7 +22,7 @@ export function TurnBanner() {
     <>
       <div className="turn-banner-space"></div>
       <div className="turn-banner" role="status">
-        <span className="label">Your turn</span>{" "}
+        <span className="turn-banner__label">Your turn</span>{" "}
         <BannerClock view={view} />
       </div>
     </>
@@ -34,5 +34,5 @@ export function TurnBanner() {
 function BannerClock({ view }: { view: GameView }) {
   const clock = useClock();
   const from = view.status.timedEventTime ?? view.timing.lastActivity;
-  return <span className="clock">{from ? since(clock, from) : ""}</span>;
+  return <span className="turn-banner__clock">{from ? since(clock, from) : ""}</span>;
 }

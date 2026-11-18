@@ -54,22 +54,22 @@ export function TradePopover() {
           ? (
             <>
               {tabs.length > 1 && (
-                <div className="pop-tabs">
-                  {tabs.map((t) => <button key={t} className={t === current ? "on" : ""} onClick={() => setTab(t)}>{tabName(t)}</button>)}
+                <div className="trade-pop__tabs">
+                  {tabs.map((t) => <button key={t} className={t === current ? "trade-pop__tab trade-pop__tab--on" : "trade-pop__tab"} onClick={() => setTab(t)}>{tabName(t)}</button>)}
                 </div>
               )}
-              <div className="pop-body">
+              <div className="trade-pop__body">
                 {current === "Deals" ? <DealComponent open />
                   : current === "Offer" ? <ActionPanel filter={(a) => a.eventType === "DealOffered"} inPopover />
                   : current === "Give" ? <ActionPanel filter={(a) => a.eventType === "Donated"} inPopover />
-                  : <p className="pop-empty">No deals.</p>}
+                  : <p className="trade-pop__empty">No deals.</p>}
               </div>
             </>
           )
           : m.panel === "Alliance"
-            ? <div className="pop-body"><ActionPanel filter={(a) => a.eventType === "AllyPermission"} inPopover /></div>
+            ? <div className="trade-pop__body"><ActionPanel filter={(a) => a.eventType === "AllyPermission"} inPopover /></div>
             : (
-              <div className="pop-body">
+              <div className="trade-pop__body">
                 {view.notes !== null && <NoteComponent open />}
                 {PhaseValue[view.phase] >= PhaseValue.SelectingTraitors && view.viewer.faction === "Atreides" && <TrackerComponent open />}
               </div>

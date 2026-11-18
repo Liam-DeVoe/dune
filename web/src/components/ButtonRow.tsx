@@ -1,9 +1,10 @@
 // Other, Pass and Confirm, in that order. The
-// validation message (ConfirmError) disables only the confirm button.
+// validation message (ConfirmError) disables only the confirm button. The row sits at the right of
+// the form unless `alignEnd` is false.
 import type { Part } from "../generated/Part";
 
 export function ButtonRow({ confirm, confirmText = "Confirm", confirmError = null, pass, passText = "Pass", other, otherText = "Other",
-  alignment = "text-end", disabled = false }: {
+  alignEnd = true, disabled = false }: {
   confirm?: () => void;
   confirmText?: string;
   confirmError?: Part[] | null;
@@ -11,14 +12,14 @@ export function ButtonRow({ confirm, confirmText = "Confirm", confirmError = nul
   passText?: string;
   other?: () => void;
   otherText?: string;
-  alignment?: string;
+  alignEnd?: boolean;
   disabled?: boolean;
 }) {
   return (
-    <div className={`mt-2 ${alignment}`}>
-      {other && <button className="btn btn-primary me-1" onClick={other} disabled={disabled}>{otherText}</button>}
-      {pass && <button className="btn btn-primary me-1" onClick={pass} disabled={disabled}>{passText}</button>}
-      {confirm && <button className="btn btn-primary" onClick={confirm} disabled={disabled || confirmError != null}>{confirmText}</button>}
+    <div className={alignEnd ? "button-row button-row--end" : "button-row"}>
+      {other && <button className="button button--primary button-row__button" onClick={other} disabled={disabled}>{otherText}</button>}
+      {pass && <button className="button button--primary button-row__button" onClick={pass} disabled={disabled}>{passText}</button>}
+      {confirm && <button className="button button--primary" onClick={confirm} disabled={disabled || confirmError != null}>{confirmText}</button>}
     </div>
   );
 }

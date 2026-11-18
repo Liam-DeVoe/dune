@@ -1,0 +1,94 @@
+// Atreides' card tracker (TrackerComponent): a toggle per faction and for the
+// two discard piles, then the chosen faction's cards (four to a row), the
+// discarded cards as a wrapping list, or the spice deck. The "Pick a card"
+// modal shows the choices three to a row, six from 768px.
+.tracker {
+  margin-bottom: 0.5rem;
+
+  &__info {
+    display: inline;
+  }
+
+  &__toggles {
+    margin-bottom: 0.25rem;
+  }
+
+  &__toggle {
+    padding: 0.25rem;
+  }
+
+  &__toggle-img,
+  &__card-img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  &__toggle-img--pile {
+    margin-left: 0.25rem;
+    margin-right: 0.25rem;
+  }
+
+  &__cards,
+  &__picks {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  &__card,
+  &__pick {
+    flex: 0 0 auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.25rem;
+  }
+
+  &__card {
+    width: 25%;
+  }
+
+  &__card-img--none {
+    width: 100%;
+  }
+
+  &__pick {
+    width: 33.33333333%;
+    border: 0;
+
+    @media (min-width: 768px) {
+      width: 16.66666667%;
+    }
+
+    // The card just won at auction.
+    &--won {
+      border: 1px solid #79b34c;
+      background-color: var(--sand);
+    }
+  }
+
+  &__pile {
+    font-size: 0.875em;
+  }
+
+  &__discards {
+    margin-top: 0;
+    padding-left: 0;
+    list-style: none;
+  }
+
+  &__discard {
+    display: inline-block;
+
+    &:not(:last-child) {
+      margin-right: 0.5rem;
+    }
+
+    &--none {
+      color: var(--gold);
+    }
+  }
+
+  // Two classes, to beat .pop p's margin in the trade popover.
+  & &__discard-text {
+    margin-bottom: 0;
+  }
+}

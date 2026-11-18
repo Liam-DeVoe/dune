@@ -26,8 +26,8 @@ const TRIP_TO_GAMONT = 32;
 function CardChip({ id }: { id: number }) {
   const { skin } = useGame();
   return (
-    <PopoverText popover={treacheryCardPopup(skin, id)} className="chip ref-card">
-      <img src={skin.cardImage(id)} alt="" /><span className="name">{skin.card(id)}</span>
+    <PopoverText popover={treacheryCardPopup(skin, id)} className="chip chip--ref-card">
+      <img className="chip__img" src={skin.cardImage(id)} alt="" /><span className="chip__name">{skin.card(id)}</span>
     </PopoverText>
   );
 }
@@ -35,7 +35,7 @@ function CardChip({ id }: { id: number }) {
 function NexusChip({ faction }: { faction: Faction }) {
   const { skin } = useGame();
   const name = `${skin.faction(faction)} Nexus`;
-  return <span className="chip ref-card" title={name}><img src={skin.url(skin.get("NexusCardImage_URL", faction))} alt="" /><span className="name">{name}</span></span>;
+  return <span className="chip chip--ref-card" title={name}><img className="chip__img" src={skin.url(skin.get("NexusCardImage_URL", faction))} alt="" /><span className="chip__name">{name}</span></span>;
 }
 
 const Karama = () => <CardChip id={KARAMA} />;
@@ -123,12 +123,12 @@ export function OwnLines({ view, reasons, style }: { view: GameView; reasons: Pa
   const available = new Set(view.actions.map((a) => a.eventType));
   const can = ws.filter((w) => w.actions.some((a) => available.has(a)));
   if (can.length > 0) {
-    return <div className="text-dark fw-bold text-center" style={style}>You may still {joinOr(can.map((w) => w.you))}</div>;
+    return <div className="game-status__message" style={style}>You may still {joinOr(can.map((w) => w.you))}</div>;
   }
   return (
     <>
-      <div className="text-dark fw-bold text-center" style={style}>Waiting for you to continue</div>
-      <div className="text-dark text-center mt-1">You may {joinOr(ws.map((w) => w.cant))}.</div>
+      <div className="game-status__message" style={style}>Waiting for you to continue</div>
+      <div className="game-status__line">You may {joinOr(ws.map((w) => w.cant))}.</div>
     </>
   );
 }

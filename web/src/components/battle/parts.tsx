@@ -36,14 +36,14 @@ export function Layout({ type, header, urgent = false, inPopover = false, classN
     collapsedByType.set(type, !collapsed);
     setCollapsed(!collapsed);
   };
-  const classes = ["card", urgent ? "card-urgent" : "", className, "mb-2"].filter((c) => c).join(" ");
+  const classes = ["card", urgent ? "card--urgent" : "", className, "event-form"].filter((c) => c).join(" ");
   return (
     <div className={classes} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
-      <div className="card-header" style={{ cursor: "pointer" }} onClick={toggle}>
+      <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
         <CollapseButton collapsed={collapsed} />
         {header}
       </div>
-      {!collapsed && <div className="card-body">{children}</div>}
+      {!collapsed && <div className="card__body">{children}</div>}
     </div>
   );
 }
@@ -70,7 +70,7 @@ export function useBattleDraft<F extends WithDraft["form"]>(action: ActionView, 
 
 // The server's answer to a refused submission, under the form.
 export function SubmitError({ error }: { error: string | null }) {
-  return error ? <div className="text-danger small">{error}</div> : null;
+  return error ? <div className="event-form__error">{error}</div> : null;
 }
 
 // One radio per value, with an optional label above.
@@ -84,12 +84,12 @@ export function Radio<T>({ values, labels, value, onChange, label }: {
   const id = useId();
   return (
     <>
-      {label != null && <label className="mb-0" htmlFor={id}>{label}</label>}
+      {label != null && <label htmlFor={id}>{label}</label>}
       {values.map((v, i) => (
-        <div key={String(v)} className="form-check mb-0">
-          <input className="form-check-input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(v)}
+        <div key={String(v)} className="check event-form__radio">
+          <input className="check__input" style={{ cursor: "pointer" }} type="radio" id={`${id}-${i}`} value={String(v)}
                  checked={v === value} onChange={() => onChange(v)} />
-          <label className="form-check-label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}>{labels[i]}</label>
+          <label className="check__label" style={{ cursor: "pointer" }} htmlFor={`${id}-${i}`}>{labels[i]}</label>
         </div>
       ))}
     </>
@@ -111,8 +111,8 @@ export function SelectForces({ value, onChange, onStep, min, max, faction, speci
   const { skin } = useGame();
   const src = skin.url(skin.get(special ? "FactionSpecialForceImage_URL" : "FactionForceImage_URL", faction));
   return (
-    <div className="d-inline-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="event-form__stepper">
+      {label !== "" && <label className="event-form__stepper-label">{label}</label>}
       <NumberPicker value={value} onChange={onChange} onStep={onStep} min={min} max={max} symbolSrc={src}
                     symbolStarred={special && hasStarredSpecialForce(faction)} symbolFill={skin.factionColor(faction)} />
     </div>
@@ -152,10 +152,10 @@ export function idOrNull(v: unknown): number | null {
 export function PinActions({ label, validation, cancel, confirm }: { label: string; validation: Part[] | null; cancel: () => void; confirm: () => void }) {
   return (
     <>
-      {validation && <div className="pin-error"><RichText parts={validation} /></div>}
-      <div className="pin-actions">
-        <button type="button" className="btn btn-secondary" onClick={cancel}>Cancel</button>
-        <button type="button" className="btn btn-primary" disabled={validation !== null} onClick={confirm}>{label}</button>
+      {validation && <div className="map-pin__error"><RichText parts={validation} /></div>}
+      <div className="map-pin__actions">
+        <button type="button" className="button button--secondary" onClick={cancel}>Cancel</button>
+        <button type="button" className="button button--primary" disabled={validation !== null} onClick={confirm}>{label}</button>
       </div>
     </>
   );
@@ -179,14 +179,14 @@ export function MapForceStepper({ value, onChange, min, max, faction, special }:
   };
   return (
     <div className="pin-step" title={title}>
-      <span className="ic" style={{ background: skin.factionColor(faction) }}>
+      <span className="pin-step__ic" style={{ background: skin.factionColor(faction) }}>
         {special && hasStarredSpecialForce(faction)
-          ? <span className="force-token starred" style={{ ["--d" as string]: "16px" }}><img src={src} alt="" /></span>
-          : <img src={src} alt="" />}
+          ? <span className="force-token force-token--starred" style={{ ["--d" as string]: "16px" }}><img className="pin-step__ic-img force-token__img" src={src} alt="" /></span>
+          : <img className="pin-step__ic-img" src={src} alt="" />}
       </span>
-      <button type="button" tabIndex={-1} aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>
-      <span className="val">{value}</span>
-      <button type="button" tabIndex={-1} aria-label="More" disabled={value >= max} onClick={() => change(1)}>+</button>
+      <button type="button" tabIndex={-1} className="pin-step__button" aria-label="Fewer" disabled={value <= min} onClick={() => change(-1)}>−</button>
+      <span className="pin-step__value">{value}</span>
+      <button type="button" tabIndex={-1} className="pin-step__button" aria-label="More" disabled={value >= max} onClick={() => change(1)}>+</button>
     </div>
   );
 }

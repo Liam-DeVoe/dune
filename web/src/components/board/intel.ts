@@ -4,18 +4,18 @@ import type { Board } from "./geometry";
 import { forceTokenHtml } from "./primitives";
 import { strongholdAdvantage } from "./popups";
 
-const STORM_GLYPH =
-  "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'>" +
+const stormGlyph = (className: string) =>
+  `<svg class='${className}' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round'>` +
   "<path d='M3 7h9.5a2.5 2.5 0 1 0-2.5-2.5'/><path d='M3 12h15a2.5 2.5 0 1 1-2.5 2.5'/><path d='M3 17h7a2 2 0 1 1-2 2'/></svg>";
 
 function feature(title: string, body: string, icon = ""): string {
-  return `<div class='feat'><div class='ic'>${icon}</div><div><b>${title}</b><span>${body}</span></div></div>`;
+  return `<div class='intel-feat'><div class='intel-feat__icon'>${icon}</div><div><b class='intel-feat__title'>${title}</b><span class='intel-feat__text'>${body}</span></div></div>`;
 }
 
 function hazard(protectedFrom: boolean, icon: string): string {
-  const classes = protectedFrom ? "chip hazard protected" : "chip hazard exposed";
+  const classes = protectedFrom ? "chip chip--hazard chip--protected" : "chip chip--hazard chip--exposed";
   const word = protectedFrom ? "Protected" : "Exposed";
-  return `<span class='${classes}'>${icon}<span class='name'>${word}</span></span>`;
+  return `<span class='${classes}'>${icon}<span class='chip__name'>${word}</span></span>`;
 }
 
 export function locationIntel(b: Board, id: number): string {
@@ -30,12 +30,12 @@ export function locationIntel(b: Board, id: number): string {
   if (owner !== undefined) {
     result += strongholdAdvantage(b, t.advantage, owner);
   } else {
-    const sector = l.orientation !== "" ? ` <span class='sector'>${l.orientation}</span>` : "";
+    const sector = l.orientation !== "" ? ` <span class='intel__sector'>${l.orientation}</span>` : "";
     result += `<h5>${skin.territory(l.territory)}${sector}</h5>`;
   }
   if (b.d.ShowVerboseToolipsOnMap) {
-    if (b.sector(id) === board.sectorInStorm) result += `<div class='in-storm'>${STORM_GLYPH}<span>In storm</span></div>`;
-    result += "<div class='feats'>";
+    if (b.sector(id) === board.sectorInStorm) result += `<div class='intel__storm'>${stormGlyph("intel__storm-icon")}<span>In storm</span></div>`;
+    result += "<div class='intel__feats'>";
     if (id === map.polarSink) result += feature("Safe haven", "No battles are fought here.");
     if (t.isStronghold || board.specialStrongholds.includes(l.territory)) result += feature("Stronghold", "Yields a victory point at end of turn.");
     if (l.kind === "discovered" && l.discovery) {
@@ -54,9 +54,9 @@ export function locationIntel(b: Board, id: number): string {
     if (l.spiceBlowAmount > 0) {
       result += feature(`${resource} blow`, `May contain ${shared.spiceHtml(skin, String(l.spiceBlowAmount), 18)} after ${skin.enumValue("MainPhase", "Blow")}.`);
     }
-    result += "</div><div class='hazards'>";
-    result += hazard(t.isProtectedFromWorm, `<img src='${b.s("Monster_URL")}' />`);
-    result += hazard(board.protectedFromStorm.includes(id), STORM_GLYPH);
+    result += "</div><div class='intel__hazards'>";
+    result += hazard(t.isProtectedFromWorm, `<img class='chip__icon' src='${b.s("Monster_URL")}' />`);
+    result += hazard(board.protectedFromStorm.includes(id), stormGlyph("chip__icon"));
     result += "</div>";
   }
   result += spiceAndForceAndTokenInfo(b, id);
@@ -67,31 +67,31 @@ function spiceAndForceAndTokenInfo(b: Board, id: number): string {
   const skin = b.skin;
   const board = b.view.board;
   const territory = b.territoryOf(id);
-  let result = "<div class=\"row m-0 bg-dark d-flex justify-content-center\">";
+  let result = "<div class='intel__tokens'>";
   const spice = board.spice.find((s) => s.location === id);
-  if (spice) result += `<div class="col col-auto">${shared.spiceHtml(skin, String(spice.amount), 32)}</div>`;
+  if (spice) result += `<div class="intel__token">${shared.spiceHtml(skin, String(spice.amount), 32)}</div>`;
   for (const bt of board.forces.filter((x) => x.location === id)) {
     if (bt.forces > 0) {
-      result += `<div class="col col-auto">${forceTokenHtml(skin.get("FactionForceImage_URL", bt.faction), bt.faction, false, 32)}<strong>&nbsp;${bt.forces}</strong></div>`;
+      result += `<div class="intel__token">${forceTokenHtml(skin.get("FactionForceImage_URL", bt.faction), bt.faction, false, 32)}<strong>&nbsp;${bt.forces}</strong></div>`;
     }
     if (bt.specialForces > 0) {
       const me = b.view.viewer.faction;
       // Richese's special force is the No-Field, whose value only Richese may know.
       const amount = bt.faction === "Richese" && me !== "Richese" ? "?" : String(bt.faction === "Richese" ? board.noFieldValue : bt.specialForces);
-      result += `<div class="col col-auto">${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", bt.faction), bt.faction, true, 32)}<strong>&nbsp;${amount}</strong></div>`;
+      result += `<div class="intel__token">${forceTokenHtml(skin.get("FactionSpecialForceImage_URL", bt.faction), bt.faction, true, 32)}<strong>&nbsp;${amount}</strong></div>`;
     }
   }
   const terror = board.terror.filter((x) => x.territory === territory).length;
   if (terror > 0) {
-    result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="32" height="32" src="${skin.get("FactionImage_URL", "Moritani")}" style="filter:hue-rotate(180deg);" /><strong>&nbsp;${terror}</strong></div>`;
+    result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("FactionImage_URL", "Moritani")}" style="filter:hue-rotate(180deg);" /><strong>&nbsp;${terror}</strong></div>`;
   }
   const ambassador = board.ambassadors.find((a) => a.territory === territory);
-  if (ambassador) result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="32" height="32" src="${skin.get("AmbassadorImage_URL", ambassador.ambassador)}" /></div>`;
+  if (ambassador) result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("AmbassadorImage_URL", ambassador.ambassador)}" /></div>`;
   const discovery = board.discoveries.find((d) => d.location === id);
-  if (discovery) result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="32" height="32" src="${skin.get("DiscoveryTokenTypeImage_URL", discovery.tokenType)}" /></div>`;
+  if (discovery) result += `<div class="intel__token"><img class="intel__token-img" width="32" height="32" src="${skin.get("DiscoveryTokenTypeImage_URL", discovery.tokenType)}" /></div>`;
   for (const h of board.leaders.filter((x) => x.territory === territory)) {
     const src = h.hero.t === "leader" ? skin.get("PersonImage_URL", h.hero.id) : h.hero.t === "messiah" ? b.s("Messiah_URL") : skin.get("TreacheryCardImage_URL", skin.cardSkinId(h.hero.id));
-    result += `<div class="col col-auto"><img class="img-fluid m-0 p-0" width="64" height="64" src="${src}" /></div>`;
+    result += `<div class="intel__token"><img class="intel__token-img" width="64" height="64" src="${src}" /></div>`;
   }
   return result + "</div>";
 }

@@ -1,7 +1,6 @@
-// The map's hover popovers: the data-bs-* attributes the map components (MapImage, MapText,
-// Planet, MapPopoverArea, MapForce) put on their elements, shown by Bootstrap through the shared
-// usePopover hook (src/popover.ts), in the frame `template` builds.
-import { usePopover } from "../../popover";
+// The map's hover popovers, as the map components (MapImage, MapText, Planet, MapPopoverArea,
+// MapForce) set them up: the shared usePopover hook (src/popover.ts) in the map's frame (.map-pop).
+import { setPopoversEnabled, usePopover, type Placement } from "../../popover";
 
 // The default popover style: the ink frame. Popovers that bring their own frame pass "".
 export const DEFAULT_POPOVER_STYLE =
@@ -14,42 +13,25 @@ export function html(content: Html): string | null {
   return typeof content === "function" ? content() : content ?? null;
 }
 
-function template(style: string): string {
-  return `<div class="popover" role="tooltip" style="${style}"><div class="arrow"></div><h3 class="popover-header p-0"></h3><div class="popover-body p-0"></div></div>`;
-}
-
 export interface MapPopoverOptions {
   style?: string;
   delay?: number;
-  placement?: string;
+  placement?: Placement;
 }
 
-// The attributes and the element ref for a map popover; no attributes without content.
+// The ref for an element with a map popover; none without content.
 export function useMapPopover<T extends Element>(content: string | null, options: MapPopoverOptions = {}) {
-  const ref = usePopover<T>(content);
-  const attributes: Record<string, string> = content === null ? {} : {
-    "data-bs-trigger": "hover",
-    "data-bs-toggle": "popover",
-    "data-bs-html": "true",
-    "data-bs-animation": "false",
-    "data-bs-delay": String(options.delay ?? 100),
-    ...(options.placement ? { "data-bs-placement": options.placement } : {}),
-    "data-container": "body",
-    "data-bs-content": content,
-    "data-bs-template": template(options.style ?? DEFAULT_POPOVER_STYLE),
-  };
-  return { ref, attributes };
+  return usePopover<T>(content, {
+    placement: options.placement ?? "right",
+    delay: options.delay ?? 100,
+    className: "map-pop",
+    bodyClassName: "map-pop__body",
+    style: options.style ?? DEFAULT_POPOVER_STYLE,
+  });
 }
 
 // SetMapPopoversEnabled: intel popovers are off while a panel is pinned on the map.
 export function setMapPopoversEnabled(enabled: boolean): void {
   const inner = document.getElementById("planetmap_inner");
-  const bs = window.bootstrap as unknown as { Popover: { getInstance(e: Element): { enable(): void; disable(): void; hide(): void } | null } } | undefined;
-  if (!inner || !bs) return;
-  inner.querySelectorAll('[data-bs-toggle="popover"]').forEach((el) => {
-    const p = bs.Popover.getInstance(el);
-    if (!p) return;
-    if (enabled) p.enable();
-    else { p.hide(); p.disable(); }
-  });
+  if (inner) setPopoversEnabled(inner, enabled);
 }

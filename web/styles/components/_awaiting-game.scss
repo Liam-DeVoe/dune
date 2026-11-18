@@ -1,0 +1,26 @@
+// What a joined player sees while the host sets up the game
+// (AwaitingGameComponent): the settings, the factions in play, the players
+// and the rules in each group, the ones not in play dimmed.
+.awaiting-game {
+  margin-bottom: 0.5rem;
+
+  &__setting {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+  }
+
+  &__rules-title {
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+    font-size: 0.875em;
+  }
+
+  &__rules {
+    margin-top: 0;
+    margin-bottom: 0.25rem;
+  }
+
+  &__rule {
+    font-size: 0.875em;
+  }
+}

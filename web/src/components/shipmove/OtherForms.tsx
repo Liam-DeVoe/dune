@@ -97,9 +97,9 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
   return (
     <EventLayout type="SetShipmentPermission" header="Manage shipment permissions">
       {(o?.permissions.length ?? 0) > 0 && (
-        <table className="table table-sm">
+        <table className="table table--small table--dark">
           <thead>
-            <tr className="table-dark">
+            <tr>
               <th scope="col">Faction</th>
               <th scope="col">Cross planet</th>
               <th scope="col">To (own) homeworld</th>
@@ -109,20 +109,20 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
           </thead>
           <tbody>
             {o!.permissions.map((row) => (
-              <tr key={row.faction} className="table-dark">
+              <tr key={row.faction}>
                 <td><img width={24} src={skin.factionImage(row.faction)} /></td>
                 <td>{yes(row.cross)}</td>
                 <td>{yes(row.toHomeworld)}</td>
                 <td>{yes(row.guildRate)}</td>
-                <td><button className="btn btn-primary btn-sm" onClick={() => void send({ factions: [row.faction], permission: permission(false, false, false) })}>Revoke</button></td>
+                <td><button className="button button--primary button--small" onClick={() => void send({ factions: [row.faction], permission: permission(false, false, false) })}>Revoke</button></td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
-      <div className="mt-2">
+      <div className="event-form__section">
         {/* SelectFromImageComponent with a Selected list: each click toggles a faction. */}
-        <label className="d-block mt-1 mb-0">Set permissions for:</label>
+        <label className="select-from-image__label">Set permissions for:</label>
         <div className="img-choices">
           {(o?.targets ?? []).map((f) => {
             const faction = f as Faction;
@@ -134,7 +134,7 @@ export function SetShipmentPermissionForm({ action }: { action: ActionView }) {
           })}
         </div>
       </div>
-      <div className="mt-1">
+      <div className="event-form__field">
         <Checkbox value={cross} onChange={(v) => update(targets, v, homeworld, discount)}>Allow cross planet shipments</Checkbox>
         <Checkbox value={homeworld} onChange={(v) => update(targets, cross, v, discount)}>Allow shipment to (own) homeworld</Checkbox>
         <Checkbox value={discount} onChange={(v) => update(targets, cross, homeworld, v)}>May ship at half price</Checkbox>
@@ -162,7 +162,7 @@ export function DiscoveryRevealedForm({ action }: { action: ActionView }) {
       {current && token && (
         <>
           <div>Reveal the <PopoverText popover={discoveryTokenPopup(skin, token)}>{skin.get("DiscoveryTokenName_STR", token)}</PopoverText> in <PlaceChip place={{ territory: current.territory }} />?</div>
-          <div className="label-info" dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, skin.get("DiscoveryTokenDescription_STR", token)) }} />
+          <div dangerouslySetInnerHTML={{ __html: withSpiceIcons(skin, skin.get("DiscoveryTokenDescription_STR", token)) }} />
         </>
       )}
       <ButtonRow confirm={confirm} confirmError={validation} pass={() => void pass()} />
@@ -257,24 +257,24 @@ export function PerformFremenSetupForm({ action }: { action: ActionView }) {
     <EventLayout type="PerformFremenSetup" urgent header={remaining > 0
       ? <>Distribute {remaining} forces on <PartsPlace parts={places[0]} />, <PartsPlace parts={places[1]} />, and <PartsPlace parts={places[2]} />.</>
       : <>All forces placed.</>}>
-      <div className="small">Use the map to place forces.</div>
-      <div className="small text-2">
+      <div className="event-form__note">Use the map to place forces.</div>
+      <div className="event-form__note">
         <div><ClickHint button="Lmb" /> place <ForceToken faction={faction} size={18} imgClass="setup-hint-force" title={names.force} /></div>
         {o?.mayStageSpecial && <div><ClickHint button="Lmb" shift /> place <ForceToken faction={faction} special size={18} imgClass="setup-hint-force" title={names.special} /></div>}
         <div><ClickHint button="Rmb" /> remove force</div>
       </div>
       {shown.length > 0 && (
-        <div className="mt-2">
+        <div className="event-form__section">
           {shown.map(([l, b]) => (
-            <div key={l} className="d-flex align-items-center gap-1 mt-1 small">
-              <span className="flex-grow-1"><PlaceChip place={{ location: l }} /></span>
+            <div key={l} className="event-form__staged">
+              <span className="event-form__staged-place"><PlaceChip place={{ location: l }} /></span>
               <MapForceStepper value={b.forces} onChange={(v) => step(l, v, false)} max={b.forces + room(false)} faction={faction} label={names.force} />
               {o?.mayStageSpecial && <MapForceStepper value={b.specialForces} onChange={(v) => step(l, v, true)} max={b.specialForces + room(true)} faction={faction} special label={names.special} />}
             </div>
           ))}
         </div>
       )}
-      <Validation parts={validation} className="small text-danger mt-2" />
+      <Validation parts={validation} className="event-form__error event-form__error--spaced" />
       <ButtonRow confirm={confirm} confirmText="Confirm" confirmError={validation} />
     </EventLayout>
   );
@@ -296,7 +296,7 @@ function ClickHint({ button, shift = false }: { button: "Lmb" | "Rmb"; shift?: b
   const left = button === "Lmb";
   return (
     <>
-      {shift && <span><kbd className="small">shift</kbd>+</span>}
+      {shift && <span><kbd>shift</kbd>+</span>}
       <svg x="0" y="0" fill="currentColor" width="16" height="16" viewBox="0 0 356.572 356.572" style={{ margin: "-1px 0 0 0" }}>
         <title>{left ? "click map to select" : "right-click map to select"}</title>
         <path d={MOUSE + (left ? "M154.938,40.068V143.73c-15.879,2.802-62.566-10.271-62.566-10.271 C80.233,41.004,154.938,40.068,154.938,40.068z" : "M264.272,130.378c0,0-46.687,13.072-62.566,10.271V36.988 C201.706,36.988,276.412,37.923,264.272,130.378z")} />
@@ -347,14 +347,14 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
     territoryOf,
     faction,
     pin: () => (
-      <div className="pin-body">
+      <div>
         {movesForces ? (
           <>
             {fremenForces.map(([l, b]) => {
               const s = o?.fremenSources.find((x) => x.location === l);
               return (
-                <div key={l} className="pin-row">
-                  {fremenForces.length > 1 && <span className="pin-from"><PlaceChip place={{ location: l }} /></span>}
+                <div key={l} className="map-pin__row">
+                  {fremenForces.length > 1 && <span className="map-pin__from"><PlaceChip place={{ location: l }} /></span>}
                   {(s?.forces ?? 0) > 0 && <MapForceStepper value={b.forces} onChange={(v) => setFremen(l, v, false)} max={s!.forces} faction={faction} />}
                   {(s?.specialForces ?? 0) > 0 && <MapForceStepper value={b.specialForces} onChange={(v) => setFremen(l, v, true)} max={s!.specialForces} faction={faction} special />}
                 </div>
@@ -364,7 +364,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
           </>
         ) : (
           <>
-            <div className="pin-row">
+            <div className="map-pin__row">
               <MapForceStepper value={guildAmount} onChange={(v) => d.set({ guildForceAmount: v })} max={o?.guildMaxForces ?? 0} faction={faction} />
             </div>
             <PinActions validation={d.validation} cancel={pick.clear} confirm={d.confirm} label="Send" />
@@ -407,7 +407,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
       body = (
         <>
           <div>Discard cards from your hand for <SpiceComponent amount="3" /> each?</div>
-          <label className="d-block mt-1 mb-0">Select the cards you wish to discard for <SpiceComponent amount="3" /> each</label>
+          <label className="select-from-image__label">Select the cards you wish to discard for <SpiceComponent amount="3" /> each</label>
           <div className="img-choices">
             {(o?.choamCards ?? []).map((c) => {
               const on = choamCards.includes(c);
@@ -441,7 +441,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
         <>
           <div>Move a group of your forces?</div>
           {fremenSources.length > 0
-            ? <div className="small">Use the map to move forces: click the sector to move from, then where to move to.</div>
+            ? <div className="event-form__note">Use the map to move forces: click the sector to move from, then where to move to.</div>
             : <div>You don't have any forces to move.</div>}
         </>
       );
@@ -465,7 +465,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
       body = (
         <>
           <div>Send up to 4 {forceToken} to any location?</div>
-          {guildTargets.length > 0 ? <div className="small">Use the map to choose a location.</div> : <div>There are no valid locations to ship to.</div>}
+          {guildTargets.length > 0 ? <div className="event-form__note">Use the map to choose a location.</div> : <div>There are no valid locations to ship to.</div>}
         </>
       );
       break;
@@ -474,7 +474,7 @@ export function AmbassadorActivatedForm({ action }: { action: ActionView }) {
         <>
           <div>Revive one of your leaders or up to 4 {forceToken} for free?</div>
           {(o?.tleilaxuMaxAmount ?? 0) > 0 && (
-            <div className="d-inline-flex align-items-center">
+            <div className="event-form__stepper">
               <NumberPicker value={tleilaxuForces} min={0} max={o!.tleilaxuMaxAmount} symbolSrc={skin.url(skin.get("FactionForceImage_URL", faction))}
                             onChange={(v) => d.set({ tleilaxuAmountOfForces: v })} />
             </div>

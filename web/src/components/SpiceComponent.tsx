@@ -6,8 +6,8 @@ export function SpiceComponent({ amount, size = 20 }: { amount: string; size?: n
   const name = skin.concept("Resource");
   return (
     <span className="spice-amt" style={{ ["--s" as string]: `${size}px` }} title={name}>
-      <img src={skin.url(skin.str("Harvester_URL"))} alt={name} />
-      <b>{amount}</b>
+      <img className="spice-amt__img" src={skin.url(skin.str("Harvester_URL"))} alt={name} />
+      <b className="spice-amt__value">{amount}</b>
     </span>
   );
 }

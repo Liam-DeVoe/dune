@@ -60,17 +60,17 @@ export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, sym
   const mayIncrease = !disabled && current < max;
   const mayDecrease = !disabled && current > min;
   return (
-    <div className={`num ${disabled ? "off" : ""}`} title={title}>
+    <div className={`num ${disabled ? "num--off" : ""}`} title={title}>
       {symbolSrc !== undefined && (
-        <span className={`ic ${spice ? "spice" : "force"}`}
+        <span className={`num__ic ${spice ? "" : "num__ic--force"}`}
               style={!spice && symbolFill && symbolFill.toLowerCase() !== "white" ? { ["--fc" as string]: symbolFill } : undefined}>
           {symbolStarred
-            ? <span className="force-token starred" style={{ ["--d" as string]: "18px" }}><img src={symbolSrc} alt="" /></span>
-            : <img src={symbolSrc} alt="" />}
+            ? <span className="force-token force-token--starred" style={{ ["--d" as string]: "18px" }}><img className="force-token__img num__ic-img" src={symbolSrc} alt="" /></span>
+            : <img className="num__ic-img" src={symbolSrc} alt="" />}
         </span>
       )}
-      <button type="button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(current - 1)}>−</button>
-      <input type="text" inputMode="numeric" value={text} disabled={disabled} aria-label={title}
+      <button type="button" className="num__button" tabIndex={-1} aria-label="Decrease" disabled={!mayDecrease} onClick={() => mayDecrease && set(current - 1)}>−</button>
+      <input type="text" className="num__input" inputMode="numeric" value={text} disabled={disabled} aria-label={title}
              onChange={(e) => setText(e.target.value)}
              onBlur={(e) => commit(e.target.value)}
              onKeyDown={(e) => {
@@ -78,7 +78,7 @@ export function NumberPicker({ value, onChange, onStep, min, max, symbolSrc, sym
                else if (e.key === "ArrowUp" && mayIncrease) set(current + 1);
                else if (e.key === "ArrowDown" && mayDecrease) set(current - 1);
              }} />
-      <button type="button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(current + 1)}>+</button>
+      <button type="button" className="num__button" tabIndex={-1} aria-label="Increase" disabled={!mayIncrease} onClick={() => mayIncrease && set(current + 1)}>+</button>
     </div>
   );
 }
@@ -89,8 +89,8 @@ export function SelectResources({ value, onChange, min, max, label = "" }: {
 }) {
   const { skin } = useGame();
   return (
-    <div className="d-inline-flex align-items-center">
-      {label !== "" && <label className="me-1">{label}</label>}
+    <div className="select-resources">
+      {label !== "" && <label className="select-resources__label">{label}</label>}
       <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolSrc={skin.url(skin.str("Harvester_URL"))} spice />
     </div>
   );
@@ -103,7 +103,7 @@ export function SelectResourcesFromFaction({ value, onChange, min, max, faction 
 }) {
   const { skin } = useGame();
   return (
-    <div className="d-inline-flex align-items-center">
+    <div className="select-resources">
       <NumberPicker value={value} onChange={onChange} min={min} max={max} symbolSrc={skin.factionImage(faction)} spice />
     </div>
   );

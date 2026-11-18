@@ -107,24 +107,24 @@ export function PerformSetupForm({ action }: { action: ActionView }) {
   return (
     <EventLayout type="PerformSetup" urgent header={<>Set <FactionChip faction={faction} /> initial {spice} and forces.</>}>
       <SelectResources value={resources} onChange={(v) => { setResources(v); set({ resources: v }); }} min={0} max={o?.maxResources ?? 100} label={spice} />
-      <div className="small mt-2">Use the map to place forces.</div>
-      <div className="small text-2">
+      <div className="perform-setup__intro">Use the map to place forces.</div>
+      <div className="perform-setup__hints">
         <div><ClickHint button="Lmb" /> place <ForceToken faction={faction} size={18} imgClass="setup-hint-force" title={names.force} /></div>
         {o?.mayStageSpecial && <div><ClickHint button="Lmb" shift /> place <ForceToken faction={faction} special size={18} imgClass="setup-hint-force" title={names.special} /></div>}
         <div><ClickHint button="Rmb" /> remove force</div>
       </div>
       {shown.length > 0 && (
-        <div className="mt-2">
+        <div className="perform-setup__placed">
           {shown.map(([l, b]) => (
-            <div key={l} className="d-flex align-items-center gap-1 mt-1 small">
-              <span className="flex-grow-1"><PlaceChip place={{ location: l }} /></span>
+            <div key={l} className="perform-setup__location">
+              <span className="perform-setup__place"><PlaceChip place={{ location: l }} /></span>
               <MapForceStepper value={b.forces} onChange={(v) => step(l, v, false)} max={b.forces + room(false)} faction={faction} label={names.force} />
               {o?.mayStageSpecial && <MapForceStepper value={b.specialForces} onChange={(v) => step(l, v, true)} max={b.specialForces + room(true)} faction={faction} special label={names.special} />}
             </div>
           ))}
         </div>
       )}
-      <Validation parts={validation} className="small text-danger mt-2" />
+      <Validation parts={validation} className="perform-setup__error" />
       <ButtonRow confirm={confirm} confirmText="Confirm" confirmError={validation} />
     </EventLayout>
   );
@@ -137,7 +137,7 @@ function ClickHint({ button, shift = false }: { button: "Lmb" | "Rmb"; shift?: b
   const left = button === "Lmb";
   return (
     <>
-      {shift && <span><kbd className="small">shift</kbd>+</span>}
+      {shift && <span><kbd className="perform-setup__key">shift</kbd>+</span>}
       <svg x="0" y="0" fill="currentColor" width="16" height="16" viewBox="0 0 356.572 356.572" style={{ margin: "-1px 0 0 0" }}>
         <title>{left ? "click map to select" : "right-click map to select"}</title>
         <path d={MOUSE + (left ? "M154.938,40.068V143.73c-15.879,2.802-62.566-10.271-62.566-10.271 C80.233,41.004,154.938,40.068,154.938,40.068z" : "M264.272,130.378c0,0-46.687,13.072-62.566,10.271V36.988 C201.706,36.988,276.412,37.923,264.272,130.378z")} />

@@ -1,0 +1,40 @@
+// The menu's card and token reference (MentatComponent): a modal with a grid
+// of cards per section. Each card is a .card with side padding for a gutter.
+.mentat {
+  // A section's h5, except the first.
+  &__heading {
+    margin-top: 0.5rem;
+  }
+
+  // Three cards a row, six from 768px.
+  &__grid {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 0.25rem;
+  }
+
+  &__item {
+    flex: 0 0 auto;
+    width: 33.33333333%;
+    max-width: 100%;
+    padding: 0 0.75rem;
+
+    @media (min-width: 768px) {
+      width: 16.66666667%;
+    }
+  }
+
+  // Homeworld cards are wide: two a row, three from 768px.
+  &__grid--wide > &__item {
+    width: 50%;
+
+    @media (min-width: 768px) {
+      width: 33.33333333%;
+    }
+  }
+
+  // Ambassador tokens: six a row at every width.
+  &__grid--tokens > &__item {
+    width: 16.66666667%;
+  }
+}

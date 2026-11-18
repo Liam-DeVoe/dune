@@ -14,7 +14,7 @@ The Rust workspace (`rust/Cargo.toml`) and how the engine and bots are laid out.
 | `treachery-server` | `server` | Accounts, lobby, seating, running games, bots, storage ([server.md](server.md)) | all of the above |
 | `observe` | `observe` | The behavior harness, which replays recorded games against a reference build ([native-harness.md](native-harness.md)) | engine, bots, view, skin |
 
-`rust/tools/check.sh` runs every test of the workspace. [DEVELOPMENT.md](../../DEVELOPMENT.md) says how to build and check a change.
+`rust/tools/check.sh` runs every test of the workspace. [CLAUDE.md](../../CLAUDE.md) says how to build and check a change.
 
 ## rust/engine/src
 

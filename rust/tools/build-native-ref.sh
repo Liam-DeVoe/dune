@@ -8,7 +8,7 @@
 #   rust/tools/build-native-ref.sh --archive FILE  # from a source archive this script saved
 #   rust/tools/build-native-ref.sh --source DIR    # from a frozen copy of rust/ (DIR/engine, ...)
 #   rust/tools/build-native-ref.sh --out DIR       # into DIR only, for a branch's own reference
-#                                                  # (DEVELOPMENT.md rule 3); combines with the above
+#                                                  # (CLAUDE.md rule 3); combines with the above
 #
 # The current reference is built from ~/treachery-native-ref/rust, a copy of rust/ frozen on
 # 2026-11-11 before step 2 started, with rust/observe copied in (native-harness.md).
@@ -51,7 +51,7 @@ done
 
 avail_kb=$(df -k "${TMPDIR:-/tmp}" | awk 'NR==2 {print $4}')
 if [ "$avail_kb" -lt 3000000 ]; then
-  echo "build-native-ref.sh: less than 3 GB free on the temp disk; not building (DEVELOPMENT.md)" >&2
+  echo "build-native-ref.sh: less than 3 GB free on the temp disk; not building (CLAUDE.md)" >&2
   exit 1
 fi
 

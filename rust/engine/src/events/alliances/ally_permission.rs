@@ -37,7 +37,7 @@ impl Default for AllyPermission {
             moritani_allows_keeping_cards: Default::default(),
             ecaz_shares_ambassadors: Default::default(),
             permitted_resources: Default::default(),
-            permitted_karma_card: TreacheryCardManager::get(0),
+            permitted_karma_card: None,
         }
     }
 }

@@ -13,7 +13,7 @@ impl Default for CardTraded {
         CardTraded {
             target: Default::default(),
             card: TreacheryCardManager::get(0),
-            requested_card: TreacheryCardManager::get(0),
+            requested_card: None,
         }
     }
 }
@@ -33,10 +33,9 @@ impl EventRules for CardTraded {
             return Err(Rejection(express!("Invalid card")));
         }
         let ally = game.player(me).allied_player(game).expect("allied player");
-        if !game.player(ally).treachery_cards.iter().any(|_| true) {
-            // Known quirk (known-issues.md): the message is built but never returned, so an offer
-            // to an ally without cards is accepted.
-            let _ = express!("Your ally does not have cards to trade");
+        // An ally without cards couldn't answer, and the game would wait forever.
+        if game.player(ally).treachery_cards.is_empty() {
+            return Err(Rejection(express!("Your ally does not have cards to trade")));
         }
 
         let target_player = game.get_player(self.target);

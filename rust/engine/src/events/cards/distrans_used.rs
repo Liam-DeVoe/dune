@@ -29,13 +29,13 @@ impl DistransUsed {
     }
 
     pub fn check_if_bidding_for_player_should_be_skipped(game: &mut Game, player: PlayerId, had_room_for_cards: bool) {
-        // Known quirk (known-issues.md): during black market bidding this also plays a regular
-        // `Bid` pass, not a `BlackMarketBid`. The pass is played as an event, so it runs the
-        // event's tasks and is added to the history.
+        // The pass is played as an event, so it runs the event's tasks and is added to the
+        // history. In the black market it is a black-market pass, which can end the auction.
         let pass = Bid { passed: true, ..Bid::default() };
         if game.phase() == Phase::BlackMarketBidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && BlackMarketBid::may_be_played(game, player) {
             let faction = game.player(player).faction.expect("faction");
-            let _ = game.play(HistoryEntry::new(faction, pass), false, false);
+            let black_market_pass = BlackMarketBid { passed: true, ..BlackMarketBid::default() };
+            let _ = game.play(HistoryEntry::new(faction, black_market_pass), false, false);
         } else if game.phase() == Phase::Bidding && had_room_for_cards && !game.player(player).has_room_for_cards(game) && Bid::may_be_played(game, Some(player)) {
             let faction = game.player(player).faction.expect("faction");
             let _ = game.play(HistoryEntry::new(faction, pass), false, false);

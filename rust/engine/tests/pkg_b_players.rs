@@ -233,12 +233,17 @@ fn is_after_uses_first_player() {
 // ---------------------------------------------------------------- Game_Rules
 
 #[test]
-fn ruleset_definition_keeps_duplicate_rule() {
+fn ruleset_definition_lists_each_rule_once() {
     let d = Game::ruleset_definition();
     let e2 = &d[&Ruleset::Expansion2AdvancedGame];
-    assert_eq!(e2.iter().filter(|r| **r == Rule::StrongholdBonus).count(), 2);
-    assert_eq!(e2.len(), 24);
+    assert_eq!(e2.iter().filter(|r| **r == Rule::StrongholdBonus).count(), 1);
+    assert_eq!(e2.len(), 23);
     assert_eq!(d.len(), 11);
+    for (ruleset, rules) in &d {
+        for r in rules {
+            assert_eq!(rules.iter().filter(|x| *x == r).count(), 1, "{ruleset:?} lists {r:?} more than once");
+        }
+    }
 }
 
 #[test]

@@ -87,12 +87,13 @@ impl EventRules for Donated {
         if by.faction != Some(Faction::Emperor) && game.applicable(Rule::DisableResourceTransfers) {
             return Err(Rejection(express!(Concept::Resource, " transfers are disabled by house rule")));
         }
-        if !self.from_bank
+        // "While Charity is doubled, no bribes can be made" (the CHOAM sheet). The Emperor's
+        // spice for their ally isn't a bribe: only the Emperor may give to their ally.
+        let emperor_gives_to_ally = by.faction == Some(Faction::Emperor) && self.target.is_some() && self.target == game.player(by.player()).ally;
+        if !emperor_gives_to_ally
             && (game.board.choam_economics_status == Some(ChoamEconomicsStatus::Double) || game.board.choam_economics_status == Some(ChoamEconomicsStatus::DoubleFlipped))
         {
-            // Known quirk (known-issues.md): the message is built but never returned, so bribes
-            // are allowed during Double Inflation.
-            let _ = express!("No bribes can be made during Double Inflation");
+            return Err(Rejection(express!("No bribes can be made during Double Inflation")));
         }
 
         let target_player = game.get_player(self.target);

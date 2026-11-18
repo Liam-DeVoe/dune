@@ -122,7 +122,18 @@ impl AutomationRuleState {
 }
 
 impl EventRules for AutomationConfigured {
-    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+    fn validate(&self, game: &Game, by: By) -> Result<(), Rejection> {
+        match self.action {
+            ItemAction::Create => {}
+            ItemAction::Delete => {
+                let rule = game.rules.automation_rules.iter().find(|x| x.id == self.automation_rule_id);
+                if !rule.is_some_and(|r| r.initiator == by.faction) {
+                    return Err(Rejection(express!("You have no such automation rule")));
+                }
+            }
+            // Rules can't be changed, only created and deleted.
+            ItemAction::Update => return Err(Rejection(express!("Automation rules can't be changed"))),
+        }
         Ok(())
     }
 
@@ -139,8 +150,8 @@ impl EventRules for AutomationConfigured {
             }
 
             ItemAction::Delete => {
-                // An unknown id fails the event. Known quirk (known-issues.md): validation doesn't
-                // check that the rule is the submitter's own.
+                // Validation refuses an id that isn't one of the submitter's rules. Without
+                // validation, an unknown id fails the event.
                 let id = self.automation_rule_id;
                 let Some(i) = game.rules.automation_rules.iter().position(|x| x.id == id) else {
                     game_error!("There is no automation rule {id}");
@@ -149,7 +160,7 @@ impl EventRules for AutomationConfigured {
             }
 
             ItemAction::Update => {
-                // The client never sends Update. It is accepted and does nothing.
+                // Refused by validation. The client never sends it.
             }
 
         }

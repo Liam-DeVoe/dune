@@ -484,6 +484,132 @@ Not part of the review. Each has an escapes.md entry with the details.
 - What happened: Tleilaxu could play their Karama to prevent a faction's revival during the whole revival main phase, the revival report included. Played in the report, after every revival, it did nothing but use up the card and the once-per-game Karama power. Before "What a bidding or revival phase left behind" above, it applied to the next turn's revivals instead.
 - Done: `KarmaRevivalPrevention` is offered only before the revival report (the beginning and the reviving steps). Test: `a_karama_revival_prevention_is_offered_only_while_factions_revive` (engine/tests/rule_fixes.rs).
 
+## Engine quirks kept from the C# version, fixed
+
+The owner approved these fixes from known-issues.md's "Quirks kept from the C# version" (2026-11-18). Paths are under `rust/engine/src`. Tests are in `engine/tests/rule_fixes.rs` unless an entry says otherwise. The harness results are at the end.
+
+### The Emperor's share of a Richese card was cut by Richese's homeworld
+
+- What happened: when Richese's ally helped pay for a Richese card, the Emperor got that part instead (`Game::pay_emperor_instead_of_richese`, game/bidding.rs). Richese's homeworld cut it: at low threshold and occupied, the Emperor got half and Richese's occupier the rest.
+- Now: Kaitain's low threshold and occupier cut it. KaitainCard.gif puts the cut on payments to the Emperor ("You collect only half (rounded up) of card payments"; "Occupier gains half (rounded down) of cards payments to you"). RicheseCard.gif covers only what Richese receive. The same function also recorded a recent payment with an amount that was always 0, which did nothing. That call is gone.
+- Test: `the_emperors_share_of_a_richese_card_is_cut_by_kaitain_not_by_richeses_homeworld`.
+
+### A Nexus refund to Richese paid the Emperor's contribution to Richese's ally
+
+- What happened: the Richese betrayal that makes Richese discard a card they just won refunded the Emperor's contribution to the winning bid to Richese's ally (`NexusPlayed::apply`, events/cards/nexus_played.rs).
+- Now: it goes back to the Emperor.
+- Test: `a_richese_nexus_refund_returns_the_emperors_contribution_to_the_emperor`.
+
+### The Tleilaxu secret ally's revival was free
+
+- What happened: validation checked that the player could pay 1 spice per revived force (`determine_tleilaxu_cost`), but nothing was paid.
+- Now: the player pays it to the bank, since Tleilaxu aren't in the game when their card is a secret ally, and the log line ends "for N Spice". faction8nexus.gif: "During Revival, revive one leader for free and up to 5 forces for 1 spice each". Validation already allows at most 5 forces in total and checks the same cost.
+- Test: `nexus_tleilaxu_secret_ally_costs_one_spice_per_force` (engine/tests/pkg_j_faction_specials.rs).
+
+### CHOAM's Karama discard used up another Karama card
+
+- What happened: `KarmaChoamDiscard` validated `card_to_use` and then played the first valid Karama card in hand.
+- Now: it plays `card_to_use`, and validation refuses a card that isn't one of the player's valid Karama cards (`Karma::valid_karma_cards`). The form offers only those.
+- Test: `karma_choam_discard_plays_the_selected_karma_card` (engine/tests/pkg_j_faction_specials.rs).
+
+### Charity CHOAM couldn't pay was paid anyway
+
+- What happened: `Game::give_charity` (game/charity.rs) credited the claimant before checking CHOAM's balance. When CHOAM couldn't pay, the claimant kept the spice and the log said they "are unable to claim" it.
+- Now: the claimant gets the basic amount only when CHOAM pays it, so the state matches the log. The homeworld bonus still comes from the bank. No rule covers a shortfall.
+- Test: `charity_not_paid_when_choam_cannot_pay` (engine/tests/pkg_d_storm_blow.rs).
+
+### The Sandmaster paid once per source sector
+
+- What happened: forces moved from two sectors of one territory collected the Sandmaster's spice, and took it off the planet, once per sector (`Game::perform_move_from_locations`, game/movement.rs).
+- Now: 1 spice from each territory with spice on the way, once per move. Sandmaster.gif: "Immediately collect 1 spice from territories your forces move into or through". A path also counts territories now, not spice locations. When a move comes from several sectors, each sector's path is chosen to collect from the most territories not collected from yet, and the log line comes after each sector that collected, as before.
+- Test: `the_sandmaster_collects_once_per_territory`.
+
+### A sandtrout doubling lost to the storm carried over
+
+- What happened: a blow doubled by a sandtrout that landed in the storm didn't reset the doubling (`Game::process_blow_card`, game/blow.rs), so a later blow, possibly in another turn, was doubled.
+- Now: the storm branch resets it. The Ixians & Tleilaxu rulebook FAQ doubles only the worm's immediate replacement card.
+- Test: `a_sandtrout_doubling_lost_to_the_storm_doesnt_carry_over`.
+
+### Bribes were accepted during Double Inflation
+
+- What happened: `Donated::validate` built "No bribes can be made during Double Inflation" and never returned it.
+- Now: it returns it. The CHOAM sheet: "While Charity is doubled, no bribes can be made" (skin/src/faction_manual.rs). `Donated` also carries the Emperor's spice for their ally, which isn't a bribe: only the Emperor may give to their ally (the "You can't bribe your ally" check exempts them), so a gift from the Emperor to the Emperor's ally is exempt. The host's gifts from the bank were never checked.
+- Test: `no_bribes_during_double_inflation` (engine/tests/pkg_k_alliances_deals_status.rs).
+
+### A card trade could be offered to an ally without cards
+
+- What happened: `CardTraded::validate` built "Your ally does not have cards to trade" and never returned it. Only a crafted event got there, and the game then waited for an answer the ally couldn't give.
+- Now: it returns it. An answer to an offer always passes, since the offering ally still holds the offered card.
+- Test: `a_card_trade_needs_an_ally_with_cards`.
+
+### The Ixian starting-card pick accepted any card
+
+- What happened: `IxianSelectedStartingCard` had no validation.
+- Now: it refuses a card that isn't in `decks.starting_treachery_cards`. Several recorded games picked a card that wasn't offered, because an earlier refit kept the old pick; see the harness results below.
+- Test: `the_ixian_picks_one_of_the_starting_cards`.
+
+### Any player could delete another player's automation rule
+
+- What happened: `AutomationConfigured` had no validation. Delete removed any rule by id, and Update was accepted and did nothing.
+- Now: Delete is refused unless the rule exists and is the submitter's ("You have no such automation rule"), and Update is refused ("Automation rules can't be changed"). The web client only sends Create, and Delete for the player's own rules (`AutomationConfiguredForm`, web/src/components/other/TradeForms.tsx).
+- Test: `only_the_owner_deletes_an_automation_rule`.
+
+### Distrans during the black market played a normal-auction pass
+
+- What happened: when a Distrans filled the hand of the player whose turn it was to bid in the black market, `DistransUsed::check_if_bidding_for_player_should_be_skipped` played a `Bid` pass. `execute_bid` moved the bid sequence on and recorded the pass, but handles only normal and Richese auctions, so the black-market win check never ran: when the turn came back to the high bidder, they weren't given the card. The history also got a `Bid` during the black market.
+- Now: it plays a `BlackMarketBid` pass.
+- Test: `distrans_in_the_black_market_passes_in_the_black_market` reproduces the missed win.
+
+### StrongholdBonus was listed twice in the Expansion2AdvancedGame ruleset
+
+- What happened: the list went into `game.rules.active` and the lobby data (`web/public/static/lobby.json`) with `StrongholdBonus` twice.
+- Now: once.
+- Test: `ruleset_definition_lists_each_rule_once` (engine/tests/pkg_b_players.rs) checks every ruleset.
+
+### Occupied homeworld income logged a loss of 0
+
+- What happened: `Game::modify_income_because_of_low_threshold_or_occupation` (game/collection.rs) logged "0 ... received by X goes to Y due to occupation" whenever the homeworld had an occupier.
+- Now: it logs only when something is lost.
+- Test: `occupied_homeworld_income_logs_only_a_loss`.
+
+### TraitorDiscarded claimed a shuffle that didn't happen
+
+- What happened: the log said the traitor was shuffled into the Traitor deck, but it went to the bottom, and later draws don't shuffle, so the discarder knew the bottom cards.
+- Now: the deck is shuffled after each discarded traitor. faction2nexus.gif: "draw two traitor cards, then shuffle two back" (Secret Ally), "Draw a traitor card, then shuffle one back" (Cunning).
+- Test: `traitor_discarded_is_shuffled_into_the_deck` (engine/tests/pkg_i_battle_actions.rs).
+
+### Two Game Errors named an internal type
+
+- What happened: a Raise Dead or Karama free revival naming a hero who isn't in the game failed with "Treachery.Shared.Leader is not in this game" (`Hero::plain_text`), and an ambassador placed where one already was failed with "There already is an ambassador in Treachery.Shared.Territory". The first is reachable when such an event is submitted while it isn't applicable, since the "is not applicable" message describes the event.
+- Now: a `GameError` can carry a message (`GameError::express`, error.rs), and `SubmitError::message` shows it, so the skin names the hero or territory. Other Game Errors are plain text as before.
+- Test: `game_errors_name_the_hero_and_the_territory`.
+
+### `TreacheryCard::countered_by` panicked without a defense
+
+- What happened: it read the defense for Poison Tooth, Poison, Chemistry, Projectile, Weirding Way and Projectile+Poison and panicked when there was none. Only bots call it, and `determine_diplomacy` (bots/src/bot/other.rs) passes the opponent's defense, which is absent when the opponent plays a weapon alone. The bot's decision then failed.
+- Now: no defense counters nothing.
+- Test: `no_defense_counters_nothing`.
+
+### Optional cards, heroes, locations and territories in events defaulted to id 0
+
+- What happened: card 0 (a Lasgun), location 0 (the Polar Sink) and territory 0 are real objects, but many events' `Default` named them in optional fields. Event JSON that left out `Shipment.karmaCard` was a Karama shipment with a Lasgun and was refused, and without `from` and `shipmentType` it was a site-to-site shipment from the Polar Sink. The same held for the other fields below. The web client and the bots always send these fields, but the bots and the view build events from the defaults, so their events and form drafts carried the 0s: a `CardTraded` draft named card 0 as the requested card, so its form showed "Invalid requested card" until the player picked a card.
+- Now: these default to none. `Shipment`: `karmaCard`, `from`. `Battle`: `hero`, `weapon`, `defense`. `LoserConcluded.keptCard`. `RaiseDeadPlayed.hero`, `Revival.hero`, `KarmaFreeRevival.hero`. `AllyPermission.permittedKarmaCard`. `AmbassadorActivated`: `fremenOrGuildTo`, `ixianCard`. `NexusPlayed`: `choamCard`, `ecazTerritory`, `moritaniTerritory`. `CardTraded.requestedCard`. `TerrorRevealed`: `sneakAttackTo`, `cardToGiveInSabotage`. `TerrorPlanted.stronghold` (none removes a token for spice). Required fields that default to id 0 are unchanged, such as `Move.to`, `Shipment.to` and `DiscoveryEntered.to`: an event without them is refused either way.
+- Test: `optional_handles_default_to_none`. The bots' snapshots (bots/tests/golden, b3 and b4) record `null` instead of `0` in these fields of the bots' `AmbassadorActivated` and `NexusPlayed` events, and nothing else changed in the games that weren't refitted.
+
+### Recorded games refitted
+
+The Ixian pick's new validation refused a step in recorded games whose Ixian picked a card that wasn't offered: the version-189 refit had kept the old pick, since any card was accepted. Those games stalled there. They were refitted with `observe refit` (native-harness.md, "Refitting recorded games"): the knowledge games 00008 and 77-00001 with their probe files (bots/tests/golden), testdata/games bots-2026-00008 and -00016 and fuzz-2026-00007, -00009, -00013, -00018, -00020, -00038, -00039, -00045 and -00084, and view/tests/data bots-3141-00002 and -00103 and other/bots-7702-00001, -00016, -00039 and -00046. The `--old` files mark the fuzz traces' `AutomationConfigured` Update and Delete events and their fuzzed `Donated`, `CardTraded` and `KarmaChoamDiscard` events as not legit, so that those refused now are dropped instead of replaced. Each game ends in the same phase and turn as before, except two that used to stall: fuzz-2026-00007 in Fremen setup, which now plays to turn 3, and bots-7702-00039 at a refused shipment in turn 5, which now ends in that turn's battle phase. The bot probes, the skin trace corpus and the view's bot log lines were rewritten with their update modes.
+
+### Harness (seed 1, 50 bots and 50 fuzz games)
+
+The shared reference already holds the bot, skin and client quirk fixes merged since this branch started, so the runs compare against a reference built from the branch's base, 17c9ea35. With the fixes above: 35 bots games and 39 fuzz games differ. Each difference comes from one of three fixes. The counts below are, for bots games, the games each fix changes (a game can show two), and for fuzz games, the games whose first difference it is.
+
+- The new defaults (32 bots games, 32 fuzz games): a bot decision whose `AmbassadorActivated`, `NexusPlayed` or `TerrorRevealed` has `null` where the reference has `0`, and nothing else, or a form draft with `null` in `CardTraded.requestedCard` or `NexusPlayed.choamCard` (the `CardTraded` form also loses its "Invalid requested card").
+- No bribes during Double Inflation (18 bots games, 6 fuzz games): once the CHOAM token goes to Double, the `Donated` form's validation says "No bribes can be made during Double Inflation", and in fuzz games 0 and 7 a fuzzed bribe is refused. Bots never bribe.
+- The Ixian pick (fuzz game 23): a mutated `IxianSelectedStartingCard` names a card that wasn't offered.
+
+A game's comparison stops at its first difference, so to see the differences behind it, two intermediate builds were also compared, each against the previous one. With every fix but the Double Inflation rejection and the new defaults (`Shipment`'s included), all 50 bots games match the base. 48 fuzz games match: fuzz game 23 differs at the Ixian pick, and fuzz game 27 where the base logs "0 Spice received by Guild goes to Tleilaxu due to occupation". Adding the Double Inflation rejection changes 18 bots and 11 fuzz games, all at the `Donated` form or a refused bribe. Adding the defaults changes 32 bots and 38 fuzz games, every one first at a bot decision that differs only in those `0`s or a draft field above. The other fixes (Sandmaster, sandtrout, charity, Nexus cards, CHOAM's Karama, Distrans, traitor shuffle, card trades, automation rules, Game Errors, `countered_by`) don't come up in these games before another difference; their tests cover them.
+
 ## The server's rewrite
 
 The server was first a line-by-line port of the C# `GameHub`. These differences were made on purpose when it was rewritten (2026-11-11):

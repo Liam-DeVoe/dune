@@ -15,7 +15,11 @@ impl Default for IxianSelectedStartingCard {
 }
 
 impl EventRules for IxianSelectedStartingCard {
-    fn validate(&self, _game: &Game, _by: By) -> Result<(), Rejection> {
+    fn validate(&self, game: &Game, _by: By) -> Result<(), Rejection> {
+        let offered = game.decks.starting_treachery_cards.as_ref().is_some_and(|d| self.card.is_some_and(|c| d.items.contains(&c)));
+        if !offered {
+            return Err(Rejection(express!("Invalid card")));
+        }
         Ok(())
     }
 
@@ -25,8 +29,6 @@ impl EventRules for IxianSelectedStartingCard {
             game_error!("Not in the setup phase");
         }
         let me = game.get_player(by.faction).required("get player")?;
-        // Known quirk (known-issues.md): validation accepts any card, not only one of the starting
-        // cards.
         let card = self.card.required("card")?;
         game.player_mut(me).treachery_cards.push(card);
         crate::iter::remove_first(&mut game.decks.starting_treachery_cards.as_mut().required("starting treachery cards")?.items, &card);

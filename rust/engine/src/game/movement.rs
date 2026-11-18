@@ -264,6 +264,8 @@ impl Game {
             None
         };
 
+        // Territories the Sandmaster has collected from in this move.
+        let mut sandmaster_territories: Vec<Territory> = Vec::new();
         let from_territories = force_locations.keys().map(|l| l.territory()).distinct();
         for from_territory in from_territories {
             let mut total_number_of_forces = 0;
@@ -277,9 +279,7 @@ impl Game {
             for fl in in_territory {
                 if fl.1.total_amount_of_forces() > 0 {
                     self.perform_move_from_location(initiator, fl.0, &fl.1, to, &mut total_number_of_forces, &mut total_number_of_special_forces, false)?;
-                    // Known quirk (known-issues.md): Sandmaster is applied per source location, so
-                    // forces moved from two sectors of one territory collect its spice twice.
-                    self.check_sandmaster(initiator, to, dist, fl)?;
+                    self.check_sandmaster(initiator, to, dist, fl.0, &mut sandmaster_territories)?;
                 }
             }
 
@@ -302,34 +302,46 @@ impl Game {
         Ok(())
     }
 
-    pub fn check_sandmaster(&mut self, initiator: PlayerId, to: Location, dist: i32, fl: (Location, Battalion)) -> GameResult {
+    /// The Sandmaster collects "1 spice from territories your forces move into or through"
+    /// (Sandmaster.gif): 1 from each territory with spice on the way from `from` to `to`, once per
+    /// move however many sectors the forces come from. `collected` holds the territories already
+    /// collected from in this move, and gets the new ones.
+    pub fn check_sandmaster(&mut self, initiator: PlayerId, to: Location, dist: i32, from: Location, collected: &mut Vec<Territory>) -> GameResult {
         if self.has_skill_in_front_of_shield(initiator, LeaderSkill::Sandmaster) {
             let faction = self.player(initiator).faction;
             let ignore_storm = faction == Some(Faction::Fremen) && self.applicable(Rule::FremenMayMoveIntoStorm);
-            let paths = self.board.map.find_paths(fl.0, to, dist, ignore_storm, faction.expect("faction"), &*self);
-            let mut most_spice = 0;
-            let mut path_with_most_spice: Option<Vec<Location>> = None;
+            let paths = self.board.map.find_paths(from, to, dist, ignore_storm, faction.expect("faction"), &*self);
+            // The first location with spice in each territory on `path` not collected from yet.
+            let new_spice = |path: &[Location]| -> Vec<Location> {
+                let mut result: Vec<Location> = Vec::new();
+                for l in path {
+                    if self.board.resources_on_planet.contains_key(l)
+                        && !collected.contains(&l.territory())
+                        && !result.iter().any(|r| r.territory() == l.territory())
+                    {
+                        result.push(*l);
+                    }
+                }
+                result
+            };
+            let mut best: Vec<Location> = Vec::new();
             for p in paths {
-                let amount_of_spice_locations = p.iter().filter(|l| self.board.resources_on_planet.contains_key(*l)).distinct().len() as i32;
-                if amount_of_spice_locations > most_spice {
-                    most_spice = amount_of_spice_locations;
-                    path_with_most_spice = Some(p);
+                let spice = new_spice(&p);
+                if spice.len() > best.len() {
+                    best = spice;
                 }
             }
 
-            if let Some(path) = path_with_most_spice {
-                if most_spice > 0 {
-                    for loc in path {
-                        if self.board.resources_on_planet.contains_key(&loc) {
-                            self.change_resources_on_planet(loc, -1)?;
-                        }
-                    }
-
-                    let pl = self.player_mut(initiator);
-                    crate::game::amounts::gain(&mut pl.resources, most_spice, "spice").expect("spice income");
-                    let f = self.player(initiator).faction;
-                    self.log(parts![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(most_spice), " along the way"]);
+            if !best.is_empty() {
+                let amount = best.len() as i32;
+                for loc in best {
+                    self.change_resources_on_planet(loc, -1)?;
+                    collected.push(loc.territory());
                 }
+                let pl = self.player_mut(initiator);
+                crate::game::amounts::gain(&mut pl.resources, amount, "spice").expect("spice income");
+                let f = self.player(initiator).faction;
+                self.log(parts![f, " ", LeaderSkill::Sandmaster, " collects ", Payment::of(amount), " along the way"]);
             }
         }
         Ok(())

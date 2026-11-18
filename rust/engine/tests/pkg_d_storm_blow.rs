@@ -134,9 +134,9 @@ fn charity_multiplier_and_cancellation() {
 }
 
 #[test]
-fn charity_paid_even_when_choam_cannot_pay() {
-    // Known quirk (known-issues.md): the claimant gets the money before Choam's balance is
-    // checked, so it is paid even though the log says it can't claim it.
+fn charity_not_paid_when_choam_cannot_pay() {
+    // CHOAM can't pay the 2 spice, so the claimant gets nothing, as the log says
+    // (behavior-changes.md, "Charity CHOAM can't pay is no longer paid").
     let mut g = game_with(&[Faction::Emperor, Faction::Choam]);
     g.enter_charity(CharityStep::Claiming);
     let emperor = idx(&g, Faction::Emperor);
@@ -144,8 +144,9 @@ fn charity_paid_even_when_choam_cannot_pay() {
     g.player_mut(emperor).resources = 0;
     g.player_mut(choam).resources = 1;
     g.claim_charity(emperor);
-    assert_eq!(i32::from(g.player(emperor).resources), 2);
+    assert_eq!(i32::from(g.player(emperor).resources), 0);
     assert_eq!(i32::from(g.player(choam).resources), 1);
+    assert!(g.current_report().messages.iter().any(|m| m.plain_text().contains("unable to claim")));
     assert!(g.turn.has_acted_or_passed.contains(&Faction::Emperor));
 }
 

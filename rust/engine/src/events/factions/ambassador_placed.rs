@@ -64,7 +64,7 @@ impl EventRules for AmbassadorPlaced {
         crate::game::amounts::spend(&mut p.resources, placed, "spice")?;
         game.log(parts![by.faction, " station the ", self.ambassador, " ambassador in ", stronghold, " for ", Payment::of(placed)]);
         if game.board.ambassadors_on_planet.contains_key(&stronghold) {
-            game_error!("There already is an ambassador in Treachery.Shared.Territory");
+            return Err(GameError::express(express!("There already is an ambassador in ", stronghold)));
         }
         let ambassador = self.ambassador.required("ambassador")?;
         game.board.ambassadors_on_planet.insert_new(stronghold, ambassador);

@@ -23,14 +23,14 @@ pub struct Shipment {
     pub passed: bool,
 }
 
-// Known quirk (known-issues.md): the default names card 0 (a Lasgun) as the Karama card, so event
-// JSON without `karmaCard` is refused as an invalid Karama shipment.
+// The optional handles default to none. Card 0 and location 0 are real objects, so event JSON
+// without `karmaCard` would be a Karama shipment, and without `from` a shipment from the Polar Sink.
 impl Default for Shipment {
     fn default() -> Self {
         Shipment {
             shipment_type: Default::default(),
             to: Location::from_id(0),
-            from: Location::from_id(0),
+            from: None,
             force_amount: Default::default(),
             special_force_amount: Default::default(),
             smuggled_amount: Default::default(),
@@ -38,7 +38,7 @@ impl Default for Shipment {
             no_field_value: Default::default(),
             cunning_no_field_value: Default::default(),
             ally_contribution_amount: Default::default(),
-            karma_card: TreacheryCardManager::get(0),
+            karma_card: None,
             use_richese_secret_ally: Default::default(),
             force_locations: Some("".to_string()),
             passed: Default::default(),

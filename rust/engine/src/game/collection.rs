@@ -157,10 +157,11 @@ impl Game {
             *received_amount -= amount_lost;
 
             let Some(occupier) = occupier else { return };
+            if amount_lost == 0 {
+                return;
+            }
 
             crate::game::amounts::gain(&mut self.player_mut(occupier).resources, amount_lost, "spice").expect("income lost to the occupier");
-            // Known quirk (known-issues.md): logs this even when nothing is lost, as
-            // "0 ... goes to <occupier>".
             let from_faction = self.player(from).faction;
             let occupier_faction = self.player(occupier).faction;
             self.log(parts![Payment::of(amount_lost), " received by ", from_faction, " goes to ", occupier_faction, " due to occupation"]);

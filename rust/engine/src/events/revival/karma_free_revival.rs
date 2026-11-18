@@ -12,7 +12,7 @@ pub struct KarmaFreeRevival {
 impl Default for KarmaFreeRevival {
     fn default() -> Self {
         KarmaFreeRevival {
-            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
+            hero: None,
             amount_of_forces: Default::default(),
             amount_of_special_forces: Default::default(),
             assign_skill: false,
@@ -110,7 +110,7 @@ impl EventRules for KarmaFreeRevival {
         let p = by.player;
         if let Some(hero) = self.hero {
             if !game.leaders.leader_state.contains_key(&hero) {
-                game_error!("{} is not in this game", hero.plain_text());
+                return Err(GameError::express(express!(hero, " is not in this game")));
             }
             if !game.is_face_down_dead(hero) {
                 return Ok(express!("Using ", TreacheryCardType::Karma, ", ", by.faction, " revive ", hero));

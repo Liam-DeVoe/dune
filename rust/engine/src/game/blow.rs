@@ -398,8 +398,9 @@ impl Game {
             self.board.sand_trout_doubles_resources = false;
             self.change_resources_on_planet(location, spice_amount)?;
         } else {
-            // Known quirk (known-issues.md): `sand_trout_doubles_resources` is not reset when the
-            // doubled blow is lost to the storm, so the next blow is doubled instead.
+            // The doubling is spent on this blow even though the storm takes it: the Ixians &
+            // Tleilaxu rulebook doubles only the worm's immediate replacement card.
+            self.board.sand_trout_doubles_resources = false;
             let msg = express!(Payment::of(spice_amount), " in ", location, " is lost in the storm")
                 .with_log(BlowCardLog::new(blow_card, location, spice_amount, true, false));
             self.log(parts![msg]);

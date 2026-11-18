@@ -14,7 +14,7 @@ impl Default for TerrorPlanted {
     fn default() -> Self {
         TerrorPlanted {
             type_: Default::default(),
-            stronghold: Territory::from_id(0),
+            stronghold: None,
             passed: Default::default(),
         }
     }

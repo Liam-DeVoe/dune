@@ -601,3 +601,396 @@ fn a_karama_revival_prevention_is_offered_only_while_factions_revive() {
     assert_eq!(g.phase(), Phase::ResurrectionReport);
     assert!(!g.get_applicable_events(Some(tleilaxu), false).contains(&EventType::KarmaRevivalPrevention));
 }
+
+// ---------------------------------------------------------------------------------------------
+// Quirks kept from the C# version, fixed (behavior-changes.md, "Quirks kept from the C# version")
+// ---------------------------------------------------------------------------------------------
+
+/// A hand-built game of `factions` in seats 0, 1, ..., with no rules.
+fn game_of(factions: &[Faction]) -> Game {
+    let mut g = Game::new();
+    g.decks.treachery_discard_pile = Some(Deck::new(Vec::new()));
+    for (seat, f) in factions.iter().enumerate() {
+        let mut p = Player::new(Some(*f));
+        p.seat = Seat::from_number(seat);
+        g.players.push(p);
+    }
+    g
+}
+
+/// `game_of` with the Homeworlds rule. Every homeworld is full (high threshold), except those of
+/// the factions in `empty`, which hold no forces (low threshold).
+fn homeworld_game(factions: &[Faction], empty: &[Faction]) -> Game {
+    let mut g = game_of(factions);
+    g.rules.active.push(Rule::Homeworlds);
+    for i in 0..g.players.len() {
+        let f = g.players[i].faction.expect("faction");
+        let hws: Vec<Homeworld> = g.board.map.homeworlds().filter(|w| w.faction() == f).collect();
+        for hw in hws {
+            let full = !empty.contains(&f);
+            let normal = if full && hw.is_home_of_normal_forces() { 20 } else { 0 };
+            let special = if full && hw.is_home_of_special_forces() { 20 } else { 0 };
+            let me = g.player_at(i);
+            Player::initialize_homeworld(&mut g, me, hw, normal, special).unwrap();
+        }
+    }
+    g
+}
+
+fn spice(g: &Game, f: Faction) -> i32 {
+    i32::from(g.player(idx(g, f)).resources)
+}
+
+fn log_texts(g: &Game) -> Vec<String> {
+    g.current_report().messages.iter().map(|m| m.plain_text()).collect()
+}
+
+/// Whether `m` holds `want` anywhere, nested messages included.
+fn holds_part(m: &treachery_engine::messages::message::Message, want: &treachery_engine::messages::part::Part) -> bool {
+    use treachery_engine::messages::part::Part;
+    m.parts.iter().any(|p| p == want || matches!(p, Part::Message(inner) if holds_part(inner, want)))
+}
+
+/// Atreides, allied with Richese, buy a Richese card with Richese's help, so the Emperor gets
+/// Richese's part. Richese's homeworld is at low threshold and occupied by Harkonnen; Kaitain
+/// is at high threshold. Before the fix the Emperor got half and Harkonnen the other half.
+#[test]
+fn the_emperors_share_of_a_richese_card_is_cut_by_kaitain_not_by_richeses_homeworld() {
+    let mut g = homeworld_game(&[Faction::Atreides, Faction::Richese, Faction::Emperor, Faction::Harkonnen], &[Faction::Richese]);
+    ally(&mut g, Faction::Atreides, Faction::Richese);
+    let richese_world = g.player(idx(&g, Faction::Richese)).primary_homeworld();
+    g.board.homeworld_occupation.insert(richese_world, Faction::Harkonnen);
+    assert_eq!(g.player(idx(&g, Faction::Emperor)).primary_homeworld().world(), World::Emperor);
+    assert!(g.player(idx(&g, Faction::Emperor)).has_high_threshold(&g, World::Emperor));
+    for f in [Faction::Atreides, Faction::Richese] {
+        let p = idx(&g, f);
+        g.player_mut(p).resources = 10;
+    }
+    g.enter_bidding(BiddingStep::Bidding);
+
+    let atreides = idx(&g, Faction::Atreides);
+    let mut bid = Bid::default();
+    bid.amount = 2;
+    bid.ally_contribution_amount = 4;
+    let by_atreides = By::new(&g, Faction::Atreides);
+    let placed = bid.placed(&mut g, by_atreides);
+    let mut message = treachery_engine::messages::message::MessagePart { parts: vec![] };
+    g.pay_for_card(atreides, &placed, 2, 4, 0, Faction::Richese, &mut message).unwrap();
+
+    // The Emperor gets all 4. Richese get 2, and lose 1 of it to Harkonnen.
+    assert_eq!(spice(&g, Faction::Emperor), 4);
+    assert_eq!(spice(&g, Faction::Richese), 10 - 4 + 1);
+    assert_eq!(spice(&g, Faction::Harkonnen), 1);
+}
+
+/// The Richese Nexus betrayal makes Richese discard a card they just won and refunds the
+/// payment. Before the fix the Emperor's contribution went to Richese's ally.
+#[test]
+fn a_richese_nexus_refund_returns_the_emperors_contribution_to_the_emperor() {
+    let mut g = game_of(&[Faction::Richese, Faction::Atreides, Faction::Emperor, Faction::Harkonnen]);
+    ally(&mut g, Faction::Richese, Faction::Atreides);
+    let harkonnen = idx(&g, Faction::Harkonnen);
+    g.player_mut(harkonnen).nexus = Some(Faction::Richese);
+    let card = TreacheryCardManager::items()[3];
+    let richese = idx(&g, Faction::Richese);
+    g.player_mut(richese).treachery_cards.push(card);
+    g.turn.current_main_phase = MainPhase::Bidding;
+    g.enter_bidding(BiddingStep::Bidding);
+    let mut bid = Bid::default();
+    bid.amount = 4;
+    bid.ally_contribution_amount = 2;
+    bid.emperor_contribution_amount = 3;
+    let by_richese = By::new(&g, Faction::Richese);
+    let placed = bid.placed(&mut g, by_richese);
+    {
+        let b = g.bidding_mut().unwrap();
+        b.card_just_won = Some(card);
+        b.winning_bid = Some(placed);
+    }
+
+    let mut e = NexusPlayed::default();
+    e.faction = Some(Faction::Richese);
+    let by = By::new(&g, Faction::Harkonnen);
+    assert!(e.is_betrayal(&g, by.faction));
+    e.apply(&mut g, by).unwrap();
+
+    assert!(!g.player(richese).treachery_cards.contains(&card));
+    assert_eq!(spice(&g, Faction::Richese), 4);
+    assert_eq!(spice(&g, Faction::Atreides), 2);
+    assert_eq!(spice(&g, Faction::Emperor), 3);
+}
+
+/// Forces move from two sectors of one territory into a territory with spice. The Sandmaster
+/// collects 1 spice per territory moved into or through (Sandmaster.gif), once for the move.
+/// Before the fix each source sector collected it again.
+#[test]
+fn the_sandmaster_collects_once_per_territory() {
+    let mut g = fixture("move");
+    let p = g.player_indices().find(|p| !g.player(*p).leaders.is_empty() && !g.player(*p).is(Faction::Fremen)).expect("a player with leaders");
+    let leader = g.player(p).leaders[0];
+    g.set_skill(leader, Some(LeaderSkill::Sandmaster));
+    g.set_in_front_of_shield(leader, true);
+    assert!(g.has_skill_in_front_of_shield(p, LeaderSkill::Sandmaster));
+    let faction = g.player(p).faction.expect("faction");
+    g.board.resources_on_planet.clear();
+
+    // Two sectors of one sand territory, and a location in another territory that both reach in
+    // one step.
+    let usable = |g: &Game, l: Location| {
+        !l.territory().is_stronghold()
+            && l.as_homeworld().is_none()
+            && !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)
+            && g.players.iter().all(|q| q.any_forces_in(Some(l)) == 0)
+    };
+    let all: Vec<Location> = g.board.map.locations(false).collect();
+    let (from, to) = all
+        .iter()
+        .filter(|l| usable(&g, **l))
+        .find_map(|a| {
+            let b = all.iter().copied().find(|b| *b != *a && b.territory() == a.territory() && usable(&g, *b))?;
+            let to = all.iter().copied().find(|t| {
+                t.territory() != a.territory()
+                    && usable(&g, *t)
+                    && !g.board.map.find_paths(*a, *t, 1, false, faction, &g).is_empty()
+                    && !g.board.map.find_paths(b, *t, 1, false, faction, &g).is_empty()
+            })?;
+            Some(((*a, b), to))
+        })
+        .expect("a territory with two sectors next to another territory");
+    let reserves = g.player(p).home_worlds[0].location();
+    Player::move_forces(&mut g, p, reserves, from.0, 1).unwrap();
+    Player::move_forces(&mut g, p, reserves, from.1, 1).unwrap();
+    g.board.resources_on_planet.insert(to, 5);
+
+    let spice_before = i32::from(g.player(p).resources);
+    let mut force_locations: IndexMap<Location, Battalion> = IndexMap::new();
+    force_locations.insert(from.0, Battalion::new(faction, 1, 0, from.0));
+    force_locations.insert(from.1, Battalion::new(faction, 1, 0, from.1));
+    let mut m = Move::default();
+    m.to = Some(to);
+    g.perform_move_from_locations(p, &force_locations, &Event::from(m), false, false).unwrap();
+
+    assert_eq!(g.player(p).forces_in(Some(to)), 2);
+    assert_eq!(i32::from(g.player(p).resources), spice_before + 1);
+    assert_eq!(g.board.resources_on_planet.get(&to).copied(), Some(4));
+}
+
+/// A blow doubled by a sandtrout that lands in the storm uses up the doubling. The Ixians &
+/// Tleilaxu rulebook doubles only the worm's immediate replacement card. Before the fix the
+/// doubling carried over to the next blow.
+#[test]
+fn a_sandtrout_doubling_lost_to_the_storm_doesnt_carry_over() {
+    let mut g = game_of(&[Faction::Atreides, Faction::Harkonnen]);
+    g.rules.active.push(Rule::ExpansionTreacheryCardsExceptPBandSSandAmal);
+    g.enter_blow(BlowStep::BlowA);
+    let card = ResourceCard::get_resource_cards_in_and_outside_play().iter().copied().find(|c| c.is_spice_blow() && c.location().is_some()).unwrap();
+    let location = card.location().unwrap();
+    g.board.sector_in_storm = location.sector(&g.board.map);
+    g.board.sand_trout_doubles_resources = true;
+    g.process_blow_card(card).unwrap();
+    assert!(log_texts(&g).iter().any(|t| t.contains("is lost in the storm")));
+    assert!(!g.board.sand_trout_doubles_resources);
+}
+
+/// An offer to trade a card with an ally that has none was accepted, and the game then waited for
+/// an answer the ally couldn't give.
+#[test]
+fn a_card_trade_needs_an_ally_with_cards() {
+    let mut g = game_of(&[Faction::Atreides, Faction::Harkonnen]);
+    ally(&mut g, Faction::Atreides, Faction::Harkonnen);
+    let atreides = idx(&g, Faction::Atreides);
+    let card = TreacheryCardManager::items()[5];
+    g.player_mut(atreides).treachery_cards.push(card);
+    let mut e = CardTraded::default();
+    e.target = Some(Faction::Harkonnen);
+    e.card = Some(card);
+    e.requested_card = None;
+    let by = By::new(&g, Faction::Atreides);
+    assert_eq!(e.validate(&g, by).err().map(|r| r.0.plain_text()).as_deref(), Some("Your ally does not have cards to trade"));
+    let harkonnen = idx(&g, Faction::Harkonnen);
+    g.player_mut(harkonnen).treachery_cards.push(TreacheryCardManager::items()[6]);
+    assert!(e.validate(&g, by).is_ok());
+}
+
+/// The Ixian starting-card pick accepted any card.
+#[test]
+fn the_ixian_picks_one_of_the_starting_cards() {
+    let mut g = game_of(&[Faction::Ixian, Faction::Harkonnen]);
+    let cards = TreacheryCardManager::items();
+    g.decks.starting_treachery_cards = Some(Deck::new(vec![cards[1], cards[2]]));
+    let by = By::new(&g, Faction::Ixian);
+    let pick = |c: Option<TreacheryCard>| IxianSelectedStartingCard { card: c };
+    assert!(pick(Some(cards[2])).validate(&g, by).is_ok());
+    assert!(pick(Some(cards[3])).validate(&g, by).is_err());
+    assert!(pick(None).validate(&g, by).is_err());
+}
+
+/// Anyone could delete anyone's automation rule, and Update was accepted and did nothing.
+#[test]
+fn only_the_owner_deletes_an_automation_rule() {
+    let mut g = game_of(&[Faction::Atreides, Faction::Harkonnen]);
+    let mut create = AutomationConfigured::default();
+    create.action = ItemAction::Create;
+    create.rule_type = AutomationRuleType::CharityAutoClaim;
+    let atreides = By::new(&g, Faction::Atreides);
+    let harkonnen = By::new(&g, Faction::Harkonnen);
+    assert!(create.validate(&g, atreides).is_ok());
+    create.apply(&mut g, atreides).unwrap();
+    let id = g.rules.automation_rules[0].id;
+
+    let mut delete = AutomationConfigured::default();
+    delete.action = ItemAction::Delete;
+    delete.automation_rule_id = id;
+    assert!(delete.validate(&g, harkonnen).is_err());
+    let mut unknown = delete.clone();
+    unknown.automation_rule_id = id + 1;
+    assert!(unknown.validate(&g, atreides).is_err());
+    let mut update = delete.clone();
+    update.action = ItemAction::Update;
+    assert!(update.validate(&g, atreides).is_err());
+    assert!(delete.validate(&g, atreides).is_ok());
+    delete.apply(&mut g, atreides).unwrap();
+    assert!(g.rules.automation_rules.is_empty());
+}
+
+/// A Distrans that fills the hand of the player whose turn it is to bid in the black market makes
+/// them pass. The pass was a normal-auction `Bid`, which doesn't check the black-market auction,
+/// so the high bidder wasn't given the card when the turn came back to them.
+#[test]
+fn distrans_in_the_black_market_passes_in_the_black_market() {
+    let factions = [Faction::Richese, Faction::Atreides, Faction::Emperor, Faction::Fremen];
+    let mut g = game_of(&factions);
+    let cards: Vec<TreacheryCard> = TreacheryCardManager::items().iter().copied().filter(|c| c.type_() != TreacheryCardType::Distrans).collect();
+    let distrans = TreacheryCardManager::items().iter().copied().find(|c| c.type_() == TreacheryCardType::Distrans).unwrap();
+    // Fremen can't bid: their hand is full.
+    let fremen = idx(&g, Faction::Fremen);
+    g.player_mut(fremen).treachery_cards = cards[0..4].to_vec();
+    for f in factions {
+        let p = idx(&g, f);
+        g.player_mut(p).resources = 20;
+    }
+    g.turn.current_main_phase = MainPhase::Bidding;
+    g.enter_bidding(BiddingStep::BlackMarketBidding);
+    g.start_bid_sequence_and_auction_type(Some(AuctionType::BlackMarketNormal), None, 1);
+    let on_auction = cards[10];
+    g.bidding_mut().unwrap().cards_on_auction = Some(Deck::new(vec![on_auction]));
+    let mut seq = g.bidding_mut().unwrap().bid_sequence.take().unwrap();
+    g.skip_players_that_cant_bid(&mut seq);
+    g.bidding_mut().unwrap().bid_sequence = Some(seq);
+    let current = |g: &Game| g.bidding().unwrap().bid_sequence.as_ref().unwrap().current_player(g).unwrap();
+
+    // The first bidder bids 1. Every other bidder but one passes.
+    let high = current(&g);
+    let mut bid = BlackMarketBid::default();
+    bid.amount = 1;
+    let high_faction = g.player(high).faction.unwrap();
+    assert_eq!(submit_by(&mut g, high_faction, |_| bid.clone().into()), None);
+    let mut target = current(&g);
+    loop {
+        let next = g.players.iter().filter(|p| p.has_room_for_cards(&g)).count();
+        if next <= 2 {
+            break;
+        }
+        // Pass until two bidders are left: the high bidder and the target.
+        let f = g.player(target).faction.unwrap();
+        g.player_mut(target).treachery_cards = cards[4..8].to_vec();
+        let pass = BlackMarketBid { passed: true, ..BlackMarketBid::default() };
+        assert_eq!(submit_by(&mut g, f, |_| pass.into()), None);
+        target = current(&g);
+    }
+    assert_ne!(target, high);
+    assert_eq!(g.phase(), Phase::BlackMarketBidding);
+
+    // The high bidder gives the target the card that fills their hand.
+    g.player_mut(target).treachery_cards = cards[11..14].to_vec();
+    g.player_mut(high).treachery_cards = vec![distrans, cards[14]];
+    let target_faction = g.player(target).faction.unwrap();
+    let mut e = DistransUsed::default();
+    e.target = Some(target_faction);
+    e.card = Some(cards[14]);
+    let by_high = By::new(&g, high_faction);
+    e.apply(&mut g, by_high).unwrap();
+
+    // The target's pass brings the auction back to the high bidder, who wins the card.
+    assert!(g.player(high).treachery_cards.contains(&on_auction), "{:?}", log_texts(&g));
+    assert_ne!(g.phase(), Phase::BlackMarketBidding);
+    assert!(g.history.entries.iter().all(|h| h.event_type() != EventType::Bid));
+}
+
+/// Income from an occupied homeworld at high threshold loses nothing, and logged
+/// "0 ... goes to <occupier>" anyway.
+#[test]
+fn occupied_homeworld_income_logs_only_a_loss() {
+    let mut g = homeworld_game(&[Faction::Atreides, Faction::Harkonnen], &[]);
+    let world = g.player(idx(&g, Faction::Atreides)).primary_homeworld();
+    g.board.homeworld_occupation.insert(world, Faction::Harkonnen);
+    let before = g.current_report().messages.len();
+    let mut amount = 6;
+    g.modify_income_because_of_low_threshold_or_occupation(idx(&g, Faction::Atreides), &mut amount);
+    assert_eq!(amount, 6);
+    assert_eq!(g.current_report().messages.len(), before);
+}
+
+/// Two errors named an internal type ("Treachery.Shared.Leader", "Treachery.Shared.Territory")
+/// instead of the hero or the territory. They now carry the object, which the skin names.
+#[test]
+fn game_errors_name_the_hero_and_the_territory() {
+    use treachery_engine::messages::part::Part;
+    // A Raise Dead for a hero who isn't in the game (a card that isn't a Cheap Hero), submitted
+    // when it isn't applicable.
+    let mut g = fixture("revival");
+    let hero = Hero::TreacheryCard(TreacheryCardManager::items()[0]);
+    let by = g.players.iter().find_map(|p| p.faction).unwrap();
+    let mut e = RaiseDeadPlayed::default();
+    e.hero = Some(hero);
+    let result = g.play(HistoryEntry::new(by, e), true, false);
+    let Err(SubmitError::Failed(err)) = result else { panic!("a Game Error, not {result:?}") };
+    assert!(holds_part(&SubmitError::Failed(err.clone()).message(), &Part::from(hero)), "{}", err.message());
+
+    // An ambassador placed where one already is (only without validation).
+    let mut g = game_of(&[Faction::Ecaz, Faction::Atreides]);
+    let stronghold = g.board.map.territories(false).find(|t| t.is_stronghold() && !t.is_homeworld()).unwrap();
+    g.board.ambassadors_on_planet.insert(stronghold, Ambassador::Fremen);
+    let ecaz = idx(&g, Faction::Ecaz);
+    g.player_mut(ecaz).resources = 5;
+    let placed = AmbassadorPlaced { ambassador: Some(Ambassador::Atreides), stronghold: Some(stronghold) };
+    let by_ecaz = By::new(&g, Faction::Ecaz);
+    let err = placed.apply(&mut g, by_ecaz).unwrap_err();
+    assert!(holds_part(&SubmitError::Failed(err.clone()).message(), &Part::Territory(stronghold)), "{}", err.message());
+}
+
+/// A weapon with no defense against it isn't countered. Before the fix this panicked for the
+/// weapons whose counter depends on the defense; a bot reached it through `determine_diplomacy`.
+#[test]
+fn no_defense_counters_nothing() {
+    for c in TreacheryCardManager::items().iter().copied().filter(|c| c.is_weapon() && c.type_() != TreacheryCardType::MirrorWeapon) {
+        assert!(!c.countered_by(None, None), "{c:?}");
+    }
+}
+
+/// Optional card, hero, location and territory fields default to none. Card 0 and location 0 are
+/// real objects, so a `Shipment` without `karmaCard` was a Karama shipment with a Lasgun.
+#[test]
+fn optional_handles_default_to_none() {
+    let s: Shipment = serde_json::from_value(serde_json::json!({ "shipmentType": "ShipmentNormal", "to": 8, "forceAmount": 3 })).unwrap();
+    assert_eq!(s.karma_card, None);
+    assert_eq!(s.from, None);
+    assert!(!s.is_using_karma());
+    assert!(!s.is_site_to_site());
+
+    let b = treachery_engine::events::Battle::default();
+    assert_eq!((b.hero, b.weapon, b.defense), (None, None, None));
+    assert_eq!(LoserConcluded::default().kept_card, None);
+    assert_eq!(RaiseDeadPlayed::default().hero, None);
+    assert_eq!(Revival::default().hero, None);
+    assert_eq!(KarmaFreeRevival::default().hero, None);
+    assert_eq!(AllyPermission::default().permitted_karma_card, None);
+    assert_eq!(CardTraded::default().requested_card, None);
+    let a = AmbassadorActivated::default();
+    assert_eq!((a.fremen_or_guild_to, a.ixian_card), (None, None));
+    let n = NexusPlayed::default();
+    assert_eq!((n.choam_card, n.ecaz_territory, n.moritani_territory), (None, None, None));
+    let t = TerrorRevealed::default();
+    assert_eq!((t.sneak_attack_to, t.card_to_give_in_sabotage), (None, None));
+    assert_eq!(TerrorPlanted::default().stronghold, None);
+}

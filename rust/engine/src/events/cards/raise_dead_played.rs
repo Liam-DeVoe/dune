@@ -17,7 +17,7 @@ impl Default for RaiseDeadPlayed {
             amount_of_forces: 0,
             amount_of_special_forces: 0,
             assign_skill: false,
-            hero: TreacheryCardManager::get(0).map(Hero::TreacheryCard),
+            hero: None,
             number_of_special_forces_in_location: Default::default(),
             location: None,
         }
@@ -192,7 +192,7 @@ impl EventRules for RaiseDeadPlayed {
     fn try_describe(&self, game: &Game, by: By) -> GameResult<Message> {
         if let Some(hero) = self.hero {
             if !game.leaders.leader_state.contains_key(&hero) {
-                game_error!("{} is not in this game", hero.plain_text());
+                return Err(GameError::express(express!(hero, " is not in this game")));
             }
             if !game.is_face_down_dead(hero) {
                 return Ok(express!("Using ", TreacheryCardType::RaiseDead, ", ", by.faction, " revive ", hero));

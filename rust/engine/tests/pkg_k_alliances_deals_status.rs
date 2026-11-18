@@ -183,18 +183,35 @@ fn deal_parameter_is_parsed_with_int_parse() {
 
 // ---------------------------------------------------------------- Donated
 
-/// Known quirk (known-issues.md): the Double Inflation check builds a message and never returns
-/// it, so it has no effect.
+/// "While Charity is doubled, no bribes can be made" (the CHOAM sheet). The Emperor's spice for
+/// their ally isn't a bribe, and the host's gifts from the bank aren't either.
 #[test]
-fn donated_double_inflation_check_has_no_effect() {
-    let mut g = game_with(&[Faction::Atreides, Faction::Emperor]);
-    g.board.choam_economics_status = Some(ChoamEconomicsStatus::Double);
+fn no_bribes_during_double_inflation() {
+    let mut g = game_with(&[Faction::Atreides, Faction::Emperor, Faction::Fremen]);
     let atreides = idx(&g, Faction::Atreides);
+    let emperor = idx(&g, Faction::Emperor);
     g.player_mut(atreides).resources = 5;
-    let mut d = Donated::default();
-    d.target = Some(Faction::Emperor);
-    d.resources = 2;
-    assert!(d.validate(&g, By::new(&g, Faction::Atreides)).is_ok());
+    g.player_mut(emperor).resources = 5;
+    ally(&mut g, Faction::Emperor, Faction::Fremen);
+    let gift = |from_bank: bool, target: Faction| {
+        let mut d = Donated::default();
+        d.target = Some(target);
+        d.resources = 2;
+        d.from_bank = from_bank;
+        d
+    };
+    let refusal = |g: &Game, d: &Donated, by: Faction| d.validate(g, By::new(g, by)).err().map(|r| r.0.plain_text());
+
+    for status in [ChoamEconomicsStatus::Double, ChoamEconomicsStatus::DoubleFlipped] {
+        g.board.choam_economics_status = Some(status);
+        let no_bribes = Some("No bribes can be made during Double Inflation".to_string());
+        assert_eq!(refusal(&g, &gift(false, Faction::Emperor), Faction::Atreides), no_bribes);
+        assert_eq!(refusal(&g, &gift(false, Faction::Atreides), Faction::Emperor), no_bribes);
+        assert_eq!(refusal(&g, &gift(false, Faction::Fremen), Faction::Emperor), None);
+        assert_eq!(refusal(&g, &gift(true, Faction::Atreides), Faction::Atreides), None);
+    }
+    g.board.choam_economics_status = None;
+    assert_eq!(refusal(&g, &gift(false, Faction::Emperor), Faction::Atreides), None);
 }
 
 // ---------------------------------------------------------------- Game_Contemplate

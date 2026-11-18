@@ -34,11 +34,14 @@ impl EventRules for TraitorDiscarded {
     fn apply(&self, game: &mut Game, by: By) -> GameResult {
         let m = self.describe(game, by);
         game.log_event(m);
-        // Known quirk (known-issues.md): the message says the traitor is shuffled into the deck,
-        // but the deck is not shuffled.
+        // "Draw two traitor cards, then shuffle two back" (faction2nexus.gif). Without the
+        // shuffle, the discarder would know the bottom cards of the deck.
         let traitor = self.traitor;
         let traitor = traitor.required("traitor")?;
-        game.decks.traitor_deck.as_mut().required("traitor deck")?.items.push(traitor);
+        let deck = game.decks.traitor_deck.as_mut().required("traitor deck")?;
+        deck.items.push(traitor);
+        deck.shuffle(&mut game.rng);
+        game.stone(Milestone::Shuffled);
         let me = by.player();
         crate::iter::remove_first(&mut game.player_mut(me).traitors, &traitor);
         let remaining = game.traitors_to_discard_mut().required("traitors to discard")?;

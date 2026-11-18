@@ -10,7 +10,7 @@
   position: relative;
 }
 
-.select-trigger {
+.select__trigger {
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
@@ -22,7 +22,7 @@
   }
 }
 
-.select-list {
+.select__list {
   // Undo the UA popover styles (centred, bordered, canvas colours).
   position: fixed;
   inset: auto;
@@ -49,7 +49,7 @@
   }
 }
 
-.select-option {
+.select__option {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -66,7 +66,7 @@
     height: 14px;
   }
 
-  &.is-selected {
+  &--selected {
     color: var(--parchment);
 
     &::before {
@@ -75,13 +75,13 @@
     }
   }
 
-  &.is-active {
+  &--active {
     background: shared.$gold-wash-strong;
     color: var(--parchment);
   }
 }
 
-.select-group {
+.select__group {
   padding: 8px 10px 2px;
   font-family: var(--font-label);
   font-size: 11px;
@@ -89,12 +89,12 @@
   text-transform: uppercase;
   color: var(--text-3);
 
-  & + .select-option {
+  & + .select__option {
     margin-top: 0;
   }
 }
 
-.select-option + .select-group {
+.select__option + .select__group {
   margin-top: 4px;
   border-top: 1px solid shared.$hairline;
 }

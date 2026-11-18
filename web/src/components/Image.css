@@ -1,41 +1,34 @@
-/* GenericComponents/Image.razor.css, global here: only Image draws these classes. */
-.image.shadowy {
+/* GenericComponents/Image.razor.css, global here: only Image draws these classes. An image that
+   lights up on hover also carries image--hover. Its modifiers repeat below with two classes, so
+   they still beat the :hover filter. */
+.image--shadowy {
   filter: drop-shadow(1px 1px 1px black);
 }
-.image.highlighted {
+.image--highlighted {
   filter: drop-shadow(0 0 0.75rem var(--gold));
 }
-.image.darkened {
+.image--darkened {
   filter: grayscale(50%) brightness(50%) contrast(80%);
 }
-.image.blurred {
+.image--blurred {
   filter: brightness(150%) contrast(100%) blur(1px);
 }
-.image.greyed {
+.image--greyed {
   filter: grayscale(100%) opacity(60%);
 }
-.image.pointer {
+.image--pointer {
   cursor: pointer;
 }
 
-.image-hover:hover {
+.image--hover:hover {
   filter: brightness(130%);
 }
-.image-hover.shadowy {
+.image--hover.image--shadowy {
   filter: drop-shadow(1px 1px 1px black);
 }
-.image-hover.highlighted {
-  filter: drop-shadow(0 0 0.75rem var(--gold));
-}
-.image-hover.darkened {
+.image--hover.image--darkened {
   filter: grayscale(50%) brightness(50%) contrast(80%);
 }
-.image-hover.blurred {
-  filter: brightness(150%) contrast(100%) blur(1px);
-}
-.image-hover.greyed {
-  filter: grayscale(100%) opacity(60%);
-}
-.image-hover.pointer {
+.image--hover.image--pointer {
   cursor: pointer;
 }

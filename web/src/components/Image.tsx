@@ -19,19 +19,19 @@ export function Image({ src, alt, width, className = "", noShadow = false, popov
   darkened?: boolean;
   blurred?: boolean;
   greyedOut?: boolean;
-  // Pointer: the pointer cursor without a popover. HighlightOnHover: "image-hover" for "image".
+  // Pointer: the pointer cursor without a popover. HighlightOnHover: image--hover on "image".
   pointer?: boolean;
   highlightOnHover?: boolean;
   onClick?: () => void;
 }) {
   const ref = usePopover<HTMLImageElement>(popover);
   const w = width > 0 ? supportRound(width) : "";
-  // JointClass: image, Class, shadowy, pointer, highlighted, darkened, blurred, greyed.
-  const classes = [highlightOnHover ? "image-hover" : "image", className, noShadow ? "" : "shadowy", popover !== null || tooltip !== null || pointer ? "pointer" : "",
-    highlighted ? "highlighted" : "", darkened ? "darkened" : "", blurred ? "blurred" : "", greyedOut ? "greyed" : ""]
+  // JointClass: image, Class, shadowy, pointer, highlighted, darkened, blurred, greyed, as image--* modifiers.
+  const classes = [highlightOnHover ? "image image--hover" : "image", className, noShadow ? "" : "image--shadowy", popover !== null || tooltip !== null || pointer ? "image--pointer" : "",
+    highlighted ? "image--highlighted" : "", darkened ? "image--darkened" : "", blurred ? "image--blurred" : "", greyedOut ? "image--greyed" : "", starred && width > 0 ? "force-token__img" : ""]
     .filter((c) => c).join(" ");
   const img = popover !== null
     ? <img ref={ref} alt={alt} className={classes} width={w} src={src} onClick={onClick} {...popoverAttributes(popover, "image")} />
     : <img alt={alt} className={classes} width={w} src={src} onClick={onClick} title={tooltip ?? undefined} />;
-  return starred && width > 0 ? <span className="force-token starred" style={{ ["--d" as string]: `${w}px` }}>{img}</span> : img;
+  return starred && width > 0 ? <span className="force-token force-token--starred" style={{ ["--d" as string]: `${w}px` }}>{img}</span> : img;
 }

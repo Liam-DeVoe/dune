@@ -719,3 +719,58 @@ fn a_richese_nexus_refund_returns_the_emperors_contribution_to_the_emperor() {
     assert_eq!(spice(&g, Faction::Atreides), 2);
     assert_eq!(spice(&g, Faction::Emperor), 3);
 }
+
+/// Forces move from two sectors of one territory into a territory with spice. The Sandmaster
+/// collects 1 spice per territory moved into or through (Sandmaster.gif), once for the move.
+/// Before the fix each source sector collected it again.
+#[test]
+fn the_sandmaster_collects_once_per_territory() {
+    let mut g = fixture("move");
+    let p = g.player_indices().find(|p| !g.player(*p).leaders.is_empty() && !g.player(*p).is(Faction::Fremen)).expect("a player with leaders");
+    let leader = g.player(p).leaders[0];
+    g.set_skill(leader, Some(LeaderSkill::Sandmaster));
+    g.set_in_front_of_shield(leader, true);
+    assert!(g.has_skill_in_front_of_shield(p, LeaderSkill::Sandmaster));
+    let faction = g.player(p).faction.expect("faction");
+    g.board.resources_on_planet.clear();
+
+    // Two sectors of one sand territory, and a location in another territory that both reach in
+    // one step.
+    let usable = |g: &Game, l: Location| {
+        !l.territory().is_stronghold()
+            && l.as_homeworld().is_none()
+            && !Sector::in_storm(l.sector(&g.board.map), g.board.sector_in_storm)
+            && g.players.iter().all(|q| q.any_forces_in(Some(l)) == 0)
+    };
+    let all: Vec<Location> = g.board.map.locations(false).collect();
+    let (from, to) = all
+        .iter()
+        .filter(|l| usable(&g, **l))
+        .find_map(|a| {
+            let b = all.iter().copied().find(|b| *b != *a && b.territory() == a.territory() && usable(&g, *b))?;
+            let to = all.iter().copied().find(|t| {
+                t.territory() != a.territory()
+                    && usable(&g, *t)
+                    && !g.board.map.find_paths(*a, *t, 1, false, faction, &g).is_empty()
+                    && !g.board.map.find_paths(b, *t, 1, false, faction, &g).is_empty()
+            })?;
+            Some(((*a, b), to))
+        })
+        .expect("a territory with two sectors next to another territory");
+    let reserves = g.player(p).home_worlds[0].location();
+    Player::move_forces(&mut g, p, reserves, from.0, 1).unwrap();
+    Player::move_forces(&mut g, p, reserves, from.1, 1).unwrap();
+    g.board.resources_on_planet.insert(to, 5);
+
+    let spice_before = i32::from(g.player(p).resources);
+    let mut force_locations: IndexMap<Location, Battalion> = IndexMap::new();
+    force_locations.insert(from.0, Battalion::new(faction, 1, 0, from.0));
+    force_locations.insert(from.1, Battalion::new(faction, 1, 0, from.1));
+    let mut m = Move::default();
+    m.to = Some(to);
+    g.perform_move_from_locations(p, &force_locations, &Event::from(m), false, false).unwrap();
+
+    assert_eq!(g.player(p).forces_in(Some(to)), 2);
+    assert_eq!(i32::from(g.player(p).resources), spice_before + 1);
+    assert_eq!(g.board.resources_on_planet.get(&to).copied(), Some(4));
+}

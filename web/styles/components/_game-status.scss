@@ -1,19 +1,19 @@
 // The status card at the top of the action stack (GameStatusComponent.tsx and
-// the pause lines in PauseReasons.tsx). The card is the parchment .prompt-act.
+// the pause lines in PauseReasons.tsx). The card is the parchment card--act.
 .game-status {
   // The factions to bid or waited for, six to a row, centred.
   &__players {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    margin: 0.5rem -0.75rem 1rem;
+    margin: var(--s-2) calc(-1 * var(--s-3)) var(--s-4);
 
     > * {
       flex: 0 0 auto;
       width: 16.66666667%;
       max-width: 100%;
-      padding-right: 0.75rem;
-      padding-left: 0.75rem;
+      padding-right: var(--s-3);
+      padding-left: var(--s-3);
     }
   }
 
@@ -24,7 +24,7 @@
   }
 
   &__sigil {
-    padding: 0.5rem;
+    padding: var(--s-2);
   }
 
   // The status message, in bold.
@@ -36,7 +36,7 @@
 
   // A line under it: what a waited-for faction may still do, who holds the phase.
   &__line {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
     color: var(--ink-0);
     text-align: center;
 
@@ -52,12 +52,12 @@
 
   // Hold, Done, Continue: at the right.
   &__actions {
-    margin-top: 0.5rem;
+    margin-top: var(--s-2);
     text-align: right;
   }
 
   &__hold {
-    margin-right: 0.25rem;
+    margin-right: var(--s-1);
   }
 
   // Pushes the host's Continue button to the right of the strip.
@@ -68,7 +68,7 @@
   &__time-limit {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--s-2);
   }
 
   // .check has a bottom margin.

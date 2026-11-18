@@ -27,7 +27,8 @@ const started = (view: GameView) => view.eventNumber > 0;
 export const tradeIcons = (view: GameView) =>
   started(view) && !view.viewer.isObserver && view.me !== null && PhaseValue[view.phase] > PhaseValue.TradingFactions;
 
-export function MenuComponent() {
+// `className` places the bar in the screen that draws it (GameScreen).
+export function MenuComponent({ className = "" }: { className?: string } = {}) {
   const { view, skin, source } = useGame();
   const menu = useMenu();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -123,7 +124,7 @@ export function MenuComponent() {
 
   return (
     <>
-    <div className="menu-bar">
+    <div className={`menu-bar ${className}`}>
       <div className="toolbar menu-bar__toolbar">
         {started(view) && (
           <button className={menu.panel === "Players" ? "toolbar__button toolbar__button--on" : "toolbar__button"} title="Players" onClick={() => togglePanel("Players")}>
@@ -251,7 +252,7 @@ export function MenuComponent() {
             {numberOfBots > 0 && (
               <li className="menu-overflow__bots">
                 <svg className="menu-overflow__icon" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2" /><path d="M12 8V4M9 13v1M15 13v1" /></svg><span>Bots</span>{" "}
-                <span className="seg menu-overflow__seg">
+                <span className="seg seg--small menu-overflow__seg">
                   <button className={view.botsSpeed === 0 ? "seg__button seg__button--on" : "seg__button"} title="Bots are paused" onClick={() => setBotSpeed(0)}>Pause</button>{" "}
                   <button className={view.botsSpeed === 1 ? "seg__button seg__button--on" : "seg__button"} title="Bots at normal speed" onClick={() => setBotSpeed(1)}>1×</button>{" "}
                   <button className={view.botsSpeed === 2 ? "seg__button seg__button--on" : "seg__button"} title="Bots at higher speed" onClick={() => setBotSpeed(2)}>2×</button>{" "}

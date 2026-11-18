@@ -2,12 +2,12 @@
 .menu-panels {
   // A saved game that failed to load, in the guide's error red.
   &__error {
-    font-size: 0.875em;
-    color: #e46b6b;
+    font-size: var(--fs-2);
+    color: var(--bad);
   }
 
   &__clear {
-    margin-top: 0.25rem;
-    margin-bottom: 0.5rem;
+    margin-top: var(--s-1);
+    margin-bottom: var(--s-2);
   }
 }

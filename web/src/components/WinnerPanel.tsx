@@ -2,13 +2,15 @@
 // game unless the rules disable it. ActionPanel draws it after GameEnded (view.ending).
 import type { EndingView } from "../generated/EndingView";
 import { useGame } from "../state/context";
+import { useActCard } from "./ActStack";
 import { openModal } from "./ModalComponent";
 import { StoryComponent } from "./StoryComponent";
 
 export function WinnerPanel({ ending }: { ending: EndingView }) {
   const { skin } = useGame();
+  const act = useActCard();
   return (
-    <div className="card winner-panel" style={{ animation: "fadeIn 3s" }}>
+    <div className={`card ${act} winner-panel`} style={{ animation: "fadeIn 3s" }}>
       <div className="card__header">Victory!</div>
       <div className="card__body">
         {ending.winners.map((w, i) => (

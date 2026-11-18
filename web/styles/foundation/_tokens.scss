@@ -34,6 +34,99 @@
   --text-2: #d9c79a;
   --text-3: #a68d63;
 
+  // named colours outside the sampled palette. Translucent ones are named
+  // by what they are and their opacity (--wash-dark-55 is --ink-0 at 55%).
+
+  // plain
+  --white: #fff;
+  --black: #000;
+
+  // gold, brighter than --gold: hover fills, and the turn banner's alert
+  --gold-light: #f0cb50;
+  --gold-bright: #ffd84d;
+
+  // good and bad: confirmations, errors, warnings
+  --good: #79b34c;
+  --good-light: #8bc55d;
+  --good-dark: #3f5f1c;
+  --green-deep: #2c4a1c;
+  --bad: #e46b6b;
+  --warn: #ff8f7a;
+  --alert-red: #e74c3c;
+  --storm-light: #d63b3b;
+  --storm-hot: #e05a4a;
+
+  // treachery card types
+  --card-defense: #4f7bb3;
+  --card-special: #6f9a3a;
+
+  // scrollbars
+  --scrollbar-track: #444;
+  --scrollbar-thumb: #e8dba6ee;
+
+  // translucent light lines on dark (ink) surfaces
+  --hairline-faint: rgba(255, 255, 255, 0.06);
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-mid: rgba(255, 255, 255, 0.12);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --hairline-bright: rgba(255, 255, 255, 0.25);
+
+  // light fills for controls on parchment
+  --parchment-input-bg: rgba(255, 255, 255, 0.55);
+  --parchment-check-bg: rgba(255, 255, 255, 0.6);
+
+  // translucent ink (--ink-1) tints and lines on parchment
+  --ink-tint: rgba(29, 12, 0, 0.06);
+  --ink-tint-strong: rgba(29, 12, 0, 0.1);
+  --ink-line-faint: rgba(29, 12, 0, 0.15);
+  --ink-line-soft: rgba(29, 12, 0, 0.2);
+  --ink-line: rgba(29, 12, 0, 0.3);
+  --ink-line-strong: rgba(29, 12, 0, 0.35);
+  --ink-stroke: rgba(29, 12, 0, 0.75);
+
+  // translucent ink (--ink-0) washes: backdrops, chip fills
+  --wash-dark-12: rgba(18, 8, 0, 0.12);
+  --wash-dark-25: rgba(18, 8, 0, 0.25);
+  --wash-dark-35: rgba(18, 8, 0, 0.35);
+  --wash-dark-55: rgba(18, 8, 0, 0.55);
+  --wash-dark-70: rgba(18, 8, 0, 0.7);
+
+  // translucent parchment washes and lines on ink
+  --wash-light-05: rgba(252, 249, 209, 0.05);
+  --wash-light-08: rgba(252, 249, 209, 0.08);
+  --wash-light-12: rgba(252, 249, 209, 0.12);
+  --wash-light-20: rgba(252, 249, 209, 0.2);
+  --wash-light-30: rgba(252, 249, 209, 0.3);
+  --wash-light-45: rgba(252, 249, 209, 0.45);
+  --wash-light-72: rgba(252, 249, 209, 0.72);
+
+  // gold washes for hover and selected states on ink, and gold rings
+  --gold-wash: rgba(231, 191, 60, 0.08);
+  --gold-wash-strong: rgba(231, 191, 60, 0.12);
+  --gold-wash-16: rgba(231, 191, 60, 0.16);
+  --gold-wash-35: rgba(231, 191, 60, 0.35);
+  --gold-wash-45: rgba(231, 191, 60, 0.45);
+  --gold-wash-55: rgba(231, 191, 60, 0.55);
+  --gold-wash-70: rgba(231, 191, 60, 0.7);
+
+  // translucent storm red
+  --storm-wash-22: rgba(195, 50, 50, 0.22);
+  --storm-wash-28: rgba(195, 50, 50, 0.28);
+  --storm-wash-50: rgba(195, 50, 50, 0.5);
+  --storm-wash-80: rgba(195, 50, 50, 0.8);
+
+  // black shades for shadows, outlines and dark fills
+  --shade-22: rgba(0, 0, 0, 0.22);
+  --shade-35: rgba(0, 0, 0, 0.35);
+  --shade-40: rgba(0, 0, 0, 0.4);
+  --shade-50: rgba(0, 0, 0, 0.5);
+  --shade-60: rgba(0, 0, 0, 0.6);
+  --shade-70: rgba(0, 0, 0, 0.7);
+  --shade-80: rgba(0, 0, 0, 0.8);
+
+  // focus ring on inputs, checks, range thumbs, tabs and the close button
+  --focus-ring-gold: 0 0 0 3px rgba(231, 191, 60, 0.2);
+
   // faction colours, from DefaultSkin.cs
   --f-atreides: #63842e;
   --f-harkonnen: #2c2c2c;
@@ -53,7 +146,20 @@
   --font-label: "Copperplate", serif;
   --font-body: "Alegreya Sans", "Candara", "Calibri", sans-serif;
 
-  // spacing on a 4px grid
+  // type scale. Every font-size is one of these, except sizes computed from a
+  // component's own size (spice digits, force stars).
+  --fs-1: 11px; // labels, captions, small caps
+  --fs-2: 13px; // secondary text, small controls
+  --fs-3: 15px; // UI text: chips, controls, panel rows
+  --fs-body: 16px; // the page's reading text, form fields and buttons (16px keeps iOS from zooming a focused field)
+  --fs-4: 18px; // card titles, large values
+  --fs-5: 22px; // headings in popovers and panels
+  --fs-6: 30px;
+  --fs-7: 40px; // display
+
+  // spacing on a 4px grid; --s-0 is for hairline gaps, --s-7 and --s-8 for
+  // page layout
+  --s-0: 2px;
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -66,7 +172,9 @@
   // radii: tokens on the map are circles, everything else is nearly square
   --r-1: 3px;
   --r-2: 6px;
-  --r-pill: 999px;
+  --r-3: 12px;
+  --r-pill: 999px; // pills and other round-ended shapes
+  --r-round: 50%; // circles
 
   // elevation: warm shadows, never grey
   --shadow-1: 0 1px 2px rgba(18, 8, 0, 0.6);

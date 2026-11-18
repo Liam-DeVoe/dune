@@ -1,91 +1,57 @@
-// Blow log design. See design/battle-log/log-matrix.html (Spice Blow, column A).
-
-// DECK A / DECK B over each deck's lines (Increased Spice Flow).
-.blow-deck {
-  margin: 4px 0 2px;
-}
+// Blow log design. See design/battle-log/log-matrix.html (Spice Blow, column
+// A). DECK A / DECK B (Increased Spice Flow) and NEXUS are .log-label--above,
+// a worm and the Nexus are .log-aside with a .log-aside__line each, and the
+// small lines are .log-note.
 
 // The drawn spice card as a card, with the amount and the place beside it.
 // A card the storm took is greyed.
 .blow-card {
   display: grid;
   grid-template-columns: 58px 1fr;
-  gap: 10px;
+  gap: var(--s-3);
   align-items: center;
-  padding: 3px 2px;
+  padding: var(--s-0);
 
   // The img also carries .card, whose rules have one class too and come
   // earlier, so this wins where they overlap.
   &__img {
     width: 58px;
     height: 82px;
-    border-radius: 4px;
+    border-radius: var(--r-1);
     object-fit: cover;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 0 1px var(--shade-60), 0 2px 6px var(--shade-50);
 
     &--lost {
       filter: grayscale(1) brightness(0.6);
     }
   }
 
-  &__big {
+  &__amount {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
+    gap: var(--s-2);
+    font-size: var(--fs-3);
   }
 
   &__where {
-    margin-top: 5px;
+    margin-top: var(--s-1);
   }
-}
-
-// One line in a worm's or the Nexus' aside.
-.blow-line {
-  margin: 1px 0;
 }
 
 // An alliance change in the Nexus: chip, glyph, chip.
 .nexus-step {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 3px 0;
-}
+  gap: var(--s-1);
 
-.nexus-step__glyph {
-  width: 22px;
-  height: 22px;
-  flex: none;
-  fill: none;
-  stroke: var(--parchment);
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.blow-forces {
-  display: inline-flex;
-  align-items: center;
-  gap: 1px;
-  vertical-align: middle;
-
-  .force-token {
-    margin: 0;
+  &__glyph {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    fill: none;
+    stroke: var(--parchment);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
-}
-
-.blow-nexus__label {
-  margin-bottom: 2px;
-}
-
-// "No alliance changes", and the small lines: a worm ignored on turn 1, the
-// deck reshuffled.
-.blow-none,
-.blow-note {
-  font-size: 13.5px;
-}
-
-.blow-note {
-  margin-bottom: 4px;
 }

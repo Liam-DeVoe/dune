@@ -26,7 +26,7 @@ export function DealComponent({ open = false }: { open?: boolean }) {
   };
   return (
     <div className="card deals" style={open ? undefined : { animation: "fadeIn 1s" }}>
-      <div className="card__header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
+      <div className="card__header card__header--collapsible" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
         Deals{" "}
         {d.acceptable.length > 0 && <><span className="badge badge--warning" title="Deals offered to you">{d.acceptable.length}</span>{" "}</>}
         {d.cancellable.length > 0 && <><span className="badge badge--success" title="Your deal offers">{d.cancellable.length}</span>{" "}</>}

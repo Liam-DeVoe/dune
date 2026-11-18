@@ -10,8 +10,8 @@
 }
 
 .page__content {
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: var(--s-4);
+  padding-right: var(--s-4);
 }
 
 @media (min-width: 768px) {
@@ -20,7 +20,7 @@
   }
 
   .page__main > .page__content {
-    padding-left: 2rem;
-    padding-right: 1.5rem;
+    padding-left: var(--s-6);
+    padding-right: var(--s-5);
   }
 }

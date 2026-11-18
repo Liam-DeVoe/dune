@@ -105,6 +105,7 @@ class HoverPopover {
     this.content = content;
     if (this.body) {
       this.body.innerHTML = content;
+      showLongForms(this.body);
       this.place();
     }
   }
@@ -136,6 +137,7 @@ class HoverPopover {
     const body = document.createElement("div");
     body.className = ["popover__body", this.options.bodyClassName].filter((c) => c).join(" ");
     body.innerHTML = this.content;
+    showLongForms(body);
     box.appendChild(body);
     document.body.appendChild(box);
     if (typeof box.showPopover === "function") box.showPopover();
@@ -180,15 +182,26 @@ class HoverPopover {
   }
 }
 
-// While Shift is held, popovers with a longer form show it (the faction popover's full rules
-// sheet, .pop-faction in _pop.scss). Cleared on blur, since the keyup then never arrives.
+// While Shift is held, popovers with a longer form show it: the faction popover takes
+// pop-faction--full, its full rules sheet (_pop.scss). Applied to the popovers open when Shift
+// goes down or up, and to each popover as it opens. Cleared on blur, since the keyup then never
+// arrives.
 let listening = false;
+let shiftHeld = false;
+function showLongForms(root: ParentNode) {
+  for (const el of root.querySelectorAll(".pop-faction")) el.classList.toggle("pop-faction--full", shiftHeld);
+}
+function setShift(held: boolean) {
+  if (held === shiftHeld) return;
+  shiftHeld = held;
+  showLongForms(document);
+}
 function listen() {
   if (listening || typeof document === "undefined") return;
   listening = true;
-  document.addEventListener("keydown", (e) => { if (e.key === "Shift") document.body.classList.add("shift-held"); });
-  document.addEventListener("keyup", (e) => { if (e.key === "Shift") document.body.classList.remove("shift-held"); });
-  window.addEventListener("blur", () => document.body.classList.remove("shift-held"));
+  document.addEventListener("keydown", (e) => { if (e.key === "Shift") setShift(true); });
+  document.addEventListener("keyup", (e) => { if (e.key === "Shift") setShift(false); });
+  window.addEventListener("blur", () => setShift(false));
 }
 
 // A hover popover on the element while it is mounted and `content` isn't null. When the content

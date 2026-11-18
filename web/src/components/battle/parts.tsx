@@ -11,6 +11,7 @@ import type { Part } from "../../generated/Part";
 import { leaderPopup, messiahPopup, treacheryCardPopup } from "../../popups";
 import type { Skin } from "../../skin";
 import { useGame } from "../../state/context";
+import { useActCard } from "../ActStack";
 import { CollapseButton } from "../CollapseButton";
 import { type Fields, useServerDraft } from "../formDraft";
 import { hasStarredSpecialForce } from "../ForceToken";
@@ -22,12 +23,16 @@ import type { ImageChoice } from "../SelectFromImage";
 const collapsedByType = new Map<string, boolean>();
 
 // A card with a collapsible header. Panels
-// opened from a popover (the hand's card plays) start open and don't fade in.
-export function Layout({ type, header, urgent = false, inPopover = false, className = "", children }: {
+// opened from a popover (the hand's card plays) start open and don't fade in. A form with a look
+// of its own (the battle plan) names its block: the card takes it as a class, its header, body
+// and chevron take its __header, __body and __chevron elements, and it isn't joined into the act
+// stack. `className` adds modifiers to the card.
+export function Layout({ type, header, urgent = false, inPopover = false, block = "", className = "", children }: {
   type: string;
   header: ReactNode;
   urgent?: boolean;
   inPopover?: boolean;
+  block?: string;
   className?: string;
   children: ReactNode;
 }) {
@@ -36,14 +41,16 @@ export function Layout({ type, header, urgent = false, inPopover = false, classN
     collapsedByType.set(type, !collapsed);
     setCollapsed(!collapsed);
   };
-  const classes = ["card", urgent ? "card--urgent" : "", className, "event-form"].filter((c) => c).join(" ");
+  const act = useActCard();
+  const el = (name: string) => (block ? `${block}__${name}` : "");
+  const classes = ["card", urgent ? "card--urgent" : "", block || act, className, "event-form"].filter((c) => c).join(" ");
   return (
     <div className={classes} style={inPopover ? undefined : { animation: "fadeIn 1s" }}>
-      <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
-        <CollapseButton collapsed={collapsed} />
+      <div className={`card__header card__header--collapsible ${el("header")}`} style={{ cursor: "pointer" }} onClick={toggle}>
+        <CollapseButton collapsed={collapsed} className={el("chevron")} />
         {header}
       </div>
-      {!collapsed && <div className="card__body">{children}</div>}
+      {!collapsed && <div className={`card__body ${el("body")}`}>{children}</div>}
     </div>
   );
 }
@@ -154,8 +161,8 @@ export function PinActions({ label, validation, cancel, confirm }: { label: stri
     <>
       {validation && <div className="map-pin__error"><RichText parts={validation} /></div>}
       <div className="map-pin__actions">
-        <button type="button" className="button button--secondary" onClick={cancel}>Cancel</button>
-        <button type="button" className="button button--primary" disabled={validation !== null} onClick={confirm}>{label}</button>
+        <button type="button" className="button button--secondary map-pin__action" onClick={cancel}>Cancel</button>
+        <button type="button" className="button button--primary map-pin__action" disabled={validation !== null} onClick={confirm}>{label}</button>
       </div>
     </>
   );

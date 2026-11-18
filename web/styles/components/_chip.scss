@@ -1,15 +1,13 @@
-@use "../shared";
-
 // Faction chips: a sigil plus a name, used wherever a faction is referred to.
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 3px 10px 3px 3px;
+  gap: var(--s-2);
+  padding: var(--s-0) var(--s-3) var(--s-0) var(--s-0);
   border-radius: var(--r-pill);
-  background: rgba(18, 8, 0, 0.55);
-  border: 1px solid rgba(252, 249, 209, 0.12);
-  font-size: 15px;
+  background: var(--wash-dark-55);
+  border: 1px solid var(--wash-light-12);
+  font-size: var(--fs-3);
   color: var(--text);
   line-height: 1;
   white-space: nowrap;
@@ -23,7 +21,7 @@
   // The chip for the viewing player.
   &--you {
     border-color: var(--gold);
-    box-shadow: 0 0 0 1px rgba(231, 191, 60, 0.35);
+    box-shadow: 0 0 0 1px var(--gold-wash-35);
   }
 }
 
@@ -33,16 +31,20 @@
 // names a faction, --ref-card a treachery or Nexus card by its art. Place and
 // faction chips carry data-ref-locations, which the hover script in
 // index.html reads to light those sectors on the map while the mouse is over
-// the chip.
+// the chip. On the parchment act card they read its --chip-* properties; a
+// popover that draws them still (the Kwisatz Haderach's) sets --chip-cursor.
 .chip--place,
 .chip--faction,
 .chip--ref-card {
-  gap: 5px;
-  padding: 1px 8px 1px 3px;
-  font-size: 14px;
+  gap: var(--s-1);
+  padding: var(--s-0) var(--s-2) var(--s-0) var(--s-0);
+  font-size: var(--fs-2);
   vertical-align: middle;
+  background: var(--chip-bg, var(--wash-dark-55));
+  border-color: var(--chip-border, var(--wash-light-12));
+  color: var(--chip-text, var(--text));
   // Hovering does something, so the pointer, as the card popovers use.
-  cursor: pointer;
+  cursor: var(--chip-cursor, pointer);
 
   .chip__img {
     width: 20px;
@@ -56,7 +58,7 @@
   // The viewing player's own faction is named like any other, in gold. Only
   // the name changes, so the gold border can mean "hovered" alone.
   &.chip--you {
-    border-color: rgba(252, 249, 209, 0.14);
+    border-color: var(--chip-border, var(--wash-light-12));
     box-shadow: none;
 
     .chip__name {
@@ -65,12 +67,35 @@
   }
 
   &:hover {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 1px rgba(231, 191, 60, 0.35);
+    border-color: var(--chip-hover-border, var(--gold));
+    box-shadow: 0 0 0 1px var(--gold-wash-35);
   }
 
   + .chip {
-    margin-left: 3px;
+    margin-left: var(--s-0);
+  }
+}
+
+// A chip in a popover, where nothing is hoverable (the tanks popover): no
+// pointer and no hover ring.
+.chip--static {
+  cursor: default;
+
+  &:hover {
+    border-color: var(--wash-light-12);
+    box-shadow: none;
+  }
+}
+
+// An in-sentence chip a size up, to sit beside 44px leader tokens (the tanks
+// popover).
+.chip--large {
+  padding: var(--s-0) var(--s-3) var(--s-0) var(--s-0);
+  font-size: var(--fs-3);
+
+  .chip__img {
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -78,17 +103,18 @@
 .chip--ref-card .chip__img {
   width: 15px;
   height: 21px;
-  margin: 1px 0;
-  border-radius: 2px;
+  margin: var(--s-0) 0;
+  border-radius: var(--r-1);
 }
 
 // The sector's compass word, in the label face like the map popover's title.
+// Rock brown on the parchment act card.
 .chip__sector {
   font-family: var(--font-label);
-  font-size: 11px;
+  font-size: var(--fs-1);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--surface-muted, var(--text-3));
 }
 
 // The planet glyph on a place chip: a disc with the place's outline in gold.
@@ -121,26 +147,10 @@
 // A ring rather than a glow: Image's .image--shadowy already sets a
 // filter on these images, and a box-shadow does not fight it.
 .faction-ref--lit .faction-ref__img {
-  border-radius: 50%;
+  border-radius: var(--r-round);
   box-shadow:
     0 0 0 3px var(--gold),
-    0 0 14px 2px rgba(231, 191, 60, 0.7);
-}
-
-// Chips inside the parchment prompt card take the on-parchment colours.
-.prompt-act .chip--place,
-.prompt-act .chip--faction,
-.prompt-act .chip--ref-card,
-.act-stack > .card:not(.battle-plan) .chip--place,
-.act-stack > .card:not(.battle-plan) .chip--faction,
-.act-stack > .card:not(.battle-plan) .chip--ref-card {
-  background: rgba(29, 12, 0, 0.08);
-  border-color: rgba(29, 12, 0, 0.2);
-  color: var(--ink-1);
-
-  .chip__sector {
-    color: var(--rock-2);
-  }
+    0 0 14px 2px var(--gold-wash-70);
 }
 
 // A log line that tells of a journey. Hovering anywhere on it draws the
@@ -151,5 +161,5 @@
 }
 // Not while a chip inside it is hovered: then only the chip is meant.
 [data-ref-arrow]:hover:not(:has(.chip:hover)) {
-  background: rgba(252, 249, 209, 0.05);
+  background: var(--wash-light-05);
 }

@@ -2,25 +2,25 @@
 // (AwaitingGameComponent): the settings, the factions in play, the players
 // and the rules in each group, the ones not in play dimmed.
 .awaiting-game {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
 
   &__setting {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
     margin-bottom: 0;
   }
 
   &__rules-title {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
     margin-bottom: 0;
-    font-size: 0.875em;
+    font-size: var(--fs-2);
   }
 
   &__rules {
     margin-top: 0;
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--s-1);
   }
 
   &__rule {
-    font-size: 0.875em;
+    font-size: var(--fs-2);
   }
 }

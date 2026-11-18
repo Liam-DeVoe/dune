@@ -1,60 +1,66 @@
 // A game action's form: the collapsible card GameEventComponentLayout draws
 // (Layout in battle/, revival/ and other/parts.tsx, EventLayout in
 // shipmove/common.tsx) and the pieces the forms put in it. The card is a
-// .card; in the action stack, _prompt-act.scss removes its margin.
+// .card; in the action stack, card--joined removes its margin, and in a
+// popover (.card-play-pop, .trade-pop__body) the last one drops it by
+// --last-card-margin.
 .event-form {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
+
+  &:last-child {
+    margin-bottom: var(--last-card-margin, 0.5rem);
+  }
 
   // A line of the form under the one before it.
   &__field {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
   }
 
   // A part of the form set off from the one before it.
   &__section {
-    margin-top: 0.5rem;
+    margin-top: var(--s-2);
   }
 
   // The sentence before the form's inputs.
   &__intro {
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--s-2);
   }
 
   // A hint in small type ("Use the map to choose a location.").
   &__note {
-    font-size: 0.875em;
+    font-size: var(--fs-2);
   }
 
-  // Gold on ink. On the parchment card it is rock brown, see below.
+  // Gold on ink, rock brown on the parchment act card.
   &__info,
   &__note--info {
-    color: var(--gold);
+    color: var(--surface-accent, var(--gold));
   }
 
-  // Why a form has no button yet. On the parchment card it is rock brown.
+  // Why a form has no button yet. Rock brown on the parchment act card.
   &__reason {
-    color: var(--text-3);
+    color: var(--surface-muted, var(--text-3));
   }
 
   // The server's refusal, or a validation message, in the guide's error red.
   &__error {
-    font-size: 0.875em;
-    color: #e46b6b;
+    font-size: var(--fs-2);
+    color: var(--bad);
 
     &--spaced {
-      margin-top: 0.5rem;
+      margin-top: var(--s-2);
     }
   }
 
   &__warning {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--s-1);
     color: var(--spice);
   }
 
   // A label on its own line above the input it names.
   &__label {
     display: block;
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
 
     // A label that stays inline beside its input.
     &--inline {
@@ -84,23 +90,23 @@
   }
 
   &__stepper-label {
-    margin-right: 0.25rem;
+    margin-right: var(--s-1);
   }
 
   // CommandButton's default spacing from the button after it.
   &__command {
-    margin-right: 0.25rem;
+    margin-right: var(--s-1);
   }
 
   // A revival cost, at the right of the form.
   &__cost {
-    margin-top: 0.25rem;
+    margin-top: var(--s-1);
     text-align: right;
   }
 
   // An audited card.
   &__card {
-    padding: 0.25rem;
+    padding: var(--s-1);
   }
 
   // The question asked with Clairvoyance.
@@ -123,16 +129,16 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: var(--s-2);
   }
 
   // A sector with forces staged on it during the Fremen setup.
   &__staged {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    margin-top: 0.25rem;
-    font-size: 0.875em;
+    gap: var(--s-1);
+    margin-top: var(--s-1);
+    font-size: var(--fs-2);
   }
 
   &__staged-place {
@@ -147,7 +153,7 @@
   }
 
   &__placement-row {
-    font-size: 0.875em;
+    font-size: var(--fs-2);
   }
 
   // Two classes to beat the `.table--small > :not(caption) > * > *` padding.
@@ -157,15 +163,5 @@
 
   &__placement-cell--middle {
     vertical-align: middle;
-  }
-}
-
-// Info and muted text become rock brown on the parchment card.
-.prompt-act,
-.act-stack > .card:not(.battle-plan) {
-  .event-form__info,
-  .event-form__note--info,
-  .event-form__reason {
-    color: var(--rock-2);
   }
 }

@@ -70,10 +70,10 @@ export function placeId(p: Part | null | undefined): number {
   return p != null && (p.t === "location" || p.t === "territory") ? p.id : -1;
 }
 
-/** `PlaceChip Place=...` for a location or territory part. */
-export function PlacePart({ part }: { part: Part | null | undefined }) {
-  if (part?.t === "territory") return <PlaceChip place={{ territory: part.id }} />;
-  if (part?.t === "location") return <PlaceChip place={{ location: part.id }} />;
+/** `PlaceChip Place=...` for a location or territory part. sectorClass goes on the chip's compass word. */
+export function PlacePart({ part, sectorClass }: { part: Part | null | undefined; sectorClass?: string }) {
+  if (part?.t === "territory") return <PlaceChip place={{ territory: part.id }} sectorClass={sectorClass} />;
+  if (part?.t === "location") return <PlaceChip place={{ location: part.id }} sectorClass={sectorClass} />;
   return part != null ? <RichText parts={[part]} size={20} logStyle /> : null;
 }
 
@@ -164,16 +164,16 @@ export function Line({ line: l, board }: { line: LogLine; board: Board }) {
     const url = headingIcon(skin, l.heading);
     return (
       <div className="log-heading">
-        {url.length > 0 && <img src={url} alt="" />}
+        {url.length > 0 && <img className="log-heading__icon" src={url} alt="" />}
         <RichText parts={l.text} size={20} logStyle />
       </div>
     );
   }
   if (l.plans) {
     return (
-      <div className="log-plans">
+      <div className="log-pair log-pair--plans">
         <Plan plan={l.plans.aggressor} facts={[]} />
-        <div className="log-plans__rule"></div>
+        <div className="log-pair__rule"></div>
         <Plan plan={l.plans.defender} facts={[]} />
       </div>
     );
@@ -233,8 +233,8 @@ export function Plan({ plan, facts }: { plan: PlanSummary; facts: BattleFact[] }
   const messiah = skin.concept("Messiah");
   return (
     <div className="log-plan" data-ref-faction={plan.faction}>
-      <div className={`log-plan__leader ${killed || traitor ? "log-plan__leader--fallen" : ""}`}>
-        {plan.leader != null ? <HeroImage hero={plan.leader} width={58} className="log-plan__portrait" /> : <div className="log-plan__no-leader" title="No leader"></div>}
+      <div className="log-plan__leader">
+        {plan.leader != null ? <HeroImage hero={plan.leader} width={58} className={`log-plan__portrait ${killed || traitor ? "log-plan__portrait--fallen" : ""}`} /> : <div className="log-plan__no-leader" title="No leader"></div>}
         {plan.messiah && plan.leader != null && (
           <PopoverText className="log-plan__messiah" popover={messiahPopup(skin)}><img className="log-plan__messiah-img" src={skin.url(skin.str("Messiah_URL"))} alt={messiah} />+2</PopoverText>
         )}

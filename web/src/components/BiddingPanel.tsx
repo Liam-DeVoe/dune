@@ -15,6 +15,7 @@ import type { Event } from "../generated/Event";
 import { factionChipHtml, treacheryCardPopup } from "../popups";
 import { IMAGE_POPOVER, usePopover } from "../popover";
 import { useGame } from "../state/context";
+import { useActCard } from "./ActStack";
 import { ButtonRow } from "./ButtonRow";
 import { Checkbox } from "./Checkbox";
 import { FactionChip } from "./FactionChip";
@@ -259,8 +260,9 @@ function AutoPass({ action, panel }: { action: ActionView | undefined; panel: Bi
 export function BiddingPanel({ panel }: { panel: BiddingPanelView }) {
   const { view } = useGame();
   const action = view.actions.find((a) => a.eventType === (panel.blackMarket ? "BlackMarketBid" : "Bid"));
+  const act = useActCard();
   return (
-    <div className="card bidding-panel" style={{ animation: "fadeIn 1s" }}>
+    <div className={`card ${act} bidding-panel`} style={{ animation: "fadeIn 1s" }}>
       <div className="card__body">
         <Lot panel={panel} />
         {action && <BidInputs key={`${action.eventType}`} action={action} panel={panel} />}

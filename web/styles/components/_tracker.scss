@@ -3,18 +3,23 @@
 // discarded cards as a wrapping list, or the spice deck. The "Pick a card"
 // modal shows the choices three to a row, six from 768px.
 .tracker {
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--s-2);
+
+  // The last card in the trade popover drops it (--last-card-margin).
+  &:last-child {
+    margin-bottom: var(--last-card-margin, 0.5rem);
+  }
 
   &__info {
     display: inline;
   }
 
   &__toggles {
-    margin-bottom: 0.25rem;
+    margin-bottom: var(--s-1);
   }
 
   &__toggle {
-    padding: 0.25rem;
+    padding: var(--s-1);
   }
 
   &__toggle-img,
@@ -24,8 +29,8 @@
   }
 
   &__toggle-img--pile {
-    margin-left: 0.25rem;
-    margin-right: 0.25rem;
+    margin-left: var(--s-1);
+    margin-right: var(--s-1);
   }
 
   &__cards,
@@ -39,7 +44,7 @@
     flex: 0 0 auto;
     max-width: 100%;
     margin: 0;
-    padding: 0.25rem;
+    padding: var(--s-1);
   }
 
   &__card {
@@ -60,13 +65,13 @@
 
     // The card just won at auction.
     &--won {
-      border: 1px solid #79b34c;
+      border: 1px solid var(--good);
       background-color: var(--sand);
     }
   }
 
   &__pile {
-    font-size: 0.875em;
+    font-size: var(--fs-2);
   }
 
   &__discards {
@@ -79,7 +84,7 @@
     display: inline-block;
 
     &:not(:last-child) {
-      margin-right: 0.5rem;
+      margin-right: var(--s-2);
     }
 
     &--none {

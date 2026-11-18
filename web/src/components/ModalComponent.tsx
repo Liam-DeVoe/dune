@@ -63,7 +63,7 @@ export function ModalComponent({ id, title, size, scrolling = false, printable =
                 </svg>
               </button>
             )}
-            <button type="button" className="close-button" aria-label="Close" onClick={() => closeModal(id)} />
+            <button type="button" className="close-button modal__close" aria-label="Close" onClick={() => closeModal(id)} />
           </div>
           <div className={`modal__body ${scrolling ? "modal-component__body--scroll" : ""}`} id={bodyId}>
             {children}

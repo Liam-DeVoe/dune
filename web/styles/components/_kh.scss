@@ -1,0 +1,12 @@
+// The Kwisatz Haderach as an image in rich text (.kh, emitted by the server
+// in rust/skin/src/skin.rs and drawn by the revival log). It has no look of its
+// own: a context that shows it sets --kh-size, --kh-margin, --kh-align and
+// --kh-filter (the Kwisatz Haderach popover, .pop-leader__rules). Unset, each
+// property falls back to an image's default (the reboot's middle alignment).
+.kh {
+  width: var(--kh-size, auto);
+  height: var(--kh-size, auto);
+  margin: var(--kh-margin, 0);
+  vertical-align: var(--kh-align, middle);
+  filter: var(--kh-filter, none);
+}

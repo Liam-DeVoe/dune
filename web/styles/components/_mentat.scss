@@ -3,21 +3,21 @@
 .mentat {
   // A section's h5, except the first.
   &__heading {
-    margin-top: 0.5rem;
+    margin-top: var(--s-2);
   }
 
   // Three cards a row, six from 768px.
   &__grid {
     display: flex;
     flex-wrap: wrap;
-    margin: 0 0.25rem;
+    margin: 0 var(--s-1);
   }
 
   &__item {
     flex: 0 0 auto;
     width: 33.33333333%;
     max-width: 100%;
-    padding: 0 0.75rem;
+    padding: 0 var(--s-3);
 
     @media (min-width: 768px) {
       width: 16.66666667%;

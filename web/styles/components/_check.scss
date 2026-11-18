@@ -1,16 +1,14 @@
-@use "../shared";
-
 // A checkbox or radio with its label: the box hangs in the left padding, so
 // wrapped label lines stay aligned. The box is the language checkbox: ink 0,
-// gold when checked. --check-bg is re-pointed on parchment (app/_prompt-act.scss).
+// gold when checked. On the parchment act card (app/_prompt-act.scss) it reads
+// the card's --check-bg and --control-border-strong.
 .check {
   display: block;
   min-height: 1.5rem;
   padding-left: 1.5em;
-  margin-bottom: 0.125rem;
+  margin-bottom: var(--s-0);
 
   &__input {
-    --check-bg: var(--ink-0);
     --check-image: none;
     float: left;
     flex-shrink: 0;
@@ -20,17 +18,17 @@
     margin-left: -1.5em;
     vertical-align: top;
     appearance: none;
-    background-color: var(--check-bg);
+    background-color: var(--check-bg, var(--ink-0));
     background-image: var(--check-image);
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 0.25em;
+    border: 1px solid var(--control-border-strong, var(--hairline-bright));
+    border-radius: var(--r-1);
     print-color-adjust: exact;
 
     &[type="radio"] {
-      border-radius: 50%;
+      border-radius: var(--r-round);
     }
 
     &:active {
@@ -40,7 +38,7 @@
     &:focus {
       border-color: var(--gold);
       outline: 0;
-      box-shadow: shared.$focus-ring-gold;
+      box-shadow: var(--focus-ring-gold);
     }
 
     &:checked {

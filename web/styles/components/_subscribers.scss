@@ -3,11 +3,11 @@
 // subscription (SubscribeComponent).
 .subscribers {
   &__entry {
-    margin-right: 0.25rem;
+    margin-right: var(--s-1);
   }
 
   &__badge {
-    margin-left: 0.25rem;
+    margin-left: var(--s-1);
   }
 }
 

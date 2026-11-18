@@ -51,7 +51,7 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
   return (
     <>
       <div className="player-panel__bar">
-        <FactionChip faction={faction} />
+        <FactionChip faction={faction} className="player-panel__chip" />
         <span className="player-panel__stat"><SpiceLine text={resourcesText(skin, me, pub)} size={24} /></span>
         <span className="player-panel__stat">
           <ForceToken faction={faction} size={22} title={skin.get("ForceName_STR", faction)} />{pub.forcesInReserve}

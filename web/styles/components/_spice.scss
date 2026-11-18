@@ -26,7 +26,7 @@
     font-weight: 400;
     font-size: calc(var(--s, 20px) * 0.62);
     color: var(--parchment);
-    text-shadow: 0 0 1px #000, 0 0 1px #000, 0 0 3px #000;
+    text-shadow: 0 0 1px var(--black), 0 0 1px var(--black), 0 0 3px var(--black);
     white-space: nowrap;
   }
 }

@@ -1,5 +1,3 @@
-@use "../shared";
-
 // A modal (ModalComponent.tsx): a <dialog> shown with showModal(). The dialog
 // covers the window and scrolls when the box is taller than it; the box is
 // __content, centred in __dialog. A click on the dialog itself, beside the
@@ -7,7 +5,7 @@
 // closing (--closing, while the script waits) does the reverse.
 .modal {
   --modal-width: 500px;
-  --modal-margin: 0.5rem;
+  --modal-margin: var(--s-2);
   position: fixed;
   inset: 0;
   width: 100%;
@@ -25,7 +23,7 @@
   animation: modal-fade-in 0.15s linear;
 
   &::backdrop {
-    background: rgb(18 8 0 / 0.7); // --ink-0 at 70%
+    background: var(--wash-dark-70); // --ink-0 at 70%
     animation: modal-fade-in 0.15s linear;
   }
 
@@ -35,7 +33,7 @@
   }
 
   @media (min-width: 576px) {
-    --modal-margin: 1.75rem;
+    --modal-margin: var(--s-5);
   }
 
   &__dialog {
@@ -92,7 +90,7 @@
     pointer-events: auto;
     background-color: var(--ink-2);
     background-clip: padding-box;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--hairline-mid);
     border-radius: var(--r-2);
     outline: 0;
   }
@@ -101,21 +99,22 @@
     display: flex;
     flex-shrink: 0;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid shared.$hairline;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
+    padding: var(--s-4);
+    border-bottom: 1px solid var(--hairline);
+    border-top-left-radius: var(--r-2);
+    border-top-right-radius: var(--r-2);
+  }
 
-    .close-button {
-      padding: 0.5rem;
-      margin: -0.5rem -0.5rem -0.5rem auto;
-    }
+  // The header's close button (a .close-button), pushed to the right.
+  &__close {
+    padding: var(--s-2);
+    margin: calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) auto;
   }
 
   &__title {
     margin-bottom: 0;
     font-family: var(--font-display);
-    font-size: 24px;
+    font-size: var(--fs-5);
     font-weight: 400;
     line-height: 1.5;
     color: var(--sand);
@@ -124,7 +123,7 @@
   &__body {
     position: relative;
     flex: 1 1 auto;
-    padding: 1rem;
+    padding: var(--s-4);
   }
 }
 

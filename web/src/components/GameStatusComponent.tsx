@@ -10,6 +10,7 @@
 import { useContext, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import { LobbyContext } from "../lobby/context";
 import type { PhaseControlInfo } from "../lobby/types";
+import { useInActStack } from "./ActStack";
 import { Checkbox } from "./Checkbox";
 import { FactionChip } from "./FactionChip";
 import { Image } from "./Image";
@@ -36,6 +37,7 @@ function usePhaseControl(): PhaseControlInfo | null {
 
 export function GameStatusComponent() {
   const { view, skin, source } = useGame();
+  const inStack = useInActStack();
   const s = view.status;
   const endPhase = view.actions.find((a) => a.eventType === "EndPhase");
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +93,7 @@ export function GameStatusComponent() {
   };
 
   return (
-    <div className="card prompt-act game-status" style={{ animation: "fadeIn 1s" }}>
+    <div className={`card card--act ${inStack ? "card--joined" : ""} game-status`} style={{ animation: "fadeIn 1s" }}>
       <div className="card__body">
         {s.timedEventTime !== null && <Timer view={view} from={s.timedEventTime} />}
         {showRow && (

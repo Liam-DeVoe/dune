@@ -21,7 +21,7 @@ export function MentatLog({ lines, line }: PhaseLogProps) {
         if (i === firstBribe) {
           return (
             <Fragment key={i}>
-              <div className="log-label mentat-bribes-label">Bribes collected</div>
+              <div className="log-label log-label--above">Bribes collected</div>
               <div className="log-cols">
                 {bribes.map((b, j) => (
                   <Fragment key={j}>

@@ -7,6 +7,7 @@
 import { useMemo } from "react";
 import { Game, useGame } from "../state/context";
 import { ActionPanel } from "./ActionPanel";
+import { ActStack } from "./ActStack";
 import { CardPlayPopover } from "./CardPlayPopover";
 import { GameBoard } from "./board/GameBoard";
 import { ImageFlash } from "./ImageFlash";
@@ -39,18 +40,18 @@ function Screen({ live }: { live: GameView }) {
       <div id="mapdiv">
         <div className="game-screen__board-area">
           <GameBoard />
-          <MenuComponent />
+          <MenuComponent className="game-screen__menu" />
         </div>
         <UndoTimeline />
       </div>
       <div className="game-screen__side-column">
         <MenuPanels />
         {!view.viewer.isObserver && PhaseValue[view.phase] > PhaseValue.TradingFactions && <PlayerPanel />}
-        <div className="act-stack">
+        <ActStack>
           <GameStatusComponent />
           <ActionPanel />
-        </div>
-        <LogPanel />
+        </ActStack>
+        <LogPanel className="game-screen__report" />
       </div>
       <CardPlayPopover />
       <ImageFlash view={live} />

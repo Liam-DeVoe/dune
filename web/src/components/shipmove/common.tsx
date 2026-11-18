@@ -12,6 +12,7 @@ import type { Part } from "../../generated/Part";
 import { useGame } from "../../state/context";
 import { Board } from "../board/geometry";
 import { RichText } from "../RichText";
+import { useActCard } from "../ActStack";
 import { CollapseButton } from "../CollapseButton";
 
 // GameEventComponentLayout's collapsed state, kept per form type for the page's lifetime
@@ -26,10 +27,11 @@ export function EventLayout({ type, urgent = false, header, children }: { type: 
     collapsedByType.set(type, !collapsed);
     setCollapsed(!collapsed);
   };
+  const act = useActCard();
   return (
-    <div className={`card  ${urgent ? "card--urgent" : ""}  event-form`} style={{ animation: "fadeIn 1s" }}>
+    <div className={`card ${urgent ? "card--urgent" : ""} ${act} event-form`} style={{ animation: "fadeIn 1s" }}>
       {header != null && (
-        <div className="card__header" style={{ cursor: "pointer" }} onClick={toggle}>
+        <div className="card__header card__header--collapsible" style={{ cursor: "pointer" }} onClick={toggle}>
           <CollapseButton collapsed={collapsed} />
           {header}
         </div>
@@ -220,8 +222,8 @@ export function PinActions({ validation, cancel, confirm, label }: { validation:
     <>
       <Validation parts={validation} />
       <div className="map-pin__actions">
-        <button type="button" className="button button--secondary" onClick={cancel}>Cancel</button>
-        <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{label}</button>
+        <button type="button" className="button button--secondary map-pin__action" onClick={cancel}>Cancel</button>
+        <button type="button" className="button button--primary map-pin__action" disabled={validation != null} onClick={confirm}>{label}</button>
       </div>
     </>
   );

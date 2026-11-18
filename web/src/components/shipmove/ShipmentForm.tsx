@@ -194,9 +194,9 @@ export function ShipmentForm({ action }: { action: ActionView }) {
     <div>
       <div className="map-pin__hint">Click where to ship to</div>
       <div className="map-pin__actions">
-        <button type="button" className="button button--secondary" onClick={clearSelection}>Cancel</button>
-        {o?.mayShipHereFromReserves && <button type="button" className="button button--secondary" onClick={shipHereFromReserves}>Here from reserves</button>}
-        {o?.mayShipToReserves && <button type="button" className="button button--secondary" onClick={shipBackToReserves}>To reserves</button>}
+        <button type="button" className="button button--secondary map-pin__action" onClick={clearSelection}>Cancel</button>
+        {o?.mayShipHereFromReserves && <button type="button" className="button button--secondary map-pin__action" onClick={shipHereFromReserves}>Here from reserves</button>}
+        {o?.mayShipToReserves && <button type="button" className="button button--secondary map-pin__action" onClick={shipBackToReserves}>To reserves</button>}
       </div>
     </div>
   );
@@ -286,8 +286,8 @@ export function ShipmentForm({ action }: { action: ActionView }) {
         )}
         <Validation parts={validation} />
         <div className="map-pin__actions">
-          <button type="button" className="button button--secondary" onClick={clearSelection}>Cancel</button>
-          <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>Ship</button>
+          <button type="button" className="button button--secondary map-pin__action" onClick={clearSelection}>Cancel</button>
+          <button type="button" className="button button--primary map-pin__action" disabled={validation != null} onClick={confirm}>Ship</button>
         </div>
       </div>
     );

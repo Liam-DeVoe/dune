@@ -139,8 +139,8 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
     <div>
       <div className="map-pin__from"><PlaceChip place={{ location: state.undecided }} /></div>
       <div className="map-pin__actions">
-        <button type="button" className="button button--secondary" onClick={() => decide(false)}>Add as source</button>
-        <button type="button" className="button button--primary" onClick={() => decide(true)}>Move here</button>
+        <button type="button" className="button button--secondary map-pin__action" onClick={() => decide(false)}>Add as source</button>
+        <button type="button" className="button button--primary map-pin__action" onClick={() => decide(true)}>Move here</button>
       </div>
     </div>
   );
@@ -178,8 +178,8 @@ export function PlacementForm({ action, kind }: { action: ActionView; kind: Kind
         {o?.conflictingAlly && <div className="map-pin__warn">Your ally is there: all your forces there at the end of your move will be destroyed.</div>}
         <Validation parts={validation} />
         <div className="map-pin__actions">
-          <button type="button" className="button button--secondary" onClick={clearSelection}>Cancel</button>
-          <button type="button" className="button button--primary" disabled={validation != null} onClick={confirm}>{confirmLabel}</button>
+          <button type="button" className="button button--secondary map-pin__action" onClick={clearSelection}>Cancel</button>
+          <button type="button" className="button button--primary map-pin__action" disabled={validation != null} onClick={confirm}>{confirmLabel}</button>
         </div>
       </div>
     );

@@ -109,7 +109,7 @@ export function tanks(b: Board): string {
     const onPlanet = [...new Set(v.board.forces.filter((x) => x.faction === t.faction && !b.isHomeworld(x.location)).map((x) => x.location))];
     const info = skin.statics.factions.find((x) => x.faction === t.faction);
     rows += "<tr class='tanks-pop__row'>";
-    rows += `<td class='tanks-pop__cell'>${shared.factionChipHtml(skin, t.faction, you, onPlanet)}</td>`;
+    rows += `<td class='tanks-pop__cell'>${shared.factionChipHtml(skin, t.faction, you, onPlanet, "chip--static chip--large")}</td>`;
     rows += "<td class='tanks-pop__cell tanks-pop__cell--forces'>";
     if (t.forcesKilled > 0) {
       const title = htmlEncode(skin.get("ForceName_STR", info?.force ?? t.faction));

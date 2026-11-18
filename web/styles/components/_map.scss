@@ -340,12 +340,13 @@
     gap: 5px;
     justify-content: flex-end;
     margin-top: 6px;
+  }
 
-    .button {
-      font-size: 11px;
-      padding: 2px 8px;
-      line-height: 1.4;
-    }
+  // A button in __actions, small to fit the pin.
+  &__action {
+    font-size: var(--fs-1);
+    padding: var(--s-0) var(--s-2);
+    line-height: 1.4;
   }
 }
 

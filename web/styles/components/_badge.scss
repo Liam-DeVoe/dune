@@ -22,11 +22,6 @@
     display: none;
   }
 
-  .button & {
-    position: relative;
-    top: -1px;
-  }
-
   &--warning,
   &--spice {
     color: var(--parchment);

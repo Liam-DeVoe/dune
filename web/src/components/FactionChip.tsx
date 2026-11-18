@@ -4,13 +4,14 @@
 import type { Faction } from "../generated/enums";
 import { useGame } from "../state/context";
 
-export function FactionChip({ faction }: { faction: Faction }) {
+// `className` mixes in an element of the block that places the chip (player-panel__chip).
+export function FactionChip({ faction, className = "" }: { faction: Faction; className?: string }) {
   const { view, skin } = useGame();
   const isYou = !view.viewer.isObserver && view.viewer.faction === faction;
   const locations = view.board.forces.filter((f) => f.faction === faction).map((f) => f.location);
   return (
     <span
-      className={`chip chip--faction ${isYou ? "chip--you" : ""}`}
+      className={`chip chip--faction ${isYou ? "chip--you" : ""} ${className}`}
       data-ref-faction={faction}
       data-ref-locations={[...new Set(locations)].join(",")}
       style={{ ["--fc" as string]: skin.factionColor(faction) }}

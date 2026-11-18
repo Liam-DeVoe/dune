@@ -39,9 +39,14 @@
   font-weight: 700;
 }
 
-/* The deals panel. In the trade popover its margin goes when it is the last card. */
+/* The deals panel. In the trade popover its margin goes when it is the last card
+   (.trade-pop__body sets --last-card-margin). */
 .deals {
   margin-bottom: 0.5rem;
+}
+
+.deals:last-child {
+  margin-bottom: var(--last-card-margin, 0.5rem);
 }
 /* A deal's description: long words break rather than widen the table. */
 .deals__text {

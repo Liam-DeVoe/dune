@@ -105,11 +105,12 @@
     border-bottom: 1px solid shared.$hairline;
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
+  }
 
-    .close-button {
-      padding: 0.5rem;
-      margin: -0.5rem -0.5rem -0.5rem auto;
-    }
+  // The header's close button (a .close-button), pushed to the right.
+  &__close {
+    padding: var(--s-2);
+    margin: calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) calc(-1 * var(--s-2)) auto;
   }
 
   &__title {

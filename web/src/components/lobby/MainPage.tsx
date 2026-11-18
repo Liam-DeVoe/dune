@@ -43,7 +43,7 @@ export function WithLobby({ linkToken, gameId, admin = false, children }: { link
 /** The centred single column of the login, setup and seating screens. */
 function Centered({ children }: { children: ReactNode }) {
   return (
-    <div className="start-row start-row--centred start-screen" style={START_SCREEN_STYLE}>
+    <div className="start-row start-row--centred start-row--screen" style={START_SCREEN_STYLE}>
       <div className="start-row__col start-row__col--side"></div>
       <div className="start-row__col start-row__col--main">
         <div className="start-row__center">{children}</div>
@@ -71,7 +71,7 @@ function MainScreen() {
   let screen: ReactNode;
   if (!state.connected) {
     screen = (
-      <div className="start-row start-row--centred start-screen" style={START_SCREEN_STYLE}>
+      <div className="start-row start-row--centred start-row--screen" style={START_SCREEN_STYLE}>
         <div className="start-row__notice">Not Connected</div>
       </div>
     );
@@ -79,7 +79,7 @@ function MainScreen() {
     screen = <Centered><LoginComponent /></Centered>;
   } else if (!g) {
     screen = (
-      <div className="start-row start-screen" style={START_SCREEN_STYLE}>
+      <div className="start-row start-row--screen" style={START_SCREEN_STYLE}>
         <div className="start-row__col start-row__col--margin"></div>
         <div className="start-row__col start-row__col--games"><RunningGamesComponent /></div>
         <div className="start-row__col start-row__col--side"><OwnGamesComponent /></div>

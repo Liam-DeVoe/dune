@@ -23,23 +23,11 @@
     border-bottom: 1px solid rgba(252, 249, 209, 0.08);
     font-family: var(--font-display);
     font-size: 17px;
+  }
 
-    .chip {
-      margin-right: auto;
-    }
-
-    // Without a chip, the stats spread out as they used to.
-    .player-panel__stat:first-child {
-      margin-left: auto;
-    }
-
-    .player-panel__stat:last-child {
-      margin-right: auto;
-    }
-
-    .chip ~ .player-panel__stat:last-child {
-      margin-right: 0;
-    }
+  // The faction chip (FactionChip's mix) at the left, the stats pushed right.
+  &__chip {
+    margin-right: auto;
   }
 
   &__stat {

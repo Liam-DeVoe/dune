@@ -160,17 +160,6 @@
 
   &__seg {
     margin-left: auto;
-
-    // Under the block so it beats the .seg__button size and padding.
-    .seg__button {
-      font-size: 13px;
-      padding: 3px 9px;
-
-      &:not(.seg__button--on):hover {
-        color: var(--gold);
-        background: shared.$gold-wash;
-      }
-    }
   }
 }
 
@@ -226,20 +215,19 @@
 }
 
 // What the trade icons open (TradePopover): a popover above the bar holding
-// the panels the action column used to show.
-.pop.trade-pop {
+// the panels the action column used to show. It is also a .pop, which reads
+// --pop-padding and --pop-max-width.
+.trade-pop {
+  --pop-padding: 0;
+  --pop-max-width: calc(100vw - var(--side-w, 375px) - 40px);
   position: absolute;
   left: 0;
   bottom: calc(100% + 4px);
   z-index: 1045;
   width: 540px;
-  max-width: calc(100vw - var(--side-w, 375px) - 40px);
   max-height: calc(100dvh - 120px);
   overflow-y: auto;
-  padding: 0;
-}
 
-.trade-pop {
   &__tabs {
     display: flex;
     gap: 2px;
@@ -261,13 +249,11 @@
     }
   }
 
+  // The last card in it drops its bottom margin (.event-form, .deals,
+  // .notes and .tracker read --last-card-margin).
   &__body {
+    --last-card-margin: 0;
     padding: 10px;
-
-    > .card:last-child,
-    > :last-child > .card:last-child {
-      margin-bottom: 0 !important;
-    }
   }
 
   // Under the block so it beats the popover's paragraph margin and colour.
@@ -291,10 +277,8 @@
   overflow-y: auto;
   border-radius: var(--r-2);
   box-shadow: var(--shadow-3);
-
-  > .card:last-child {
-    margin-bottom: 0 !important;
-  }
+  // The last form in it drops its bottom margin (.event-form reads it).
+  --last-card-margin: 0;
 }
 
 // Toasts for deals offered to you (DealToasts), stacked above the Deals icon.

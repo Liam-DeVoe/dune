@@ -100,7 +100,8 @@ function cacheOf(source: ViewSource): ReportCache {
   return c;
 }
 
-export function LogPanel() {
+// `className` and `bodyClassName` place the panel in the screen that draws it (GameScreen).
+export function LogPanel({ className = "", bodyClassName = "" }: { className?: string; bodyClassName?: string } = {}) {
   const { view, skin, source } = useGame();
   const board = useBoardGeometry();
   const cache = cacheOf(source);
@@ -144,7 +145,7 @@ export function LogPanel() {
   const line = (l: LogLine) => <Line line={l} board={board} />;
 
   return (
-    <div className="card report" style={{ animation: "fadeIn 1s" }}>
+    <div className={`card report ${className}`} style={{ animation: "fadeIn 1s" }}>
       <div className="card__header report__header">
         <button className="report__step" title="Previous phase" aria-label="Previous phase" disabled={index === 0} onClick={() => select(index - 1)}>
           <svg className="report__step-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5" /></svg>
@@ -172,7 +173,7 @@ export function LogPanel() {
       </div>
 
       {/* Follows the newest line while the player is at the bottom (followLog.ts). */}
-      <div className="card__body report__body" ref={followBottom} data-step={`${step.turn}-${step.about}`}>
+      <div className={`card__body report__body ${bodyClassName}`} ref={followBottom} data-step={`${step.turn}-${step.about}`}>
         {!loaded ? null : empty ? (
           over && <div className="report__empty"><i>Nothing to report</i></div>
         ) : (

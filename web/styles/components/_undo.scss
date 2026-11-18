@@ -232,20 +232,17 @@
 }
 
 // The gap under the pointer: the event it keeps, the cut, the event it undoes.
-// The box is also a .pop, which comes later in the stylesheet. Two classes keep
-// this padding and max-width ahead of .pop's.
-.undo-timeline .undo-tip {
+// The box is also a .pop, which reads --pop-padding and --pop-max-width.
+.undo-tip {
+  --pop-padding: var(--s-2) var(--s-3);
+  --pop-max-width: none;
   position: absolute;
   bottom: 62px;
   transform: translateX(-50%);
   z-index: 5;
   width: 330px;
-  max-width: none;
-  padding: 8px 10px;
   pointer-events: none;
-}
 
-.undo-tip {
   &__when {
     @include label-face(10px);
     margin-bottom: 2px;

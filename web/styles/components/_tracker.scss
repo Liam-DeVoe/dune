@@ -5,6 +5,11 @@
 .tracker {
   margin-bottom: 0.5rem;
 
+  // The last card in the trade popover drops it (--last-card-margin).
+  &:last-child {
+    margin-bottom: var(--last-card-margin, 0.5rem);
+  }
+
   &__info {
     display: inline;
   }

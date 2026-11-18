@@ -17,6 +17,8 @@
 @use "alert";
 @use "spinner";
 @use "chip";
+@use "card-chip";
+@use "kh";
 @use "number";
 @use "field";
 @use "select";
@@ -42,7 +44,6 @@
 @use "menu";
 @use "game-screen";
 @use "turn-banner";
-@use "start-screen";
 @use "modal";
 @use "popover";
 @use "pop";

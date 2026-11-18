@@ -60,13 +60,14 @@
       min-height: 0;
       overflow: clip;
 
-      // The menu bar sits in the board's bottom-left corner.
-      > .menu-bar {
-        position: absolute;
-        left: 0;
-        bottom: 0;
-        z-index: 20;
-      }
+    }
+
+    // The menu bar (MenuComponent) sits in the board's bottom-left corner.
+    &__menu {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      z-index: 20;
     }
 
     &__side-column {
@@ -75,17 +76,31 @@
       min-width: 0;
       height: 100%;
       overflow-y: auto;
-      // A column so the report panel can take the height left under the
-      // panels above it (see _report.scss).
+      // A column so the log panel can take the height left under the
+      // panels above it (__log).
       display: flex;
       flex-direction: column;
 
       // Panels keep their height. A panel with overflow: hidden (the prompt
       // card) would otherwise shrink to nothing and clip its contents. The
-      // report panel opts back into shrinking in _report.scss.
+      // log panel opts back into shrinking below.
       > * {
         flex-shrink: 0;
       }
+    }
+
+    // The log panel (LogPanel, a .report) shrinks to the height left under
+    // the panels above it and its body scrolls, so the column itself only
+    // scrolls once the panel is down to its minimum height. After
+    // `__side-column > *`, which weighs as much.
+    &__log {
+      flex: 0 1 auto;
+      min-height: 320px;
+    }
+
+    &__log-body {
+      max-height: none;
+      min-height: 0;
     }
   }
 }

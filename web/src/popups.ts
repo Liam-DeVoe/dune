@@ -7,10 +7,11 @@ import type { Ambassador, DiscoveryToken, Faction, LeaderSkill, StrongholdAdvant
 import type { Skin } from "./skin";
 import { htmlEncode, replaceSpiceAmounts, supportRound, utilitiesRound } from "./text";
 
-// Skin.SpiceHtml: a spice amount drawn on the harvester icon.
-export function spiceHtml(skin: Skin, amount: string, size = 18): string {
+// Skin.SpiceHtml: a spice amount drawn on the harvester icon. `mix` adds the class of the element
+// it is in the block that places it (pop-spice__amount).
+export function spiceHtml(skin: Skin, amount: string, size = 18, mix = ""): string {
   const name = skin.concept("Resource");
-  return `<span class='spice-amt' style='--s:${size}px' title='${name}'><img class='spice-amt__img' src='${skin.str("Harvester_URL")}' alt='${name}'/><b class='spice-amt__value'>${amount}</b></span>`;
+  return `<span class='spice-amt${mix ? ` ${mix}` : ""}' style='--s:${size}px' title='${name}'><img class='spice-amt__img' src='${skin.str("Harvester_URL")}' alt='${name}'/><b class='spice-amt__value'>${amount}</b></span>`;
 }
 
 // Skin.WithSpiceIcons: the text as HTML, with each amount of spice in it drawn by spiceHtml.
@@ -20,11 +21,11 @@ export function withSpiceIcons(skin: Skin, text: string, size = 18, encode = tru
   return replaceSpiceAmounts(t, skin.concept("Resource"), (digits) => spiceHtml(skin, digits, size));
 }
 
-// Skin.FactionChipHtml.
-export function factionChipHtml(skin: Skin, f: Faction, you = false, locationIds: number[] | null = null): string {
+// Skin.FactionChipHtml. `mods` adds chip modifiers (chip--static, chip--large in the tanks popover).
+export function factionChipHtml(skin: Skin, f: Faction, you = false, locationIds: number[] | null = null, mods = ""): string {
   const name = htmlEncode(skin.get("FactionName_STR", f));
   const locations = locationIds ? locationIds.join(",") : "";
-  return `<span class='chip chip--faction${you ? " chip--you" : ""}' data-ref-faction='${f}' data-ref-locations='${locations}' style='--fc:${skin.data.FactionColor[f] ?? ""}' title='${name}'><img class='chip__img' src='${skin.get("FactionImage_URL", f)}' alt=''/><span class='chip__name'>${name}</span></span>`;
+  return `<span class='chip chip--faction${you ? " chip--you" : ""}${mods ? ` ${mods}` : ""}' data-ref-faction='${f}' data-ref-locations='${locations}' style='--fc:${skin.data.FactionColor[f] ?? ""}' title='${name}'><img class='chip__img' src='${skin.get("FactionImage_URL", f)}' alt=''/><span class='chip__name'>${name}</span></span>`;
 }
 
 const framedCard = (url: string) => `<div class='pop-art'><img class='pop-art__img' src='${url}'/></div>`;
@@ -152,7 +153,7 @@ export function resourceCardPopup(skin: Skin, skinId: number): string {
   const location = skin.resourceCardInfo(skinId)?.location;
   if (location != null) {
     const amount = skin.locationInfo(location)?.spiceBlowAmount ?? 0;
-    html += `<div class="pop-spice__foot">${placeChipHtml(skin, { location })}${spiceHtml(skin, String(amount), 26)}</div>`;
+    html += `<div class="pop-spice__foot">${placeChipHtml(skin, { location })}${spiceHtml(skin, String(amount), 26, "pop-spice__amount")}</div>`;
   }
   return html + "</div>";
 }

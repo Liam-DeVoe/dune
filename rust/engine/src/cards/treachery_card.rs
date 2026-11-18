@@ -195,13 +195,8 @@ impl TreacheryCard {
     }
 
     /// Whether `defense` counters this weapon. Callers may pass `None` for either
-    /// (the bot passes a plan's defense, which can be missing).
-    ///
-    /// Known quirk (known-issues.md): a missing `defense` panics, but only on the branches
-    /// that read it. Each clause tests the type first, so only a weapon of type PoisonTooth,
-    /// Poison, Chemistry, Projectile, WeirdingWay or ProjectileAndPoison reads it. Any other
-    /// type returns false, and a mirror weapon with no combined weapon returns true.
-    #[track_caller]
+    /// (the bot passes a plan's defense, which can be missing). No defense counters nothing,
+    /// and a mirror weapon with no combined weapon counts as countered.
     pub fn countered_by(self, defense: Option<TreacheryCard>, combined_with_weapon: Option<TreacheryCard>) -> bool {
         let t = self.type_();
         if t == TreacheryCardType::MirrorWeapon {
@@ -213,12 +208,13 @@ impl TreacheryCard {
             };
         }
 
-        (t == TreacheryCardType::PoisonTooth && defense.expect("defense").is_non_antidote_poison_defense())
-            || (t == TreacheryCardType::Poison && defense.expect("defense").is_poison_defense())
-            || (t == TreacheryCardType::Chemistry && defense.expect("defense").is_poison_defense())
-            || (t == TreacheryCardType::Projectile && defense.expect("defense").is_projectile_defense())
-            || (t == TreacheryCardType::WeirdingWay && defense.expect("defense").is_projectile_defense())
-            || (t == TreacheryCardType::ProjectileAndPoison && defense.expect("defense").type_() == TreacheryCardType::ShieldAndAntidote)
+        let Some(defense) = defense else { return false };
+        (t == TreacheryCardType::PoisonTooth && defense.is_non_antidote_poison_defense())
+            || (t == TreacheryCardType::Poison && defense.is_poison_defense())
+            || (t == TreacheryCardType::Chemistry && defense.is_poison_defense())
+            || (t == TreacheryCardType::Projectile && defense.is_projectile_defense())
+            || (t == TreacheryCardType::WeirdingWay && defense.is_projectile_defense())
+            || (t == TreacheryCardType::ProjectileAndPoison && defense.type_() == TreacheryCardType::ShieldAndAntidote)
     }
 }
 

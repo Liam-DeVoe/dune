@@ -958,3 +958,12 @@ fn game_errors_name_the_hero_and_the_territory() {
     let err = placed.apply(&mut g, by_ecaz).unwrap_err();
     assert!(holds_part(&SubmitError::Failed(err.clone()).message(), &Part::Territory(stronghold)), "{}", err.message());
 }
+
+/// A weapon with no defense against it isn't countered. Before the fix this panicked for the
+/// weapons whose counter depends on the defense; a bot reached it through `determine_diplomacy`.
+#[test]
+fn no_defense_counters_nothing() {
+    for c in TreacheryCardManager::items().iter().copied().filter(|c| c.is_weapon() && c.type_() != TreacheryCardType::MirrorWeapon) {
+        assert!(!c.countered_by(None, None), "{c:?}");
+    }
+}

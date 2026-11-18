@@ -8,18 +8,30 @@ use std::fmt;
 /// partway through executing. They are not added to the history, and `Game::play` rolls back
 /// what they changed before failing. Players see the failure as a "Game Error"
 /// (`SubmitError::Failed`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct GameError {
     message: String,
+    /// The error as a message, for errors that name a game object, so that the player sees the
+    /// object's name (`SubmitError::message`). `message` is then its plain text.
+    expressed: Option<Box<crate::messages::message::Message>>,
 }
 
 impl GameError {
     pub fn new(message: impl Into<String>) -> GameError {
-        GameError { message: message.into() }
+        GameError { message: message.into(), expressed: None }
+    }
+
+    /// An error that names game objects, such as a leader or a territory.
+    pub fn express(m: crate::messages::message::Message) -> GameError {
+        GameError { message: m.plain_text(), expressed: Some(Box::new(m)) }
     }
 
     pub fn message(&self) -> &str {
         &self.message
+    }
+
+    pub fn expressed(&self) -> Option<&crate::messages::message::Message> {
+        self.expressed.as_deref()
     }
 }
 

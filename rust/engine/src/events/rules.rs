@@ -154,7 +154,10 @@ impl SubmitError {
         match self {
             SubmitError::NotApplicable(m) => m.clone(),
             SubmitError::Rejected(r) => r.0.clone(),
-            SubmitError::Failed(e) => express!("Game Error: ", e.clone(), "."),
+            SubmitError::Failed(e) => match e.expressed() {
+                Some(m) => express!("Game Error: ", m.clone(), "."),
+                None => express!("Game Error: ", e.clone(), "."),
+            },
         }
     }
 }

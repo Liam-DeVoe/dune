@@ -930,3 +930,31 @@ fn occupied_homeworld_income_logs_only_a_loss() {
     assert_eq!(amount, 6);
     assert_eq!(g.current_report().messages.len(), before);
 }
+
+/// Two errors named an internal type ("Treachery.Shared.Leader", "Treachery.Shared.Territory")
+/// instead of the hero or the territory. They now carry the object, which the skin names.
+#[test]
+fn game_errors_name_the_hero_and_the_territory() {
+    use treachery_engine::messages::part::Part;
+    // A Raise Dead for a hero who isn't in the game (a card that isn't a Cheap Hero), submitted
+    // when it isn't applicable.
+    let mut g = fixture("revival");
+    let hero = Hero::TreacheryCard(TreacheryCardManager::items()[0]);
+    let by = g.players.iter().find_map(|p| p.faction).unwrap();
+    let mut e = RaiseDeadPlayed::default();
+    e.hero = Some(hero);
+    let result = g.play(HistoryEntry::new(by, e), true, false);
+    let Err(SubmitError::Failed(err)) = result else { panic!("a Game Error, not {result:?}") };
+    assert!(holds_part(&SubmitError::Failed(err.clone()).message(), &Part::from(hero)), "{}", err.message());
+
+    // An ambassador placed where one already is (only without validation).
+    let mut g = game_of(&[Faction::Ecaz, Faction::Atreides]);
+    let stronghold = g.board.map.territories(false).find(|t| t.is_stronghold() && !t.is_homeworld()).unwrap();
+    g.board.ambassadors_on_planet.insert(stronghold, Ambassador::Fremen);
+    let ecaz = idx(&g, Faction::Ecaz);
+    g.player_mut(ecaz).resources = 5;
+    let placed = AmbassadorPlaced { ambassador: Some(Ambassador::Atreides), stronghold: Some(stronghold) };
+    let by_ecaz = By::new(&g, Faction::Ecaz);
+    let err = placed.apply(&mut g, by_ecaz).unwrap_err();
+    assert!(holds_part(&SubmitError::Failed(err.clone()).message(), &Part::Territory(stronghold)), "{}", err.message());
+}

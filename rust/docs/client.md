@@ -93,6 +93,17 @@ Class names follow BEM:
 - In SCSS, elements and modifiers nest with `&__x` and `&--y`. Where a rule needs more weight than one class to keep winning over another rule, it says why in a comment.
 - There are no utility classes. Spacing, alignment and text styles that a component needs are elements or modifiers of that component.
 
+#### Scales
+
+Sizes and colours come from the tokens in `foundation/_tokens.scss`. A component never writes a literal for these:
+
+- **Type:** `--fs-1` 11px (labels, captions), `--fs-2` 13px (secondary text, small controls), `--fs-3` 15px (body), `--fs-4` 18px, `--fs-5` 22px, `--fs-6` 30px, `--fs-7` 40px (display). A size computed from a component's own size, like the spice digits or the force star, stays a `calc()`.
+- **Spacing** (margin, padding, gap, and offsets that act as spacing): `--s-0` 2px for hairline gaps, `--s-1` 4px, `--s-2` 8px, `--s-3` 12px, `--s-4` 16px, `--s-5` 24px, `--s-6` 32px, and `--s-7` 48px and `--s-8` 64px for page layout. A negative margin is `calc(-1 * var(--s-2))`. A -1px that pulls a box over its neighbour's border stays -1px.
+- **Radii:** `--r-1` 3px, `--r-2` 6px, `--r-3` 12px, `--r-pill` for pills and other round-ended shapes, `--r-round` for circles.
+- **Colours:** the palette sampled from the map and the faction colours, plus named colours for everything else. A translucent colour is named by what it is and how opaque: `--wash-dark-55` is `--ink-0` at 55%, `--shade-35` is black at 35%, `--hairline` is the light line on ink surfaces.
+
+Sizes that are geometry, not spacing, stay literal: widths and heights, icon and art sizes, positions of carets and markers worked out from art, and the checkbox's em-based hang.
+
 Ids stay as hooks where scripts look for them (`#mapdiv`, `#tip`, `#printSection`). The server emits some of these classes in its HTML (`rust/skin/src/skin.rs`: chips, spice amounts, popover bodies), so renaming one of those changes the views the harness compares.
 
 Behavior that a framework's script used to provide is our own TypeScript:

@@ -126,7 +126,7 @@ function Shield({ me, pub }: { me: PrivatePlayer; pub: PublicPlayer }) {
 
       {me.nexus !== null && (
         <div className="pp-extras">Nexus: <Image width={30} alt="" src={skin.url(skin.get("FactionFacedownImage_URL", me.nexus))}
-          popover={`<div class='pop-art'><img src='${skin.get("NexusCardImage_URL", me.nexus)}'/></div>`} /></div>
+          popover={`<div class='pop-art'><img class='pop-art__img' src='${skin.get("NexusCardImage_URL", me.nexus)}'/></div>`} /></div>
       )}
     </>
   );

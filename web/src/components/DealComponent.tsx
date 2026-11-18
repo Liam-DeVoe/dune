@@ -25,7 +25,7 @@ export function DealComponent({ open = false }: { open?: boolean }) {
     void source.submit(e as Event);
   };
   return (
-    <div className="card mb-2" style={open ? undefined : { animation: "fadeIn 1s" }}>
+    <div className="card deals" style={open ? undefined : { animation: "fadeIn 1s" }}>
       <div className="card-header" onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer" }}>
         Deals{" "}
         {d.acceptable.length > 0 && <><span className="badge bg-warning" title="Deals offered to you">{d.acceptable.length}</span>{" "}</>}
@@ -44,10 +44,10 @@ export function DealComponent({ open = false }: { open?: boolean }) {
                     <tr key={`a${o.id}`} className={`table-dark ${m.markedDeal === o.id ? "deal-marked" : ""}`}>
                       <td><FactionChip faction={o.initiator} /></td>
                       <td><SpiceComponent amount={String(o.price)} /></td>
-                      <td className="text-break"><RichText parts={o.description} /></td>
+                      <td className="deals__text"><RichText parts={o.description} /></td>
                       <td>
                         <button className="btn btn-primary btn-sm" onClick={() => submit(o.accept, o.id)} disabled={o.acceptError !== null}>Accept</button>{" "}
-                        <button className="btn btn-secondary btn-sm ms-1" onClick={() => submit(o.decline, o.id)}>Decline</button>
+                        <button className="btn btn-secondary btn-sm deals__decline" onClick={() => submit(o.decline, o.id)}>Decline</button>
                       </td>
                     </tr>
                   ))}
@@ -55,7 +55,7 @@ export function DealComponent({ open = false }: { open?: boolean }) {
                     <tr key={`c${o.id}`} className="table-dark">
                       <td><FactionChip faction={o.initiator} /></td>
                       <td><SpiceComponent amount={String(o.price)} /></td>
-                      <td className="text-break">
+                      <td className="deals__text">
                         <RichText parts={o.description} />
                         <div className="deal-answers">
                           {o.answers.map((a) => {
@@ -87,10 +87,10 @@ export function DealComponent({ open = false }: { open?: boolean }) {
                 <tbody>
                   {d.current.map((deal, i) => (
                     <tr key={i} className="table-dark">
-                      <td className="p-0">
+                      <td className="deals__parties">
                         <FactionChip faction={deal.bound} />{" ⇒ "}<FactionChip faction={deal.consuming} />
                       </td>
-                      <td className="text-break"><RichText parts={deal.description} /></td>
+                      <td className="deals__text"><RichText parts={deal.description} /></td>
                     </tr>
                   ))}
                 </tbody>

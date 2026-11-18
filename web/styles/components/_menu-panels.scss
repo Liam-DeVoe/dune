@@ -1,0 +1,13 @@
+// The panels the menu bar opens above the action stack (MenuPanels.tsx).
+.menu-panels {
+  // A saved game that failed to load, in the guide's error red.
+  &__error {
+    font-size: 0.875em;
+    color: #e46b6b;
+  }
+
+  &__clear {
+    margin-top: 0.25rem;
+    margin-bottom: 0.5rem;
+  }
+}
